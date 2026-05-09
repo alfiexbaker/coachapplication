@@ -3,7 +3,8 @@ import { useLocalSearchParams } from 'expo-router';
 
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/hooks/use-auth';
-import { onTyped, ServiceEvents } from '@/services/event-bus';
+import { useScreen } from '@/hooks/use-screen';
+import { ServiceEvents } from '@/services/event-bus';
 import {
   orgHeadCoachService,
   type HeadCoachCompletionItem,
@@ -16,6 +17,7 @@ import { socialFeedService } from '@/services/social-feed-service';
 import type { ClubMembership, ClubRole } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { isClubOversightRole } from '@/contracts/club-governance';
+import { err, ok, serviceError, type Result, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useHeadCoachOversight');
 
@@ -24,6 +26,18 @@ interface OversightClubOption {
   name: string;
   role: ClubRole;
 }
+
+interface HeadCoachOversightScreenData {
+  clubs: OversightClubOption[];
+  resolvedSelectedClubId: string | null;
+  data: HeadCoachOversightData | null;
+}
+
+const EMPTY_OVERSIGHT_SCREEN_DATA: HeadCoachOversightScreenData = {
+  clubs: [],
+  resolvedSelectedClubId: null,
+  data: null,
+};
 
 function isEligibleMembership(membership: ClubMembership): boolean {
   return membership.status === 'active' && isClubOversightRole(membership.role);
@@ -35,30 +49,13 @@ export function useHeadCoachOversight() {
   const { clubId: routeClubId } = useLocalSearchParams<{ clubId?: string }>();
   const requestedClubId = typeof routeClubId === 'string' ? routeClubId : null;
 
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [clubs, setClubs] = useState<OversightClubOption[]>([]);
   const [selectedClubId, setSelectedClubId] = useState<string | null>(null);
-  const [data, setData] = useState<HeadCoachOversightData | null>(null);
   const [mutatingKey, setMutatingKey] = useState<string | null>(null);
 
   const loadOversight = useCallback(
-    async (mode: 'initial' | 'refresh' = 'initial') => {
+    async (): Promise<Result<HeadCoachOversightScreenData, ServiceError>> => {
       if (!currentUser?.id) {
-        setClubs([]);
-        setSelectedClubId(null);
-        setData(null);
-        setErrorMessage(null);
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
-
-      if (mode === 'refresh') {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
+        return ok(EMPTY_OVERSIGHT_SCREEN_DATA);
       }
 
       try {
@@ -86,13 +83,12 @@ export function useHeadCoachOversight() {
               ? requestedClubId
               : (nextClubs[0]?.id ?? null);
 
-        setClubs(nextClubs);
-        setSelectedClubId(nextSelectedClubId);
-
         if (!nextSelectedClubId) {
-          setData(null);
-          setErrorMessage(null);
-          return;
+          return ok({
+            clubs: nextClubs,
+            resolvedSelectedClubId: null,
+            data: null,
+          });
         }
 
         const result = await orgHeadCoachService.getOversightData(
@@ -100,82 +96,56 @@ export function useHeadCoachOversight() {
           currentUser.id,
         );
         if (!result.success) {
-          setData(null);
-          setErrorMessage(result.error.message);
-          return;
+          return err(result.error);
         }
 
-        setData(result.data);
-        setErrorMessage(null);
+        return ok({
+          clubs: nextClubs,
+          resolvedSelectedClubId: nextSelectedClubId,
+          data: result.data,
+        });
       } catch (error) {
         logger.error('Failed to load head coach oversight hook', error);
-        setData(null);
-        setErrorMessage('Failed to load head coach oversight');
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
+        return err(serviceError('UNKNOWN', 'Failed to load head coach oversight', error));
       }
     },
     [currentUser?.id, requestedClubId, selectedClubId],
   );
 
-  useEffect(() => {
-    void loadOversight();
-  }, [loadOversight]);
+  const { data: screenData, status, error, refreshing, onRefresh, retry } =
+    useScreen<HeadCoachOversightScreenData>({
+      load: loadOversight,
+      deps: [currentUser?.id, requestedClubId, selectedClubId],
+      events: [
+        ServiceEvents.BOOKING_UPDATED,
+        ServiceEvents.SESSION_UPDATED,
+        ServiceEvents.SESSION_FEEDBACK_SAVED,
+        ServiceEvents.RESULTS_PROGRAM_TASK_COMPLETED,
+        ServiceEvents.RESULTS_PROGRAM_TASK_RESCHEDULED,
+        ServiceEvents.ORG_HEAD_COACH_TASK_UPDATED,
+        ServiceEvents.ORG_HEAD_COACH_STANDARD_UPDATED,
+        ServiceEvents.CLUB_MEMBER_JOINED,
+        ServiceEvents.CLUB_MEMBER_LEFT,
+        ServiceEvents.SQUAD_MEMBER_ADDED,
+        ServiceEvents.SQUAD_MEMBER_REMOVED,
+      ],
+      isEmpty: () => false,
+      refetchOnFocus: true,
+      loadingStrategy: 'section-skeleton',
+      dataKey: `head-coach-oversight:${currentUser?.id ?? 'guest'}:${selectedClubId ?? requestedClubId ?? 'default'}`,
+    });
 
   useEffect(() => {
-    const unsubscribes = [
-      onTyped(ServiceEvents.BOOKING_UPDATED, () => {
-        void loadOversight('refresh');
-      }),
-      onTyped(ServiceEvents.SESSION_UPDATED, () => {
-        void loadOversight('refresh');
-      }),
-      onTyped(ServiceEvents.SESSION_FEEDBACK_SAVED, () => {
-        void loadOversight('refresh');
-      }),
-      onTyped(ServiceEvents.RESULTS_PROGRAM_TASK_COMPLETED, () => {
-        void loadOversight('refresh');
-      }),
-      onTyped(ServiceEvents.RESULTS_PROGRAM_TASK_RESCHEDULED, () => {
-        void loadOversight('refresh');
-      }),
-      onTyped(ServiceEvents.ORG_HEAD_COACH_TASK_UPDATED, (payload) => {
-        if (payload.clubId === selectedClubId) {
-          void loadOversight('refresh');
-        }
-      }),
-      onTyped(ServiceEvents.ORG_HEAD_COACH_STANDARD_UPDATED, (payload) => {
-        if (payload.clubId === selectedClubId) {
-          void loadOversight('refresh');
-        }
-      }),
-      onTyped(ServiceEvents.CLUB_MEMBER_JOINED, (payload) => {
-        if (payload.clubId === selectedClubId) {
-          void loadOversight('refresh');
-        }
-      }),
-      onTyped(ServiceEvents.CLUB_MEMBER_LEFT, (payload) => {
-        if (payload.clubId === selectedClubId) {
-          void loadOversight('refresh');
-        }
-      }),
-      onTyped(ServiceEvents.SQUAD_MEMBER_ADDED, (payload) => {
-        if (payload.clubId === selectedClubId) {
-          void loadOversight('refresh');
-        }
-      }),
-      onTyped(ServiceEvents.SQUAD_MEMBER_REMOVED, (payload) => {
-        if (payload.clubId === selectedClubId) {
-          void loadOversight('refresh');
-        }
-      }),
-    ];
+    const resolvedSelectedClubId = screenData?.resolvedSelectedClubId ?? null;
+    if (resolvedSelectedClubId !== selectedClubId) {
+      setSelectedClubId(resolvedSelectedClubId);
+    }
+  }, [screenData?.resolvedSelectedClubId, selectedClubId]);
 
-    return () => {
-      unsubscribes.forEach((unsubscribe) => unsubscribe());
-    };
-  }, [loadOversight, selectedClubId]);
+  const oversightData = screenData ?? EMPTY_OVERSIGHT_SCREEN_DATA;
+  const clubs = oversightData.clubs;
+  const activeSelectedClubId = selectedClubId ?? oversightData.resolvedSelectedClubId;
+  const data = oversightData.data;
 
   const runMutation = useCallback(
     async (key: string, action: () => Promise<boolean>, failureMessage: string) => {
@@ -194,12 +164,12 @@ export function useHeadCoachOversight() {
 
   const issueSessionNoteExpectation = useCallback(
     async (item: HeadCoachCompletionItem) => {
-      if (!currentUser?.id || !selectedClubId) return;
+      if (!currentUser?.id || !activeSelectedClubId) return;
       await runMutation(
         `completion:${item.bookingId}`,
         async () => {
           const result = await orgHeadCoachService.createTask({
-            clubId: selectedClubId,
+            clubId: activeSelectedClubId,
             actorUserId: currentUser.id,
             coachId: item.coachId,
             type: 'session_note_expectation',
@@ -213,23 +183,23 @@ export function useHeadCoachOversight() {
             return false;
           }
           showToast(`Session-note task issued to ${item.coachName}`, 'success');
-          await loadOversight('refresh');
+          onRefresh();
           return true;
         },
         'Failed to issue session-note task',
       );
     },
-    [currentUser?.id, loadOversight, runMutation, selectedClubId, showToast],
+    [activeSelectedClubId, currentUser?.id, onRefresh, runMutation, showToast],
   );
 
   const issueRequiredFollowUp = useCallback(
     async (item: HeadCoachWatchlistItem) => {
-      if (!currentUser?.id || !selectedClubId) return;
+      if (!currentUser?.id || !activeSelectedClubId) return;
       await runMutation(
         `watch:${item.coachId}:${item.athleteId}`,
         async () => {
           const result = await orgHeadCoachService.createTask({
-            clubId: selectedClubId,
+            clubId: activeSelectedClubId,
             actorUserId: currentUser.id,
             coachId: item.coachId,
             type: 'required_follow_up',
@@ -243,24 +213,24 @@ export function useHeadCoachOversight() {
             return false;
           }
           showToast(`Follow-up task issued to ${item.coachName}`, 'success');
-          await loadOversight('refresh');
+          onRefresh();
           return true;
         },
         'Failed to issue follow-up task',
       );
     },
-    [currentUser?.id, loadOversight, runMutation, selectedClubId, showToast],
+    [activeSelectedClubId, currentUser?.id, onRefresh, runMutation, showToast],
   );
 
   const toggleTaskStatus = useCallback(
     async (task: HeadCoachTask) => {
-      if (!currentUser?.id || !selectedClubId) return;
+      if (!currentUser?.id || !activeSelectedClubId) return;
       const nextStatus = task.status === 'open' ? 'done' : 'open';
       await runMutation(
         `task:${task.id}`,
         async () => {
           const result = await orgHeadCoachService.setTaskStatus({
-            clubId: selectedClubId,
+            clubId: activeSelectedClubId,
             actorUserId: currentUser.id,
             taskId: task.id,
             status: nextStatus,
@@ -270,23 +240,23 @@ export function useHeadCoachOversight() {
             return false;
           }
           showToast(nextStatus === 'done' ? 'Task marked complete' : 'Task reopened', 'success');
-          await loadOversight('refresh');
+          onRefresh();
           return true;
         },
         'Failed to update task',
       );
     },
-    [currentUser?.id, loadOversight, runMutation, selectedClubId, showToast],
+    [activeSelectedClubId, currentUser?.id, onRefresh, runMutation, showToast],
   );
 
   const toggleStandard = useCallback(
     async (standard: HeadCoachStandard) => {
-      if (!currentUser?.id || !selectedClubId) return;
+      if (!currentUser?.id || !activeSelectedClubId) return;
       await runMutation(
         `standard:${standard.id}`,
         async () => {
           const result = await orgHeadCoachService.toggleStandard({
-            clubId: selectedClubId,
+            clubId: activeSelectedClubId,
             actorUserId: currentUser.id,
             standardId: standard.id,
           });
@@ -295,25 +265,25 @@ export function useHeadCoachOversight() {
             return false;
           }
           showToast(result.data.active ? 'Standard activated' : 'Standard paused', 'success');
-          await loadOversight('refresh');
+          onRefresh();
           return true;
         },
         'Failed to update standard',
       );
     },
-    [currentUser?.id, loadOversight, runMutation, selectedClubId, showToast],
+    [activeSelectedClubId, currentUser?.id, onRefresh, runMutation, showToast],
   );
 
   const createStandard = useCallback(
     async (title: string, description?: string) => {
-      if (!currentUser?.id || !selectedClubId) return false;
+      if (!currentUser?.id || !activeSelectedClubId) return false;
 
       let success = false;
       await runMutation(
         'standard:create',
         async () => {
           const result = await orgHeadCoachService.createStandard({
-            clubId: selectedClubId,
+            clubId: activeSelectedClubId,
             actorUserId: currentUser.id,
             title,
             description,
@@ -323,7 +293,7 @@ export function useHeadCoachOversight() {
             return false;
           }
           showToast('Checklist item added', 'success');
-          await loadOversight('refresh');
+          onRefresh();
           success = true;
           return true;
         },
@@ -331,28 +301,30 @@ export function useHeadCoachOversight() {
       );
       return success;
     },
-    [currentUser?.id, loadOversight, runMutation, selectedClubId, showToast],
+    [activeSelectedClubId, currentUser?.id, onRefresh, runMutation, showToast],
   );
 
   const selectedClubRole = useMemo(
     () =>
-      data?.viewerMembership.role ?? clubs.find((club) => club.id === selectedClubId)?.role ?? null,
-    [clubs, data?.viewerMembership.role, selectedClubId],
+      data?.viewerMembership.role ??
+      clubs.find((club) => club.id === activeSelectedClubId)?.role ??
+      null,
+    [activeSelectedClubId, clubs, data?.viewerMembership.role],
   );
 
   return {
-    loading,
+    loading: status === 'loading',
+    status,
     refreshing,
-    errorMessage,
+    error: status === 'error' ? error : null,
+    retry,
     clubs,
-    selectedClubId,
+    selectedClubId: activeSelectedClubId,
     setSelectedClubId,
     selectedClubRole,
     data,
     mutatingKey,
-    handleRefresh: () => {
-      void loadOversight('refresh');
-    },
+    handleRefresh: onRefresh,
     issueSessionNoteExpectation,
     issueRequiredFollowUp,
     toggleTaskStatus,

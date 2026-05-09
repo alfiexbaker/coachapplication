@@ -341,7 +341,7 @@ export default function HeadCoachOversightScreen() {
     );
   }
 
-  if (oversight.errorMessage && !oversight.data) {
+  if (oversight.status === 'error' && !oversight.data) {
     return (
       <PageContainer
         header={
@@ -352,7 +352,12 @@ export default function HeadCoachOversightScreen() {
           />
         }
       >
-        <ErrorState message={oversight.errorMessage} onRetry={oversight.handleRefresh} />
+        <ErrorState
+          title="Oversight unavailable"
+          message={oversight.error?.message ?? 'Failed to load head coach oversight.'}
+          error={oversight.error ?? undefined}
+          onRetry={oversight.retry}
+        />
       </PageContainer>
     );
   }

@@ -7,7 +7,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
-import { EmptyState, LoadingState } from '@/components/ui/screen-states';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useManageBookings } from '@/hooks/use-manage-bookings';
@@ -66,6 +66,21 @@ export default function ManageBookingsScreen() {
     );
   }
 
+  if (consoleState.status === 'error') {
+    return (
+      <PageContainer
+        header={<PageHeader title="Staffing Console" subtitle="Assign, reassign, monitor" showBack />}
+      >
+        <ErrorState
+          title="Staffing console unavailable"
+          message={consoleState.error?.message ?? 'Failed to load staffing console.'}
+          error={consoleState.error ?? undefined}
+          onRetry={consoleState.retry}
+        />
+      </PageContainer>
+    );
+  }
+
   const actionDisabled = !consoleState.canLaunch;
   const staffingReadOnly =
     Boolean(consoleState.selectedClubId) && !consoleState.canManageAssignments;
@@ -75,6 +90,8 @@ export default function ManageBookingsScreen() {
       header={
         <PageHeader title="Staffing Console" subtitle="Org work allocation and quick actions" showBack />
       }
+      refreshing={consoleState.refreshing}
+      onRefresh={consoleState.handleRefresh}
     >
       <SurfaceCard style={styles.sectionCard}>
         <ThemedText style={styles.sectionTitle}>Org Context</ThemedText>

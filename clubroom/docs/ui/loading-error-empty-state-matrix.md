@@ -1,6 +1,6 @@
 # Loading Error Empty-State Matrix
 
-Validated: 2026-04-22
+Validated: 2026-05-09
 Purpose: define the default screen-state pattern so new screens stay consistent and agents know which primitives to reuse.
 
 ## Canonical Sources
@@ -213,6 +213,7 @@ Source of truth:
 - Group session list/detail/roster and match list/detail reads now continue `UI-LOAD-07` with warm-first or keyed section-skeleton loading, and the group-session list keeps its header/filter chrome mounted during loading and error states.
 - Video upload and detail now close the media-proof part of `UI-LOAD-07`: upload uses explicit backend stages instead of fake progress, selected files are clearly local-only until upload completes, and video detail uses keyed section-skeleton loading with stable failure chrome.
 - `UI-LOAD-07` is now closed: coach development, athlete development detail, and session feedback no longer own manual `setLoading` state; they use the shared keyed screen-state machine, stable headers, retryable errors, and retained refresh behavior.
+- `UI-LOAD-08` ops work has started: manage bookings and head-coach oversight now use `useScreen` with keyed section-skeleton loading, retryable errors, retained refresh behavior, and shared event-driven reloads instead of bespoke `setLoading`/`setRefreshing` state machines.
 - Route classification and hot-path review closure now live in `navigation/loading-route-manifest.js`, with repo-level coverage enforced by `scripts/loading-route-coverage-audit.js`.
 - Domain-specific wrappers exist, but the repo still has drift between shared loading variants and bespoke per-screen placeholders.
 - New work should consolidate toward the shared primitives above instead of adding another custom loading pattern.
