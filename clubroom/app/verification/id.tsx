@@ -8,6 +8,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
+import { PageHeader } from '@/components/primitives/page-header';
 import { VerificationScreenState } from '@/components/verification/verification-screen-state';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -33,6 +34,7 @@ export default function IdUploadScreen() {
     handleSubmit,
     handleMockApprove,
   } = useIdVerification();
+  const header = <PageHeader title="ID Verification" showBack onBackPress={() => router.back()} />;
 
   return (
     <VerificationScreenState
@@ -45,18 +47,12 @@ export default function IdUploadScreen() {
       emptyTitle="Verification unavailable"
       emptyMessage="ID verification data is currently unavailable."
       isEmpty={!status}
+      header={header}
     >
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <Row align="center" gap="sm" style={styles.header}>
-          <Clickable onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </Clickable>
-          <ThemedText type="title">ID Verification</ThemedText>
-        </Row>
-
         {isVerified ? (
           <StatusCard
             icon="checkmark-circle"
@@ -210,8 +206,6 @@ function StatusCard({
 
 const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
-  header: {},
-  backButton: { padding: Spacing.xs, marginLeft: -Spacing.xs },
   statusCard: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xl },
   statusIcon: {
     width: 80,

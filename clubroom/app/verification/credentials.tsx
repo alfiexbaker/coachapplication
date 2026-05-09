@@ -5,8 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
+import { PageHeader } from '@/components/primitives/page-header';
 import { CredentialCard } from '@/components/verification/credential-card';
 import { CredentialForm } from '@/components/verification/credential-form';
 import { VerificationScreenState } from '@/components/verification/verification-screen-state';
@@ -38,6 +38,24 @@ export default function CredentialsScreen() {
     handleSubmit,
     resetForm,
   } = useCredentials();
+  const header = (
+    <PageHeader
+      title="Credentials"
+      showBack
+      onBackPress={() => router.back()}
+      right={
+        !showForm ? (
+          <Clickable
+            accessibilityLabel="Add credential"
+            onPress={() => setShowForm(true)}
+            style={[styles.addButton, { backgroundColor: colors.tint }]}
+          >
+            <Ionicons name="add" size={20} color={colors.onPrimary} />
+          </Clickable>
+        ) : undefined
+      }
+    />
+  );
 
   return (
     <VerificationScreenState
@@ -50,29 +68,12 @@ export default function CredentialsScreen() {
       emptyTitle="Credentials unavailable"
       emptyMessage="Credential data is currently unavailable."
       isEmpty={!status}
+      header={header}
     >
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <Row gap="sm" align="center">
-          <Clickable onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </Clickable>
-          <Column flex>
-            <ThemedText type="title">Credentials</ThemedText>
-          </Column>
-          {!showForm && (
-            <Clickable
-              accessibilityLabel="Add credential"
-              onPress={() => setShowForm(true)}
-              style={[styles.addButton, { backgroundColor: colors.tint }]}
-            >
-              <Ionicons name="add" size={20} color={colors.onPrimary} />
-            </Clickable>
-          )}
-        </Row>
-
         <ThemedText style={{ color: colors.muted }}>
           Upload your coaching qualifications and certifications to verify your expertise.
         </ThemedText>
@@ -149,7 +150,6 @@ export default function CredentialsScreen() {
 
 const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
-  backButton: { padding: Spacing.xs, marginLeft: -Spacing.xs },
   addButton: {
     width: 36,
     height: 36,

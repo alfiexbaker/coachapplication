@@ -8,6 +8,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
+import { PageHeader } from '@/components/primitives/page-header';
 import { VerificationScreenState } from '@/components/verification/verification-screen-state';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -28,6 +29,7 @@ export default function BackgroundCheckScreen() {
     handleStartCheck,
     handleMockApprove,
   } = useBackgroundCheck();
+  const header = <PageHeader title="Background Check" showBack onBackPress={() => router.back()} />;
 
   return (
     <VerificationScreenState
@@ -40,18 +42,12 @@ export default function BackgroundCheckScreen() {
       emptyTitle="Verification unavailable"
       emptyMessage="Background check data is currently unavailable."
       isEmpty={!status}
+      header={header}
     >
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <Row align="center" gap="sm">
-          <Clickable onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </Clickable>
-          <ThemedText type="title">Background Check</ThemedText>
-        </Row>
-
         {isVerified ? (
           <SurfaceCard style={styles.statusCard}>
             <View style={[styles.statusIcon, { backgroundColor: withAlpha(colors.success, 0.09) }]}>
@@ -203,7 +199,6 @@ function InfoRow({
 
 const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
-  backButton: { padding: Spacing.xs, marginLeft: -Spacing.xs },
   statusCard: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xl },
   statusIcon: {
     width: 80,

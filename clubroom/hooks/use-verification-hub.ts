@@ -48,8 +48,11 @@ export function useVerificationHub() {
     retry,
   } = useScreen<VerificationStatus>({
     load: loadStatus,
+    deps: [coachId],
     isEmpty: () => false,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: coachId ? `verification-hub:${coachId}` : 'verification-hub:missing',
   });
 
   const loading = screenStatus === 'loading';

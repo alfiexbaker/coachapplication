@@ -66,8 +66,11 @@ export function useBackgroundCheck() {
     retry,
   } = useScreen<VerificationStatus>({
     load: loadStatus,
+    deps: [coachId],
     isEmpty: () => false,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: coachId ? `verification-background:${coachId}` : 'verification-background:missing',
   });
 
   const loading = screenStatus === 'loading';

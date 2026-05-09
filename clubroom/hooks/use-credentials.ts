@@ -79,8 +79,11 @@ export function useCredentials() {
     retry,
   } = useScreen<VerificationStatus>({
     load: loadStatus,
+    deps: [coachId],
     isEmpty: () => false,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: coachId ? `verification-credentials:${coachId}` : 'verification-credentials:missing',
   });
 
   const loading = screenStatus === 'loading';

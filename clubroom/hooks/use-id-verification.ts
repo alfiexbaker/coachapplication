@@ -64,8 +64,11 @@ export function useIdVerification() {
     retry,
   } = useScreen<VerificationStatus>({
     load: loadStatus,
+    deps: [coachId],
     isEmpty: () => false,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: coachId ? `verification-id:${coachId}` : 'verification-id:missing',
   });
 
   const loading = screenStatus === 'loading';

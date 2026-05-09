@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { PageHeader } from '@/components/primitives/page-header';
 
 import { VerificationBadge } from '@/components/verification/verification-badge';
 import { VerificationItemRow } from '@/components/verification/verification-item-row';
@@ -27,6 +28,7 @@ export default function VerificationHubScreen() {
     hasCredentials,
     credentialStatus,
   } = useVerificationHub();
+  const header = <PageHeader title="Verification" subtitle="Build trust with parents" />;
 
   if (!status) {
     return (
@@ -40,6 +42,7 @@ export default function VerificationHubScreen() {
         emptyTitle="Verification unavailable"
         emptyMessage="Verification status is currently unavailable."
         isEmpty
+        header={header}
       >
         <></>
       </VerificationScreenState>
@@ -65,18 +68,12 @@ export default function VerificationHubScreen() {
       emptyIcon="shield-checkmark-outline"
       emptyTitle="Verification unavailable"
       emptyMessage="Verification status is currently unavailable."
+      header={header}
     >
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <View style={styles.header}>
-          <ThemedText type="title">Verification</ThemedText>
-          <ThemedText style={{ color: palette.muted }}>
-            Complete your verification to build trust with parents
-          </ThemedText>
-        </View>
-
         <SurfaceCard style={styles.progressCard}>
           <Row justify="space-between" align="center">
             <View>
@@ -190,7 +187,6 @@ export default function VerificationHubScreen() {
 
 const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
-  header: { gap: Spacing.xs },
   progressCard: { gap: Spacing.sm },
   progressBarBg: { height: 8, borderRadius: Radii.xs, overflow: 'hidden' },
   progressBarFill: { height: '100%', borderRadius: Radii.xs },
