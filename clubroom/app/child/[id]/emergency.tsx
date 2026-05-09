@@ -44,6 +44,25 @@ export default function EmergencyContactsScreen() {
     closeForm,
     startEdit,
   } = useEmergencyContacts();
+  const header = (
+    <Row gap="sm" align="center" style={styles.header}>
+      <Clickable onPress={() => router.back()} style={styles.backButton}>
+        <Ionicons name="arrow-back" size={24} color={colors.text} />
+      </Clickable>
+      <Column flex>
+        <ThemedText type="title">Emergency Contacts</ThemedText>
+      </Column>
+      {!showForm && !editingContact && contacts.length > 0 && (
+        <Clickable
+          accessibilityLabel="Add emergency contact"
+          onPress={openForm}
+          style={[styles.addButton, { backgroundColor: colors.tint }]}
+        >
+          <Ionicons name="add" size={20} color={colors.onPrimary} />
+        </Clickable>
+      )}
+    </Row>
+  );
 
   if (!childIdParam.valid) {
     return (
@@ -52,6 +71,7 @@ export default function EmergencyContactsScreen() {
         status="error"
         errorMessage="Invalid emergency contacts link."
         onRetry={() => router.back()}
+        header={header}
       />
     );
   }
@@ -63,7 +83,8 @@ export default function EmergencyContactsScreen() {
         status="loading"
         errorMessage="Failed to load emergency contacts."
         onRetry={retry}
-        loadingVariant="detail"
+        header={header}
+        loadingVariant="card"
       />
     );
   }
@@ -75,6 +96,7 @@ export default function EmergencyContactsScreen() {
         status="error"
         errorMessage={error?.message ?? 'Failed to load emergency contacts.'}
         onRetry={retry}
+        header={header}
       />
     );
   }
@@ -85,6 +107,7 @@ export default function EmergencyContactsScreen() {
       status="ready"
       errorMessage="Failed to load emergency contacts."
       onRetry={retry}
+      header={header}
     >
       <ScrollView
         contentContainerStyle={styles.content}
@@ -92,24 +115,6 @@ export default function EmergencyContactsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />
         }
       >
-        <Row gap="sm" align="center">
-          <Clickable onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </Clickable>
-          <Column flex>
-            <ThemedText type="title">Emergency Contacts</ThemedText>
-          </Column>
-          {!showForm && !editingContact && contacts.length > 0 && (
-            <Clickable
-              accessibilityLabel="Add emergency contact"
-              onPress={openForm}
-              style={[styles.addButton, { backgroundColor: colors.tint }]}
-            >
-              <Ionicons name="add" size={20} color={colors.onPrimary} />
-            </Clickable>
-          )}
-        </Row>
-
         <ThemedText style={{ color: colors.muted }}>
           Emergency contacts will be notified in case of any incidents during sessions.
         </ThemedText>
@@ -157,6 +162,7 @@ export default function EmergencyContactsScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.sm },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   backButton: { padding: Spacing.xs, marginLeft: -Spacing.xs },
   addButton: {

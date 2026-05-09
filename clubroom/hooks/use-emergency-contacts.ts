@@ -43,6 +43,8 @@ export function useEmergencyContacts() {
     deps: [id],
     isEmpty: () => false,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: id ? `child-emergency:${id}` : 'child-emergency:missing',
   });
 
   const info = data?.info ?? null;

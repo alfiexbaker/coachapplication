@@ -205,6 +205,7 @@ Source of truth:
 - Club detail pull-to-refresh preserves the already-loaded club workspace instead of re-entering the cold detail loader, and club calendar month/filter changes keep the header, squad filter, month navigation, and legend mounted while only the unresolved calendar grid skeletonizes.
 - Event detail now keeps the event header mounted for invalid, error, and not-found states instead of dropping into a headerless failure surface.
 - Family recurring and guardian-sharing routes now opt into retained family frames and use trust-card-shaped first-load placeholders instead of generic list/detail loading.
+- Child medical and emergency-contact routes now keep their child-specific header/action chrome mounted for loading and error states, with keyed section-skeleton loading for sensitive child records.
 - Route classification and hot-path review closure now live in `navigation/loading-route-manifest.js`, with repo-level coverage enforced by `scripts/loading-route-coverage-audit.js`.
 - Domain-specific wrappers exist, but the repo still has drift between shared loading variants and bespoke per-screen placeholders.
 - New work should consolidate toward the shared primitives above instead of adding another custom loading pattern.

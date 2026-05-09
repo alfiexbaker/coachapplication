@@ -11,6 +11,7 @@ interface ChildScreenStateProps {
   errorMessage: string;
   onRetry: () => void;
   loadingVariant?: LoadingVariant;
+  header?: ReactNode;
   children?: ReactNode;
 }
 
@@ -20,10 +21,12 @@ export function ChildScreenState({
   errorMessage,
   onRetry,
   loadingVariant = 'detail',
+  header,
   children,
 }: ChildScreenStateProps) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top', 'bottom']}>
+      {header}
       {status === 'loading' ? (
         <LoadingState variant={loadingVariant} />
       ) : status === 'error' ? (

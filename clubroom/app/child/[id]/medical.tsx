@@ -58,6 +58,14 @@ export default function MedicalInfoScreen() {
     addRestriction,
     removeRestriction,
   } = useMedicalInfo();
+  const header = (
+    <Row gap="sm" align="center" style={styles.header}>
+      <Clickable onPress={() => router.back()} style={styles.backButton}>
+        <Ionicons name="arrow-back" size={24} color={colors.text} />
+      </Clickable>
+      <ThemedText type="title">Medical Information</ThemedText>
+    </Row>
+  );
 
   if (loading) {
     return (
@@ -66,6 +74,7 @@ export default function MedicalInfoScreen() {
         status="loading"
         errorMessage="Failed to load medical information."
         onRetry={retry}
+        header={header}
         loadingVariant="form"
       />
     );
@@ -78,6 +87,7 @@ export default function MedicalInfoScreen() {
         status="error"
         errorMessage={error?.message ?? 'Failed to load medical information.'}
         onRetry={retry}
+        header={header}
         loadingVariant="form"
       />
     );
@@ -91,6 +101,7 @@ export default function MedicalInfoScreen() {
       status="ready"
       errorMessage="Failed to load medical information."
       onRetry={retry}
+      header={header}
     >
       <ScrollView
         contentContainerStyle={styles.content}
@@ -98,13 +109,6 @@ export default function MedicalInfoScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />
         }
       >
-        <Row gap="sm" align="center">
-          <Clickable onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </Clickable>
-          <ThemedText type="title">Medical Information</ThemedText>
-        </Row>
-
         <ThemedText style={{ color: colors.muted }}>
           Keep medical information up to date for the safety of your child during sessions.
         </ThemedText>
@@ -249,6 +253,7 @@ export default function MedicalInfoScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.sm },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   backButton: { padding: Spacing.xs, marginLeft: -Spacing.xs },
   noticeCard: { padding: Spacing.md },

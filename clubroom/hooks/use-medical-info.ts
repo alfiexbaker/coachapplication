@@ -63,6 +63,8 @@ export function useMedicalInfo() {
     deps: [id],
     isEmpty: () => false,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: id ? `child-medical:${id}` : 'child-medical:missing',
   });
 
   const handleConsentToggle = useCallback((type: ConsentType, granted: boolean) => {
