@@ -7,7 +7,6 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 | ID | Exactly what it does | Spine(s) | Status |
 | -- | -------------------- | -------- | ------ |
-| UI-LOAD-05 | Bring club, schedule, events, and calendar surfaces up to the same standard: no brochure skeletons, no cold resets, and no time-based screens loading like generic lists. | Community and Growth + Booking, Availability and Revenue | READY |
 | UI-LOAD-06 | Fix trust-sensitive and family surfaces: family, child, health, emergency, medical, verification, and related safeguarding-adjacent paths need strict, truthful, non-chaotic loading behavior. | Trust, Safety and Operations + Development and Analytics | READY |
 | UI-LOAD-07 | Bring development and training surfaces to the same bar: drills, goals, badges, results program, progress loop, media gallery, videos, group sessions, matches, and athlete development paths must stop feeling second-class. | Development and Analytics + Community and Growth | OPEN |
 | UI-LOAD-08 | Sweep ops, settings, finance, admin, and enforcement: availability, settings, invoices, payments, earnings, club setup/admin, manage, and remaining async routes must be classified and upgraded or explicitly marked static. | Trust, Safety and Operations + Booking, Availability and Revenue + Development and Analytics | OPEN |
@@ -15,11 +14,10 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 ## Execution Order
 
-1. `UI-LOAD-05`
-2. `UI-LOAD-06`
-3. `UI-LOAD-07`
-4. `UI-LOAD-08`
-5. `PROD-VERIFY-01`
+1. `UI-LOAD-06`
+2. `UI-LOAD-07`
+3. `UI-LOAD-08`
+4. `PROD-VERIFY-01`
 
 ## Active Pruning Plan
 
@@ -87,37 +85,6 @@ Decision:
   - later slices still need to replace generic implementations on their owned routes; classification closure is done, route-family migration is not
 
 ## Sprint Notes
-
-### `UI-LOAD-05`
-
-- Need:
-  - Bring schedule, events, club, and calendar surfaces up to the same standard: no brochure skeletons, no cold resets, no slow mixed scroll stacks pretending to be fine.
-  - Remove generic placeholder treatment from time-based surfaces where density and hierarchy matter.
-  - Fix the remaining “looks loaded but feels cheap” screens.
-- Touch first:
-  - `components/club/ClubScheduleScreen.tsx`
-  - `app/events/index.tsx`
-  - `app/events/[id].tsx`
-  - `app/club/[id].tsx`
-  - `app/club/[clubId]/calendar.tsx`
-  - `app/(tabs)/schedule.tsx`
-  - `app/club/[id]/schedule.tsx`
-  - `app/club/squad/[id]/schedule.tsx`
-  - `app/club/training-schedule.tsx`
-- Acceptance:
-  - Schedule and event placeholders reflect the real time-grid, card, or agenda structure that loads afterward.
-  - Club and event surfaces preserve headers and already-loaded sections during refresh.
-  - Remaining list or calendar seams do not read as second-class compared with Bookings or Feed.
-- Hard fail if:
-  - Calendar or schedule surfaces still drop to generic bars while the final UI is date-structured.
-  - Club or event detail refresh wipes out the header and action chrome.
-  - Time-based flows visibly jump or reshuffle before resolved content is ready.
-- Verify:
-  - `npm run typecheck`
-  - `npm run test:compile`
-  - `npm run ui:flows:coach-core`
-  - `npm run ui:flows:parent-core`
-  - `git diff --check`
 
 ### `UI-LOAD-06`
 

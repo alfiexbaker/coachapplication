@@ -4,13 +4,13 @@ Date: 2026-05-09
 
 ## Latest Planning Update
 
-1. Completed `PRUNE-VERIFY-01` by proving deleted route files/helpers are gone, Discover Map remains protected, and the reduced product passes the core UI-flow profiles.
-2. Removed stale UI-flow profile references to deleted athlete goals, skills, badges-gallery, and journal routes.
-3. Updated the active backlog so `UI-LOAD-05` is the next sprint.
+1. Closed `UI-LOAD-05` across club, schedule, events, and calendar surfaces.
+2. Fixed cold-load and warm-refresh seams so the target surfaces keep stable headers/chrome and use schedule, calendar, card, or detail-shaped placeholders instead of generic list/spinner treatment.
+3. Updated the active backlog so `UI-LOAD-06` is the next sprint.
 
 ## Next Exact Action
 
-1. Start `UI-LOAD-05`: upgrade club, schedule, events, and calendar loading behavior now that product pruning is complete.
+1. Start `UI-LOAD-06`: upgrade family, child, medical, emergency, health, and verification loading behavior.
 
 ## Previous Handoff
 
