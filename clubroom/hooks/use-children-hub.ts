@@ -126,6 +126,8 @@ export function useChildrenHub() {
     deps: [loadData],
     isEmpty: (value) => value.children.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'warm-first',
+    dataKey: currentUser?.id ? `children-hub:${currentUser.id}` : 'children-hub:signed-out',
   });
 
   const resolved = data ?? {

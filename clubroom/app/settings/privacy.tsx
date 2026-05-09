@@ -1,7 +1,8 @@
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 import { router } from 'expo-router';
 
 import { SettingsFormScreen, SettingsRow, SettingsToggleRow, SettingsSection } from '@/components/settings';
+import { LoadingState, SubmitProgressState } from '@/components/ui/screen-states';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
@@ -28,7 +29,7 @@ export default function PrivacySettingsScreen() {
   if (loading || !settings) {
     return (
       <SettingsFormScreen title="Privacy">
-        <ActivityIndicator color={palette.accent} />
+        <LoadingState variant="form" />
       </SettingsFormScreen>
     );
   }
@@ -181,7 +182,7 @@ export default function PrivacySettingsScreen() {
 
       {savingKey ? (
         <View>
-          <ActivityIndicator color={palette.accent} />
+          <SubmitProgressState label="Saving privacy setting..." />
         </View>
       ) : null}
     </SettingsFormScreen>

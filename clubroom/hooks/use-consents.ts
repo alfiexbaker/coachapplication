@@ -58,6 +58,8 @@ export function useConsents() {
     deps: [coachId, filters, searchQuery],
     isEmpty: (value) => value.consents.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: `consents:${coachId}:${searchQuery}:${filters.type ?? 'all'}:${filters.status ?? 'all'}`,
   });
 
   const consents = data?.consents ?? [];

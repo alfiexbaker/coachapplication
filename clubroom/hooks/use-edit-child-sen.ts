@@ -64,6 +64,8 @@ export function useEditChildSen() {
     load: loadChild,
     deps: [childId],
     isEmpty: (c) => !c,
+    loadingStrategy: 'section-skeleton',
+    dataKey: childId ? `edit-child-sen:${childId}` : 'edit-child-sen:missing',
     events: [ServiceEvents.CHILD_SEN_UPDATED],
   });
 

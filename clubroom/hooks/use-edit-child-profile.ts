@@ -74,6 +74,8 @@ export function useEditChildProfile() {
     load,
     deps: [childId],
     isEmpty: (value) => !value,
+    loadingStrategy: 'section-skeleton',
+    dataKey: childId ? `edit-child-profile:${childId}` : 'edit-child-profile:missing',
   });
 
   const validate = useCallback(() => {

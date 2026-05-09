@@ -24,7 +24,7 @@ import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
 import { useSpecialNeeds } from '@/hooks/use-special-needs';
 import { useCoachObservations } from '@/hooks/use-coach-observations';
-import { LoadingState, ErrorState } from '@/components/ui/screen-states';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 
 export default function SpecialNeedsScreen() {
   const { athleteId } = useLocalSearchParams<{ athleteId: string }>();
@@ -45,23 +45,34 @@ export default function SpecialNeedsScreen() {
   const obsHook = useCoachObservations(athleteId ?? '');
 
   const handleEditObs = (obs: Parameters<typeof obsHook.showModal>[0]) => obsHook.showModal(obs);
-
-  if (!athlete) return null;
+  const header = <PageHeader title="Special Needs" showBack centerTitle />;
 
   if (loading) {
     return (
-      <PageContainer>
-        <LoadingState variant="detail" />
+      <PageContainer edges={['top', 'bottom']} gap={Spacing.md} header={header}>
+        <LoadingState variant="hero" />
       </PageContainer>
     );
   }
 
   if (status === 'error') {
     return (
-      <PageContainer>
+      <PageContainer edges={['top', 'bottom']} gap={Spacing.md} header={header}>
         <ErrorState
           message={error?.message ?? 'Failed to load special needs profile.'}
           onRetry={retry}
+        />
+      </PageContainer>
+    );
+  }
+
+  if (!athlete) {
+    return (
+      <PageContainer edges={['top', 'bottom']} gap={Spacing.md} header={header}>
+        <EmptyState
+          icon="accessibility-outline"
+          title="Special needs unavailable"
+          message="We could not find this athlete profile."
         />
       </PageContainer>
     );
@@ -71,9 +82,7 @@ export default function SpecialNeedsScreen() {
     <PageContainer
       edges={['top', 'bottom']}
       gap={Spacing.md}
-      header={
-        <PageHeader title="Special Needs" showBack centerTitle />
-      }
+      header={header}
     >
       <SpecialNeedsHero
         name={athlete.name}

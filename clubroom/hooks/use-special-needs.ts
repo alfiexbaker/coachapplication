@@ -48,6 +48,8 @@ export function useSpecialNeeds() {
     deps: [athleteId],
     isEmpty: (value) => !value.athlete,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: athleteId ? `special-needs:${athleteId}` : 'special-needs:missing',
     events: [
       ServiceEvents.CHILD_SEN_UPDATED,
       ServiceEvents.COACH_OBSERVATION_CREATED,

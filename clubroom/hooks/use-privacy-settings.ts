@@ -39,6 +39,8 @@ export function usePrivacySettings() {
     deps: [userId],
     isEmpty: () => false,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: userId ? `privacy-settings:${userId}` : 'privacy-settings:missing',
   });
 
   useEffect(() => {
