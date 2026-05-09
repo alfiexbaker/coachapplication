@@ -94,6 +94,8 @@ export function useInjuries() {
     deps: [subjectId],
     isEmpty: (value) => value.injuries.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: subjectId ? `injuries:${subjectId}` : 'injuries:missing',
   });
 
   const injuries = data?.injuries ?? [];

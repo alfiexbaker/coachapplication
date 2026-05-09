@@ -25,40 +25,56 @@ export default function CoachAthleteHealthScreen() {
       {content}
     </SafeAreaView>
   );
+  const header = (
+    <Row align="center" gap="md" style={styles.header}>
+      <Clickable onPress={() => router.back()} accessibilityLabel="Go back" hitSlop={8}>
+        <Ionicons name="arrow-back" size={24} color={colors.text} />
+      </Clickable>
+      <View style={styles.headerCopy}>
+        <ThemedText type="title">Health Review</ThemedText>
+        <ThemedText style={{ color: colors.muted }}>
+          {h.athleteName ? `${h.athleteName}${h.parentName ? ` • ${h.parentName}` : ''}` : 'Loading athlete health'}
+        </ThemedText>
+      </View>
+    </Row>
+  );
 
   if (h.loading) {
-    return renderShell(<LoadingState variant="detail" />);
+    return renderShell(
+      <>
+        {header}
+        <LoadingState variant="card" />
+      </>,
+    );
   }
 
   if (h.status === 'error') {
-    return renderShell(<ErrorState message={h.error?.message ?? 'Failed to load athlete health.'} onRetry={h.retry} />);
+    return renderShell(
+      <>
+        {header}
+        <ErrorState message={h.error?.message ?? 'Failed to load athlete health.'} onRetry={h.retry} />
+      </>,
+    );
   }
 
   if (h.status === 'empty' || !h.athleteName) {
     return renderShell(
-      <EmptyState
-        icon="medkit-outline"
-        title="Health profile unavailable"
-        message="This athlete is not available in your roster or does not have a visible health record."
-        actionLabel="Back to roster"
-        onPressAction={() => router.back()}
-      />,
+      <>
+        {header}
+        <EmptyState
+          icon="medkit-outline"
+          title="Health profile unavailable"
+          message="This athlete is not available in your roster or does not have a visible health record."
+          actionLabel="Back to roster"
+          onPressAction={() => router.back()}
+        />
+      </>,
     );
   }
 
   return renderShell(
     <>
-      <Row align="center" gap="md" style={styles.header}>
-        <Clickable onPress={() => router.back()} accessibilityLabel="Go back" hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </Clickable>
-        <View style={styles.headerCopy}>
-          <ThemedText type="title">Health Review</ThemedText>
-          <ThemedText style={{ color: colors.muted }}>
-            {h.athleteName}{h.parentName ? ` • ${h.parentName}` : ''}
-          </ThemedText>
-        </View>
-      </Row>
+      {header}
 
       <ScrollView
         contentContainerStyle={styles.content}

@@ -103,6 +103,8 @@ export function useHealthHub() {
     deps: [subjectId],
     isEmpty: () => false,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: subjectId ? `health-hub:${subjectId}` : 'health-hub:missing',
   });
 
   const injuries = data?.injuries ?? [];

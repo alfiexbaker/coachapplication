@@ -47,6 +47,8 @@ export function useCoachAthleteHealth(athleteId: string) {
     deps: [coachId, athleteId],
     isEmpty: (value) => !value.athleteName,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: coachId && athleteId ? `coach-athlete-health:${coachId}:${athleteId}` : 'coach-athlete-health:missing',
   });
 
   const injuries = data?.injuries ?? [];

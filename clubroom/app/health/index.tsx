@@ -42,37 +42,48 @@ export default function HealthDashboardScreen() {
       {content}
     </SafeAreaView>
   );
+  const header = (
+    <Row gap="md" align="center" justify="between" style={styles.header}>
+      <Clickable onPress={() => router.back()} hitSlop={8}>
+        <Ionicons name="arrow-back" size={24} color={colors.text} />
+      </Clickable>
+      <ThemedText type="title" style={styles.headerTitle}>
+        Health
+      </ThemedText>
+      <Clickable
+        accessibilityLabel="Log injury"
+        onPress={handleLogInjury}
+        style={[styles.addButton, { backgroundColor: colors.tint }]}
+      >
+        <Ionicons name="add" size={24} color={colors.onPrimary} />
+      </Clickable>
+    </Row>
+  );
 
   if (loading) {
-    return renderShell(<LoadingState variant="detail" />);
+    return renderShell(
+      <>
+        {header}
+        <LoadingState variant="card" />
+      </>,
+    );
   }
 
   if (status === 'error') {
     return renderShell(
-      <ErrorState
-        message={error?.message ?? 'Failed to load health dashboard.'}
-        onRetry={retry}
-      />,
+      <>
+        {header}
+        <ErrorState
+          message={error?.message ?? 'Failed to load health dashboard.'}
+          onRetry={retry}
+        />
+      </>,
     );
   }
 
   return renderShell(
     <>
-      <Row gap="md" align="center" justify="between" style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </Clickable>
-        <ThemedText type="title" style={styles.headerTitle}>
-          Health
-        </ThemedText>
-        <Clickable
-          accessibilityLabel="Log injury"
-          onPress={handleLogInjury}
-          style={[styles.addButton, { backgroundColor: colors.tint }]}
-        >
-          <Ionicons name="add" size={24} color={colors.onPrimary} />
-        </Clickable>
-      </Row>
+      {header}
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
