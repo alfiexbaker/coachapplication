@@ -136,6 +136,10 @@ export function useMediaGallery(athleteIdParam?: string | null) {
     deps: [currentUser?.id, resolvedAthleteId],
     isEmpty: (value) => value.items.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: resolvedAthleteId
+      ? `media-gallery:${currentUser?.id ?? 'missing'}:${resolvedAthleteId}`
+      : `media-gallery:${currentUser?.id ?? 'missing'}:none`,
   });
 
   const items = useMemo(() => data?.items ?? [], [data?.items]);

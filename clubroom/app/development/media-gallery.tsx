@@ -117,7 +117,7 @@ export default function MediaGalleryScreen() {
     >
       <PageHeader title="Media Gallery" showBack centerTitle onBackPress={() => router.back()} />
 
-      {loading ? <LoadingState variant="detail" /> : null}
+      {loading ? <LoadingState variant="card" /> : null}
 
       {status === 'error' ? (
         <ErrorState message={error?.message ?? 'Unable to load media gallery.'} onRetry={retry} />

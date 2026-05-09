@@ -391,7 +391,7 @@ export default function MyProgressScreen() {
 
         <PageHeader title={pageTitle} showBack centerTitle onBackPress={() => router.back()} />
         {childFocusCard}
-        <LoadingState variant="form" />
+        <LoadingState variant="hero" />
       </SafeAreaView>
     );
   }

@@ -45,6 +45,14 @@ export default function AthleteDetailScreen() {
   const [editingPosition, setEditingPosition] = useState(false);
   const [savingPosition, setSavingPosition] = useState(false);
   const [positionDraft, setPositionDraft] = useState<PositionRole | null>(null);
+  const header = (
+    <PageHeader
+      title="Athlete Progress"
+      showBack
+      onBackPress={() => router.back()}
+      centerTitle
+    />
+  );
 
   useEffect(() => {
     setPositionDraft(childProfile?.primaryPosition ?? null);
@@ -105,15 +113,15 @@ export default function AthleteDetailScreen() {
 
   if (loading) {
     return (
-      <PageContainer>
-        <LoadingState variant="detail" />
+      <PageContainer edges={['top', 'bottom']} gap={Spacing.lg} header={header}>
+        <LoadingState variant="hero" />
       </PageContainer>
     );
   }
 
   if (!athlete || !currentUser) {
     return (
-      <PageContainer>
+      <PageContainer edges={['top', 'bottom']} gap={Spacing.lg} header={header}>
         <EmptyState
           icon="person-outline"
           title="Athlete not found"
@@ -127,14 +135,7 @@ export default function AthleteDetailScreen() {
       <PageContainer
         edges={['top', 'bottom']}
         gap={Spacing.lg}
-        header={
-          <PageHeader
-            title="Athlete Progress"
-            showBack
-            onBackPress={() => router.back()}
-            centerTitle
-          />
-        }
+        header={header}
       >
         <DevAthleteHero
           athleteName={athlete.name}

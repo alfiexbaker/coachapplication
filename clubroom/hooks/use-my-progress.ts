@@ -491,6 +491,10 @@ export function useMyProgress() {
     deps: [currentUser?.id, selectedAthleteId],
     isEmpty: (value) => !value.progress || !hasMeaningfulProgressData(value),
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: selectedAthleteId
+      ? `my-progress:${currentUser?.id ?? 'missing'}:${selectedAthleteId}`
+      : `my-progress:${currentUser?.id ?? 'missing'}:none`,
   });
 
   const progress = data?.progress ?? null;

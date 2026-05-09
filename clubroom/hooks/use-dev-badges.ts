@@ -167,6 +167,8 @@ export function useDevBadges() {
     deps: [currentUser?.id],
     isEmpty: () => false,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: currentUser?.id ? `dev-badges:${currentUser.id}` : 'dev-badges:missing',
   });
 
   const sessions = data?.sessions ?? [];

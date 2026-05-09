@@ -56,7 +56,7 @@ export default function BadgesScreen() {
           />
         }
       >
-        <LoadingState variant="list" />
+        <LoadingState variant="tab-pane" />
       </PageContainer>
     );
   }

@@ -209,6 +209,7 @@ Source of truth:
 - Health dashboard, injury center, and coach roster health reads now use keyed section-skeleton loading, and the health dashboard plus coach health review keep their header/action chrome mounted through loading, error, and unavailable states.
 - Verification hub, background, credentials, ID, and insurance reads now use keyed section-skeleton loading, and verification subroutes keep their header/action chrome mounted across loading, error, and unavailable states.
 - Remaining trust routes now close `UI-LOAD-06`: roster consents, children hub, privacy settings, child profile/SEN edit modals, and special-needs detail use keyed section or warm-first loading instead of blank or spinner-only sensitive states.
+- Development progress, badges, session history, media gallery, and athlete development detail now start `UI-LOAD-07` with keyed section-skeleton loading and route-shaped placeholders instead of generic development loading frames.
 - Route classification and hot-path review closure now live in `navigation/loading-route-manifest.js`, with repo-level coverage enforced by `scripts/loading-route-coverage-audit.js`.
 - Domain-specific wrappers exist, but the repo still has drift between shared loading variants and bespoke per-screen placeholders.
 - New work should consolidate toward the shared primitives above instead of adding another custom loading pattern.

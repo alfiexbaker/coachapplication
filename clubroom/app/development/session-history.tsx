@@ -59,7 +59,7 @@ export default function SessionHistoryScreen() {
     >
       <PageHeader title="Session History" showBack centerTitle onBackPress={() => router.back()} />
 
-      {loading ? <LoadingState variant="detail" /> : null}
+      {loading ? <LoadingState variant="list" /> : null}
 
       {status === 'error' ? (
         <ErrorState message={error?.message ?? 'Unable to load session history.'} onRetry={retry} />

@@ -86,6 +86,10 @@ export function useSessionHistory(athleteIdParam?: string | null) {
     deps: [currentUser?.id, resolvedAthleteId],
     isEmpty: (value) => value.sessions.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: resolvedAthleteId
+      ? `session-history:${currentUser?.id ?? 'missing'}:${resolvedAthleteId}`
+      : `session-history:${currentUser?.id ?? 'missing'}:none`,
   });
 
   const sessions = useMemo(() => data?.sessions ?? [], [data?.sessions]);
