@@ -20,6 +20,7 @@ import { SharingGuardiansSection } from '@/components/family/sharing-guardians-s
 import { SharingPendingInvites } from '@/components/family/sharing-pending-invites';
 import { SharingInviteModal } from '@/components/family/sharing-invite-modal';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import { Skeleton, SkeletonCircle, SkeletonText } from '@/components/ui/skeleton';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useFamilySharing } from '@/hooks/use-family-sharing';
@@ -70,7 +71,21 @@ export default function FamilySharingScreen() {
     );
 
   if (status === 'loading') {
-    return renderScreenShell(<LoadingState variant="detail" />);
+    return renderScreenShell(
+      <View style={styles.content}>
+        <SurfaceCard style={[styles.introCard, { backgroundColor: withAlpha(colors.tint, 0.03) }]}>
+          <SkeletonCircle size={40} accessibilityLabel="Loading sharing icon" />
+          <Skeleton width="58%" height={20} accessibilityLabel="Loading sharing title" />
+          <SkeletonText
+            lines={2}
+            widths={['88%', '64%']}
+            style={styles.centeredSkeletonText}
+            accessibilityLabel="Loading sharing explanation"
+          />
+        </SurfaceCard>
+        <LoadingState variant="card" />
+      </View>,
+    );
   }
 
   if (status === 'error') {
@@ -165,5 +180,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: Spacing.md, paddingBottom: Spacing.xl * 2, gap: Spacing.md },
   introCard: { padding: Spacing.lg, alignItems: 'center', gap: Spacing.sm },
+  centeredSkeletonText: { alignItems: 'center', width: '100%' },
   inviteButton: { paddingVertical: Spacing.md, borderRadius: Radii.md, marginTop: Spacing.sm },
 });

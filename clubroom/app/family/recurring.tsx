@@ -10,6 +10,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
+import { Skeleton, SkeletonText } from '@/components/ui/skeleton';
 import { RecurringList } from '@/components/recurring';
 import { Spacing, Typography, withAlpha } from '@/constants/theme';
 import { Routes } from '@/navigation/routes';
@@ -47,8 +48,20 @@ export default function FamilyRecurringScreen() {
     return (
       <PageContainer
         header={<PageHeader title="Recurring Plans" subtitle="Manage weekly and monthly sessions" showBack />}
+        gap={Spacing.md}
       >
-        <LoadingState variant="list" />
+        <SurfaceCard style={styles.helperCard}>
+          <Row align="center" gap="sm">
+            <Skeleton width={18} height={18} radius={9} />
+            <Skeleton width="42%" height={18} />
+          </Row>
+          <SkeletonText
+            lines={2}
+            widths={['92%', '68%']}
+            accessibilityLabel="Loading recurring plan rules"
+          />
+        </SurfaceCard>
+        <LoadingState variant="card" />
       </PageContainer>
     );
   }

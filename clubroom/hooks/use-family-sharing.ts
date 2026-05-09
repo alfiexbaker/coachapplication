@@ -70,6 +70,8 @@ export function useFamilySharing() {
     deps: [currentUser?.id],
     isEmpty: (value) => !value,
     refetchOnFocus: true,
+    loadingStrategy: 'warm-first',
+    dataKey: currentUser?.id ? `family-sharing:${currentUser.id}` : 'family-sharing:anonymous',
   });
 
   const family = data ?? null;
@@ -147,7 +149,7 @@ export function useFamilySharing() {
     inviteRelationship,
     inviteMessage,
     resetInviteForm,
-    loadFamilyData,
+    onRefresh,
   ]);
 
   const handleRemoveGuardian = useCallback(

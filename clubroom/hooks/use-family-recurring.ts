@@ -28,6 +28,8 @@ export function useFamilyRecurring() {
     deps: [loadPlans],
     isEmpty: (plans) => plans.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'warm-first',
+    dataKey: currentUser?.id ? `family-recurring:${currentUser.id}` : 'family-recurring:anonymous',
   });
 
   const plans = data ?? [];
