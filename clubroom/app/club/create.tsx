@@ -16,7 +16,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import type { ReactNode } from 'react';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
@@ -25,9 +24,7 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
-import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { useTheme } from '@/hooks/useTheme';
 import { useCreateClub, CLUB_FEATURES } from '@/hooks/use-create-club';
 import { COMMERCIAL_MODE_CHOICES } from '@/utils/organization-commercial-mode';
 import { ORGANIZATION_ROLE_LABELS } from '@/contracts/club-governance';
@@ -56,16 +53,7 @@ const FIRST_STAFF_ROLE_OPTIONS = [
 ] as const;
 
 export default function CreateClubScreen() {
-  const {
-    status,
-    error,
-    retry,
-    colors: palette,
-  } = useScreen<boolean>({
-    load: async () => ok(true),
-    isEmpty: () => false,
-    refetchOnFocus: true,
-  });
+  const { colors: palette } = useTheme();
   const {
     name,
     setName,
@@ -90,39 +78,6 @@ export default function CreateClubScreen() {
     previewName,
     previewLocation,
   } = useCreateClub();
-  const renderShell = (content: ReactNode) => (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
-      {content}
-    </SafeAreaView>
-  );
-
-  if (status === 'loading') {
-    return renderShell(<LoadingState variant="form" />);
-  }
-
-  if (status === 'error') {
-    return renderShell(
-      <ErrorState
-        message={error?.message || 'Failed to open club creation flow.'}
-        onRetry={retry}
-      />,
-    );
-  }
-
-  if (status === 'empty') {
-    return renderShell(
-        <EmptyState
-          icon="business-outline"
-          title="Creation unavailable"
-          message="The club creation flow is currently unavailable."
-          actionLabel="Retry"
-          onPressAction={retry}
-        />,
-    );
-  }
 
   return (
     <SafeAreaView

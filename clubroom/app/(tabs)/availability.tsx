@@ -9,14 +9,10 @@ import { useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { LoadingState } from '@/components/ui/screen-states';
-import { useScreen } from '@/hooks/use-screen';
-import { ok } from '@/types/result';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function AvailabilityScreen() {
-  const { colors } = useScreen<null>({
-    load: async () => ok(null),
-    isEmpty: () => false,
-  });
+  const { colors } = useTheme();
 
   useEffect(() => {
     router.replace({

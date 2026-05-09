@@ -214,6 +214,7 @@ Source of truth:
 - Video upload and detail now close the media-proof part of `UI-LOAD-07`: upload uses explicit backend stages instead of fake progress, selected files are clearly local-only until upload completes, and video detail uses keyed section-skeleton loading with stable failure chrome.
 - `UI-LOAD-07` is now closed: coach development, athlete development detail, and session feedback no longer own manual `setLoading` state; they use the shared keyed screen-state machine, stable headers, retryable errors, and retained refresh behavior.
 - `UI-LOAD-08` ops work has started: manage bookings, head-coach oversight, club settings, and club setup completion now use `useScreen` with keyed section-skeleton loading, retryable errors, retained refresh behavior, and shared event-driven reloads where relevant instead of bespoke `setLoading`/`setRefreshing` state machines.
+- `UI-LOAD-08` redirect and submit-only cleanup has also started: availability and club create no longer fake async `useScreen` loads just to render theme colors, while the manage redirect now has a real retryable resolver instead of unused manual loading state.
 - Route classification and hot-path review closure now live in `navigation/loading-route-manifest.js`, with repo-level coverage enforced by `scripts/loading-route-coverage-audit.js`.
 - Domain-specific wrappers exist, but the repo still has drift between shared loading variants and bespoke per-screen placeholders.
 - New work should consolidate toward the shared primitives above instead of adding another custom loading pattern.
