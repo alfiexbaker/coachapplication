@@ -1,7 +1,7 @@
 # Clubroom - Single Source of Truth
 
-Last updated: 2026-05-07
-Project: football coaching marketplace plus family development tracker
+Last updated: 2026-05-10
+Project: operating system for paid football development
 Status: live-featured Expo app with a real Fastify API alongside it; backend cutover is still in progress, and runtime `/v1` auth is now JWT-backed
 
 ## What This File Is For
@@ -31,12 +31,13 @@ Verified during `OBS-01` completion on 2026-04-12:
 
 ## Product In One Paragraph
 
-Clubroom is a football-only multi-role product for coaches, families, athletes, and clubs.
-Coaches run availability, sessions, invites, delivery, and earnings workflows.
-Parents book for children and manage trust-sensitive data such as medical, consent, and emergency information.
-Athletes track progress, goals, health, and session follow-up.
-Clubs manage staff, squads, visibility, and operating relationships.
+Clubroom is a football-only multi-role operating system for paid football development.
+Coaches and clubs sell and run single sessions, group sessions, camps, clinics, and training programmes.
+Parents book trusted coaching, manage children, and protect medical, consent, emergency, and safeguarding context.
+Athletes see session-linked progress, feedback, proof, health context, and next work.
+Clubs manage staff, squads, schedules, visibility, and operating relationships around real commitments.
 Discover Map is the core local coach search surface: users should be able to find a nearby coach, review the profile, and enter booking without detouring through comparison or growth gimmicks.
+The product should not feel like a generic football social platform; feeds, events, community, matches, badges, and profiles only belong when they support booking, delivery, development proof, trust, coordination, or revenue.
 
 ## Runtime Truth
 

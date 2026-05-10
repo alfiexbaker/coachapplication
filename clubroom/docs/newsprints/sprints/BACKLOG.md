@@ -8,12 +8,26 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 | ID             | Exactly what it does                                                                                                                                                                                                                                                     | Spine(s)                                                     | Status |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ | ------ |
 | UX-QA-01       | Build the repeatable micro-interaction defect pipeline: static audits, UI-flow capture/review, hot-path issue inventory, and first burn-down slice for dead controls, native popups, spinner-only actions, missing accessibility labels, and broken transition feedback. | Trust/Safety/Ops + Booking/Revenue + Development + Community | OPEN   |
+| PDOS-01        | Re-score the launch route tree against the paid football development OS filter, then produce exact keep/demote/delete decisions for match/results, social/feed/profile, community, events, analytics, and session/product surfaces.                                      | Booking/Revenue + Development + Trust/Ops + Community        | READY  |
+| PDOS-02        | Remove or demote results and social drift: standalone match-results emphasis, home score modules, personal follow/feed mechanics, social post reactions, and community surfaces that are not tied to squads, schedules, safety, or paid activity.                        | Community + Trust/Ops + Development                          | READY  |
+| PDOS-03        | Unify single sessions, group sessions, camps/clinics, and club training into one paid session product family with shared language for price, capacity, eligibility, location, schedule, attendance, and payment state.                                                   | Booking/Revenue + Development + Club Ops                     | READY  |
+| PDOS-04        | Connect session completion, notes, feedback, video/proof, reviews, next work, and rebook/continue-plan actions into the paid development proof loop.                                                                                                                     | Development + Booking/Revenue + Trust                        | READY  |
+| PDOS-05        | Sharpen Discover Map, coach profiles, saved coaches, offers, pricing, trust proof, reviews, and availability into a fast storefront-to-booking conversion path.                                                                                                          | Booking/Revenue + Trust + Development                        | READY  |
 | PROD-VERIFY-01 | Rehearse the production db-backed runtime end to end: release preflight, web export, UI flows, and the remaining non-mock critical journeys; fix code-path drift and leave only real env/provisioning blockers.                                                          | Trust/Safety/Ops + Booking/Revenue + Development             | READY  |
+| PDOS-06        | Make invoices, earnings, payment attempts, reminders, recurring plans, group registrations, and reconciler state feel like one commercial operating layer.                                                                                                               | Booking/Revenue + Trust/Ops                                  | READY  |
+| PDOS-07        | Reframe club operations around paid activity coordination: squads, staff, schedules, camps/clinics, attendance, capacity, waitlists, family communication, and activity reporting before content/feed surfaces.                                                          | Club Ops + Booking/Revenue + Trust                           | READY  |
 
 ## Execution Order
 
 1. `UX-QA-01`
-2. `PROD-VERIFY-01`
+2. `PDOS-01`
+3. `PDOS-02`
+4. `PDOS-03`
+5. `PDOS-04`
+6. `PDOS-05`
+7. `PROD-VERIFY-01`
+8. `PDOS-06`
+9. `PDOS-07`
 
 ## Active Pruning Plan
 
@@ -21,12 +35,15 @@ Source:
 
 - `docs/product-reality/FEATURE_TRIAGE_BOARD_2026-05-06.md`
 - `docs/newsprints/sprints/FEATURE_PRUNE_SPRINTS_2026-05-06.md`
+- `docs/newsprints/sprints/PAID_DEVELOPMENT_OS_SPRINTS_2026-05-10.md`
 
 Decision:
 
 - Product pruning and `UI-LOAD-08` route closure are complete for the launch route tree.
 - Do not spend QA effort on routes classified as `DELETE`.
 - `discover/map.tsx` is protected and should be hardened as a central launch discovery path.
+- Clubroom should feel like the operating system for paid football development, not a generic football social platform.
+- Single sessions and group sessions are both core, but they should share one paid session product spine instead of feeling like separate products.
 
 ## Sprint Intent
 
