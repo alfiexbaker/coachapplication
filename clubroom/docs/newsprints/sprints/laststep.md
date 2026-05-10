@@ -4,11 +4,12 @@ Date: 2026-05-10
 
 ## Latest Update
 
-1. Closed `UI-LOAD-08` and added the `UX-QA-01` micro-interaction quality pipeline.
-2. Reframed the product north star as the operating system for paid football development.
-3. Ran three persona audits: school owner/admin plus compliance, coach plus child development, and parent/payer conversion.
-4. Rebuilt `PAID_DEVELOPMENT_OS_SPRINTS_2026-05-10.md` into deployment-grade product engineering sprints with persona value, feature verdicts, data mappings, acceptance gates, and blockers.
-5. Updated `BACKLOG.md` so `PDOS-01` through `PDOS-11` now point at the sharper deployment sequence.
+1. Added agentic readiness tooling for DB staging, PDOS route authority, and combined local readiness checks.
+2. Closed `UI-LOAD-08` and added the `UX-QA-01` micro-interaction quality pipeline.
+3. Reframed the product north star as the operating system for paid football development.
+4. Ran three persona audits: school owner/admin plus compliance, coach plus child development, and parent/payer conversion.
+5. Rebuilt `PAID_DEVELOPMENT_OS_SPRINTS_2026-05-10.md` into deployment-grade product engineering sprints with persona value, feature verdicts, data mappings, acceptance gates, and blockers.
+6. Updated `BACKLOG.md` so `PDOS-01` through `PDOS-11` now point at the sharper deployment sequence.
 
 ## Findings To Act On
 
@@ -21,10 +22,11 @@ Date: 2026-05-10
 
 ## Next Exact Action
 
-1. Continue `UX-QA-01` if interaction defects are still actively being burned down.
-2. Then start `PDOS-01`: route verdict and interaction contract.
-3. The `PDOS-01` output must map every active launch route to persona, job, entity, service, source of truth, primary CTA, loading/action contract, and keep/demote/delete verdict.
-4. Do not start production rehearsal until `PDOS-02` through `PDOS-10` have either closed or explicitly reduced their blockers to external environment/provider gaps.
+1. Run `node ./scripts/agentic-readiness-pipeline.js` before the next agentic sprint slice.
+2. Continue `UX-QA-01` if interaction defects are still actively being burned down.
+3. Then start `PDOS-01`: route verdict and interaction contract.
+4. The `PDOS-01` output must map every active launch route to persona, job, entity, service, source of truth, primary CTA, loading/action contract, and keep/demote/delete verdict.
+5. Do not start production rehearsal until `PDOS-02` through `PDOS-10` have either closed or explicitly reduced their blockers to external environment/provider gaps.
 
 ## Verification For This Planning Step
 

@@ -88,6 +88,19 @@ Implication:
 - `/v1/ready` no longer returns placeholder `unknown` checks; it reports real `ready`, `degraded`, or `down` status and returns `503` when the runtime is not release-ready.
 - Release preflight now runs under production semantics with checked-in Prisma migrations. The remaining blockers are real production env/db/storage requirements plus any still-unmigrated seed-only routes.
 
+## Staging Readiness Tooling
+
+Use `node ./scripts/db-staging-preflight.js` before switching a serious rehearsal to `API_DATA_BACKEND=db`.
+
+The preflight checks:
+
+- staging env requirements for database, JWT, simulated payment return origins, simulated payment secret, object storage, and Sentry warnings
+- checked-in Prisma schema and migration presence
+- local tool availability for API tests, root typecheck, Prettier, and Expo
+
+Use `node ./scripts/db-staging-preflight.js --strict` as the hard gate once the staging environment values are expected to exist.
+Use `node ./scripts/db-staging-preflight.js --write` to write transient outputs under `reviews/`.
+
 ## Safe Working Rules
 
 1. Do not bypass `apiClient` in feature code.

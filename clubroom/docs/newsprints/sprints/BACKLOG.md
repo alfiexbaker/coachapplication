@@ -60,6 +60,14 @@ Decision:
 - Keep the next production rehearsal honest by finding dead controls, broken feedback, awkward transitions, missing accessibility labels, and stale visual seams before deploy.
 - Drive the product through the hard paid-development loop: discover -> offer -> readiness -> booking/registration -> payment -> delivery -> attendance -> proof -> rebook -> compliance evidence.
 
+## Agentic Environment Gates
+
+- `node ./scripts/agentic-readiness-pipeline.js` is the broad local runner for DB staging readiness, PDOS route authority, and static UI-quality checks.
+- `node ./scripts/db-staging-preflight.js` checks whether a real staging DB/API/object-storage rehearsal can start without pretending missing env is product progress.
+- `node ./scripts/pdos-route-authority-audit.js` gives agents the current route-to-sprint/persona/verdict matrix plus route risks such as direct fetches, local storage authority, native alerts, money hard walls, and sensitive reads.
+- Add `--write` to these commands when a review artifact is needed under `reviews/`; do not commit generated review output unless the sprint explicitly asks for a frozen snapshot.
+- Add `--strict` only when the sprint is meant to fail on blockers, because `PDOS-01` intentionally starts with routes still needing product decisions.
+
 ## Premium Bar
 
 - If a surface has loaded once, dropping the whole screen back to a blank skeleton is a failure.
