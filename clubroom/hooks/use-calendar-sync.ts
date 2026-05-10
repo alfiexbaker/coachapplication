@@ -59,6 +59,8 @@ export function useCalendarSync() {
     deps: [userId],
     isEmpty: () => false,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: `calendar-sync:${userId}`,
   });
 
   useEffect(() => {
@@ -179,7 +181,9 @@ export function useCalendarSync() {
         return;
       }
 
-      await (await import('expo-sharing')).shareAsync(result.filePath, {
+      await (
+        await import('expo-sharing')
+      ).shareAsync(result.filePath, {
         mimeType: 'text/calendar',
         dialogTitle: 'Export All Sessions',
         UTI: 'public.calendar-event',

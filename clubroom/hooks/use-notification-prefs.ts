@@ -51,6 +51,8 @@ export function useNotificationPrefs() {
     deps: [userId],
     isEmpty: () => false,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: `notification-preferences:${userId}`,
   });
 
   useEffect(() => {
@@ -86,10 +88,7 @@ export function useNotificationPrefs() {
         }
 
         setPreferencesOverride(updatedResult.data);
-        showToast(
-          quietHours.enabled ? 'Quiet hours updated' : 'Quiet hours turned off',
-          'success',
-        );
+        showToast(quietHours.enabled ? 'Quiet hours updated' : 'Quiet hours turned off', 'success');
       } catch (updateError) {
         setActionError('Failed to update quiet hours');
         logger.error('Failed to update quiet hours', { updateError });

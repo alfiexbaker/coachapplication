@@ -1,8 +1,9 @@
-import { ScrollView, StyleSheet, View, ActivityIndicator, RefreshControl } from 'react-native';
+import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SettingsScreenState, SettingsSection, SettingsToggleRow } from '@/components/settings';
+import { SubmitProgressState } from '@/components/ui/screen-states';
 import { CalendarProviderSelect } from '@/components/calendar/CalendarProviderSelect';
 import { SyncSettingsCard } from '@/components/calendar/SyncSettingsCard';
 import { Button } from '@/components/primitives/button';
@@ -40,7 +41,6 @@ export default function CalendarSyncScreen() {
       backIcon="arrow-back"
       onBackPress={() => router.back()}
       centerTitle
-      right={isSaving ? <ActivityIndicator size="small" color={palette.accent} /> : undefined}
     />
   );
 
@@ -89,6 +89,13 @@ export default function CalendarSyncScreen() {
           />
         }
       >
+        {isSaving ? (
+          <SubmitProgressState
+            label="Saving calendar sync settings..."
+            style={styles.submitProgress}
+          />
+        ) : null}
+
         <SettingsSection title="Sync Settings">
           <SettingsToggleRow
             icon="sync"
@@ -154,11 +161,9 @@ export default function CalendarSyncScreen() {
               style={styles.exportButton}
             >
               <Row gap="sm" align="center">
-                {isExporting ? (
-                  <ActivityIndicator size="small" color={palette.onPrimary} />
-                ) : (
+                {!isExporting ? (
                   <Ionicons name="download-outline" size={20} color={palette.onPrimary} />
-                )}
+                ) : null}
                 <ThemedText style={{ color: palette.onPrimary, ...Typography.subheading }}>
                   {isExporting ? 'Exporting...' : 'Export All Sessions'}
                 </ThemedText>
@@ -188,6 +193,7 @@ export default function CalendarSyncScreen() {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing['3xl'], gap: Spacing.lg },
+  submitProgress: { marginBottom: Spacing.xs },
   exportSection: { padding: Spacing.md, gap: Spacing.md },
   exportDescription: { ...Typography.bodySmall },
   exportButton: { marginTop: Spacing.xs },

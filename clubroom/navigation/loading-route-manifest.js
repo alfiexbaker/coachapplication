@@ -853,6 +853,15 @@ const loadingRouteManifest = Object.freeze([
     transition: 'Open coaching settings -> keep shell stable -> skeletonize pending section -> resolve in place.',
   },
   {
+    pattern: 'app/settings/cancellation-policy.tsx',
+    strategy: 'section-skeleton',
+    owner: 'UI-LOAD-08',
+    stableShell: 'Cancellation policy settings shell stays mounted.',
+    retains: 'Resolved policy cards remain visible while pending sections load.',
+    pendingSurface: 'Only unresolved policy sections may skeletonize.',
+    transition: 'Open cancellation policy -> keep shell stable -> skeletonize pending section -> resolve in place.',
+  },
+  {
     pattern: 'app/settings/notifications/preferences.tsx',
     strategy: 'section-skeleton',
     owner: 'UI-LOAD-08',

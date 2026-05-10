@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View, ActivityIndicator, RefreshControl } from 'react-native';
+import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -6,7 +6,7 @@ import { SettingsScreenState } from '@/components/settings';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
-import { ErrorState } from '@/components/ui/screen-states';
+import { ErrorState, SubmitProgressState } from '@/components/ui/screen-states';
 import {
   QuietHoursSelector,
   ChannelToggle,
@@ -41,7 +41,7 @@ export default function NotificationPreferencesScreen() {
   return (
     <SettingsScreenState
       colors={colors}
-      header={<Header colors={colors} updating={shellStatus === 'ready' ? updating : false} />}
+      header={<Header colors={colors} />}
       status={shellStatus}
       errorMessage={error ?? 'Failed to load notification preferences.'}
       onRetry={retry}
@@ -56,6 +56,13 @@ export default function NotificationPreferencesScreen() {
       >
         {preferences && (
           <>
+            {updating ? (
+              <SubmitProgressState
+                label="Saving notification preferences..."
+                style={styles.submitProgress}
+              />
+            ) : null}
+
             <View style={styles.section}>
               <ThemedText style={[styles.sectionTitle, { color: colors.muted }]}>
                 QUIET HOURS
@@ -132,10 +139,8 @@ export default function NotificationPreferencesScreen() {
 
 function Header({
   colors,
-  updating,
 }: {
   colors: ReturnType<typeof import('@/hooks/useTheme').useTheme>['colors'];
-  updating: boolean;
 }) {
   return (
     <Row justify="space-between" align="center" style={styles.header}>
@@ -145,9 +150,7 @@ function Header({
       <ThemedText type="title" style={styles.headerTitle}>
         Notification Preferences
       </ThemedText>
-      <View style={{ width: 24 }}>
-        {updating && <ActivityIndicator size="small" color={colors.accent} />}
-      </View>
+      <View style={styles.headerSpacer} />
     </Row>
   );
 }
@@ -155,7 +158,9 @@ function Header({
 const styles = StyleSheet.create({
   header: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   headerTitle: { ...Typography.heading },
+  headerSpacer: { width: 24 },
   content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing['3xl'] },
+  submitProgress: { marginBottom: Spacing.lg },
   section: { marginBottom: Spacing.xl },
   sectionTitle: {
     ...Typography.smallSemiBold,

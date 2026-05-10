@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { RefreshControl, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Button } from '@/components/primitives/button';
@@ -20,6 +20,8 @@ export default function BlockedUsersSettingsScreen() {
     loading,
     empty,
     error,
+    refreshing,
+    onRefresh,
     retry,
     unblockUser,
   } = useBlockedUsersSettings();
@@ -28,6 +30,9 @@ export default function BlockedUsersSettingsScreen() {
     <SettingsFormScreen
       title="Blocked Users"
       infoText="Blocked accounts cannot message you, appear in your discovery results, or be invited into your flows."
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
+      }
     >
       {loading ? <LoadingState variant="list" /> : null}
 
@@ -57,7 +62,10 @@ export default function BlockedUsersSettingsScreen() {
               <View
                 style={[
                   styles.countBadge,
-                  { backgroundColor: withAlpha(colors.error, 0.12), borderColor: withAlpha(colors.error, 0.2) },
+                  {
+                    backgroundColor: withAlpha(colors.error, 0.12),
+                    borderColor: withAlpha(colors.error, 0.2),
+                  },
                 ]}
               >
                 <ThemedText type="defaultSemiBold" style={{ color: colors.error }}>
@@ -75,7 +83,10 @@ export default function BlockedUsersSettingsScreen() {
                   <View
                     style={[
                       styles.avatar,
-                      { backgroundColor: withAlpha(colors.error, 0.1), borderColor: withAlpha(colors.error, 0.18) },
+                      {
+                        backgroundColor: withAlpha(colors.error, 0.1),
+                        borderColor: withAlpha(colors.error, 0.18),
+                      },
                     ]}
                   >
                     <Ionicons name="ban" size={18} color={colors.error} />

@@ -28,6 +28,8 @@ export function useCancellationPolicySettings() {
     deps: [coachId],
     isEmpty: () => false,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: coachId ? `cancellation-policy:${coachId}` : 'cancellation-policy:anonymous',
   });
 
   useEffect(() => {
@@ -52,7 +54,10 @@ export function useCancellationPolicySettings() {
     templates: POLICY_TEMPLATES,
     loading: status === 'loading' && !policy,
     status: status as ScreenStatus,
-    error: status === 'error' ? ((error as ServiceError | null)?.message ?? 'Failed to load cancellation policy.') : null,
+    error:
+      status === 'error'
+        ? ((error as ServiceError | null)?.message ?? 'Failed to load cancellation policy.')
+        : null,
     refreshing,
     onRefresh,
     retry,

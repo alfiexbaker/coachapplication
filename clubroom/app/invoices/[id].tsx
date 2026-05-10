@@ -5,7 +5,7 @@
  * All state/logic in useInvoiceDetail hook.
  */
 
-import { View, StyleSheet, ActivityIndicator, Modal, TextInput, Keyboard } from 'react-native';
+import { View, StyleSheet, Modal, TextInput, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -13,7 +13,12 @@ import { Row } from '@/components/primitives/row';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
+import {
+  LoadingState,
+  ErrorState,
+  EmptyState,
+  SubmitProgressState,
+} from '@/components/ui/screen-states';
 import { InvoicePreview, DownloadButton } from '@/components/invoices';
 import { CoachPaymentInstructionsCard } from '@/components/earnings';
 import { Spacing, Radii, Typography } from '@/constants/theme';
@@ -87,7 +92,7 @@ export default function InvoiceDetailScreen() {
         ]}
       >
         {c.actionLoading ? (
-          <ActivityIndicator size="small" color={palette.tint} />
+          <SubmitProgressState label="Updating invoice..." style={styles.actionProgress} />
         ) : (
           <Row gap="sm" align="center" style={styles.actionButtons}>
             <DownloadButton invoice={c.invoice} variant="secondary" size="medium" />
@@ -182,9 +187,8 @@ export default function InvoiceDetailScreen() {
               autoCorrect={false}
               value={c.sendEmail}
               onChangeText={c.setSendEmail}
-
-            maxLength={100}
-          />
+              maxLength={100}
+            />
             <Clickable
               style={[
                 styles.sendButton,
@@ -196,16 +200,14 @@ export default function InvoiceDetailScreen() {
               onPress={c.handleSendInvoice}
               disabled={!c.sendEmail.trim() || c.actionLoading}
             >
-              {c.actionLoading ? (
-                <ActivityIndicator size="small" color={palette.onPrimary} />
-              ) : (
-                <Row align="center" justify="center" gap="xs">
+              <Row align="center" justify="center" gap="xs">
+                {!c.actionLoading ? (
                   <Ionicons name="paper-plane" size={18} color={palette.onPrimary} />
-                  <ThemedText style={[styles.sendText, { color: palette.onPrimary }]}>
-                    Send Invoice
-                  </ThemedText>
-                </Row>
-              )}
+                ) : null}
+                <ThemedText style={[styles.sendText, { color: palette.onPrimary }]}>
+                  {c.actionLoading ? 'Sending...' : 'Send Invoice'}
+                </ThemedText>
+              </Row>
             </Clickable>
           </View>
         </View>
@@ -217,6 +219,7 @@ export default function InvoiceDetailScreen() {
 const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Spacing.md },
   actionBar: { padding: Spacing.md, borderTopWidth: StyleSheet.hairlineWidth },
+  actionProgress: { marginVertical: 0 },
   instructionsSection: {
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.md,

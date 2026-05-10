@@ -50,7 +50,11 @@ export default function InviteCodesScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: InviteCode }) => (
-      <InviteCodeCard item={item} onDeactivate={deactivateCode} onCopy={copyToClipboard} />
+      <InviteCodeCard
+        item={item}
+        onDeactivate={deactivateCode}
+        onCopy={(code) => void copyToClipboard(code)}
+      />
     ),
     [deactivateCode, copyToClipboard],
   );
@@ -65,27 +69,13 @@ export default function InviteCodesScreen() {
     [],
   );
 
-  if (status === 'loading') {
-    return (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <LoadingState variant="list" />
-      </SafeAreaView>
-    );
-  }
-
-  if (status === 'error') {
-    return (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ErrorState message={error?.message ?? 'Failed to load invite codes.'} onRetry={retry} />
-      </SafeAreaView>
-    );
-  }
+  const headerSubtitle =
+    status === 'loading'
+      ? 'Loading invite codes'
+      : status === 'error'
+        ? 'Invite codes unavailable'
+        : `${codes.length} codes generated`;
+  const canCreateCode = status !== 'loading' && status !== 'error';
 
   return (
     <SafeAreaView
@@ -96,21 +86,27 @@ export default function InviteCodesScreen() {
         <Column>
           <ThemedText type="title">Invite Codes</ThemedText>
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-            {codes.length} codes generated
+            {headerSubtitle}
           </ThemedText>
         </Column>
-        <Clickable
-          onPress={handleOpenModal}
-          style={[styles.createButton, { backgroundColor: palette.tint }]}
-          accessibilityLabel="Create new invite code"
-        >
-          <ThemedText style={[styles.createButtonText, { color: palette.onPrimary }]}>
-            + New Code
-          </ThemedText>
-        </Clickable>
+        {canCreateCode ? (
+          <Clickable
+            onPress={handleOpenModal}
+            style={[styles.createButton, { backgroundColor: palette.tint }]}
+            accessibilityLabel="Create new invite code"
+          >
+            <ThemedText style={[styles.createButtonText, { color: palette.onPrimary }]}>
+              + New Code
+            </ThemedText>
+          </Clickable>
+        ) : null}
       </Row>
 
-      {codes.length === 0 ? (
+      {status === 'loading' ? (
+        <LoadingState variant="list" />
+      ) : status === 'error' ? (
+        <ErrorState message={error?.message ?? 'Failed to load invite codes.'} onRetry={retry} />
+      ) : codes.length === 0 ? (
         <EmptyState
           icon="key-outline"
           title="No Invite Codes"
@@ -133,17 +129,19 @@ export default function InviteCodesScreen() {
         />
       )}
 
-      <CreateCodeModal
-        visible={showCreateModal}
-        selectedSchool={selectedSchool}
-        newCodeText={newCodeText}
-        maxUses={maxUses}
-        onClose={handleCloseModal}
-        onSelectSchool={setSelectedSchool}
-        onChangeCodeText={setNewCodeText}
-        onChangeMaxUses={setMaxUses}
-        onGenerate={generateCode}
-      />
+      {canCreateCode ? (
+        <CreateCodeModal
+          visible={showCreateModal}
+          selectedSchool={selectedSchool}
+          newCodeText={newCodeText}
+          maxUses={maxUses}
+          onClose={handleCloseModal}
+          onSelectSchool={setSelectedSchool}
+          onChangeCodeText={setNewCodeText}
+          onChangeMaxUses={setMaxUses}
+          onGenerate={generateCode}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }

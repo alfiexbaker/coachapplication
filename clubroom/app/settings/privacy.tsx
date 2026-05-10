@@ -1,8 +1,13 @@
-import { View } from 'react-native';
+import { RefreshControl, View } from 'react-native';
 import { router } from 'expo-router';
 
-import { SettingsFormScreen, SettingsRow, SettingsToggleRow, SettingsSection } from '@/components/settings';
-import { LoadingState, SubmitProgressState } from '@/components/ui/screen-states';
+import {
+  SettingsFormScreen,
+  SettingsRow,
+  SettingsToggleRow,
+  SettingsSection,
+} from '@/components/settings';
+import { ErrorState, LoadingState, SubmitProgressState } from '@/components/ui/screen-states';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
@@ -20,16 +25,23 @@ export default function PrivacySettingsScreen() {
     settings,
     blockedUsersCount,
     isCoach,
-    loading,
+    status,
     error,
+    refreshing,
+    onRefresh,
+    retry,
     savingKey,
     toggle,
   } = usePrivacySettings();
 
-  if (loading || !settings) {
+  if (!settings) {
     return (
       <SettingsFormScreen title="Privacy">
-        <LoadingState variant="form" />
+        {status === 'error' ? (
+          <ErrorState message={error ?? 'Failed to load privacy settings.'} onRetry={retry} />
+        ) : (
+          <LoadingState variant="form" />
+        )}
       </SettingsFormScreen>
     );
   }
@@ -42,7 +54,13 @@ export default function PrivacySettingsScreen() {
   return (
     <SettingsFormScreen
       title="Privacy"
-      infoText={error ?? 'Privacy settings are saved to your account and applied across profile and discovery surfaces.'}
+      infoText={
+        error ??
+        'Privacy settings are saved to your account and applied across profile and discovery surfaces.'
+      }
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.accent} />
+      }
     >
       <SettingsSection title="Profile Visibility">
         <SettingsToggleRow

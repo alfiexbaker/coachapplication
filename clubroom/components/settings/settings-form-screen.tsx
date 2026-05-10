@@ -1,5 +1,5 @@
-import { useEffect, type ReactNode } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, type ReactElement, type ReactNode } from 'react';
+import { ScrollView, StyleSheet, View, type RefreshControlProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, usePathname } from 'expo-router';
 
@@ -15,10 +15,16 @@ const logger = createLogger('SettingsFormScreen');
 interface SettingsFormScreenProps {
   title: string;
   infoText?: string;
+  refreshControl?: ReactElement<RefreshControlProps>;
   children: ReactNode;
 }
 
-export function SettingsFormScreen({ title, infoText, children }: SettingsFormScreenProps) {
+export function SettingsFormScreen({
+  title,
+  infoText,
+  refreshControl,
+  children,
+}: SettingsFormScreenProps) {
   const { colors: palette } = useTheme();
   const pathname = usePathname();
 
@@ -59,7 +65,11 @@ export function SettingsFormScreen({ title, infoText, children }: SettingsFormSc
         centerTitle
       />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={refreshControl}
+      >
         {children}
         {infoText ? (
           <View style={styles.infoContainer}>

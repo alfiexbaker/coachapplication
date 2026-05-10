@@ -83,6 +83,8 @@ export function useBlockedUsersSettings() {
     deps: [userId],
     isEmpty: (items) => items.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: userId ? `blocked-users:${userId}` : 'blocked-users:missing',
   });
 
   const blockedUsers = useMemo(() => data ?? [], [data]);

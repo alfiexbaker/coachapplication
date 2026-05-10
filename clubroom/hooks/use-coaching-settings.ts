@@ -64,6 +64,8 @@ export function useCoachingSettings() {
     deps: [coachId],
     isEmpty: () => false,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: coachId ? `coaching-settings:${coachId}` : 'coaching-settings:anonymous',
   });
 
   useEffect(() => {
@@ -86,9 +88,7 @@ export function useCoachingSettings() {
         setTravelSettings(travelResult.data);
       }
       if (policyResult.success) {
-        setPolicySummary(
-          schedulingRulesService.getCancellationPolicySummary(policyResult.data),
-        );
+        setPolicySummary(schedulingRulesService.getCancellationPolicySummary(policyResult.data));
       }
       setBlockedDateCount(overrides.filter((override) => override.isBlocked).length);
     })();

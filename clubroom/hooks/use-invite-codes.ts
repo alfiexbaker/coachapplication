@@ -5,7 +5,9 @@
  */
 
 import { useState, useCallback } from 'react';
+import * as Clipboard from 'expo-clipboard';
 
+import { useToast } from '@/components/ui/toast';
 import type { InviteCode, School } from '@/constants/types';
 import { INVITE_CODE_SEEDS } from '@/constants/invite-code-seeds';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
@@ -44,6 +46,7 @@ export interface UseInviteCodesResult {
 }
 
 export function useInviteCodes(): UseInviteCodesResult {
+  const { showToast } = useToast();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
   const [newCodeText, setNewCodeText] = useState('');
@@ -66,6 +69,8 @@ export function useInviteCodes(): UseInviteCodesResult {
     deps: [],
     isEmpty: (value) => value.length === 0,
     refetchOnFocus: true,
+    loadingStrategy: 'warm-first',
+    dataKey: 'admin-invite-codes',
   });
 
   const codes = data ?? [];
@@ -112,10 +117,17 @@ export function useInviteCodes(): UseInviteCodesResult {
     [codes, onRefresh],
   );
 
-  const copyToClipboard = useCallback((code: string) => {
-    // In production, use Clipboard.setString(code)
-    alert(`Code copied: ${code}`);
-  }, []);
+  const copyToClipboard = useCallback(
+    async (code: string) => {
+      try {
+        await Clipboard.setStringAsync(code);
+        showToast('Invite code copied', 'success');
+      } catch {
+        showToast('Could not copy invite code', 'error');
+      }
+    },
+    [showToast],
+  );
 
   return {
     codes,

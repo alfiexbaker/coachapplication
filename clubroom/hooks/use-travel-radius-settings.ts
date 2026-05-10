@@ -24,6 +24,8 @@ export function useTravelRadiusSettings() {
     deps: [coachId],
     isEmpty: () => false,
     refetchOnFocus: true,
+    loadingStrategy: 'section-skeleton',
+    dataKey: coachId ? `travel-radius:${coachId}` : 'travel-radius:anonymous',
   });
 
   useEffect(() => {
@@ -61,7 +63,10 @@ export function useTravelRadiusSettings() {
     postcode: currentUser?.postcode ?? 'Not set',
     loading: status === 'loading' && !settings,
     status: status as ScreenStatus,
-    error: status === 'error' ? ((error as ServiceError | null)?.message ?? 'Failed to load travel settings.') : null,
+    error:
+      status === 'error'
+        ? ((error as ServiceError | null)?.message ?? 'Failed to load travel settings.')
+        : null,
     refreshing,
     onRefresh,
     retry,

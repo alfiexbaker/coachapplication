@@ -1,18 +1,18 @@
 # Sprint Backlog
 
-Updated: 2026-05-09
+Updated: 2026-05-10
 Rule: active work only. Completed sprint rows are intentionally removed.
 
 ## Open Queue
 
 | ID | Exactly what it does | Spine(s) | Status |
 | -- | -------------------- | -------- | ------ |
-| UI-LOAD-08 | Sweep ops, settings, finance, admin, and enforcement: availability, settings, invoices, payments, earnings, club setup/admin, manage, and remaining async routes must be classified and upgraded or explicitly marked static. | Trust, Safety and Operations + Booking, Availability and Revenue + Development and Analytics | OPEN |
+| UX-QA-01 | Build the repeatable micro-interaction defect pipeline: static audits, UI-flow capture/review, hot-path issue inventory, and first burn-down slice for dead controls, native popups, spinner-only actions, missing accessibility labels, and broken transition feedback. | Trust/Safety/Ops + Booking/Revenue + Development + Community | READY |
 | PROD-VERIFY-01 | Rehearse the production db-backed runtime end to end: release preflight, web export, UI flows, and the remaining non-mock critical journeys; fix code-path drift and leave only real env/provisioning blockers. | Trust/Safety/Ops + Booking/Revenue + Development | READY |
 
 ## Execution Order
 
-1. `UI-LOAD-08`
+1. `UX-QA-01`
 2. `PROD-VERIFY-01`
 
 ## Active Pruning Plan
@@ -24,14 +24,14 @@ Source:
 
 Decision:
 
-- Product pruning now runs before the remaining loading polish.
-- Do not spend `UI-LOAD-*` effort on routes classified as `DELETE`.
+- Product pruning and `UI-LOAD-08` route closure are complete for the launch route tree.
+- Do not spend QA effort on routes classified as `DELETE`.
 - `discover/map.tsx` is protected and should be hardened as a central launch discovery path.
 
 ## Sprint Intent
 
-- Make app navigation and loading feel launch-grade: placeholders should be visually truthful, already-loaded content should stay on screen during refresh, and fast tab or list movement should not expose blank seams.
-- Finish the loading and perceived-performance pass before the next production rehearsal so UI-flow validation reflects the launch-quality behavior we actually intend to ship.
+- Turn micro-interaction cleanup into a repeatable gate rather than a one-off taste pass.
+- Keep the next production rehearsal honest by finding dead controls, broken feedback, awkward transitions, missing accessibility labels, and stale visual seams before deploy.
 
 ## Premium Bar
 
@@ -60,7 +60,7 @@ Decision:
   - `0` routes rely on the static fallback rule
   - `96` routes that use `ScrollView` without list virtualization at the route file level
   - `16` tabbed or segmented routes
-  - `52` app/component files using `ActivityIndicator`
+  - `41` app/component files using `ActivityIndicator`
 - Closure rule:
   - every route must be explicitly classified as one of:
     - `warm-first`: existing data stays visible while refresh happens
@@ -76,41 +76,42 @@ Decision:
     - what would count as a ship-blocking flicker
 - Reality check:
   - the loading foundation now exists in shared code plus `navigation/loading-route-manifest.js`
-  - latest loading coverage audit: `submit-only=4`, `section-skeleton=104`, `static=22`, `warm-first=24`
+  - latest loading coverage audit: `submit-only=5`, `section-skeleton=105`, `static=20`, `warm-first=24`
   - `scripts/loading-route-coverage-audit.js` is the route-closure gate that later slices inherit
-  - later slices still need to replace generic implementations on their owned routes; classification closure is done, route-family migration is not
+  - `UI-LOAD-08` route closure is done; `UX-QA-01` inherits the manifest and focuses on interaction defects outside loading classification
 
 ## Sprint Notes
 
-### `UI-LOAD-08`
+### `UX-QA-01`
 
 - Need:
-  - Sweep ops, settings, finance, admin, and the remaining async surfaces so route coverage is actually closed.
-  - Upgrade or explicitly classify availability, settings, invoices, payments, earnings, manage, club admin, and remaining form-heavy routes.
-  - Wire enforcement into docs and audits so regressions are easier to spot.
+  - One repeatable audit/capture/review loop for micro-interaction defects.
+  - A first issue inventory with severity and owner surface, not vague polish notes.
+  - A first burn-down slice that removes the highest-risk interaction defects before deployment.
 - Touch first:
-  - `app/(tabs)/availability.tsx`
-  - `app/(tabs)/earnings.tsx`
-  - `app/earnings.tsx`
-  - `app/invoices/*`
-  - `app/settings/*`
-  - `app/manage/*`
-  - `app/(tabs)/admin/*`
-  - `app/club/create.tsx`
-  - `app/club/settings.tsx`
-  - `app/club/setup-complete.tsx`
+  - `scripts/audit-ui.js`
+  - `scripts/lint-ui-actions.js`
+  - `scripts/ui-flow-checks-50.mjs`
+  - `scripts/ui-story-capture*.mjs`
+  - `app/(tabs)/*`
+  - `app/book-coach.tsx`
+  - `app/discover/map.tsx`
+  - booking, invoice, settings, club, and trust action surfaces
   - `docs/ui/loading-error-empty-state-matrix.md`
-  - any relevant UI audit script that can honestly enforce the new rules
 - Acceptance:
-  - Shared loading rules are the default path across the active surfaces.
-  - Remaining exceptions are explicitly documented and truly static or submit-only.
-  - The route tree is closed: no async route remains unclassified at the end of this slice.
+  - Static audits flag raw native popups, dead actions, icon-only actions without labels, and spinner-only action feedback.
+  - UI-flow runs produce a reviewable report for hot paths and classify micro defects as blocker, high, medium, or defer.
+  - First burn-down commit fixes the blocker/high issues discovered by the new pipeline.
 - Hard fail if:
-  - A new or existing surface can still bypass the shared rules without an explicit documented exception.
-  - The repo claims premium loading quality while any high-traffic or async route family still flashes blank between warm navigations.
-  - The final sweep cannot prove route-by-route transition ownership and review evidence for the hot paths.
+  - A visible action cannot complete, route, or explain why it is disabled.
+  - An action has no immediate feedback while work is pending.
+  - Icon-only controls ship without an accessibility label.
+  - Native/browser popups replace app-native confirmation, toast, banner, action sheet, or inline feedback in normal product flows.
 - Verify:
-  - `npm run typecheck`
-  - `npm run test:compile`
-  - `npm run ui:flows:run`
+  - `node ./scripts/audit-ui.js`
+  - `node ./scripts/lint-ui-actions.js`
+  - `node ./scripts/loading-route-coverage-audit.js`
+  - `npm run typecheck` when `npm` is available
+  - `npm run test:compile` when `npm` is available
+  - `npm run ui:flows:run` when `npm` is available
   - `git diff --check`
