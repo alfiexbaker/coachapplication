@@ -32,12 +32,13 @@ Verified during `OBS-01` completion on 2026-04-12:
 ## Product In One Paragraph
 
 Clubroom is a football-only multi-role operating system for paid football development.
-Coaches and clubs sell and run single sessions, group sessions, camps, clinics, and training programmes.
+Coaches and clubs sell and run `1-to-1`, `Group Session`, and `Holiday Camp` products, with paid blocks acting as packaging over repeated sessions rather than a fourth launch product type.
 Parents book trusted coaching, manage children, and protect medical, consent, emergency, and safeguarding context.
 Athletes see session-linked progress, feedback, proof, health context, and next work.
 Clubs manage staff, squads, schedules, visibility, and operating relationships around real commitments.
 Discover Map is the core local coach search surface: users should be able to find a nearby coach, review the profile, and enter booking without detouring through comparison or growth gimmicks.
-The product should not feel like a generic football social platform; feeds, events, community, matches, badges, and profiles only belong when they support booking, delivery, development proof, trust, coordination, or revenue.
+The product should not feel like a generic football social platform; staff-led feeds, coach homepages, comments, events, community, matches, badges, and profiles only belong when they support booking, delivery, development proof, trust, coordination, or revenue.
+Feed is a centrepiece when it is operational: staff top-level posts only, parent comments where enabled, and visibility driven by club, squad, session, booking, or followed-coach relationships.
 
 ## Runtime Truth
 
@@ -199,7 +200,7 @@ Still transitional:
 ## Highest-Value Priorities
 
 1. Ship the paid football development OS loop: discover -> offer -> readiness -> booking/registration -> payment -> delivery -> attendance -> proof -> rebook -> compliance evidence.
-2. Cut or demote social/results surfaces unless they directly support paid delivery, operational communication, development proof, trust, coordination, or revenue.
+2. Protect staff-led feed and coach homepage as operational communication, while cutting or demoting loose social/results surfaces unless they directly support paid delivery, development proof, trust, coordination, or revenue.
 3. Keep docs thin and update them when runtime truth changes.
 
 ## Canonical Docs

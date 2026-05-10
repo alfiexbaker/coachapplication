@@ -12,52 +12,70 @@ If a route, button, card, service, or entity does not help one of those jobs, it
 The centre of gravity is not football content. It is a paid development loop:
 
 1. Find a trusted coach or club activity.
-2. Choose a real paid product.
+2. Choose a real paid product: `1-to-1`, `Group Session`, `Holiday Camp`, or a paid block of those sessions.
 3. Confirm child readiness and permissions.
 4. Book or register with backend truth.
 5. Pay or understand payment state.
 6. Attend safely.
 7. Receive proof of development.
-8. Review, rebook, continue, or join a programme.
+8. Review, rebook, follow the coach, or continue in a block.
 9. Give owners/admins audit evidence that the operation was safe and legitimate.
 
 ## Persona Contract
 
-| Persona                                   | They care if Clubroom does this                                                                                                                  | Product must not do this                                                                                                    |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| School owner / head coach / administrator | Sell lessons, groups, camps, and programmes; assign coaches; control staff permissions; track attendance; reconcile money; export evidence.      | Force them into local-only staff assignment, social feeds, duplicate schedules, or unverifiable payment/attendance records. |
-| Coach                                     | See assigned work, player context, safety essentials, delivery tasks, completion flow, feedback/proof, next work, and money owed/earned.         | Make them maintain separate booking, group, note, feedback, video, and rebook worlds.                                       |
-| Parent / payer / booker                   | Trust the coach, understand offer/price/availability, book safely, pay clearly, see child progress, and know what to do next.                    | Show fake availability, fake paid state, vague reviews, hidden safety requirements, or success before backend creation.     |
-| Child / athlete                           | Get safer sessions, clearer feedback, proof of improvement, homework/next work, and a route to keep progressing.                                 | Turn them into content inventory or gamification without session-linked value.                                              |
-| FA / government / compliance              | Need exportable evidence: staff eligibility, consent, emergency readiness, attendance, safeguarding actions, sensitive reads, and finance audit. | Become a fake regulator portal. Build evidence/export, not broad compliance theatre.                                        |
+| Persona                                   | They care if Clubroom does this                                                                                                                             | Product must not do this                                                                                                |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| School owner / head coach / administrator | Sell `1-to-1`, `Group Session`, and `Holiday Camp` products; assign coaches; control staff permissions; track attendance; reconcile money; export evidence. | Force them into local-only staff assignment, duplicate schedules, or unverifiable payment/attendance records.           |
+| Coach                                     | See assigned work, player context, safety essentials, delivery tasks, completion flow, feedback/proof, next work, and money owed/earned.                    | Make them maintain separate booking, group, note, feedback, video, and rebook worlds.                                   |
+| Parent / payer / booker                   | Trust the coach, understand offer/price/availability, book safely, pay clearly, see child progress, and know what to do next.                               | Show fake availability, fake paid state, vague reviews, hidden safety requirements, or success before backend creation. |
+| Child / athlete                           | Get safer sessions, clearer feedback, proof of improvement, homework/next work, and a route to keep progressing.                                            | Turn them into content inventory or gamification without session-linked value.                                          |
+| FA / government / compliance              | Need exportable evidence: staff eligibility, consent, emergency readiness, attendance, safeguarding actions, sensitive reads, and finance audit.            | Become a fake regulator portal. Build evidence/export, not broad compliance theatre.                                    |
+
+## Clarified Product Decisions
+
+- Visible UK launch products are `1-to-1`, `Group Session`, and `Holiday Camp`.
+- `Block` is a packaging and scheduling layer, not a fourth product. A block can contain multiple `1-to-1` or `Group Session` occurrences with shared payment, attendance, and proof.
+- Feed is core if it is staff-led operational communication. Parents can comment/reply when comments are enabled, but parents cannot create top-level posts.
+- Coach pages are core. They are both public storefronts and private relationship pages for followers/customers.
+- Coach posts can exist on the coach page. They do not become global feed posts unless the user follows the coach, has booked the coach, or belongs to a linked club/squad/session audience.
+- Club posts must explicitly be posted as the club. If a coach belongs to a club, composer UI must force `Post as Coach` versus `Post as Club` when both are possible.
+- `Follow` is the launch word. It means saved coach plus coach updates plus fast rebooking context; it must not become vanity follower-count mechanics.
+- Base accounts are `User` and `Coach`. Club permissions live inside the club.
+- Club staff roles are `Admin` and `Coach`. Remove `Moderator`.
+- Session assignment roles are `Lead Coach` and `Support Coach`; support coach is assignment context, not a separate account type.
+- Club admin has broad club operational and sensitive access. Coaches have broad operational access for club work, but sensitive child/medical/safeguarding reads must still be scoped by club/session/squad relationship and audited.
+- Refunds are high-risk money operations: require registered-number SMS/2FA code, refund reason, permission check, and audit event.
+- Map shows nearby bookable openings/providers. Independent coach openings go straight to coach/session booking; club-owned openings route into club land first, then the coach/session inside that club.
+- A coach can belong to multiple clubs. First confirmed booking or registration owns the slot.
 
 ## Feature Verdicts
 
-| Surface / feature                 | Owner/admin | Coach  | Parent | Child    | Compliance   | Verdict            | Launch rule                                                                               |
-| --------------------------------- | ----------- | ------ | ------ | -------- | ------------ | ------------------ | ----------------------------------------------------------------------------------------- |
-| Discover Map                      | Indirect    | Yes    | Yes    | Indirect | Safety proof | `PROTECT`          | Core storefront. Must show trust, offer, price, slot, and bookability truth.              |
-| Coach profile / public storefront | Yes         | Yes    | Yes    | Indirect | Safety proof | `PROTECT`          | Must lead with verified trust, paid offers, reviews from real sessions, and availability. |
-| Single-session booking            | Yes         | Yes    | Yes    | Yes      | Yes          | `PAID-CORE`        | Backend-created on review step, never on confirmation click.                              |
-| Group sessions / camps / clinics  | Yes         | Yes    | Yes    | Yes      | Yes          | `PAID-CORE`        | Same paid product family as one-to-one sessions, not a separate world.                    |
-| Club/team schedule                | Yes         | Yes    | Yes    | Yes      | Yes          | `OPS-CORE`         | Chronological commitment surface for training, camps, events, and matches.                |
-| Events                            | Yes         | Maybe  | Maybe  | Maybe    | Maybe        | `DEMOTE`           | Keep only as operational schedule workspaces. No standalone event product.                |
-| Matches / results                 | Low         | Low    | Low    | Low      | No           | `DEMOTE/DELETE`    | Keep only inside club/team schedule if required. No primary results destination.          |
-| Updates / feed                    | Yes         | Maybe  | Maybe  | Low      | Audit maybe  | `DEMOTE`           | Operational updates only: schedule, safety, attendance, paid activity, development proof. |
-| Community groups                  | Maybe       | Maybe  | Maybe  | Maybe    | Safety       | `DEMOTE`           | Keep private squad/team logistics only. Remove generic community/group product framing.   |
-| Profile/follow/social posting     | No          | Low    | No     | No       | No           | `DELETE/FENCE`     | Proof comes from bookings/reviews, not followers or personal posts.                       |
-| Likes/share/comments              | Low         | Low    | Low    | Low      | No           | `DELETE/FENCE`     | Replace with acknowledge, RSVP, attendance, reply, book, pay, review, or rebook.          |
-| Saved coaches                     | Indirect    | Yes    | Yes    | Indirect | No           | `KEEP`             | Rename/frame as repeat-booking shortlist, not social following.                           |
-| Family / child records            | Yes         | Scoped | Yes    | Yes      | Yes          | `TRUST-CORE`       | Backend-authoritative; readiness summary only where broad reads are unsafe.               |
-| Medical / consent / emergency     | Yes         | Scoped | Yes    | Yes      | Yes          | `TRUST-CORE`       | Assignment controls visibility. Every sensitive read is auditable.                        |
-| Safeguarding                      | Yes         | Scoped | Maybe  | Yes      | Yes          | `TRUST-CORE`       | Default deny. No access from club membership alone.                                       |
-| Attendance                        | Yes         | Yes    | Yes    | Yes      | Yes          | `OPS-CORE`         | Append/update backend records. Absences are retained, not deleted.                        |
-| Session notes / feedback          | Yes         | Yes    | Yes    | Yes      | Audit        | `DEVELOPMENT-CORE` | Session-linked and visibility-scoped. Private notes never leak.                           |
-| Video / proof                     | Yes         | Yes    | Yes    | Yes      | Consent      | `DEVELOPMENT-CORE` | Must link to booking/group session and athlete before it claims development value.        |
-| Badges                            | Low         | Maybe  | Maybe  | Maybe    | No           | `FENCE`            | Keep only session-linked recognition. Remove generic gamification.                        |
-| Reviews                           | Yes         | Yes    | Yes    | Indirect | Audit        | `PAID-CORE`        | Booking-linked, one review per eligible booking/reviewer.                                 |
-| Invoices / payment attempts       | Yes         | Yes    | Yes    | Indirect | Yes          | `COMMERCIAL-CORE`  | No fake paid state. Backend confirmation or audited manual override only.                 |
-| Analytics                         | Yes         | Yes    | No     | Indirect | Maybe        | `MERGE`            | Fold revenue into earnings; development insight into proof/progress. No vanity dashboard. |
-| Compliance exports                | Yes         | Maybe  | Maybe  | Indirect | Yes          | `DEPLOYMENT-CORE`  | Export evidence, not raw global admin dumps.                                              |
+| Surface / feature             | Owner/admin | Coach  | Parent | Child    | Compliance   | Verdict              | Launch rule                                                                                                                     |
+| ----------------------------- | ----------- | ------ | ------ | -------- | ------------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Discover Map                  | Indirect    | Yes    | Yes    | Indirect | Safety proof | `PROTECT`            | Core storefront. Must show trust, offer, price, slot, and bookability truth.                                                    |
+| Coach homepage / storefront   | Yes         | Yes    | Yes    | Indirect | Safety proof | `PROTECT`            | Public storefront plus follower/customer updates. Must lead with trust, offers, reviews, and availability.                      |
+| Single-session booking        | Yes         | Yes    | Yes    | Yes      | Yes          | `PAID-CORE`          | Backend-created on review step, never on confirmation click.                                                                    |
+| Group Session / Holiday Camp  | Yes         | Yes    | Yes    | Yes      | Yes          | `PAID-CORE`          | Same paid product family as one-to-one sessions, not a separate world.                                                          |
+| Blocks                        | Yes         | Yes    | Yes    | Yes      | Yes          | `PACKAGING`          | Multi-session package over `1-to-1` or `Group Session`, not a separate launch product type.                                     |
+| Club/team schedule            | Yes         | Yes    | Yes    | Yes      | Yes          | `OPS-CORE`           | Chronological commitment surface for training, holiday camps, events, and hidden/selected matches.                              |
+| Events                        | Yes         | Maybe  | Maybe  | Maybe    | Maybe        | `DEMOTE`             | Keep only as operational schedule workspaces. No standalone event product.                                                      |
+| Matches / results             | Low         | Low    | Low    | Low      | No           | `DEMOTE/DELETE`      | Keep only inside club/team schedule if required. No primary results destination.                                                |
+| Staff-led feed / updates      | Yes         | Yes    | Yes    | Indirect | Audit maybe  | `COMMUNICATION-CORE` | Staff posts only; parent comments/replies only when enabled; operational, club, squad, session, and coach relationship updates. |
+| Community groups              | Maybe       | Maybe  | Maybe  | Maybe    | Safety       | `DEMOTE`             | Keep private squad/team logistics only. Remove generic community/group product framing.                                         |
+| Coach following               | Indirect    | Yes    | Yes    | Indirect | No           | `KEEP/FENCE`         | Follow means updates plus rebooking context, not vanity counts.                                                                 |
+| Likes/share                   | Low         | Low    | Low    | Low      | No           | `DELETE/FENCE`       | Replace with acknowledge, RSVP, reply, book, pay, review, or rebook.                                                            |
+| Comments/replies              | Yes         | Yes    | Yes    | Maybe    | Audit maybe  | `KEEP/FENCE`         | Parent replies allowed where staff enable them; staff can turn comments off per post.                                           |
+| Family / child records        | Yes         | Scoped | Yes    | Yes      | Yes          | `TRUST-CORE`         | Backend-authoritative; readiness summary only where broad reads are unsafe.                                                     |
+| Medical / consent / emergency | Yes         | Scoped | Yes    | Yes      | Yes          | `TRUST-CORE`         | Assignment controls visibility. Every sensitive read is auditable.                                                              |
+| Safeguarding                  | Yes         | Scoped | Maybe  | Yes      | Yes          | `TRUST-CORE`         | Default deny by account role; club admin and assigned/related coach access must be audited.                                     |
+| Attendance                    | Yes         | Yes    | Yes    | Yes      | Yes          | `OPS-CORE`           | Append/update backend records. Absences are retained, not deleted.                                                              |
+| Session notes / feedback      | Yes         | Yes    | Yes    | Yes      | Audit        | `DEVELOPMENT-CORE`   | Session-linked and visibility-scoped. Private notes never leak.                                                                 |
+| Video / proof                 | Yes         | Yes    | Yes    | Yes      | Consent      | `DEVELOPMENT-CORE`   | Must link to booking/group session and athlete before it claims development value.                                              |
+| Badges                        | Low         | Maybe  | Maybe  | Maybe    | No           | `FENCE`              | Keep only session-linked recognition. Remove generic gamification.                                                              |
+| Reviews                       | Yes         | Yes    | Yes    | Indirect | Audit        | `PAID-CORE`          | Booking-linked, one review per eligible booking/reviewer.                                                                       |
+| Invoices / payment attempts   | Yes         | Yes    | Yes    | Indirect | Yes          | `COMMERCIAL-CORE`    | No fake paid state. Backend confirmation or audited manual/refund override only.                                                |
+| Analytics                     | Yes         | Yes    | No     | Indirect | Maybe        | `MERGE`              | Fold revenue into earnings; development insight into proof/progress. No vanity dashboard.                                       |
+| Compliance exports            | Yes         | Maybe  | Maybe  | Indirect | Yes          | `DEPLOYMENT-CORE`    | Export evidence, not raw global admin dumps.                                                                                    |
 
 ## Canonical Data Flows
 
@@ -71,15 +89,29 @@ Hard rule:
 - Map, profile, session-type, review, and backend booking must agree on price, availability, eligibility, and bookability.
 - If the backend would reject the booking, the UI must show the reason before the final CTA where possible.
 
-### Group / Camp / Programme Registration
+### Group / Holiday Camp / Block Registration
 
 `GroupSession` -> `scheduleJson / recurringSeriesId` -> `GroupSessionRegistration` -> `AttendanceRecord` -> `Invoice/PaymentAttempt` -> `SessionNote/Feedback/Proof`
 
 Hard rule:
 
-- Group sessions, camps, clinics, and programmes are one paid product family.
+- `Group Session` and `Holiday Camp` are one paid product family.
+- `Block` wraps repeated `1-to-1` or `Group Session` occurrences; it does not create a separate delivery world.
 - They may use different source entities, but the UI language and payment/delivery/proof loop must be consistent.
 - Actual athlete identities are required before registration, not just participant counts.
+
+### Feed And Coach Page Communication
+
+`Staff author` -> `post owner` -> `audience` -> `post` -> `comments setting` -> `feed/profile/squad/session surface` -> `reply/acknowledge/RSVP/book/rebook`
+
+Hard rule:
+
+- Top-level posts are staff-only: club admin, club coach with permission, or coach posting on their own coach page.
+- Parents can comment/reply only where comments are enabled.
+- Comments are text-only at launch unless a later sprint explicitly adds media moderation.
+- Post owner controls destination: coach-owned post routes to coach page, club-owned post routes to club page, squad post routes to squad context, session post routes to session context.
+- Feed aggregation is relationship-based: followed coach, booked coach, club membership, squad membership, session registration, booking, and safety/payment notification.
+- No parent-created top-level feed posts.
 
 ### School Operations And Assignment
 
@@ -89,7 +121,9 @@ Hard rule:
 
 - Owner/admin/head coach can assign work if policy allows.
 - Coach can manage assigned work.
-- Assistant access is support-scoped unless explicitly widened.
+- There is no `Moderator` role.
+- `Support Coach` is a session assignment, not a global account role.
+- Support coach access is support-scoped unless explicitly widened.
 - Every reassignment or sensitive visibility expansion is audited.
 
 ### Child Readiness And Trust
@@ -100,8 +134,9 @@ Hard rule:
 
 - Booking should not require broad medical reads.
 - Use narrow readiness summaries where possible.
-- Coaches see only the information needed to safely deliver assigned sessions.
-- Club membership alone does not grant access to child-private, medical, safeguarding, or finance data.
+- Club admin can see club-sensitive data by policy.
+- Club coaches see sensitive essentials through club, squad, session, or booking relationship, with audit.
+- Account-level `Coach` status alone does not grant access to child-private, medical, safeguarding, or finance data.
 
 ### Delivery To Development Proof
 
@@ -122,8 +157,8 @@ Hard rule:
 
 - Client never marks a hosted payment paid.
 - Simulated provider state must be labelled as simulated unless live provider cutover is complete.
-- Manual overrides require permission, reason, and audit event.
-- Group/programme money cannot be left as registration flags only.
+- Refunds and manual overrides require permission, registered-number SMS/2FA code, reason, and audit event.
+- Group session, holiday camp, and block money cannot be left as registration flags only.
 
 ### Compliance Evidence
 
@@ -156,7 +191,7 @@ Every sprint inherits these rules:
 `UX-QA-01` continues as a cross-cutting quality gate. The deployment product sprints are:
 
 1. `PDOS-01` Route Verdict And Interaction Contract
-2. `PDOS-02` Cut Social And Results Drift
+2. `PDOS-02` Staff-Led Feed And Results Discipline
 3. `PDOS-03` Discovery, Storefront, And Trust
 4. `PDOS-04` Unified Paid Session Product Family
 5. `PDOS-05` School Staff Authority And Assignment
@@ -164,12 +199,12 @@ Every sprint inherits these rules:
 7. `PDOS-07` Delivery, Attendance, And Coach Console
 8. `PDOS-08` Development Proof, Video, Review, And Rebook
 9. `PDOS-09` Money Operating Layer
-10. `PDOS-10` Club Programme OS And Compliance Exports
+10. `PDOS-10` Club Activity OS And Compliance Exports
 11. `PDOS-11` Production Rehearsal And Release Blocker Burn-Down
 
 Why this order:
 
-- First remove ambiguity and dead social weight.
+- First remove ambiguity, protect the feed as staff-led communication, and cut dead results/social weight.
 - Then make the buyer path truthful.
 - Then make paid products, assignment, and booking real.
 - Then harden delivery, proof, money, and compliance.
@@ -227,25 +262,26 @@ Deployment blocker:
 
 - Any active route with unclear purpose, unclear authority, or unclear permission boundary blocks release rehearsal.
 
-## `PDOS-02` Cut Social And Results Drift
+## `PDOS-02` Staff-Led Feed And Results Discipline
 
 Objective:
 
-- Remove or demote features that make Clubroom feel like a football social platform or team-results tracker.
+- Keep the feed and coach homepage as core communication surfaces, while removing or demoting features that make Clubroom feel like a generic social platform or team-results tracker.
 
 Start state:
 
-- Match/result routes, recent result home modules, generic feed/profile/follow surfaces, post reactions, and generic community affordances still exist.
+- Match/result routes, recent result home modules, generic profile/follow surfaces, post reactions, and generic community affordances still exist.
+- The feed is not yet hard enough about staff-only posting, audience ownership, and comment controls.
 
 End result:
 
-- The launch app contains only operational communication: club updates, booking/session coordination, private squad/team logistics, verified reviews, development proof, and safety/payment notifications.
+- The launch app contains disciplined communication: staff-led club updates, coach homepage updates, booking/session coordination, private squad/team logistics, verified reviews, development proof, and safety/payment notifications.
 
 Personas served:
 
 - Owner/admin: less noise around real commitments.
-- Coach: proof comes from delivery, not posting.
-- Parent: sees trust and booking, not a social app.
+- Coach: has a real homepage and update channel without creating a global social network.
+- Parent: stays up to date through club, squad, session, and followed-coach updates.
 - Child: receives development proof, not content pressure.
 - Compliance: fewer uncontrolled sharing paths.
 
@@ -265,13 +301,18 @@ Touch first:
 
 Interaction contract:
 
-- Replace social actions with operational actions only: acknowledge, RSVP, attendance, reply, book, pay, review, rebook, message assigned party, raise concern.
+- Top-level feed posts are staff-only.
+- Parent comments/replies are allowed when staff enable comments on the post.
+- Staff can turn comments off per post.
+- Coach-owned posts route to coach page; club-owned posts route to club page; squad/session posts route to the right operational context.
+- Replace loose social actions with operational actions: acknowledge, RSVP, attendance, reply, book, pay, review, rebook, message assigned party, raise concern.
 
 Hard acceptance:
 
-- No primary route promotes scores, results, social feed, following, or personal posting.
-- No generic personal post creation remains in the launch route tree.
-- Likes/share are removed or fenced from paid-development flows.
+- No primary route promotes scores, vanity social feed, vanity following, or parent personal posting.
+- No parent top-level post creation remains in the launch route tree.
+- Coach homepage posting is retained, but does not become global feed spam.
+- Likes/share are removed or fenced from paid-development flows; comments/replies are retained only with staff-controlled comment settings.
 - Club/squad updates remain only where permission-scoped and operational.
 - Any deleted route has its route builder, nav entry, loading manifest entry, and dead imports removed.
 
@@ -285,7 +326,7 @@ Verification:
 
 Deployment blocker:
 
-- Any social/result surface still reachable from primary navigation without an operational purpose.
+- Any result/social surface reachable from primary navigation without an operational, club, squad, session, coach-homepage, or followed-coach purpose.
 
 ## `PDOS-03` Discovery, Storefront, And Trust
 
@@ -313,11 +354,12 @@ Data mapping:
 
 - `GET /v1/public/coaches/search` or equivalent -> public coach summary
 - `CoachProfile` -> public storefront
+- `FollowedCoach` or equivalent -> update subscription plus rebooking context
 - `CoachVerification` -> safe verification summary
 - `CoachingOffering` -> price/from-price and product cards
 - `AvailabilityTemplate/Override` -> next bookable slot
 - `SessionFeedback/Review` -> verified proof
-- `Favourite/SavedCoach` -> repeat-booking shortlist
+- `FollowedCoach` or existing favourite storage -> update subscription plus repeat-booking shortlist
 
 Touch first:
 
@@ -335,7 +377,7 @@ Interaction contract:
 
 - Book CTA appears only when the coach has a bookable offer and safe eligibility.
 - Unverified/unavailable/full states show why booking is blocked and what can happen next.
-- Saved coach action is labelled as repeat-booking utility, not following.
+- Follow action is labelled as a relationship utility: updates plus fast rebooking context, not vanity popularity.
 
 Hard acceptance:
 
@@ -343,7 +385,7 @@ Hard acceptance:
 - Non-mock public price and availability do not come from local storage.
 - Unsafe/unverified/unavailable coaches cannot show a live booking CTA without a visible explanation.
 - Reviews shown as proof are booking-linked or clearly marked as not yet verified.
-- Saved coaches show name, photo, rating/proof, from-price, next slot, and primary rebook action.
+- Followed coaches show name, photo, rating/proof, from-price, next slot, latest relevant update, and primary rebook action.
 
 Verification:
 
@@ -360,21 +402,21 @@ Deployment blocker:
 
 Objective:
 
-- Make one-to-one sessions, small groups, camps, clinics, club training, and programmes feel like one product family.
+- Make `1-to-1`, `Group Session`, `Holiday Camp`, and paid blocks feel like one product family.
 
 Start state:
 
-- Group/camp sessions are closer to backend-authoritative.
+- Group sessions and holiday camps are closer to backend-authoritative.
 - One-off offerings and coach-created sessions can still rely on local `SESSION_OFFERINGS`.
 - Booking, group registration, invites, recurring plans, and club schedule are split in language and authority.
 
 End result:
 
-- Users understand the difference between `1-to-1`, `small group`, `camp/clinic`, `club training`, and `programme`, but all share one commercial/delivery language: price, capacity, age/skill fit, location, schedule, owner, assigned staff, attendance, payment, proof.
+- Users understand the difference between `1-to-1`, `Group Session`, `Holiday Camp`, and `Block`, but all share one commercial/delivery language: price, capacity, age/skill fit, location, schedule, owner, assigned staff, attendance, payment, proof.
 
 Personas served:
 
-- Owner/admin: can package and sell programmes.
+- Owner/admin: can package and sell sessions, holiday camps, and blocks.
 - Coach: can create/run assigned paid products.
 - Parent: can compare formats without learning separate systems.
 - Child: gets sessions matched to age, level, and objectives.
@@ -384,8 +426,8 @@ Data mapping:
 
 - `CoachingOffering` = what is sold for one-to-one and coach products.
 - `Booking` + `BookingParticipant` = one-to-one commitment.
-- `GroupSession` + `GroupSessionRegistration` = group/camp/programme enrollment.
-- `RecurringSeries` or `scheduleJson` = repeated programme delivery for launch.
+- `GroupSession` + `GroupSessionRegistration` = group session and holiday camp enrollment.
+- `RecurringSeries` or `scheduleJson` = repeated block delivery for launch.
 - `ClubActivity` = schedule read projection across events, training, and matches.
 - `InvoiceLineItem` = commercial representation.
 
@@ -442,7 +484,7 @@ Start state:
 
 End result:
 
-- Owner/admin/head coach/coach/assistant permissions are enforced consistently in UI and API, and paid work can be assigned/reassigned with audit history.
+- Owner/admin/head coach/coach permissions are enforced consistently in UI and API, and paid work can be assigned/reassigned to lead/support coaches with audit history.
 
 Personas served:
 
@@ -457,7 +499,7 @@ Data mapping:
 - `ClubMembership.role` -> `capability` from `contracts/club-governance.ts`
 - `AccessGrant` -> explicit sensitive access where needed
 - `Booking.coachUserId / GroupSession.coachUserId` -> lead delivery owner
-- `support assignment` -> explicit assignment record or policy-backed field
+- `Lead Coach / Support Coach` -> explicit assignment record or policy-backed field
 - `AuditEvent` -> assignment, reassignment, denial, sensitive read
 
 Touch first:
@@ -477,17 +519,17 @@ Interaction contract:
 
 - Assignment controls show only eligible staff.
 - Reassignment requires a reason and explains who is notified.
-- Assistant actions are support-scoped unless policy explicitly grants more.
+- Support coach actions are scoped to the assigned session unless policy explicitly grants more.
 - UI disabled state must match API denial state.
 
 Hard acceptance:
 
 - No paid-ops flow depends on `/api/academies`.
-- UI and API agree on owner/admin/head coach/coach/assistant permissions.
+- UI and API agree on owner/admin/head coach/coach permissions.
 - Owner/admin/head coach can assign work to eligible coaches when policy allows.
-- Assistant cannot create, reassign, or read sensitive data unless explicitly granted and assigned.
+- Support coach cannot create, reassign, refund, or read unrelated sensitive data unless explicitly granted and assigned.
 - Every reassignment writes an audit event.
-- API tests cover each role for create, assign, reassign, roster read, sensitive read, and deny paths.
+- API tests cover each role and assignment state for create, assign, reassign, roster read, sensitive read, refund, and deny paths.
 
 Verification:
 
@@ -588,7 +630,7 @@ Start state:
 
 End result:
 
-- The coach console is the operational daily workspace, and attendance is backend truth for one-to-one, group, camp, and programme occurrences.
+- The coach console is the operational daily workspace, and attendance is backend truth for `1-to-1`, `Group Session`, `Holiday Camp`, and block occurrences.
 
 Personas served:
 
@@ -633,7 +675,7 @@ Hard acceptance:
 - Absent athletes do not receive progress movement.
 - Parent/athlete visibility obeys `coach_only` vs shared state.
 - Private coach notes never leak.
-- Head coach sees scoped programme attendance, not unrelated child-sensitive data.
+- Head coach sees scoped block and holiday-camp attendance, not unrelated child-sensitive data.
 
 Verification:
 
@@ -745,7 +787,7 @@ Personas served:
 - Owner/admin: knows what was sold, paid, overdue, voided, or written off.
 - Coach: knows earnings and outstanding money.
 - Parent: knows amount owed and next action.
-- Compliance: payment and manual overrides are exportable.
+- Compliance: payment, refund, and manual overrides are exportable.
 
 Data mapping:
 
@@ -781,8 +823,8 @@ Hard acceptance:
 - `SENT` invoice owned by payer shows `Pay now` from booking detail and invoice detail.
 - Paid, processing, failed, void, overdue, direct-pay, and manual-override states are distinct.
 - Client never marks hosted payment as paid.
-- Group/programme registrations have invoice/payment status, not only `paidAt`.
-- Mark-paid/unpaid/write-off/void update backend truth and audit.
+- Group session, holiday camp, and block registrations have invoice/payment status, not only `paidAt`.
+- Mark-paid/unpaid/write-off/void/refund update backend truth, require registered-number SMS/2FA where money moves back, and audit.
 - Owner/admin can export ledger and reconciliation report.
 
 Verification:
@@ -797,11 +839,11 @@ Deployment blocker:
 
 - Fake paid state, seed-backed reconciliation in production mode, or no clear business decision between live provider and explicit off-platform/direct-pay launch.
 
-## `PDOS-10` Club Programme OS And Compliance Exports
+## `PDOS-10` Club Activity OS And Compliance Exports
 
 Objective:
 
-- Make club operations about paid activity coordination and evidence, not a club website or feed.
+- Make club operations about paid activity coordination, staff-led communication, and evidence, not a loose club website.
 
 Start state:
 
@@ -811,13 +853,13 @@ Start state:
 
 End result:
 
-- Clubs run squads, staff, paid sessions, camps/clinics, attendance, capacity, waitlists, family communication, safeguarding, finance, and compliance evidence from operational surfaces.
+- Clubs run squads, staff, paid sessions, holiday camps, attendance, capacity, waitlists, family communication, safeguarding, finance, and compliance evidence from operational surfaces.
 
 Personas served:
 
 - Owner/admin: runs the school.
-- Head coach: supervises programme delivery.
-- Coach/assistant: sees assigned work and safety essentials.
+- Head coach: supervises block, group, and holiday-camp delivery.
+- Coach/support coach: sees assigned work and safety essentials.
 - Parent/child: receives relevant schedule, payment, proof, and updates.
 - Compliance: can evidence what happened.
 
@@ -855,7 +897,7 @@ Interaction contract:
 
 Hard acceptance:
 
-- Club pages no longer lead with content/feed as the primary job.
+- Club pages lead with commitments, staff-led feed, paid activities, squads, safety, and money in that order.
 - Events are schedule workspaces, not standalone products.
 - Attendance registers are exportable by club/squad/activity/date.
 - Staff verification and role assignment can be exported by authorized users.
@@ -895,9 +937,9 @@ End result:
 Core journeys:
 
 - Parent finds coach on map -> views trusted profile -> selects offer -> child readiness passes -> books -> sees invoice/payment state.
-- Parent registers child for group/camp -> capacity/payment/readiness validated -> sees receipt and schedule.
+- Parent registers child for group session, holiday camp, or block -> capacity/payment/readiness validated -> sees receipt and schedule.
 - Coach sees assigned session -> views safety essentials -> records attendance -> completes feedback/proof -> parent sees outcome.
-- Owner creates club activity/programme -> assigns coach -> monitors roster/attendance/payment -> exports evidence.
+- Owner creates club activity/block/holiday camp -> assigns lead/support coaches -> monitors roster/attendance/payment -> exports evidence.
 - Head coach reassigns work with reason -> coach queues update -> audit event exists.
 - Compliance user exports attendance/finance/safeguarding/sensitive-read evidence with redaction.
 
@@ -924,8 +966,9 @@ Clubroom is deployment-ready only when:
 
 - Discover Map is a truthful storefront, not a gimmick.
 - Every active route has a launch job and data authority.
-- Social/results drift is cut or demoted.
-- Single and group paid products share one clear product language.
+- Staff-led feed and coach homepage are disciplined communication surfaces, not loose social posting.
+- Results drift is hidden/demoted into selected squad/team schedule context.
+- `1-to-1`, `Group Session`, `Holiday Camp`, and paid blocks share one clear product language.
 - Final booking/registration success only appears after backend creation.
 - Child readiness blocks unsafe minor bookings.
 - Staff assignment and sensitive visibility are policy-backed and audited.
@@ -933,6 +976,7 @@ Clubroom is deployment-ready only when:
 - Development proof is session-linked and visibility-scoped.
 - Reviews are booking-linked.
 - Money state is backend-owned and never fake-paid.
+- Refunds require registered-number SMS/2FA, reason, permission check, and audit.
 - Club operations lead with commitments, staff, squads, safety, money, and evidence.
 - Compliance exports exist for attendance, finance, safeguarding, and sensitive access.
 - Full release rehearsal passes or leaves only external env/provider blockers.

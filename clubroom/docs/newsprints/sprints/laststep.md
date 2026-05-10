@@ -14,9 +14,10 @@ Date: 2026-05-10
 
 1. The app must serve five personas explicitly: school owner/admin, coach, parent/payer, child/athlete, and compliance.
 2. Discover Map is protected, but it must become a truthful storefront with trust, offer, price, next-slot, and bookability state.
-3. Standalone match/results, generic feed/profile/follow/community, likes/share, and content-first club pages are drift unless tied to operations.
-4. Single sessions, group sessions, camps, clinics, club training, and programmes must share one paid product language.
-5. Booking/registration, child readiness, attendance, proof, reviews, rebook, money, and compliance evidence must become backend-authoritative before production rehearsal.
+3. Feed and coach homepage are protected centrepieces when staff-led and operational; parent top-level posting, vanity following, likes/share, and generic community mechanics are drift.
+4. Launch products are `1-to-1`, `Group Session`, and `Holiday Camp`; `Block` is packaging over repeated sessions, not a separate product world.
+5. Club roles are `Admin` and `Coach`; session assignment roles are `Lead Coach` and `Support Coach`; remove moderator language.
+6. Booking/registration, child readiness, attendance, proof, reviews, rebook, money, refund hard walls, and compliance evidence must become backend-authoritative before production rehearsal.
 
 ## Next Exact Action
 
