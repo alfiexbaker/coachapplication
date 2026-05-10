@@ -5,17 +5,20 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 ## Open Queue
 
-| ID             | Exactly what it does                                                                                                                                                                                                                                                     | Spine(s)                                                     | Status |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ | ------ |
-| UX-QA-01       | Build the repeatable micro-interaction defect pipeline: static audits, UI-flow capture/review, hot-path issue inventory, and first burn-down slice for dead controls, native popups, spinner-only actions, missing accessibility labels, and broken transition feedback. | Trust/Safety/Ops + Booking/Revenue + Development + Community | OPEN   |
-| PDOS-01        | Re-score the launch route tree against the paid football development OS filter, then produce exact keep/demote/delete decisions for match/results, social/feed/profile, community, events, analytics, and session/product surfaces.                                      | Booking/Revenue + Development + Trust/Ops + Community        | READY  |
-| PDOS-02        | Remove or demote results and social drift: standalone match-results emphasis, home score modules, personal follow/feed mechanics, social post reactions, and community surfaces that are not tied to squads, schedules, safety, or paid activity.                        | Community + Trust/Ops + Development                          | READY  |
-| PDOS-03        | Unify single sessions, group sessions, camps/clinics, and club training into one paid session product family with shared language for price, capacity, eligibility, location, schedule, attendance, and payment state.                                                   | Booking/Revenue + Development + Club Ops                     | READY  |
-| PDOS-04        | Connect session completion, notes, feedback, video/proof, reviews, next work, and rebook/continue-plan actions into the paid development proof loop.                                                                                                                     | Development + Booking/Revenue + Trust                        | READY  |
-| PDOS-05        | Sharpen Discover Map, coach profiles, saved coaches, offers, pricing, trust proof, reviews, and availability into a fast storefront-to-booking conversion path.                                                                                                          | Booking/Revenue + Trust + Development                        | READY  |
-| PROD-VERIFY-01 | Rehearse the production db-backed runtime end to end: release preflight, web export, UI flows, and the remaining non-mock critical journeys; fix code-path drift and leave only real env/provisioning blockers.                                                          | Trust/Safety/Ops + Booking/Revenue + Development             | READY  |
-| PDOS-06        | Make invoices, earnings, payment attempts, reminders, recurring plans, group registrations, and reconciler state feel like one commercial operating layer.                                                                                                               | Booking/Revenue + Trust/Ops                                  | READY  |
-| PDOS-07        | Reframe club operations around paid activity coordination: squads, staff, schedules, camps/clinics, attendance, capacity, waitlists, family communication, and activity reporting before content/feed surfaces.                                                          | Club Ops + Booking/Revenue + Trust                           | READY  |
+| ID       | Exactly what it does                                                                                                                                                                                                                                                     | Spine(s)                                                     | Status |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ | ------ |
+| UX-QA-01 | Build the repeatable micro-interaction defect pipeline: static audits, UI-flow capture/review, hot-path issue inventory, and first burn-down slice for dead controls, native popups, spinner-only actions, missing accessibility labels, and broken transition feedback. | Trust/Safety/Ops + Booking/Revenue + Development + Community | OPEN   |
+| PDOS-01  | Give every launch route and major component a persona, paid-development job, source-of-truth service, primary CTA, loading/action contract, and keep/demote/delete verdict.                                                                                              | Trust/Safety/Ops + Booking/Revenue + Development + Community | READY  |
+| PDOS-02  | Cut social and results drift: remove/demote matches, recent-results modules, personal feed/follow/profile posting, generic community mechanics, likes/share, and any route not tied to paid delivery or operational communication.                                       | Community + Trust/Ops + Development                          | READY  |
+| PDOS-03  | Harden Discover Map, public coach profiles, saved coaches, trust proof, verified reviews, paid offers, price/from-price, next-slot, and bookability state into a truthful storefront-to-booking path.                                                                    | Booking/Revenue + Trust + Development                        | READY  |
+| PDOS-04  | Unify one-to-one sessions, small groups, camps, clinics, club training, and programmes into one paid session product family with shared price, capacity, eligibility, schedule, roster, attendance, payment, and proof language.                                         | Booking/Revenue + Development + Club Ops                     | READY  |
+| PDOS-05  | Make school owner/admin/head-coach staff authority real: capability-backed create/assign/reassign flows, assistant limits, coach queues, sensitive visibility rules, and audited assignment events.                                                                      | Club Ops + Trust/Safety/Ops + Booking/Revenue                | READY  |
+| PDOS-06  | Move booking/registration final success and minor readiness to backend truth: review-step submission, idempotency, child readiness summaries, coach eligibility, inline blockers, and receipt-only confirmation screens.                                                 | Booking/Revenue + Trust/Safety/Ops                           | READY  |
+| PDOS-07  | Build the coach delivery console around assigned work, roster context, safety essentials, attendance register, completion, feedback, proof, next work, and concern escalation.                                                                                           | Development + Trust/Safety/Ops + Club Ops                    | READY  |
+| PDOS-08  | Connect attendance/completion to session-linked development proof: notes, feedback, video, reviews, saved coach, rebook, recurring/continue-plan, and child/parent outcome cards.                                                                                        | Development + Booking/Revenue + Trust                        | READY  |
+| PDOS-09  | Make money a single operating layer across bookings, group registrations, camps, and programmes: invoice lines, hosted/manual payment state, reminders, reconciler entries, earnings, payer views, and owner exports.                                                    | Booking/Revenue + Trust/Safety/Ops                           | READY  |
+| PDOS-10  | Reframe club operations into paid activity coordination and compliance evidence: squads, staff, schedules, capacity, waitlists, family communication, safeguarding, finance, attendance registers, and redacted exports.                                                 | Club Ops + Booking/Revenue + Trust/Safety/Ops                | READY  |
+| PDOS-11  | Rehearse the db-backed production runtime end to end across discovery, booking, group registration, delivery, payment, proof, owner ops, assignment, and compliance exports; burn down code drift and leave only real env/provider blockers.                             | Trust/Safety/Ops + Booking/Revenue + Development + Club Ops  | READY  |
 
 ## Execution Order
 
@@ -25,9 +28,12 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 4. `PDOS-03`
 5. `PDOS-04`
 6. `PDOS-05`
-7. `PROD-VERIFY-01`
-8. `PDOS-06`
-9. `PDOS-07`
+7. `PDOS-06`
+8. `PDOS-07`
+9. `PDOS-08`
+10. `PDOS-09`
+11. `PDOS-10`
+12. `PDOS-11`
 
 ## Active Pruning Plan
 
@@ -44,11 +50,14 @@ Decision:
 - `discover/map.tsx` is protected and should be hardened as a central launch discovery path.
 - Clubroom should feel like the operating system for paid football development, not a generic football social platform.
 - Single sessions and group sessions are both core, but they should share one paid session product spine instead of feeling like separate products.
+- School owner/admin, coach, parent, child, and compliance value must be explicit before a feature is kept.
+- Production rehearsal starts only after booking/registration, child readiness, attendance, proof, money, and compliance evidence have backend-authoritative launch paths.
 
 ## Sprint Intent
 
 - Turn micro-interaction cleanup into a repeatable gate rather than a one-off taste pass.
 - Keep the next production rehearsal honest by finding dead controls, broken feedback, awkward transitions, missing accessibility labels, and stale visual seams before deploy.
+- Drive the product through the hard paid-development loop: discover -> offer -> readiness -> booking/registration -> payment -> delivery -> attendance -> proof -> rebook -> compliance evidence.
 
 ## Premium Bar
 

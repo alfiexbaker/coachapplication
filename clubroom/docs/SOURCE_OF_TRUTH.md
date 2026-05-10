@@ -198,7 +198,9 @@ Still transitional:
 
 ## Highest-Value Priorities
 
-1. Keep docs thin and update them when runtime truth changes.
+1. Ship the paid football development OS loop: discover -> offer -> readiness -> booking/registration -> payment -> delivery -> attendance -> proof -> rebook -> compliance evidence.
+2. Cut or demote social/results surfaces unless they directly support paid delivery, operational communication, development proof, trust, coordination, or revenue.
+3. Keep docs thin and update them when runtime truth changes.
 
 ## Canonical Docs
 
