@@ -43,6 +43,8 @@
     "lint:ui-actions": "node ./scripts/lint-ui-actions.js",
     "audit:alerts": "node ./scripts/audit-alert-usage.js",
     "audit:ui": "node ./scripts/audit-ui.js",
+    "audit:ui:quality": "node ./scripts/ui-quality-pipeline.js",
+    "audit:ui:quality:release": "node ./scripts/ui-quality-pipeline.js --require-flows",
     "audit:architecture": "node ./scripts/architecture-reachability-audit.js",
     "audit:loading-routes": "node ./scripts/loading-route-coverage-audit.js",
     "gate:pre-api-placement": "node ./scripts/pre-api-placement-gate.js",

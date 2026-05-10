@@ -5,10 +5,10 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 ## Open Queue
 
-| ID | Exactly what it does | Spine(s) | Status |
-| -- | -------------------- | -------- | ------ |
-| UX-QA-01 | Build the repeatable micro-interaction defect pipeline: static audits, UI-flow capture/review, hot-path issue inventory, and first burn-down slice for dead controls, native popups, spinner-only actions, missing accessibility labels, and broken transition feedback. | Trust/Safety/Ops + Booking/Revenue + Development + Community | READY |
-| PROD-VERIFY-01 | Rehearse the production db-backed runtime end to end: release preflight, web export, UI flows, and the remaining non-mock critical journeys; fix code-path drift and leave only real env/provisioning blockers. | Trust/Safety/Ops + Booking/Revenue + Development | READY |
+| ID             | Exactly what it does                                                                                                                                                                                                                                                     | Spine(s)                                                     | Status |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ | ------ |
+| UX-QA-01       | Build the repeatable micro-interaction defect pipeline: static audits, UI-flow capture/review, hot-path issue inventory, and first burn-down slice for dead controls, native popups, spinner-only actions, missing accessibility labels, and broken transition feedback. | Trust/Safety/Ops + Booking/Revenue + Development + Community | OPEN   |
+| PROD-VERIFY-01 | Rehearse the production db-backed runtime end to end: release preflight, web export, UI flows, and the remaining non-mock critical journeys; fix code-path drift and leave only real env/provisioning blockers.                                                          | Trust/Safety/Ops + Booking/Revenue + Development             | READY  |
 
 ## Execution Order
 
@@ -88,9 +88,12 @@ Decision:
   - One repeatable audit/capture/review loop for micro-interaction defects.
   - A first issue inventory with severity and owner surface, not vague polish notes.
   - A first burn-down slice that removes the highest-risk interaction defects before deployment.
+  - Pipeline entrypoint: `node ./scripts/ui-quality-pipeline.js` for local static gates plus optional browser flows when Expo web is running.
+  - Release pipeline entrypoint: `node ./scripts/ui-quality-pipeline.js --require-flows` so browser-flow coverage cannot be silently skipped.
 - Touch first:
   - `scripts/audit-ui.js`
   - `scripts/lint-ui-actions.js`
+  - `scripts/ui-quality-pipeline.js`
   - `scripts/ui-flow-checks-50.mjs`
   - `scripts/ui-story-capture*.mjs`
   - `app/(tabs)/*`
@@ -108,6 +111,7 @@ Decision:
   - Icon-only controls ship without an accessibility label.
   - Native/browser popups replace app-native confirmation, toast, banner, action sheet, or inline feedback in normal product flows.
 - Verify:
+  - `node ./scripts/ui-quality-pipeline.js`
   - `node ./scripts/audit-ui.js`
   - `node ./scripts/lint-ui-actions.js`
   - `node ./scripts/loading-route-coverage-audit.js`
