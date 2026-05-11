@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-11T16:27:51.291Z",
+  "updatedAt": "2026-05-11T20:53:54.981Z",
   "note": "Legacy anti-slop findings allowed for now. New findings fail scripts/api-boundary-audit.js.",
   "allowedFindings": [
     {
@@ -1556,120 +1556,6 @@
       "file": "services/video-service.ts",
       "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_VIDEOS, videos);",
       "fingerprint": "trust-sensitive-local-storage|services/video-service.ts|await apiClient.set(STORAGE_KEYS.SESSION_VIDEOS, videos);"
-    },
-    {
-      "rule": "untraced-backend-route",
-      "file": "apps/api/src/modules/auth/routes.ts",
-      "snippet": "POST /v1/auth/forgot-password",
-      "fingerprint": "untraced-backend-route|apps/api/src/modules/auth/routes.ts|POST /v1/auth/forgot-password"
-    },
-    {
-      "rule": "untraced-backend-route",
-      "file": "apps/api/src/modules/auth/routes.ts",
-      "snippet": "POST /v1/auth/reset-password",
-      "fingerprint": "untraced-backend-route|apps/api/src/modules/auth/routes.ts|POST /v1/auth/reset-password"
-    },
-    {
-      "rule": "untraced-backend-route",
-      "file": "apps/api/src/modules/booking/routes.ts",
-      "snippet": "GET /v1/group-sessions/:sessionId",
-      "fingerprint": "untraced-backend-route|apps/api/src/modules/booking/routes.ts|GET /v1/group-sessions/:sessionId"
-    },
-    {
-      "rule": "untraced-backend-route",
-      "file": "apps/api/src/modules/booking/routes.ts",
-      "snippet": "PATCH /v1/group-sessions/:sessionId/publish",
-      "fingerprint": "untraced-backend-route|apps/api/src/modules/booking/routes.ts|PATCH /v1/group-sessions/:sessionId/publish"
-    },
-    {
-      "rule": "untraced-backend-route",
-      "file": "apps/api/src/modules/booking/routes.ts",
-      "snippet": "PATCH /v1/group-sessions/:sessionId/cancel",
-      "fingerprint": "untraced-backend-route|apps/api/src/modules/booking/routes.ts|PATCH /v1/group-sessions/:sessionId/cancel"
-    },
-    {
-      "rule": "untraced-backend-route",
-      "file": "apps/api/src/modules/booking/routes.ts",
-      "snippet": "POST /v1/group-sessions/:sessionId/register",
-      "fingerprint": "untraced-backend-route|apps/api/src/modules/booking/routes.ts|POST /v1/group-sessions/:sessionId/register"
-    },
-    {
-      "rule": "untraced-backend-route",
-      "file": "apps/api/src/modules/booking/routes.ts",
-      "snippet": "GET /v1/group-sessions/:sessionId/roster",
-      "fingerprint": "untraced-backend-route|apps/api/src/modules/booking/routes.ts|GET /v1/group-sessions/:sessionId/roster"
-    },
-    {
-      "rule": "untraced-backend-route",
-      "file": "apps/api/src/modules/coach-club/routes.ts",
-      "snippet": "PATCH /v1/coaches/me/availability/templates/:templateId",
-      "fingerprint": "untraced-backend-route|apps/api/src/modules/coach-club/routes.ts|PATCH /v1/coaches/me/availability/templates/:templateId"
-    },
-    {
-      "rule": "untraced-backend-route",
-      "file": "apps/api/src/modules/coach-club/routes.ts",
-      "snippet": "DELETE /v1/coaches/me/availability/templates/:templateId",
-      "fingerprint": "untraced-backend-route|apps/api/src/modules/coach-club/routes.ts|DELETE /v1/coaches/me/availability/templates/:templateId"
-    },
-    {
-      "rule": "untraced-backend-route",
-      "file": "apps/api/src/modules/coach-club/routes.ts",
-      "snippet": "PATCH /v1/coaches/me/availability/overrides/:overrideId",
-      "fingerprint": "untraced-backend-route|apps/api/src/modules/coach-club/routes.ts|PATCH /v1/coaches/me/availability/overrides/:overrideId"
-    },
-    {
-      "rule": "untraced-backend-route",
-      "file": "apps/api/src/modules/coach-club/routes.ts",
-      "snippet": "DELETE /v1/coaches/me/availability/overrides/:overrideId",
-      "fingerprint": "untraced-backend-route|apps/api/src/modules/coach-club/routes.ts|DELETE /v1/coaches/me/availability/overrides/:overrideId"
-    },
-    {
-      "rule": "untraced-backend-route",
-      "file": "apps/api/src/modules/meta/routes.ts",
-      "snippet": "GET /v1/meta/seed-health",
-      "fingerprint": "untraced-backend-route|apps/api/src/modules/meta/routes.ts|GET /v1/meta/seed-health"
-    },
-    {
-      "rule": "untraced-backend-route",
-      "file": "apps/api/src/modules/wave2plus/routes.ts",
-      "snippet": "GET /v1/athletes/:athleteId/progress",
-      "fingerprint": "untraced-backend-route|apps/api/src/modules/wave2plus/routes.ts|GET /v1/athletes/:athleteId/progress"
-    },
-    {
-      "rule": "untraced-backend-route",
-      "file": "apps/api/src/modules/wave2plus/routes.ts",
-      "snippet": "GET /v1/athletes/:athleteId/goals",
-      "fingerprint": "untraced-backend-route|apps/api/src/modules/wave2plus/routes.ts|GET /v1/athletes/:athleteId/goals"
-    },
-    {
-      "rule": "untraced-backend-route",
-      "file": "apps/api/src/modules/wave2plus/routes.ts",
-      "snippet": "GET /v1/athletes/:athleteId/badges",
-      "fingerprint": "untraced-backend-route|apps/api/src/modules/wave2plus/routes.ts|GET /v1/athletes/:athleteId/badges"
-    },
-    {
-      "rule": "untraced-backend-route",
-      "file": "apps/api/src/modules/wave2plus/routes.ts",
-      "snippet": "GET /v1/drills",
-      "fingerprint": "untraced-backend-route|apps/api/src/modules/wave2plus/routes.ts|GET /v1/drills"
-    },
-    {
-      "rule": "untraced-backend-route",
-      "file": "apps/api/src/modules/wave2plus/routes.ts",
-      "snippet": "GET /v1/access-grants",
-      "fingerprint": "untraced-backend-route|apps/api/src/modules/wave2plus/routes.ts|GET /v1/access-grants"
-    },
-    {
-      "rule": "untraced-backend-route",
-      "file": "apps/api/src/modules/wave2plus/routes.ts",
-      "snippet": "GET /v1/admin/retention-runs",
-      "fingerprint": "untraced-backend-route|apps/api/src/modules/wave2plus/routes.ts|GET /v1/admin/retention-runs"
-    },
-    {
-      "rule": "untraced-backend-route",
-      "file": "apps/api/src/modules/wave2plus/routes.ts",
-      "snippet": "GET /v1/me/data-deletion-requests",
-      "fingerprint": "untraced-backend-route|apps/api/src/modules/wave2plus/routes.ts|GET /v1/me/data-deletion-requests"
     }
   ]
 }
