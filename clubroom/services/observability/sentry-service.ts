@@ -5,6 +5,9 @@ import * as Sentry from '@sentry/react-native';
 import { analytics, api, env, isDevelopment } from '@/constants/config';
 
 type BreadcrumbLevel = 'debug' | 'info' | 'warning' | 'error' | 'log';
+type SentryWithAppLoaded = typeof Sentry & {
+  appLoaded?: () => void;
+};
 
 interface SentryUserShape {
   id: string;
@@ -64,7 +67,7 @@ export function markSentryAppLoaded(): void {
   }
 
   appLoadedSent = true;
-  Sentry.appLoaded();
+  (Sentry as SentryWithAppLoaded).appLoaded?.();
 }
 
 export function setSentryUser(user: SentryUserShape | null): void {
