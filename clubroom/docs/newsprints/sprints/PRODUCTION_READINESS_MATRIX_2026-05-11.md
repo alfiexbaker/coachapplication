@@ -1,0 +1,318 @@
+# Production Readiness Matrix
+
+Date: 2026-05-11
+Purpose: turn Clubroom from a broad POC into a production-ready paid football development operating system with one API authority path and one UI linkup path per feature.
+
+## Current Runtime Evidence
+
+Latest local evidence:
+
+- `node ./scripts/agentic-readiness-pipeline.js` -> `1 passed`, `2 warned`, `0 failed`
+- `node ./scripts/api-boundary-audit.js` -> pass with `278` legacy findings baselined
+- `node ./scripts/pdos-route-authority-audit.js` -> `154` routes, `90` still need product/source-of-truth decisions
+- `node ./scripts/ui-quality-pipeline.js` -> static UI quality pass
+- `node ./scripts/loading-route-coverage-audit.js` -> `154` routes covered, `0` fallback static routes
+
+Current blockers:
+
+- DB staging preflight is blocked by environment/release items.
+- API boundary debt still exists behind the baseline: `104` legacy `/api/*` paths, `148` trust-sensitive local-storage authority patterns, `19` untraced backend routes, `5` route literals, `2` frontend raw fetches.
+- Several launch-critical API routes are still `scaffolded` or `planned` in `docs/backend-api/ROUTE_INVENTORY_V1.md`.
+- Static UI quality is healthier than API/source-of-truth maturity; the main deployment risk is runtime truth, not just polish.
+
+## Production Definition
+
+Clubroom is production-ready only when each P0 journey has both packets complete.
+
+The current answer to "are the rules good enough?" is:
+
+- Good enough to stop new random AI slop from entering unnoticed.
+- Not yet enough to claim elite production discipline because contract tests, idempotency, audit coverage, provider safety, DB-backed invite/payment/session flows, and security denial tests are not complete across every P0 journey.
+- The next step is not more feature breadth; it is turning the P0 journeys below into verified API authority plus verified UI linkup.
+
+API authority packet:
+
+- `/v1` endpoint contract exists and is mapped in route inventory.
+- Backend owns the source of truth in `db` mode.
+- Request and response schemas are typed.
+- Response DTOs are serialized, not raw persistence rows.
+- Authn, acting role, authz, repository filters, and deny tests exist.
+- Writes have idempotency or version/conflict protection.
+- Sensitive reads and all writes emit audit/security events.
+- Provider/storage/job side effects are explicit and observable.
+
+UI linkup packet:
+
+- Route uses `navigation/routes.ts` and canonical frontend service entrypoints.
+- Service maps `/v1` DTOs into UI view models.
+- No product truth depends on local storage in non-mock mode.
+- Loading, empty, error, permission-denied, conflict, pending, and success states exist.
+- Dead controls, fake success, native alerts, and duplicate CTAs are removed.
+- Role-specific flow proves the real API path, not a mock-only success path.
+
+Elite API bar:
+
+- Contracts are stable, documented, and shared between API tests and UI adapters.
+- Every endpoint has predictable error codes, request IDs, and no raw persistence payloads.
+- Every unsafe write has an idempotency strategy and conflict behavior.
+- Every list/read endpoint applies repository-level visibility filters.
+- Every sensitive read and all writes are auditable.
+- Provider boundaries exist for payments, SMS/2FA, object storage, malware scanning, email, push, and Sentry.
+- Production cannot accidentally fall back to seed stores, mock state, or local storage authority.
+- CI must run API tests, app typecheck, API boundary audit, route/loading audits, and release preflight before deploy.
+
+## P0 Journey Matrix
+
+| Order | Journey                                  | Primary roles                         | Product value                                                                                | Canonical source of truth                                                            | UI anchors                                                                                 | Current risk                                                                                                                   | Done condition                                                                                                                   |
+| ----- | ---------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Account, role, session readiness         | All                                   | Users enter the correct operating surface without identity drift.                            | `/v1/auth/*`, `/v1/me/sessions*`, `services/auth-service.ts`                         | auth screens, role tabs, settings/security                                                 | Mostly implemented, but route inventory still shows scaffolded `/v1/me`.                                                       | JWT/session path works in staging; role redirects and revoke flows are tested; forged role headers cannot affect runtime.        |
+| 2     | Coach supply go-live                     | Coach, club admin                     | A coach becomes bookable with profile, offers, availability, scheduling rules, verification. | `/v1/coaches/me/*`, `/v1/coaches/:coachId/availability/slots`                        | coach profile, availability, sessions create, verification                                 | Offer writes and profile PATCH are still planned; verification document upload remains planned.                                | Coach can go from setup to bookable in db mode; missing verification/go-live blockers are explicit and fail closed.              |
+| 3     | Discover to trusted booking              | Parent, athlete, coach                | User finds a nearby trusted provider and reaches a real booking decision.                    | discover service, coach profile, availability slots, `/v1/bookings`                  | `app/discover/map.tsx`, `app/book-coach.tsx`, `app/coach/[id].tsx`, `app/book/[coachId]/*` | Discover and booking screens still touch `SESSION_OFFERINGS` local storage; booking routes are still marked scaffolded.        | Map/profile/session-type/review agree on offer, price, slot, eligibility, and backend bookability.                               |
+| 4     | Family and child readiness               | Parent, athlete, scoped coach, club   | Booking and delivery use safe child, medical, emergency, consent context.                    | `/v1/families/:familyId`, `/v1/athletes*`, medical, emergency, consents              | family, children, child medical/emergency, roster health                                   | Core athlete/medical routes implemented; guardian invite planned; route audit flags sensitive-read surfaces needing decisions. | Readiness summary gates booking/delivery without leaking broad medical data; sensitive reads are scoped and audited.             |
+| 5     | Booking lifecycle and recovery           | Parent, athlete, coach                | Booking can be created, viewed, cancelled, reopened, reported, and recovered.                | `/v1/bookings*`, `bookingService.createBooking()`                                    | booking wizard, booking detail, cancel, report problem                                     | Booking create/read/cancel/reopen are scaffolded; local booking mirrors remain broad.                                          | Backend owns create/list/detail/cancel/reopen with idempotency, conflict behavior, and tested deny paths.                        |
+| 6     | Payment, invoice, reconciler             | Payer, coach, club finance            | Sessions become collectible, paid, reconciled, refunded, and exported.                       | `/v1/invoices*`, `/v1/payment-attempts*`, invoice service                            | invoices, earnings, booking payment cards                                                  | Hosted provider is simulated; invoice reads/transitions still scaffolded; refund 2FA wall not implemented as a complete flow.  | Client cannot mark paid; provider/manual transitions are backend-owned; refunds require permission, SMS/2FA code, reason, audit. |
+| 7     | Group sessions and holiday camps         | Coach, parent, athlete, club admin    | Group products can be sold, registered, rostered, attended, and proved.                      | `/v1/group-sessions*`, `/v1/group-session-registrations*`                            | group sessions, session create, discover sessions, roster                                  | Core group routes implemented; waitlist planned; route inventory has untraced `:sessionId` aliases.                            | Capacity, eligibility, registration, cancellation, roster, and attendance are backend-authoritative and linked to payment/proof. |
+| 8     | Coach delivery and attendance            | Coach, parent, athlete, club          | Coach sees assigned work, safety essentials, roster, attendance, completion.                 | booking/group session authority, attendance records, trust services                  | session complete, roster, schedule, coach dashboard                                        | Session completion still touches local storage; attendance/proof linkage is split.                                             | Attendance and completion produce backend records that feed parent proof, coach console, and compliance evidence.                |
+| 9     | Development proof, video, review, rebook | Parent, athlete, coach                | Delivery becomes visible progress, media proof, review, and repeat booking.                  | progress service, `/v1/athletes/:id/progress`, `/v1/videos*`, booking-linked reviews | development routes, videos, review, profile proof                                          | Video authority is strong; progress/goals/badges routes are untraced; reviews still read local booking state in places.        | Proof is session-linked; private notes do not leak; reviews are booking-linked; rebook preserves context.                        |
+| 10    | Safeguarding and incident response       | Coach, parent, safeguarding/admin     | Concerns can be raised and restricted users can act safely.                                  | `/v1/safeguarding/incidents*`, trust services                                        | report problem, raise concern, incident follow-up                                          | Core routes implemented, but broader trust-access/grant coverage remains a known seam.                                         | Default deny, assigned/scope-only reads, audited writes/reads, and tested denial paths.                                          |
+| 11    | Club operating loop                      | Club admin, coach, parent, compliance | Club can manage staff, squads, schedule, updates, paid activity, evidence.                   | `contracts/club-governance.ts`, `/v1/clubs*`, club schedule service                  | club hub, settings, schedule, squads, invites                                              | Club create/memberships/squads planned; legacy `club-service.ts` has high `/api/*` debt.                                       | Club operations use capabilities, not ad-hoc roles; staff assignment and sensitive visibility are auditable.                     |
+| 12    | Operational communication                | Club staff, coach, parent, athlete    | Staff-led feed, messages, notifications keep people coordinated.                             | `/v1/posts`, `/v1/message-threads`, `/v1/me/notifications`                           | feed, club posts, profile posts, chat, notifications                                       | Reads are db-aware; unsupported writes/local overlays remain a reliability risk.                                               | Staff top-level posting only; comments controlled; message/notification state is relationship-scoped and reliable.               |
+
+## Data Completeness Map
+
+| Data area                            | Production owner                                       | Current state                             | Required before launch                                                                                        |
+| ------------------------------------ | ------------------------------------------------------ | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Identity, auth sessions, devices     | `/v1/auth/*`, auth runtime, Prisma                     | Mostly implemented                        | Rate limits, full session audit, real forgot/reset behavior, staging proof                                    |
+| Users, roles, acting role            | API authz runtime                                      | Implemented with known broader grant gaps | No forged role headers outside test harness; deny tests for each sensitive journey                            |
+| Families, athletes, guardians        | `/v1/families*`, `/v1/athletes*`                       | Core implemented                          | Guardian sharing backend, version/idempotency, no silent save failures                                        |
+| Medical, emergency, consents, SEN    | Athlete health routes                                  | Implemented core                          | Sensitive-read audit coverage, narrow readiness summaries, scoped coach/club access proof                     |
+| Coach profile, offers, availability  | `/v1/coaches/me/*`, availability slots                 | Partial                                   | Profile writes, offering writes, verification document authority, no local `SESSION_OFFERINGS` hot-path truth |
+| Discover map/storefront              | discover/profile services plus coach/availability APIs | Partial                                   | Map shows only real bookable openings; price/slot/trust proof matches booking backend                         |
+| Direct bookings                      | `/v1/bookings*`                                        | Scaffolded db-backed                      | Audit, idempotency, transactionality, conflict/version checks, deny tests, no confirmation-before-create      |
+| Recurring/multi-week/block packaging | Booking package/series authority                       | Local-heavy                               | Remove `saveBookingDirect` fake success in non-mock mode; define backend packaging model                      |
+| Session invites                      | `/v1/invites*`                                         | Scaffolded/seed-risk                      | DB repository; invite acceptance must create DB bookings, not seed bookings                                   |
+| Group sessions/camps                 | `/v1/group-sessions*`, registrations                   | Implemented partial                       | Attendance audit, contracts/serializers, waitlist decision, payment/proof linkage                             |
+| Attendance/completion                | Booking/group delivery APIs                            | Split/local-heavy                         | Backend attendance records feed proof, compliance, and parent/athlete views                                   |
+| Progress/notes/feedback              | Progress APIs plus proof services                      | Mixed/local-heavy                         | Session-linked feedback/notes authority; private note leakage tests                                           |
+| Video/media/uploads                  | `/v1/uploads/init`, `/v1/videos*`                      | Partial                                   | Upload finalization, malware scan enforcement, no `AVAILABLE` before scan, audit upload init                  |
+| Reviews/favourites/rebook            | Booking-linked review/rebook services                  | Partial                                   | Reviews only from eligible bookings; no local booking read needed for proof                                   |
+| Invoices/payments/refunds            | `/v1/invoices*`, payment attempts                      | Partial                                   | Live-provider boundary decision, DB-backed manual transitions, refund SMS/2FA wall                            |
+| Earnings/payouts/withdrawals         | Future `/v1` money APIs                                | Legacy `/api`                             | Remove fake payout processing from launch or implement proper backend authority                               |
+| Clubs, memberships, squads           | `/v1/clubs*`, governance contract                      | Partial                                   | Club create, member ops, squads, branding/dashboard authority; no legacy `club-service.ts` `/api` operations  |
+| Club schedule/events/RSVP            | Club schedule/event APIs                               | Scaffold/seed risk                        | DB-backed schedule/events/RSVP; idempotency/audit for RSVP/attendance                                         |
+| Feed/posts/comments                  | Community/media APIs                                   | Read authority partial                    | Staff-only create path, controlled comments, relationship-scoped visibility                                   |
+| Messaging/notifications              | Community/media APIs                                   | Read authority, local write overlays      | Message send/read/delete and notification preference mutations backend-owned or deferred                      |
+| Safeguarding/incidents               | `/v1/safeguarding/incidents*`                          | Implemented partial                       | Stricter assignment/assignee policy, idempotency/conflicts, legal hold/encryption proof                       |
+| Access grants/delegation             | Access grant APIs                                      | Read-only/planned                         | Create/revoke grants, finance/admin scopes, audit of grant changes                                            |
+| Audit/security/retention             | Audit/security runtimes                                | Partial                                   | Coverage for bookings, clubs, videos, group sessions, messages, refunds, sensitive reads                      |
+
+## Critical Blockers From Agentic Review
+
+1. Session invite acceptance must stop creating seed bookings and create authoritative DB bookings.
+2. Direct booking confirmation must not show success before `POST /v1/bookings` has succeeded.
+3. Booking create/cancel/reopen needs audit, idempotency keys, conflict/version checks, and transactional persistence.
+4. Multi-week and recurring flows must stop using local `saveBookingDirect` success in non-mock mode.
+5. Video/media must not become `AVAILABLE` until upload finalization and malware scanning are enforced.
+6. Invoice manual transitions and refunds must move from seed/local paths to DB-backed audited transitions with SMS/2FA hard wall.
+7. Club schedule, events/RSVP, coach verification documents, and club admin operations still need backend authority or launch demotion.
+8. Guardian sharing has no production backend authority and must be implemented or hidden from launch.
+9. Health/injury services are miswired to non-`/v1` paths and local fallback despite existing `/v1` routes.
+10. Community/messaging/notification writes are still local overlays and must be backend-owned or explicitly deferred.
+11. Audit/security coverage is not broad enough for bookings, clubs, videos, group sessions, messages, refunds, and sensitive reads.
+12. The API boundary baseline is not production-clean; it is a ratchet, not a green release signal.
+
+## Cross-Feature Source-Of-Truth Rules
+
+- `Booking` is the central paid commitment record for `1-to-1`.
+- `GroupSessionRegistration` is the central paid commitment record for group sessions and holiday camps.
+- `Invoice` and `PaymentAttempt` own money state; UI never marks paid directly.
+- `AttendanceRecord` bridges delivery to compliance and progress.
+- `SessionFeedback`, `SessionNote`, `Video`, and `Review` must link back to booking or registration context.
+- `ClubMembership`, `SquadMembership`, and assignment records control visibility; club membership alone does not grant child medical, safeguarding, finance, or coach-private access.
+- Feed/update visibility comes from club, squad, session, booking, followed coach, or explicit relationship. No generic global social graph for launch.
+
+## Implementation Sprints
+
+### `PROD-API-01` Reality Matrix And Baseline Lock
+
+Objective:
+
+- Make production readiness measurable and enforce that new AI code cannot add new source-of-truth drift.
+
+Scope:
+
+- Keep this matrix current.
+- Keep `scripts/api-boundary-audit.js` green.
+- Update `docs/backend-api/ROUTE_INVENTORY_V1.md` for the `19` untraced backend routes or intentionally demote them.
+- Triage the `90` PDOS route decisions into keep/demote/delete/implement.
+
+Exit gate:
+
+- API boundary audit has no new findings.
+- Route inventory traces every active backend route.
+- PDOS route authority audit has a named owner/sprint for every route still needing a decision.
+
+### `PROD-API-02` Booking Authority Burn-Down
+
+Objective:
+
+- Make the discover-to-book paid commitment loop backend-authoritative.
+
+Scope:
+
+- `/v1/bookings` list/create/detail/cancel/reopen.
+- Availability slot agreement between map/profile/session-type/review/backend.
+- Remove non-mock local booking and offering authority from booking hot paths.
+- Add idempotency, conflict, denial, and repository-filter tests.
+
+Exit gate:
+
+- A parent can book a child in staging db mode.
+- A coach can see the booking.
+- Unauthorized parent/coach/athlete reads deny.
+- Local storage is only a mirror or client runtime state.
+
+### `PROD-API-03` Family, Medical, Consent, And Readiness
+
+Objective:
+
+- Make child readiness safe, narrow, and useful.
+
+Scope:
+
+- Family dashboard, child profile, medical, emergency, consents, guardian sharing.
+- Readiness summary for booking and attendance.
+- Sensitive read audit events and denial tests.
+
+Exit gate:
+
+- Booking/delivery can determine readiness without broad sensitive leaks.
+- Coach and club access depends on assignment/squad/session/booking scope.
+
+### `PROD-API-04` Coach Supply And Storefront Truth
+
+Objective:
+
+- Make discover map, coach homepage, offers, price, availability, and go-live state agree.
+
+Scope:
+
+- Coach profile PATCH.
+- Offering writes.
+- Verification document upload/status.
+- Discover map result DTOs.
+- Public coach profile proof/review blocks.
+
+Exit gate:
+
+- A coach can become bookable in staging db mode.
+- The map only shows providers with real bookable openings.
+- Profile, offer, and booking wizard use the same `/v1` authority.
+
+### `PROD-API-05` Group Session, Camp, Attendance, And Roster
+
+Objective:
+
+- Make group sessions and holiday camps one paid operating flow.
+
+Scope:
+
+- Group session create/publish/cancel/register/roster/attendance.
+- Waitlist decision: implement or explicitly defer.
+- Link registration to invoice/payment and proof.
+- Close untraced `:sessionId` route aliases.
+
+Exit gate:
+
+- Capacity and eligibility cannot be bypassed from the UI.
+- Attendance writes feed proof and compliance.
+
+### `PROD-API-06` Money, Refund Hard Wall, And Reconciler
+
+Objective:
+
+- Make money state backend-owned and auditable.
+
+Scope:
+
+- Invoice list/detail/generate/reminders/transitions.
+- Hosted payment attempt lifecycle.
+- Refund hard wall: permission, registered-number SMS/2FA code, reason, audit.
+- Earnings/reconciler surfaces.
+
+Exit gate:
+
+- App cannot mark hosted payment paid.
+- Manual overrides and refunds are gated and audited.
+- Provider simulation is isolated behind a provider boundary and clearly not live provider cutover.
+
+### `PROD-API-07` Delivery Proof And Retention Loop
+
+Objective:
+
+- Make every delivered session produce useful proof and repeat-business context.
+
+Scope:
+
+- Session completion, feedback, public/private notes, video, review, rebook, recurring/continue-plan.
+- Close progress/goals/badges route traceability or defer them behind session-linked proof.
+
+Exit gate:
+
+- Parent sees useful proof.
+- Athlete sees next work.
+- Coach can rebook or continue without re-entering context.
+
+### `PROD-API-08` Club OS, Feed Discipline, And Compliance Evidence
+
+Objective:
+
+- Make club operations and staff-led communication credible without broad social drift.
+
+Scope:
+
+- Club create, memberships, squads, staff assignment, schedule, updates.
+- Staff-only top-level feed posts and controlled comments.
+- Compliance exports for attendance, consent, safeguarding, finance, and sensitive reads.
+
+Exit gate:
+
+- Club admin can operate paid activity.
+- Coaches see assigned work.
+- Parents receive relevant updates.
+- Exports are scoped, redacted, and audited.
+
+### `PROD-API-09` Production Rehearsal
+
+Objective:
+
+- Run the real app against the real API/staging database and leave only external launch blockers.
+
+Scope:
+
+- Staging env, migrations, object storage, Sentry, release preflight.
+- End-to-end loop: discover -> book/register -> pay -> attend -> proof -> review/rebook -> owner evidence.
+
+Exit gate:
+
+- No mock-only success path is required for launch-critical flows.
+- All release blockers are real external provider/env items, not code truth gaps.
+
+## Immediate Burn-Down Order
+
+1. Trace the `19` untraced backend routes or demote them.
+2. Start booking authority burn-down because it connects discover, family readiness, payment, attendance, proof, and rebook.
+3. Remove local `SESSION_OFFERINGS` authority from discover/book/profile hot paths.
+4. Remove local `BOOKINGS` authority from booking detail/review/progress hot paths.
+5. Close invoice transition/refund hard-wall design before money UI is trusted.
+6. Run staging smoke and release preflight after each authority slice.
+
+## Hard Stop Rules
+
+- Do not ship a UI success screen before backend success.
+- Do not add new `/api/*` paths.
+- Do not add new trust-sensitive local storage authority.
+- Do not add new raw frontend fetches.
+- Do not add new route strings outside `navigation/routes.ts`.
+- Do not broaden club/admin/coach access without an explicit policy and audit event.
+- Do not treat simulated payment provider behavior as live payment readiness.
