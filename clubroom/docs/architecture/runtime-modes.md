@@ -76,6 +76,8 @@ Current validated runtime state:
 - `apps/api/src/lib/ops-runtime.ts` now owns production startup validation plus `/v1/ready` readiness evaluation for config, database, and object-storage state
 - `npm --prefix apps/api run release:preflight` now uses the same ops runtime to fail release builds when production guardrails are not met
 - Expo app config now defaults `web.output` to `single` for normal dev startup, and `npm run export:web` opts into `static` with `EXPO_WEB_OUTPUT=static`; local `expo start` no longer needs the static renderer unless explicitly requested
+- `apiClient` keeps device/session runtime keys such as auth tokens, active child selection, offline queue, form drafts, and lightweight client preferences in local storage even when real API mode is enabled. Server-owned product data should use explicit `/v1` service endpoints instead of resurrecting generic `/api/:key` authority.
+- Static web export uses `utils/runtime-environment.ts` to detect Expo static rendering. Local storage reads/writes become no-ops during static rendering, and constructor-time service hydration must be guarded because route-module evaluation happens before the browser runtime exists.
 
 Implication:
 

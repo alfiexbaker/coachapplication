@@ -20,10 +20,12 @@ import { createLogger } from '@/utils/logger';
 import { generateId } from '@/utils/generate-id';
 import { ApiError, UnauthorizedError, NetworkError } from '@/constants/error-types';
 import { api, rateLimits } from '@/constants/config';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { Result, ServiceError, ServiceErrorCode } from '@/types/result';
 import { ok, err, networkError, unauthorized, serviceError, storageError } from '@/types/result';
 import { withTimeout } from '@/utils/timeout';
 import { withRetry } from '@/utils/retry';
+import { isExpoStaticRender } from '@/utils/runtime-environment';
 import { emitTyped, ServiceEvents } from './event-bus';
 
 const logger = createLogger('ApiClient');
@@ -41,7 +43,7 @@ function isTransientError(error: unknown): boolean {
 
   const message =
     'message' in error && typeof (error as { message: unknown }).message === 'string'
-      ? ((error as { message: string }).message).toLowerCase()
+      ? (error as { message: string }).message.toLowerCase()
       : '';
 
   return (
@@ -52,6 +54,49 @@ function isTransientError(error: unknown): boolean {
 }
 const API_BASE_URL = api.baseUrl;
 const API_TIMEOUT = api.timeout;
+
+/**
+ * Device/session state must remain local in real API mode.
+ *
+ * Server-owned product data should use explicit `/v1` service endpoints. These
+ * keys are client runtime concerns, so routing them through `/api/:key` causes
+ * auth recursion and creates fake backend authority.
+ */
+const CLIENT_LOCAL_STORAGE_KEYS = new Set<string>([
+  STORAGE_KEYS.ACTIVE_CHILD_ID,
+  STORAGE_KEYS.ADD_CHILD_DRAFT,
+  STORAGE_KEYS.ALLOW_BOOK_SELF,
+  STORAGE_KEYS.AUTH_TOKEN,
+  STORAGE_KEYS.AUTH_TOKENS,
+  STORAGE_KEYS.AUTH_USER,
+  STORAGE_KEYS.AVAILABILITY_TUTORIAL_COMPLETED,
+  STORAGE_KEYS.CALENDAR_SYNC_SETTINGS,
+  STORAGE_KEYS.DISCOVER_RECENT_SEARCHES,
+  STORAGE_KEYS.NOTIFICATION_ROUTE_ALIAS_MIGRATION_V1,
+  STORAGE_KEYS.OFFLINE_QUEUE,
+  STORAGE_KEYS.ONBOARDING_COMPLETE,
+  STORAGE_KEYS.SESSION_ATTENDANCE,
+  STORAGE_KEYS.SESSION_SHARING,
+]);
+
+const CLIENT_LOCAL_STORAGE_PREFIXES = [
+  `${STORAGE_KEYS.ALLOW_BOOK_SELF}_`,
+  `${STORAGE_KEYS.CALENDAR_SYNC_SETTINGS}_`,
+  STORAGE_KEYS.FORM_DRAFT_PREFIX,
+  `${STORAGE_KEYS.SESSION_ATTENDANCE}_`,
+  `${STORAGE_KEYS.SESSION_SHARING}_`,
+];
+
+function isClientLocalStorageKey(key: string): boolean {
+  return (
+    CLIENT_LOCAL_STORAGE_KEYS.has(key) ||
+    CLIENT_LOCAL_STORAGE_PREFIXES.some((prefix) => key.startsWith(prefix))
+  );
+}
+
+function shouldUseLocalStorage(key: string): boolean {
+  return USE_MOCK || isClientLocalStorageKey(key);
+}
 
 // -----------------------------------------------------------------------------
 // Rate Limiter
@@ -76,11 +121,11 @@ class RateLimiter {
     this.requests.push(Date.now());
   }
 
-  async waitForSlot(): Promise<void> {
+  async waitForSlot(requestLabel?: string): Promise<void> {
     while (!this.canMakeRequest()) {
       const oldest = Math.min(...this.requests);
       const waitTime = this.windowMs - (Date.now() - oldest) + 10;
-      logger.debug('Rate limited, waiting', { waitTime });
+      logger.debug('Rate limited, waiting', { waitTime, request: requestLabel });
       await new Promise((resolve) => setTimeout(resolve, Math.min(waitTime, 1000)));
     }
   }
@@ -101,7 +146,11 @@ let _isRefreshing = false;
 let _refreshPromise: Promise<void> | null = null;
 
 type AuthServiceLike = {
-  getTokens: () => Promise<{ accessToken?: string; refreshToken?: string; expiresAt?: number } | null>;
+  getTokens: () => Promise<{
+    accessToken?: string;
+    refreshToken?: string;
+    expiresAt?: number;
+  } | null>;
   refreshToken: () => Promise<Result<unknown, ServiceError>>;
   logout: () => Promise<void>;
 };
@@ -131,7 +180,7 @@ function getAuthService(): AuthServiceLike | null {
  */
 async function _apiFetchUnsafe<T>(path: string, options?: RequestInit): Promise<T> {
   // Rate limiting
-  await rateLimiter.waitForSlot();
+  await rateLimiter.waitForSlot(path);
   rateLimiter.recordRequest();
 
   // Get auth token from authService, proactively refreshing if about to expire
@@ -318,12 +367,17 @@ export async function apiFetch<T>(
 // ============================================================================
 
 async function mockGet<T>(key: string, fallback: T): Promise<T> {
+  if (isExpoStaticRender()) {
+    return fallback;
+  }
+
   try {
     const timeoutResult = await withTimeout(
-      withRetry(
-        () => AsyncStorage.getItem(key),
-        { maxAttempts: STORAGE_RETRY_ATTEMPTS, delayMs: STORAGE_RETRY_DELAY, shouldRetry: isTransientError },
-      ),
+      withRetry(() => AsyncStorage.getItem(key), {
+        maxAttempts: STORAGE_RETRY_ATTEMPTS,
+        delayMs: STORAGE_RETRY_DELAY,
+        shouldRetry: isTransientError,
+      }),
       STORAGE_TIMEOUT_MS,
     );
 
@@ -342,13 +396,18 @@ async function mockGet<T>(key: string, fallback: T): Promise<T> {
 }
 
 async function mockSet<T>(key: string, data: T): Promise<void> {
+  if (isExpoStaticRender()) {
+    return;
+  }
+
   const serialized = JSON.stringify(data);
   try {
     const timeoutResult = await withTimeout(
-      withRetry(
-        () => AsyncStorage.setItem(key, serialized),
-        { maxAttempts: STORAGE_RETRY_ATTEMPTS, delayMs: STORAGE_RETRY_DELAY, shouldRetry: isTransientError },
-      ),
+      withRetry(() => AsyncStorage.setItem(key, serialized), {
+        maxAttempts: STORAGE_RETRY_ATTEMPTS,
+        delayMs: STORAGE_RETRY_DELAY,
+        shouldRetry: isTransientError,
+      }),
       STORAGE_TIMEOUT_MS,
     );
 
@@ -371,6 +430,10 @@ async function mockSet<T>(key: string, data: T): Promise<void> {
 }
 
 async function mockRemove(key: string): Promise<void> {
+  if (isExpoStaticRender()) {
+    return;
+  }
+
   try {
     await AsyncStorage.removeItem(key);
   } catch (error) {
@@ -388,7 +451,7 @@ export const apiClient = {
    * Get data by storage key (mock) or API path (real).
    */
   async get<T>(key: string, fallback: T): Promise<T> {
-    if (USE_MOCK) {
+    if (shouldUseLocalStorage(key)) {
       return mockGet(key, fallback);
     }
     const result = await apiFetch<T>(`/api/${key}`);
@@ -403,7 +466,7 @@ export const apiClient = {
    * Store data by storage key (mock) or POST to API (real).
    */
   async set<T>(key: string, data: T): Promise<void> {
-    if (USE_MOCK) {
+    if (shouldUseLocalStorage(key)) {
       return mockSet(key, data);
     }
     const result = await apiFetch(`/api/${key}`, {
@@ -430,7 +493,7 @@ export const apiClient = {
    * Remove data by key.
    */
   async remove(key: string): Promise<void> {
-    if (USE_MOCK) {
+    if (shouldUseLocalStorage(key)) {
       return mockRemove(key);
     }
     const result = await apiFetch(`/api/${key}`, { method: 'DELETE' });

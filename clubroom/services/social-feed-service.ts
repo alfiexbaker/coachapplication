@@ -18,6 +18,7 @@ import {
   validationError,
 } from '@/types/result';
 import { createLogger } from '@/utils/logger';
+import { isExpoStaticRender } from '@/utils/runtime-environment';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { notificationService } from './notification-service';
 import { apiClient } from './api-client';
@@ -88,10 +89,11 @@ export type AggregatedFeedPost = ClubFeedPost & {
 const NOW = Date.now();
 
 function buildInviteCode(seed: string): string {
-  const prefix = seed
-    .replace(/[^a-zA-Z]/g, '')
-    .slice(0, 5)
-    .toUpperCase() || 'CLUB';
+  const prefix =
+    seed
+      .replace(/[^a-zA-Z]/g, '')
+      .slice(0, 5)
+      .toUpperCase() || 'CLUB';
   const suffix = generateId('invite').slice(-4).toUpperCase();
   return `${prefix}-${suffix}`;
 }
@@ -579,7 +581,10 @@ function getPersonalFeedForCoachInternal(coachId: string): ClubFeedPost[] {
   );
 }
 
-function getFollowingFeedInternal(followingIds: string[], filter?: FeedFilter): AggregatedFeedPost[] {
+function getFollowingFeedInternal(
+  followingIds: string[],
+  filter?: FeedFilter,
+): AggregatedFeedPost[] {
   if (followingIds.length === 0) return [];
   const followingSet = new Set(followingIds);
   const posts = filterPostsByType(
@@ -645,10 +650,16 @@ class ClubFeedService {
   private hydrationPromise: Promise<void> | null = null;
 
   constructor() {
-    void this.ensureHydrated();
+    if (!isExpoStaticRender()) {
+      void this.ensureHydrated();
+    }
   }
 
   private async ensureHydrated(): Promise<void> {
+    if (isExpoStaticRender()) {
+      return;
+    }
+
     if (!this.hydrationPromise) {
       this.hydrationPromise = (async () => {
         clubsStore = await apiClient.get<Club[]>(STORAGE_KEYS.CLUBS, clubsStore);
@@ -718,7 +729,9 @@ class ClubFeedService {
 
     const post = addClubFeedPostInternal({
       clubId: input.clubId,
-      title: input.title || (input.postType === 'photo' ? 'Photo' : input.postType === 'video' ? 'Video' : 'Update'),
+      title:
+        input.title ||
+        (input.postType === 'photo' ? 'Photo' : input.postType === 'video' ? 'Video' : 'Update'),
       body,
       audience: input.audience || 'club',
       audienceLabel,
@@ -767,7 +780,9 @@ class ClubFeedService {
       .filter((membership) => membership.clubId === clubId && membership.status === 'active')
       .map((membership) => membership.userId);
 
-    const recipientCandidates = Array.from(new Set([...legacyMembers, ...activeMembershipRecipients]));
+    const recipientCandidates = Array.from(
+      new Set([...legacyMembers, ...activeMembershipRecipients]),
+    );
     const recipients = recipientCandidates.filter((memberId) => {
       if (memberId === authorId) return false;
       const membership = membershipsStore.find(
@@ -882,9 +897,7 @@ class ClubFeedService {
     return getAllClubMembershipsForUser(userId).find((membership) => membership.clubId === clubId);
   }
 
-  async syncAuthorityClubs(
-    clubs: Array<Club & { memberships?: ClubMembership[] }>,
-  ): Promise<void> {
+  async syncAuthorityClubs(clubs: Array<Club & { memberships?: ClubMembership[] }>): Promise<void> {
     await this.ensureHydrated();
 
     clubs.forEach((club) => {
@@ -918,11 +931,7 @@ class ClubFeedService {
       }
     });
 
-    await Promise.all([
-      this.persistClubs(),
-      this.persistMemberships(),
-      this.persistInviteCodes(),
-    ]);
+    await Promise.all([this.persistClubs(), this.persistMemberships(), this.persistInviteCodes()]);
   }
 
   async syncJoinedClub(
@@ -940,7 +949,8 @@ class ClubFeedService {
     }
 
     const membershipIndex = membershipsStore.findIndex(
-      (candidate) => candidate.clubId === membership.clubId && candidate.userId === membership.userId,
+      (candidate) =>
+        candidate.clubId === membership.clubId && candidate.userId === membership.userId,
     );
     if (membershipIndex >= 0) {
       membershipsStore[membershipIndex] = membership;
@@ -955,11 +965,7 @@ class ClubFeedService {
       ];
     }
 
-    await Promise.all([
-      this.persistClubs(),
-      this.persistMemberships(),
-      this.persistInviteCodes(),
-    ]);
+    await Promise.all([this.persistClubs(), this.persistMemberships(), this.persistInviteCodes()]);
   }
 
   async syncInviteCodes(clubId: string, inviteCodes: ClubInvite[]): Promise<void> {
@@ -1086,7 +1092,8 @@ class ClubFeedService {
     }
 
     const duplicate = clubsStore.find(
-      (club) => club.ownerId === input.ownerId && club.name.trim().toLowerCase() === name.toLowerCase(),
+      (club) =>
+        club.ownerId === input.ownerId && club.name.trim().toLowerCase() === name.toLowerCase(),
     );
     if (duplicate) {
       return err(validationError('You already have a club with this name'));
@@ -1146,11 +1153,7 @@ class ClubFeedService {
       ...clubInvitesStore.filter((invite) => invite.clubId !== clubId),
     ];
 
-    await Promise.all([
-      this.persistClubs(),
-      this.persistMemberships(),
-      this.persistInviteCodes(),
-    ]);
+    await Promise.all([this.persistClubs(), this.persistMemberships(), this.persistInviteCodes()]);
 
     emitTyped(ServiceEvents.CLUB_MEMBER_JOINED, { clubId, userId: input.ownerId });
     this.logger.info('club_created', {
@@ -1202,7 +1205,7 @@ class ClubFeedService {
     }
 
     const nextInvite: ClubInvite = {
-      code: `${(club.name.slice(0, 4).toUpperCase() || 'CLUB')}-${generateId('invite').slice(-4).toUpperCase()}`,
+      code: `${club.name.slice(0, 4).toUpperCase() || 'CLUB'}-${generateId('invite').slice(-4).toUpperCase()}`,
       clubId,
       createdBy,
       role,
@@ -1228,7 +1231,10 @@ class ClubFeedService {
     return ok(nextInvite);
   }
 
-  async deleteInviteCode(clubId: string, code: string): Promise<Result<ClubInvite[], ServiceError>> {
+  async deleteInviteCode(
+    clubId: string,
+    code: string,
+  ): Promise<Result<ClubInvite[], ServiceError>> {
     await this.ensureHydrated();
 
     const targetInvite = clubInvitesStore.find(
@@ -1245,7 +1251,7 @@ class ClubFeedService {
     if (targetInvite.role === 'MEMBER') {
       const fallbackInvite: ClubInvite = {
         ...targetInvite,
-        code: `${(getClubById(clubId)?.name.slice(0, 4).toUpperCase() || 'CLUB')}-${generateId('invite').slice(-4).toUpperCase()}`,
+        code: `${getClubById(clubId)?.name.slice(0, 4).toUpperCase() || 'CLUB'}-${generateId('invite').slice(-4).toUpperCase()}`,
         expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
         remainingUses: 999,
       };
@@ -1273,11 +1279,7 @@ class ClubFeedService {
     clubFeedStore = clubFeedStore.filter((post) => post.clubId !== clubId);
     clubInvitesStore = clubInvitesStore.filter((invite) => invite.clubId !== clubId);
 
-    await Promise.all([
-      this.persistClubs(),
-      this.persistMemberships(),
-      this.persistInviteCodes(),
-    ]);
+    await Promise.all([this.persistClubs(), this.persistMemberships(), this.persistInviteCodes()]);
 
     return ok(true);
   }
@@ -1645,7 +1647,9 @@ class ClubFeedService {
 
     const post = addClubFeedPostInternal({
       clubId,
-      title: input.title || (input.postType === 'photo' ? 'Photo' : input.postType === 'video' ? 'Video' : 'Update'),
+      title:
+        input.title ||
+        (input.postType === 'photo' ? 'Photo' : input.postType === 'video' ? 'Video' : 'Update'),
       body,
       audience: 'club',
       audienceLabel,
