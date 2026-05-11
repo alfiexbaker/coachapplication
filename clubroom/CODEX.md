@@ -154,6 +154,7 @@ Common checks:
 - `npm run lint`
 - `npm run test:<domain>`
 - `npm run audit:architecture`
+- `npm run audit:api-boundaries`
 - `npm run ui:flows:<role-or-profile>`
 - `npm --prefix apps/api run typecheck`
 - `npm --prefix apps/api run test`

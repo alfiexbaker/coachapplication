@@ -1,0 +1,1675 @@
+{
+  "version": 1,
+  "updatedAt": "2026-05-11T16:27:51.291Z",
+  "note": "Legacy anti-slop findings allowed for now. New findings fail scripts/api-boundary-audit.js.",
+  "allowedFindings": [
+    {
+      "rule": "frontend-raw-fetch",
+      "file": "components/bookings/booking-info-cards.tsx",
+      "snippet": "const geoResponse = await fetch(geoUrl);",
+      "fingerprint": "frontend-raw-fetch|components/bookings/booking-info-cards.tsx|const geoResponse = await fetch(geoUrl);"
+    },
+    {
+      "rule": "frontend-raw-fetch",
+      "file": "components/bookings/booking-info-cards.tsx",
+      "snippet": "const forecastResponse = await fetch(forecastUrl);",
+      "fingerprint": "frontend-raw-fetch|components/bookings/booking-info-cards.tsx|const forecastResponse = await fetch(forecastUrl);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/academy-service.ts",
+      "snippet": "const response = await fetch('/api/academies');",
+      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch('/api/academies');"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/academy-service.ts",
+      "snippet": "const response = await fetch(`/api/academies/${academyId}`);",
+      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch(`/api/academies/${academyId}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/academy-service.ts",
+      "snippet": "const response = await fetch(`/api/academies/slug/${slug}`);",
+      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch(`/api/academies/slug/${slug}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/academy-service.ts",
+      "snippet": "const response = await fetch(`/api/users/${userId}/academies`);",
+      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch(`/api/users/${userId}/academies`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/academy-service.ts",
+      "snippet": "const response = await fetch('/api/academies', {",
+      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch('/api/academies', {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/academy-service.ts",
+      "snippet": "const response = await fetch(`/api/academies/${academyId}/branding`, {",
+      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch(`/api/academies/${academyId}/branding`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/academy-service.ts",
+      "snippet": "const response = await fetch(`/api/academies/${academyId}`, {",
+      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch(`/api/academies/${academyId}`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/academy-service.ts",
+      "snippet": "const response = await fetch(`/api/academies/${academyId}/commercial-mode`, {",
+      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch(`/api/academies/${academyId}/commercial-mode`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/academy-service.ts",
+      "snippet": "const response = await fetch(`/api/academies/${academyId}/staff`);",
+      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch(`/api/academies/${academyId}/staff`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/academy-service.ts",
+      "snippet": "const response = await fetch(`/api/academies/${academyId}/invites`, {",
+      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch(`/api/academies/${academyId}/invites`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/academy-service.ts",
+      "snippet": "const response = await fetch('/api/academies/join', {",
+      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch('/api/academies/join', {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/academy-service.ts",
+      "snippet": "const response = await fetch(`/api/memberships/${membershipId}`, {",
+      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch(`/api/memberships/${membershipId}`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/academy-service.ts",
+      "snippet": "await fetch(`/api/memberships/${membershipId}`, { method: 'DELETE' });",
+      "fingerprint": "legacy-api-path|services/academy-service.ts|await fetch(`/api/memberships/${membershipId}`, { method: 'DELETE' });"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/academy-service.ts",
+      "snippet": "`/api/academies/${academyId}/permissions/${userId}/${permission}`,",
+      "fingerprint": "legacy-api-path|services/academy-service.ts|`/api/academies/${academyId}/permissions/${userId}/${permission}`,"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/academy-service.ts",
+      "snippet": "await fetch(`/api/academies/${academyId}`, { method: 'DELETE' });",
+      "fingerprint": "legacy-api-path|services/academy-service.ts|await fetch(`/api/academies/${academyId}`, { method: 'DELETE' });"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/analytics/analytics-export-service.ts",
+      "snippet": "const response = await fetch(`/api/coaches/${coachId}/analytics?period=${period}`);",
+      "fingerprint": "legacy-api-path|services/analytics/analytics-export-service.ts|const response = await fetch(`/api/coaches/${coachId}/analytics?period=${period}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/analytics/analytics-export-service.ts",
+      "snippet": "const response = await fetch(`/api/coaches/${coachId}/revenue?period=${period}`);",
+      "fingerprint": "legacy-api-path|services/analytics/analytics-export-service.ts|const response = await fetch(`/api/coaches/${coachId}/revenue?period=${period}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/analytics/analytics-export-service.ts",
+      "snippet": "const response = await fetch(`/api/coaches/${coachId}/retention`);",
+      "fingerprint": "legacy-api-path|services/analytics/analytics-export-service.ts|const response = await fetch(`/api/coaches/${coachId}/retention`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/analytics/analytics-export-service.ts",
+      "snippet": "const response = await fetch(`/api/coaches/${coachId}/cancellations`);",
+      "fingerprint": "legacy-api-path|services/analytics/analytics-export-service.ts|const response = await fetch(`/api/coaches/${coachId}/cancellations`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/analytics/analytics-export-service.ts",
+      "snippet": "const response = await fetch(`/api/coaches/${coachId}/peak-hours`);",
+      "fingerprint": "legacy-api-path|services/analytics/analytics-export-service.ts|const response = await fetch(`/api/coaches/${coachId}/peak-hours`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/analytics/analytics-export-service.ts",
+      "snippet": "const response = await fetch(`/api/coaches/${coachId}/top-skills`);",
+      "fingerprint": "legacy-api-path|services/analytics/analytics-export-service.ts|const response = await fetch(`/api/coaches/${coachId}/top-skills`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/analytics/analytics-export-service.ts",
+      "snippet": "const response = await fetch(`/api/coaches/${coachId}/sessions`);",
+      "fingerprint": "legacy-api-path|services/analytics/analytics-export-service.ts|const response = await fetch(`/api/coaches/${coachId}/sessions`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/analytics/analytics-query-service.ts",
+      "snippet": "const response = await fetch(`/api/athletes/${athleteId}/analytics?period=${period}`);",
+      "fingerprint": "legacy-api-path|services/analytics/analytics-query-service.ts|const response = await fetch(`/api/athletes/${athleteId}/analytics?period=${period}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/analytics/analytics-query-service.ts",
+      "snippet": "let url = `/api/athletes/${athleteId}/skills/history`;",
+      "fingerprint": "legacy-api-path|services/analytics/analytics-query-service.ts|let url = `/api/athletes/${athleteId}/skills/history`;"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/analytics/analytics-query-service.ts",
+      "snippet": "let url = `/api/athletes/${athleteId}/goals`;",
+      "fingerprint": "legacy-api-path|services/analytics/analytics-query-service.ts|let url = `/api/athletes/${athleteId}/goals`;"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/analytics/analytics-tracking-service.ts",
+      "snippet": "const response = await fetch(`/api/athletes/${input.athleteId}/goals`, {",
+      "fingerprint": "legacy-api-path|services/analytics/analytics-tracking-service.ts|const response = await fetch(`/api/athletes/${input.athleteId}/goals`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/analytics/analytics-tracking-service.ts",
+      "snippet": "const response = await fetch(`/api/goals/${goalId}/progress`, {",
+      "fingerprint": "legacy-api-path|services/analytics/analytics-tracking-service.ts|const response = await fetch(`/api/goals/${goalId}/progress`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/analytics/analytics-tracking-service.ts",
+      "snippet": "const response = await fetch(`/api/goals/${goalId}/milestones/${milestoneId}/complete`, {",
+      "fingerprint": "legacy-api-path|services/analytics/analytics-tracking-service.ts|const response = await fetch(`/api/goals/${goalId}/milestones/${milestoneId}/complete`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/analytics/analytics-tracking-service.ts",
+      "snippet": "const response = await fetch(`/api/goals/${goalId}/milestones`, {",
+      "fingerprint": "legacy-api-path|services/analytics/analytics-tracking-service.ts|const response = await fetch(`/api/goals/${goalId}/milestones`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/analytics/analytics-tracking-service.ts",
+      "snippet": "const response = await fetch(`/api/goals/${goalId}`, {",
+      "fingerprint": "legacy-api-path|services/analytics/analytics-tracking-service.ts|const response = await fetch(`/api/goals/${goalId}`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/api-client.ts",
+      "snippet": "const result = await apiFetch<T>(`/api/${key}`);",
+      "fingerprint": "legacy-api-path|services/api-client.ts|const result = await apiFetch<T>(`/api/${key}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/api-client.ts",
+      "snippet": "const result = await apiFetch(`/api/${key}`, {",
+      "fingerprint": "legacy-api-path|services/api-client.ts|const result = await apiFetch(`/api/${key}`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/api-client.ts",
+      "snippet": "const result = await apiFetch(`/api/${key}`, { method: 'DELETE' });",
+      "fingerprint": "legacy-api-path|services/api-client.ts|const result = await apiFetch(`/api/${key}`, { method: 'DELETE' });"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/calendar-service.ts",
+      "snippet": "const response = await fetch(`/api/users/${userId}/calendar-settings`);",
+      "fingerprint": "legacy-api-path|services/calendar-service.ts|const response = await fetch(`/api/users/${userId}/calendar-settings`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/calendar-service.ts",
+      "snippet": "const response = await fetch(`/api/users/${userId}/calendar-settings`, {",
+      "fingerprint": "legacy-api-path|services/calendar-service.ts|const response = await fetch(`/api/users/${userId}/calendar-settings`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/club-service.ts",
+      "snippet": "const response = await fetch(`/api/clubs/${clubId}/calendar?${params.toString()}`);",
+      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/calendar?${params.toString()}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/club-service.ts",
+      "snippet": "const response = await fetch(`/api/clubs/${clubId}/squads`);",
+      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/squads`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/club-service.ts",
+      "snippet": "const response = await fetch(`/api/clubs/${clubId}/members`);",
+      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/members`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/club-service.ts",
+      "snippet": "const response = await fetch(`/api/clubs/${clubId}/members/${userId}`, {",
+      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/members/${userId}`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/club-service.ts",
+      "snippet": "const response = await fetch(`/api/clubs/${clubId}/members/removed/${removalId}/undo`, {",
+      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/members/removed/${removalId}/undo`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/club-service.ts",
+      "snippet": "const response = await fetch(`/api/clubs/${clubId}/members/removed`);",
+      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/members/removed`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/club-service.ts",
+      "snippet": "const response = await fetch(`/api/clubs/${clubId}/members/${userId}/role`, {",
+      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/members/${userId}/role`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/club-service.ts",
+      "snippet": "const response = await fetch(`/api/clubs/${clubId}/members/${userId}/ban`, {",
+      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/members/${userId}/ban`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/club-service.ts",
+      "snippet": "const response = await fetch(`/api/clubs/${clubId}/members/${userId}/squads`, {",
+      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/members/${userId}/squads`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/club-service.ts",
+      "snippet": "const response = await fetch(`/api/clubs/${clubId}/members/${userId}/squads/${squadId}`, {",
+      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/members/${userId}/squads/${squadId}`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/club-service.ts",
+      "snippet": "const response = await fetch(`/api/clubs/${clubId}/branding`);",
+      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/branding`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/club-service.ts",
+      "snippet": "const response = await fetch(`/api/clubs/${clubId}/branding`, {",
+      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/branding`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/club-service.ts",
+      "snippet": "await apiFetch<DashboardStats>(`/api/clubs/${clubId}/dashboard-stats`, {",
+      "fingerprint": "legacy-api-path|services/club-service.ts|await apiFetch<DashboardStats>(`/api/clubs/${clubId}/dashboard-stats`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/club-service.ts",
+      "snippet": "await apiFetch<MatchResult[]>(`/api/clubs/${clubId}/results?limit=${limit}`, {",
+      "fingerprint": "legacy-api-path|services/club-service.ts|await apiFetch<MatchResult[]>(`/api/clubs/${clubId}/results?limit=${limit}`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/earnings/earnings-calculator-service.ts",
+      "snippet": "const response = await fetch(`/api/earnings/${coachId}/calculate`);",
+      "fingerprint": "legacy-api-path|services/earnings/earnings-calculator-service.ts|const response = await fetch(`/api/earnings/${coachId}/calculate`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/earnings/earnings-calculator-service.ts",
+      "snippet": "const response = await fetch(`/api/earnings/${coachId}/summary?period=${period}`);",
+      "fingerprint": "legacy-api-path|services/earnings/earnings-calculator-service.ts|const response = await fetch(`/api/earnings/${coachId}/summary?period=${period}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/earnings/earnings-report-service.ts",
+      "snippet": "const response = await fetch(`/api/earnings/${coachId}`);",
+      "fingerprint": "legacy-api-path|services/earnings/earnings-report-service.ts|const response = await fetch(`/api/earnings/${coachId}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/earnings/earnings-report-service.ts",
+      "snippet": "const response = await fetch('/api/transactions/session-payment', {",
+      "fingerprint": "legacy-api-path|services/earnings/earnings-report-service.ts|const response = await fetch('/api/transactions/session-payment', {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/earnings/earnings-report-service.ts",
+      "snippet": "const response = await fetch('/api/transactions/refund', {",
+      "fingerprint": "legacy-api-path|services/earnings/earnings-report-service.ts|const response = await fetch('/api/transactions/refund', {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/earnings/earnings-report-service.ts",
+      "snippet": "? `/api/transactions?coachId=${coachId}&limit=${limit}`",
+      "fingerprint": "legacy-api-path|services/earnings/earnings-report-service.ts|? `/api/transactions?coachId=${coachId}&limit=${limit}`"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/earnings/earnings-report-service.ts",
+      "snippet": ": `/api/transactions?coachId=${coachId}`;",
+      "fingerprint": "legacy-api-path|services/earnings/earnings-report-service.ts|: `/api/transactions?coachId=${coachId}`;"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/earnings/payout-service.ts",
+      "snippet": "const response = await fetch('/api/payout-methods', {",
+      "fingerprint": "legacy-api-path|services/earnings/payout-service.ts|const response = await fetch('/api/payout-methods', {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/earnings/payout-service.ts",
+      "snippet": "const response = await fetch(`/api/payout-methods/${methodId}`, {",
+      "fingerprint": "legacy-api-path|services/earnings/payout-service.ts|const response = await fetch(`/api/payout-methods/${methodId}`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/earnings/payout-service.ts",
+      "snippet": "const response = await fetch(`/api/payout-methods/${methodId}/set-default`, {",
+      "fingerprint": "legacy-api-path|services/earnings/payout-service.ts|const response = await fetch(`/api/payout-methods/${methodId}/set-default`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/earnings/payout-service.ts",
+      "snippet": "const response = await fetch(`/api/payout-methods?coachId=${coachId}`);",
+      "fingerprint": "legacy-api-path|services/earnings/payout-service.ts|const response = await fetch(`/api/payout-methods?coachId=${coachId}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/earnings/payout-service.ts",
+      "snippet": "const response = await fetch('/api/withdrawals', {",
+      "fingerprint": "legacy-api-path|services/earnings/payout-service.ts|const response = await fetch('/api/withdrawals', {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/earnings/payout-service.ts",
+      "snippet": "const response = await fetch(`/api/withdrawals/${withdrawalId}/cancel`, {",
+      "fingerprint": "legacy-api-path|services/earnings/payout-service.ts|const response = await fetch(`/api/withdrawals/${withdrawalId}/cancel`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/earnings/payout-service.ts",
+      "snippet": "const response = await fetch(`/api/withdrawals?coachId=${coachId}`);",
+      "fingerprint": "legacy-api-path|services/earnings/payout-service.ts|const response = await fetch(`/api/withdrawals?coachId=${coachId}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/earnings/payout-service.ts",
+      "snippet": "const response = await fetch(`/api/withdrawals?coachId=${coachId}&status=pending`);",
+      "fingerprint": "legacy-api-path|services/earnings/payout-service.ts|const response = await fetch(`/api/withdrawals?coachId=${coachId}&status=pending`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-attendance-service.ts",
+      "snippet": "const response = await fetch(`/api/events/${input.eventId}/checkin`, {",
+      "fingerprint": "legacy-api-path|services/event/event-attendance-service.ts|const response = await fetch(`/api/events/${input.eventId}/checkin`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-attendance-service.ts",
+      "snippet": "await fetch(`/api/events/${eventId}/checkin/${userId}`, {",
+      "fingerprint": "legacy-api-path|services/event/event-attendance-service.ts|await fetch(`/api/events/${eventId}/checkin/${userId}`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-attendance-service.ts",
+      "snippet": "const response = await fetch(`/api/events/${eventId}/attendance`);",
+      "fingerprint": "legacy-api-path|services/event/event-attendance-service.ts|const response = await fetch(`/api/events/${eventId}/attendance`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-attendance-service.ts",
+      "snippet": "const response = await fetch(`/api/events/${eventId}/attendance/${userId}`);",
+      "fingerprint": "legacy-api-path|services/event/event-attendance-service.ts|const response = await fetch(`/api/events/${eventId}/attendance/${userId}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-attendance-service.ts",
+      "snippet": "const response = await fetch(`/api/events/${eventId}/stats`);",
+      "fingerprint": "legacy-api-path|services/event/event-attendance-service.ts|const response = await fetch(`/api/events/${eventId}/stats`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-crud-service.ts",
+      "snippet": "const response = await fetch('/api/events', {",
+      "fingerprint": "legacy-api-path|services/event/event-crud-service.ts|const response = await fetch('/api/events', {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-crud-service.ts",
+      "snippet": "const response = await fetch(`/api/events/${eventId}/publish`, {",
+      "fingerprint": "legacy-api-path|services/event/event-crud-service.ts|const response = await fetch(`/api/events/${eventId}/publish`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-crud-service.ts",
+      "snippet": "const response = await fetch(`/api/events/${eventId}/cancel`, {",
+      "fingerprint": "legacy-api-path|services/event/event-crud-service.ts|const response = await fetch(`/api/events/${eventId}/cancel`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-crud-service.ts",
+      "snippet": "const response = await fetch(`/api/events/${eventId}`);",
+      "fingerprint": "legacy-api-path|services/event/event-crud-service.ts|const response = await fetch(`/api/events/${eventId}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-crud-service.ts",
+      "snippet": "const response = await fetch(`/api/events?clubId=${clubId}&upcoming=true`);",
+      "fingerprint": "legacy-api-path|services/event/event-crud-service.ts|const response = await fetch(`/api/events?clubId=${clubId}&upcoming=true`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-crud-service.ts",
+      "snippet": "const response = await fetch(`/api/events?clubId=${clubId}`);",
+      "fingerprint": "legacy-api-path|services/event/event-crud-service.ts|const response = await fetch(`/api/events?clubId=${clubId}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-crud-service.ts",
+      "snippet": "await fetch(`/api/events/${eventId}/invite`, {",
+      "fingerprint": "legacy-api-path|services/event/event-crud-service.ts|await fetch(`/api/events/${eventId}/invite`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-rsvp-service.ts",
+      "snippet": "const response = await fetch(`/api/events/${eventId}/rsvp`, {",
+      "fingerprint": "legacy-api-path|services/event/event-rsvp-service.ts|const response = await fetch(`/api/events/${eventId}/rsvp`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-rsvp-service.ts",
+      "snippet": "const response = await fetch(`/api/events/${eventId}/attendees`);",
+      "fingerprint": "legacy-api-path|services/event/event-rsvp-service.ts|const response = await fetch(`/api/events/${eventId}/attendees`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-rsvp-service.ts",
+      "snippet": "const response = await fetch(`/api/events/${input.eventId}/rsvp`, {",
+      "fingerprint": "legacy-api-path|services/event/event-rsvp-service.ts|const response = await fetch(`/api/events/${input.eventId}/rsvp`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-rsvp-service.ts",
+      "snippet": "const response = await fetch(`/api/rsvps/${rsvpId}`, {",
+      "fingerprint": "legacy-api-path|services/event/event-rsvp-service.ts|const response = await fetch(`/api/rsvps/${rsvpId}`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-rsvp-service.ts",
+      "snippet": "const response = await fetch(`/api/events/${eventId}/rsvps`);",
+      "fingerprint": "legacy-api-path|services/event/event-rsvp-service.ts|const response = await fetch(`/api/events/${eventId}/rsvps`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-rsvp-service.ts",
+      "snippet": "const response = await fetch(`/api/users/${userId}/rsvps`);",
+      "fingerprint": "legacy-api-path|services/event/event-rsvp-service.ts|const response = await fetch(`/api/users/${userId}/rsvps`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-rsvp-service.ts",
+      "snippet": "const response = await fetch(`/api/events/${eventId}/rsvps/${userId}`);",
+      "fingerprint": "legacy-api-path|services/event/event-rsvp-service.ts|const response = await fetch(`/api/events/${eventId}/rsvps/${userId}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-rsvp-service.ts",
+      "snippet": "const response = await fetch(`/api/events/${eventId}/rsvps/remind`, { method: 'POST' });",
+      "fingerprint": "legacy-api-path|services/event/event-rsvp-service.ts|const response = await fetch(`/api/events/${eventId}/rsvps/remind`, { method: 'POST' });"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-rsvp-service.ts",
+      "snippet": "`/api/users/${userId}/calendar-events?start=${startDate}&end=${endDate}`,",
+      "fingerprint": "legacy-api-path|services/event/event-rsvp-service.ts|`/api/users/${userId}/calendar-events?start=${startDate}&end=${endDate}`,"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/event/event-rsvp-service.ts",
+      "snippet": "const response = await fetch(`/api/users/${userId}/events/upcoming?limit=${limit}`);",
+      "fingerprint": "legacy-api-path|services/event/event-rsvp-service.ts|const response = await fetch(`/api/users/${userId}/events/upcoming?limit=${limit}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/group-session/session-registration-service.ts",
+      "snippet": "const response = await fetch(`/api/parents/${parentId}/registrations`);",
+      "fingerprint": "legacy-api-path|services/group-session/session-registration-service.ts|const response = await fetch(`/api/parents/${parentId}/registrations`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/match-service.ts",
+      "snippet": "const response = await fetch(`/api/matches?clubId=${clubId}`);",
+      "fingerprint": "legacy-api-path|services/match-service.ts|const response = await fetch(`/api/matches?clubId=${clubId}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/match-service.ts",
+      "snippet": "const response = await fetch(`/api/matches?parentId=${parentId}`);",
+      "fingerprint": "legacy-api-path|services/match-service.ts|const response = await fetch(`/api/matches?parentId=${parentId}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/match-service.ts",
+      "snippet": "const response = await fetch(`/api/matches/${matchId}`);",
+      "fingerprint": "legacy-api-path|services/match-service.ts|const response = await fetch(`/api/matches/${matchId}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/match-service.ts",
+      "snippet": "const response = await fetch('/api/matches', {",
+      "fingerprint": "legacy-api-path|services/match-service.ts|const response = await fetch('/api/matches', {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/match-service.ts",
+      "snippet": "const response = await fetch(`/api/matches/${input.matchId}/invite-players`, {",
+      "fingerprint": "legacy-api-path|services/match-service.ts|const response = await fetch(`/api/matches/${input.matchId}/invite-players`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/match-service.ts",
+      "snippet": "const response = await fetch(`/api/matches/${input.matchId}/respond`, {",
+      "fingerprint": "legacy-api-path|services/match-service.ts|const response = await fetch(`/api/matches/${input.matchId}/respond`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/match-service.ts",
+      "snippet": "const response = await fetch(`/api/matches/${input.matchId}/lineup`, {",
+      "fingerprint": "legacy-api-path|services/match-service.ts|const response = await fetch(`/api/matches/${input.matchId}/lineup`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/match-service.ts",
+      "snippet": "const response = await fetch(`/api/matches/${matchId}/result`, {",
+      "fingerprint": "legacy-api-path|services/match-service.ts|const response = await fetch(`/api/matches/${matchId}/result`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/match-service.ts",
+      "snippet": "const response = await fetch(`/api/matches/${matchId}`, {",
+      "fingerprint": "legacy-api-path|services/match-service.ts|const response = await fetch(`/api/matches/${matchId}`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/session-template-service.ts",
+      "snippet": "const response = await fetch(`/api/coaches/${coachId}/session-templates`);",
+      "fingerprint": "legacy-api-path|services/session-template-service.ts|const response = await fetch(`/api/coaches/${coachId}/session-templates`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/session-template-service.ts",
+      "snippet": "const response = await fetch(`/api/session-templates/${templateId}`);",
+      "fingerprint": "legacy-api-path|services/session-template-service.ts|const response = await fetch(`/api/session-templates/${templateId}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/session-template-service.ts",
+      "snippet": "const response = await fetch(`/api/session-templates/${saved.id}`, {",
+      "fingerprint": "legacy-api-path|services/session-template-service.ts|const response = await fetch(`/api/session-templates/${saved.id}`, {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/session-template-service.ts",
+      "snippet": "await fetch(`/api/session-templates/${templateId}`, { method: 'DELETE' });",
+      "fingerprint": "legacy-api-path|services/session-template-service.ts|await fetch(`/api/session-templates/${templateId}`, { method: 'DELETE' });"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/squad-service.ts",
+      "snippet": "const response = await fetch(`/api/clubs/${clubId}/squads`);",
+      "fingerprint": "legacy-api-path|services/squad-service.ts|const response = await fetch(`/api/clubs/${clubId}/squads`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/squad-service.ts",
+      "snippet": "const response = await fetch(`/api/squads/${squadId}`);",
+      "fingerprint": "legacy-api-path|services/squad-service.ts|const response = await fetch(`/api/squads/${squadId}`);"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/squad-service.ts",
+      "snippet": "const response = await fetch('/api/squads', {",
+      "fingerprint": "legacy-api-path|services/squad-service.ts|const response = await fetch('/api/squads', {"
+    },
+    {
+      "rule": "legacy-api-path",
+      "file": "services/squad-service.ts",
+      "snippet": "const response = await fetch(`/api/squads/${squadId}/members`);",
+      "fingerprint": "legacy-api-path|services/squad-service.ts|const response = await fetch(`/api/squads/${squadId}/members`);"
+    },
+    {
+      "rule": "route-literal",
+      "file": "components/social/feed-filters-sections.tsx",
+      "snippet": "onPress={() => router.push(isCoach ? '/club/create' : Routes.DISCOVER_MAP)}",
+      "fingerprint": "route-literal|components/social/feed-filters-sections.tsx|onPress={() => router.push(isCoach ? '/club/create' : Routes.DISCOVER_MAP)}"
+    },
+    {
+      "rule": "route-literal",
+      "file": "hooks/use-coach-athlete-health.ts",
+      "snippet": "router.push({ pathname: '/health/[id]', params: { id: injury.id } });",
+      "fingerprint": "route-literal|hooks/use-coach-athlete-health.ts|router.push({ pathname: '/health/[id]', params: { id: injury.id } });"
+    },
+    {
+      "rule": "route-literal",
+      "file": "hooks/use-coach-athlete-health.ts",
+      "snippet": "router.push({ pathname: '/roster/[athleteId]/emergency', params: { athleteId } });",
+      "fingerprint": "route-literal|hooks/use-coach-athlete-health.ts|router.push({ pathname: '/roster/[athleteId]/emergency', params: { athleteId } });"
+    },
+    {
+      "rule": "route-literal",
+      "file": "hooks/use-health-hub.ts",
+      "snippet": "router.push({ pathname: '/health/log', params: { childId: selectedChildId } });",
+      "fingerprint": "route-literal|hooks/use-health-hub.ts|router.push({ pathname: '/health/log', params: { childId: selectedChildId } });"
+    },
+    {
+      "rule": "route-literal",
+      "file": "hooks/use-injuries.ts",
+      "snippet": "router.push({ pathname: '/health/log', params: { childId: selectedChildId } });",
+      "fingerprint": "route-literal|hooks/use-injuries.ts|router.push({ pathname: '/health/log', params: { childId: selectedChildId } });"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "app/book/[coachId]/schedule.tsx",
+      "snippet": "const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);",
+      "fingerprint": "trust-sensitive-local-storage|app/book/[coachId]/schedule.tsx|const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "app/book/[coachId]/session-type.tsx",
+      "snippet": "const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);",
+      "fingerprint": "trust-sensitive-local-storage|app/book/[coachId]/session-type.tsx|const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "app/discover/map.tsx",
+      "snippet": "const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);",
+      "fingerprint": "trust-sensitive-local-storage|app/discover/map.tsx|const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "app/review/[bookingId].tsx",
+      "snippet": "apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|app/review/[bookingId].tsx|apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "app/sessions/create.tsx",
+      "snippet": "apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|app/sessions/create.tsx|apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "app/sessions/create.tsx",
+      "snippet": "const allOfferings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);",
+      "fingerprint": "trust-sensitive-local-storage|app/sessions/create.tsx|const allOfferings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "app/sessions/create.tsx",
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updated);",
+      "fingerprint": "trust-sensitive-local-storage|app/sessions/create.tsx|await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updated);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "hooks/use-booking-detail.ts",
+      "snippet": "apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|hooks/use-booking-detail.ts|apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "hooks/use-bookings-discover.ts",
+      "snippet": "apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|hooks/use-bookings-discover.ts|apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "hooks/use-bookings.ts",
+      "snippet": "STORAGE_KEYS.SESSION_OFFERINGS,",
+      "fingerprint": "trust-sensitive-local-storage|hooks/use-bookings.ts|STORAGE_KEYS.SESSION_OFFERINGS,"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "hooks/use-child-context.tsx",
+      "snippet": "apiClient.get<ClubSquad[]>(STORAGE_KEYS.CLUB_SQUADS, []),",
+      "fingerprint": "trust-sensitive-local-storage|hooks/use-child-context.tsx|apiClient.get<ClubSquad[]>(STORAGE_KEYS.CLUB_SQUADS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "hooks/use-coach-detail.ts",
+      "snippet": "apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|hooks/use-coach-detail.ts|apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "hooks/use-create-session.ts",
+      "snippet": "const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);",
+      "fingerprint": "trust-sensitive-local-storage|hooks/use-create-session.ts|const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "hooks/use-create-session.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, offerings);",
+      "fingerprint": "trust-sensitive-local-storage|hooks/use-create-session.ts|await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, offerings);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "hooks/use-discover-sessions.ts",
+      "snippet": "apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|hooks/use-discover-sessions.ts|apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "hooks/use-my-progress.ts",
+      "snippet": "apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|hooks/use-my-progress.ts|apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "hooks/use-public-profile.ts",
+      "snippet": "apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|hooks/use-public-profile.ts|apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "hooks/use-session-detail-modal.ts",
+      "snippet": "const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);",
+      "fingerprint": "trust-sensitive-local-storage|hooks/use-session-detail-modal.ts|const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "hooks/use-session-detail-modal.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updated);",
+      "fingerprint": "trust-sensitive-local-storage|hooks/use-session-detail-modal.ts|await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updated);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "hooks/use-session-detail-modal.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updatedOfferings);",
+      "fingerprint": "trust-sensitive-local-storage|hooks/use-session-detail-modal.ts|await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updatedOfferings);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "hooks/use-session-payments.ts",
+      "snippet": "apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|hooks/use-session-payments.ts|apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "hooks/use-squad-detail.ts",
+      "snippet": "const storedSquads = await apiClient.get<ClubSquad[]>(STORAGE_KEYS.CLUB_SQUADS, []);",
+      "fingerprint": "trust-sensitive-local-storage|hooks/use-squad-detail.ts|const storedSquads = await apiClient.get<ClubSquad[]>(STORAGE_KEYS.CLUB_SQUADS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "hooks/use-squad-detail.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.CLUB_SQUADS, filtered);",
+      "fingerprint": "trust-sensitive-local-storage|hooks/use-squad-detail.ts|await apiClient.set(STORAGE_KEYS.CLUB_SQUADS, filtered);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/analytics/analytics-export-service.ts",
+      "snippet": "apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/analytics/analytics-export-service.ts|apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/analytics/analytics-export-service.ts",
+      "snippet": "apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/analytics/analytics-export-service.ts|apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/analytics/analytics-query-service.ts",
+      "snippet": "apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/analytics/analytics-query-service.ts|apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/availability-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.BOOKINGS, allBookings);",
+      "fingerprint": "trust-sensitive-local-storage|services/availability-service.ts|await apiClient.set(STORAGE_KEYS.BOOKINGS, allBookings);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/availability-service.ts",
+      "snippet": "return await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/availability-service.ts|return await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/availability-service.ts",
+      "snippet": "return await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/availability-service.ts|return await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/badge-service.ts",
+      "snippet": "const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/badge-service.ts|const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/booking/booking-crud-service.ts",
+      "snippet": "return await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/booking/booking-crud-service.ts|return await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/booking/booking-crud-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.BOOKINGS, bookings);",
+      "fingerprint": "trust-sensitive-local-storage|services/booking/booking-crud-service.ts|await apiClient.set(STORAGE_KEYS.BOOKINGS, bookings);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/booking/booking-crud-service.ts",
+      "snippet": "const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/booking/booking-crud-service.ts|const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/child-service.ts",
+      "snippet": "const stored = await apiClient.get<ChildProfile[] | null>(STORAGE_KEYS.CHILDREN_PROFILES, null);",
+      "fingerprint": "trust-sensitive-local-storage|services/child-service.ts|const stored = await apiClient.get<ChildProfile[] | null>(STORAGE_KEYS.CHILDREN_PROFILES, null);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/child-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.CHILDREN_PROFILES, data);",
+      "fingerprint": "trust-sensitive-local-storage|services/child-service.ts|await apiClient.set(STORAGE_KEYS.CHILDREN_PROFILES, data);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/child-service.ts",
+      "snippet": "STORAGE_KEYS.EMERGENCY_INFO,",
+      "fingerprint": "trust-sensitive-local-storage|services/child-service.ts|STORAGE_KEYS.EMERGENCY_INFO,"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/child-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.EMERGENCY_INFO, emergencyInfo);",
+      "fingerprint": "trust-sensitive-local-storage|services/child-service.ts|await apiClient.set(STORAGE_KEYS.EMERGENCY_INFO, emergencyInfo);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/club-service.ts",
+      "snippet": "`${STORAGE_KEYS.CLUB_MEMBERS}_${clubId}`,",
+      "fingerprint": "trust-sensitive-local-storage|services/club-service.ts|`${STORAGE_KEYS.CLUB_MEMBERS}_${clubId}`,"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/club-service.ts",
+      "snippet": "await apiClient.set(`${STORAGE_KEYS.CLUB_MEMBERS}_${clubId}`, members);",
+      "fingerprint": "trust-sensitive-local-storage|services/club-service.ts|await apiClient.set(`${STORAGE_KEYS.CLUB_MEMBERS}_${clubId}`, members);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/club-service.ts",
+      "snippet": "STORAGE_KEYS.CLUB_MEMBER_REMOVALS,",
+      "fingerprint": "trust-sensitive-local-storage|services/club-service.ts|STORAGE_KEYS.CLUB_MEMBER_REMOVALS,"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/club-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.CLUB_MEMBER_REMOVALS, history);",
+      "fingerprint": "trust-sensitive-local-storage|services/club-service.ts|await apiClient.set(STORAGE_KEYS.CLUB_MEMBER_REMOVALS, history);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/discover-service.ts",
+      "snippet": "apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/discover-service.ts|apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/family-recurring-service.ts",
+      "snippet": "apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/family-recurring-service.ts|apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/family/family-member-service.ts",
+      "snippet": "return apiClient.get<FamilyMember[]>(STORAGE_KEYS.FAMILY_MEMBERS, MOCK_FAMILY_MEMBERS);",
+      "fingerprint": "trust-sensitive-local-storage|services/family/family-member-service.ts|return apiClient.get<FamilyMember[]>(STORAGE_KEYS.FAMILY_MEMBERS, MOCK_FAMILY_MEMBERS);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/family/family-member-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.FAMILY_MEMBERS, members);",
+      "fingerprint": "trust-sensitive-local-storage|services/family/family-member-service.ts|await apiClient.set(STORAGE_KEYS.FAMILY_MEMBERS, members);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/family/family-member-service.ts",
+      "snippet": "STORAGE_KEYS.FAMILY_BOOKINGS,",
+      "fingerprint": "trust-sensitive-local-storage|services/family/family-member-service.ts|STORAGE_KEYS.FAMILY_BOOKINGS,"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/family/family-member-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.FAMILY_BOOKINGS, bookings);",
+      "fingerprint": "trust-sensitive-local-storage|services/family/family-member-service.ts|await apiClient.set(STORAGE_KEYS.FAMILY_BOOKINGS, bookings);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/family/family-member-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.FAMILY_MEMBERS, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/family/family-member-service.ts|await apiClient.set(STORAGE_KEYS.FAMILY_MEMBERS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/family/family-member-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.FAMILY_BOOKINGS, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/family/family-member-service.ts|await apiClient.set(STORAGE_KEYS.FAMILY_BOOKINGS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/family/family-permission-service.ts",
+      "snippet": "return apiClient.get<FamilyAccount[]>(STORAGE_KEYS.FAMILY_ACCOUNTS, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/family/family-permission-service.ts|return apiClient.get<FamilyAccount[]>(STORAGE_KEYS.FAMILY_ACCOUNTS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/family/family-permission-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.FAMILY_ACCOUNTS, accounts);",
+      "fingerprint": "trust-sensitive-local-storage|services/family/family-permission-service.ts|await apiClient.set(STORAGE_KEYS.FAMILY_ACCOUNTS, accounts);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/family/family-relationship-service.ts",
+      "snippet": "const accounts = await apiClient.get<FamilyAccount[]>(STORAGE_KEYS.FAMILY_ACCOUNTS, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/family/family-relationship-service.ts|const accounts = await apiClient.get<FamilyAccount[]>(STORAGE_KEYS.FAMILY_ACCOUNTS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/family/family-relationship-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.FAMILY_ACCOUNTS, accounts);",
+      "fingerprint": "trust-sensitive-local-storage|services/family/family-relationship-service.ts|await apiClient.set(STORAGE_KEYS.FAMILY_ACCOUNTS, accounts);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/invite/index.ts",
+      "snippet": "await apiClient.remove(STORAGE_KEYS.SESSION_INVITES);",
+      "fingerprint": "trust-sensitive-local-storage|services/invite/index.ts|await apiClient.remove(STORAGE_KEYS.SESSION_INVITES);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/invite/invite-rsvp-service.ts",
+      "snippet": "const invites = await apiClient.get<SessionInvite[]>(STORAGE_KEYS.SESSION_INVITES, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/invite/invite-rsvp-service.ts|const invites = await apiClient.get<SessionInvite[]>(STORAGE_KEYS.SESSION_INVITES, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/invite/invite-rsvp-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_INVITES, invites);",
+      "fingerprint": "trust-sensitive-local-storage|services/invite/invite-rsvp-service.ts|await apiClient.set(STORAGE_KEYS.SESSION_INVITES, invites);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/invite/session-invite-service.ts",
+      "snippet": "await apiClient.remove(STORAGE_KEYS.SESSION_INVITES);",
+      "fingerprint": "trust-sensitive-local-storage|services/invite/session-invite-service.ts|await apiClient.remove(STORAGE_KEYS.SESSION_INVITES);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/invite/session-invite-service.ts",
+      "snippet": "apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/invite/session-invite-service.ts|apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/invite/session-invite-service.ts",
+      "snippet": "const stored = await apiClient.get<SessionInvite[] | null>(STORAGE_KEYS.SESSION_INVITES, null);",
+      "fingerprint": "trust-sensitive-local-storage|services/invite/session-invite-service.ts|const stored = await apiClient.get<SessionInvite[] | null>(STORAGE_KEYS.SESSION_INVITES, null);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/invite/session-invite-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_INVITES, invites);",
+      "fingerprint": "trust-sensitive-local-storage|services/invite/session-invite-service.ts|await apiClient.set(STORAGE_KEYS.SESSION_INVITES, invites);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/media-service.ts",
+      "snippet": "return apiClient.get<SessionMedia[]>(STORAGE_KEYS.SESSION_MEDIA, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/media-service.ts|return apiClient.get<SessionMedia[]>(STORAGE_KEYS.SESSION_MEDIA, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/media-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_MEDIA, compacted);",
+      "fingerprint": "trust-sensitive-local-storage|services/media-service.ts|await apiClient.set(STORAGE_KEYS.SESSION_MEDIA, compacted);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/media-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_MEDIA, allMedia);",
+      "fingerprint": "trust-sensitive-local-storage|services/media-service.ts|await apiClient.set(STORAGE_KEYS.SESSION_MEDIA, allMedia);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/multi-week-booking-service.ts",
+      "snippet": "return await apiClient.get<BookingSeries[]>(STORAGE_KEYS.BOOKING_SERIES, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/multi-week-booking-service.ts|return await apiClient.get<BookingSeries[]>(STORAGE_KEYS.BOOKING_SERIES, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/multi-week-booking-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.BOOKING_SERIES, series);",
+      "fingerprint": "trust-sensitive-local-storage|services/multi-week-booking-service.ts|await apiClient.set(STORAGE_KEYS.BOOKING_SERIES, series);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/org-head-coach-service.ts",
+      "snippet": "apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/org-head-coach-service.ts|apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/org-head-coach-service.ts",
+      "snippet": "apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/org-head-coach-service.ts|apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/org-head-coach-service.ts",
+      "snippet": "await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/org-head-coach-service.ts|await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/org-head-coach-service.ts",
+      "snippet": "const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/org-head-coach-service.ts|const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/org-head-coach-service.ts",
+      "snippet": "const offeringRecords = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/org-head-coach-service.ts|const offeringRecords = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/org-owner-dashboard-service.ts",
+      "snippet": "apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/org-owner-dashboard-service.ts|apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/org-owner-dashboard-service.ts",
+      "snippet": "apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/org-owner-dashboard-service.ts|apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/org-owner-dashboard-service.ts",
+      "snippet": "apiClient.get<Invoice[]>(STORAGE_KEYS.INVOICES, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/org-owner-dashboard-service.ts|apiClient.get<Invoice[]>(STORAGE_KEYS.INVOICES, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/org-staffing-service.ts",
+      "snippet": "apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/org-staffing-service.ts|apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/org-staffing-service.ts",
+      "snippet": "apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/org-staffing-service.ts|apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/org-staffing-service.ts",
+      "snippet": "apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, nextOfferings),",
+      "fingerprint": "trust-sensitive-local-storage|services/org-staffing-service.ts|apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, nextOfferings),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/org-staffing-service.ts",
+      "snippet": "apiClient.set(STORAGE_KEYS.BOOKINGS, nextBookings),",
+      "fingerprint": "trust-sensitive-local-storage|services/org-staffing-service.ts|apiClient.set(STORAGE_KEYS.BOOKINGS, nextBookings),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/pre-api-live-mode-service.ts",
+      "snippet": "const allBookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/pre-api-live-mode-service.ts|const allBookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/pre-api-live-mode-service.ts",
+      "snippet": "apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/pre-api-live-mode-service.ts|apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/pre-api-live-mode-service.ts",
+      "snippet": "const all = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/pre-api-live-mode-service.ts|const all = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-challenge-service.ts",
+      "snippet": "apiClient.get<JournalEntryRecord[]>(STORAGE_KEYS.SESSION_JOURNAL, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-challenge-service.ts|apiClient.get<JournalEntryRecord[]>(STORAGE_KEYS.SESSION_JOURNAL, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-demo-seed-service.legacy.ts",
+      "snippet": "const allFeedback = await apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-demo-seed-service.legacy.ts|const allFeedback = await apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-demo-seed-service.legacy.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_FEEDBACK, merged);",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-demo-seed-service.legacy.ts|await apiClient.set(STORAGE_KEYS.SESSION_FEEDBACK, merged);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-demo-seed-service.legacy.ts",
+      "snippet": "const stored = await apiClient.get<JournalEntrySeed[]>(STORAGE_KEYS.SESSION_JOURNAL, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-demo-seed-service.legacy.ts|const stored = await apiClient.get<JournalEntrySeed[]>(STORAGE_KEYS.SESSION_JOURNAL, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-demo-seed-service.legacy.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_JOURNAL, merged);",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-demo-seed-service.legacy.ts|await apiClient.set(STORAGE_KEYS.SESSION_JOURNAL, merged);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-demo-seed-service.legacy.ts",
+      "snippet": "apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-demo-seed-service.legacy.ts|apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-demo-seed-service.legacy.ts",
+      "snippet": "apiClient.get<JournalEntrySeed[]>(STORAGE_KEYS.SESSION_JOURNAL, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-demo-seed-service.legacy.ts|apiClient.get<JournalEntrySeed[]>(STORAGE_KEYS.SESSION_JOURNAL, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-demo-seed-service.legacy.ts",
+      "snippet": "apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-demo-seed-service.legacy.ts|apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-demo-seed-service.legacy.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_FEEDBACK, filteredFeedback);",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-demo-seed-service.legacy.ts|await apiClient.set(STORAGE_KEYS.SESSION_FEEDBACK, filteredFeedback);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-demo-seed-service.legacy.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_JOURNAL, filteredJournal);",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-demo-seed-service.legacy.ts|await apiClient.set(STORAGE_KEYS.SESSION_JOURNAL, filteredJournal);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-demo-seed-service.legacy.ts",
+      "snippet": "apiClient.get<SessionMedia[]>(STORAGE_KEYS.SESSION_MEDIA, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-demo-seed-service.legacy.ts|apiClient.get<SessionMedia[]>(STORAGE_KEYS.SESSION_MEDIA, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-demo-seed-service.legacy.ts",
+      "snippet": "apiClient.get<Record<string, SessionNoteRecord>>(STORAGE_KEYS.SESSION_NOTES, {}),",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-demo-seed-service.legacy.ts|apiClient.get<Record<string, SessionNoteRecord>>(STORAGE_KEYS.SESSION_NOTES, {}),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-demo-seed-service.legacy.ts",
+      "snippet": "apiClient.set(STORAGE_KEYS.SESSION_FEEDBACK, mergedFeedback),",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-demo-seed-service.legacy.ts|apiClient.set(STORAGE_KEYS.SESSION_FEEDBACK, mergedFeedback),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-demo-seed-service.legacy.ts",
+      "snippet": "apiClient.set(STORAGE_KEYS.SESSION_JOURNAL, mergedJournal),",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-demo-seed-service.legacy.ts|apiClient.set(STORAGE_KEYS.SESSION_JOURNAL, mergedJournal),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-demo-seed-service.legacy.ts",
+      "snippet": "apiClient.set(STORAGE_KEYS.SESSION_MEDIA, mergedMedia),",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-demo-seed-service.legacy.ts|apiClient.set(STORAGE_KEYS.SESSION_MEDIA, mergedMedia),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-demo-seed-service.legacy.ts",
+      "snippet": "apiClient.set(STORAGE_KEYS.SESSION_NOTES, mergedSessionNotes),",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-demo-seed-service.legacy.ts|apiClient.set(STORAGE_KEYS.SESSION_NOTES, mergedSessionNotes),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-demo-seed-service.legacy.ts",
+      "snippet": "apiClient.set(STORAGE_KEYS.BOOKINGS, mergedBookings),",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-demo-seed-service.legacy.ts|apiClient.set(STORAGE_KEYS.BOOKINGS, mergedBookings),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-feedback-service.ts",
+      "snippet": "return apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-feedback-service.ts|return apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-feedback-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_FEEDBACK, allFeedback);",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-feedback-service.ts|await apiClient.set(STORAGE_KEYS.SESSION_FEEDBACK, allFeedback);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-feedback-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_NOTES, { ...existing, [bookingId]: record });",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-feedback-service.ts|await apiClient.set(STORAGE_KEYS.SESSION_NOTES, { ...existing, [bookingId]: record });"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-practice-task-service.ts",
+      "snippet": "const allFeedback = await apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-practice-task-service.ts|const allFeedback = await apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-report-service.ts",
+      "snippet": "apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-report-service.ts|apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-self-assessment-service.ts",
+      "snippet": "const journalEntries = await apiClient.get<JournalEntryRecord[]>(STORAGE_KEYS.SESSION_JOURNAL, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-self-assessment-service.ts|const journalEntries = await apiClient.get<JournalEntryRecord[]>(STORAGE_KEYS.SESSION_JOURNAL, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-self-assessment-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_JOURNAL, [journalEntry, ...journalEntries]);",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-self-assessment-service.ts|await apiClient.set(STORAGE_KEYS.SESSION_JOURNAL, [journalEntry, ...journalEntries]);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-squad-activity-service.ts",
+      "snippet": "apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-squad-activity-service.ts|apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-squad-activity-service.ts",
+      "snippet": "apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-squad-activity-service.ts|apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-termly-report-service.ts",
+      "snippet": "apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-termly-report-service.ts|apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/progress/progress-weekly-recap-notification-service.ts",
+      "snippet": "apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-weekly-recap-notification-service.ts|apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/recurring-booking-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.BOOKINGS, updatedBookings);",
+      "fingerprint": "trust-sensitive-local-storage|services/recurring-booking-service.ts|await apiClient.set(STORAGE_KEYS.BOOKINGS, updatedBookings);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/recurring-booking-service.ts",
+      "snippet": "const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/recurring-booking-service.ts|const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/relational-demo-seed-service.ts",
+      "snippet": "apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/relational-demo-seed-service.ts|apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/relational-demo-seed-service.ts",
+      "snippet": "apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/relational-demo-seed-service.ts|apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/relational-demo-seed-service.ts",
+      "snippet": "apiClient.get<ChildProfileSeed[]>(STORAGE_KEYS.CHILDREN_PROFILES, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/relational-demo-seed-service.ts|apiClient.get<ChildProfileSeed[]>(STORAGE_KEYS.CHILDREN_PROFILES, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/relational-demo-seed-service.ts",
+      "snippet": "apiClient.get<SessionInvite[]>(STORAGE_KEYS.SESSION_INVITES, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/relational-demo-seed-service.ts|apiClient.get<SessionInvite[]>(STORAGE_KEYS.SESSION_INVITES, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/relational-demo-seed-service.ts",
+      "snippet": "apiClient.get<ClubSquad[]>(STORAGE_KEYS.CLUB_SQUADS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/relational-demo-seed-service.ts|apiClient.get<ClubSquad[]>(STORAGE_KEYS.CLUB_SQUADS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/relational-demo-seed-service.ts",
+      "snippet": "apiClient.get<FamilyMember[]>(STORAGE_KEYS.FAMILY_MEMBERS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/relational-demo-seed-service.ts|apiClient.get<FamilyMember[]>(STORAGE_KEYS.FAMILY_MEMBERS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/relational-demo-seed-service.ts",
+      "snippet": "apiClient.get<FamilyCalendarEvent[]>(STORAGE_KEYS.FAMILY_BOOKINGS, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/relational-demo-seed-service.ts|apiClient.get<FamilyCalendarEvent[]>(STORAGE_KEYS.FAMILY_BOOKINGS, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/relational-demo-seed-service.ts",
+      "snippet": "apiClient.set(STORAGE_KEYS.BOOKINGS, bookings),",
+      "fingerprint": "trust-sensitive-local-storage|services/relational-demo-seed-service.ts|apiClient.set(STORAGE_KEYS.BOOKINGS, bookings),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/relational-demo-seed-service.ts",
+      "snippet": "apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, offerings),",
+      "fingerprint": "trust-sensitive-local-storage|services/relational-demo-seed-service.ts|apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, offerings),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/relational-demo-seed-service.ts",
+      "snippet": "apiClient.set(STORAGE_KEYS.SESSION_INVITES, invites),",
+      "fingerprint": "trust-sensitive-local-storage|services/relational-demo-seed-service.ts|apiClient.set(STORAGE_KEYS.SESSION_INVITES, invites),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/relational-demo-seed-service.ts",
+      "snippet": "apiClient.set(STORAGE_KEYS.CLUB_SQUADS, squads),",
+      "fingerprint": "trust-sensitive-local-storage|services/relational-demo-seed-service.ts|apiClient.set(STORAGE_KEYS.CLUB_SQUADS, squads),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/relational-demo-seed-service.ts",
+      "snippet": "apiClient.set(STORAGE_KEYS.CHILDREN_PROFILES, childrenProfiles),",
+      "fingerprint": "trust-sensitive-local-storage|services/relational-demo-seed-service.ts|apiClient.set(STORAGE_KEYS.CHILDREN_PROFILES, childrenProfiles),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/relational-demo-seed-service.ts",
+      "snippet": "apiClient.set(STORAGE_KEYS.FAMILY_MEMBERS, familyMembers),",
+      "fingerprint": "trust-sensitive-local-storage|services/relational-demo-seed-service.ts|apiClient.set(STORAGE_KEYS.FAMILY_MEMBERS, familyMembers),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/relational-demo-seed-service.ts",
+      "snippet": "apiClient.set(STORAGE_KEYS.FAMILY_BOOKINGS, familyBookings),",
+      "fingerprint": "trust-sensitive-local-storage|services/relational-demo-seed-service.ts|apiClient.set(STORAGE_KEYS.FAMILY_BOOKINGS, familyBookings),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/rsvp-service.ts",
+      "snippet": "const stored = await apiClient.get<SessionRsvp[]>(STORAGE_KEYS.SESSION_RSVPS, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/rsvp-service.ts|const stored = await apiClient.get<SessionRsvp[]>(STORAGE_KEYS.SESSION_RSVPS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/rsvp-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_RSVPS, MOCK_RSVPS);",
+      "fingerprint": "trust-sensitive-local-storage|services/rsvp-service.ts|await apiClient.set(STORAGE_KEYS.SESSION_RSVPS, MOCK_RSVPS);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/rsvp-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_RSVPS, rsvps);",
+      "fingerprint": "trust-sensitive-local-storage|services/rsvp-service.ts|await apiClient.set(STORAGE_KEYS.SESSION_RSVPS, rsvps);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/safety-service.ts",
+      "snippet": "const cache = await apiClient.get<EmergencyCache>(STORAGE_KEYS.EMERGENCY_CACHE, {});",
+      "fingerprint": "trust-sensitive-local-storage|services/safety-service.ts|const cache = await apiClient.get<EmergencyCache>(STORAGE_KEYS.EMERGENCY_CACHE, {});"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/safety-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.EMERGENCY_CACHE, cache);",
+      "fingerprint": "trust-sensitive-local-storage|services/safety-service.ts|await apiClient.set(STORAGE_KEYS.EMERGENCY_CACHE, cache);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/safety-service.ts",
+      "snippet": "await apiClient.remove(STORAGE_KEYS.EMERGENCY_CACHE);",
+      "fingerprint": "trust-sensitive-local-storage|services/safety-service.ts|await apiClient.remove(STORAGE_KEYS.EMERGENCY_CACHE);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/safety-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.EMERGENCY_INFO, MOCK_EMERGENCY_INFO ?? {});",
+      "fingerprint": "trust-sensitive-local-storage|services/safety-service.ts|await apiClient.set(STORAGE_KEYS.EMERGENCY_INFO, MOCK_EMERGENCY_INFO ?? {});"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/safety-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.EMERGENCY_INFO, allInfo);",
+      "fingerprint": "trust-sensitive-local-storage|services/safety-service.ts|await apiClient.set(STORAGE_KEYS.EMERGENCY_INFO, allInfo);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/safety-service.ts",
+      "snippet": ">(STORAGE_KEYS.FAMILY_MEMBERS, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/safety-service.ts|>(STORAGE_KEYS.FAMILY_MEMBERS, []);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/session-template-service.ts",
+      "snippet": "STORAGE_KEYS.SESSION_TEMPLATES,",
+      "fingerprint": "trust-sensitive-local-storage|services/session-template-service.ts|STORAGE_KEYS.SESSION_TEMPLATES,"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/session-template-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_TEMPLATES, templates);",
+      "fingerprint": "trust-sensitive-local-storage|services/session-template-service.ts|await apiClient.set(STORAGE_KEYS.SESSION_TEMPLATES, templates);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/social-feed-service.ts",
+      "snippet": "clubsStore = await apiClient.get<Club[]>(STORAGE_KEYS.CLUBS, clubsStore);",
+      "fingerprint": "trust-sensitive-local-storage|services/social-feed-service.ts|clubsStore = await apiClient.get<Club[]>(STORAGE_KEYS.CLUBS, clubsStore);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/social-feed-service.ts",
+      "snippet": "STORAGE_KEYS.CLUB_MEMBERSHIPS,",
+      "fingerprint": "trust-sensitive-local-storage|services/social-feed-service.ts|STORAGE_KEYS.CLUB_MEMBERSHIPS,"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/social-feed-service.ts",
+      "snippet": "STORAGE_KEYS.CLUB_INVITE_CODES,",
+      "fingerprint": "trust-sensitive-local-storage|services/social-feed-service.ts|STORAGE_KEYS.CLUB_INVITE_CODES,"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/social-feed-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.CLUBS, clubsStore);",
+      "fingerprint": "trust-sensitive-local-storage|services/social-feed-service.ts|await apiClient.set(STORAGE_KEYS.CLUBS, clubsStore);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/social-feed-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.CLUB_MEMBERSHIPS, membershipsStore);",
+      "fingerprint": "trust-sensitive-local-storage|services/social-feed-service.ts|await apiClient.set(STORAGE_KEYS.CLUB_MEMBERSHIPS, membershipsStore);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/social-feed-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.CLUB_INVITE_CODES, clubInvitesStore);",
+      "fingerprint": "trust-sensitive-local-storage|services/social-feed-service.ts|await apiClient.set(STORAGE_KEYS.CLUB_INVITE_CODES, clubInvitesStore);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/squad-group-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.CLUB_SQUADS, storedSquads);",
+      "fingerprint": "trust-sensitive-local-storage|services/squad-group-service.ts|await apiClient.set(STORAGE_KEYS.CLUB_SQUADS, storedSquads);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/squad-service.ts",
+      "snippet": "const stored = await apiClient.get<ClubSquad[] | null>(STORAGE_KEYS.CLUB_SQUADS, null);",
+      "fingerprint": "trust-sensitive-local-storage|services/squad-service.ts|const stored = await apiClient.get<ClubSquad[] | null>(STORAGE_KEYS.CLUB_SQUADS, null);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/squad-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.CLUB_SQUADS, squads);",
+      "fingerprint": "trust-sensitive-local-storage|services/squad-service.ts|await apiClient.set(STORAGE_KEYS.CLUB_SQUADS, squads);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/user-service.ts",
+      "snippet": "apiClient.get<ChildProfileRecord[]>(STORAGE_KEYS.CHILDREN_PROFILES, []),",
+      "fingerprint": "trust-sensitive-local-storage|services/user-service.ts|apiClient.get<ChildProfileRecord[]>(STORAGE_KEYS.CHILDREN_PROFILES, []),"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/user-service.ts",
+      "snippet": "STORAGE_KEYS.FAMILY_MEMBERS,",
+      "fingerprint": "trust-sensitive-local-storage|services/user-service.ts|STORAGE_KEYS.FAMILY_MEMBERS,"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/video-service.ts",
+      "snippet": "const stored = await apiClient.get<SessionVideo[] | null>(STORAGE_KEYS.SESSION_VIDEOS, null);",
+      "fingerprint": "trust-sensitive-local-storage|services/video-service.ts|const stored = await apiClient.get<SessionVideo[] | null>(STORAGE_KEYS.SESSION_VIDEOS, null);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/video-service.ts",
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_VIDEOS, videos);",
+      "fingerprint": "trust-sensitive-local-storage|services/video-service.ts|await apiClient.set(STORAGE_KEYS.SESSION_VIDEOS, videos);"
+    },
+    {
+      "rule": "untraced-backend-route",
+      "file": "apps/api/src/modules/auth/routes.ts",
+      "snippet": "POST /v1/auth/forgot-password",
+      "fingerprint": "untraced-backend-route|apps/api/src/modules/auth/routes.ts|POST /v1/auth/forgot-password"
+    },
+    {
+      "rule": "untraced-backend-route",
+      "file": "apps/api/src/modules/auth/routes.ts",
+      "snippet": "POST /v1/auth/reset-password",
+      "fingerprint": "untraced-backend-route|apps/api/src/modules/auth/routes.ts|POST /v1/auth/reset-password"
+    },
+    {
+      "rule": "untraced-backend-route",
+      "file": "apps/api/src/modules/booking/routes.ts",
+      "snippet": "GET /v1/group-sessions/:sessionId",
+      "fingerprint": "untraced-backend-route|apps/api/src/modules/booking/routes.ts|GET /v1/group-sessions/:sessionId"
+    },
+    {
+      "rule": "untraced-backend-route",
+      "file": "apps/api/src/modules/booking/routes.ts",
+      "snippet": "PATCH /v1/group-sessions/:sessionId/publish",
+      "fingerprint": "untraced-backend-route|apps/api/src/modules/booking/routes.ts|PATCH /v1/group-sessions/:sessionId/publish"
+    },
+    {
+      "rule": "untraced-backend-route",
+      "file": "apps/api/src/modules/booking/routes.ts",
+      "snippet": "PATCH /v1/group-sessions/:sessionId/cancel",
+      "fingerprint": "untraced-backend-route|apps/api/src/modules/booking/routes.ts|PATCH /v1/group-sessions/:sessionId/cancel"
+    },
+    {
+      "rule": "untraced-backend-route",
+      "file": "apps/api/src/modules/booking/routes.ts",
+      "snippet": "POST /v1/group-sessions/:sessionId/register",
+      "fingerprint": "untraced-backend-route|apps/api/src/modules/booking/routes.ts|POST /v1/group-sessions/:sessionId/register"
+    },
+    {
+      "rule": "untraced-backend-route",
+      "file": "apps/api/src/modules/booking/routes.ts",
+      "snippet": "GET /v1/group-sessions/:sessionId/roster",
+      "fingerprint": "untraced-backend-route|apps/api/src/modules/booking/routes.ts|GET /v1/group-sessions/:sessionId/roster"
+    },
+    {
+      "rule": "untraced-backend-route",
+      "file": "apps/api/src/modules/coach-club/routes.ts",
+      "snippet": "PATCH /v1/coaches/me/availability/templates/:templateId",
+      "fingerprint": "untraced-backend-route|apps/api/src/modules/coach-club/routes.ts|PATCH /v1/coaches/me/availability/templates/:templateId"
+    },
+    {
+      "rule": "untraced-backend-route",
+      "file": "apps/api/src/modules/coach-club/routes.ts",
+      "snippet": "DELETE /v1/coaches/me/availability/templates/:templateId",
+      "fingerprint": "untraced-backend-route|apps/api/src/modules/coach-club/routes.ts|DELETE /v1/coaches/me/availability/templates/:templateId"
+    },
+    {
+      "rule": "untraced-backend-route",
+      "file": "apps/api/src/modules/coach-club/routes.ts",
+      "snippet": "PATCH /v1/coaches/me/availability/overrides/:overrideId",
+      "fingerprint": "untraced-backend-route|apps/api/src/modules/coach-club/routes.ts|PATCH /v1/coaches/me/availability/overrides/:overrideId"
+    },
+    {
+      "rule": "untraced-backend-route",
+      "file": "apps/api/src/modules/coach-club/routes.ts",
+      "snippet": "DELETE /v1/coaches/me/availability/overrides/:overrideId",
+      "fingerprint": "untraced-backend-route|apps/api/src/modules/coach-club/routes.ts|DELETE /v1/coaches/me/availability/overrides/:overrideId"
+    },
+    {
+      "rule": "untraced-backend-route",
+      "file": "apps/api/src/modules/meta/routes.ts",
+      "snippet": "GET /v1/meta/seed-health",
+      "fingerprint": "untraced-backend-route|apps/api/src/modules/meta/routes.ts|GET /v1/meta/seed-health"
+    },
+    {
+      "rule": "untraced-backend-route",
+      "file": "apps/api/src/modules/wave2plus/routes.ts",
+      "snippet": "GET /v1/athletes/:athleteId/progress",
+      "fingerprint": "untraced-backend-route|apps/api/src/modules/wave2plus/routes.ts|GET /v1/athletes/:athleteId/progress"
+    },
+    {
+      "rule": "untraced-backend-route",
+      "file": "apps/api/src/modules/wave2plus/routes.ts",
+      "snippet": "GET /v1/athletes/:athleteId/goals",
+      "fingerprint": "untraced-backend-route|apps/api/src/modules/wave2plus/routes.ts|GET /v1/athletes/:athleteId/goals"
+    },
+    {
+      "rule": "untraced-backend-route",
+      "file": "apps/api/src/modules/wave2plus/routes.ts",
+      "snippet": "GET /v1/athletes/:athleteId/badges",
+      "fingerprint": "untraced-backend-route|apps/api/src/modules/wave2plus/routes.ts|GET /v1/athletes/:athleteId/badges"
+    },
+    {
+      "rule": "untraced-backend-route",
+      "file": "apps/api/src/modules/wave2plus/routes.ts",
+      "snippet": "GET /v1/drills",
+      "fingerprint": "untraced-backend-route|apps/api/src/modules/wave2plus/routes.ts|GET /v1/drills"
+    },
+    {
+      "rule": "untraced-backend-route",
+      "file": "apps/api/src/modules/wave2plus/routes.ts",
+      "snippet": "GET /v1/access-grants",
+      "fingerprint": "untraced-backend-route|apps/api/src/modules/wave2plus/routes.ts|GET /v1/access-grants"
+    },
+    {
+      "rule": "untraced-backend-route",
+      "file": "apps/api/src/modules/wave2plus/routes.ts",
+      "snippet": "GET /v1/admin/retention-runs",
+      "fingerprint": "untraced-backend-route|apps/api/src/modules/wave2plus/routes.ts|GET /v1/admin/retention-runs"
+    },
+    {
+      "rule": "untraced-backend-route",
+      "file": "apps/api/src/modules/wave2plus/routes.ts",
+      "snippet": "GET /v1/me/data-deletion-requests",
+      "fingerprint": "untraced-backend-route|apps/api/src/modules/wave2plus/routes.ts|GET /v1/me/data-deletion-requests"
+    }
+  ]
+}
