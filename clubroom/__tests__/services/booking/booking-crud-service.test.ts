@@ -8,7 +8,7 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { bookingAuthorityService } from '@/services/booking/booking-authority-service';
 import type { SessionOffering } from '@/constants/types';
-import { ok } from '@/types/result';
+import { err, ok, serviceError } from '@/types/result';
 
 function makeSessionOffering(
   overrides: Partial<SessionOffering> & { id: string; coachId: string; title: string },
@@ -114,7 +114,7 @@ describe('BookingCrudService', () => {
       const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
       const originalGetCurrentUser = authService.getCurrentUser;
       const originalCreateViaApi = bookingAuthorityService.createBooking;
-      const apiCalls: Array<Record<string, unknown>> = [];
+      const apiCalls: Record<string, unknown>[] = [];
 
       Object.defineProperty(apiClient, 'isMockMode', {
         configurable: true,
@@ -132,9 +132,7 @@ describe('BookingCrudService', () => {
         updatedAt: '2026-03-18T00:00:00.000Z',
         roles: ['parent'],
       });
-      bookingAuthorityService.createBooking = async (
-        input,
-      ) => {
+      bookingAuthorityService.createBooking = async (input) => {
         apiCalls.push(input as unknown as Record<string, unknown>);
         return ok({
           id: 'bok_api_create_1',
@@ -196,7 +194,7 @@ describe('BookingCrudService', () => {
         assert.equal(result.data.scheduledAt, '2030-01-10T10:00:00.000Z');
         assert.equal(result.data.price, 84);
 
-        const stored = await apiClient.get<Array<{ id: string }>>(STORAGE_KEYS.BOOKINGS, []);
+        const stored = await apiClient.get<{ id: string }[]>(STORAGE_KEYS.BOOKINGS, []);
         assert.equal(stored.length, 1);
         assert.equal(stored[0]?.id, 'bok_api_create_1');
       } finally {
@@ -208,7 +206,7 @@ describe('BookingCrudService', () => {
       }
     });
 
-    it('should keep delegated booking creation on the local path when actor cannot satisfy backend authz', async () => {
+    it('should not fall back to local booking creation when the non-mock API rejects', async () => {
       const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
       const originalGetCurrentUser = authService.getCurrentUser;
       const originalCreateViaApi = bookingAuthorityService.createBooking;
@@ -232,23 +230,7 @@ describe('BookingCrudService', () => {
       });
       bookingAuthorityService.createBooking = async () => {
         apiCallCount += 1;
-        return ok({
-          id: 'bok_should_not_be_used',
-          coachUserId: 'usr_coach-delegated-create',
-          bookedByUserId: 'usr_parent-delegated-create',
-          status: 'CONFIRMED',
-          scheduledAt: '2030-01-11T11:00:00.000Z',
-          durationMinutes: 60,
-          location: 'Delegated Test Field',
-          serviceType: 'COACHING',
-          objectives: [],
-          currency: 'GBP',
-          participants: [],
-          version: 1,
-          createdAt: '2026-03-18T12:00:00.000Z',
-          updatedAt: '2026-03-18T12:00:00.000Z',
-          cancelledAt: null,
-        });
+        return err(serviceError('CONFLICT', 'Backend rejected delegated booking create.'));
       };
 
       try {
@@ -269,12 +251,94 @@ describe('BookingCrudService', () => {
           skipAvailabilityValidation: true,
         });
 
-        assert.ok(result.success);
-        if (!result.success) return;
-
-        assert.equal(apiCallCount, 0);
-        assert.match(result.data.id, /^booking_/);
+        assert.equal(result.success, false);
+        assert.equal(apiCallCount, 1);
+        const stored = await apiClient.get<{ id: string }[]>(STORAGE_KEYS.BOOKINGS, []);
+        assert.equal(stored.length, 0);
       } finally {
+        authService.getCurrentUser = originalGetCurrentUser;
+        bookingAuthorityService.createBooking = originalCreateViaApi;
+        if (originalIsMockMode) {
+          Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+        }
+      }
+    });
+
+    it('should treat local mirror failures as best-effort after authoritative API create', async () => {
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+      const originalGetCurrentUser = authService.getCurrentUser;
+      const originalCreateViaApi = bookingAuthorityService.createBooking;
+      const originalSet = apiClient.set;
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+      authService.getCurrentUser = async () => ({
+        id: 'usr_self-booker',
+        email: 'self@example.com',
+        accountType: 'ATHLETE',
+        firstName: 'Self',
+        lastName: 'Booker',
+        isVerified: true,
+        onboardingComplete: true,
+        createdAt: '2026-03-18T00:00:00.000Z',
+        updatedAt: '2026-03-18T00:00:00.000Z',
+        roles: ['athlete'],
+      });
+      bookingAuthorityService.createBooking = async () =>
+        ok({
+          id: 'bok_api_mirror_best_effort',
+          coachUserId: 'usr_coach_mirror_best_effort',
+          bookedByUserId: 'usr_self-booker',
+          status: 'CONFIRMED',
+          scheduledAt: '2030-01-12T12:00:00.000Z',
+          durationMinutes: 60,
+          location: 'Mirror Test Field',
+          serviceType: 'COACHING',
+          sessionTemplateId: null,
+          objectives: [],
+          notes: null,
+          priceMinor: 5000,
+          currency: 'GBP',
+          participants: [
+            {
+              athleteId: 'usr_self-booker',
+              guardianUserId: 'usr_self-booker',
+              status: 'confirmed',
+            },
+          ],
+          version: 1,
+          createdAt: '2026-03-18T12:00:00.000Z',
+          updatedAt: '2026-03-18T12:00:00.000Z',
+          cancelledAt: null,
+        });
+      apiClient.set = async () => {
+        throw new Error('mirror unavailable');
+      };
+
+      try {
+        const result = await bookingCrudService.createBooking({
+          coachId: 'coach-mirror-best-effort',
+          coachName: 'Mirror Coach',
+          athleteIds: ['usr_self-booker'],
+          athleteNames: ['Self Booker'],
+          bookedById: 'usr_self-booker',
+          bookedByName: 'Self Booker',
+          scheduledAt: '2030-01-12T12:00:00.000Z',
+          duration: 60,
+          location: 'Mirror Test Field',
+          service: '1-on-1 Coaching',
+          serviceType: 'COACHING',
+          price: 50,
+          skipAvailabilityValidation: true,
+        });
+
+        assert.equal(result.success, true);
+        if (!result.success) return;
+        assert.equal(result.data.id, 'bok_api_mirror_best_effort');
+      } finally {
+        apiClient.set = originalSet;
         authService.getCurrentUser = originalGetCurrentUser;
         bookingAuthorityService.createBooking = originalCreateViaApi;
         if (originalIsMockMode) {
@@ -719,7 +783,9 @@ describe('BookingCrudService', () => {
     });
 
     it('should return null for non-existent booking', async () => {
-      const booking = await bookingCrudService.getBooking('fake-id-' + Math.random().toString(36).slice(2));
+      const booking = await bookingCrudService.getBooking(
+        'fake-id-' + Math.random().toString(36).slice(2),
+      );
       assert.equal(booking, null);
     });
 
@@ -785,7 +851,7 @@ describe('BookingCrudService', () => {
         assert.equal(booking?.location, 'Authoritative Detail Pitch');
         assert.equal(booking?.service, 'Saved label');
 
-        const mirrored = await apiClient.get<Array<{ id: string; status: string; location: string }>>(
+        const mirrored = await apiClient.get<{ id: string; status: string; location: string }[]>(
           STORAGE_KEYS.BOOKINGS,
           [],
         );
@@ -829,9 +895,12 @@ describe('BookingCrudService', () => {
     });
 
     it('should return error for non-existent booking', async () => {
-      const result = await bookingCrudService.updateBooking('fake-id-' + Math.random().toString(36).slice(2), {
-        status: 'CONFIRMED',
-      });
+      const result = await bookingCrudService.updateBooking(
+        'fake-id-' + Math.random().toString(36).slice(2),
+        {
+          status: 'CONFIRMED',
+        },
+      );
 
       assert.ok(!result.success);
     });
@@ -964,7 +1033,7 @@ describe('BookingCrudService', () => {
       const cancelResult = await bookingCrudService.cancel(
         createResult.data.id,
         'Schedule conflict',
-        'coach'
+        'coach',
       );
 
       assert.ok(cancelResult);
@@ -976,7 +1045,7 @@ describe('BookingCrudService', () => {
       const result = await bookingCrudService.cancel(
         'fake-id-' + Math.random().toString(36).slice(2),
         'Test',
-        'coach'
+        'coach',
       );
 
       assert.equal(result, undefined);
@@ -1040,7 +1109,11 @@ describe('BookingCrudService', () => {
       };
 
       try {
-        const result = await bookingCrudService.cancel(createResult.data.id, 'Schedule conflict', 'coach');
+        const result = await bookingCrudService.cancel(
+          createResult.data.id,
+          'Schedule conflict',
+          'coach',
+        );
         assert.equal(result, undefined);
         assert.equal(events.length, 0);
       } finally {

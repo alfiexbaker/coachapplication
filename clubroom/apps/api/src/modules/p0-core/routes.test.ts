@@ -78,7 +78,13 @@ async function getFirstAvailableSlot(params: {
   durationMinutes?: number;
   excludePendingInvites?: boolean;
   requireMaxBookings?: number;
-}): Promise<{ date: string; startTime: string; endTime: string; location?: string; maxBookings: number }> {
+}): Promise<{
+  date: string;
+  startTime: string;
+  endTime: string;
+  location?: string;
+  maxBookings: number;
+}> {
   const durationMinutes = params.durationMinutes ?? 60;
   const searchParams = new URLSearchParams({
     start: addDaysIso(1),
@@ -102,18 +108,20 @@ async function getFirstAvailableSlot(params: {
   assert.equal(res.statusCode, 200);
 
   const payload = res.json() as {
-    slots: Array<{
+    slots: {
       date: string;
       startTime: string;
       endTime: string;
       isAvailable: boolean;
       location?: string;
       maxBookings: number;
-    }>;
+    }[];
   };
-  const slot = payload.slots.find((candidate) =>
-    candidate.isAvailable &&
-    (params.requireMaxBookings === undefined || candidate.maxBookings === params.requireMaxBookings),
+  const slot = payload.slots.find(
+    (candidate) =>
+      candidate.isAvailable &&
+      (params.requireMaxBookings === undefined ||
+        candidate.maxBookings === params.requireMaxBookings),
   );
   assert.ok(slot, 'expected an available coach slot');
   return slot;
@@ -207,13 +215,13 @@ describe('p0 core routes', () => {
     });
     assert.equal(list.statusCode, 200);
     const listPayload = list.json() as {
-      sessions: Array<{
+      sessions: {
         id: string;
         current: boolean;
         issuedAt: string | null;
         revokedAt: string | null;
         device: { id: string | null; label: string | null } | null;
-      }>;
+      }[];
       total: number;
     };
     assert.equal(listPayload.total, 2);
@@ -263,7 +271,7 @@ describe('p0 core routes', () => {
     });
     assert.equal(currentList.statusCode, 200);
     const currentListPayload = currentList.json() as {
-      sessions: Array<{ id: string; current: boolean }>;
+      sessions: { id: string; current: boolean }[];
     };
     const currentRuntimeSession = currentListPayload.sessions.find((session) => session.current);
     assert.ok(currentRuntimeSession, 'expected current runtime session');
@@ -392,12 +400,12 @@ describe('p0 core routes', () => {
     });
     assert.equal(clubs.statusCode, 200);
     const clubsPayload = clubs.json() as {
-      clubs: Array<{
+      clubs: {
         id?: string;
         inviteCode?: string | null;
         viewerMembership?: { userId?: string; role?: string } | null;
         viewerGovernance: { role: string | null; canManageAssignments: boolean };
-      }>;
+      }[];
     };
     const visibleClub = clubsPayload.clubs.find(
       (club) => club.viewerMembership?.userId === coachUserId,
@@ -439,7 +447,7 @@ describe('p0 core routes', () => {
       },
     });
     const clubsPayload = clubsRes.json() as {
-      clubs: Array<{ id: string; inviteCode: string }>;
+      clubs: { id: string; inviteCode: string }[];
     };
     const inviteCode = clubsPayload.clubs[0]?.inviteCode;
     assert.ok(inviteCode, 'expected primary club invite code');
@@ -510,7 +518,7 @@ describe('p0 core routes', () => {
       },
     });
     const clubsPayload = clubsRes.json() as {
-      clubs: Array<{ id: string }>;
+      clubs: { id: string }[];
     };
     const clubId = clubsPayload.clubs[0]?.id;
     assert.ok(clubId, 'expected visible club id');
@@ -572,7 +580,7 @@ describe('p0 core routes', () => {
     });
     assert.equal(inboxRes.statusCode, 200);
     const inboxPayload = inboxRes.json() as {
-      invites: Array<{ id: string; clubId: string }>;
+      invites: { id: string; clubId: string }[];
     };
     assert.equal(inboxPayload.invites.length >= 1, true);
 
@@ -624,7 +632,7 @@ describe('p0 core routes', () => {
       });
       assert.equal(clubsRes.statusCode, 200);
       const clubsPayload = clubsRes.json() as {
-        clubs: Array<{ id: string; inviteCode: string }>;
+        clubs: { id: string; inviteCode: string }[];
       };
       const clubId = clubsPayload.clubs[0]?.id;
       const inviteCode = clubsPayload.clubs[0]?.inviteCode;
@@ -650,7 +658,10 @@ describe('p0 core routes', () => {
         },
       });
       assert.equal(resolveRes.statusCode, 200);
-      assert.equal((resolveRes.json() as { preview: { joinFlow: string } }).preview.joinFlow, 'direct_join');
+      assert.equal(
+        (resolveRes.json() as { preview: { joinFlow: string } }).preview.joinFlow,
+        'direct_join',
+      );
 
       const joinRes = await app.inject({
         method: 'POST',
@@ -663,7 +674,10 @@ describe('p0 core routes', () => {
         payload: { code: inviteCode },
       });
       assert.equal(joinRes.statusCode, 201);
-      const joinPayload = joinRes.json() as { outcome: string; membership: { userId: string; role: string } };
+      const joinPayload = joinRes.json() as {
+        outcome: string;
+        membership: { userId: string; role: string };
+      };
       assert.equal(joinPayload.outcome, 'joined');
       assert.equal(joinPayload.membership.userId, standaloneMemberId);
       assert.equal(joinPayload.membership.role, 'member');
@@ -679,7 +693,8 @@ describe('p0 core routes', () => {
         payload: { role: 'COACH' },
       });
       assert.equal(createCoachCodeRes.statusCode, 201);
-      const coachCode = (createCoachCodeRes.json() as { inviteCode: { code: string } }).inviteCode.code;
+      const coachCode = (createCoachCodeRes.json() as { inviteCode: { code: string } }).inviteCode
+        .code;
 
       const targetCoachUserId = asRows(tables.coachProfiles)
         .map((row) => asString(row.userId))
@@ -710,8 +725,13 @@ describe('p0 core routes', () => {
         },
       });
       assert.equal(inboxRes.statusCode, 200);
-      const inboxPayload = inboxRes.json() as { invites: Array<{ id: string; clubId: string }> };
-      assert.equal(inboxPayload.invites.some((invite) => invite.id === pendingInviteId && invite.clubId === clubId), true);
+      const inboxPayload = inboxRes.json() as { invites: { id: string; clubId: string }[] };
+      assert.equal(
+        inboxPayload.invites.some(
+          (invite) => invite.id === pendingInviteId && invite.clubId === clubId,
+        ),
+        true,
+      );
 
       const respondRes = await app.inject({
         method: 'POST',
@@ -758,7 +778,7 @@ describe('p0 core routes', () => {
     });
     assert.equal(res.statusCode, 200);
 
-    const payload = res.json() as { clubs: Array<{ id: string }> };
+    const payload = res.json() as { clubs: { id: string }[] };
     assert.equal(payload.clubs.length >= 1, true);
   });
 
@@ -816,7 +836,7 @@ describe('p0 core routes', () => {
       },
     });
     assert.equal(listed.statusCode, 200);
-    const listedPayload = listed.json() as { bookings: Array<{ id: string }> };
+    const listedPayload = listed.json() as { bookings: { id: string }[] };
     assert.equal(
       listedPayload.bookings.some((booking) => booking.id === created.id),
       true,
@@ -907,6 +927,83 @@ describe('p0 core routes', () => {
       payload: {},
     });
     assert.equal(reopenedAgain.statusCode, 400);
+  });
+
+  it('replays direct booking create by idempotency key without duplicating the booking', async () => {
+    const tables = loadTables();
+    const guardianLink = asRows(tables.guardianChildLinks)[0];
+    assert.ok(guardianLink, 'expected seeded guardian-child link');
+    const bookedByUserId = asString(guardianLink.guardianUserId) as string;
+    const athleteId = asString(guardianLink.athleteId) as string;
+    const coachOffering = asRows(tables.coachingOfferings)[0];
+    assert.ok(coachOffering, 'expected seeded coaching offering');
+    const coachUserId = asString(coachOffering.coachUserId) as string;
+    const availableSlot = await getFirstAvailableSlot({
+      app,
+      tables,
+      authUserId: bookedByUserId,
+      coachUserId,
+      requireMaxBookings: 1,
+    });
+    const store = getMarketplaceSeedStore();
+    const headers = {
+      'x-auth-user-id': bookedByUserId,
+      'x-auth-roles': rolesForUser(tables, bookedByUserId).join(',') || 'parent',
+      'x-acting-role': rolesForUser(tables, bookedByUserId)[0] ?? 'parent',
+    };
+    const payload = {
+      coachUserId,
+      athleteIds: [athleteId],
+      bookedByUserId,
+      scheduledAt: `${availableSlot.date}T${availableSlot.startTime}:00.000Z`,
+      durationMinutes: 60,
+      location: availableSlot.location ?? 'Idempotency Test Pitch',
+      serviceType: 'one_to_one',
+      objectives: ['Decision making'],
+      notes: 'Created from idempotency test',
+      priceMinor: 4200,
+      currency: 'GBP',
+      idempotencyKey: 'booking-create-idempotency-test',
+    };
+
+    const first = await app.inject({
+      method: 'POST',
+      url: '/v1/bookings',
+      headers,
+      payload,
+    });
+    assert.equal(first.statusCode, 201);
+    const firstPayload = first.json() as { id: string };
+
+    const replay = await app.inject({
+      method: 'POST',
+      url: '/v1/bookings',
+      headers,
+      payload,
+    });
+    assert.equal(replay.statusCode, 201);
+    const replayPayload = replay.json() as { id: string };
+    assert.equal(replayPayload.id, firstPayload.id);
+
+    const matchingBookings = asRows(store.tables.bookings).filter(
+      (row) => asString(row.id) === firstPayload.id,
+    );
+    const matchingStatusEvents = asRows(store.tables.bookingStatusEvents).filter(
+      (row) => asString(row.bookingId) === firstPayload.id,
+    );
+    assert.equal(matchingBookings.length, 1);
+    assert.equal(matchingStatusEvents.length, 1);
+
+    const conflictingReplay = await app.inject({
+      method: 'POST',
+      url: '/v1/bookings',
+      headers,
+      payload: {
+        ...payload,
+        notes: 'Different payload under the same idempotency key',
+      },
+    });
+    assert.equal(conflictingReplay.statusCode, 409);
   });
 
   it('allows a guardian to create a booking for a linked athlete when bookedByUserId differs from the authenticated parent', async () => {
@@ -1170,7 +1267,7 @@ describe('p0 core routes', () => {
     });
     assert.equal(parentList.statusCode, 200);
     const parentListPayload = parentList.json() as {
-      invites: Array<{ id: string; parentId: string; athleteIds: string[] }>;
+      invites: { id: string; parentId: string; athleteIds: string[] }[];
     };
     const parentInvite = parentListPayload.invites.find((row) => row.id === inviteId);
     assert.ok(parentInvite, 'expected invite in parent list');
@@ -1188,7 +1285,7 @@ describe('p0 core routes', () => {
     });
     assert.equal(coachList.statusCode, 200);
     const coachListPayload = coachList.json() as {
-      invites: Array<{ id: string; coachId: string; proposedSlots: Array<{ date: string }> }>;
+      invites: { id: string; coachId: string; proposedSlots: { date: string }[] }[];
     };
     const coachInvite = coachListPayload.invites.find((row) => row.id === inviteId);
     assert.ok(coachInvite, 'expected invite in coach list');
@@ -1306,7 +1403,7 @@ describe('p0 core routes', () => {
     });
     assert.equal(groupList.statusCode, 200);
     const groupListPayload = groupList.json() as {
-      invites: Array<{ id: string; groupId?: string }>;
+      invites: { id: string; groupId?: string }[];
     };
     assert.equal(
       groupListPayload.invites.some((invite) => invite.id === pendingPayload.invite.id),
@@ -1346,7 +1443,7 @@ describe('p0 core routes', () => {
     });
     assert.equal(parentListAfterDismiss.statusCode, 200);
     const parentListPayload = parentListAfterDismiss.json() as {
-      invites: Array<{ id: string }>;
+      invites: { id: string }[];
     };
     assert.equal(
       parentListPayload.invites.some((invite) => invite.id === pendingPayload.invite.id),

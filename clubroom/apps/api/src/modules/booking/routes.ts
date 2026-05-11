@@ -12,6 +12,7 @@ import {
 import { badRequest, forbidden, notFound } from '../../lib/http-errors.js';
 import {
   createBookingInSeedTables,
+  resolveCreateBookingIdempotency,
   resolveBookingRepository,
   type SeedTables,
 } from '../../repositories/p0/booking-repository.js';
@@ -157,12 +158,12 @@ function mapSessionInviteAudienceType(
   return normalizeInviteAudienceType(asString(session?.inviteType));
 }
 
-function buildInviteProposedSlots(session: SeedRow | undefined): Array<{
+function buildInviteProposedSlots(session: SeedRow | undefined): {
   date: string;
   startTime: string;
   endTime: string;
   location?: string;
-}> {
+}[] {
   const location = asString(session?.location);
 
   return asRows(session?.scheduleJson)
@@ -198,12 +199,12 @@ function buildInviteProposedSlots(session: SeedRow | undefined): Array<{
     );
 }
 
-function buildInviteProposedSlotsFromMetadata(metadata: SeedRow | undefined): Array<{
+function buildInviteProposedSlotsFromMetadata(metadata: SeedRow | undefined): {
   date: string;
   startTime: string;
   endTime: string;
   location?: string;
-}> {
+}[] {
   return asRows(metadata?.proposedSlots)
     .map((entry) => {
       const date = asString(entry.date);
@@ -485,6 +486,11 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const body = createBookingRequestSchema.parse(request.body);
+    const idempotentResponse = await resolveCreateBookingIdempotency({ authUserId, body });
+    if (idempotentResponse) {
+      return reply.status(idempotentResponse.responseStatus).send(idempotentResponse.response);
+    }
+
     const availability = await resolveCoachAvailabilityTables(body.coachUserId);
     assertCoachAvailabilitySlotOpen({
       tables: availability.tables,

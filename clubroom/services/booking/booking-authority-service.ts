@@ -7,7 +7,7 @@ import {
   toApiUserId,
 } from '@/services/api-auth-context';
 import { createLogger } from '@/utils/logger';
-import { err, ok, serviceError, type Result, type ServiceError } from '@/types/result';
+import { err, ok, type Result, type ServiceError } from '@/types/result';
 
 const logger = createLogger('BookingAuthorityService');
 
@@ -34,11 +34,11 @@ interface ApiBookingResponse {
   notes?: string | null;
   priceMinor?: number | null;
   currency: string;
-  participants: Array<{
+  participants: {
     athleteId: string;
     guardianUserId?: string;
     status: 'confirmed' | 'pending' | 'cancelled';
-  }>;
+  }[];
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -64,6 +64,7 @@ interface CreateApiBookingInput {
   objectives?: string[];
   notes?: string;
   totalPrice?: number;
+  idempotencyKey?: string;
 }
 
 function toApiScheduledAt(scheduledAt: string): string {
@@ -71,7 +72,37 @@ function toApiScheduledAt(scheduledAt: string): string {
   return Number.isNaN(parsed.getTime()) ? scheduledAt : parsed.toISOString();
 }
 
-async function resolveBookingAccessHeaders(): Promise<Result<Record<string, string>, ServiceError>> {
+function hashStableString(value: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function buildBookingIdempotencyKey(input: CreateApiBookingInput): string {
+  const scheduledAt = toApiScheduledAt(input.scheduledAt);
+  const payload = JSON.stringify({
+    coachUserId: toApiUserId(input.coachId),
+    athleteIds: input.athleteIds.map((athleteId) => toApiAthleteId(athleteId)).sort(),
+    bookedByUserId: toApiUserId(input.bookedById),
+    scheduledAt,
+    durationMinutes: input.duration,
+    location: input.location,
+    serviceType: input.serviceType,
+    sessionTemplateId: input.sessionTemplateId ?? null,
+    objectives: input.objectives ?? [],
+    notes: input.notes ?? null,
+    totalPrice:
+      typeof input.totalPrice === 'number' ? Math.max(0, Math.round(input.totalPrice * 100)) : null,
+  });
+  return `booking_${hashStableString(payload)}`;
+}
+
+async function resolveBookingAccessHeaders(): Promise<
+  Result<Record<string, string>, ServiceError>
+> {
   const currentUserResult = await resolveSignedInApiUser('Sign in to manage bookings.');
   if (!currentUserResult.success) {
     return currentUserResult;
@@ -160,6 +191,7 @@ class BookingAuthorityService {
           ? { priceMinor: Math.max(0, Math.round(input.totalPrice * 100)) }
           : {}),
         currency: 'GBP',
+        idempotencyKey: input.idempotencyKey ?? buildBookingIdempotencyKey(input),
       }),
     });
 

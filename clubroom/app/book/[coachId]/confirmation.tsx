@@ -52,7 +52,9 @@ export default function ConfirmationScreen() {
   const [commercialMode, setCommercialMode] = useState<OrganizationCommercialMode | null>(
     draft.commercialMode ?? null,
   );
-  const [cancellationPolicy, setCancellationPolicy] = useState<import('@/constants/types').CancellationPolicy | null>(null);
+  const [cancellationPolicy, setCancellationPolicy] = useState<
+    import('@/constants/types').CancellationPolicy | null
+  >(null);
   const celebrationRef = useRef<CelebrationOverlayRef>(null);
   const resolvedCoachId = coachId || draft.coachId;
   const trackConfirmStep = (
@@ -170,6 +172,7 @@ export default function ConfirmationScreen() {
     deliveredByLabel: assigneeLabel || resolvedCoachName || draft.coachName || 'Coach',
     commercialMode,
   });
+  const hasCreatedBooking = Boolean(bookingId);
 
   const handleViewBooking = async () => {
     if (bookingId) {
@@ -237,8 +240,7 @@ export default function ConfirmationScreen() {
         return;
       }
 
-      const serviceLabel =
-        draft.sessionTypeLabel || draft.sessionType || 'Session';
+      const serviceLabel = draft.sessionTypeLabel || draft.sessionType || 'Session';
       const serviceType = draft.sessionType || '1-to-1';
 
       const result = await bookingService.createBooking({
@@ -318,8 +320,12 @@ export default function ConfirmationScreen() {
     >
       <View style={styles.content}>
         <BookingWizardHeader
-          title="Booking placed"
-          subtitle="Your coach will confirm within 24 hours"
+          title={hasCreatedBooking ? 'Booking confirmed' : 'Confirm booking'}
+          subtitle={
+            hasCreatedBooking
+              ? 'Your coach will confirm within 24 hours'
+              : 'Review the details before we place this booking'
+          }
           step={5}
           onBack={handleBack}
         />
@@ -330,18 +336,27 @@ export default function ConfirmationScreen() {
             { borderColor: palette.tint, backgroundColor: withAlpha(palette.tint, 0.07) },
           ]}
         >
-          <Ionicons name="checkmark" size={48} color={palette.tint} />
+          <Ionicons
+            name={hasCreatedBooking ? 'checkmark' : 'calendar-outline'}
+            size={48}
+            color={palette.tint}
+          />
         </View>
 
         <View style={{ gap: Spacing.sm }}>
-          <ThemedText type="defaultSemiBold">{"What's next"}</ThemedText>
+          <ThemedText type="defaultSemiBold">
+            {hasCreatedBooking ? "What's next" : 'Before you confirm'}
+          </ThemedText>
           <ThemedText style={{ color: palette.muted }}>
-            {draft.actingAs === 'club'
-              ? relationshipContext.commercialMode === 'ORG_OWNED'
-                ? `Your booking request is in with ${relationshipContext.bookedWithLabel}. ${relationshipContext.paymentSummary}`
-                : `Your booking request is in via ${relationshipContext.organizationLabel || 'the organization'}. ${relationshipContext.paymentSummary}`
-              : `Your booking request is in. ${relationshipContext.paymentSummary}`}{' '}
-            You can message your coach anytime or add this to your calendar.
+            {hasCreatedBooking
+              ? `${
+                  draft.actingAs === 'club'
+                    ? relationshipContext.commercialMode === 'ORG_OWNED'
+                      ? `Your booking request is in with ${relationshipContext.bookedWithLabel}.`
+                      : `Your booking request is in via ${relationshipContext.organizationLabel || 'the organization'}.`
+                    : 'Your booking request is in.'
+                } ${relationshipContext.paymentSummary} You can message your coach anytime or add this to your calendar.`
+              : `We will only place this booking after Clubroom confirms the slot, booking target, and coach rules through the live booking API. ${relationshipContext.paymentSummary}`}
           </ThemedText>
         </View>
 
@@ -363,7 +378,11 @@ export default function ConfirmationScreen() {
             <Row align="center" gap="sm">
               <Ionicons name="business-outline" size={18} color={palette.muted} />
               <ThemedText style={{ color: palette.text }}>
-                Organization {relationshipContext.organizationLabel || clubLabel || draft.clubId || 'Organization'}
+                Organization{' '}
+                {relationshipContext.organizationLabel ||
+                  clubLabel ||
+                  draft.clubId ||
+                  'Organization'}
               </ThemedText>
             </Row>
           ) : null}
@@ -394,7 +413,10 @@ export default function ConfirmationScreen() {
             </Row>
           )}
           {resolvedCoachId && (
-            <CancellationPolicyCard coachId={resolvedCoachId} policy={cancellationPolicy ?? undefined} />
+            <CancellationPolicyCard
+              coachId={resolvedCoachId}
+              policy={cancellationPolicy ?? undefined}
+            />
           )}
         </View>
 
@@ -423,17 +445,21 @@ export default function ConfirmationScreen() {
             <ActivityIndicator size="small" color={palette.onPrimary} />
           ) : (
             <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
-              View booking
+              {hasCreatedBooking ? 'View booking' : 'Confirm booking'}
             </ThemedText>
           )}
         </Clickable>
-        <Clickable
-          onPress={handleMessageCoach}
-          style={[styles.secondary, { borderColor: palette.tint }]}
-          disabled={isCreating}
-        >
-          <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Message coach</ThemedText>
-        </Clickable>
+        {hasCreatedBooking ? (
+          <Clickable
+            onPress={handleMessageCoach}
+            style={[styles.secondary, { borderColor: palette.tint }]}
+            disabled={isCreating}
+          >
+            <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
+              Message coach
+            </ThemedText>
+          </Clickable>
+        ) : null}
       </View>
 
       <CelebrationOverlay ref={celebrationRef} />

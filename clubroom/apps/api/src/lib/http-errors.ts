@@ -26,6 +26,9 @@ export class ApiProblemError extends Error {
 export const badRequest = (message: string, details?: unknown) =>
   new ApiProblemError(400, 'VALIDATION_FAILED', message, details);
 
+export const conflict = (message: string, details?: unknown) =>
+  new ApiProblemError(409, 'VERSION_CONFLICT', message, details);
+
 export const unauthorized = (message: string = 'Unauthorized', details?: unknown) =>
   new ApiProblemError(401, 'AUTH_INVALID_TOKEN', message, details);
 

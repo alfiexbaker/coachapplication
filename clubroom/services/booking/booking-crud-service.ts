@@ -186,11 +186,11 @@ class BookingCrudService {
       createdAt: string;
       updatedAt: string;
       cancelledAt?: string | null;
-      participants: Array<{
+      participants: {
         athleteId: string;
         guardianUserId?: string;
         status: 'confirmed' | 'pending' | 'cancelled';
-      }>;
+      }[];
     },
     localBooking?: Booking,
   ): Booking {
@@ -234,7 +234,7 @@ class BookingCrudService {
   }
 
   private async syncAuthoritativeBookings(
-    apiBookings: Array<{
+    apiBookings: {
       id: string;
       coachUserId: string;
       bookedByUserId?: string;
@@ -250,12 +250,12 @@ class BookingCrudService {
       createdAt: string;
       updatedAt: string;
       cancelledAt?: string | null;
-      participants: Array<{
+      participants: {
         athleteId: string;
         guardianUserId?: string;
         status: 'confirmed' | 'pending' | 'cancelled';
-      }>;
-    }>,
+      }[];
+    }[],
   ): Promise<Booking[]> {
     const localBookings = await this.loadFromStorage();
     const localById = new Map(localBookings.map((booking) => [booking.id, booking]));
@@ -287,7 +287,7 @@ class BookingCrudService {
   }
 
   updateDraft(patch: Partial<BookingDraft>) {
-    const patchKeys = Object.keys(patch) as Array<keyof BookingDraft>;
+    const patchKeys = Object.keys(patch) as (keyof BookingDraft)[];
     if (patchKeys.length === 0) {
       return;
     }
@@ -1060,22 +1060,48 @@ class BookingCrudService {
       bookings.push(newBooking as Booking);
       const saveResult = await this.saveToStorage(bookings);
       if (!saveResult.success) {
-        return err(saveResult.error);
+        if (!authoritativeCreate) {
+          return err(saveResult.error);
+        }
+        logger.warn('Authoritative booking created, but local mirror update failed', {
+          bookingId: newBooking.id,
+          error: saveResult.error.message,
+        });
       }
 
       // Create notifications for coach and parent
-      await this.createBookingNotifications(
-        newBooking as Booking,
-        bookedByName,
-        athleteNames.join(', '),
-      );
+      try {
+        await this.createBookingNotifications(
+          newBooking as Booking,
+          bookedByName,
+          athleteNames.join(', '),
+        );
+      } catch (notificationError) {
+        if (!authoritativeCreate) {
+          throw notificationError;
+        }
+        logger.warn('Authoritative booking created, but local notification mirror failed', {
+          bookingId: newBooking.id,
+          error: String(notificationError),
+        });
+      }
 
       // Trigger notification for coach
       const formattedDateTime = new Date(scheduledAt).toLocaleDateString('en-GB', {
         month: 'short',
         day: 'numeric',
       });
-      await notificationTriggers.bookingConfirmed(coachName, formattedDateTime, coachId);
+      try {
+        await notificationTriggers.bookingConfirmed(coachName, formattedDateTime, coachId);
+      } catch (triggerError) {
+        if (!authoritativeCreate) {
+          throw triggerError;
+        }
+        logger.warn('Authoritative booking created, but notification trigger failed', {
+          bookingId: newBooking.id,
+          error: String(triggerError),
+        });
+      }
 
       // Emit typed event for cross-service reactions
       emitTyped(ServiceEvents.BOOKING_CREATED, {

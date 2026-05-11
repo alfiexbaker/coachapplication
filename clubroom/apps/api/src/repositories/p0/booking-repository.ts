@@ -12,17 +12,27 @@ import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
 import { normalizeForJson } from './normalize.js';
-import { badRequest, forbidden, notFound } from '../../lib/http-errors.js';
+import { badRequest, conflict, forbidden, notFound } from '../../lib/http-errors.js';
 
 export type SeedRow = Record<string, unknown>;
 export type SeedTables = Record<string, SeedRow[]>;
 
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
-const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
-const asNumber = (value: unknown): number | undefined => (typeof value === 'number' ? value : undefined);
+const asString = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
+const asNumber = (value: unknown): number | undefined =>
+  typeof value === 'number' ? value : undefined;
 const isoNow = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
-type BookingStatusCode = 'PENDING' | 'AWAITING_CONFIRMATION' | 'CONFIRMED' | 'AWAITING_COMPLETION' | 'COMPLETED' | 'CANCELLED';
+type BookingStatusCode =
+  | 'PENDING'
+  | 'AWAITING_CONFIRMATION'
+  | 'CONFIRMED'
+  | 'AWAITING_COMPLETION'
+  | 'COMPLETED'
+  | 'CANCELLED';
+const BOOKING_CREATE_ENDPOINT_KEY = 'POST:/v1/bookings';
+const IDEMPOTENCY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export interface ListBookingsParams {
   authUserId: string;
@@ -71,6 +81,122 @@ function isSupportedBookingStatus(status: string): boolean {
   return bookingStatusSchema.safeParse(status).success;
 }
 
+function getMutableRows(tables: SeedTables, key: string): SeedRow[] {
+  if (!Array.isArray(tables[key])) {
+    tables[key] = [];
+  }
+  return tables[key];
+}
+
+function canonicalizeJson(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(canonicalizeJson);
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, entry]) => [key, canonicalizeJson(entry)]),
+    );
+  }
+  return value;
+}
+
+function hashCreateBookingRequest(body: CreateBookingRequest): string {
+  return crypto
+    .createHash('sha256')
+    .update(JSON.stringify(canonicalizeJson(body)))
+    .digest('hex');
+}
+
+function assertMatchingIdempotencyRequest(entry: SeedRow, requestHash: string): void {
+  if (asString(entry.requestHash) !== requestHash) {
+    throw conflict('Idempotency key was already used with a different booking payload');
+  }
+}
+
+function parseIdempotentBookingResponse(value: unknown): BookingResponse | null {
+  const parsed = bookingResponseSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
+
+function isCreateBookingIdempotencyRace(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const prismaError = error as { code?: unknown; meta?: { target?: unknown } };
+  if (prismaError.code !== 'P2002') {
+    return false;
+  }
+
+  const target = prismaError.meta?.target;
+  if (!Array.isArray(target)) {
+    return false;
+  }
+
+  return ['userId', 'endpointKey', 'idempotencyKey'].every((field) => target.includes(field));
+}
+
+function findSeedCreateBookingIdempotency(params: {
+  tables: SeedTables;
+  authUserId: string;
+  body: CreateBookingRequest;
+}): BookingResponse | null {
+  const idempotencyKey = params.body.idempotencyKey;
+  if (!idempotencyKey) {
+    return null;
+  }
+
+  const requestHash = hashCreateBookingRequest(params.body);
+  const entry = asRows(params.tables.idempotencyKeys).find(
+    (row) =>
+      asString(row.userId) === params.authUserId &&
+      asString(row.endpointKey) === BOOKING_CREATE_ENDPOINT_KEY &&
+      asString(row.idempotencyKey) === idempotencyKey,
+  );
+  if (!entry) {
+    return null;
+  }
+
+  assertMatchingIdempotencyRequest(entry, requestHash);
+  const response = parseIdempotentBookingResponse(entry.responseBodyJson);
+  if (response) {
+    return response;
+  }
+
+  const legacyBookingId = asString((entry.responseBodyJson as SeedRow | undefined)?.bookingId);
+  if (!legacyBookingId) {
+    return null;
+  }
+
+  return getVisibleSeedBookingById(params.tables, params.authUserId, legacyBookingId);
+}
+
+function recordSeedCreateBookingIdempotency(params: {
+  tables: SeedTables;
+  authUserId: string;
+  body: CreateBookingRequest;
+  response: BookingResponse;
+  now: string;
+}): void {
+  if (!params.body.idempotencyKey) {
+    return;
+  }
+
+  getMutableRows(params.tables, 'idempotencyKeys').push({
+    id: newId('idk'),
+    userId: params.authUserId,
+    endpointKey: BOOKING_CREATE_ENDPOINT_KEY,
+    idempotencyKey: params.body.idempotencyKey,
+    requestHash: hashCreateBookingRequest(params.body),
+    responseStatus: 201,
+    responseBodyJson: params.response,
+    createdAt: params.now,
+    expiresAt: new Date(Date.parse(params.now) + IDEMPOTENCY_TTL_MS).toISOString(),
+  });
+}
+
 function getAthleteUserIdsByAthleteId(tables: SeedTables): Map<string, string | undefined> {
   const athletes = asRows(tables.athletes);
   return new Map(
@@ -96,8 +222,7 @@ function assertSeedBookingAthleteAccess(
     }
 
     const linkedGuardian = guardianLinks.some(
-      (row) =>
-        asString(row.athleteId) === athleteId && asString(row.guardianUserId) === authUserId,
+      (row) => asString(row.athleteId) === athleteId && asString(row.guardianUserId) === authUserId,
     );
     if (linkedGuardian) {
       continue;
@@ -141,7 +266,10 @@ function canUserAccessSeedBooking(
   participantRowsByBooking = getParticipantRowsByBooking(tables),
   athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(tables),
 ): boolean {
-  if (asString(booking.coachUserId) === authUserId || asString(booking.bookedByUserId) === authUserId) {
+  if (
+    asString(booking.coachUserId) === authUserId ||
+    asString(booking.bookedByUserId) === authUserId
+  ) {
     return true;
   }
 
@@ -161,11 +289,13 @@ function mapSeedBookingRow(
   participantRowsByBooking = getParticipantRowsByBooking(tables),
 ): BookingResponse {
   const bookingId = asString(booking.id) ?? '';
-  const bookingParticipants = (participantRowsByBooking.get(bookingId) ?? []).map((participant) => ({
-    athleteId: asString(participant.athleteId) ?? '',
-    guardianUserId: asString(participant.guardianUserId),
-    status: (asString(participant.status) ?? 'pending').toLowerCase(),
-  }));
+  const bookingParticipants = (participantRowsByBooking.get(bookingId) ?? []).map(
+    (participant) => ({
+      athleteId: asString(participant.athleteId) ?? '',
+      guardianUserId: asString(participant.guardianUserId),
+      status: (asString(participant.status) ?? 'pending').toLowerCase(),
+    }),
+  );
 
   return bookingResponseSchema.parse({
     id: bookingId,
@@ -253,9 +383,9 @@ function normalizeReopenStatus(status: string | undefined): BookingStatusCode {
   if (status) {
     const normalized = status.toUpperCase();
     if (
-      normalized !== 'CANCELLED'
-      && normalized !== 'COMPLETED'
-      && isSupportedBookingStatus(normalized)
+      normalized !== 'CANCELLED' &&
+      normalized !== 'COMPLETED' &&
+      isSupportedBookingStatus(normalized)
     ) {
       return normalized as BookingStatusCode;
     }
@@ -267,12 +397,11 @@ function resolveSeedReopenStatus(tables: SeedTables, bookingId: string): Booking
   const latestCancelEvent = asRows(tables.bookingStatusEvents)
     .filter(
       (event) =>
-        asString(event.bookingId) === bookingId
-        && asString(event.toStatus)?.toUpperCase() === 'CANCELLED',
+        asString(event.bookingId) === bookingId &&
+        asString(event.toStatus)?.toUpperCase() === 'CANCELLED',
     )
     .sort(
-      (a, b) =>
-        Date.parse(asString(b.occurredAt) ?? '') - Date.parse(asString(a.occurredAt) ?? ''),
+      (a, b) => Date.parse(asString(b.occurredAt) ?? '') - Date.parse(asString(a.occurredAt) ?? ''),
     )[0];
 
   return normalizeReopenStatus(asString(latestCancelEvent?.fromStatus));
@@ -286,6 +415,11 @@ export function createBookingInSeedTables(params: {
   bookingRowOverrides?: Partial<SeedRow>;
 }): BookingResponse {
   const { tables, authUserId, requestId, body, bookingRowOverrides } = params;
+  const idempotentResponse = findSeedCreateBookingIdempotency({ tables, authUserId, body });
+  if (idempotentResponse) {
+    return idempotentResponse;
+  }
+
   const bookings = asRows(tables.bookings);
   const participants = asRows(tables.bookingParticipants);
   const objectives = asRows(tables.bookingObjectives);
@@ -381,7 +515,7 @@ export function createBookingInSeedTables(params: {
     occurredAt: now,
   });
 
-  return bookingResponseSchema.parse({
+  const response = bookingResponseSchema.parse({
     id: bookingId,
     coachUserId: body.coachUserId,
     bookedByUserId: body.bookedByUserId,
@@ -401,6 +535,10 @@ export function createBookingInSeedTables(params: {
     updatedAt: now,
     cancelledAt: null,
   });
+
+  recordSeedCreateBookingIdempotency({ tables, authUserId, body, response, now });
+
+  return response;
 }
 
 class SeedBookingRepository implements BookingRepository {
@@ -552,6 +690,52 @@ class SeedBookingRepository implements BookingRepository {
   }
 }
 
+export async function resolveCreateBookingIdempotency(params: {
+  authUserId: string;
+  body: CreateBookingRequest;
+}): Promise<{ responseStatus: number; response: BookingResponse } | null> {
+  if (!params.body.idempotencyKey) {
+    return null;
+  }
+
+  if (getApiDataBackend() !== 'db' || shouldUseDbFixtureFallback()) {
+    const tables =
+      getApiDataBackend() === 'db' ? getDbFixtureStore().tables : getMarketplaceSeedStore().tables;
+    const response = findSeedCreateBookingIdempotency({
+      tables,
+      authUserId: params.authUserId,
+      body: params.body,
+    });
+    return response ? { responseStatus: 201, response } : null;
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  const entry = await prisma.idempotencyKey.findUnique({
+    where: {
+      userId_endpointKey_idempotencyKey: {
+        userId: params.authUserId,
+        endpointKey: BOOKING_CREATE_ENDPOINT_KEY,
+        idempotencyKey: params.body.idempotencyKey,
+      },
+    },
+  });
+  if (!entry) {
+    return null;
+  }
+
+  const requestHash = hashCreateBookingRequest(params.body);
+  if (entry.requestHash !== requestHash) {
+    throw conflict('Idempotency key was already used with a different booking payload');
+  }
+
+  const response = parseIdempotentBookingResponse(entry.responseBodyJson);
+  if (!response) {
+    throw conflict('Stored idempotency response is no longer valid');
+  }
+
+  return { responseStatus: entry.responseStatus, response };
+}
+
 class DbBookingRepository implements BookingRepository {
   async listVisibleBookings(params: ListBookingsParams): Promise<ListBookingsResult> {
     if (shouldUseDbFixtureFallback()) {
@@ -594,7 +778,7 @@ class DbBookingRepository implements BookingRepository {
       },
     });
 
-    const normalizedBookings = normalizeForJson(bookings) as Array<Record<string, unknown>>;
+    const normalizedBookings = normalizeForJson(bookings) as Record<string, unknown>[];
     const rows = normalizedBookings.map((booking) => {
       const participantRows = asRows(booking.participants).map((participant) => ({
         athleteId: asString(participant.athleteId) ?? '',
@@ -659,12 +843,12 @@ class DbBookingRepository implements BookingRepository {
     }
 
     const hasAccess =
-      booking.coachUserId === params.authUserId
-      || booking.bookedByUserId === params.authUserId
-      || booking.participants.some(
+      booking.coachUserId === params.authUserId ||
+      booking.bookedByUserId === params.authUserId ||
+      booking.participants.some(
         (participant) =>
-          participant.guardianUserId === params.authUserId
-          || participant.athlete.userId === params.authUserId,
+          participant.guardianUserId === params.authUserId ||
+          participant.athlete.userId === params.authUserId,
       );
     if (!hasAccess) {
       throw forbidden('Booking does not belong to authenticated user');
@@ -712,6 +896,14 @@ class DbBookingRepository implements BookingRepository {
     }
 
     const prisma = getPrismaClientOrThrow();
+    const idempotentResponse = await resolveCreateBookingIdempotency({
+      authUserId: params.authUserId,
+      body: params.body,
+    });
+    if (idempotentResponse) {
+      return idempotentResponse.response;
+    }
+
     const now = new Date();
     const nowIsoString = now.toISOString();
     const bookingId = newId('bok');
@@ -734,7 +926,9 @@ class DbBookingRepository implements BookingRepository {
         userId: true,
       },
     });
-    const athleteUserIdByAthleteId = new Map(athleteRows.map((row) => [row.id, row.userId ?? undefined]));
+    const athleteUserIdByAthleteId = new Map(
+      athleteRows.map((row) => [row.id, row.userId ?? undefined]),
+    );
     for (const athleteId of body.athleteIds) {
       const athleteUserId = athleteUserIdByAthleteId.get(athleteId);
       if (athleteUserId === params.authUserId) {
@@ -752,31 +946,9 @@ class DbBookingRepository implements BookingRepository {
         athleteId,
       });
     }
-    const guardianByAthlete = new Map(guardianLinks.map((row) => [row.athleteId, row.guardianUserId]));
-
-    await prisma.booking.create({
-      data: {
-        id: bookingId,
-        coachUserId: body.coachUserId,
-        bookedByUserId: body.bookedByUserId,
-        status: 'CONFIRMED',
-        scheduledAt: new Date(body.scheduledAt),
-        durationMinutes: body.durationMinutes,
-        location: body.location,
-        serviceType: body.serviceType,
-        notes: body.notes ?? null,
-        objectivesJson: {
-          primary: body.objectives[0] ?? null,
-          secondary: body.objectives[1] ?? null,
-        },
-        priceMinor: body.priceMinor ?? null,
-        currency: body.currency,
-        confirmationMode: 'manual',
-        confirmedAt: now,
-        createdByUserId: params.authUserId,
-        updatedByUserId: params.authUserId,
-      },
-    });
+    const guardianByAthlete = new Map(
+      guardianLinks.map((row) => [row.athleteId, row.guardianUserId]),
+    );
 
     const participantRows = body.athleteIds.map((athleteId) => ({
       id: newId('bkp'),
@@ -788,69 +960,126 @@ class DbBookingRepository implements BookingRepository {
       updatedByUserId: params.authUserId,
     }));
 
-    await prisma.bookingParticipant.createMany({
-      data: participantRows,
-    });
-
-    await prisma.bookingObjective.createMany({
-      data: body.objectives.map((objective, index) => ({
-        id: newId('boj'),
-        bookingId,
-        objective,
-        sortOrder: index + 1,
-        createdAt: now,
-      })),
-    });
-
-    await prisma.bookingStatusEvent.create({
-      data: {
-        id: newId('bse'),
-        bookingId,
-        fromStatus: 'PENDING',
-        toStatus: 'CONFIRMED',
-        actorUserId: params.authUserId,
-        reason: 'Created via API booking endpoint.',
-        metadataJson: {
-          source: 'api-db-runtime',
-        },
-        requestId: params.requestId,
-        occurredAt: now,
-      },
-    });
-
     const result = participantRows.map((participant) => ({
       athleteId: participant.athleteId,
       guardianUserId: participant.guardianUserId ?? undefined,
       status: participant.status as 'confirmed',
     }));
 
-    return normalizeForJson(
-      bookingResponseSchema.parse({
-        id: bookingId,
-        coachUserId: body.coachUserId,
-        bookedByUserId: body.bookedByUserId,
-        status: 'CONFIRMED',
-        scheduledAt: body.scheduledAt,
-        durationMinutes: body.durationMinutes,
-        location: body.location,
-        serviceType: body.serviceType,
-        sessionTemplateId: body.sessionTemplateId ?? null,
-        objectives: body.objectives,
-        notes: body.notes ?? null,
-        priceMinor: body.priceMinor ?? null,
-        currency: body.currency,
-        participants: result,
-        version: 1,
-        createdAt: nowIsoString,
-        updatedAt: nowIsoString,
-        cancelledAt: null,
-      }),
-    );
+    const response = bookingResponseSchema.parse({
+      id: bookingId,
+      coachUserId: body.coachUserId,
+      bookedByUserId: body.bookedByUserId,
+      status: 'CONFIRMED',
+      scheduledAt: body.scheduledAt,
+      durationMinutes: body.durationMinutes,
+      location: body.location,
+      serviceType: body.serviceType,
+      sessionTemplateId: body.sessionTemplateId ?? null,
+      objectives: body.objectives,
+      notes: body.notes ?? null,
+      priceMinor: body.priceMinor ?? null,
+      currency: body.currency,
+      participants: result,
+      version: 1,
+      createdAt: nowIsoString,
+      updatedAt: nowIsoString,
+      cancelledAt: null,
+    });
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.booking.create({
+          data: {
+            id: bookingId,
+            coachUserId: body.coachUserId,
+            bookedByUserId: body.bookedByUserId,
+            status: 'CONFIRMED',
+            scheduledAt: new Date(body.scheduledAt),
+            durationMinutes: body.durationMinutes,
+            location: body.location,
+            serviceType: body.serviceType,
+            notes: body.notes ?? null,
+            objectivesJson: {
+              primary: body.objectives[0] ?? null,
+              secondary: body.objectives[1] ?? null,
+            },
+            priceMinor: body.priceMinor ?? null,
+            currency: body.currency,
+            confirmationMode: 'manual',
+            confirmedAt: now,
+            createdByUserId: params.authUserId,
+            updatedByUserId: params.authUserId,
+          },
+        });
+
+        if (participantRows.length > 0) {
+          await tx.bookingParticipant.createMany({
+            data: participantRows,
+          });
+        }
+
+        if (body.objectives.length > 0) {
+          await tx.bookingObjective.createMany({
+            data: body.objectives.map((objective, index) => ({
+              id: newId('boj'),
+              bookingId,
+              objective,
+              sortOrder: index + 1,
+              createdAt: now,
+            })),
+          });
+        }
+
+        await tx.bookingStatusEvent.create({
+          data: {
+            id: newId('bse'),
+            bookingId,
+            fromStatus: 'PENDING',
+            toStatus: 'CONFIRMED',
+            actorUserId: params.authUserId,
+            reason: 'Created via API booking endpoint.',
+            metadataJson: {
+              source: 'api-db-runtime',
+            },
+            requestId: params.requestId,
+            occurredAt: now,
+          },
+        });
+
+        if (body.idempotencyKey) {
+          await tx.idempotencyKey.create({
+            data: {
+              id: newId('idk'),
+              userId: params.authUserId,
+              endpointKey: BOOKING_CREATE_ENDPOINT_KEY,
+              idempotencyKey: body.idempotencyKey,
+              requestHash: hashCreateBookingRequest(body),
+              responseStatus: 201,
+              responseBodyJson: response as never,
+              expiresAt: new Date(now.getTime() + IDEMPOTENCY_TTL_MS),
+            },
+          });
+        }
+      });
+    } catch (error) {
+      if (body.idempotencyKey && isCreateBookingIdempotencyRace(error)) {
+        const replay = await resolveCreateBookingIdempotency({
+          authUserId: params.authUserId,
+          body,
+        });
+        if (replay) {
+          return replay.response;
+        }
+      }
+      throw error;
+    }
+
+    return normalizeForJson(response);
   }
 
   async cancelBooking(params: CancelBookingParams): Promise<BookingResponse> {
     if (shouldUseDbFixtureFallback()) {
-      const store = getDbFixtureStore();
       const seedRepository = new SeedBookingRepository();
       return seedRepository.cancelBooking({
         ...params,
@@ -880,12 +1109,12 @@ class DbBookingRepository implements BookingRepository {
     }
 
     const hasAccess =
-      booking.coachUserId === params.authUserId
-      || booking.bookedByUserId === params.authUserId
-      || booking.participants.some(
+      booking.coachUserId === params.authUserId ||
+      booking.bookedByUserId === params.authUserId ||
+      booking.participants.some(
         (participant) =>
-          participant.guardianUserId === params.authUserId
-          || participant.athlete.userId === params.authUserId,
+          participant.guardianUserId === params.authUserId ||
+          participant.athlete.userId === params.authUserId,
       );
     if (!hasAccess) {
       throw forbidden('Booking does not belong to authenticated user');
@@ -1022,12 +1251,12 @@ class DbBookingRepository implements BookingRepository {
     }
 
     const hasAccess =
-      booking.coachUserId === params.authUserId
-      || booking.bookedByUserId === params.authUserId
-      || booking.participants.some(
+      booking.coachUserId === params.authUserId ||
+      booking.bookedByUserId === params.authUserId ||
+      booking.participants.some(
         (participant) =>
-          participant.guardianUserId === params.authUserId
-          || participant.athlete.userId === params.authUserId,
+          participant.guardianUserId === params.authUserId ||
+          participant.athlete.userId === params.authUserId,
       );
     if (!hasAccess) {
       throw forbidden('Booking does not belong to authenticated user');
