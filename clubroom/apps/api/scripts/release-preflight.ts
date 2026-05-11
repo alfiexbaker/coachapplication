@@ -38,4 +38,9 @@ async function main() {
   }
 }
 
-void main();
+void main().finally(async () => {
+  const prisma = globalThis.__clubroomPrisma;
+  if (prisma) {
+    await prisma.$disconnect();
+  }
+});
