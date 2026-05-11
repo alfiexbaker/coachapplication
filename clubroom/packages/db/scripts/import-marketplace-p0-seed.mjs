@@ -34,16 +34,40 @@ const splitDisplayName = (value) => {
   };
 };
 const buildCodePrefix = (clubName) => {
-  const normalized = String(clubName ?? '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  const normalized = String(clubName ?? '')
+    .replace(/[^A-Za-z0-9]/g, '')
+    .toUpperCase();
   return normalized.slice(0, 5) || 'CLUB';
 };
 const buildInviteCode = (clubName, role) => {
-  const suffix = role === 'MEMBER' ? 'JOIN' : String(role).replace(/[^A-Za-z]/g, '').slice(0, 4) || 'TEAM';
+  const suffix =
+    role === 'MEMBER'
+      ? 'JOIN'
+      : String(role)
+          .replace(/[^A-Za-z]/g, '')
+          .slice(0, 4) || 'TEAM';
   return `${buildCodePrefix(clubName)}-${suffix}`;
 };
 const buildDefaultInviteCode = (clubName, role, clubId) => {
-  const clubSuffix = String(clubId ?? '').replace(/[^A-Za-z0-9]/g, '').slice(-4).toUpperCase() || 'CLUB';
+  const clubSuffix =
+    String(clubId ?? '')
+      .replace(/[^A-Za-z0-9]/g, '')
+      .slice(-4)
+      .toUpperCase() || 'CLUB';
   return `${buildInviteCode(clubName, role)}-${clubSuffix}`;
+};
+const normalizeEmergencyContactId = (value) => {
+  const id = asString(value);
+  if (!id) {
+    return `emc_${crypto.randomUUID()}`;
+  }
+  if (id.startsWith('emc_')) {
+    return id;
+  }
+  if (id.startsWith('cec_')) {
+    return `emc_${id.slice(4)}`;
+  }
+  return id;
 };
 
 function hashPassword(password) {
@@ -474,35 +498,39 @@ async function main() {
 
     const athletes = asRows(tables.athletes).map((row) => {
       const splitName = splitDisplayName(row.displayName);
-      return ({
-      id: row.id,
-      userId: asString(row.userId) ?? null,
-      displayName: asString(row.displayName) ?? 'Athlete',
-      firstName: asString(row.firstName) ?? splitName.firstName,
-      lastName: asString(row.lastName) ?? splitName.lastName,
-      nickname: asString(row.nickname) ?? null,
-      dateOfBirth: toDate(row.dateOfBirth),
-      gender: asString(row.gender) ?? null,
-      relationshipLabel: asString(row.relationshipLabel) ?? null,
-      primaryPosition: asString(row.primaryPosition) ?? null,
-      avatarUrl: asString(row.avatarUrl) ?? null,
-      communicationNotes: asString(row.communicationNotes) ?? null,
-      behavioralNotes: asString(row.behavioralNotes) ?? null,
-      disabilitiesJson: Array.isArray(row.disabilitiesJson)
-        ? row.disabilitiesJson
-        : (Array.isArray(row.disabilities) ? row.disabilities : []),
-      specialNeedsJson: Array.isArray(row.specialNeedsJson)
-        ? row.specialNeedsJson
-        : (Array.isArray(row.specialNeeds) ? row.specialNeeds : []),
-      status: asString(row.status) ?? 'active',
-      createdByUserId: asString(row.createdByUserId) ?? '',
-      updatedByUserId: asString(row.updatedByUserId) ?? '',
-      version: toBigInt(row.version, 1),
-      createdAt: toDate(row.createdAt) ?? new Date(),
-      updatedAt: toDate(row.updatedAt) ?? new Date(),
-      deletedAt: toDate(row.deletedAt),
-      deletedByUserId: asString(row.deletedByUserId) ?? null,
-      });
+      return {
+        id: row.id,
+        userId: asString(row.userId) ?? null,
+        displayName: asString(row.displayName) ?? 'Athlete',
+        firstName: asString(row.firstName) ?? splitName.firstName,
+        lastName: asString(row.lastName) ?? splitName.lastName,
+        nickname: asString(row.nickname) ?? null,
+        dateOfBirth: toDate(row.dateOfBirth),
+        gender: asString(row.gender) ?? null,
+        relationshipLabel: asString(row.relationshipLabel) ?? null,
+        primaryPosition: asString(row.primaryPosition) ?? null,
+        avatarUrl: asString(row.avatarUrl) ?? null,
+        communicationNotes: asString(row.communicationNotes) ?? null,
+        behavioralNotes: asString(row.behavioralNotes) ?? null,
+        disabilitiesJson: Array.isArray(row.disabilitiesJson)
+          ? row.disabilitiesJson
+          : Array.isArray(row.disabilities)
+            ? row.disabilities
+            : [],
+        specialNeedsJson: Array.isArray(row.specialNeedsJson)
+          ? row.specialNeedsJson
+          : Array.isArray(row.specialNeeds)
+            ? row.specialNeeds
+            : [],
+        status: asString(row.status) ?? 'active',
+        createdByUserId: asString(row.createdByUserId) ?? '',
+        updatedByUserId: asString(row.updatedByUserId) ?? '',
+        version: toBigInt(row.version, 1),
+        createdAt: toDate(row.createdAt) ?? new Date(),
+        updatedAt: toDate(row.updatedAt) ?? new Date(),
+        deletedAt: toDate(row.deletedAt),
+        deletedByUserId: asString(row.deletedByUserId) ?? null,
+      };
     });
     if (athletes.length > 0) {
       await tx.athlete.createMany({ data: athletes });
@@ -882,7 +910,7 @@ async function main() {
     }
 
     const emergencyContacts = asRows(tables.childEmergencyContacts).map((row) => ({
-      id: row.id,
+      id: normalizeEmergencyContactId(row.id),
       athleteId: row.athleteId,
       name: asString(row.name) ?? '',
       relationshipLabel: asString(row.relationshipLabel) ?? '',
@@ -1102,7 +1130,8 @@ async function main() {
       cancelledByUserId: asString(row.cancelledByUserId) ?? null,
       cancelledAt: toDate(row.cancelledAt),
       cancelReason: asString(row.cancelReason) ?? null,
-      cancellationFeeMinor: typeof row.cancellationFeeMinor === 'number' ? row.cancellationFeeMinor : null,
+      cancellationFeeMinor:
+        typeof row.cancellationFeeMinor === 'number' ? row.cancellationFeeMinor : null,
       groupSessionId: asString(row.groupSessionId) ?? null,
       recurringSeriesId: asString(row.recurringSeriesId) ?? null,
       seriesIndex: typeof row.seriesIndex === 'number' ? row.seriesIndex : null,

@@ -54,6 +54,7 @@
     "audit:agentic": "node ./scripts/agentic-readiness-pipeline.js",
     "audit:agentic:write": "node ./scripts/agentic-readiness-pipeline.js --write",
     "audit:agentic:strict": "node ./scripts/agentic-readiness-pipeline.js --strict",
+    "smoke:staging": "cd apps/api && PRISMA_CLIENT_ENGINE_TYPE=binary node_modules/.bin/tsx ./scripts/staging-smoke.ts",
     "audit:architecture": "node ./scripts/architecture-reachability-audit.js",
     "audit:loading-routes": "node ./scripts/loading-route-coverage-audit.js",
     "gate:pre-api-placement": "node ./scripts/pre-api-placement-gate.js",

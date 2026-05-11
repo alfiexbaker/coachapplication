@@ -1,7 +1,90 @@
+import { getApiDataBackend } from '../../lib/data-backend.js';
+import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
+import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { badRequest } from '../../lib/http-errors.js';
+import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
+import { normalizeForJson } from '../../repositories/p0/normalize.js';
 
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
+
+function toSeedRows<T>(values: T[]): SeedRow[] {
+  return normalizeForJson(values) as unknown as SeedRow[];
+}
+
+export async function resolveCoachAvailabilityTables(coachUserId: string): Promise<{
+  tables: SeedTables;
+  dataVersion: string | null;
+}> {
+  if (getApiDataBackend() !== 'db') {
+    const store = getMarketplaceSeedStore();
+    return {
+      tables: store.tables,
+      dataVersion: store.version,
+    };
+  }
+
+  if (shouldUseDbFixtureFallback()) {
+    const store = getDbFixtureStore();
+    return {
+      tables: store.tables,
+      dataVersion: store.version,
+    };
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  const [
+    availabilityTemplates,
+    availabilityOverrides,
+    schedulingRules,
+    bookings,
+    groupSessions,
+    invites,
+  ] = await Promise.all([
+    prisma.availabilityTemplate.findMany({
+      where: { coachUserId, active: true, deletedAt: null },
+    }),
+    prisma.availabilityOverride.findMany({
+      where: { coachUserId, active: true, deletedAt: null },
+    }),
+    prisma.schedulingRule.findMany({
+      where: { coachUserId },
+    }),
+    prisma.booking.findMany({
+      where: { coachUserId, deletedAt: null },
+    }),
+    prisma.groupSession.findMany({
+      where: { coachUserId, deletedAt: null },
+    }),
+    prisma.invite.findMany({
+      where: { senderUserId: coachUserId },
+    }),
+  ]);
+  const inviteIds = invites.map((invite) => invite.id);
+  const inviteTargets =
+    inviteIds.length > 0
+      ? await prisma.inviteTarget.findMany({
+          where: {
+            inviteId: {
+              in: inviteIds,
+            },
+          },
+        })
+      : [];
+
+  return {
+    tables: {
+      availabilityTemplates: toSeedRows(availabilityTemplates),
+      availabilityOverrides: toSeedRows(availabilityOverrides),
+      schedulingRules: toSeedRows(schedulingRules),
+      bookings: toSeedRows(bookings),
+      groupSessions: toSeedRows(groupSessions),
+      invites: toSeedRows(invites),
+      inviteTargets: toSeedRows(inviteTargets),
+    },
+    dataVersion: null,
+  };
+}
 
 export interface CoachAvailabilitySlot {
   date: string;
@@ -26,9 +109,12 @@ interface BusyWindow {
 }
 
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
-const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
-const asNumber = (value: unknown): number | undefined => (typeof value === 'number' ? value : undefined);
-const asBoolean = (value: unknown): boolean | undefined => (typeof value === 'boolean' ? value : undefined);
+const asString = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
+const asNumber = (value: unknown): number | undefined =>
+  typeof value === 'number' ? value : undefined;
+const asBoolean = (value: unknown): boolean | undefined =>
+  typeof value === 'boolean' ? value : undefined;
 const asObject = (value: unknown): SeedRow | undefined =>
   value && typeof value === 'object' && !Array.isArray(value) ? (value as SeedRow) : undefined;
 
@@ -236,12 +322,14 @@ function getBookingBusyWindows(params: {
         return null;
       }
       const endsAt = addMinutes(startsAt, durationMinutes);
-      if (!overlaps({
-        leftStart: startsAt,
-        leftEnd: endsAt,
-        rightStart: params.rangeStart,
-        rightEnd: params.rangeEnd,
-      })) {
+      if (
+        !overlaps({
+          leftStart: startsAt,
+          leftEnd: endsAt,
+          rightStart: params.rangeStart,
+          rightEnd: params.rangeEnd,
+        })
+      ) {
         return null;
       }
 
@@ -279,29 +367,32 @@ function getGroupSessionBusyWindows(params: {
       const status = (asString(row.status) ?? '').toUpperCase();
       return status !== 'DRAFT' && status !== 'CANCELLED' && status !== 'COMPLETED';
     })
-    .flatMap((row) =>
-      parseGroupScheduleEntries(row.scheduleJson)
-        .map((entry) => {
-          const startsAt = new Date(entry.startsAt);
-          const endsAt = new Date(entry.endsAt);
-          if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime())) {
-            return null;
-          }
-          if (!overlaps({
-            leftStart: startsAt,
-            leftEnd: endsAt,
-            rightStart: params.rangeStart,
-            rightEnd: params.rangeEnd,
-          })) {
-            return null;
-          }
-          return {
-            startsAt,
-            endsAt,
-            kind: 'group_session' as const,
-          };
-        })
-        .filter((window) => window !== null) as BusyWindow[],
+    .flatMap(
+      (row) =>
+        parseGroupScheduleEntries(row.scheduleJson)
+          .map((entry) => {
+            const startsAt = new Date(entry.startsAt);
+            const endsAt = new Date(entry.endsAt);
+            if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime())) {
+              return null;
+            }
+            if (
+              !overlaps({
+                leftStart: startsAt,
+                leftEnd: endsAt,
+                rightStart: params.rangeStart,
+                rightEnd: params.rangeEnd,
+              })
+            ) {
+              return null;
+            }
+            return {
+              startsAt,
+              endsAt,
+              kind: 'group_session' as const,
+            };
+          })
+          .filter((window) => window !== null) as BusyWindow[],
     );
 }
 
@@ -383,12 +474,14 @@ function getInviteHoldBusyWindows(params: {
         .map((slot) => {
           const startsAt = buildUtcDateTime(slot.date, slot.startTime);
           const endsAt = buildUtcDateTime(slot.date, slot.endTime);
-          if (!overlaps({
-            leftStart: startsAt,
-            leftEnd: endsAt,
-            rightStart: params.rangeStart,
-            rightEnd: params.rangeEnd,
-          })) {
+          if (
+            !overlaps({
+              leftStart: startsAt,
+              leftEnd: endsAt,
+              rightStart: params.rangeStart,
+              rightEnd: params.rangeEnd,
+            })
+          ) {
             return null;
           }
           return {
@@ -506,7 +599,11 @@ export function resolveCoachAvailabilitySlots(params: {
     }
 
     for (const slot of daySlots) {
-      if (params.sessionTemplateId && slot.sessionTemplateId && slot.sessionTemplateId !== params.sessionTemplateId) {
+      if (
+        params.sessionTemplateId &&
+        slot.sessionTemplateId &&
+        slot.sessionTemplateId !== params.sessionTemplateId
+      ) {
         continue;
       }
       if (applySchedulingRules && !applySchedulingRuleFilter({ slot, rules, now })) {
@@ -559,13 +656,17 @@ export function resolveCoachAvailabilitySlots(params: {
 
   return slots
     .sort((left, right) => left.startsAt.getTime() - right.startsAt.getTime())
-    .map(({ startsAt: _startsAt, endsAt: _endsAt, sessionTemplateId: _sessionTemplateId, ...slot }) => slot);
+    .map(
+      ({ startsAt: _startsAt, endsAt: _endsAt, sessionTemplateId: _sessionTemplateId, ...slot }) =>
+        slot,
+    );
 }
 
-function getSlotQueryWindow(params: {
-  scheduledAt: string;
-  durationMinutes: number;
-}): { date: string; startTime: string; endTime: string } {
+function getSlotQueryWindow(params: { scheduledAt: string; durationMinutes: number }): {
+  date: string;
+  startTime: string;
+  endTime: string;
+} {
   const startsAt = new Date(params.scheduledAt);
   if (Number.isNaN(startsAt.getTime())) {
     throw badRequest('scheduledAt must be a valid ISO datetime');
@@ -604,7 +705,8 @@ export function assertCoachAvailabilitySlotOpen(params: {
     now: params.now,
   });
   const slot = slots.find(
-    (candidate) => candidate.date === date && candidate.startTime === startTime && candidate.endTime === endTime,
+    (candidate) =>
+      candidate.date === date && candidate.startTime === startTime && candidate.endTime === endTime,
   );
 
   if (!slot) {
@@ -636,7 +738,11 @@ export function parseAvailabilitySlotQuery(query: Record<string, unknown>) {
   }
   const start = buildUtcDateTime(startDate, '00:00');
   const end = buildUtcDateTime(endDate, '00:00');
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start.getTime() > end.getTime()) {
+  if (
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(end.getTime()) ||
+    start.getTime() > end.getTime()
+  ) {
     throw badRequest('start and end must be valid ISO dates with start <= end');
   }
 
@@ -655,9 +761,6 @@ export function parseAvailabilitySlotQuery(query: Record<string, unknown>) {
   };
 }
 
-export function slotToScheduledAt(slot: {
-  date: string;
-  startTime: string;
-}): string {
+export function slotToScheduledAt(slot: { date: string; startTime: string }): string {
   return buildUtcDateTime(slot.date, slot.startTime).toISOString();
 }

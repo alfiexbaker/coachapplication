@@ -20,6 +20,7 @@ import { isPrivilegedAdminAuth } from '../../lib/authz.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import {
   assertCoachAvailabilitySlotOpen,
+  resolveCoachAvailabilityTables,
   slotToScheduledAt,
 } from '../coach-club/availability.js';
 
@@ -280,9 +281,7 @@ function areMatchingInviteSlots(
   right: { date: string; startTime: string; endTime: string },
 ): boolean {
   return (
-    left.date === right.date &&
-    left.startTime === right.startTime &&
-    left.endTime === right.endTime
+    left.date === right.date && left.startTime === right.startTime && left.endTime === right.endTime
   );
 }
 
@@ -486,9 +485,9 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const body = createBookingRequestSchema.parse(request.body);
-    const store = getMarketplaceSeedStore();
+    const availability = await resolveCoachAvailabilityTables(body.coachUserId);
     assertCoachAvailabilitySlotOpen({
-      tables: store.tables,
+      tables: availability.tables,
       coachUserId: body.coachUserId,
       scheduledAt: body.scheduledAt,
       durationMinutes: body.durationMinutes,
@@ -1065,8 +1064,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
 
     if (!linkedGroupSession) {
       for (const slot of body.proposedSlots) {
-        const durationMinutes =
-          calculateSlotDurationMinutes(slot) ?? body.durationMinutes ?? 60;
+        const durationMinutes = calculateSlotDurationMinutes(slot) ?? body.durationMinutes ?? 60;
         assertCoachAvailabilitySlotOpen({
           tables: store.tables,
           coachUserId: body.coachUserId,
@@ -1333,7 +1331,13 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
 
     const now = isoNow();
     let registrationId: string | null = null;
-    let registrationStatus: 'REGISTERED' | 'WAITLISTED' | 'CANCELLED' | 'ATTENDED' | 'NO_SHOW' | null = null;
+    let registrationStatus:
+      | 'REGISTERED'
+      | 'WAITLISTED'
+      | 'CANCELLED'
+      | 'ATTENDED'
+      | 'NO_SHOW'
+      | null = null;
     let booking = null;
     const groupSessionId = asString(invite.groupSessionId);
     const metadata = asObject(invite.metadataJson);

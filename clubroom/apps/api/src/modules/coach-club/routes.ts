@@ -1,8 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import {
-  getClubGovernanceSnapshot,
-  parseOrganizationRole,
-} from '@clubroom/shared-contracts';
+import { getClubGovernanceSnapshot, parseOrganizationRole } from '@clubroom/shared-contracts';
 import { canUseStaffInviteLinks, isPrivilegedAdminAuth } from '../../lib/authz.js';
 import { forbidden, notFound } from '../../lib/http-errors.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
@@ -13,6 +10,7 @@ import {
 import { resolveCoachSelfRepository } from '../../repositories/p0/coach-self-repository.js';
 import {
   parseAvailabilitySlotQuery,
+  resolveCoachAvailabilityTables,
   resolveCoachAvailabilitySlots,
 } from './availability.js';
 import { buildClubScheduleActivities, findClubScheduleActivity } from './schedule.js';
@@ -44,7 +42,8 @@ interface SchedulingRulesPatchBody {
 }
 
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
-const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
+const asString = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
 
 export function resetCoachClubRouteStateForTests(): void {
   resetClubAuthorityRepositoryForTests();
@@ -62,7 +61,11 @@ function getActiveRows(rows: SeedRow[]): SeedRow[] {
   return rows.filter((row) => row.active !== false && !asString(row.deletedAt));
 }
 
-function getViewerMembership(clubMemberships: SeedRow[], clubId: string, userId: string): SeedRow | null {
+function getViewerMembership(
+  clubMemberships: SeedRow[],
+  clubId: string,
+  userId: string,
+): SeedRow | null {
   return (
     getActiveMemberships(clubMemberships).find(
       (row) => asString(row.clubId) === clubId && asString(row.userId) === userId,
@@ -125,9 +128,10 @@ function mapAvailabilityOverride(row: SeedRow) {
           ]
         : undefined,
     repeatUntil: toDateOnly(asString(row.repeatUntil)),
-    repeatDayOfWeek: typeof row.repeatDayOfWeek === 'number'
-      ? (row.repeatDayOfWeek as 0 | 1 | 2 | 3 | 4 | 5 | 6)
-      : undefined,
+    repeatDayOfWeek:
+      typeof row.repeatDayOfWeek === 'number'
+        ? (row.repeatDayOfWeek as 0 | 1 | 2 | 3 | 4 | 5 | 6)
+        : undefined,
     repeatGroupId: asString(row.repeatGroupId),
   };
 }
@@ -167,12 +171,13 @@ function mapCancellationPolicy(rows: SeedRow[], coachUserId: string) {
         hoursBeforeSession: Number(row.noticeHoursMin ?? 0),
         refundPercentage: Number(row.refundPercent ?? 0),
         description:
-          asString(row.description)
-          ?? `${Number(row.refundPercent ?? 0)}% refund if cancelled ${Number(row.noticeHoursMin ?? 0)}+ hours before`,
+          asString(row.description) ??
+          `${Number(row.refundPercent ?? 0)}% refund if cancelled ${Number(row.noticeHoursMin ?? 0)}+ hours before`,
       }))
       .sort((left, right) => right.hoursBeforeSession - left.hoursBeforeSession),
     minimumNoticeHours: Math.min(...activeRows.map((row) => Number(row.noticeHoursMin ?? 0))),
-    allowCancellations: activeRows.some((row) => Number(row.refundPercent ?? 0) > 0) || activeRows.length > 0,
+    allowCancellations:
+      activeRows.some((row) => Number(row.refundPercent ?? 0) > 0) || activeRows.length > 0,
     isDefault: activeRows[0]?.isDefault === true,
     createdAt: asString(first.createdAt) ?? new Date().toISOString(),
     updatedAt: asString(first.updatedAt) ?? asString(first.createdAt) ?? new Date().toISOString(),
@@ -209,7 +214,9 @@ function requireClubScheduleAccess(params: {
   }
 
   const viewerMembership = getViewerMembership(clubMemberships, params.clubId, params.authUserId);
-  if (!canViewClubSchedule({ club, viewerMembership, isPrivilegedAdmin: params.isPrivilegedAdmin })) {
+  if (
+    !canViewClubSchedule({ club, viewerMembership, isPrivilegedAdmin: params.isPrivilegedAdmin })
+  ) {
     throw forbidden('You do not have permission to view this club schedule');
   }
 
@@ -251,8 +258,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const repository = resolveCoachSelfRepository();
     const result = await repository.listAvailabilityTemplateRows(authUserId);
-    const templates = result.templates
-      .map(mapAvailabilityTemplate);
+    const templates = result.templates.map(mapAvailabilityTemplate);
 
     return reply.send({
       templates,
@@ -318,7 +324,9 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     const result = await repository.listAvailabilityOverrideRows(authUserId, query);
     const overrides = result.overrides
       .map(mapAvailabilityOverride)
-      .filter((row) => (!query.start || row.date >= query.start) && (!query.end || row.date <= query.end));
+      .filter(
+        (row) => (!query.start || row.date >= query.start) && (!query.end || row.date <= query.end),
+      );
 
     return reply.send({
       overrides,
@@ -455,9 +463,9 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const query = parseAvailabilitySlotQuery(request.query as Record<string, unknown>);
-    const store = getMarketplaceSeedStore();
+    const availability = await resolveCoachAvailabilityTables(coachUserId);
     const slots = resolveCoachAvailabilitySlots({
-      tables: store.tables,
+      tables: availability.tables,
       coachUserId,
       startDate: query.startDate,
       endDate: query.endDate,
@@ -471,7 +479,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       coachId: coachUserId,
       slots,
       total: slots.length,
-      seedVersion: store.version,
+      seedVersion: availability.dataVersion,
       requestId: request.requestId,
     });
   });
@@ -483,7 +491,9 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     const clubs = await repository.listVisibleClubs({ authUserId, isPrivilegedAdmin });
     const payload = clubs.map((club) => ({
       ...club,
-      viewerGovernance: getClubGovernanceSnapshot(parseOrganizationRole(club.viewerMembership?.role)),
+      viewerGovernance: getClubGovernanceSnapshot(
+        parseOrganizationRole(club.viewerMembership?.role),
+      ),
     }));
 
     return reply.send({
@@ -520,7 +530,9 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     requireClubScheduleAccess({ clubId, authUserId, isPrivilegedAdmin, store });
     const resolvedClubId = clubId as string;
 
-    const activity = activityId ? findClubScheduleActivity(store.tables, resolvedClubId, activityId) : null;
+    const activity = activityId
+      ? findClubScheduleActivity(store.tables, resolvedClubId, activityId)
+      : null;
     if (!activity) {
       throw notFound('Club activity not found', { clubId: resolvedClubId, activityId });
     }
@@ -600,10 +612,12 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       actingAuthCanUseStaffLinks: canUseStaffInviteLinks(request.auth),
     });
 
-    return reply.code(result.outcome === 'invite_pending' ? 202 : result.outcome === 'joined' ? 201 : 200).send({
-      ...result,
-      requestId: request.requestId,
-    });
+    return reply
+      .code(result.outcome === 'invite_pending' ? 202 : result.outcome === 'joined' ? 201 : 200)
+      .send({
+        ...result,
+        requestId: request.requestId,
+      });
   });
 
   app.get('/clubs/invites', async (request, reply) => {

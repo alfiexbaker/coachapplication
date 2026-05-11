@@ -141,7 +141,11 @@ export interface FamilyAthleteRepository {
   deleteAthlete(athleteId: string, authUserId: string): Promise<boolean>;
   listInjuries(athleteId: string): Promise<InjuryRecord[]>;
   createInjury(athleteId: string, input: CreateInjuryInput, userId: string): Promise<InjuryRecord>;
-  updateInjury(injuryId: string, input: UpdateInjuryInput, userId: string): Promise<InjuryRecord | null>;
+  updateInjury(
+    injuryId: string,
+    input: UpdateInjuryInput,
+    userId: string,
+  ): Promise<InjuryRecord | null>;
   getMedical(athleteId: string, userId: string): Promise<MedicalRecordResponse>;
   upsertMedical(
     athleteId: string,
@@ -172,7 +176,8 @@ const EXPOSED_CONSENT_TYPES: ContractConsentType[] = [
 ];
 
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
-const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
+const asString = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
 const asBoolean = (value: unknown, fallback = false): boolean =>
   typeof value === 'boolean' ? value : fallback;
 const asStringArray = (value: unknown): string[] =>
@@ -220,7 +225,10 @@ const legacyAthleteDetails: Record<string, { firstName: string; lastName: string
   ath_user3: { firstName: 'Arjun', lastName: 'Kapoor' },
 };
 
-function splitDisplayName(displayName: string | undefined): { firstName: string; lastName: string } {
+function splitDisplayName(displayName: string | undefined): {
+  firstName: string;
+  lastName: string;
+} {
   const trimmed = displayName?.trim() ?? '';
   if (!trimmed) {
     return { firstName: 'Young', lastName: 'Athlete' };
@@ -277,7 +285,9 @@ function normalizeNullableString(value: string | undefined): string | null | und
   return trimmed ? trimmed : null;
 }
 
-function normalizeDisabilities(value: DisabilityRecord[] | undefined): DisabilityRecord[] | undefined {
+function normalizeDisabilities(
+  value: DisabilityRecord[] | undefined,
+): DisabilityRecord[] | undefined {
   if (value === undefined) {
     return undefined;
   }
@@ -287,7 +297,9 @@ function normalizeDisabilities(value: DisabilityRecord[] | undefined): Disabilit
   }));
 }
 
-function normalizeSpecialNeeds(value: SpecialNeedRecord[] | undefined): SpecialNeedRecord[] | undefined {
+function normalizeSpecialNeeds(
+  value: SpecialNeedRecord[] | undefined,
+): SpecialNeedRecord[] | undefined {
   if (value === undefined) {
     return undefined;
   }
@@ -329,6 +341,20 @@ function normalizeEmergencyContacts(
   }
 
   return normalized;
+}
+
+function toEmergencyContactContractId(value: unknown): string {
+  const id = asString(value);
+  if (!id) {
+    return newId('emc');
+  }
+  if (id.startsWith('emc_')) {
+    return id;
+  }
+  if (id.startsWith('cec_')) {
+    return `emc_${id.slice(4)}`;
+  }
+  return newId('emc');
 }
 
 function defaultMedicalRecord(athleteId: string, userId: string): MedicalRecordResponse {
@@ -427,10 +453,12 @@ function buildInjuryRecord(input: {
 }
 
 function consentTypeIsExposed(value: string | undefined): value is ContractConsentType {
-  return value === 'PHOTO'
-    || value === 'VIDEO'
-    || value === 'SOCIAL_MEDIA'
-    || value === 'EMERGENCY_TREATMENT';
+  return (
+    value === 'PHOTO' ||
+    value === 'VIDEO' ||
+    value === 'SOCIAL_MEDIA' ||
+    value === 'EMERGENCY_TREATMENT'
+  );
 }
 
 function ensureStoreTable(tables: SeedTables, name: string): SeedRow[] {
@@ -455,9 +483,7 @@ function ensureStoreScaffoldTables(tables: SeedTables): void {
   }
 }
 
-function buildAthleteDisplayFields(
-  athlete: SeedRow,
-): {
+function buildAthleteDisplayFields(athlete: SeedRow): {
   firstName: string;
   lastName: string;
   nickname: string | null;
@@ -489,7 +515,8 @@ function buildAthleteDisplayFields(
     gender: (asString(athlete.gender) as Gender | undefined) ?? 'PREFER_NOT_TO_SAY',
     relationship: (asString(athlete.relationshipLabel) as Relationship | undefined) ?? 'OTHER',
     primaryPosition: normalizeNullableString(asString(athlete.primaryPosition)) ?? null,
-    photoUrl: normalizeNullableString(asString(athlete.avatarUrl) ?? asString(athlete.photoUrl)) ?? null,
+    photoUrl:
+      normalizeNullableString(asString(athlete.avatarUrl) ?? asString(athlete.photoUrl)) ?? null,
     disabilities,
     specialNeeds,
     communicationNotes: normalizeNullableString(asString(athlete.communicationNotes)) ?? null,
@@ -540,8 +567,7 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
   private parentIdForAthlete(athleteId: string, familyId: string | null): string | null {
     const guardians = this.activeRows('guardianChildLinks').filter(
       (row) =>
-        asString(row.athleteId) === athleteId
-        && (!familyId || asString(row.familyId) === familyId),
+        asString(row.athleteId) === athleteId && (!familyId || asString(row.familyId) === familyId),
     );
     const primary = guardians.find((row) => asBoolean(row.isPrimary));
     return asString(primary?.guardianUserId) ?? asString(guardians[0]?.guardianUserId) ?? null;
@@ -553,9 +579,15 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
     return decorateFamilyAthleteRecord(
       {
         ...athlete,
-        guardians: this.activeRows('guardianChildLinks').filter((row) => asString(row.athleteId) === athleteId),
-        senTags: this.activeRows('childSenTags').filter((row) => asString(row.athleteId) === athleteId),
-        consents: this.activeRows('childConsents').filter((row) => asString(row.athleteId) === athleteId),
+        guardians: this.activeRows('guardianChildLinks').filter(
+          (row) => asString(row.athleteId) === athleteId,
+        ),
+        senTags: this.activeRows('childSenTags').filter(
+          (row) => asString(row.athleteId) === athleteId,
+        ),
+        consents: this.activeRows('childConsents').filter(
+          (row) => asString(row.athleteId) === athleteId,
+        ),
       },
       this.parentIdForAthlete(athleteId, familyId),
     );
@@ -564,7 +596,8 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
   private resolveAthleteFamilyIdSync(athleteId: string): string | null {
     return (
       asString(
-        this.activeRows('guardianChildLinks').find((row) => asString(row.athleteId) === athleteId)?.familyId,
+        this.activeRows('guardianChildLinks').find((row) => asString(row.athleteId) === athleteId)
+          ?.familyId,
       ) ?? null
     );
   }
@@ -593,7 +626,10 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
     return (await this.listInjuries(athleteId)).find((row) => row.id === injuryId) ?? null;
   }
 
-  async createAthlete(input: CreateAthleteInput, authUserId: string): Promise<Record<string, unknown>> {
+  async createAthlete(
+    input: CreateAthleteInput,
+    authUserId: string,
+  ): Promise<Record<string, unknown>> {
     const athleteId = newId('ath');
     const now = isoNow();
     const athletes = ensureStoreTable(this.tables(), 'athletes');
@@ -756,7 +792,9 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
     athlete.status = 'deleted';
     athlete.version = Number(athlete.version ?? 1) + 1;
 
-    for (const row of this.activeRows('guardianChildLinks').filter((item) => asString(item.athleteId) === athleteId)) {
+    for (const row of this.activeRows('guardianChildLinks').filter(
+      (item) => asString(item.athleteId) === athleteId,
+    )) {
       row.deletedAt = deletedAt;
       row.deletedByUserId = authUserId;
       row.updatedAt = deletedAt;
@@ -764,7 +802,9 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
       row.version = Number(row.version ?? 1) + 1;
     }
 
-    for (const row of this.activeRows('childSenTags').filter((item) => asString(item.athleteId) === athleteId)) {
+    for (const row of this.activeRows('childSenTags').filter(
+      (item) => asString(item.athleteId) === athleteId,
+    )) {
       row.deletedAt = deletedAt;
       row.deletedByUserId = authUserId;
       row.updatedAt = deletedAt;
@@ -772,7 +812,9 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
       row.version = Number(row.version ?? 1) + 1;
     }
 
-    for (const row of this.activeRows('childEmergencyContacts').filter((item) => asString(item.athleteId) === athleteId)) {
+    for (const row of this.activeRows('childEmergencyContacts').filter(
+      (item) => asString(item.athleteId) === athleteId,
+    )) {
       row.deletedAt = deletedAt;
       row.deletedByUserId = authUserId;
       row.updatedAt = deletedAt;
@@ -780,7 +822,9 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
       row.version = Number(row.version ?? 1) + 1;
     }
 
-    for (const row of this.activeRows('athleteInjuries').filter((item) => asString(item.athleteId) === athleteId)) {
+    for (const row of this.activeRows('athleteInjuries').filter(
+      (item) => asString(item.athleteId) === athleteId,
+    )) {
       row.deletedAt = deletedAt;
       row.deletedByUserId = authUserId;
       row.updatedAt = deletedAt;
@@ -794,7 +838,9 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
   async listInjuries(athleteId: string): Promise<InjuryRecord[]> {
     return this.activeRows('athleteInjuries')
       .filter((row) => asString(row.athleteId) === athleteId)
-      .sort((left, right) => String(right.createdAt ?? '').localeCompare(String(left.createdAt ?? '')))
+      .sort((left, right) =>
+        String(right.createdAt ?? '').localeCompare(String(left.createdAt ?? '')),
+      )
       .map((row) =>
         buildInjuryRecord({
           id: asString(row.id) ?? '',
@@ -814,7 +860,11 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
       );
   }
 
-  async createInjury(athleteId: string, input: CreateInjuryInput, userId: string): Promise<InjuryRecord> {
+  async createInjury(
+    athleteId: string,
+    input: CreateInjuryInput,
+    userId: string,
+  ): Promise<InjuryRecord> {
     const injuries = ensureStoreTable(this.tables(), 'athleteInjuries');
     const now = isoNow();
     const injury: SeedRow = {
@@ -838,10 +888,16 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
     };
     injuries.push(injury);
     const [created] = await this.listInjuries(athleteId);
-    return created.id === injury.id ? created : (await this.listInjuries(athleteId)).find((row) => row.id === injury.id)!;
+    return created.id === injury.id
+      ? created
+      : (await this.listInjuries(athleteId)).find((row) => row.id === injury.id)!;
   }
 
-  async updateInjury(injuryId: string, input: UpdateInjuryInput, userId: string): Promise<InjuryRecord | null> {
+  async updateInjury(
+    injuryId: string,
+    input: UpdateInjuryInput,
+    userId: string,
+  ): Promise<InjuryRecord | null> {
     const injury = this.activeRows('athleteInjuries').find((row) => asString(row.id) === injuryId);
     if (!injury) {
       return null;
@@ -872,19 +928,25 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
       input.resolvedAt !== undefined
         ? input.resolvedAt
         : nextStatus === 'resolved'
-          ? asString(injury.resolvedAt) ?? now
-          : injury.resolvedAt ?? null;
+          ? (asString(injury.resolvedAt) ?? now)
+          : (injury.resolvedAt ?? null);
     injury.updatedAt = now;
     injury.updatedByUserId = userId;
     injury.version = Number(injury.version ?? 1) + 1;
 
-    return (await this.listInjuries(asString(injury.athleteId) ?? '')).find((row) => row.id === injuryId) ?? null;
+    return (
+      (await this.listInjuries(asString(injury.athleteId) ?? '')).find(
+        (row) => row.id === injuryId,
+      ) ?? null
+    );
   }
 
   async getMedical(athleteId: string, userId: string): Promise<MedicalRecordResponse> {
     const record = this.activeRows('childMedicalRecords')
       .filter((row) => asString(row.athleteId) === athleteId && asBoolean(row.isCurrent, true))
-      .sort((left, right) => String(right.updatedAt ?? '').localeCompare(String(left.updatedAt ?? '')))[0];
+      .sort((left, right) =>
+        String(right.updatedAt ?? '').localeCompare(String(left.updatedAt ?? '')),
+      )[0];
 
     if (!record) {
       return defaultMedicalRecord(athleteId, userId);
@@ -916,7 +978,9 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
     const now = isoNow();
     const current = this.activeRows('childMedicalRecords')
       .filter((row) => asString(row.athleteId) === athleteId && asBoolean(row.isCurrent, true))
-      .sort((left, right) => String(right.updatedAt ?? '').localeCompare(String(left.updatedAt ?? '')))[0];
+      .sort((left, right) =>
+        String(right.updatedAt ?? '').localeCompare(String(left.updatedAt ?? '')),
+      )[0];
 
     const target = current ?? {
       id: newId('med'),
@@ -961,11 +1025,14 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
     return this.getMedical(athleteId, userId);
   }
 
-  async getEmergencyContacts(athleteId: string, userId: string): Promise<EmergencyContactsResponse> {
+  async getEmergencyContacts(
+    athleteId: string,
+    userId: string,
+  ): Promise<EmergencyContactsResponse> {
     const contacts = this.activeRows('childEmergencyContacts')
       .filter((row) => asString(row.athleteId) === athleteId)
       .map((row) => ({
-        id: asString(row.id) ?? newId('emc'),
+        id: toEmergencyContactContractId(row.id),
         name: asString(row.name) ?? '',
         relationship: asString(row.relationshipLabel) ?? '',
         phone: asString(row.phoneE164) ?? '',
@@ -980,7 +1047,9 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
 
     const latest = this.activeRows('childEmergencyContacts')
       .filter((row) => asString(row.athleteId) === athleteId)
-      .sort((left, right) => String(right.updatedAt ?? '').localeCompare(String(left.updatedAt ?? '')))[0];
+      .sort((left, right) =>
+        String(right.updatedAt ?? '').localeCompare(String(left.updatedAt ?? '')),
+      )[0];
 
     return {
       athleteId,
@@ -998,7 +1067,9 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
     const contacts = ensureStoreTable(this.tables(), 'childEmergencyContacts');
     const now = isoNow();
 
-    for (const row of this.activeRows('childEmergencyContacts').filter((item) => asString(item.athleteId) === athleteId)) {
+    for (const row of this.activeRows('childEmergencyContacts').filter(
+      (item) => asString(item.athleteId) === athleteId,
+    )) {
       row.deletedAt = now;
       row.deletedByUserId = userId;
       row.updatedAt = now;
@@ -1034,7 +1105,9 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
     const rows = this.activeRows('childConsents')
       .filter((row) => asString(row.athleteId) === athleteId)
       .filter((row) => consentTypeIsExposed(asString(row.consentType)))
-      .sort((left, right) => String(left.createdAt ?? '').localeCompare(String(right.createdAt ?? '')));
+      .sort((left, right) =>
+        String(left.createdAt ?? '').localeCompare(String(right.createdAt ?? '')),
+      );
 
     if (rows.length === 0) {
       return defaultConsents(athleteId, userId);
@@ -1055,7 +1128,8 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
         }
         const grantedByUserId = asString(row.grantedByUserId) ?? '';
         const grantedByUser =
-          users.find((user) => asString(user.id) === grantedByUserId && asString(user.name)) ?? null;
+          users.find((user) => asString(user.id) === grantedByUserId && asString(user.name)) ??
+          null;
         const metadata = (row.metadataJson ?? {}) as { grantedByLabel?: string };
         return {
           type,
@@ -1078,7 +1152,8 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
     const consents = ensureStoreTable(this.tables(), 'childConsents');
     removeRowsWhere(
       consents,
-      (row) => asString(row.athleteId) === athleteId && consentTypeIsExposed(asString(row.consentType)),
+      (row) =>
+        asString(row.athleteId) === athleteId && consentTypeIsExposed(asString(row.consentType)),
     );
 
     const now = isoNow();
@@ -1132,7 +1207,10 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
     return link?.familyId ?? null;
   }
 
-  private async parentIdForAthlete(athleteId: string, familyId: string | null): Promise<string | null> {
+  private async parentIdForAthlete(
+    athleteId: string,
+    familyId: string | null,
+  ): Promise<string | null> {
     const prisma = getPrismaClientOrThrow();
     const link = await prisma.guardianChildLink.findFirst({
       where: {
@@ -1215,7 +1293,10 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
     });
   }
 
-  async createAthlete(input: CreateAthleteInput, authUserId: string): Promise<Record<string, unknown>> {
+  async createAthlete(
+    input: CreateAthleteInput,
+    authUserId: string,
+  ): Promise<Record<string, unknown>> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.createAthlete(input, authUserId);
     }
@@ -1322,14 +1403,20 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
           displayName: `${firstName} ${lastName}`.trim(),
           firstName,
           lastName,
-          ...(input.nickname !== undefined ? { nickname: normalizeNullableString(input.nickname) } : {}),
+          ...(input.nickname !== undefined
+            ? { nickname: normalizeNullableString(input.nickname) }
+            : {}),
           ...(input.dateOfBirth !== undefined
             ? { dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth) : null }
             : {}),
           ...(input.gender !== undefined ? { gender: input.gender } : {}),
           ...(input.relationship !== undefined ? { relationshipLabel: input.relationship } : {}),
-          ...(input.primaryPosition !== undefined ? { primaryPosition: input.primaryPosition } : {}),
-          ...(input.photoUrl !== undefined ? { avatarUrl: normalizeNullableString(input.photoUrl) } : {}),
+          ...(input.primaryPosition !== undefined
+            ? { primaryPosition: input.primaryPosition }
+            : {}),
+          ...(input.photoUrl !== undefined
+            ? { avatarUrl: normalizeNullableString(input.photoUrl) }
+            : {}),
           ...(input.communicationNotes !== undefined
             ? { communicationNotes: normalizeNullableString(input.communicationNotes) }
             : {}),
@@ -1463,7 +1550,11 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
     );
   }
 
-  async createInjury(athleteId: string, input: CreateInjuryInput, userId: string): Promise<InjuryRecord> {
+  async createInjury(
+    athleteId: string,
+    input: CreateInjuryInput,
+    userId: string,
+  ): Promise<InjuryRecord> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.createInjury(athleteId, input, userId);
     }
@@ -1478,7 +1569,9 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
         severity: input.severity,
         status: 'active',
         reportedAt: input.reportedAt ? new Date(input.reportedAt) : new Date(),
-        expectedRecoveryDate: input.expectedRecoveryDate ? new Date(input.expectedRecoveryDate) : null,
+        expectedRecoveryDate: input.expectedRecoveryDate
+          ? new Date(input.expectedRecoveryDate)
+          : null,
         resolvedAt: null,
         notes: input.notes ?? null,
         createdByUserId: userId,
@@ -1504,7 +1597,11 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
     });
   }
 
-  async updateInjury(injuryId: string, input: UpdateInjuryInput, userId: string): Promise<InjuryRecord | null> {
+  async updateInjury(
+    injuryId: string,
+    input: UpdateInjuryInput,
+    userId: string,
+  ): Promise<InjuryRecord | null> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.updateInjury(injuryId, input, userId);
     }
@@ -1528,14 +1625,18 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
         ...(input.reportedAt !== undefined ? { reportedAt: new Date(input.reportedAt) } : {}),
         ...(input.expectedRecoveryDate !== undefined
           ? {
-              expectedRecoveryDate: input.expectedRecoveryDate ? new Date(input.expectedRecoveryDate) : null,
+              expectedRecoveryDate: input.expectedRecoveryDate
+                ? new Date(input.expectedRecoveryDate)
+                : null,
             }
           : {}),
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
         status: nextStatus,
         resolvedAt:
           input.resolvedAt !== undefined
-            ? (input.resolvedAt ? new Date(input.resolvedAt) : null)
+            ? input.resolvedAt
+              ? new Date(input.resolvedAt)
+              : null
             : nextStatus === 'resolved'
               ? (current.resolvedAt ?? now)
               : current.resolvedAt,
@@ -1617,8 +1718,12 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
           restrictions: input.restrictions ?? current.restrictions,
           ...(input.doctorName !== undefined ? { doctorName: input.doctorName } : {}),
           ...(input.doctorPhone !== undefined ? { doctorPhoneE164: input.doctorPhone } : {}),
-          ...(input.insuranceProvider !== undefined ? { insuranceProvider: input.insuranceProvider } : {}),
-          ...(input.insuranceNumber !== undefined ? { insuranceNumber: input.insuranceNumber } : {}),
+          ...(input.insuranceProvider !== undefined
+            ? { insuranceProvider: input.insuranceProvider }
+            : {}),
+          ...(input.insuranceNumber !== undefined
+            ? { insuranceNumber: input.insuranceNumber }
+            : {}),
           ...(input.emergencyNotes !== undefined ? { emergencyNotes: input.emergencyNotes } : {}),
           ...(input.senNotes !== undefined ? { senNotes: input.senNotes } : {}),
           updatedByUserId: userId,
@@ -1651,7 +1756,10 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
     return this.getMedical(athleteId, userId);
   }
 
-  async getEmergencyContacts(athleteId: string, userId: string): Promise<EmergencyContactsResponse> {
+  async getEmergencyContacts(
+    athleteId: string,
+    userId: string,
+  ): Promise<EmergencyContactsResponse> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.getEmergencyContacts(athleteId, userId);
     }
@@ -1668,7 +1776,7 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
     return normalizeForJson({
       athleteId,
       contacts: contacts.map((contact) => ({
-        id: contact.id,
+        id: toEmergencyContactContractId(contact.id),
         name: contact.name,
         relationship: contact.relationshipLabel,
         phone: contact.phoneE164,
