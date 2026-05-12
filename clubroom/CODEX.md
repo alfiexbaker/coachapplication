@@ -10,6 +10,14 @@ Read order at task start:
 3. One task-specific deep doc, not the whole `docs/` tree
 4. `docs/newsprints/sprints/BACKLOG.md` and `laststep.md` only when the task is active implementation or planning
 
+MCP/tooling expectation:
+
+- Project MCP config lives in `.mcp.json`, `.cursor/mcp.json`, and `.vscode/mcp.json`.
+- Codex global MCP config lives in `~/.codex/config.toml`.
+- Supabase should be available as the project-scoped MCP for `oucxazyrimujqmakxfiv`.
+- Sentry should be available as the hosted Sentry MCP.
+- Do not commit tokens or secrets into MCP config; use OAuth/client auth flows or local environment variables.
+
 ## 1) Prime Directive
 
 - Build on existing flows. Do not create parallel flows unless the current one is irreparably wrong.
