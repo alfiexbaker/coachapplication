@@ -29,10 +29,14 @@ export const createBookingRequestSchema = z.object({
 export const cancelBookingRequestSchema = z.object({
   reason: z.string().min(1).max(200),
   note: z.string().max(1000).optional(),
+  expectedVersion: z.number().int().positive().optional(),
+  idempotencyKey: z.string().min(8).max(200).optional(),
 });
 
 export const reopenBookingRequestSchema = z.object({
   note: z.string().max(1000).optional(),
+  expectedVersion: z.number().int().positive().optional(),
+  idempotencyKey: z.string().min(8).max(200).optional(),
 });
 
 export const inviteSelectedSlotSchema = z.object({

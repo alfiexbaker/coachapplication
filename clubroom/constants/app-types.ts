@@ -89,6 +89,7 @@ export interface Booking {
     id: string;
     status: 'confirmed' | 'pending' | 'cancelled';
   }[];
+  version?: number;
   service?: string;
   locationLabel?: string;
   start?: string;

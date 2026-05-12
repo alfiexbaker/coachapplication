@@ -26,14 +26,14 @@ Date: 2026-05-12
 1. The rules are now strong enough to block new obvious slop, but not enough to claim elite production readiness.
 2. Main risk is API/source-of-truth maturity, not static UI quality.
 3. The current API boundary baseline is a ratchet, not a release pass: `104` legacy `/api/*`, `148` trust-sensitive local-storage patterns, `5` route literals, and `2` frontend raw fetches remain.
-4. Booking create is improved, but booking cancel/reopen, invite acceptance, recurring/multi-week booking, money transitions/refunds, media scan enforcement, guardian sharing, health/injury linkup, club admin operations, and community writes remain the highest-risk gaps.
+4. Booking create/cancel/reopen are improved, but coach-visible db-mode proof, invite acceptance, recurring/multi-week booking, money transitions/refunds, media scan enforcement, guardian sharing, health/injury linkup, club admin operations, and community writes remain the highest-risk gaps.
 5. Production rehearsal must wait until P0 journeys have API authority plus UI linkup packets complete.
 
 ## Next Exact Action
 
-1. Finish `OBS-RUNTIME-01`: resolve setup-test issues in Sentry, create/configure the API Sentry project DSN, and run API-mode Expo only with `apps/api` already reachable.
+1. Keep `OBS-RUNTIME-01` green: Sentry is clean, API-mode Expo must continue to start only with `apps/api` reachable.
 2. Continue `PROD-API-02`.
-3. Finish booking lifecycle hardening: cancel/reopen idempotency, transactionality, audit, denial tests, and local mirror cleanup.
+3. Prove the db-mode booking lifecycle from both sides: parent books a child, coach can see it, unauthorized parent/coach/athlete reads deny, and local mirrors remain non-authoritative.
 4. Keep `/v1/meta/seed-health` and `/v1/drills` marked as cleanup candidates: auth-gate, disable, or delete before production.
 5. Keep `node ./scripts/api-boundary-audit.js` green on every slice.
 6. Do not run production rehearsal until booking, child readiness, payment/refund, attendance, proof, club operations, and compliance evidence have backend-authoritative launch paths.

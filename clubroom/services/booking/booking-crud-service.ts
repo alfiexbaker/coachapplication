@@ -186,6 +186,7 @@ class BookingCrudService {
       createdAt: string;
       updatedAt: string;
       cancelledAt?: string | null;
+      version: number;
       participants: {
         athleteId: string;
         guardianUserId?: string;
@@ -222,6 +223,7 @@ class BookingCrudService {
         status: participant.status,
       })),
       createdAt: apiBooking.createdAt,
+      version: apiBooking.version,
       cancelledAt: apiBooking.cancelledAt ?? undefined,
       cancelReason: apiBooking.cancelledAt ? localBooking?.cancelReason : undefined,
       cancellationReason: apiBooking.cancelledAt ? localBooking?.cancellationReason : undefined,
@@ -250,6 +252,7 @@ class BookingCrudService {
       createdAt: string;
       updatedAt: string;
       cancelledAt?: string | null;
+      version: number;
       participants: {
         athleteId: string;
         guardianUserId?: string;
@@ -481,10 +484,12 @@ class BookingCrudService {
       return undefined;
     }
 
+    let authoritativeBooking: Booking | null = null;
     if (!apiClient.isMockMode) {
       const cancelResult = await bookingAuthorityService.cancelBooking(id, {
         reason,
         ...(options?.note ? { note: options.note } : {}),
+        ...(typeof booking.version === 'number' ? { expectedVersion: booking.version } : {}),
       });
       if (!cancelResult.success) {
         logger.error('Failed to cancel booking via API', {
@@ -495,23 +500,38 @@ class BookingCrudService {
         });
         return undefined;
       }
+      authoritativeBooking = {
+        ...this.mergeAuthoritativeBooking(cancelResult.data, booking),
+        cancellationReason: reason,
+        cancelledBy,
+        cancelReason: reason,
+        statusBeforeCancellation: booking.status,
+      };
     }
 
+    const localCancelledBooking =
+      authoritativeBooking ??
+      ({
+        ...booking,
+        status: 'CANCELLED' as const,
+        cancellationReason: reason,
+        cancelledBy,
+        cancelledAt: new Date().toISOString(),
+        cancelReason: reason,
+        statusBeforeCancellation: booking.status,
+      } satisfies Booking);
     const updated = bookings.map((b) =>
-      b.id === id
-        ? {
-            ...b,
-            status: 'CANCELLED' as const,
-            cancellationReason: reason,
-            cancelledBy,
-            cancelledAt: new Date().toISOString(),
-            cancelReason: reason,
-            statusBeforeCancellation: b.status,
-          }
-        : b,
+      b.id === id ? localCancelledBooking : b,
     );
     const saveResult = await this.saveToStorage(updated);
     if (!saveResult.success) {
+      if (authoritativeBooking) {
+        logger.warn('Authoritative booking cancelled, but local mirror update failed', {
+          bookingId: id,
+          error: saveResult.error.message,
+        });
+        return authoritativeBooking;
+      }
       logger.error('Failed to cancel booking', {
         bookingId: id,
         reason,
@@ -532,17 +552,37 @@ class BookingCrudService {
 
       if (cancelledBy === 'parent') {
         // Notify coach when parent cancels
-        await notificationTriggers.bookingCancelled('Parent', date, 'coach', booking.coachId);
+        try {
+          await notificationTriggers.bookingCancelled('Parent', date, 'coach', booking.coachId);
+        } catch (notificationError) {
+          if (!authoritativeBooking) {
+            throw notificationError;
+          }
+          logger.warn('Authoritative booking cancelled, but local notification trigger failed', {
+            bookingId: id,
+            error: String(notificationError),
+          });
+        }
       } else {
         // Notify parent when coach cancels
         const parentRecipientId = booking.bookedById || booking.athleteId;
         if (parentRecipientId) {
-          await notificationTriggers.bookingCancelled(
-            booking.coachName || 'Coach',
-            date,
-            'parent',
-            parentRecipientId,
-          );
+          try {
+            await notificationTriggers.bookingCancelled(
+              booking.coachName || 'Coach',
+              date,
+              'parent',
+              parentRecipientId,
+            );
+          } catch (notificationError) {
+            if (!authoritativeBooking) {
+              throw notificationError;
+            }
+            logger.warn('Authoritative booking cancelled, but local notification trigger failed', {
+              bookingId: id,
+              error: String(notificationError),
+            });
+          }
         } else {
           logger.warn('Cancellation notification skipped: missing parent recipient', {
             bookingId: booking.id,
@@ -594,10 +634,12 @@ class BookingCrudService {
       return undefined;
     }
 
+    let authoritativeBooking: Booking | null = null;
     let restoredStatus = booking.statusBeforeCancellation ?? 'CONFIRMED';
     if (!apiClient.isMockMode) {
       const reopenResult = await bookingAuthorityService.reopenBooking(id, {
         ...(options?.note ? { note: options.note } : {}),
+        ...(typeof booking.version === 'number' ? { expectedVersion: booking.version } : {}),
       });
       if (!reopenResult.success) {
         logger.error('Failed to reopen booking via API', {
@@ -608,23 +650,39 @@ class BookingCrudService {
         return undefined;
       }
       restoredStatus = reopenResult.data.status;
+      authoritativeBooking = {
+        ...this.mergeAuthoritativeBooking(reopenResult.data, booking),
+        cancellationReason: undefined,
+        cancelledBy: undefined,
+        cancelledAt: undefined,
+        cancelReason: undefined,
+        statusBeforeCancellation: undefined,
+      };
     }
 
+    const localReopenedBooking =
+      authoritativeBooking ??
+      ({
+        ...booking,
+        status: restoredStatus,
+        cancellationReason: undefined,
+        cancelledBy: undefined,
+        cancelledAt: undefined,
+        cancelReason: undefined,
+        statusBeforeCancellation: undefined,
+      } satisfies Booking);
     const updated = bookings.map((entry) =>
-      entry.id === id
-        ? {
-            ...entry,
-            status: restoredStatus,
-            cancellationReason: undefined,
-            cancelledBy: undefined,
-            cancelledAt: undefined,
-            cancelReason: undefined,
-            statusBeforeCancellation: undefined,
-          }
-        : entry,
+      entry.id === id ? localReopenedBooking : entry,
     );
     const saveResult = await this.saveToStorage(updated);
     if (!saveResult.success) {
+      if (authoritativeBooking) {
+        logger.warn('Authoritative booking reopened, but local mirror update failed', {
+          bookingId: id,
+          error: saveResult.error.message,
+        });
+        return authoritativeBooking;
+      }
       logger.error('Failed to reopen booking', {
         bookingId: id,
         reopenedBy,

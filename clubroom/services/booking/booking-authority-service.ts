@@ -100,6 +100,21 @@ function buildBookingIdempotencyKey(input: CreateApiBookingInput): string {
   return `booking_${hashStableString(payload)}`;
 }
 
+function buildBookingLifecycleIdempotencyKey(
+  action: 'cancel' | 'reopen',
+  bookingId: string,
+  input: { reason?: string; note?: string; expectedVersion?: number },
+): string {
+  const payload = JSON.stringify({
+    action,
+    bookingId,
+    reason: input.reason ?? null,
+    note: input.note ?? null,
+    expectedVersion: input.expectedVersion ?? null,
+  });
+  return `booking_${action}_${hashStableString(payload)}`;
+}
+
 async function resolveBookingAccessHeaders(): Promise<
   Result<Record<string, string>, ServiceError>
 > {
@@ -210,7 +225,7 @@ class BookingAuthorityService {
 
   async cancelBooking(
     bookingId: string,
-    input: { reason: string; note?: string },
+    input: { reason: string; note?: string; expectedVersion?: number; idempotencyKey?: string },
   ): Promise<Result<ApiBookingResponse, ServiceError>> {
     const headersResult = await resolveBookingAccessHeaders();
     if (!headersResult.success) {
@@ -220,7 +235,11 @@ class BookingAuthorityService {
     const result = await apiFetch<ApiBookingResponse>(`/v1/bookings/${bookingId}/cancel`, {
       method: 'POST',
       headers: headersResult.data,
-      body: JSON.stringify(input),
+      body: JSON.stringify({
+        ...input,
+        idempotencyKey:
+          input.idempotencyKey ?? buildBookingLifecycleIdempotencyKey('cancel', bookingId, input),
+      }),
     });
 
     if (!result.success) {
@@ -236,7 +255,7 @@ class BookingAuthorityService {
 
   async reopenBooking(
     bookingId: string,
-    input: { note?: string } = {},
+    input: { note?: string; expectedVersion?: number; idempotencyKey?: string } = {},
   ): Promise<Result<ApiBookingResponse, ServiceError>> {
     const headersResult = await resolveBookingAccessHeaders();
     if (!headersResult.success) {
@@ -246,7 +265,11 @@ class BookingAuthorityService {
     const result = await apiFetch<ApiBookingResponse>(`/v1/bookings/${bookingId}/reopen`, {
       method: 'POST',
       headers: headersResult.data,
-      body: JSON.stringify(input),
+      body: JSON.stringify({
+        ...input,
+        idempotencyKey:
+          input.idempotencyKey ?? buildBookingLifecycleIdempotencyKey('reopen', bookingId, input),
+      }),
     });
 
     if (!result.success) {

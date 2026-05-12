@@ -822,9 +822,11 @@ describe('p0 core routes', () => {
       },
     });
     assert.equal(create.statusCode, 201);
-    const created = create.json() as { id: string; status: string };
+    const store = getMarketplaceSeedStore();
+    const created = create.json() as { id: string; status: string; version: number };
     assert.match(created.id, /^bok_/);
     assert.equal(created.status, 'CONFIRMED');
+    assert.equal(created.version, 1);
 
     const listed = await app.inject({
       method: 'GET',
@@ -856,7 +858,7 @@ describe('p0 core routes', () => {
     assert.equal(detailPayload.id, created.id);
     assert.equal(detailPayload.bookedByUserId, bookedByUserId);
 
-    const cancelled = await app.inject({
+    const staleCancel = await app.inject({
       method: 'POST',
       url: `/v1/bookings/${created.id}/cancel`,
       headers: {
@@ -866,18 +868,38 @@ describe('p0 core routes', () => {
       },
       payload: {
         reason: 'Schedule change',
-        note: 'Need to move the session to next week.',
+        expectedVersion: created.version + 1,
       },
+    });
+    assert.equal(staleCancel.statusCode, 409);
+
+    const cancelPayload = {
+      reason: 'Schedule change',
+      note: 'Need to move the session to next week.',
+      expectedVersion: created.version,
+      idempotencyKey: 'booking-cancel-idempotency-test',
+    };
+    const cancelled = await app.inject({
+      method: 'POST',
+      url: `/v1/bookings/${created.id}/cancel`,
+      headers: {
+        'x-auth-user-id': bookedByUserId,
+        'x-auth-roles': rolesForUser(tables, bookedByUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, bookedByUserId)[0] ?? 'parent',
+      },
+      payload: cancelPayload,
     });
     assert.equal(cancelled.statusCode, 200);
     const cancelledPayload = cancelled.json() as {
       id: string;
       status: string;
       cancelledAt: string | null;
+      version: number;
     };
     assert.equal(cancelledPayload.id, created.id);
     assert.equal(cancelledPayload.status, 'CANCELLED');
     assert.equal(typeof cancelledPayload.cancelledAt, 'string');
+    assert.equal(cancelledPayload.version, created.version + 1);
 
     const cancelledAgain = await app.inject({
       method: 'POST',
@@ -887,14 +909,34 @@ describe('p0 core routes', () => {
         'x-auth-roles': rolesForUser(tables, bookedByUserId).join(',') || 'parent',
         'x-acting-role': rolesForUser(tables, bookedByUserId)[0] ?? 'parent',
       },
-      payload: {
-        reason: 'Schedule change',
-      },
+      payload: cancelPayload,
     });
     assert.equal(cancelledAgain.statusCode, 200);
-    assert.equal((cancelledAgain.json() as { status: string }).status, 'CANCELLED');
+    const cancelledAgainPayload = cancelledAgain.json() as { status: string; version: number };
+    assert.equal(cancelledAgainPayload.status, 'CANCELLED');
+    assert.equal(cancelledAgainPayload.version, cancelledPayload.version);
 
-    const reopened = await app.inject({
+    const conflictingCancelReplay = await app.inject({
+      method: 'POST',
+      url: `/v1/bookings/${created.id}/cancel`,
+      headers: {
+        'x-auth-user-id': bookedByUserId,
+        'x-auth-roles': rolesForUser(tables, bookedByUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, bookedByUserId)[0] ?? 'parent',
+      },
+      payload: {
+        ...cancelPayload,
+        note: 'Different note under same key.',
+      },
+    });
+    assert.equal(conflictingCancelReplay.statusCode, 409);
+
+    const cancelEvents = asRows(store.tables.bookingStatusEvents).filter(
+      (row) => asString(row.bookingId) === created.id && asString(row.toStatus) === 'CANCELLED',
+    );
+    assert.equal(cancelEvents.length, 1);
+
+    const staleReopen = await app.inject({
       method: 'POST',
       url: `/v1/bookings/${created.id}/reopen`,
       headers: {
@@ -904,17 +946,60 @@ describe('p0 core routes', () => {
       },
       payload: {
         note: 'Keeping the original slot after all.',
+        expectedVersion: created.version,
       },
+    });
+    assert.equal(staleReopen.statusCode, 409);
+
+    const reopenPayload = {
+      note: 'Keeping the original slot after all.',
+      expectedVersion: cancelledPayload.version,
+      idempotencyKey: 'booking-reopen-idempotency-test',
+    };
+    const reopened = await app.inject({
+      method: 'POST',
+      url: `/v1/bookings/${created.id}/reopen`,
+      headers: {
+        'x-auth-user-id': bookedByUserId,
+        'x-auth-roles': rolesForUser(tables, bookedByUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, bookedByUserId)[0] ?? 'parent',
+      },
+      payload: reopenPayload,
     });
     assert.equal(reopened.statusCode, 200);
     const reopenedPayload = reopened.json() as {
       id: string;
       status: string;
       cancelledAt: string | null;
+      version: number;
     };
     assert.equal(reopenedPayload.id, created.id);
     assert.equal(reopenedPayload.status, 'CONFIRMED');
     assert.equal(reopenedPayload.cancelledAt, null);
+    assert.equal(reopenedPayload.version, cancelledPayload.version + 1);
+
+    const reopenedReplay = await app.inject({
+      method: 'POST',
+      url: `/v1/bookings/${created.id}/reopen`,
+      headers: {
+        'x-auth-user-id': bookedByUserId,
+        'x-auth-roles': rolesForUser(tables, bookedByUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, bookedByUserId)[0] ?? 'parent',
+      },
+      payload: reopenPayload,
+    });
+    assert.equal(reopenedReplay.statusCode, 200);
+    const reopenedReplayPayload = reopenedReplay.json() as { status: string; version: number };
+    assert.equal(reopenedReplayPayload.status, 'CONFIRMED');
+    assert.equal(reopenedReplayPayload.version, reopenedPayload.version);
+
+    const reopenEvents = asRows(store.tables.bookingStatusEvents).filter(
+      (row) =>
+        asString(row.bookingId) === created.id &&
+        asString(row.fromStatus) === 'CANCELLED' &&
+        asString(row.toStatus) === 'CONFIRMED',
+    );
+    assert.equal(reopenEvents.length, 1);
 
     const reopenedAgain = await app.inject({
       method: 'POST',

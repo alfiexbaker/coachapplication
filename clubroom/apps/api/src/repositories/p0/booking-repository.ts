@@ -33,6 +33,8 @@ type BookingStatusCode =
   | 'CANCELLED';
 const BOOKING_CREATE_ENDPOINT_KEY = 'POST:/v1/bookings';
 const IDEMPOTENCY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const bookingLifecycleEndpointKey = (bookingId: string, action: 'cancel' | 'reopen') =>
+  `POST:/v1/bookings/${bookingId}/${action}`;
 
 export interface ListBookingsParams {
   authUserId: string;
@@ -106,6 +108,23 @@ function hashCreateBookingRequest(body: CreateBookingRequest): string {
   return crypto
     .createHash('sha256')
     .update(JSON.stringify(canonicalizeJson(body)))
+    .digest('hex');
+}
+
+function hashBookingLifecycleRequest(params: {
+  bookingId: string;
+  body: CancelBookingRequest | ReopenBookingRequest;
+}): string {
+  return crypto
+    .createHash('sha256')
+    .update(
+      JSON.stringify(
+        canonicalizeJson({
+          bookingId: params.bookingId,
+          body: params.body,
+        }),
+      ),
+    )
     .digest('hex');
 }
 
@@ -191,6 +210,57 @@ function recordSeedCreateBookingIdempotency(params: {
     idempotencyKey: params.body.idempotencyKey,
     requestHash: hashCreateBookingRequest(params.body),
     responseStatus: 201,
+    responseBodyJson: params.response,
+    createdAt: params.now,
+    expiresAt: new Date(Date.parse(params.now) + IDEMPOTENCY_TTL_MS).toISOString(),
+  });
+}
+
+function findSeedLifecycleBookingIdempotency(params: {
+  tables: SeedTables;
+  authUserId: string;
+  endpointKey: string;
+  idempotencyKey?: string;
+  requestHash: string;
+}): BookingResponse | null {
+  if (!params.idempotencyKey) {
+    return null;
+  }
+
+  const entry = asRows(params.tables.idempotencyKeys).find(
+    (row) =>
+      asString(row.userId) === params.authUserId &&
+      asString(row.endpointKey) === params.endpointKey &&
+      asString(row.idempotencyKey) === params.idempotencyKey,
+  );
+  if (!entry) {
+    return null;
+  }
+
+  assertMatchingIdempotencyRequest(entry, params.requestHash);
+  return parseIdempotentBookingResponse(entry.responseBodyJson);
+}
+
+function recordSeedLifecycleBookingIdempotency(params: {
+  tables: SeedTables;
+  authUserId: string;
+  endpointKey: string;
+  idempotencyKey?: string;
+  requestHash: string;
+  response: BookingResponse;
+  now: string;
+}): void {
+  if (!params.idempotencyKey) {
+    return;
+  }
+
+  getMutableRows(params.tables, 'idempotencyKeys').push({
+    id: newId('idk'),
+    userId: params.authUserId,
+    endpointKey: params.endpointKey,
+    idempotencyKey: params.idempotencyKey,
+    requestHash: params.requestHash,
+    responseStatus: 200,
     responseBodyJson: params.response,
     createdAt: params.now,
     expiresAt: new Date(Date.parse(params.now) + IDEMPOTENCY_TTL_MS).toISOString(),
@@ -393,6 +463,18 @@ function normalizeReopenStatus(status: string | undefined): BookingStatusCode {
   return 'CONFIRMED';
 }
 
+function assertExpectedBookingVersion(currentVersion: number, expectedVersion?: number): void {
+  if (expectedVersion === undefined) {
+    return;
+  }
+  if (currentVersion !== expectedVersion) {
+    throw conflict('Booking version changed since it was loaded', {
+      currentVersion,
+      expectedVersion,
+    });
+  }
+}
+
 function resolveSeedReopenStatus(tables: SeedTables, bookingId: string): BookingStatusCode {
   const latestCancelEvent = asRows(tables.bookingStatusEvents)
     .filter(
@@ -571,6 +653,22 @@ class SeedBookingRepository implements BookingRepository {
     const statusEvents = asRows(store.tables.bookingStatusEvents);
     const participantRowsByBooking = getParticipantRowsByBooking(store.tables);
     const athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(store.tables);
+    const endpointKey = bookingLifecycleEndpointKey(params.bookingId, 'cancel');
+    const requestHash = hashBookingLifecycleRequest({
+      bookingId: params.bookingId,
+      body: params.body,
+    });
+    const idempotentResponse = findSeedLifecycleBookingIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      endpointKey,
+      idempotencyKey: params.body.idempotencyKey,
+      requestHash,
+    });
+    if (idempotentResponse) {
+      return idempotentResponse;
+    }
+
     const booking = bookings.find((row) => asString(row.id) === params.bookingId);
 
     if (!booking) {
@@ -592,6 +690,7 @@ class SeedBookingRepository implements BookingRepository {
     if (currentStatus === 'CANCELLED') {
       return mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
     }
+    assertExpectedBookingVersion(asNumber(booking.version) ?? 1, params.body.expectedVersion);
     if (currentStatus === 'COMPLETED') {
       throw badRequest('Completed bookings cannot be cancelled');
     }
@@ -625,7 +724,18 @@ class SeedBookingRepository implements BookingRepository {
       occurredAt: now,
     });
 
-    return mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
+    const response = mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
+    recordSeedLifecycleBookingIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      endpointKey,
+      idempotencyKey: params.body.idempotencyKey,
+      requestHash,
+      response,
+      now,
+    });
+
+    return response;
   }
 
   async reopenBooking(params: ReopenBookingParams): Promise<BookingResponse> {
@@ -634,6 +744,22 @@ class SeedBookingRepository implements BookingRepository {
     const statusEvents = asRows(store.tables.bookingStatusEvents);
     const participantRowsByBooking = getParticipantRowsByBooking(store.tables);
     const athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(store.tables);
+    const endpointKey = bookingLifecycleEndpointKey(params.bookingId, 'reopen');
+    const requestHash = hashBookingLifecycleRequest({
+      bookingId: params.bookingId,
+      body: params.body,
+    });
+    const idempotentResponse = findSeedLifecycleBookingIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      endpointKey,
+      idempotencyKey: params.body.idempotencyKey,
+      requestHash,
+    });
+    if (idempotentResponse) {
+      return idempotentResponse;
+    }
+
     const booking = bookings.find((row) => asString(row.id) === params.bookingId);
 
     if (!booking) {
@@ -655,6 +781,7 @@ class SeedBookingRepository implements BookingRepository {
     if (currentStatus !== 'CANCELLED') {
       throw badRequest('Only cancelled bookings can be reopened');
     }
+    assertExpectedBookingVersion(asNumber(booking.version) ?? 1, params.body.expectedVersion);
 
     const scheduledAt = Date.parse(asString(booking.scheduledAt) ?? '');
     if (!Number.isFinite(scheduledAt) || scheduledAt <= Date.now()) {
@@ -686,7 +813,18 @@ class SeedBookingRepository implements BookingRepository {
       occurredAt: now,
     });
 
-    return mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
+    const response = mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
+    recordSeedLifecycleBookingIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      endpointKey,
+      idempotencyKey: params.body.idempotencyKey,
+      requestHash,
+      response,
+      now,
+    });
+
+    return response;
   }
 }
 
@@ -724,6 +862,61 @@ export async function resolveCreateBookingIdempotency(params: {
   }
 
   const requestHash = hashCreateBookingRequest(params.body);
+  if (entry.requestHash !== requestHash) {
+    throw conflict('Idempotency key was already used with a different booking payload');
+  }
+
+  const response = parseIdempotentBookingResponse(entry.responseBodyJson);
+  if (!response) {
+    throw conflict('Stored idempotency response is no longer valid');
+  }
+
+  return { responseStatus: entry.responseStatus, response };
+}
+
+async function resolveLifecycleBookingIdempotency(params: {
+  authUserId: string;
+  bookingId: string;
+  action: 'cancel' | 'reopen';
+  body: CancelBookingRequest | ReopenBookingRequest;
+}): Promise<{ responseStatus: number; response: BookingResponse } | null> {
+  if (!params.body.idempotencyKey) {
+    return null;
+  }
+
+  const endpointKey = bookingLifecycleEndpointKey(params.bookingId, params.action);
+  const requestHash = hashBookingLifecycleRequest({
+    bookingId: params.bookingId,
+    body: params.body,
+  });
+
+  if (getApiDataBackend() !== 'db' || shouldUseDbFixtureFallback()) {
+    const tables =
+      getApiDataBackend() === 'db' ? getDbFixtureStore().tables : getMarketplaceSeedStore().tables;
+    const response = findSeedLifecycleBookingIdempotency({
+      tables,
+      authUserId: params.authUserId,
+      endpointKey,
+      idempotencyKey: params.body.idempotencyKey,
+      requestHash,
+    });
+    return response ? { responseStatus: 200, response } : null;
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  const entry = await prisma.idempotencyKey.findUnique({
+    where: {
+      userId_endpointKey_idempotencyKey: {
+        userId: params.authUserId,
+        endpointKey,
+        idempotencyKey: params.body.idempotencyKey,
+      },
+    },
+  });
+  if (!entry) {
+    return null;
+  }
+
   if (entry.requestHash !== requestHash) {
     throw conflict('Idempotency key was already used with a different booking payload');
   }
@@ -1090,6 +1283,16 @@ class DbBookingRepository implements BookingRepository {
     }
 
     const prisma = getPrismaClientOrThrow();
+    const idempotentResponse = await resolveLifecycleBookingIdempotency({
+      authUserId: params.authUserId,
+      bookingId: params.bookingId,
+      action: 'cancel',
+      body: params.body,
+    });
+    if (idempotentResponse) {
+      return idempotentResponse.response;
+    }
+
     const booking = await prisma.booking.findUnique({
       where: { id: params.bookingId },
       include: {
@@ -1119,6 +1322,8 @@ class DbBookingRepository implements BookingRepository {
     if (!hasAccess) {
       throw forbidden('Booking does not belong to authenticated user');
     }
+
+    assertExpectedBookingVersion(Number(booking.version), params.body.expectedVersion);
 
     if (booking.status === 'CANCELLED') {
       return normalizeForJson(
@@ -1159,65 +1364,114 @@ class DbBookingRepository implements BookingRepository {
     }
 
     const now = new Date();
-    const updated = await prisma.booking.update({
-      where: { id: params.bookingId },
-      data: {
-        status: 'CANCELLED',
-        cancelledByUserId: params.authUserId,
-        cancelledAt: now,
-        cancelReason: params.body.reason,
-        updatedByUserId: params.authUserId,
-        version: {
-          increment: 1,
-        },
-      },
+    const endpointKey = bookingLifecycleEndpointKey(params.bookingId, 'cancel');
+    const requestHash = hashBookingLifecycleRequest({
+      bookingId: params.bookingId,
+      body: params.body,
     });
 
-    await prisma.bookingStatusEvent.create({
-      data: {
-        id: newId('bse'),
-        bookingId: params.bookingId,
-        fromStatus: booking.status,
-        toStatus: 'CANCELLED',
-        actorUserId: params.authUserId,
-        reason: params.body.reason,
-        metadataJson: {
-          note: params.body.note ?? null,
-          source: 'api-db-runtime',
-        },
-        requestId: params.requestId,
-        occurredAt: now,
-      },
-    });
+    try {
+      const response = await prisma.$transaction(async (tx) => {
+        const updateResult = await tx.booking.updateMany({
+          where: { id: params.bookingId, version: booking.version },
+          data: {
+            status: 'CANCELLED',
+            cancelledByUserId: params.authUserId,
+            cancelledAt: now,
+            cancelReason: params.body.reason,
+            updatedByUserId: params.authUserId,
+            version: {
+              increment: 1,
+            },
+          },
+        });
+        if (updateResult.count !== 1) {
+          throw conflict('Booking version changed since it was loaded', {
+            currentVersion: Number(booking.version),
+          });
+        }
 
-    return normalizeForJson(
-      bookingResponseSchema.parse({
-        id: updated.id,
-        coachUserId: updated.coachUserId,
-        bookedByUserId: updated.bookedByUserId ?? undefined,
-        status: updated.status,
-        scheduledAt: updated.scheduledAt.toISOString(),
-        durationMinutes: updated.durationMinutes,
-        location: updated.location,
-        serviceType: updated.serviceType ?? undefined,
-        sessionTemplateId: null,
-        objectives: booking.objectives
-          .sort((a, b) => a.sortOrder - b.sortOrder)
-          .map((objective) => objective.objective),
-        notes: updated.notes ?? null,
-        priceMinor: updated.priceMinor ?? null,
-        currency: updated.currency,
-        participants: booking.participants.map((participant) => ({
-          athleteId: participant.athleteId,
-          guardianUserId: participant.guardianUserId ?? undefined,
-          status: participant.status as 'confirmed' | 'pending' | 'cancelled',
-        })),
-        version: Number(updated.version),
-        createdAt: updated.createdAt.toISOString(),
-        updatedAt: updated.updatedAt.toISOString(),
-        cancelledAt: updated.cancelledAt?.toISOString() ?? null,
-      }),
-    );
+        const updated = await tx.booking.findUniqueOrThrow({
+          where: { id: params.bookingId },
+        });
+
+        await tx.bookingStatusEvent.create({
+          data: {
+            id: newId('bse'),
+            bookingId: params.bookingId,
+            fromStatus: booking.status,
+            toStatus: 'CANCELLED',
+            actorUserId: params.authUserId,
+            reason: params.body.reason,
+            metadataJson: {
+              note: params.body.note ?? null,
+              source: 'api-db-runtime',
+            },
+            requestId: params.requestId,
+            occurredAt: now,
+          },
+        });
+
+        const nextResponse = bookingResponseSchema.parse({
+          id: updated.id,
+          coachUserId: updated.coachUserId,
+          bookedByUserId: updated.bookedByUserId ?? undefined,
+          status: updated.status,
+          scheduledAt: updated.scheduledAt.toISOString(),
+          durationMinutes: updated.durationMinutes,
+          location: updated.location,
+          serviceType: updated.serviceType ?? undefined,
+          sessionTemplateId: null,
+          objectives: booking.objectives
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .map((objective) => objective.objective),
+          notes: updated.notes ?? null,
+          priceMinor: updated.priceMinor ?? null,
+          currency: updated.currency,
+          participants: booking.participants.map((participant) => ({
+            athleteId: participant.athleteId,
+            guardianUserId: participant.guardianUserId ?? undefined,
+            status: participant.status as 'confirmed' | 'pending' | 'cancelled',
+          })),
+          version: Number(updated.version),
+          createdAt: updated.createdAt.toISOString(),
+          updatedAt: updated.updatedAt.toISOString(),
+          cancelledAt: updated.cancelledAt?.toISOString() ?? null,
+        });
+
+        if (params.body.idempotencyKey) {
+          await tx.idempotencyKey.create({
+            data: {
+              id: newId('idk'),
+              userId: params.authUserId,
+              endpointKey,
+              idempotencyKey: params.body.idempotencyKey,
+              requestHash,
+              responseStatus: 200,
+              responseBodyJson: nextResponse as never,
+              expiresAt: new Date(now.getTime() + IDEMPOTENCY_TTL_MS),
+            },
+          });
+        }
+
+        return nextResponse;
+      });
+
+      return normalizeForJson(response);
+    } catch (error) {
+      if (params.body.idempotencyKey && isCreateBookingIdempotencyRace(error)) {
+        const replay = await resolveLifecycleBookingIdempotency({
+          authUserId: params.authUserId,
+          bookingId: params.bookingId,
+          action: 'cancel',
+          body: params.body,
+        });
+        if (replay) {
+          return replay.response;
+        }
+      }
+      throw error;
+    }
   }
 
   async reopenBooking(params: ReopenBookingParams): Promise<BookingResponse> {
@@ -1232,6 +1486,16 @@ class DbBookingRepository implements BookingRepository {
     }
 
     const prisma = getPrismaClientOrThrow();
+    const idempotentResponse = await resolveLifecycleBookingIdempotency({
+      authUserId: params.authUserId,
+      bookingId: params.bookingId,
+      action: 'reopen',
+      body: params.body,
+    });
+    if (idempotentResponse) {
+      return idempotentResponse.response;
+    }
+
     const booking = await prisma.booking.findUnique({
       where: { id: params.bookingId },
       include: {
@@ -1262,6 +1526,8 @@ class DbBookingRepository implements BookingRepository {
       throw forbidden('Booking does not belong to authenticated user');
     }
 
+    assertExpectedBookingVersion(Number(booking.version), params.body.expectedVersion);
+
     if (booking.status !== 'CANCELLED') {
       throw badRequest('Only cancelled bookings can be reopened');
     }
@@ -1280,65 +1546,114 @@ class DbBookingRepository implements BookingRepository {
     });
     const restoredStatus = normalizeReopenStatus(latestCancelEvent?.fromStatus ?? undefined);
     const now = new Date();
-    const updated = await prisma.booking.update({
-      where: { id: params.bookingId },
-      data: {
-        status: restoredStatus,
-        cancelledByUserId: null,
-        cancelledAt: null,
-        cancelReason: null,
-        updatedByUserId: params.authUserId,
-        version: {
-          increment: 1,
-        },
-      },
+    const endpointKey = bookingLifecycleEndpointKey(params.bookingId, 'reopen');
+    const requestHash = hashBookingLifecycleRequest({
+      bookingId: params.bookingId,
+      body: params.body,
     });
 
-    await prisma.bookingStatusEvent.create({
-      data: {
-        id: newId('bse'),
-        bookingId: params.bookingId,
-        fromStatus: 'CANCELLED',
-        toStatus: restoredStatus,
-        actorUserId: params.authUserId,
-        reason: 'Booking reopened',
-        metadataJson: {
-          note: params.body.note ?? null,
-          source: 'api-db-runtime',
-        },
-        requestId: params.requestId,
-        occurredAt: now,
-      },
-    });
+    try {
+      const response = await prisma.$transaction(async (tx) => {
+        const updateResult = await tx.booking.updateMany({
+          where: { id: params.bookingId, version: booking.version },
+          data: {
+            status: restoredStatus,
+            cancelledByUserId: null,
+            cancelledAt: null,
+            cancelReason: null,
+            updatedByUserId: params.authUserId,
+            version: {
+              increment: 1,
+            },
+          },
+        });
+        if (updateResult.count !== 1) {
+          throw conflict('Booking version changed since it was loaded', {
+            currentVersion: Number(booking.version),
+          });
+        }
 
-    return normalizeForJson(
-      bookingResponseSchema.parse({
-        id: updated.id,
-        coachUserId: updated.coachUserId,
-        bookedByUserId: updated.bookedByUserId ?? undefined,
-        status: updated.status,
-        scheduledAt: updated.scheduledAt.toISOString(),
-        durationMinutes: updated.durationMinutes,
-        location: updated.location,
-        serviceType: updated.serviceType ?? undefined,
-        sessionTemplateId: null,
-        objectives: booking.objectives
-          .sort((a, b) => a.sortOrder - b.sortOrder)
-          .map((objective) => objective.objective),
-        notes: updated.notes ?? null,
-        priceMinor: updated.priceMinor ?? null,
-        currency: updated.currency,
-        participants: booking.participants.map((participant) => ({
-          athleteId: participant.athleteId,
-          guardianUserId: participant.guardianUserId ?? undefined,
-          status: participant.status as 'confirmed' | 'pending' | 'cancelled',
-        })),
-        version: Number(updated.version),
-        createdAt: updated.createdAt.toISOString(),
-        updatedAt: updated.updatedAt.toISOString(),
-        cancelledAt: updated.cancelledAt?.toISOString() ?? null,
-      }),
-    );
+        const updated = await tx.booking.findUniqueOrThrow({
+          where: { id: params.bookingId },
+        });
+
+        await tx.bookingStatusEvent.create({
+          data: {
+            id: newId('bse'),
+            bookingId: params.bookingId,
+            fromStatus: 'CANCELLED',
+            toStatus: restoredStatus,
+            actorUserId: params.authUserId,
+            reason: 'Booking reopened',
+            metadataJson: {
+              note: params.body.note ?? null,
+              source: 'api-db-runtime',
+            },
+            requestId: params.requestId,
+            occurredAt: now,
+          },
+        });
+
+        const nextResponse = bookingResponseSchema.parse({
+          id: updated.id,
+          coachUserId: updated.coachUserId,
+          bookedByUserId: updated.bookedByUserId ?? undefined,
+          status: updated.status,
+          scheduledAt: updated.scheduledAt.toISOString(),
+          durationMinutes: updated.durationMinutes,
+          location: updated.location,
+          serviceType: updated.serviceType ?? undefined,
+          sessionTemplateId: null,
+          objectives: booking.objectives
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .map((objective) => objective.objective),
+          notes: updated.notes ?? null,
+          priceMinor: updated.priceMinor ?? null,
+          currency: updated.currency,
+          participants: booking.participants.map((participant) => ({
+            athleteId: participant.athleteId,
+            guardianUserId: participant.guardianUserId ?? undefined,
+            status: participant.status as 'confirmed' | 'pending' | 'cancelled',
+          })),
+          version: Number(updated.version),
+          createdAt: updated.createdAt.toISOString(),
+          updatedAt: updated.updatedAt.toISOString(),
+          cancelledAt: updated.cancelledAt?.toISOString() ?? null,
+        });
+
+        if (params.body.idempotencyKey) {
+          await tx.idempotencyKey.create({
+            data: {
+              id: newId('idk'),
+              userId: params.authUserId,
+              endpointKey,
+              idempotencyKey: params.body.idempotencyKey,
+              requestHash,
+              responseStatus: 200,
+              responseBodyJson: nextResponse as never,
+              expiresAt: new Date(now.getTime() + IDEMPOTENCY_TTL_MS),
+            },
+          });
+        }
+
+        return nextResponse;
+      });
+
+      return normalizeForJson(response);
+    } catch (error) {
+      if (params.body.idempotencyKey && isCreateBookingIdempotencyRace(error)) {
+        const replay = await resolveLifecycleBookingIdempotency({
+          authUserId: params.authUserId,
+          bookingId: params.bookingId,
+          action: 'reopen',
+          body: params.body,
+        });
+        if (replay) {
+          return replay.response;
+        }
+      }
+      throw error;
+    }
   }
 }
 
