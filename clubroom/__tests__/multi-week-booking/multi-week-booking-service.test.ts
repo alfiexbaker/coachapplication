@@ -25,6 +25,7 @@ import test, { describe, beforeEach, afterEach } from 'node:test';
 
 import { multiWeekBookingService } from '../../services/multi-week-booking-service';
 import { bookingCrudService } from '../../services/booking/booking-crud-service';
+import { apiClient } from '../../services/api-client';
 import { eventBus, ServiceEvents } from '../../services/event-bus';
 import type { CreateSeriesParams } from '../../services/multi-week-booking-service';
 import type { Booking } from '../../constants/app-types';
@@ -80,22 +81,22 @@ beforeEach(() => {
   unsubscribers.push(
     eventBus.on(ServiceEvents.SERIES_CREATED, (data) => {
       emittedEvents.push({ event: ServiceEvents.SERIES_CREATED, data });
-    })
+    }),
   );
   unsubscribers.push(
     eventBus.on(ServiceEvents.SERIES_UPDATED, (data) => {
       emittedEvents.push({ event: ServiceEvents.SERIES_UPDATED, data });
-    })
+    }),
   );
   unsubscribers.push(
     eventBus.on(ServiceEvents.BOOKING_CREATED, (data) => {
       emittedEvents.push({ event: ServiceEvents.BOOKING_CREATED, data });
-    })
+    }),
   );
   unsubscribers.push(
     eventBus.on(ServiceEvents.BOOKING_CANCELLED, (data) => {
       emittedEvents.push({ event: ServiceEvents.BOOKING_CANCELLED, data });
-    })
+    }),
   );
 });
 
@@ -111,6 +112,26 @@ afterEach(() => {
 // ============================================================================
 
 describe('MultiWeekBookingService - createSeries()', () => {
+  test('fails closed in API mode instead of creating local package bookings', async () => {
+    const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+    Object.defineProperty(apiClient, 'isMockMode', {
+      configurable: true,
+      get: () => false,
+    });
+
+    try {
+      const result = await multiWeekBookingService.createSeries(makeSeriesParams());
+
+      assert.equal(result.success, false);
+      assert.equal(result.error?.code, 'VALIDATION');
+      assert.match(result.error?.message ?? '', /backend series authority/i);
+    } finally {
+      if (originalIsMockMode) {
+        Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+      }
+    }
+  });
+
   test('creates N bookings + BookingSeries record with valid params', async () => {
     const params = makeSeriesParams();
 
@@ -360,15 +381,15 @@ describe('MultiWeekBookingService - getSeriesForUser()', () => {
 
     // Create series for user 1
     await multiWeekBookingService.createSeries(
-      makeSeriesParams({ createdById: userId1, createdByName: 'User One' })
+      makeSeriesParams({ createdById: userId1, createdByName: 'User One' }),
     );
     await multiWeekBookingService.createSeries(
-      makeSeriesParams({ createdById: userId1, createdByName: 'User One' })
+      makeSeriesParams({ createdById: userId1, createdByName: 'User One' }),
     );
 
     // Create series for user 2
     await multiWeekBookingService.createSeries(
-      makeSeriesParams({ createdById: userId2, createdByName: 'User Two' })
+      makeSeriesParams({ createdById: userId2, createdByName: 'User Two' }),
     );
 
     const result = await multiWeekBookingService.getSeriesForUser(userId1);
@@ -378,7 +399,7 @@ describe('MultiWeekBookingService - getSeriesForUser()', () => {
     assert.equal(result.data.length, 2, 'Should return 2 series for user 1');
     assert.ok(
       result.data.every((s) => s.createdById === userId1),
-      'All series should belong to user 1'
+      'All series should belong to user 1',
     );
   });
 
@@ -401,10 +422,10 @@ describe('MultiWeekBookingService - getSeriesForCoach()', () => {
     const coachId2 = uniqueId('coach');
 
     await multiWeekBookingService.createSeries(
-      makeSeriesParams({ coachId: coachId1, coachName: 'Coach A' })
+      makeSeriesParams({ coachId: coachId1, coachName: 'Coach A' }),
     );
     await multiWeekBookingService.createSeries(
-      makeSeriesParams({ coachId: coachId2, coachName: 'Coach B' })
+      makeSeriesParams({ coachId: coachId2, coachName: 'Coach B' }),
     );
 
     const result = await multiWeekBookingService.getSeriesForCoach(coachId1);
@@ -492,6 +513,43 @@ describe('MultiWeekBookingService - cancelSeries()', () => {
 // ============================================================================
 
 describe('BookingCrudService - createMultipleBookings()', () => {
+  test('fails closed in API mode instead of batch-writing local bookings', async () => {
+    const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+    Object.defineProperty(apiClient, 'isMockMode', {
+      configurable: true,
+      get: () => false,
+    });
+
+    try {
+      const result = await bookingCrudService.createMultipleBookings([
+        {
+          id: uniqueId('booking'),
+          coachId: 'coach-api-batch',
+          coachName: 'Coach Batch',
+          athleteIds: ['ath-api-batch'],
+          athleteId: 'ath-api-batch',
+          bookedById: 'parent-api-batch',
+          scheduledAt: '2026-04-01T09:00:00',
+          status: 'CONFIRMED',
+          duration: 60,
+          location: 'Court 1',
+          service: '1-to-1',
+          price: 30,
+          seriesId: uniqueId('series'),
+          seriesIndex: 0,
+        },
+      ]);
+
+      assert.equal(result.success, false);
+      assert.equal(result.error?.code, 'VALIDATION');
+      assert.match(result.error?.message ?? '', /backend series authority/i);
+    } finally {
+      if (originalIsMockMode) {
+        Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+      }
+    }
+  });
+
   test('saves all bookings with seriesId and seriesIndex', async () => {
     const seriesId = uniqueId('series');
     const bookings: Booking[] = [
@@ -593,9 +651,7 @@ describe('BookingCrudService - createMultipleBookings()', () => {
 
     await bookingCrudService.createMultipleBookings(bookings);
 
-    const bookingEvents = emittedEvents.filter(
-      (e) => e.event === ServiceEvents.BOOKING_CREATED
-    );
+    const bookingEvents = emittedEvents.filter((e) => e.event === ServiceEvents.BOOKING_CREATED);
     assert.equal(bookingEvents.length, 2, 'Should emit 2 BOOKING_CREATED events');
   });
 });
@@ -679,8 +735,14 @@ describe('MultiWeekBookingService - Edge Cases', () => {
 
   test('many weeks (8) creates correct number of bookings', async () => {
     const weeks = [
-      '2026-05-04', '2026-05-11', '2026-05-18', '2026-05-25',
-      '2026-06-01', '2026-06-08', '2026-06-15', '2026-06-22',
+      '2026-05-04',
+      '2026-05-11',
+      '2026-05-18',
+      '2026-05-25',
+      '2026-06-01',
+      '2026-06-08',
+      '2026-06-15',
+      '2026-06-22',
     ];
     const params = makeSeriesParams({
       selectedWeeks: weeks,

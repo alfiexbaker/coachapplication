@@ -4,7 +4,7 @@ import { apiClient } from '@/services/api-client';
 import { recurringBookingService } from '@/services/recurring-booking-service';
 import { userService } from '@/services/user-service';
 import type { Result, ServiceError } from '@/types/result';
-import { err, ok, storageError } from '@/types/result';
+import { err, ok, storageError, validationError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('FamilyRecurringService');
@@ -43,6 +43,12 @@ class FamilyRecurringService {
     userId: string,
   ): Promise<Result<FamilyRecurringPlanSummary[], ServiceError>> {
     try {
+      if (!apiClient.isMockMode) {
+        return err(
+          validationError('Recurring booking plans require backend series authority in API mode.'),
+        );
+      }
+
       const [recurringResult, bookings] = await Promise.all([
         recurringBookingService.getUserRecurringBookings(userId),
         apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
@@ -64,14 +70,19 @@ class FamilyRecurringService {
           const futureLinkedBookings = linkedBookings.filter(
             (booking) => new Date(booking.scheduledAt).getTime() >= now,
           );
-          const nextBooking = futureLinkedBookings.find((booking) => booking.status !== 'CANCELLED');
+          const nextBooking = futureLinkedBookings.find(
+            (booking) => booking.status !== 'CANCELLED',
+          );
           const activeFutureBookings = futureLinkedBookings.filter(
             (booking) => booking.status !== 'CANCELLED',
           ).length;
           const cancelledFutureBookings = futureLinkedBookings.filter(
             (booking) => booking.status === 'CANCELLED',
           ).length;
-          const coachName = await resolveDisplayName(recurring.coachId, recurring.coachId || 'Coach');
+          const coachName = await resolveDisplayName(
+            recurring.coachId,
+            recurring.coachId || 'Coach',
+          );
           const athleteName = await resolveDisplayName(
             recurring.athleteId || recurring.userId,
             recurring.athleteId || recurring.userId || 'Athlete',
@@ -106,8 +117,12 @@ class FamilyRecurringService {
           statusPriority[left.recurring.status] - statusPriority[right.recurring.status];
         if (statusDelta !== 0) return statusDelta;
 
-        const leftTime = left.nextScheduledAt ? new Date(left.nextScheduledAt).getTime() : Number.MAX_SAFE_INTEGER;
-        const rightTime = right.nextScheduledAt ? new Date(right.nextScheduledAt).getTime() : Number.MAX_SAFE_INTEGER;
+        const leftTime = left.nextScheduledAt
+          ? new Date(left.nextScheduledAt).getTime()
+          : Number.MAX_SAFE_INTEGER;
+        const rightTime = right.nextScheduledAt
+          ? new Date(right.nextScheduledAt).getTime()
+          : Number.MAX_SAFE_INTEGER;
         return leftTime - rightTime;
       });
 

@@ -66,6 +66,36 @@ test('getStatusLabel returns correct labels', () => {
   assert.strictEqual(getStatusLabel('EXPIRED'), 'Expired');
 });
 
+test('recurring booking writes fail closed in API mode', async () => {
+  const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+  Object.defineProperty(apiClient, 'isMockMode', {
+    configurable: true,
+    get: () => false,
+  });
+
+  try {
+    const createResult = await recurringBookingService.createRecurring(mockCreateParams);
+    assert.strictEqual(createResult.success, false);
+    assert.strictEqual(createResult.error?.code, 'VALIDATION');
+    assert.match(createResult.error?.message ?? '', /backend series authority/i);
+
+    const generateResult = await recurringBookingService.generateUpcomingBookings(
+      'recurring_missing',
+      2,
+    );
+    assert.strictEqual(generateResult.success, false);
+    assert.strictEqual(generateResult.error?.code, 'VALIDATION');
+
+    const cancelResult = await recurringBookingService.cancelRecurring('recurring_missing');
+    assert.strictEqual(cancelResult.success, false);
+    assert.strictEqual(cancelResult.error?.code, 'VALIDATION');
+  } finally {
+    if (originalIsMockMode) {
+      Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+    }
+  }
+});
+
 // ============================================================================
 // Service CRUD Tests
 // ============================================================================
@@ -414,7 +444,7 @@ test('generateUpcomingBookings updates recurring booking with generated IDs', as
     updatedBooking.success && updatedBooking.data
       ? updatedBooking.data.generatedBookingIds.length > 0
       : false,
-    'Should have generated booking IDs'
+    'Should have generated booking IDs',
   );
 });
 
@@ -570,10 +600,14 @@ test('getActiveUserRecurringBookings returns only active bookings', async () => 
   }
 
   const activeBookings = await recurringBookingService.getActiveUserRecurringBookings(
-    mockCreateParams.userId
+    mockCreateParams.userId,
   );
 
-  assert.strictEqual(activeBookings.success ? activeBookings.data.length : 0, 1, 'Should only return active booking');
+  assert.strictEqual(
+    activeBookings.success ? activeBookings.data.length : 0,
+    1,
+    'Should only return active booking',
+  );
   assert.strictEqual(activeBookings.success ? activeBookings.data[0].status : '', 'ACTIVE');
 });
 
@@ -581,5 +615,9 @@ test('getActiveUserRecurringBookings returns only active bookings', async () => 
 test('cleanup test data', async () => {
   await recurringBookingService.clearAll();
   const bookings = await recurringBookingService.list();
-  assert.strictEqual(bookings.success ? bookings.data.length : 0, 0, 'Should be empty after cleanup');
+  assert.strictEqual(
+    bookings.success ? bookings.data.length : 0,
+    0,
+    'Should be empty after cleanup',
+  );
 });

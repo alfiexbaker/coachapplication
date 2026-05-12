@@ -28,6 +28,8 @@ import {
 export { getDayName };
 
 const logger = createLogger('RecurringBookingService');
+const API_MODE_RECURRING_AUTHORITY_MESSAGE =
+  'Recurring booking plans require backend series authority in API mode.';
 
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
   const userResult = await userService.getUserById(userId);
@@ -73,6 +75,14 @@ export function getStatusLabel(status: RecurringBookingStatus): string {
  * Service for managing recurring booking subscriptions
  */
 class RecurringBookingService {
+  private getApiModeAuthorityError(operation: string): ServiceError | null {
+    if (apiClient.isMockMode) {
+      return null;
+    }
+    logger.warn('recurring_booking_api_mode_blocked', { operation });
+    return validationError(API_MODE_RECURRING_AUTHORITY_MESSAGE);
+  }
+
   private async listValue(): Promise<RecurringBooking[]> {
     return apiClient.get<RecurringBooking[]>(STORAGE_KEYS.RECURRING_BOOKINGS, []);
   }
@@ -133,6 +143,10 @@ class RecurringBookingService {
    */
   async list(): Promise<Result<RecurringBooking[], ServiceError>> {
     try {
+      const authorityError = this.getApiModeAuthorityError('list');
+      if (authorityError) {
+        return err(authorityError);
+      }
       return ok(await this.listValue());
     } catch (error) {
       logger.error('Failed to list recurring bookings', { error });
@@ -146,6 +160,10 @@ class RecurringBookingService {
    */
   async getById(id: string): Promise<Result<RecurringBooking | undefined, ServiceError>> {
     try {
+      const authorityError = this.getApiModeAuthorityError('getById');
+      if (authorityError) {
+        return err(authorityError);
+      }
       const bookings = await this.listValue();
       return ok(bookings.find((b) => b.id === id));
     } catch (error) {
@@ -162,6 +180,10 @@ class RecurringBookingService {
     params: CreateRecurringBookingParams,
   ): Promise<Result<RecurringBooking, ServiceError>> {
     try {
+      const authorityError = this.getApiModeAuthorityError('createRecurring');
+      if (authorityError) {
+        return err(authorityError);
+      }
       const now = new Date().toISOString();
 
       const newRecurring: RecurringBooking = {
@@ -253,6 +275,10 @@ class RecurringBookingService {
     userId: string,
   ): Promise<Result<RecurringBooking[], ServiceError>> {
     try {
+      const authorityError = this.getApiModeAuthorityError('getUserRecurringBookings');
+      if (authorityError) {
+        return err(authorityError);
+      }
       const bookings = await this.listValue();
       return ok(bookings.filter((b) => b.userId === userId));
     } catch (error) {
@@ -269,6 +295,10 @@ class RecurringBookingService {
     coachId: string,
   ): Promise<Result<RecurringBooking[], ServiceError>> {
     try {
+      const authorityError = this.getApiModeAuthorityError('getCoachRecurringBookings');
+      if (authorityError) {
+        return err(authorityError);
+      }
       const bookings = await this.listValue();
       return ok(bookings.filter((b) => b.coachId === coachId));
     } catch (error) {
@@ -315,6 +345,10 @@ class RecurringBookingService {
     reason?: string,
   ): Promise<Result<RecurringBooking, ServiceError>> {
     try {
+      const authorityError = this.getApiModeAuthorityError('cancelRecurring');
+      if (authorityError) {
+        return err(authorityError);
+      }
       const bookings = await this.listValue();
       const index = bookings.findIndex((b) => b.id === recurringId);
 
@@ -390,6 +424,10 @@ class RecurringBookingService {
     reason?: string,
   ): Promise<Result<RecurringBooking, ServiceError>> {
     try {
+      const authorityError = this.getApiModeAuthorityError('pauseRecurring');
+      if (authorityError) {
+        return err(authorityError);
+      }
       const bookings = await this.listValue();
       const index = bookings.findIndex((b) => b.id === recurringId);
 
@@ -453,6 +491,10 @@ class RecurringBookingService {
    */
   async resumeRecurring(recurringId: string): Promise<Result<RecurringBooking, ServiceError>> {
     try {
+      const authorityError = this.getApiModeAuthorityError('resumeRecurring');
+      if (authorityError) {
+        return err(authorityError);
+      }
       const bookings = await this.listValue();
       const index = bookings.findIndex((b) => b.id === recurringId);
 
@@ -522,6 +564,10 @@ class RecurringBookingService {
     count: number = 4,
   ): Promise<Result<GeneratedBookingSummary[], ServiceError>> {
     try {
+      const authorityError = this.getApiModeAuthorityError('generateUpcomingBookings');
+      if (authorityError) {
+        return err(authorityError);
+      }
       const recurringResult = await this.getById(recurringId);
       if (!recurringResult.success) {
         return recurringResult;
@@ -655,6 +701,10 @@ class RecurringBookingService {
     >,
   ): Promise<Result<RecurringBooking, ServiceError>> {
     try {
+      const authorityError = this.getApiModeAuthorityError('updateRecurring');
+      if (authorityError) {
+        return err(authorityError);
+      }
       const bookings = await this.listValue();
       const index = bookings.findIndex((b) => b.id === recurringId);
 
@@ -709,6 +759,10 @@ class RecurringBookingService {
    */
   async markSessionCompleted(recurringId: string): Promise<Result<RecurringBooking, ServiceError>> {
     try {
+      const authorityError = this.getApiModeAuthorityError('markSessionCompleted');
+      if (authorityError) {
+        return err(authorityError);
+      }
       const bookings = await this.listValue();
       const index = bookings.findIndex((b) => b.id === recurringId);
 
@@ -756,6 +810,10 @@ class RecurringBookingService {
    */
   async deleteRecurring(recurringId: string): Promise<Result<void, ServiceError>> {
     try {
+      const authorityError = this.getApiModeAuthorityError('deleteRecurring');
+      if (authorityError) {
+        return err(authorityError);
+      }
       const bookings = await this.listValue();
       const filtered = bookings.filter((b) => b.id !== recurringId);
 
@@ -827,6 +885,10 @@ class RecurringBookingService {
    */
   async checkAndExpireBookings(): Promise<Result<void, ServiceError>> {
     try {
+      const authorityError = this.getApiModeAuthorityError('checkAndExpireBookings');
+      if (authorityError) {
+        return err(authorityError);
+      }
       const bookings = await this.listValue();
       const now = new Date();
       let updated = false;
@@ -858,6 +920,11 @@ class RecurringBookingService {
    * Seed demo data for testing
    */
   async seedDemoData(): Promise<Result<void, ServiceError>> {
+    const authorityError = this.getApiModeAuthorityError('seedDemoData');
+    if (authorityError) {
+      return err(authorityError);
+    }
+
     const now = new Date();
     const startDate = new Date(now);
     startDate.setDate(startDate.getDate() - 7); // Started a week ago
@@ -941,6 +1008,10 @@ class RecurringBookingService {
    */
   async clearAll(): Promise<Result<void, ServiceError>> {
     try {
+      const authorityError = this.getApiModeAuthorityError('clearAll');
+      if (authorityError) {
+        return err(authorityError);
+      }
       await apiClient.set(STORAGE_KEYS.RECURRING_BOOKINGS, []);
       logger.info('recurring_bookings_cleared');
       return ok(undefined);

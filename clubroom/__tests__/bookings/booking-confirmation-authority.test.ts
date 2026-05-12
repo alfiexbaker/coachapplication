@@ -23,6 +23,8 @@ test('direct booking confirmation screen does not show success before API create
 test('booking mirrors are not classified as client-local authority in API mode', () => {
   const apiClientSource = readSource('services/api-client.ts');
   const bookingCrudSource = readSource('services/booking/booking-crud-service.ts');
+  const recurringSource = readSource('services/recurring-booking-service.ts');
+  const multiWeekSource = readSource('services/multi-week-booking-service.ts');
   const localKeysBlock = apiClientSource.match(
     /const CLIENT_LOCAL_STORAGE_KEYS = new Set<string>\(\[([\s\S]*?)\]\);/,
   );
@@ -35,4 +37,10 @@ test('booking mirrors are not classified as client-local authority in API mode',
   assert.ok(bookingCrudSource.includes('bookingAuthorityService.createBooking('));
   assert.ok(bookingCrudSource.includes('bookingAuthorityService.cancelBooking(id,'));
   assert.ok(bookingCrudSource.includes('bookingAuthorityService.reopenBooking(id,'));
+  assert.ok(
+    bookingCrudSource.includes('Multi-week booking batches require backend series authority'),
+  );
+  assert.ok(bookingCrudSource.includes('Direct local booking saves are disabled in API mode'));
+  assert.ok(recurringSource.includes('Recurring booking plans require backend series authority'));
+  assert.ok(multiWeekSource.includes('Multi-week booking series require backend series authority'));
 });

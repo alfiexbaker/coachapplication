@@ -520,9 +520,7 @@ class BookingCrudService {
         cancelReason: reason,
         statusBeforeCancellation: booking.status,
       } satisfies Booking);
-    const updated = bookings.map((b) =>
-      b.id === id ? localCancelledBooking : b,
-    );
+    const updated = bookings.map((b) => (b.id === id ? localCancelledBooking : b));
     const saveResult = await this.saveToStorage(updated);
     if (!saveResult.success) {
       if (authoritativeBooking) {
@@ -671,9 +669,7 @@ class BookingCrudService {
         cancelReason: undefined,
         statusBeforeCancellation: undefined,
       } satisfies Booking);
-    const updated = bookings.map((entry) =>
-      entry.id === id ? localReopenedBooking : entry,
-    );
+    const updated = bookings.map((entry) => (entry.id === id ? localReopenedBooking : entry));
     const saveResult = await this.saveToStorage(updated);
     if (!saveResult.success) {
       if (authoritativeBooking) {
@@ -1301,6 +1297,14 @@ class BookingCrudService {
    */
   async createMultipleBookings(bookings: Booking[]): Promise<Result<Booking[], ServiceError>> {
     try {
+      if (!apiClient.isMockMode) {
+        return err(
+          validationError(
+            'Multi-week booking batches require backend series authority in API mode.',
+          ),
+        );
+      }
+
       // DBS safeguarding gate for each booking in batch
       for (const booking of bookings) {
         const dbsResult = await this.validateDbsGate(
@@ -1351,6 +1355,14 @@ class BookingCrudService {
    */
   async saveBookingDirect(booking: Booking): Promise<{ success: boolean; error?: string }> {
     try {
+      if (!apiClient.isMockMode) {
+        return {
+          success: false,
+          error:
+            'Direct local booking saves are disabled in API mode. Use bookingService.createBooking().',
+        };
+      }
+
       const bookings = await this.loadFromStorage();
       bookings.push(booking);
       const saveResult = await this.saveToStorage(bookings);

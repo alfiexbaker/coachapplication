@@ -26,6 +26,8 @@ import type { Booking } from '@/constants/app-types';
 import { bookingCrudService } from './booking/booking-crud-service';
 
 const logger = createLogger('MultiWeekBookingService');
+const API_MODE_SERIES_AUTHORITY_MESSAGE =
+  'Multi-week booking series require backend series authority in API mode.';
 
 /** Maximum age (ms) before cache is considered stale. */
 const CACHE_MAX_AGE = 30_000;
@@ -78,6 +80,14 @@ class MultiWeekBookingService {
     return this._cache;
   }
 
+  private getApiModeAuthorityError(operation: string): ServiceError | null {
+    if (apiClient.isMockMode) {
+      return null;
+    }
+    logger.warn('multi_week_booking_api_mode_blocked', { operation });
+    return validationError(API_MODE_SERIES_AUTHORITY_MESSAGE);
+  }
+
   private invalidateCache(): void {
     this._cache = null;
     this._cacheTimestamp = 0;
@@ -106,6 +116,11 @@ class MultiWeekBookingService {
    * Creates N individual bookings and a BookingSeries record linking them.
    */
   async createSeries(params: CreateSeriesParams): Promise<Result<BookingSeries, ServiceError>> {
+    const authorityError = this.getApiModeAuthorityError('createSeries');
+    if (authorityError) {
+      return err(authorityError);
+    }
+
     const {
       createdById,
       createdByName,
@@ -254,6 +269,10 @@ class MultiWeekBookingService {
    */
   async getSeriesById(id: string): Promise<Result<BookingSeries, ServiceError>> {
     try {
+      const authorityError = this.getApiModeAuthorityError('getSeriesById');
+      if (authorityError) {
+        return err(authorityError);
+      }
       const cache = await this.getCache();
       const series = cache.get(id);
       if (!series) {
@@ -271,6 +290,10 @@ class MultiWeekBookingService {
    */
   async getSeriesForUser(userId: string): Promise<Result<BookingSeries[], ServiceError>> {
     try {
+      const authorityError = this.getApiModeAuthorityError('getSeriesForUser');
+      if (authorityError) {
+        return err(authorityError);
+      }
       const cache = await this.getCache();
       const results = Array.from(cache.values()).filter((s) => s.createdById === userId);
       return ok(results);
@@ -285,6 +308,10 @@ class MultiWeekBookingService {
    */
   async getSeriesForCoach(coachId: string): Promise<Result<BookingSeries[], ServiceError>> {
     try {
+      const authorityError = this.getApiModeAuthorityError('getSeriesForCoach');
+      if (authorityError) {
+        return err(authorityError);
+      }
       const cache = await this.getCache();
       const results = Array.from(cache.values()).filter((s) => s.coachId === coachId);
       return ok(results);
@@ -305,6 +332,11 @@ class MultiWeekBookingService {
     seriesId: string,
     reason?: string,
   ): Promise<Result<BookingSeries, ServiceError>> {
+    const authorityError = this.getApiModeAuthorityError('cancelSeries');
+    if (authorityError) {
+      return err(authorityError);
+    }
+
     const allSeries = await this.loadFromStorage();
     const index = allSeries.findIndex((s) => s.id === seriesId);
 
@@ -356,6 +388,11 @@ class MultiWeekBookingService {
    * Update series status (e.g. when a booking completes or cancels individually).
    */
   async updateSeriesStatus(seriesId: string): Promise<Result<BookingSeries, ServiceError>> {
+    const authorityError = this.getApiModeAuthorityError('updateSeriesStatus');
+    if (authorityError) {
+      return err(authorityError);
+    }
+
     const allSeries = await this.loadFromStorage();
     const index = allSeries.findIndex((s) => s.id === seriesId);
 

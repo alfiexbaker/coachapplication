@@ -12,18 +12,26 @@ type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
 
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
-const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
-const asNumber = (value: unknown): number | undefined => (typeof value === 'number' ? value : undefined);
+const asString = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
+const asNumber = (value: unknown): number | undefined =>
+  typeof value === 'number' ? value : undefined;
 const tokenFromHostedUrl = (value: string): string =>
   new URL(value, 'http://clubroom.test').searchParams.get('token') ?? '';
 
 function resolveDatasetPath(): string {
-  const primary = path.resolve(process.cwd(), 'docs/backend-api/test-data/marketplace/linked-dataset.json');
+  const primary = path.resolve(
+    process.cwd(),
+    'docs/backend-api/test-data/marketplace/linked-dataset.json',
+  );
   if (fs.existsSync(primary)) {
     return primary;
   }
 
-  const fallback = path.resolve(process.cwd(), '../../docs/backend-api/test-data/marketplace/linked-dataset.json');
+  const fallback = path.resolve(
+    process.cwd(),
+    '../../docs/backend-api/test-data/marketplace/linked-dataset.json',
+  );
   if (fs.existsSync(fallback)) {
     return fallback;
   }
@@ -61,9 +69,9 @@ function findBillableBookingWithoutInvoice(tables: SeedTables): SeedRow | undefi
     }
     return asRows(tables.bookingParticipants).some(
       (participant) =>
-        asString(participant.bookingId) === bookingId
-        && !asString(participant.deletedAt)
-        && Boolean(asString(participant.athleteId)),
+        asString(participant.bookingId) === bookingId &&
+        !asString(participant.deletedAt) &&
+        Boolean(asString(participant.athleteId)),
     );
   });
 }
@@ -279,10 +287,22 @@ describe('wave2+ routes', () => {
       }>;
     };
     assert.equal(payload.total >= 1, true);
-    assert.equal(payload.invoices.every((invoice) => invoice.coachId === coachUserId), true);
-    assert.equal(payload.invoices.every((invoice) => invoice.status === 'SENT'), true);
-    assert.equal(payload.invoices.every((invoice) => typeof invoice.total === 'number'), true);
-    assert.equal(payload.invoices.every((invoice) => Boolean(invoice.userId)), true);
+    assert.equal(
+      payload.invoices.every((invoice) => invoice.coachId === coachUserId),
+      true,
+    );
+    assert.equal(
+      payload.invoices.every((invoice) => invoice.status === 'SENT'),
+      true,
+    );
+    assert.equal(
+      payload.invoices.every((invoice) => typeof invoice.total === 'number'),
+      true,
+    );
+    assert.equal(
+      payload.invoices.every((invoice) => Boolean(invoice.userId)),
+      true,
+    );
 
     const bookingLookup = await app.inject({
       method: 'GET',
@@ -380,14 +400,16 @@ describe('wave2+ routes', () => {
     assert.equal(invoiceBeforePayload.invoice.status, 'SENT');
     assert.equal(
       invoiceBeforePayload.events.some(
-        (event) => event.eventType === 'PAYMENT_SESSION_CREATED' && event.actorUserId === payerUserId,
+        (event) =>
+          event.eventType === 'PAYMENT_SESSION_CREATED' && event.actorUserId === payerUserId,
       ),
       true,
     );
     assert.equal(
       invoiceBeforePayload.paymentAttempts.some(
         (attempt) =>
-          attempt.id === sessionPayload.paymentSession.attemptId && attempt.status === 'ACTION_REQUIRED',
+          attempt.id === sessionPayload.paymentSession.attemptId &&
+          attempt.status === 'ACTION_REQUIRED',
       ),
       true,
     );
@@ -401,7 +423,10 @@ describe('wave2+ routes', () => {
       payload: { token },
     });
     assert.equal(completed.statusCode, 200);
-    const completedPayload = completed.json() as { invoiceStatus: string; alreadyCompleted: boolean };
+    const completedPayload = completed.json() as {
+      invoiceStatus: string;
+      alreadyCompleted: boolean;
+    };
     assert.equal(completedPayload.invoiceStatus, 'PAID');
     assert.equal(completedPayload.alreadyCompleted, false);
 
@@ -427,9 +452,9 @@ describe('wave2+ routes', () => {
     assert.equal(
       invoiceAfterPayload.paymentAttempts.some(
         (attempt) =>
-          attempt.id === sessionPayload.paymentSession.attemptId
-          && attempt.status === 'COMPLETED'
-          && Boolean(attempt.confirmedAt),
+          attempt.id === sessionPayload.paymentSession.attemptId &&
+          attempt.status === 'COMPLETED' &&
+          Boolean(attempt.confirmedAt),
       ),
       true,
     );
@@ -441,7 +466,10 @@ describe('wave2+ routes', () => {
       payload: { token },
     });
     assert.equal(idempotentComplete.statusCode, 200);
-    const idempotentPayload = idempotentComplete.json() as { alreadyCompleted: boolean; invoiceStatus: string };
+    const idempotentPayload = idempotentComplete.json() as {
+      alreadyCompleted: boolean;
+      invoiceStatus: string;
+    };
     assert.equal(idempotentPayload.alreadyCompleted, true);
     assert.equal(idempotentPayload.invoiceStatus, 'PAID');
   });
@@ -575,6 +603,191 @@ describe('wave2+ routes', () => {
     assert.equal(idempotentPayload.invoice.bookingId, bookingId);
   });
 
+  it('reconciles db-mode invoice money state against authoritative booking state', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const authTables = loadTables();
+      const fixtureStore = getDbFixtureStore();
+      const booking = findBillableBookingWithoutInvoice(fixtureStore.tables);
+      assert.ok(booking, 'expected db-fixture billable booking without existing invoice');
+      const bookingId = asString(booking.id) as string;
+      const coachUserId = asString(booking.coachUserId) as string;
+
+      const generated = await app.inject({
+        method: 'POST',
+        url: '/v1/invoices/generate',
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+        payload: {
+          bookingId,
+          notes: 'DB-mode booking-linked invoice proof',
+        },
+      });
+      assert.equal(generated.statusCode, 201);
+      const generatedPayload = generated.json() as {
+        invoice: { id: string; bookingId: string; coachId: string; status: string };
+      };
+      assert.equal(generatedPayload.invoice.bookingId, bookingId);
+      assert.equal(generatedPayload.invoice.coachId, coachUserId);
+      assert.equal(generatedPayload.invoice.status, 'SENT');
+
+      const storedGenerated = asRows(getDbFixtureStore().tables.invoices).find(
+        (row) => asString(row.id) === generatedPayload.invoice.id,
+      );
+      assert.equal(asString(storedGenerated?.bookingId), bookingId);
+
+      const markedPaid = await app.inject({
+        method: 'POST',
+        url: `/v1/invoices/${generatedPayload.invoice.id}/mark-paid`,
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+        payload: { reason: 'Bank transfer received' },
+      });
+      assert.equal(markedPaid.statusCode, 200);
+      const markedPaidPayload = markedPaid.json() as {
+        invoice: { bookingId: string; status: string; paidAt?: string };
+        events: Array<{ eventType?: string; metadataJson?: { bookingId?: string } }>;
+        reconcilerEntry: { state?: string } | null;
+      };
+      assert.equal(markedPaidPayload.invoice.bookingId, bookingId);
+      assert.equal(markedPaidPayload.invoice.status, 'PAID');
+      assert.equal(Boolean(markedPaidPayload.invoice.paidAt), true);
+      assert.equal(markedPaidPayload.reconcilerEntry?.state, 'PAID');
+      assert.equal(
+        markedPaidPayload.events.some(
+          (event) =>
+            event.eventType === 'MARKED_PAID' && event.metadataJson?.bookingId === bookingId,
+        ),
+        true,
+      );
+
+      const markedUnpaid = await app.inject({
+        method: 'POST',
+        url: `/v1/invoices/${generatedPayload.invoice.id}/mark-unpaid`,
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+        payload: { reason: 'Payment disputed before provider cutover' },
+      });
+      assert.equal(markedUnpaid.statusCode, 200);
+      const markedUnpaidPayload = markedUnpaid.json() as {
+        invoice: { status: string };
+        reconcilerEntry: { state?: string } | null;
+      };
+      assert.equal(markedUnpaidPayload.invoice.status, 'SENT');
+      assert.equal(markedUnpaidPayload.reconcilerEntry?.state, 'OUTSTANDING');
+
+      const writtenOff = await app.inject({
+        method: 'POST',
+        url: `/v1/invoices/${generatedPayload.invoice.id}/write-off`,
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+        payload: { reason: 'Goodwill adjustment before Stripe refunds exist' },
+      });
+      assert.equal(writtenOff.statusCode, 200);
+      assert.equal(
+        (writtenOff.json() as { invoice: { status: string } }).invoice.status,
+        'WRITTEN_OFF',
+      );
+
+      const restored = await app.inject({
+        method: 'POST',
+        url: `/v1/invoices/${generatedPayload.invoice.id}/restore`,
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+      });
+      assert.equal(restored.statusCode, 200);
+      assert.equal((restored.json() as { invoice: { status: string } }).invoice.status, 'SENT');
+
+      const voided = await app.inject({
+        method: 'POST',
+        url: `/v1/invoices/${generatedPayload.invoice.id}/void`,
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+        payload: { reason: 'Session cancelled before payment' },
+      });
+      assert.equal(voided.statusCode, 200);
+      const voidedPayload = voided.json() as {
+        invoice: { bookingId: string; status: string; voidReason?: string };
+        reconcilerEntry: { state?: string } | null;
+      };
+      assert.equal(voidedPayload.invoice.bookingId, bookingId);
+      assert.equal(voidedPayload.invoice.status, 'VOID');
+      assert.equal(voidedPayload.invoice.voidReason, 'Session cancelled before payment');
+      assert.equal(voidedPayload.reconcilerEntry?.state, 'VOID');
+
+      const storedFinal = asRows(getDbFixtureStore().tables.invoices).find(
+        (row) => asString(row.id) === generatedPayload.invoice.id,
+      );
+      assert.equal(asString(storedFinal?.bookingId), bookingId);
+      assert.equal(asString(storedFinal?.status), 'VOID');
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetMarketplaceSeedStoreForTests();
+      resetDbFixtureStoreForTests();
+    }
+  });
+
+  it('rejects db-mode payment and reconciler changes when the linked booking is stale', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const authTables = loadTables();
+      const fixtureStore = getDbFixtureStore();
+      const booking = findBillableBookingWithoutInvoice(fixtureStore.tables);
+      assert.ok(booking, 'expected db-fixture billable booking without existing invoice');
+      const bookingId = asString(booking.id) as string;
+      const coachUserId = asString(booking.coachUserId) as string;
+
+      const generated = await app.inject({
+        method: 'POST',
+        url: '/v1/invoices/generate',
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+        payload: {
+          bookingId,
+        },
+      });
+      assert.equal(generated.statusCode, 201);
+      const generatedPayload = generated.json() as {
+        invoice: { id: string; userId?: string; bookingId: string; status: string };
+      };
+      assert.equal(generatedPayload.invoice.bookingId, bookingId);
+      assert.equal(generatedPayload.invoice.status, 'SENT');
+
+      const payerUserId = generatedPayload.invoice.userId;
+      assert.ok(payerUserId, 'expected generated invoice to resolve a payer');
+      fixtureStore.tables.bookings = asRows(fixtureStore.tables.bookings).filter(
+        (row) => asString(row.id) !== bookingId,
+      );
+
+      const markedPaid = await app.inject({
+        method: 'POST',
+        url: `/v1/invoices/${generatedPayload.invoice.id}/mark-paid`,
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+        payload: { reason: 'Should not bypass booking authority' },
+      });
+      assert.equal(markedPaid.statusCode, 400);
+      assert.match(markedPaid.body, /booking link is no longer authoritative/i);
+
+      const paymentSession = await app.inject({
+        method: 'POST',
+        url: `/v1/invoices/${generatedPayload.invoice.id}/payments`,
+        headers: authHeaders(authTables, payerUserId, 'parent'),
+        payload: {
+          method: 'card',
+          idempotencyKey: 'stale-booking-link-test',
+        },
+      });
+      assert.equal(paymentSession.statusCode, 400);
+      assert.match(paymentSession.body, /booking link is no longer authoritative/i);
+
+      const storedInvoice = asRows(getDbFixtureStore().tables.invoices).find(
+        (row) => asString(row.id) === generatedPayload.invoice.id,
+      );
+      assert.equal(asString(storedInvoice?.status), 'SENT');
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetMarketplaceSeedStoreForTests();
+      resetDbFixtureStoreForTests();
+    }
+  });
+
   it('queues reminders through the backend for authoritative invoices', async () => {
     const tables = loadTables();
     const sentInvoice = asRows(tables.invoices).find((row) => asString(row.status) === 'SENT');
@@ -625,7 +838,10 @@ describe('wave2+ routes', () => {
       events: Array<{ eventType?: string }>;
     };
     assert.equal(detailPayload.invoice.status, 'SENT');
-    assert.equal(detailPayload.events.some((event) => event.eventType === 'REMINDER_SENT'), true);
+    assert.equal(
+      detailPayload.events.some((event) => event.eventType === 'REMINDER_SENT'),
+      true,
+    );
   });
 
   it('lets a coach reconcile invoice status transitions through v1 routes', async () => {
@@ -689,7 +905,9 @@ describe('wave2+ routes', () => {
       payload: { reason: 'Session cancelled by coach' },
     });
     assert.equal(voided.statusCode, 200);
-    const voidPayload = voided.json() as { invoice: { status: string; voidReason?: string; voidedAt?: string } };
+    const voidPayload = voided.json() as {
+      invoice: { status: string; voidReason?: string; voidedAt?: string };
+    };
     assert.equal(voidPayload.invoice.status, 'VOID');
     assert.equal(voidPayload.invoice.voidReason, 'Session cancelled by coach');
     assert.equal(Boolean(voidPayload.invoice.voidedAt), true);
@@ -707,10 +925,22 @@ describe('wave2+ routes', () => {
     };
     assert.equal(detailPayload.invoice.status, 'VOID');
     assert.equal(detailPayload.reconcilerEntry?.state, 'VOID');
-    assert.equal(detailPayload.events.some((event) => event.eventType === 'MARKED_UNPAID'), true);
-    assert.equal(detailPayload.events.some((event) => event.eventType === 'WRITTEN_OFF'), true);
-    assert.equal(detailPayload.events.some((event) => event.eventType === 'RESTORED'), true);
-    assert.equal(detailPayload.events.some((event) => event.eventType === 'VOIDED'), true);
+    assert.equal(
+      detailPayload.events.some((event) => event.eventType === 'MARKED_UNPAID'),
+      true,
+    );
+    assert.equal(
+      detailPayload.events.some((event) => event.eventType === 'WRITTEN_OFF'),
+      true,
+    );
+    assert.equal(
+      detailPayload.events.some((event) => event.eventType === 'RESTORED'),
+      true,
+    );
+    assert.equal(
+      detailPayload.events.some((event) => event.eventType === 'VOIDED'),
+      true,
+    );
   });
 
   it('serves progress-goals-badges for related guardian and blocks unrelated users', async () => {
@@ -733,7 +963,10 @@ describe('wave2+ routes', () => {
       headers: parentHeaders,
     });
     assert.equal(progress.statusCode, 200);
-    const progressPayload = progress.json() as { sessionNotes: unknown[]; skillAssessments: unknown[] };
+    const progressPayload = progress.json() as {
+      sessionNotes: unknown[];
+      skillAssessments: unknown[];
+    };
     assert.equal(progressPayload.sessionNotes.length >= 1, true);
     assert.equal(progressPayload.skillAssessments.length >= 1, true);
 
@@ -763,34 +996,42 @@ describe('wave2+ routes', () => {
         return false;
       }
       const coachBookings = asRows(tables.bookings)
-        .filter((booking) => asString(booking.coachUserId) === coachUserId && !asString(booking.deletedAt))
+        .filter(
+          (booking) =>
+            asString(booking.coachUserId) === coachUserId && !asString(booking.deletedAt),
+        )
         .map((booking) => asString(booking.id))
         .filter((bookingId): bookingId is string => Boolean(bookingId));
       const hasBookingRelationship = asRows(tables.bookingParticipants).some(
         (participant) =>
-          !asString(participant.deletedAt)
-          && asString(participant.athleteId) === athleteId
-          && coachBookings.includes(asString(participant.bookingId) ?? ''),
+          !asString(participant.deletedAt) &&
+          asString(participant.athleteId) === athleteId &&
+          coachBookings.includes(asString(participant.bookingId) ?? ''),
       );
       const coachSessions = asRows(tables.groupSessions)
-        .filter((session) => asString(session.coachUserId) === coachUserId && !asString(session.deletedAt))
+        .filter(
+          (session) =>
+            asString(session.coachUserId) === coachUserId && !asString(session.deletedAt),
+        )
         .map((session) => asString(session.id))
         .filter((sessionId): sessionId is string => Boolean(sessionId));
       const hasGroupRelationship = asRows(tables.groupSessionRegistrations).some(
         (registration) =>
-          !asString(registration.deletedAt)
-          && asString(registration.athleteId) === athleteId
-          && coachSessions.includes(asString(registration.groupSessionId) ?? ''),
+          !asString(registration.deletedAt) &&
+          asString(registration.athleteId) === athleteId &&
+          coachSessions.includes(asString(registration.groupSessionId) ?? ''),
       );
       const ownedSquads = asRows(tables.squads)
-        .filter((squad) => asString(squad.ownerCoachUserId) === coachUserId && !asString(squad.deletedAt))
+        .filter(
+          (squad) => asString(squad.ownerCoachUserId) === coachUserId && !asString(squad.deletedAt),
+        )
         .map((squad) => asString(squad.id))
         .filter((squadId): squadId is string => Boolean(squadId));
       const hasSquadRelationship = asRows(tables.squadMemberships).some(
         (membership) =>
-          !asString(membership.deletedAt)
-          && asString(membership.athleteId) === athleteId
-          && ownedSquads.includes(asString(membership.squadId) ?? ''),
+          !asString(membership.deletedAt) &&
+          asString(membership.athleteId) === athleteId &&
+          ownedSquads.includes(asString(membership.squadId) ?? ''),
       );
       return !hasBookingRelationship && !hasGroupRelationship && !hasSquadRelationship;
     });
@@ -814,7 +1055,10 @@ describe('wave2+ routes', () => {
         headers: authHeaders(tables, drillAuthorId, 'coach'),
       });
       assert.equal(drills.statusCode, 200);
-      const drillsPayload = drills.json() as { drills: Array<{ assignments: unknown[] }>; total: number };
+      const drillsPayload = drills.json() as {
+        drills: Array<{ assignments: unknown[] }>;
+        total: number;
+      };
       assert.equal(drillsPayload.total >= 1, true);
       assert.equal(drillsPayload.drills[0]?.assignments.length >= 1, true);
 
@@ -831,7 +1075,11 @@ describe('wave2+ routes', () => {
         },
       });
       assert.equal(uploadInit.statusCode, 201);
-      const uploadPayload = uploadInit.json() as { uploadSessionId: string; mediaObjectId: string; uploadUrl: string };
+      const uploadPayload = uploadInit.json() as {
+        uploadSessionId: string;
+        mediaObjectId: string;
+        uploadUrl: string;
+      };
       assert.match(uploadPayload.uploadSessionId, /^ups_/);
       assert.match(uploadPayload.mediaObjectId, /^med_/);
       assert.match(uploadPayload.uploadUrl, /^https:\/\/uploads\.clubroom\.local\//);
@@ -852,7 +1100,9 @@ describe('wave2+ routes', () => {
       assert.equal(videoPayload.video.visibility, 'PRIVATE');
       assert.match(videoPayload.video.playbackUrl, /^https:\/\/storage\.clubroom\.test\//);
 
-      const communityUserId = asString(asRows(tables.communityGroupMemberships)[0]?.userId) as string;
+      const communityUserId = asString(
+        asRows(tables.communityGroupMemberships)[0]?.userId,
+      ) as string;
       const communityGroups = await app.inject({
         method: 'GET',
         url: '/v1/community-groups',
@@ -910,7 +1160,9 @@ describe('wave2+ routes', () => {
         const videoRow = asRows(tables.videos)[0];
         const videoId = asString(videoRow?.id) as string;
         const videoReaderUserId = asString(videoRow?.coachUserId) as string;
-        const communityUserId = asString(asRows(tables.communityGroupMemberships)[0]?.userId) as string;
+        const communityUserId = asString(
+          asRows(tables.communityGroupMemberships)[0]?.userId,
+        ) as string;
         const groupId = asString(asRows(tables.communityGroups)[0]?.id) as string;
         const messagingUserId = asString(asRows(tables.messageParticipants)[0]?.userId) as string;
         const notificationUserId = asString(asRows(tables.notifications)[0]?.userId) as string;
@@ -957,11 +1209,15 @@ describe('wave2+ routes', () => {
 
   it('denies outsider access to unrelated video detail', async () => {
     const tables = loadTables();
-    const video = asRows(tables.videos).find((row) => Boolean(asString(row.id)) && Boolean(asString(row.athleteId)));
+    const video = asRows(tables.videos).find(
+      (row) => Boolean(asString(row.id)) && Boolean(asString(row.athleteId)),
+    );
     assert.ok(video, 'expected seeded video with athlete relationship');
     const athleteId = asString(video.athleteId) as string;
     const athleteUserId = asString(
-      asRows(tables.athletes).find((row) => asString(row.id) === athleteId && !asString(row.deletedAt))?.userId,
+      asRows(tables.athletes).find(
+        (row) => asString(row.id) === athleteId && !asString(row.deletedAt),
+      )?.userId,
     );
     const relatedUserIds = new Set(
       [
@@ -987,7 +1243,9 @@ describe('wave2+ routes', () => {
   it('keeps athlete family access closed until the coach explicitly shares a video', async () => {
     await withStorageEnv(async () => {
       const tables = loadTables();
-      const video = asRows(tables.videos).find((row) => Boolean(asString(row.id)) && Boolean(asString(row.athleteId)));
+      const video = asRows(tables.videos).find(
+        (row) => Boolean(asString(row.id)) && Boolean(asString(row.athleteId)),
+      );
       assert.ok(video, 'expected seeded video with athlete relationship');
       const videoId = asString(video.id) as string;
       const athleteId = asString(video.athleteId) as string;
@@ -1015,7 +1273,9 @@ describe('wave2+ routes', () => {
         },
       });
       assert.equal(shared.statusCode, 200);
-      const sharedPayload = shared.json() as { video: { sharedWithUserIds: string[]; visibility: string } };
+      const sharedPayload = shared.json() as {
+        video: { sharedWithUserIds: string[]; visibility: string };
+      };
       assert.equal(sharedPayload.video.visibility, 'SHARED');
       assert.equal(sharedPayload.video.sharedWithUserIds.includes(guardianUserId), true);
 
@@ -1037,9 +1297,9 @@ describe('wave2+ routes', () => {
       asRows(tables.communityGroupMemberships)
         .filter(
           (row) =>
-            asString(row.communityGroupId) === groupId
-            && !asString(row.deletedAt)
-            && asString(row.userId),
+            asString(row.communityGroupId) === groupId &&
+            !asString(row.deletedAt) &&
+            asString(row.userId),
         )
         .map((row) => asString(row.userId) as string),
     );
@@ -1106,8 +1366,12 @@ describe('wave2+ routes', () => {
       assert.equal(payload.storageKey.includes('../'), false);
 
       const fixtureTables = getDbFixtureStore().tables;
-      const uploadSession = asRows(fixtureTables.uploadSessions).find((row) => asString(row.id) === payload.uploadSessionId);
-      const mediaObject = asRows(fixtureTables.mediaObjects).find((row) => asString(row.id) === payload.mediaObjectId);
+      const uploadSession = asRows(fixtureTables.uploadSessions).find(
+        (row) => asString(row.id) === payload.uploadSessionId,
+      );
+      const mediaObject = asRows(fixtureTables.mediaObjects).find(
+        (row) => asString(row.id) === payload.mediaObjectId,
+      );
       assert.ok(uploadSession);
       assert.ok(mediaObject);
       assert.equal(asString(mediaObject?.status), 'PENDING_UPLOAD');
@@ -1156,7 +1420,9 @@ describe('wave2+ routes', () => {
           },
         });
         assert.equal(created.statusCode, 201);
-        const createdPayload = created.json() as { video: { id: string; title: string; uploadStatus: string } };
+        const createdPayload = created.json() as {
+          video: { id: string; title: string; uploadStatus: string };
+        };
         assert.equal(createdPayload.video.title, 'Technical Review');
         assert.equal(createdPayload.video.uploadStatus, 'READY');
 
@@ -1172,7 +1438,9 @@ describe('wave2+ routes', () => {
           },
         });
         assert.equal(annotation.statusCode, 201);
-        const annotationPayload = annotation.json() as { annotation: { label: string; note?: string; type: string } };
+        const annotationPayload = annotation.json() as {
+          annotation: { label: string; note?: string; type: string };
+        };
         assert.equal(annotationPayload.annotation.label, 'Footwork');
         assert.equal(annotationPayload.annotation.note, 'Open up earlier');
         assert.equal(annotationPayload.annotation.type, 'TECHNIQUE');
@@ -1393,7 +1661,9 @@ describe('wave2+ routes', () => {
     const parentNoKidsUserId = asRows(tables.userRoleMemberships)
       .filter((row) => asString(row.role) === 'parent')
       .map((row) => asString(row.userId))
-      .find((userId): userId is string => Boolean(userId) && !guardianUserIds.has(userId as string));
+      .find(
+        (userId): userId is string => Boolean(userId) && !guardianUserIds.has(userId as string),
+      );
     assert.ok(parentNoKidsUserId, 'expected seeded parent user with no kids');
     const parentNoKidsId = parentNoKidsUserId as string;
 
@@ -1403,7 +1673,10 @@ describe('wave2+ routes', () => {
       headers: authHeaders(tables, parentNoKidsId, 'parent'),
     });
     assert.equal(parentNoKidsMe.statusCode, 200);
-    const parentNoKidsPayload = parentNoKidsMe.json() as { linkedFamilies: unknown[]; linkedAthletes: unknown[] };
+    const parentNoKidsPayload = parentNoKidsMe.json() as {
+      linkedFamilies: unknown[];
+      linkedAthletes: unknown[];
+    };
     assert.equal(parentNoKidsPayload.linkedFamilies.length, 0);
     assert.equal(parentNoKidsPayload.linkedAthletes.length, 0);
 
@@ -1433,7 +1706,10 @@ describe('wave2+ routes', () => {
       headers: authHeaders(tables, standaloneMemberId, 'member'),
     });
     assert.equal(standaloneMemberClubs.statusCode, 200);
-    const standaloneMemberClubsPayload = standaloneMemberClubs.json() as { clubs: unknown[]; total: number };
+    const standaloneMemberClubsPayload = standaloneMemberClubs.json() as {
+      clubs: unknown[];
+      total: number;
+    };
     assert.equal(standaloneMemberClubsPayload.total, 0);
     assert.equal(standaloneMemberClubsPayload.clubs.length, 0);
 
