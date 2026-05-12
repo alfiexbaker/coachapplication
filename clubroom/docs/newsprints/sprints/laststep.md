@@ -4,6 +4,13 @@ Date: 2026-05-12
 
 ## Latest Update
 
+1. Added a no-human-review AI development pipeline: `docs/AI_DEVELOPMENT_PIPELINE.md`, `docs/templates/AI_TASK_PACKET.md`, and `scripts/verify-slice.js`.
+2. Wired `npm run verify:slice`, `verify:slice:app`, `verify:slice:api`, `verify:slice:ui`, and `verify:slice:full` into `package.json`.
+3. Updated `CODEX.md`, `START_HERE.md`, `KNOWLEDGE_SPINE.md`, and `BACKLOG.md` so future AI slices use the task packet plus executable gates instead of relying on manual review.
+4. Verification: `npm run verify:slice` passed. It retained existing warnings for DB staging readiness and `90` PDOS route decisions without treating them as a false green release signal.
+
+## Previous Update
+
 1. Sentry app project `tubton/react-native` is connected and receiving staging events.
 2. Resolved the local wizard drift in code: app Sentry initialization remains centralized in `services/observability/sentry-service.ts`, with no hardcoded DSN, duplicate wrapper, or broad PII/session-replay config in `app/_layout.tsx`.
 3. Added `OBS-RUNTIME-01` to the sprint backlog as the immediate runtime/observability gate.
@@ -11,7 +18,7 @@ Date: 2026-05-12
 5. Root cause for the real Sentry issues: the Expo app was running in API mode while the Fastify API was not listening on port `4000`.
 6. Starting `npm --prefix apps/api run dev` makes `/v1/ready` respond; it remains `degraded` until API `SENTRY_DSN` is configured.
 
-## Previous Update
+## Earlier Update
 
 1. Added API/UI anti-slop rules to `CODEX.md`, backend API docs, and UI/API bilateral alignment docs.
 2. Added `scripts/api-boundary-audit.js` and wired `npm run audit:api-boundaries` into `npm run audit:architecture`.

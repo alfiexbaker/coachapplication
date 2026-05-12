@@ -58,3 +58,4 @@ Active implementation and next steps:
 - Prefer executable truth over prose when both exist.
 - Prefer current retained docs over old dated notes.
 - If a doc contradicts current code, fix the doc or remove it.
+- For non-trivial AI implementation slices, use `docs/templates/AI_TASK_PACKET.md` and verify with the narrowest matching `npm run verify:slice*` command.

@@ -147,6 +147,16 @@ Required progress behavior during implementation:
 
 ## 6) Verification Gates
 
+Default AI slice gate:
+
+- use `npm run verify:slice` for the static guardrails that should run on every non-trivial slice
+- use `npm run verify:slice:app` when Expo app TypeScript, services, hooks, routes, or UI change
+- use `npm run verify:slice:api` when Fastify API, backend contracts, authz, persistence, or API tests change
+- use `npm run verify:slice:ui` when controls, loading states, empty states, accessibility labels, or route interactions change
+- use `npm run verify:slice:full` when a slice crosses app, API, and UI behavior
+- use `docs/templates/AI_TASK_PACKET.md` to scope non-trivial AI tasks before implementation
+- use `docs/AI_DEVELOPMENT_PIPELINE.md` for the full no-human-review operating loop
+
 Minimum gate for non-trivial changes:
 
 - run targeted tests for the touched area

@@ -67,6 +67,9 @@ Decision:
 
 ## Agentic Environment Gates
 
+- `npm run verify:slice` is the default no-human-review slice gate for static guardrails, agentic readiness, API boundary drift, native alert usage, dead UI actions, and `git diff --check`.
+- `npm run verify:slice:app`, `npm run verify:slice:api`, `npm run verify:slice:ui`, and `npm run verify:slice:full` add the relevant app, API, UI, or combined verification gates.
+- `docs/templates/AI_TASK_PACKET.md` is the standard planning packet for non-trivial AI implementation slices.
 - `node ./scripts/agentic-readiness-pipeline.js` is the broad local runner for DB staging readiness, PDOS route authority, and static UI-quality checks.
 - `node ./scripts/db-staging-preflight.js` checks whether a real staging DB/API/object-storage rehearsal can start without pretending missing env is product progress.
 - `node ./scripts/pdos-route-authority-audit.js` gives agents the current route-to-sprint/persona/verdict matrix plus route risks such as direct fetches, local storage authority, native alerts, money hard walls, and sensitive reads.

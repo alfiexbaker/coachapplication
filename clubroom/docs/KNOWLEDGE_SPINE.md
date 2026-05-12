@@ -42,6 +42,10 @@ Org and commercial-model analysis:
 Active implementation queue:
 - `docs/newsprints/README.md`
 
+AI development pipeline and task packets:
+- `docs/AI_DEVELOPMENT_PIPELINE.md`
+- `docs/templates/AI_TASK_PACKET.md`
+
 ## Deep Sources To Trust
 
 - Product truth: `docs/SOURCE_OF_TRUTH.md`
@@ -56,4 +60,5 @@ Active implementation queue:
 - Do not read every linked doc by default.
 - For club authority questions, use the executable governance source before prose.
 - For API work, tie every decision back to real UI consumers.
+- For non-trivial AI implementation work, scope the slice with the task packet and run the narrowest matching `npm run verify:slice*` command.
 - Update this spine when a canonical path or runtime contract changes.
