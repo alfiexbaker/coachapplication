@@ -5,6 +5,7 @@ import {
   bookingIdSchema,
   cancelBookingRequestSchema,
   createBookingRequestSchema,
+  createBookingSeriesRequestSchema,
   inviteResponseRequestSchema,
   reopenBookingRequestSchema,
   registerGroupSessionRequestSchema,
@@ -16,6 +17,12 @@ import {
   resolveBookingRepository,
   type SeedTables,
 } from '../../repositories/p0/booking-repository.js';
+import {
+  assertBookingSeriesCreateAccess,
+  assertBookingSeriesOccurrencesValid,
+  resolveCreateBookingSeriesIdempotency,
+  resolveBookingSeriesRepository,
+} from '../../repositories/p0/booking-series-repository.js';
 import { resolveGroupSessionRepository } from '../../repositories/p0/group-session-repository.js';
 import { isPrivilegedAdminAuth } from '../../lib/authz.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
@@ -501,6 +508,41 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     });
     const repository = resolveBookingRepository();
     const response = await repository.createBooking({
+      authUserId,
+      requestId: request.requestId,
+      body,
+    });
+    return reply.status(201).send(response);
+  });
+
+  app.post('/booking-series', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const body = createBookingSeriesRequestSchema.parse(request.body);
+    const idempotentResponse = await resolveCreateBookingSeriesIdempotency({ authUserId, body });
+    if (idempotentResponse) {
+      return reply.status(idempotentResponse.responseStatus).send(idempotentResponse.response);
+    }
+
+    assertBookingSeriesOccurrencesValid(body);
+    await assertBookingSeriesCreateAccess({ authUserId, body });
+
+    const availability = await resolveCoachAvailabilityTables(body.coachUserId);
+    for (const occurrence of body.occurrences) {
+      assertCoachAvailabilitySlotOpen({
+        tables: availability.tables,
+        coachUserId: body.coachUserId,
+        scheduledAt: occurrence.scheduledAt,
+        durationMinutes: occurrence.durationMinutes,
+        applySchedulingRules: true,
+      });
+    }
+
+    const repository = resolveBookingSeriesRepository();
+    const response = await repository.createBookingSeries({
       authUserId,
       requestId: request.requestId,
       body,

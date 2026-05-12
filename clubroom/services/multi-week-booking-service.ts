@@ -12,6 +12,7 @@ import { apiClient } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
+import { bookingAuthorityService } from '@/services/booking/booking-authority-service';
 import {
   type Result,
   type ServiceError,
@@ -116,11 +117,6 @@ class MultiWeekBookingService {
    * Creates N individual bookings and a BookingSeries record linking them.
    */
   async createSeries(params: CreateSeriesParams): Promise<Result<BookingSeries, ServiceError>> {
-    const authorityError = this.getApiModeAuthorityError('createSeries');
-    if (authorityError) {
-      return err(authorityError);
-    }
-
     const {
       createdById,
       createdByName,
@@ -157,6 +153,71 @@ class MultiWeekBookingService {
     }
     if (athleteIds.length === 0) {
       return err(validationError('At least one athlete must be specified'));
+    }
+
+    if (!apiClient.isMockMode) {
+      const apiResult = await bookingAuthorityService.createBookingSeries({
+        coachId,
+        athleteIds,
+        bookedById: createdById,
+        selectedWeeks,
+        startTime,
+        duration,
+        location,
+        sessionType,
+        focus,
+        notes,
+        pricePerSession,
+        patternLabel,
+      });
+
+      if (!apiResult.success) {
+        return err(apiResult.error);
+      }
+
+      const apiSeries = apiResult.data.series;
+      const series: BookingSeries = {
+        id: apiSeries.id,
+        bookingIds: apiSeries.bookingIds,
+        createdById,
+        createdByName,
+        coachId,
+        coachName,
+        athleteIds,
+        athleteNames,
+        sessionType,
+        focus,
+        pricePerSession,
+        selectedWeeks,
+        totalCost:
+          typeof apiSeries.totalPriceMinor === 'number'
+            ? apiSeries.totalPriceMinor / 100
+            : (pricePerSession ?? 0) * apiSeries.bookingIds.length,
+        patternLabel: apiSeries.patternLabel ?? patternLabel,
+        location,
+        sessionInviteId,
+        createdAt: apiSeries.createdAt,
+        status: apiSeries.status,
+      };
+
+      emitTyped(ServiceEvents.SERIES_CREATED, {
+        seriesId: series.id,
+        coachId,
+        coachName,
+        createdById,
+        bookingIds: series.bookingIds,
+        weekCount: series.bookingIds.length,
+        totalCost: series.totalCost,
+        location,
+      });
+
+      logger.info('Series created via API authority', {
+        seriesId: series.id,
+        weekCount: series.bookingIds.length,
+        totalCost: series.totalCost,
+      });
+
+      return ok(series);
     }
 
     const seriesId = apiClient.generateId('series');

@@ -67,6 +67,43 @@ interface CreateApiBookingInput {
   idempotencyKey?: string;
 }
 
+interface CreateApiBookingSeriesInput {
+  coachId: string;
+  athleteIds: string[];
+  bookedById: string;
+  selectedWeeks: string[];
+  startTime: string;
+  duration: number;
+  location: string;
+  sessionType: string;
+  focus?: string;
+  notes?: string;
+  pricePerSession?: number;
+  patternLabel?: string;
+  idempotencyKey?: string;
+}
+
+interface ApiBookingSeriesResponse {
+  series: {
+    id: string;
+    coachUserId: string;
+    bookedByUserId: string;
+    athleteIds: string[];
+    frequency: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'CUSTOM';
+    patternLabel?: string | null;
+    status: 'ACTIVE' | 'PARTIAL' | 'COMPLETED' | 'CANCELLED';
+    startDate: string;
+    endDate: string;
+    bookingIds: string[];
+    totalPriceMinor?: number | null;
+    currency: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  bookings: ApiBookingResponse[];
+  requestId: string;
+}
+
 function toApiScheduledAt(scheduledAt: string): string {
   const parsed = new Date(scheduledAt);
   return Number.isNaN(parsed.getTime()) ? scheduledAt : parsed.toISOString();
@@ -98,6 +135,32 @@ function buildBookingIdempotencyKey(input: CreateApiBookingInput): string {
       typeof input.totalPrice === 'number' ? Math.max(0, Math.round(input.totalPrice * 100)) : null,
   });
   return `booking_${hashStableString(payload)}`;
+}
+
+function buildSeriesOccurrenceScheduledAt(weekDate: string, startTime: string): string {
+  return toApiScheduledAt(`${weekDate}T${startTime}:00`);
+}
+
+function buildBookingSeriesIdempotencyKey(input: CreateApiBookingSeriesInput): string {
+  const payload = JSON.stringify({
+    coachUserId: toApiUserId(input.coachId),
+    athleteIds: input.athleteIds.map((athleteId) => toApiAthleteId(athleteId)).sort(),
+    bookedByUserId: toApiUserId(input.bookedById),
+    occurrences: input.selectedWeeks.map((weekDate) => ({
+      scheduledAt: buildSeriesOccurrenceScheduledAt(weekDate, input.startTime),
+      durationMinutes: input.duration,
+    })),
+    location: input.location,
+    serviceType: input.sessionType,
+    objectives: input.focus ? [input.focus] : [],
+    notes: input.notes ?? null,
+    priceMinor:
+      typeof input.pricePerSession === 'number'
+        ? Math.max(0, Math.round(input.pricePerSession * 100))
+        : null,
+    patternLabel: input.patternLabel ?? null,
+  });
+  return `booking_series_${hashStableString(payload)}`;
 }
 
 function buildBookingLifecycleIdempotencyKey(
@@ -215,6 +278,53 @@ class BookingAuthorityService {
         coachId: input.coachId,
         bookedById: input.bookedById,
         athleteIds: input.athleteIds,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+
+    return result;
+  }
+
+  async createBookingSeries(
+    input: CreateApiBookingSeriesInput,
+  ): Promise<Result<ApiBookingSeriesResponse, ServiceError>> {
+    const headersResult = await resolveBookingAccessHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiBookingSeriesResponse>('/v1/booking-series', {
+      method: 'POST',
+      headers: headersResult.data,
+      body: JSON.stringify({
+        coachUserId: toApiUserId(input.coachId),
+        athleteIds: input.athleteIds.map((athleteId) => toApiAthleteId(athleteId)),
+        bookedByUserId: toApiUserId(input.bookedById),
+        occurrences: input.selectedWeeks.map((weekDate) => ({
+          scheduledAt: buildSeriesOccurrenceScheduledAt(weekDate, input.startTime),
+          durationMinutes: input.duration,
+        })),
+        location: input.location,
+        serviceType: input.sessionType,
+        objectives: input.focus ? [input.focus] : [],
+        ...(input.notes ? { notes: input.notes } : {}),
+        ...(typeof input.pricePerSession === 'number'
+          ? { priceMinor: Math.max(0, Math.round(input.pricePerSession * 100)) }
+          : {}),
+        currency: 'GBP',
+        frequency: 'WEEKLY',
+        ...(input.patternLabel ? { patternLabel: input.patternLabel } : {}),
+        idempotencyKey: input.idempotencyKey ?? buildBookingSeriesIdempotencyKey(input),
+      }),
+    });
+
+    if (!result.success) {
+      logger.error('Failed to create booking series via API', {
+        coachId: input.coachId,
+        bookedById: input.bookedById,
+        athleteIds: input.athleteIds,
+        weekCount: input.selectedWeeks.length,
         error: result.error,
       });
       return err(result.error);

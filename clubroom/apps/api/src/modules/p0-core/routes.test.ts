@@ -141,6 +141,63 @@ async function getFirstAvailableSlot(params: {
   return slot;
 }
 
+async function getAvailableSlots(params: {
+  app: ReturnType<typeof buildApp>;
+  tables: SeedTables;
+  authUserId: string;
+  coachUserId: string;
+  durationMinutes?: number;
+  minCount: number;
+}): Promise<
+  {
+    date: string;
+    startTime: string;
+    endTime: string;
+    location?: string;
+    maxBookings: number;
+  }[]
+> {
+  const durationMinutes = params.durationMinutes ?? 60;
+  const searchParams = new URLSearchParams({
+    start: addDaysIso(1),
+    end: addDaysIso(35),
+    durationMinutes: String(durationMinutes),
+    applySchedulingRules: 'true',
+  });
+
+  const res = await params.app.inject({
+    method: 'GET',
+    url: `/v1/coaches/${params.coachUserId}/availability/slots?${searchParams.toString()}`,
+    headers: authHeaders(params.tables, params.authUserId, 'parent'),
+  });
+  assert.equal(res.statusCode, 200);
+
+  const payload = res.json() as {
+    slots: {
+      date: string;
+      startTime: string;
+      endTime: string;
+      isAvailable: boolean;
+      location?: string;
+      maxBookings: number;
+    }[];
+  };
+  const dates = new Set<string>();
+  const selected = payload.slots.filter((candidate) => {
+    if (!candidate.isAvailable || candidate.maxBookings !== 1 || dates.has(candidate.date)) {
+      return false;
+    }
+    dates.add(candidate.date);
+    return true;
+  });
+  assert.equal(
+    selected.length >= params.minCount,
+    true,
+    `expected at least ${params.minCount} available coach slots`,
+  );
+  return selected.slice(0, params.minCount);
+}
+
 describe('p0 core routes', () => {
   const app = buildApp();
 
@@ -1238,6 +1295,136 @@ describe('p0 core routes', () => {
       },
     });
     assert.equal(conflictingReplay.statusCode, 409);
+  });
+
+  it('creates db-mode booking series as backend authority and replays idempotently', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const tables = loadTables();
+      const guardianLink = asRows(tables.guardianChildLinks)[0];
+      assert.ok(guardianLink, 'expected seeded guardian-child link');
+      const bookedByUserId = asString(guardianLink.guardianUserId) as string;
+      const athleteId = asString(guardianLink.athleteId) as string;
+      const coachOffering = asRows(tables.coachingOfferings)[0];
+      assert.ok(coachOffering, 'expected seeded coaching offering');
+      const coachUserId = asString(coachOffering.coachUserId) as string;
+      const availableSlots = await getAvailableSlots({
+        app,
+        tables,
+        authUserId: bookedByUserId,
+        coachUserId,
+        minCount: 2,
+      });
+      const headers = authHeaders(tables, bookedByUserId, 'parent');
+      const payload = {
+        coachUserId,
+        athleteIds: [athleteId],
+        bookedByUserId,
+        occurrences: availableSlots.map((slot) => ({
+          scheduledAt: `${slot.date}T${slot.startTime}:00.000Z`,
+          durationMinutes: 60,
+          location: slot.location ?? 'Series Authority Test Pitch',
+        })),
+        location: availableSlots[0]?.location ?? 'Series Authority Test Pitch',
+        serviceType: 'one_to_one',
+        objectives: ['Progressive receiving'],
+        notes: 'Created from db-mode booking series authority proof',
+        priceMinor: 4000,
+        currency: 'GBP',
+        frequency: 'WEEKLY',
+        patternLabel: 'Backend-owned two-week package',
+        idempotencyKey: 'booking-series-authority-test',
+      };
+
+      const unrelatedGuardian = asRows(tables.guardianChildLinks).find(
+        (row) =>
+          asString(row.guardianUserId) !== bookedByUserId && asString(row.athleteId) !== athleteId,
+      );
+      assert.ok(unrelatedGuardian, 'expected unrelated guardian-child link');
+      const deniedRes = await app.inject({
+        method: 'POST',
+        url: '/v1/booking-series',
+        headers: authHeaders(tables, asString(unrelatedGuardian.guardianUserId) as string, 'parent'),
+        payload: {
+          ...payload,
+          idempotencyKey: 'booking-series-denied-parent-test',
+        },
+      });
+      assert.equal(deniedRes.statusCode, 403);
+      assert.equal(
+        asRows(getDbFixtureStore().tables.recurringSeries).some(
+          (row) => asString(row.notes) === payload.notes,
+        ),
+        false,
+      );
+
+      const createdRes = await app.inject({
+        method: 'POST',
+        url: '/v1/booking-series',
+        headers,
+        payload,
+      });
+      assert.equal(createdRes.statusCode, 201);
+      const created = createdRes.json() as {
+        series: { id: string; bookingIds: string[]; totalPriceMinor: number };
+        bookings: { id: string }[];
+      };
+      assert.match(created.series.id, /^rec_/);
+      assert.equal(created.series.bookingIds.length, 2);
+      assert.equal(created.bookings.length, 2);
+      assert.equal(created.series.totalPriceMinor, 8000);
+
+      const fixtureStore = getDbFixtureStore();
+      const seriesRows = asRows(fixtureStore.tables.recurringSeries).filter(
+        (row) => asString(row.id) === created.series.id,
+      );
+      assert.equal(seriesRows.length, 1);
+      const bookingRows = asRows(fixtureStore.tables.bookings).filter(
+        (row) => asString(row.recurringSeriesId) === created.series.id,
+      );
+      assert.equal(bookingRows.length, 2);
+      assert.deepEqual(
+        bookingRows.map((row) => asNumber(row.seriesIndex)).sort(),
+        [0, 1],
+      );
+
+      const coachList = await app.inject({
+        method: 'GET',
+        url: '/v1/bookings',
+        headers: authHeaders(tables, coachUserId, 'coach'),
+      });
+      assert.equal(coachList.statusCode, 200);
+      const coachListPayload = coachList.json() as { bookings: { id: string }[] };
+      for (const bookingId of created.series.bookingIds) {
+        assert.equal(
+          coachListPayload.bookings.some((booking) => booking.id === bookingId),
+          true,
+        );
+      }
+
+      const replayRes = await app.inject({
+        method: 'POST',
+        url: '/v1/booking-series',
+        headers,
+        payload,
+      });
+      assert.equal(replayRes.statusCode, 201);
+      const replay = replayRes.json() as { series: { id: string; bookingIds: string[] } };
+      assert.equal(replay.series.id, created.series.id);
+      assert.deepEqual(replay.series.bookingIds, created.series.bookingIds);
+      assert.equal(
+        asRows(fixtureStore.tables.bookings).filter(
+          (row) => asString(row.recurringSeriesId) === created.series.id,
+        ).length,
+        2,
+      );
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetMarketplaceSeedStoreForTests();
+      resetDbFixtureStoreForTests();
+    }
   });
 
   it('allows a guardian to create a booking for a linked athlete when bookedByUserId differs from the authenticated parent', async () => {

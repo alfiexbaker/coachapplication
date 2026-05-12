@@ -25,6 +25,7 @@ import test, { describe, beforeEach, afterEach } from 'node:test';
 
 import { multiWeekBookingService } from '../../services/multi-week-booking-service';
 import { bookingCrudService } from '../../services/booking/booking-crud-service';
+import { bookingAuthorityService } from '../../services/booking/booking-authority-service';
 import { apiClient } from '../../services/api-client';
 import { eventBus, ServiceEvents } from '../../services/event-bus';
 import type { CreateSeriesParams } from '../../services/multi-week-booking-service';
@@ -112,20 +113,51 @@ afterEach(() => {
 // ============================================================================
 
 describe('MultiWeekBookingService - createSeries()', () => {
-  test('fails closed in API mode instead of creating local package bookings', async () => {
+  test('uses backend authority in API mode instead of creating local package bookings', async () => {
     const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+    const originalCreateBookingSeries = bookingAuthorityService.createBookingSeries;
     Object.defineProperty(apiClient, 'isMockMode', {
       configurable: true,
       get: () => false,
     });
+    let capturedInput: unknown = null;
+    bookingAuthorityService.createBookingSeries = async (input) => {
+      capturedInput = input;
+      return {
+        success: true,
+        data: {
+          series: {
+            id: 'rec_api_authority_test',
+            coachUserId: input.coachId,
+            bookedByUserId: input.bookedById,
+            athleteIds: input.athleteIds,
+            frequency: 'WEEKLY',
+            patternLabel: input.patternLabel,
+            status: 'ACTIVE',
+            startDate: `${input.selectedWeeks[0]}T${input.startTime}:00.000Z`,
+            endDate: `${input.selectedWeeks[input.selectedWeeks.length - 1]}T${input.startTime}:00.000Z`,
+            bookingIds: input.selectedWeeks.map((_, index) => `bok_api_authority_${index}`),
+            totalPriceMinor: input.selectedWeeks.length * 4000,
+            currency: 'GBP',
+            createdAt: '2026-03-02T10:00:00.000Z',
+            updatedAt: '2026-03-02T10:00:00.000Z',
+          },
+          bookings: [],
+          requestId: 'req_api_authority_test',
+        },
+      };
+    };
 
     try {
       const result = await multiWeekBookingService.createSeries(makeSeriesParams());
 
-      assert.equal(result.success, false);
-      assert.equal(result.error?.code, 'VALIDATION');
-      assert.match(result.error?.message ?? '', /backend series authority/i);
+      assert.equal(result.success, true);
+      assert.equal(result.data.id, 'rec_api_authority_test');
+      assert.equal(result.data.bookingIds.length, 3);
+      assert.equal(result.data.totalCost, 120);
+      assert.ok(capturedInput, 'expected backend authority service to be called');
     } finally {
+      bookingAuthorityService.createBookingSeries = originalCreateBookingSeries;
       if (originalIsMockMode) {
         Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
       }
