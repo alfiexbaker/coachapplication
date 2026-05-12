@@ -11,6 +11,7 @@ import {
   getMarketplaceSeedStore,
   resetMarketplaceSeedStoreForTests,
 } from '../../lib/marketplace-seed-store.js';
+import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
@@ -52,6 +53,19 @@ function rolesForUser(tables: SeedTables, userId: string): string[] {
     .filter((row) => asString(row.userId) === userId)
     .map((row) => asString(row.role))
     .filter((role): role is string => Boolean(role));
+}
+
+function authHeaders(
+  tables: SeedTables,
+  userId: string,
+  fallbackRole: string,
+): Record<string, string> {
+  const roles = rolesForUser(tables, userId);
+  return {
+    'x-auth-user-id': userId,
+    'x-auth-roles': roles.join(',') || fallbackRole,
+    'x-acting-role': roles[0] ?? fallbackRole,
+  };
 }
 
 function passwordForRoles(roles: string[]): string {
@@ -780,6 +794,141 @@ describe('p0 core routes', () => {
 
     const payload = res.json() as { clubs: { id: string }[] };
     assert.equal(payload.clubs.length >= 1, true);
+  });
+
+  it('proves db-mode booking lifecycle visibility and unrelated actor denials', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const tables = loadTables();
+      const guardianLink = asRows(tables.guardianChildLinks)[0];
+      assert.ok(guardianLink, 'expected seeded guardian-child link');
+      const bookedByUserId = asString(guardianLink.guardianUserId) as string;
+      const athleteId = asString(guardianLink.athleteId) as string;
+      const athlete = asRows(tables.athletes).find((row) => asString(row.id) === athleteId);
+      assert.ok(athlete, 'expected seeded athlete for guardian-child link');
+      const participantAthleteUserId = asString(athlete.userId) as string;
+      const coachOffering = asRows(tables.coachingOfferings)[0];
+      assert.ok(coachOffering, 'expected seeded coaching offering');
+      const coachUserId = asString(coachOffering.coachUserId) as string;
+      const availableSlot = await getFirstAvailableSlot({
+        app,
+        tables,
+        authUserId: bookedByUserId,
+        coachUserId,
+        requireMaxBookings: 1,
+      });
+
+      const create = await app.inject({
+        method: 'POST',
+        url: '/v1/bookings',
+        headers: authHeaders(tables, bookedByUserId, 'parent'),
+        payload: {
+          coachUserId,
+          athleteIds: [athleteId],
+          bookedByUserId,
+          scheduledAt: `${availableSlot.date}T${availableSlot.startTime}:00.000Z`,
+          durationMinutes: 60,
+          location: availableSlot.location ?? 'DB Lifecycle Test Pitch',
+          serviceType: 'one_to_one',
+          objectives: ['First touch under pressure'],
+          notes: 'Created from db-mode lifecycle proof',
+          priceMinor: 4200,
+          currency: 'GBP',
+          idempotencyKey: 'db-booking-lifecycle-proof',
+        },
+      });
+      assert.equal(create.statusCode, 201);
+      const created = create.json() as {
+        id: string;
+        coachUserId: string;
+        bookedByUserId?: string;
+        status: string;
+        version: number;
+      };
+      assert.match(created.id, /^bok_/);
+      assert.equal(created.coachUserId, coachUserId);
+      assert.equal(created.bookedByUserId, bookedByUserId);
+      assert.equal(created.status, 'CONFIRMED');
+      assert.equal(created.version, 1);
+
+      const fixtureStore = getDbFixtureStore();
+      const fixtureBookings = asRows(fixtureStore.tables.bookings).filter(
+        (row) => asString(row.id) === created.id,
+      );
+      assert.equal(fixtureBookings.length, 1);
+      assert.equal(asString(fixtureBookings[0]?.coachUserId), coachUserId);
+
+      const coachList = await app.inject({
+        method: 'GET',
+        url: '/v1/bookings',
+        headers: authHeaders(tables, coachUserId, 'coach'),
+      });
+      assert.equal(coachList.statusCode, 200);
+      const coachListPayload = coachList.json() as { bookings: { id: string }[] };
+      assert.equal(
+        coachListPayload.bookings.some((booking) => booking.id === created.id),
+        true,
+      );
+
+      const coachDetail = await app.inject({
+        method: 'GET',
+        url: `/v1/bookings/${created.id}`,
+        headers: authHeaders(tables, coachUserId, 'coach'),
+      });
+      assert.equal(coachDetail.statusCode, 200);
+      assert.equal((coachDetail.json() as { id: string }).id, created.id);
+
+      const unrelatedParentId = asRows(tables.guardianChildLinks)
+        .map((row) => asString(row.guardianUserId))
+        .filter((userId): userId is string => Boolean(userId))
+        .find((userId) => userId !== bookedByUserId);
+      assert.ok(unrelatedParentId, 'expected unrelated parent user');
+
+      const unrelatedCoachId = asRows(tables.coachProfiles)
+        .map((row) => asString(row.userId))
+        .filter((userId): userId is string => Boolean(userId))
+        .find((userId) => userId !== coachUserId);
+      assert.ok(unrelatedCoachId, 'expected unrelated coach user');
+
+      const unrelatedAthleteUserId = asRows(tables.athletes)
+        .map((row) => asString(row.userId))
+        .filter((userId): userId is string => Boolean(userId))
+        .find((userId) => userId !== participantAthleteUserId);
+      assert.ok(unrelatedAthleteUserId, 'expected unrelated athlete user');
+
+      const deniedActors: Array<{ actorUserId: string; role: string }> = [
+        { actorUserId: unrelatedParentId, role: 'parent' },
+        { actorUserId: unrelatedCoachId, role: 'coach' },
+        { actorUserId: unrelatedAthleteUserId, role: 'athlete' },
+      ];
+
+      for (const actor of deniedActors) {
+        const deniedDetail = await app.inject({
+          method: 'GET',
+          url: `/v1/bookings/${created.id}`,
+          headers: authHeaders(tables, actor.actorUserId, actor.role),
+        });
+        assert.equal(deniedDetail.statusCode, 403);
+
+        const deniedCancelResponse: Awaited<ReturnType<typeof app.inject>> = await app.inject({
+          method: 'POST',
+          url: `/v1/bookings/${created.id}/cancel`,
+          headers: authHeaders(tables, actor.actorUserId, actor.role),
+          payload: {
+            reason: 'Should not be allowed',
+            expectedVersion: created.version,
+          },
+        });
+        assert.equal(deniedCancelResponse.statusCode, 403);
+      }
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetMarketplaceSeedStoreForTests();
+      resetDbFixtureStoreForTests();
+      resetCoachClubRouteStateForTests();
+    }
   });
 
   it('creates, cancels, reopens, and lists bookings for the booked-by user', async () => {

@@ -624,8 +624,15 @@ export function createBookingInSeedTables(params: {
 }
 
 class SeedBookingRepository implements BookingRepository {
+  constructor(
+    private readonly loadStore: () => {
+      version: string | null;
+      tables: SeedTables;
+    } = getMarketplaceSeedStore,
+  ) {}
+
   async listVisibleBookings(params: ListBookingsParams): Promise<ListBookingsResult> {
-    const store = getMarketplaceSeedStore();
+    const store = this.loadStore();
     return {
       bookings: mapSeedBookingsFromTables(store.tables, params.authUserId, params.statusFilter),
       dataVersion: store.version,
@@ -633,12 +640,12 @@ class SeedBookingRepository implements BookingRepository {
   }
 
   async getVisibleBookingById(params: GetBookingParams): Promise<BookingResponse> {
-    const store = getMarketplaceSeedStore();
+    const store = this.loadStore();
     return getVisibleSeedBookingById(store.tables, params.authUserId, params.bookingId);
   }
 
   async createBooking(params: CreateBookingParams): Promise<BookingResponse> {
-    const store = getMarketplaceSeedStore();
+    const store = this.loadStore();
     return createBookingInSeedTables({
       tables: store.tables,
       authUserId: params.authUserId,
@@ -648,7 +655,7 @@ class SeedBookingRepository implements BookingRepository {
   }
 
   async cancelBooking(params: CancelBookingParams): Promise<BookingResponse> {
-    const store = getMarketplaceSeedStore();
+    const store = this.loadStore();
     const bookings = asRows(store.tables.bookings);
     const statusEvents = asRows(store.tables.bookingStatusEvents);
     const participantRowsByBooking = getParticipantRowsByBooking(store.tables);
@@ -739,7 +746,7 @@ class SeedBookingRepository implements BookingRepository {
   }
 
   async reopenBooking(params: ReopenBookingParams): Promise<BookingResponse> {
-    const store = getMarketplaceSeedStore();
+    const store = this.loadStore();
     const bookings = asRows(store.tables.bookings);
     const statusEvents = asRows(store.tables.bookingStatusEvents);
     const participantRowsByBooking = getParticipantRowsByBooking(store.tables);
@@ -1273,7 +1280,7 @@ class DbBookingRepository implements BookingRepository {
 
   async cancelBooking(params: CancelBookingParams): Promise<BookingResponse> {
     if (shouldUseDbFixtureFallback()) {
-      const seedRepository = new SeedBookingRepository();
+      const seedRepository = new SeedBookingRepository(getDbFixtureStore);
       return seedRepository.cancelBooking({
         ...params,
         requestId: params.requestId,
@@ -1476,7 +1483,7 @@ class DbBookingRepository implements BookingRepository {
 
   async reopenBooking(params: ReopenBookingParams): Promise<BookingResponse> {
     if (shouldUseDbFixtureFallback()) {
-      const seedRepository = new SeedBookingRepository();
+      const seedRepository = new SeedBookingRepository(getDbFixtureStore);
       return seedRepository.reopenBooking({
         ...params,
         requestId: params.requestId,

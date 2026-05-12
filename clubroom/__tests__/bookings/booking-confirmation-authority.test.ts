@@ -19,3 +19,20 @@ test('direct booking confirmation screen does not show success before API create
   assert.ok(source.includes('{hasCreatedBooking ? ('));
   assert.ok(source.includes('bookingService.createBooking({'));
 });
+
+test('booking mirrors are not classified as client-local authority in API mode', () => {
+  const apiClientSource = readSource('services/api-client.ts');
+  const bookingCrudSource = readSource('services/booking/booking-crud-service.ts');
+  const localKeysBlock = apiClientSource.match(
+    /const CLIENT_LOCAL_STORAGE_KEYS = new Set<string>\(\[([\s\S]*?)\]\);/,
+  );
+
+  assert.ok(localKeysBlock, 'expected CLIENT_LOCAL_STORAGE_KEYS block');
+  assert.equal(localKeysBlock[1]?.includes('STORAGE_KEYS.BOOKINGS'), false);
+  assert.ok(bookingCrudSource.includes('if (!apiClient.isMockMode) {'));
+  assert.ok(bookingCrudSource.includes('bookingAuthorityService.listBookings()'));
+  assert.ok(bookingCrudSource.includes('bookingAuthorityService.getBooking(id)'));
+  assert.ok(bookingCrudSource.includes('bookingAuthorityService.createBooking('));
+  assert.ok(bookingCrudSource.includes('bookingAuthorityService.cancelBooking(id,'));
+  assert.ok(bookingCrudSource.includes('bookingAuthorityService.reopenBooking(id,'));
+});
