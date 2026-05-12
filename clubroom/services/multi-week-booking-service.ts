@@ -27,11 +27,26 @@ import type { Booking } from '@/constants/app-types';
 import { bookingCrudService } from './booking/booking-crud-service';
 
 const logger = createLogger('MultiWeekBookingService');
-const API_MODE_SERIES_AUTHORITY_MESSAGE =
-  'Multi-week booking series require backend series authority in API mode.';
 
 /** Maximum age (ms) before cache is considered stale. */
 const CACHE_MAX_AGE = 30_000;
+
+interface ApiSeriesLike {
+  id: string;
+  bookingIds: string[];
+  bookedByUserId: string;
+  coachUserId: string;
+  athleteIds: string[];
+  serviceType?: string | null;
+  objectives?: string[];
+  priceMinor?: number | null;
+  totalPriceMinor?: number | null;
+  scheduledDates?: string[];
+  patternLabel?: string | null;
+  location?: string | null;
+  createdAt: string;
+  status: BookingSeries['status'];
+}
 
 export interface CreateSeriesParams {
   createdById: string;
@@ -63,6 +78,47 @@ export interface CreateSeriesParams {
   notes?: string;
 }
 
+function mapApiSeriesToBookingSeries(
+  apiSeries: ApiSeriesLike,
+  fallback: Partial<BookingSeries> = {},
+): BookingSeries {
+  const selectedWeeks =
+    apiSeries.scheduledDates?.map((scheduledAt) => scheduledAt.slice(0, 10)) ??
+    fallback.selectedWeeks ??
+    [];
+  const pricePerSession =
+    typeof apiSeries.priceMinor === 'number'
+      ? apiSeries.priceMinor / 100
+      : fallback.pricePerSession;
+
+  return {
+    id: apiSeries.id,
+    bookingIds: apiSeries.bookingIds,
+    createdById: fallback.createdById ?? apiSeries.bookedByUserId,
+    createdByName: fallback.createdByName ?? apiSeries.bookedByUserId,
+    coachId: fallback.coachId ?? apiSeries.coachUserId,
+    coachName: fallback.coachName ?? apiSeries.coachUserId,
+    athleteIds: fallback.athleteIds ?? apiSeries.athleteIds,
+    athleteNames: fallback.athleteNames ?? apiSeries.athleteIds,
+    sessionType: fallback.sessionType ?? apiSeries.serviceType ?? 'one_to_one',
+    focus: fallback.focus ?? apiSeries.objectives?.[0],
+    pricePerSession,
+    selectedWeeks,
+    totalCost:
+      typeof apiSeries.totalPriceMinor === 'number'
+        ? apiSeries.totalPriceMinor / 100
+        : (pricePerSession ?? 0) * apiSeries.bookingIds.length,
+    patternLabel:
+      fallback.patternLabel ??
+      apiSeries.patternLabel ??
+      (selectedWeeks.length > 0 ? `${selectedWeeks.length} sessions` : 'Booking series'),
+    location: fallback.location ?? apiSeries.location ?? 'TBD',
+    sessionInviteId: fallback.sessionInviteId,
+    createdAt: apiSeries.createdAt,
+    status: apiSeries.status,
+  };
+}
+
 class MultiWeekBookingService {
   // ---------------------------------------------------------------------------
   // In-memory cache (mirrors BaseService pattern)
@@ -79,14 +135,6 @@ class MultiWeekBookingService {
       this._cacheTimestamp = now;
     }
     return this._cache;
-  }
-
-  private getApiModeAuthorityError(operation: string): ServiceError | null {
-    if (apiClient.isMockMode) {
-      return null;
-    }
-    logger.warn('multi_week_booking_api_mode_blocked', { operation });
-    return validationError(API_MODE_SERIES_AUTHORITY_MESSAGE);
   }
 
   private invalidateCache(): void {
@@ -175,10 +223,7 @@ class MultiWeekBookingService {
         return err(apiResult.error);
       }
 
-      const apiSeries = apiResult.data.series;
-      const series: BookingSeries = {
-        id: apiSeries.id,
-        bookingIds: apiSeries.bookingIds,
+      const series = mapApiSeriesToBookingSeries(apiResult.data.series, {
         createdById,
         createdByName,
         coachId,
@@ -189,16 +234,10 @@ class MultiWeekBookingService {
         focus,
         pricePerSession,
         selectedWeeks,
-        totalCost:
-          typeof apiSeries.totalPriceMinor === 'number'
-            ? apiSeries.totalPriceMinor / 100
-            : (pricePerSession ?? 0) * apiSeries.bookingIds.length,
-        patternLabel: apiSeries.patternLabel ?? patternLabel,
+        patternLabel,
         location,
         sessionInviteId,
-        createdAt: apiSeries.createdAt,
-        status: apiSeries.status,
-      };
+      });
 
       emitTyped(ServiceEvents.SERIES_CREATED, {
         seriesId: series.id,
@@ -330,9 +369,12 @@ class MultiWeekBookingService {
    */
   async getSeriesById(id: string): Promise<Result<BookingSeries, ServiceError>> {
     try {
-      const authorityError = this.getApiModeAuthorityError('getSeriesById');
-      if (authorityError) {
-        return err(authorityError);
+      if (!apiClient.isMockMode) {
+        const apiResult = await bookingAuthorityService.getBookingSeries(id);
+        if (!apiResult.success) {
+          return err(apiResult.error);
+        }
+        return ok(mapApiSeriesToBookingSeries(apiResult.data));
       }
       const cache = await this.getCache();
       const series = cache.get(id);
@@ -351,9 +393,16 @@ class MultiWeekBookingService {
    */
   async getSeriesForUser(userId: string): Promise<Result<BookingSeries[], ServiceError>> {
     try {
-      const authorityError = this.getApiModeAuthorityError('getSeriesForUser');
-      if (authorityError) {
-        return err(authorityError);
+      if (!apiClient.isMockMode) {
+        const apiResult = await bookingAuthorityService.listBookingSeries();
+        if (!apiResult.success) {
+          return err(apiResult.error);
+        }
+        return ok(
+          apiResult.data
+            .filter((series) => series.bookedByUserId === userId)
+            .map((series) => mapApiSeriesToBookingSeries(series)),
+        );
       }
       const cache = await this.getCache();
       const results = Array.from(cache.values()).filter((s) => s.createdById === userId);
@@ -369,9 +418,16 @@ class MultiWeekBookingService {
    */
   async getSeriesForCoach(coachId: string): Promise<Result<BookingSeries[], ServiceError>> {
     try {
-      const authorityError = this.getApiModeAuthorityError('getSeriesForCoach');
-      if (authorityError) {
-        return err(authorityError);
+      if (!apiClient.isMockMode) {
+        const apiResult = await bookingAuthorityService.listBookingSeries();
+        if (!apiResult.success) {
+          return err(apiResult.error);
+        }
+        return ok(
+          apiResult.data
+            .filter((series) => series.coachUserId === coachId)
+            .map((series) => mapApiSeriesToBookingSeries(series)),
+        );
       }
       const cache = await this.getCache();
       const results = Array.from(cache.values()).filter((s) => s.coachId === coachId);
@@ -393,9 +449,20 @@ class MultiWeekBookingService {
     seriesId: string,
     reason?: string,
   ): Promise<Result<BookingSeries, ServiceError>> {
-    const authorityError = this.getApiModeAuthorityError('cancelSeries');
-    if (authorityError) {
-      return err(authorityError);
+    if (!apiClient.isMockMode) {
+      const apiResult = await bookingAuthorityService.cancelBookingSeries(seriesId, {
+        reason: reason ?? 'Series cancelled',
+      });
+      if (!apiResult.success) {
+        return err(apiResult.error);
+      }
+      const series = mapApiSeriesToBookingSeries(apiResult.data.series);
+      emitTyped(ServiceEvents.SERIES_UPDATED, {
+        seriesId,
+        status: series.status,
+        changes: { reason },
+      });
+      return ok(series);
     }
 
     const allSeries = await this.loadFromStorage();
@@ -449,9 +516,8 @@ class MultiWeekBookingService {
    * Update series status (e.g. when a booking completes or cancels individually).
    */
   async updateSeriesStatus(seriesId: string): Promise<Result<BookingSeries, ServiceError>> {
-    const authorityError = this.getApiModeAuthorityError('updateSeriesStatus');
-    if (authorityError) {
-      return err(authorityError);
+    if (!apiClient.isMockMode) {
+      return this.getSeriesById(seriesId);
     }
 
     const allSeries = await this.loadFromStorage();

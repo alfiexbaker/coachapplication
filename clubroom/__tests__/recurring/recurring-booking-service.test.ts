@@ -14,6 +14,7 @@ import {
   getFrequencyLabel,
   getStatusLabel,
 } from '../../services/recurring-booking-service';
+import { bookingAuthorityService } from '../../services/booking/booking-authority-service';
 import { apiClient } from '../../services/api-client';
 import { STORAGE_KEYS } from '../../constants/storage-keys';
 import type {
@@ -66,18 +67,97 @@ test('getStatusLabel returns correct labels', () => {
   assert.strictEqual(getStatusLabel('EXPIRED'), 'Expired');
 });
 
-test('recurring booking writes fail closed in API mode', async () => {
+test('recurring booking creation and cancellation use backend series authority in API mode', async () => {
   const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+  const originalCreateBookingSeries = bookingAuthorityService.createBookingSeries;
+  const originalCancelBookingSeries = bookingAuthorityService.cancelBookingSeries;
   Object.defineProperty(apiClient, 'isMockMode', {
     configurable: true,
     get: () => false,
   });
+  let createCalled = false;
+  let cancelCalled = false;
+  bookingAuthorityService.createBookingSeries = async (input) => {
+    createCalled = true;
+    return {
+      success: true,
+      data: {
+        series: {
+          id: 'rec_api_recurring_test',
+          coachUserId: input.coachId,
+          bookedByUserId: input.bookedById,
+          athleteIds: input.athleteIds,
+          frequency: input.frequency ?? 'WEEKLY',
+          patternLabel: input.patternLabel,
+          status: 'ACTIVE',
+          startDate: `${input.selectedWeeks[0]}T${input.startTime}:00.000Z`,
+          endDate: `${input.selectedWeeks[input.selectedWeeks.length - 1]}T${input.startTime}:00.000Z`,
+          bookingIds: input.selectedWeeks.map((_, index) => `bok_api_recurring_${index}`),
+          scheduledDates: input.selectedWeeks.map((week) => `${week}T${input.startTime}:00.000Z`),
+          durationMinutes: input.duration,
+          location: input.location,
+          serviceType: input.sessionType,
+          objectives: [],
+          priceMinor: 7500,
+          totalPriceMinor: input.selectedWeeks.length * 7500,
+          currency: 'GBP',
+          version: 1,
+          createdAt: '2026-03-02T14:00:00.000Z',
+          updatedAt: '2026-03-02T14:00:00.000Z',
+        },
+        bookings: [],
+        requestId: 'req_api_recurring_test',
+      },
+    };
+  };
+  bookingAuthorityService.cancelBookingSeries = async (seriesId) => {
+    cancelCalled = true;
+    return {
+      success: true,
+      data: {
+        series: {
+          id: seriesId,
+          coachUserId: mockCreateParams.coachId,
+          bookedByUserId: mockCreateParams.userId,
+          athleteIds: [mockCreateParams.athleteId ?? mockCreateParams.userId],
+          frequency: mockCreateParams.frequency,
+          patternLabel: 'Every week recurring plan',
+          status: 'CANCELLED',
+          startDate: '2026-03-02T14:00:00.000Z',
+          endDate: '2026-03-23T14:00:00.000Z',
+          bookingIds: ['bok_api_recurring_0'],
+          scheduledDates: ['2026-03-02T14:00:00.000Z'],
+          durationMinutes: mockCreateParams.duration,
+          location: mockCreateParams.location,
+          serviceType: mockCreateParams.sessionType,
+          objectives: [],
+          priceMinor: 7500,
+          totalPriceMinor: 7500,
+          currency: 'GBP',
+          version: 2,
+          createdAt: '2026-03-02T14:00:00.000Z',
+          updatedAt: '2026-03-02T14:01:00.000Z',
+        },
+        bookings: [],
+        requestId: 'req_api_recurring_cancel_test',
+      },
+    };
+  };
 
   try {
     const createResult = await recurringBookingService.createRecurring(mockCreateParams);
-    assert.strictEqual(createResult.success, false);
-    assert.strictEqual(createResult.error?.code, 'VALIDATION');
-    assert.match(createResult.error?.message ?? '', /backend series authority/i);
+    assert.strictEqual(createResult.success, true);
+    assert.strictEqual(createResult.data?.id, 'rec_api_recurring_test');
+    assert.strictEqual(createResult.data?.generatedBookingIds.length, 4);
+    assert.strictEqual(createCalled, true);
+
+    const cancelResult = await recurringBookingService.cancelRecurring(
+      createResult.data?.id ?? 'missing',
+      'Family plans',
+    );
+    assert.strictEqual(cancelResult.success, true);
+    assert.strictEqual(cancelResult.data?.status, 'CANCELLED');
+    assert.strictEqual(cancelCalled, true);
 
     const generateResult = await recurringBookingService.generateUpcomingBookings(
       'recurring_missing',
@@ -85,11 +165,9 @@ test('recurring booking writes fail closed in API mode', async () => {
     );
     assert.strictEqual(generateResult.success, false);
     assert.strictEqual(generateResult.error?.code, 'VALIDATION');
-
-    const cancelResult = await recurringBookingService.cancelRecurring('recurring_missing');
-    assert.strictEqual(cancelResult.success, false);
-    assert.strictEqual(cancelResult.error?.code, 'VALIDATION');
   } finally {
+    bookingAuthorityService.createBookingSeries = originalCreateBookingSeries;
+    bookingAuthorityService.cancelBookingSeries = originalCancelBookingSeries;
     if (originalIsMockMode) {
       Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
     }

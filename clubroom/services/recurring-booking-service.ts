@@ -11,6 +11,7 @@ import { apiClient } from './api-client';
 import { generateId } from '@/utils/generate-id';
 import { notificationService } from './notification-service';
 import { bookingService } from './booking-service';
+import { bookingAuthorityService } from './booking/booking-authority-service';
 import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
@@ -30,6 +31,77 @@ export { getDayName };
 const logger = createLogger('RecurringBookingService');
 const API_MODE_RECURRING_AUTHORITY_MESSAGE =
   'Recurring booking plans require backend series authority in API mode.';
+
+interface ApiSeriesLike {
+  id: string;
+  coachUserId: string;
+  bookedByUserId: string;
+  athleteIds: string[];
+  frequency: RecurrenceFrequency | 'CUSTOM';
+  status: 'ACTIVE' | 'PARTIAL' | 'COMPLETED' | 'CANCELLED';
+  startDate: string;
+  endDate: string;
+  bookingIds: string[];
+  scheduledDates?: string[];
+  durationMinutes?: number | null;
+  location?: string | null;
+  serviceType?: string | null;
+  priceMinor?: number | null;
+  patternLabel?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function mapSeriesStatusToRecurringStatus(
+  status: ApiSeriesLike['status'],
+): RecurringBookingStatus {
+  if (status === 'CANCELLED') return 'CANCELLED';
+  if (status === 'COMPLETED') return 'EXPIRED';
+  return 'ACTIVE';
+}
+
+function mapApiSeriesToRecurringBooking(series: ApiSeriesLike): RecurringBooking {
+  const scheduledDates = series.scheduledDates ?? [];
+  const firstScheduledAt = scheduledDates[0] ?? series.startDate;
+  const firstDate = new Date(firstScheduledAt);
+  const frequency: RecurrenceFrequency =
+    series.frequency === 'WEEKLY' ||
+    series.frequency === 'BIWEEKLY' ||
+    series.frequency === 'MONTHLY'
+      ? series.frequency
+      : 'WEEKLY';
+  const dayOfWeek = (Number.isNaN(firstDate.getTime()) ? 0 : firstDate.getDay()) as
+    | 0
+    | 1
+    | 2
+    | 3
+    | 4
+    | 5
+    | 6;
+
+  return {
+    id: series.id,
+    userId: series.bookedByUserId,
+    coachId: series.coachUserId,
+    athleteId: series.athleteIds[0],
+    dayOfWeek,
+    time: Number.isNaN(firstDate.getTime()) ? '00:00' : firstDate.toISOString().slice(11, 16),
+    duration: series.durationMinutes ?? 60,
+    location: series.location ?? 'TBD',
+    sessionType: series.serviceType ?? 'one_to_one',
+    frequency,
+    startDate: series.startDate,
+    endDate: series.endDate,
+    status: mapSeriesStatusToRecurringStatus(series.status),
+    pricePerSession:
+      typeof series.priceMinor === 'number' ? Math.round(series.priceMinor) / 100 : undefined,
+    notes: series.patternLabel ?? undefined,
+    createdAt: series.createdAt,
+    updatedAt: series.updatedAt,
+    generatedBookingIds: series.bookingIds,
+    sessionsCompleted: 0,
+  };
+}
 
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
   const userResult = await userService.getUserById(userId);
@@ -85,6 +157,34 @@ class RecurringBookingService {
 
   private async listValue(): Promise<RecurringBooking[]> {
     return apiClient.get<RecurringBooking[]>(STORAGE_KEYS.RECURRING_BOOKINGS, []);
+  }
+
+  private buildInitialSeriesWeeks(params: CreateRecurringBookingParams): string[] {
+    const occurrenceDates: string[] = [];
+    const maxOccurrences = 52;
+    const defaultOpenEndedOccurrences = 4;
+    const endDate = params.endDate ? new Date(params.endDate) : null;
+    let currentDate = new Date(params.startDate);
+    const [hours = 0, minutes = 0] = params.time.split(':').map(Number);
+
+    while (currentDate.getDay() !== params.dayOfWeek) {
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    while (occurrenceDates.length < maxOccurrences) {
+      const occurrence = new Date(currentDate);
+      occurrence.setHours(hours, minutes, 0, 0);
+      if (endDate && occurrence > endDate) {
+        break;
+      }
+      occurrenceDates.push(occurrence.toISOString().slice(0, 10));
+      if (!endDate && occurrenceDates.length >= defaultOpenEndedOccurrences) {
+        break;
+      }
+      currentDate = this.getNextOccurrence(currentDate, params.frequency);
+    }
+
+    return occurrenceDates;
   }
 
   private async cancelFutureGeneratedBookings(
@@ -143,9 +243,12 @@ class RecurringBookingService {
    */
   async list(): Promise<Result<RecurringBooking[], ServiceError>> {
     try {
-      const authorityError = this.getApiModeAuthorityError('list');
-      if (authorityError) {
-        return err(authorityError);
+      if (!apiClient.isMockMode) {
+        const apiResult = await bookingAuthorityService.listBookingSeries();
+        if (!apiResult.success) {
+          return err(apiResult.error);
+        }
+        return ok(apiResult.data.map(mapApiSeriesToRecurringBooking));
       }
       return ok(await this.listValue());
     } catch (error) {
@@ -160,9 +263,12 @@ class RecurringBookingService {
    */
   async getById(id: string): Promise<Result<RecurringBooking | undefined, ServiceError>> {
     try {
-      const authorityError = this.getApiModeAuthorityError('getById');
-      if (authorityError) {
-        return err(authorityError);
+      if (!apiClient.isMockMode) {
+        const apiResult = await bookingAuthorityService.getBookingSeries(id);
+        if (!apiResult.success) {
+          return err(apiResult.error);
+        }
+        return ok(mapApiSeriesToRecurringBooking(apiResult.data));
       }
       const bookings = await this.listValue();
       return ok(bookings.find((b) => b.id === id));
@@ -180,9 +286,46 @@ class RecurringBookingService {
     params: CreateRecurringBookingParams,
   ): Promise<Result<RecurringBooking, ServiceError>> {
     try {
-      const authorityError = this.getApiModeAuthorityError('createRecurring');
-      if (authorityError) {
-        return err(authorityError);
+      if (!apiClient.isMockMode) {
+        const selectedWeeks = this.buildInitialSeriesWeeks(params);
+        if (selectedWeeks.length === 0) {
+          return err(validationError('Recurring plan needs at least one future session.'));
+        }
+
+        const apiResult = await bookingAuthorityService.createBookingSeries({
+          coachId: params.coachId,
+          athleteIds: [params.athleteId ?? params.userId],
+          bookedById: params.userId,
+          selectedWeeks,
+          startTime: params.time,
+          duration: params.duration,
+          location: params.location,
+          sessionType: params.sessionType,
+          frequency: params.frequency,
+          notes: params.notes,
+          pricePerSession: params.pricePerSession,
+          patternLabel: `${getFrequencyLabel(params.frequency)} recurring plan`,
+        });
+        if (!apiResult.success) {
+          return err(apiResult.error);
+        }
+
+        const recurring = mapApiSeriesToRecurringBooking(apiResult.data.series);
+        logger.info('recurring_booking_created_via_api_series', {
+          id: recurring.id,
+          userId: params.userId,
+          coachId: params.coachId,
+          frequency: params.frequency,
+          generatedBookingCount: recurring.generatedBookingIds.length,
+        });
+        emitTyped(ServiceEvents.RECURRING_CREATED, {
+          recurringId: recurring.id,
+          userId: recurring.userId,
+          coachId: recurring.coachId,
+          frequency: recurring.frequency,
+          status: recurring.status,
+        });
+        return ok(recurring);
       }
       const now = new Date().toISOString();
 
@@ -275,9 +418,12 @@ class RecurringBookingService {
     userId: string,
   ): Promise<Result<RecurringBooking[], ServiceError>> {
     try {
-      const authorityError = this.getApiModeAuthorityError('getUserRecurringBookings');
-      if (authorityError) {
-        return err(authorityError);
+      if (!apiClient.isMockMode) {
+        const bookingsResult = await this.list();
+        if (!bookingsResult.success) {
+          return bookingsResult;
+        }
+        return ok(bookingsResult.data.filter((booking) => booking.userId === userId));
       }
       const bookings = await this.listValue();
       return ok(bookings.filter((b) => b.userId === userId));
@@ -295,9 +441,12 @@ class RecurringBookingService {
     coachId: string,
   ): Promise<Result<RecurringBooking[], ServiceError>> {
     try {
-      const authorityError = this.getApiModeAuthorityError('getCoachRecurringBookings');
-      if (authorityError) {
-        return err(authorityError);
+      if (!apiClient.isMockMode) {
+        const bookingsResult = await this.list();
+        if (!bookingsResult.success) {
+          return bookingsResult;
+        }
+        return ok(bookingsResult.data.filter((booking) => booking.coachId === coachId));
       }
       const bookings = await this.listValue();
       return ok(bookings.filter((b) => b.coachId === coachId));
@@ -345,9 +494,28 @@ class RecurringBookingService {
     reason?: string,
   ): Promise<Result<RecurringBooking, ServiceError>> {
     try {
-      const authorityError = this.getApiModeAuthorityError('cancelRecurring');
-      if (authorityError) {
-        return err(authorityError);
+      if (!apiClient.isMockMode) {
+        const apiResult = await bookingAuthorityService.cancelBookingSeries(recurringId, {
+          reason: reason ?? 'Recurring plan cancelled',
+        });
+        if (!apiResult.success) {
+          return err(apiResult.error);
+        }
+        const recurring = mapApiSeriesToRecurringBooking(apiResult.data.series);
+        logger.info('recurring_booking_cancelled_via_api_series', {
+          id: recurringId,
+          userId: recurring.userId,
+          coachId: recurring.coachId,
+          reason,
+          generatedBookingCount: recurring.generatedBookingIds.length,
+        });
+        emitTyped(ServiceEvents.RECURRING_CANCELLED, {
+          recurringId: recurring.id,
+          userId: recurring.userId,
+          coachId: recurring.coachId,
+          reason,
+        });
+        return ok(recurring);
       }
       const bookings = await this.listValue();
       const index = bookings.findIndex((b) => b.id === recurringId);

@@ -164,6 +164,84 @@ describe('MultiWeekBookingService - createSeries()', () => {
     }
   });
 
+  test('uses backend authority for API-mode reads and cancellation', async () => {
+    const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+    const originalListBookingSeries = bookingAuthorityService.listBookingSeries;
+    const originalGetBookingSeries = bookingAuthorityService.getBookingSeries;
+    const originalCancelBookingSeries = bookingAuthorityService.cancelBookingSeries;
+    Object.defineProperty(apiClient, 'isMockMode', {
+      configurable: true,
+      get: () => false,
+    });
+
+    const apiSeries = {
+      id: 'rec_api_read_test',
+      coachUserId: 'coach_api_read',
+      bookedByUserId: 'parent_api_read',
+      athleteIds: ['ath_api_read'],
+      frequency: 'WEEKLY' as const,
+      patternLabel: 'Backend-owned package',
+      status: 'ACTIVE' as const,
+      startDate: '2026-03-02T10:00:00.000Z',
+      endDate: '2026-03-09T10:00:00.000Z',
+      bookingIds: ['bok_api_read_1', 'bok_api_read_2'],
+      scheduledDates: ['2026-03-02T10:00:00.000Z', '2026-03-09T10:00:00.000Z'],
+      durationMinutes: 60,
+      location: 'API Pitch',
+      serviceType: '1-to-1',
+      objectives: ['Passing'],
+      priceMinor: 4000,
+      totalPriceMinor: 8000,
+      currency: 'GBP',
+      version: 1,
+      createdAt: '2026-03-01T10:00:00.000Z',
+      updatedAt: '2026-03-01T10:00:00.000Z',
+    };
+
+    bookingAuthorityService.listBookingSeries = async () => ({
+      success: true,
+      data: [apiSeries],
+    });
+    bookingAuthorityService.getBookingSeries = async () => ({
+      success: true,
+      data: apiSeries,
+    });
+    bookingAuthorityService.cancelBookingSeries = async () => ({
+      success: true,
+      data: {
+        series: { ...apiSeries, status: 'CANCELLED' as const, version: 2 },
+        bookings: [],
+        requestId: 'req_api_cancel_test',
+      },
+    });
+
+    try {
+      const byId = await multiWeekBookingService.getSeriesById(apiSeries.id);
+      assert.equal(byId.success, true);
+      assert.equal(byId.data.location, 'API Pitch');
+      assert.deepEqual(byId.data.selectedWeeks, ['2026-03-02', '2026-03-09']);
+
+      const forUser = await multiWeekBookingService.getSeriesForUser(apiSeries.bookedByUserId);
+      assert.equal(forUser.success, true);
+      assert.equal(forUser.data.length, 1);
+
+      const forCoach = await multiWeekBookingService.getSeriesForCoach(apiSeries.coachUserId);
+      assert.equal(forCoach.success, true);
+      assert.equal(forCoach.data.length, 1);
+
+      const cancelled = await multiWeekBookingService.cancelSeries(apiSeries.id, 'Family plans');
+      assert.equal(cancelled.success, true);
+      assert.equal(cancelled.data.status, 'CANCELLED');
+    } finally {
+      bookingAuthorityService.listBookingSeries = originalListBookingSeries;
+      bookingAuthorityService.getBookingSeries = originalGetBookingSeries;
+      bookingAuthorityService.cancelBookingSeries = originalCancelBookingSeries;
+      if (originalIsMockMode) {
+        Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+      }
+    }
+  });
+
   test('creates N bookings + BookingSeries record with valid params', async () => {
     const params = makeSeriesParams();
 

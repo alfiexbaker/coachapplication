@@ -1,8 +1,15 @@
 import crypto from 'node:crypto';
 import {
   bookingResponseSchema,
+  bookingSeriesListResponseSchema,
+  bookingSeriesResponseSchema,
+  cancelBookingSeriesResponseSchema,
   createBookingSeriesResponseSchema,
   type BookingResponse,
+  type BookingSeriesListResponse,
+  type BookingSeriesResponse,
+  type CancelBookingSeriesRequest,
+  type CancelBookingSeriesResponse,
   type CreateBookingRequest,
   type CreateBookingSeriesRequest,
   type CreateBookingSeriesResponse,
@@ -22,9 +29,13 @@ import {
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
+const asNumber = (value: unknown): number | undefined =>
+  typeof value === 'number' ? value : undefined;
 const isoNow = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 const BOOKING_SERIES_CREATE_ENDPOINT_KEY = 'POST:/v1/booking-series';
+const bookingSeriesLifecycleEndpointKey = (seriesId: string, action: 'cancel') =>
+  `POST:/v1/booking-series/${seriesId}/${action}`;
 const IDEMPOTENCY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export interface CreateBookingSeriesParams {
@@ -33,8 +44,27 @@ export interface CreateBookingSeriesParams {
   body: CreateBookingSeriesRequest;
 }
 
+export interface ListBookingSeriesParams {
+  authUserId: string;
+}
+
+export interface GetBookingSeriesParams {
+  authUserId: string;
+  seriesId: string;
+}
+
+export interface CancelBookingSeriesParams {
+  authUserId: string;
+  requestId: string;
+  seriesId: string;
+  body: CancelBookingSeriesRequest;
+}
+
 export interface BookingSeriesRepository {
+  listVisibleBookingSeries(params: ListBookingSeriesParams): Promise<BookingSeriesListResponse>;
+  getVisibleBookingSeriesById(params: GetBookingSeriesParams): Promise<BookingSeriesResponse>;
   createBookingSeries(params: CreateBookingSeriesParams): Promise<CreateBookingSeriesResponse>;
+  cancelBookingSeries(params: CancelBookingSeriesParams): Promise<CancelBookingSeriesResponse>;
 }
 
 function canonicalizeJson(value: unknown): unknown {
@@ -58,6 +88,23 @@ function hashCreateBookingSeriesRequest(body: CreateBookingSeriesRequest): strin
     .digest('hex');
 }
 
+function hashBookingSeriesLifecycleRequest(params: {
+  seriesId: string;
+  body: CancelBookingSeriesRequest;
+}): string {
+  return crypto
+    .createHash('sha256')
+    .update(
+      JSON.stringify(
+        canonicalizeJson({
+          seriesId: params.seriesId,
+          body: params.body,
+        }),
+      ),
+    )
+    .digest('hex');
+}
+
 function assertMatchingIdempotencyRequest(entry: SeedRow, requestHash: string): void {
   if (asString(entry.requestHash) !== requestHash) {
     throw conflict('Idempotency key was already used with a different booking series payload');
@@ -71,6 +118,32 @@ function parseIdempotentBookingSeriesResponse(
   return parsed.success ? parsed.data : null;
 }
 
+function parseIdempotentCancelBookingSeriesResponse(
+  value: unknown,
+): CancelBookingSeriesResponse | null {
+  const parsed = cancelBookingSeriesResponseSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
+
+function assertExpectedSeriesVersion(currentVersion: number, expectedVersion?: number): void {
+  if (expectedVersion === undefined) {
+    return;
+  }
+  if (currentVersion !== expectedVersion) {
+    throw conflict('Booking series version changed since it was loaded', {
+      currentVersion,
+      expectedVersion,
+    });
+  }
+}
+
+function getMutableRows(tables: SeedTables, key: string): SeedRow[] {
+  if (!Array.isArray(tables[key])) {
+    tables[key] = [];
+  }
+  return tables[key];
+}
+
 function getAthleteUserIdsByAthleteId(tables: SeedTables): Map<string, string | undefined> {
   const athletes = asRows(tables.athletes);
   return new Map(
@@ -79,6 +152,84 @@ function getAthleteUserIdsByAthleteId(tables: SeedTables): Map<string, string | 
       .filter(([id]) => Boolean(id))
       .map(([id, userId]) => [id as string, userId]),
   );
+}
+
+function getParticipantRowsByBooking(tables: SeedTables): Map<string, SeedRow[]> {
+  const participantRowsByBooking = new Map<string, SeedRow[]>();
+  for (const participant of asRows(tables.bookingParticipants)) {
+    const bookingId = asString(participant.bookingId);
+    if (!bookingId) {
+      continue;
+    }
+    const existing = participantRowsByBooking.get(bookingId) ?? [];
+    existing.push(participant);
+    participantRowsByBooking.set(bookingId, existing);
+  }
+  return participantRowsByBooking;
+}
+
+function getObjectiveValuesForBooking(tables: SeedTables, bookingId: string): string[] {
+  return asRows(tables.bookingObjectives)
+    .filter((objective) => asString(objective.bookingId) === bookingId)
+    .sort((left, right) => (asNumber(left.sortOrder) ?? 0) - (asNumber(right.sortOrder) ?? 0))
+    .map((objective) => asString(objective.objective))
+    .filter((objective): objective is string => Boolean(objective));
+}
+
+function canUserAccessSeedSeriesBooking(
+  tables: SeedTables,
+  booking: SeedRow,
+  authUserId: string,
+  participantRowsByBooking = getParticipantRowsByBooking(tables),
+  athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(tables),
+): boolean {
+  if (
+    asString(booking.coachUserId) === authUserId ||
+    asString(booking.bookedByUserId) === authUserId
+  ) {
+    return true;
+  }
+
+  const bookingParticipants = participantRowsByBooking.get(asString(booking.id) ?? '') ?? [];
+  return bookingParticipants.some((participant) => {
+    if (asString(participant.guardianUserId) === authUserId) {
+      return true;
+    }
+    const athleteId = asString(participant.athleteId);
+    return Boolean(athleteId && athleteUserIdsByAthleteId.get(athleteId) === authUserId);
+  });
+}
+
+function mapSeedBookingRow(
+  tables: SeedTables,
+  booking: SeedRow,
+  participantRowsByBooking = getParticipantRowsByBooking(tables),
+): BookingResponse {
+  const bookingId = asString(booking.id) ?? '';
+  return bookingResponseSchema.parse({
+    id: bookingId,
+    coachUserId: asString(booking.coachUserId),
+    bookedByUserId: asString(booking.bookedByUserId),
+    status: asString(booking.status),
+    scheduledAt: asString(booking.scheduledAt),
+    durationMinutes: asNumber(booking.durationMinutes) ?? 60,
+    location: asString(booking.location) ?? 'TBD',
+    serviceType: asString(booking.serviceType) ?? 'one_to_one',
+    sessionTemplateId: null,
+    objectives: getObjectiveValuesForBooking(tables, bookingId),
+    notes: asString(booking.notes) ?? null,
+    priceMinor: asNumber(booking.priceMinor) ?? null,
+    currency: asString(booking.currency) ?? 'GBP',
+    participants: (participantRowsByBooking.get(bookingId) ?? []).map((participant) => ({
+      athleteId: asString(participant.athleteId) ?? '',
+      guardianUserId: asString(participant.guardianUserId),
+      status: (asString(participant.status) ?? 'pending').toLowerCase(),
+    })),
+    version: asNumber(booking.version) ?? 1,
+    createdAt: asString(booking.createdAt) ?? isoNow(),
+    updatedAt: asString(booking.updatedAt) ?? isoNow(),
+    cancelledAt: asString(booking.cancelledAt) ?? null,
+  });
 }
 
 function assertSeedBookingSeriesAthleteAccess(
@@ -161,7 +312,58 @@ function recordSeedCreateBookingSeriesIdempotency(params: {
   });
 }
 
-function isCreateBookingSeriesIdempotencyRace(error: unknown): boolean {
+function findSeedCancelBookingSeriesIdempotency(params: {
+  tables: SeedTables;
+  authUserId: string;
+  endpointKey: string;
+  idempotencyKey?: string;
+  requestHash: string;
+}): CancelBookingSeriesResponse | null {
+  if (!params.idempotencyKey) {
+    return null;
+  }
+
+  const entry = asRows(params.tables.idempotencyKeys).find(
+    (row) =>
+      asString(row.userId) === params.authUserId &&
+      asString(row.endpointKey) === params.endpointKey &&
+      asString(row.idempotencyKey) === params.idempotencyKey,
+  );
+  if (!entry) {
+    return null;
+  }
+
+  assertMatchingIdempotencyRequest(entry, params.requestHash);
+  return parseIdempotentCancelBookingSeriesResponse(entry.responseBodyJson);
+}
+
+function recordSeedCancelBookingSeriesIdempotency(params: {
+  tables: SeedTables;
+  authUserId: string;
+  endpointKey: string;
+  idempotencyKey?: string;
+  requestHash: string;
+  response: CancelBookingSeriesResponse;
+  now: string;
+}): void {
+  if (!params.idempotencyKey) {
+    return;
+  }
+
+  getMutableRows(params.tables, 'idempotencyKeys').push({
+    id: newId('idk'),
+    userId: params.authUserId,
+    endpointKey: params.endpointKey,
+    idempotencyKey: params.idempotencyKey,
+    requestHash: params.requestHash,
+    responseStatus: 200,
+    responseBodyJson: params.response,
+    createdAt: params.now,
+    expiresAt: new Date(Date.parse(params.now) + IDEMPOTENCY_TTL_MS).toISOString(),
+  });
+}
+
+function isBookingSeriesIdempotencyRace(error: unknown): boolean {
   if (!error || typeof error !== 'object') {
     return false;
   }
@@ -212,6 +414,150 @@ export function assertBookingSeriesOccurrencesValid(body: CreateBookingSeriesReq
       });
     }
   }
+}
+
+function getSeedBookingsForSeries(tables: SeedTables, seriesId: string): SeedRow[] {
+  return asRows(tables.bookings)
+    .filter((booking) => asString(booking.recurringSeriesId) === seriesId)
+    .sort((left, right) => {
+      const leftIndex = asNumber(left.seriesIndex);
+      const rightIndex = asNumber(right.seriesIndex);
+      if (typeof leftIndex === 'number' && typeof rightIndex === 'number') {
+        return leftIndex - rightIndex;
+      }
+      return Date.parse(asString(left.scheduledAt) ?? '') - Date.parse(asString(right.scheduledAt) ?? '');
+    });
+}
+
+function getSeriesStatusFromBookings(bookings: BookingResponse[]): BookingSeriesResponse['status'] {
+  if (bookings.length === 0) {
+    return 'ACTIVE';
+  }
+  const cancelledCount = bookings.filter((booking) => booking.status === 'CANCELLED').length;
+  const completedCount = bookings.filter((booking) => booking.status === 'COMPLETED').length;
+  if (cancelledCount === bookings.length) {
+    return 'CANCELLED';
+  }
+  if (completedCount === bookings.length) {
+    return 'COMPLETED';
+  }
+  if (cancelledCount > 0 || completedCount > 0) {
+    return 'PARTIAL';
+  }
+  return 'ACTIVE';
+}
+
+function mapSeedBookingSeriesRow(params: {
+  tables: SeedTables;
+  series: SeedRow;
+  bookings?: SeedRow[];
+}): BookingSeriesResponse {
+  const participantRowsByBooking = getParticipantRowsByBooking(params.tables);
+  const linkedBookingRows = params.bookings ?? getSeedBookingsForSeries(params.tables, asString(params.series.id) ?? '');
+  const bookings = linkedBookingRows.map((booking) =>
+    mapSeedBookingRow(params.tables, booking, participantRowsByBooking),
+  );
+  const firstBooking = bookings[0];
+  const lastBooking = bookings[bookings.length - 1];
+  const athleteIds = Array.from(
+    new Set(
+      bookings.flatMap((booking) => booking.participants.map((participant) => participant.athleteId)),
+    ),
+  );
+  const fallbackAthleteId = asString(params.series.athleteId);
+  if (athleteIds.length === 0 && fallbackAthleteId) {
+    athleteIds.push(fallbackAthleteId);
+  }
+  const priceValues = bookings
+    .map((booking) => booking.priceMinor)
+    .filter((price): price is number => typeof price === 'number');
+  const scheduledDates = bookings.map((booking) => booking.scheduledAt);
+
+  return bookingSeriesResponseSchema.parse({
+    id: asString(params.series.id),
+    coachUserId: asString(params.series.coachUserId),
+    bookedByUserId: asString(params.series.bookedByUserId),
+    athleteIds,
+    frequency: asString(params.series.frequency) ?? 'CUSTOM',
+    patternLabel: asString(params.series.notes) ?? null,
+    status: getSeriesStatusFromBookings(bookings),
+    startDate: firstBooking?.scheduledAt ?? asString(params.series.startDate),
+    endDate: lastBooking?.scheduledAt ?? asString(params.series.endDate) ?? asString(params.series.startDate),
+    bookingIds: bookings.map((booking) => booking.id),
+    scheduledDates,
+    durationMinutes: firstBooking?.durationMinutes ?? null,
+    location: firstBooking?.location ?? null,
+    serviceType: firstBooking?.serviceType ?? null,
+    objectives: firstBooking?.objectives ?? [],
+    priceMinor: firstBooking?.priceMinor ?? null,
+    totalPriceMinor: priceValues.length > 0 ? priceValues.reduce((sum, price) => sum + price, 0) : null,
+    currency: firstBooking?.currency ?? 'GBP',
+    version: asNumber(params.series.version) ?? 1,
+    createdAt: asString(params.series.createdAt) ?? isoNow(),
+    updatedAt: asString(params.series.updatedAt) ?? isoNow(),
+  });
+}
+
+function canUserAccessSeedSeries(params: {
+  tables: SeedTables;
+  series: SeedRow;
+  authUserId: string;
+  linkedBookings?: SeedRow[];
+}): boolean {
+  if (
+    asString(params.series.coachUserId) === params.authUserId ||
+    asString(params.series.bookedByUserId) === params.authUserId
+  ) {
+    return true;
+  }
+
+  const athleteId = asString(params.series.athleteId);
+  if (athleteId) {
+    const athleteUserId = getAthleteUserIdsByAthleteId(params.tables).get(athleteId);
+    if (athleteUserId === params.authUserId) {
+      return true;
+    }
+    if (
+      asRows(params.tables.guardianChildLinks).some(
+        (link) =>
+          asString(link.athleteId) === athleteId &&
+          asString(link.guardianUserId) === params.authUserId,
+      )
+    ) {
+      return true;
+    }
+  }
+
+  const participantRowsByBooking = getParticipantRowsByBooking(params.tables);
+  const athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(params.tables);
+  return (params.linkedBookings ?? getSeedBookingsForSeries(params.tables, asString(params.series.id) ?? '')).some(
+    (booking) =>
+      canUserAccessSeedSeriesBooking(
+        params.tables,
+        booking,
+        params.authUserId,
+        participantRowsByBooking,
+        athleteUserIdsByAthleteId,
+      ),
+  );
+}
+
+function getVisibleSeedBookingSeriesById(params: {
+  tables: SeedTables;
+  authUserId: string;
+  seriesId: string;
+}): BookingSeriesResponse {
+  const series = asRows(params.tables.recurringSeries).find(
+    (row) => asString(row.id) === params.seriesId && !asString(row.deletedAt),
+  );
+  if (!series) {
+    throw badRequest('Booking series not found', { seriesId: params.seriesId });
+  }
+  const linkedBookings = getSeedBookingsForSeries(params.tables, params.seriesId);
+  if (!canUserAccessSeedSeries({ ...params, series, linkedBookings })) {
+    throw forbidden('Booking series does not belong to authenticated user');
+  }
+  return mapSeedBookingSeriesRow({ tables: params.tables, series, bookings: linkedBookings });
 }
 
 export async function assertBookingSeriesCreateAccess(params: {
@@ -317,11 +663,18 @@ function buildBookingSeriesResponse(params: {
       startDate,
       endDate,
       bookingIds: params.bookings.map((booking) => booking.id),
+      scheduledDates: params.bookings.map((booking) => booking.scheduledAt),
+      durationMinutes: params.bookings[0]?.durationMinutes ?? null,
+      location: params.bookings[0]?.location ?? null,
+      serviceType: params.body.serviceType,
+      objectives: params.body.objectives,
+      priceMinor: params.body.priceMinor ?? null,
       totalPriceMinor:
         typeof params.body.priceMinor === 'number'
           ? params.body.priceMinor * params.bookings.length
           : null,
       currency: params.body.currency,
+      version: 1,
       createdAt: params.createdAt,
       updatedAt: params.updatedAt,
     },
@@ -370,6 +723,41 @@ class SeedBookingSeriesRepository implements BookingSeriesRepository {
       tables: SeedTables;
     } = getMarketplaceSeedStore,
   ) {}
+
+  async listVisibleBookingSeries(
+    params: ListBookingSeriesParams,
+  ): Promise<BookingSeriesListResponse> {
+    const store = this.loadStore();
+    const visibleSeries = asRows(store.tables.recurringSeries)
+      .filter((series) => !asString(series.deletedAt))
+      .filter((series) =>
+        canUserAccessSeedSeries({
+          tables: store.tables,
+          series,
+          authUserId: params.authUserId,
+        }),
+      )
+      .map((series) => mapSeedBookingSeriesRow({ tables: store.tables, series }))
+      .sort((left, right) => Date.parse(left.startDate) - Date.parse(right.startDate));
+
+    return bookingSeriesListResponseSchema.parse({
+      series: visibleSeries,
+      total: visibleSeries.length,
+      seedVersion: store.version,
+      requestId: 'seed',
+    });
+  }
+
+  async getVisibleBookingSeriesById(
+    params: GetBookingSeriesParams,
+  ): Promise<BookingSeriesResponse> {
+    const store = this.loadStore();
+    return getVisibleSeedBookingSeriesById({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      seriesId: params.seriesId,
+    });
+  }
 
   async createBookingSeries(
     params: CreateBookingSeriesParams,
@@ -436,6 +824,131 @@ class SeedBookingSeriesRepository implements BookingSeriesRepository {
 
     return response;
   }
+
+  async cancelBookingSeries(
+    params: CancelBookingSeriesParams,
+  ): Promise<CancelBookingSeriesResponse> {
+    const store = this.loadStore();
+    const seriesRows = asRows(store.tables.recurringSeries);
+    const bookings = asRows(store.tables.bookings);
+    const statusEvents = getMutableRows(store.tables, 'bookingStatusEvents');
+    const series = seriesRows.find(
+      (row) => asString(row.id) === params.seriesId && !asString(row.deletedAt),
+    );
+    if (!series) {
+      throw badRequest('Booking series not found', { seriesId: params.seriesId });
+    }
+
+    const linkedBookings = getSeedBookingsForSeries(store.tables, params.seriesId);
+    if (
+      !canUserAccessSeedSeries({
+        tables: store.tables,
+        series,
+        authUserId: params.authUserId,
+        linkedBookings,
+      })
+    ) {
+      throw forbidden('Booking series does not belong to authenticated user');
+    }
+
+    const endpointKey = bookingSeriesLifecycleEndpointKey(params.seriesId, 'cancel');
+    const requestHash = hashBookingSeriesLifecycleRequest({
+      seriesId: params.seriesId,
+      body: params.body,
+    });
+    const idempotentResponse = findSeedCancelBookingSeriesIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      endpointKey,
+      idempotencyKey: params.body.idempotencyKey,
+      requestHash,
+    });
+    if (idempotentResponse) {
+      return idempotentResponse;
+    }
+
+    assertExpectedSeriesVersion(asNumber(series.version) ?? 1, params.body.expectedVersion);
+
+    const now = isoNow();
+    const nowMs = Date.parse(now);
+    for (const booking of linkedBookings) {
+      const currentStatus = asString(booking.status)?.toUpperCase();
+      const scheduledAtMs = Date.parse(asString(booking.scheduledAt) ?? '');
+      if (
+        currentStatus === 'CANCELLED' ||
+        currentStatus === 'COMPLETED' ||
+        !Number.isFinite(scheduledAtMs) ||
+        scheduledAtMs <= nowMs
+      ) {
+        continue;
+      }
+
+      booking.status = 'CANCELLED';
+      booking.cancelledByUserId = params.authUserId;
+      booking.cancelledAt = now;
+      booking.cancelReason = params.body.reason;
+      booking.updatedByUserId = params.authUserId;
+      booking.updatedAt = now;
+      booking.version = (asNumber(booking.version) ?? 1) + 1;
+
+      statusEvents.push({
+        id: newId('bse'),
+        bookingId: asString(booking.id),
+        fromStatus: currentStatus,
+        toStatus: 'CANCELLED',
+        actorUserId: params.authUserId,
+        reason: params.body.reason,
+        metadataJson: {
+          note: params.body.note ?? null,
+          source: 'api-runtime',
+          recurringSeriesId: params.seriesId,
+        },
+        requestId: params.requestId,
+        occurredAt: now,
+      });
+    }
+
+    const updatedLinkedBookings = bookings.filter(
+      (booking) => asString(booking.recurringSeriesId) === params.seriesId,
+    );
+    const responseBookings = updatedLinkedBookings
+      .sort((left, right) => {
+        const leftIndex = asNumber(left.seriesIndex);
+        const rightIndex = asNumber(right.seriesIndex);
+        if (typeof leftIndex === 'number' && typeof rightIndex === 'number') {
+          return leftIndex - rightIndex;
+        }
+        return Date.parse(asString(left.scheduledAt) ?? '') - Date.parse(asString(right.scheduledAt) ?? '');
+      })
+      .map((booking) => mapSeedBookingRow(store.tables, booking));
+
+    series.status = getSeriesStatusFromBookings(responseBookings);
+    series.updatedByUserId = params.authUserId;
+    series.updatedAt = now;
+    series.version = (asNumber(series.version) ?? 1) + 1;
+
+    const response = cancelBookingSeriesResponseSchema.parse({
+      series: mapSeedBookingSeriesRow({
+        tables: store.tables,
+        series,
+        bookings: updatedLinkedBookings,
+      }),
+      bookings: responseBookings,
+      requestId: params.requestId,
+    });
+
+    recordSeedCancelBookingSeriesIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      endpointKey,
+      idempotencyKey: params.body.idempotencyKey,
+      requestHash,
+      response,
+      now,
+    });
+
+    return response;
+  }
 }
 
 export async function resolveCreateBookingSeriesIdempotency(params: {
@@ -484,7 +997,281 @@ export async function resolveCreateBookingSeriesIdempotency(params: {
   return { responseStatus: entry.responseStatus, response };
 }
 
+async function resolveCancelBookingSeriesIdempotency(params: {
+  authUserId: string;
+  seriesId: string;
+  body: CancelBookingSeriesRequest;
+}): Promise<{ responseStatus: number; response: CancelBookingSeriesResponse } | null> {
+  if (!params.body.idempotencyKey) {
+    return null;
+  }
+
+  const endpointKey = bookingSeriesLifecycleEndpointKey(params.seriesId, 'cancel');
+  const requestHash = hashBookingSeriesLifecycleRequest({
+    seriesId: params.seriesId,
+    body: params.body,
+  });
+
+  if (getApiDataBackend() !== 'db' || shouldUseDbFixtureFallback()) {
+    const tables =
+      getApiDataBackend() === 'db' ? getDbFixtureStore().tables : getMarketplaceSeedStore().tables;
+    const response = findSeedCancelBookingSeriesIdempotency({
+      tables,
+      authUserId: params.authUserId,
+      endpointKey,
+      idempotencyKey: params.body.idempotencyKey,
+      requestHash,
+    });
+    return response ? { responseStatus: 200, response } : null;
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  const entry = await prisma.idempotencyKey.findUnique({
+    where: {
+      userId_endpointKey_idempotencyKey: {
+        userId: params.authUserId,
+        endpointKey,
+        idempotencyKey: params.body.idempotencyKey,
+      },
+    },
+  });
+  if (!entry) {
+    return null;
+  }
+
+  if (entry.requestHash !== requestHash) {
+    throw conflict('Idempotency key was already used with a different booking series payload');
+  }
+
+  const response = parseIdempotentCancelBookingSeriesResponse(entry.responseBodyJson);
+  if (!response) {
+    throw conflict('Stored idempotency response is no longer valid');
+  }
+
+  return { responseStatus: entry.responseStatus, response };
+}
+
+function mapDbBookingRecord(booking: Record<string, unknown>): BookingResponse {
+  const participants = asRows(booking.participants);
+  const objectives = asRows(booking.objectives);
+  return bookingResponseSchema.parse({
+    id: asString(booking.id),
+    coachUserId: asString(booking.coachUserId),
+    bookedByUserId: asString(booking.bookedByUserId) ?? undefined,
+    status: asString(booking.status),
+    scheduledAt: asString(booking.scheduledAt),
+    durationMinutes: asNumber(booking.durationMinutes) ?? 60,
+    location: asString(booking.location) ?? 'TBD',
+    serviceType: asString(booking.serviceType) ?? undefined,
+    sessionTemplateId: null,
+    objectives: objectives
+      .sort((left, right) => (asNumber(left.sortOrder) ?? 0) - (asNumber(right.sortOrder) ?? 0))
+      .map((objective) => asString(objective.objective))
+      .filter((objective): objective is string => Boolean(objective)),
+    notes: asString(booking.notes) ?? null,
+    priceMinor: asNumber(booking.priceMinor) ?? null,
+    currency: asString(booking.currency) ?? 'GBP',
+    participants: participants.map((participant) => ({
+      athleteId: asString(participant.athleteId) ?? '',
+      guardianUserId: asString(participant.guardianUserId),
+      status: (asString(participant.status) ?? 'pending').toLowerCase(),
+    })),
+    version: asNumber(booking.version) ?? 1,
+    createdAt: asString(booking.createdAt) ?? isoNow(),
+    updatedAt: asString(booking.updatedAt) ?? isoNow(),
+    cancelledAt: asString(booking.cancelledAt) ?? null,
+  });
+}
+
+function mapDbBookingSeriesRecord(params: {
+  series: Record<string, unknown>;
+  bookings: BookingResponse[];
+}): BookingSeriesResponse {
+  const firstBooking = params.bookings[0];
+  const lastBooking = params.bookings[params.bookings.length - 1];
+  const athleteIds = Array.from(
+    new Set(
+      params.bookings.flatMap((booking) =>
+        booking.participants.map((participant) => participant.athleteId),
+      ),
+    ),
+  );
+  const fallbackAthleteId = asString(params.series.athleteId);
+  if (athleteIds.length === 0 && fallbackAthleteId) {
+    athleteIds.push(fallbackAthleteId);
+  }
+  const priceValues = params.bookings
+    .map((booking) => booking.priceMinor)
+    .filter((price): price is number => typeof price === 'number');
+
+  return bookingSeriesResponseSchema.parse({
+    id: asString(params.series.id),
+    coachUserId: asString(params.series.coachUserId),
+    bookedByUserId: asString(params.series.bookedByUserId),
+    athleteIds,
+    frequency: asString(params.series.frequency) ?? 'CUSTOM',
+    patternLabel: asString(params.series.notes) ?? null,
+    status: getSeriesStatusFromBookings(params.bookings),
+    startDate: firstBooking?.scheduledAt ?? asString(params.series.startDate),
+    endDate: lastBooking?.scheduledAt ?? asString(params.series.endDate) ?? asString(params.series.startDate),
+    bookingIds: params.bookings.map((booking) => booking.id),
+    scheduledDates: params.bookings.map((booking) => booking.scheduledAt),
+    durationMinutes: firstBooking?.durationMinutes ?? null,
+    location: firstBooking?.location ?? null,
+    serviceType: firstBooking?.serviceType ?? null,
+    objectives: firstBooking?.objectives ?? [],
+    priceMinor: firstBooking?.priceMinor ?? null,
+    totalPriceMinor: priceValues.length > 0 ? priceValues.reduce((sum, price) => sum + price, 0) : null,
+    currency: firstBooking?.currency ?? 'GBP',
+    version: asNumber(params.series.version) ?? 1,
+    createdAt: asString(params.series.createdAt) ?? isoNow(),
+    updatedAt: asString(params.series.updatedAt) ?? isoNow(),
+  });
+}
+
+function canUserAccessDbSeries(params: {
+  series: { coachUserId: string; bookedByUserId: string };
+  bookings: Array<{
+    participants: Array<{
+      guardianUserId: string | null;
+      athlete: { userId: string | null };
+    }>;
+  }>;
+  authUserId: string;
+}): boolean {
+  return (
+    params.series.coachUserId === params.authUserId ||
+    params.series.bookedByUserId === params.authUserId ||
+    params.bookings.some((booking) =>
+      booking.participants.some(
+        (participant) =>
+          participant.guardianUserId === params.authUserId ||
+          participant.athlete.userId === params.authUserId,
+      ),
+    )
+  );
+}
+
 class DbBookingSeriesRepository implements BookingSeriesRepository {
+  async listVisibleBookingSeries(
+    params: ListBookingSeriesParams,
+  ): Promise<BookingSeriesListResponse> {
+    if (shouldUseDbFixtureFallback()) {
+      const seedRepository = new SeedBookingSeriesRepository(getDbFixtureStore);
+      return seedRepository.listVisibleBookingSeries(params);
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const bookingSeriesIds = await prisma.booking.findMany({
+      where: {
+        recurringSeriesId: { not: null },
+        OR: [
+          { coachUserId: params.authUserId },
+          { bookedByUserId: params.authUserId },
+          { participants: { some: { guardianUserId: params.authUserId } } },
+          { participants: { some: { athlete: { userId: params.authUserId } } } },
+        ],
+      },
+      select: { recurringSeriesId: true },
+    });
+    const visibleSeriesIds = Array.from(
+      new Set(
+        bookingSeriesIds
+          .map((row) => row.recurringSeriesId)
+          .filter((seriesId): seriesId is string => Boolean(seriesId)),
+      ),
+    );
+
+    const seriesRows = await prisma.recurringSeries.findMany({
+      where: {
+        deletedAt: null,
+        OR: [
+          { coachUserId: params.authUserId },
+          { bookedByUserId: params.authUserId },
+          ...(visibleSeriesIds.length > 0 ? [{ id: { in: visibleSeriesIds } }] : []),
+        ],
+      },
+      orderBy: { startDate: 'asc' },
+    });
+    const seriesIds = seriesRows.map((series) => series.id);
+    const bookings = await prisma.booking.findMany({
+      where: { recurringSeriesId: { in: seriesIds } },
+      include: {
+        participants: { include: { athlete: { select: { userId: true } } } },
+        objectives: true,
+      },
+      orderBy: [{ seriesIndex: 'asc' }, { scheduledAt: 'asc' }],
+    });
+    const normalizedBookings = normalizeForJson(bookings) as Record<string, unknown>[];
+    const bookingsBySeries = new Map<string, BookingResponse[]>();
+    for (const booking of normalizedBookings) {
+      const seriesId = asString(booking.recurringSeriesId);
+      if (!seriesId) {
+        continue;
+      }
+      const existing = bookingsBySeries.get(seriesId) ?? [];
+      existing.push(mapDbBookingRecord(booking));
+      bookingsBySeries.set(seriesId, existing);
+    }
+
+    const normalizedSeries = normalizeForJson(seriesRows) as Record<string, unknown>[];
+    const responseSeries = normalizedSeries.map((series) =>
+      mapDbBookingSeriesRecord({
+        series,
+        bookings: bookingsBySeries.get(asString(series.id) ?? '') ?? [],
+      }),
+    );
+
+    return bookingSeriesListResponseSchema.parse({
+      series: responseSeries,
+      total: responseSeries.length,
+      seedVersion: null,
+      requestId: 'db',
+    });
+  }
+
+  async getVisibleBookingSeriesById(
+    params: GetBookingSeriesParams,
+  ): Promise<BookingSeriesResponse> {
+    if (shouldUseDbFixtureFallback()) {
+      const seedRepository = new SeedBookingSeriesRepository(getDbFixtureStore);
+      return seedRepository.getVisibleBookingSeriesById(params);
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const series = await prisma.recurringSeries.findFirst({
+      where: { id: params.seriesId, deletedAt: null },
+    });
+    if (!series) {
+      throw badRequest('Booking series not found', { seriesId: params.seriesId });
+    }
+
+    const bookings = await prisma.booking.findMany({
+      where: { recurringSeriesId: params.seriesId },
+      include: {
+        participants: { include: { athlete: { select: { userId: true } } } },
+        objectives: true,
+      },
+      orderBy: [{ seriesIndex: 'asc' }, { scheduledAt: 'asc' }],
+    });
+    if (
+      !canUserAccessDbSeries({
+        series,
+        bookings,
+        authUserId: params.authUserId,
+      })
+    ) {
+      throw forbidden('Booking series does not belong to authenticated user');
+    }
+
+    return normalizeForJson(
+      mapDbBookingSeriesRecord({
+        series: normalizeForJson(series) as Record<string, unknown>,
+        bookings: (normalizeForJson(bookings) as Record<string, unknown>[]).map(mapDbBookingRecord),
+      }),
+    );
+  }
+
   async createBookingSeries(
     params: CreateBookingSeriesParams,
   ): Promise<CreateBookingSeriesResponse> {
@@ -697,7 +1484,7 @@ class DbBookingSeriesRepository implements BookingSeriesRepository {
         }
       });
     } catch (error) {
-      if (body.idempotencyKey && isCreateBookingSeriesIdempotencyRace(error)) {
+      if (body.idempotencyKey && isBookingSeriesIdempotencyRace(error)) {
         const replay = await resolveCreateBookingSeriesIdempotency({
           authUserId: params.authUserId,
           body,
@@ -710,6 +1497,176 @@ class DbBookingSeriesRepository implements BookingSeriesRepository {
     }
 
     return normalizeForJson(response);
+  }
+
+  async cancelBookingSeries(
+    params: CancelBookingSeriesParams,
+  ): Promise<CancelBookingSeriesResponse> {
+    if (shouldUseDbFixtureFallback()) {
+      const seedRepository = new SeedBookingSeriesRepository(getDbFixtureStore);
+      return seedRepository.cancelBookingSeries(params);
+    }
+
+    const idempotentResponse = await resolveCancelBookingSeriesIdempotency({
+      authUserId: params.authUserId,
+      seriesId: params.seriesId,
+      body: params.body,
+    });
+    if (idempotentResponse) {
+      return idempotentResponse.response;
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const series = await prisma.recurringSeries.findFirst({
+      where: { id: params.seriesId, deletedAt: null },
+    });
+    if (!series) {
+      throw badRequest('Booking series not found', { seriesId: params.seriesId });
+    }
+
+    const bookings = await prisma.booking.findMany({
+      where: { recurringSeriesId: params.seriesId },
+      include: {
+        participants: { include: { athlete: { select: { userId: true } } } },
+        objectives: true,
+      },
+      orderBy: [{ seriesIndex: 'asc' }, { scheduledAt: 'asc' }],
+    });
+
+    if (
+      !canUserAccessDbSeries({
+        series,
+        bookings,
+        authUserId: params.authUserId,
+      })
+    ) {
+      throw forbidden('Booking series does not belong to authenticated user');
+    }
+
+    assertExpectedSeriesVersion(Number(series.version), params.body.expectedVersion);
+
+    const now = new Date();
+    const endpointKey = bookingSeriesLifecycleEndpointKey(params.seriesId, 'cancel');
+    const requestHash = hashBookingSeriesLifecycleRequest({
+      seriesId: params.seriesId,
+      body: params.body,
+    });
+
+    try {
+      const response = await prisma.$transaction(async (tx) => {
+        const seriesUpdate = await tx.recurringSeries.updateMany({
+          where: { id: params.seriesId, version: series.version },
+          data: {
+            updatedByUserId: params.authUserId,
+            version: { increment: 1 },
+          },
+        });
+        if (seriesUpdate.count !== 1) {
+          throw conflict('Booking series version changed since it was loaded', {
+            currentVersion: Number(series.version),
+          });
+        }
+
+        for (const booking of bookings) {
+          if (
+            booking.status === 'CANCELLED' ||
+            booking.status === 'COMPLETED' ||
+            booking.scheduledAt.getTime() <= now.getTime()
+          ) {
+            continue;
+          }
+
+          await tx.booking.update({
+            where: { id: booking.id },
+            data: {
+              status: 'CANCELLED',
+              cancelledByUserId: params.authUserId,
+              cancelledAt: now,
+              cancelReason: params.body.reason,
+              updatedByUserId: params.authUserId,
+              version: { increment: 1 },
+            },
+          });
+          await tx.bookingStatusEvent.create({
+            data: {
+              id: newId('bse'),
+              bookingId: booking.id,
+              fromStatus: booking.status,
+              toStatus: 'CANCELLED',
+              actorUserId: params.authUserId,
+              reason: params.body.reason,
+              metadataJson: {
+                note: params.body.note ?? null,
+                source: 'api-db-runtime',
+                recurringSeriesId: params.seriesId,
+              },
+              requestId: params.requestId,
+              occurredAt: now,
+            },
+          });
+        }
+
+        const updatedBookings = await tx.booking.findMany({
+          where: { recurringSeriesId: params.seriesId },
+          include: {
+            participants: { include: { athlete: { select: { userId: true } } } },
+            objectives: true,
+          },
+          orderBy: [{ seriesIndex: 'asc' }, { scheduledAt: 'asc' }],
+        });
+        const responseBookings = (normalizeForJson(updatedBookings) as Record<string, unknown>[]).map(
+          mapDbBookingRecord,
+        );
+        const nextStatus = getSeriesStatusFromBookings(responseBookings);
+        const updatedSeries = await tx.recurringSeries.update({
+          where: { id: params.seriesId },
+          data: {
+            status: nextStatus,
+            updatedByUserId: params.authUserId,
+          },
+        });
+
+        const nextResponse = cancelBookingSeriesResponseSchema.parse({
+          series: mapDbBookingSeriesRecord({
+            series: normalizeForJson(updatedSeries) as Record<string, unknown>,
+            bookings: responseBookings,
+          }),
+          bookings: responseBookings,
+          requestId: params.requestId,
+        });
+
+        if (params.body.idempotencyKey) {
+          await tx.idempotencyKey.create({
+            data: {
+              id: newId('idk'),
+              userId: params.authUserId,
+              endpointKey,
+              idempotencyKey: params.body.idempotencyKey,
+              requestHash,
+              responseStatus: 200,
+              responseBodyJson: nextResponse as never,
+              expiresAt: new Date(now.getTime() + IDEMPOTENCY_TTL_MS),
+            },
+          });
+        }
+
+        return nextResponse;
+      });
+
+      return normalizeForJson(response);
+    } catch (error) {
+      if (params.body.idempotencyKey && isBookingSeriesIdempotencyRace(error)) {
+        const replay = await resolveCancelBookingSeriesIdempotency({
+          authUserId: params.authUserId,
+          seriesId: params.seriesId,
+          body: params.body,
+        });
+        if (replay) {
+          return replay.response;
+        }
+      }
+      throw error;
+    }
   }
 }
 

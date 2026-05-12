@@ -1368,13 +1368,14 @@ describe('p0 core routes', () => {
       });
       assert.equal(createdRes.statusCode, 201);
       const created = createdRes.json() as {
-        series: { id: string; bookingIds: string[]; totalPriceMinor: number };
+        series: { id: string; bookingIds: string[]; totalPriceMinor: number; version: number };
         bookings: { id: string }[];
       };
       assert.match(created.series.id, /^rec_/);
       assert.equal(created.series.bookingIds.length, 2);
       assert.equal(created.bookings.length, 2);
       assert.equal(created.series.totalPriceMinor, 8000);
+      assert.equal(created.series.version, 1);
 
       const fixtureStore = getDbFixtureStore();
       const seriesRows = asRows(fixtureStore.tables.recurringSeries).filter(
@@ -1404,6 +1405,60 @@ describe('p0 core routes', () => {
         );
       }
 
+      const parentSeriesDetail = await app.inject({
+        method: 'GET',
+        url: `/v1/booking-series/${created.series.id}`,
+        headers,
+      });
+      assert.equal(parentSeriesDetail.statusCode, 200);
+      assert.equal(parentSeriesDetail.json().id, created.series.id);
+
+      const coachSeriesList = await app.inject({
+        method: 'GET',
+        url: '/v1/booking-series',
+        headers: authHeaders(tables, coachUserId, 'coach'),
+      });
+      assert.equal(coachSeriesList.statusCode, 200);
+      assert.equal(
+        (coachSeriesList.json() as { series: { id: string }[] }).series.some(
+          (series) => series.id === created.series.id,
+        ),
+        true,
+      );
+
+      const unrelatedParentId = asString(unrelatedGuardian.guardianUserId) as string;
+      const deniedParentDetail = await app.inject({
+        method: 'GET',
+        url: `/v1/booking-series/${created.series.id}`,
+        headers: authHeaders(tables, unrelatedParentId, 'parent'),
+      });
+      assert.equal(deniedParentDetail.statusCode, 403);
+
+      const unrelatedCoachUserId = asString(
+        asRows(tables.coachingOfferings).find((row) => asString(row.coachUserId) !== coachUserId)
+          ?.coachUserId,
+      );
+      assert.ok(unrelatedCoachUserId, 'expected unrelated coach');
+      const deniedCoachDetail = await app.inject({
+        method: 'GET',
+        url: `/v1/booking-series/${created.series.id}`,
+        headers: authHeaders(tables, unrelatedCoachUserId, 'coach'),
+      });
+      assert.equal(deniedCoachDetail.statusCode, 403);
+
+      const unrelatedAthleteUserId = asString(
+        asRows(tables.athletes).find(
+          (row) => asString(row.id) !== athleteId && asString(row.userId),
+        )?.userId,
+      );
+      assert.ok(unrelatedAthleteUserId, 'expected unrelated athlete user');
+      const deniedAthleteDetail = await app.inject({
+        method: 'GET',
+        url: `/v1/booking-series/${created.series.id}`,
+        headers: authHeaders(tables, unrelatedAthleteUserId, 'athlete'),
+      });
+      assert.equal(deniedAthleteDetail.statusCode, 403);
+
       const replayRes = await app.inject({
         method: 'POST',
         url: '/v1/booking-series',
@@ -1420,6 +1475,66 @@ describe('p0 core routes', () => {
         ).length,
         2,
       );
+
+      const deniedCancel = await app.inject({
+        method: 'POST',
+        url: `/v1/booking-series/${created.series.id}/cancel`,
+        headers: authHeaders(tables, unrelatedParentId, 'parent'),
+        payload: {
+          reason: 'Should not be allowed',
+          expectedVersion: created.series.version,
+          idempotencyKey: 'booking-series-denied-cancel-test',
+        },
+      });
+      assert.equal(deniedCancel.statusCode, 403);
+
+      const cancelledRes = await app.inject({
+        method: 'POST',
+        url: `/v1/booking-series/${created.series.id}/cancel`,
+        headers,
+        payload: {
+          reason: 'Parent cancelled package',
+          expectedVersion: created.series.version,
+          idempotencyKey: 'booking-series-cancel-test',
+        },
+      });
+      assert.equal(cancelledRes.statusCode, 200);
+      const cancelled = cancelledRes.json() as {
+        series: { id: string; status: string; version: number };
+        bookings: { status: string }[];
+      };
+      assert.equal(cancelled.series.id, created.series.id);
+      assert.equal(cancelled.series.status, 'CANCELLED');
+      assert.equal(cancelled.series.version, 2);
+      assert.deepEqual(
+        cancelled.bookings.map((booking) => booking.status),
+        ['CANCELLED', 'CANCELLED'],
+      );
+
+      const staleCancel = await app.inject({
+        method: 'POST',
+        url: `/v1/booking-series/${created.series.id}/cancel`,
+        headers,
+        payload: {
+          reason: 'Stale update',
+          expectedVersion: created.series.version,
+          idempotencyKey: 'booking-series-stale-cancel-test',
+        },
+      });
+      assert.equal(staleCancel.statusCode, 409);
+
+      const cancelReplay = await app.inject({
+        method: 'POST',
+        url: `/v1/booking-series/${created.series.id}/cancel`,
+        headers,
+        payload: {
+          reason: 'Parent cancelled package',
+          expectedVersion: created.series.version,
+          idempotencyKey: 'booking-series-cancel-test',
+        },
+      });
+      assert.equal(cancelReplay.statusCode, 200);
+      assert.equal(cancelReplay.json().series.id, created.series.id);
     } finally {
       env.API_DATA_BACKEND = previousBackend;
       resetMarketplaceSeedStoreForTests();

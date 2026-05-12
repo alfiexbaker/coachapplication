@@ -78,6 +78,7 @@ Current validated runtime state:
 - Expo app config now defaults `web.output` to `single` for normal dev startup, and `npm run export:web` opts into `static` with `EXPO_WEB_OUTPUT=static`; local `expo start` no longer needs the static renderer unless explicitly requested
 - Metro excludes root `.env*` files from the bundle graph. Staging env files are process inputs for Expo/API commands and smoke tooling, not app modules.
 - `apiClient` keeps device/session runtime keys such as auth tokens, active child selection, offline queue, form drafts, and lightweight client preferences in local storage even when real API mode is enabled. Server-owned product data should use explicit `/v1` service endpoints instead of resurrecting generic `/api/:key` authority.
+- Booking series and initial recurring-plan booking generation now use `/v1/booking-series` in real API mode for create, list/detail, and cancel. Local booking-series and recurring-plan storage remain mock-mode behavior, while unsupported recurring mutations fail closed until backend semantics are added.
 - Static web export uses `utils/runtime-environment.ts` to detect Expo static rendering. Local storage reads/writes become no-ops during static rendering, and constructor-time service hydration must be guarded because route-module evaluation happens before the browser runtime exists.
 
 Implication:

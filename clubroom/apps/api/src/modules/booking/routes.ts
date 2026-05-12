@@ -3,6 +3,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import {
   bookingIdSchema,
+  cancelBookingSeriesRequestSchema,
   cancelBookingRequestSchema,
   createBookingRequestSchema,
   createBookingSeriesRequestSchema,
@@ -47,6 +48,7 @@ const asObject = (value: unknown): SeedRow | undefined =>
   value && typeof value === 'object' && !Array.isArray(value) ? (value as SeedRow) : undefined;
 const isoNow = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
+const bookingSeriesIdSchema = z.string().regex(/^rec_[A-Za-z0-9-]+$/);
 
 const eventRsvpRequestSchema = z.object({
   status: z.enum(['GOING', 'MAYBE', 'NOT_GOING']),
@@ -515,6 +517,41 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     return reply.status(201).send(response);
   });
 
+  app.get('/booking-series', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const repository = resolveBookingSeriesRepository();
+    const result = await repository.listVisibleBookingSeries({ authUserId });
+
+    return reply.send({
+      series: result.series,
+      total: result.series.length,
+      seedVersion: result.seedVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.get('/booking-series/:seriesId', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const seriesId = bookingSeriesIdSchema.parse(
+      (request.params as { seriesId?: string } | undefined)?.seriesId,
+    );
+    const repository = resolveBookingSeriesRepository();
+    const series = await repository.getVisibleBookingSeriesById({
+      authUserId,
+      seriesId,
+    });
+
+    return reply.send(series);
+  });
+
   app.post('/booking-series', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
@@ -548,6 +585,28 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       body,
     });
     return reply.status(201).send(response);
+  });
+
+  app.post('/booking-series/:seriesId/cancel', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const seriesId = bookingSeriesIdSchema.parse(
+      (request.params as { seriesId?: string } | undefined)?.seriesId,
+    );
+    const body = cancelBookingSeriesRequestSchema.parse(request.body);
+
+    const repository = resolveBookingSeriesRepository();
+    const response = await repository.cancelBookingSeries({
+      authUserId,
+      requestId: request.requestId,
+      seriesId,
+      body,
+    });
+
+    return reply.send(response);
   });
 
   app.post('/bookings/:bookingId/cancel', async (request, reply) => {

@@ -15,11 +15,12 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 
 - `services/booking-service.ts` -> facade to `services/booking/index.ts`
 - `services/booking/index.ts` -> booking CRUD, status, search, analytics
-- `services/booking/booking-authority-service.ts` -> canonical `/v1` booking bridge for non-mock read plus create/cancel/reopen and multi-week series create slices
+- `services/booking/booking-authority-service.ts` -> canonical `/v1` booking bridge for non-mock read plus create/cancel/reopen and multi-week/recurring series lifecycle slices
 - Booking creation rule: use `bookingService.createBooking()`
   - Current create rule: non-mock booking creation is fail-closed through `/v1/bookings`; local storage now mirrors successful authoritative writes instead of acting as a delegated fallback
   - Current read rule: `bookingService.list()` and `bookingService.getBooking()` are API-first in non-mock mode, then mirror authoritative records into local storage so older UI surfaces still read one shape
-  - Current multi-week rule: `multiWeekBookingService.createSeries()` calls `POST /v1/booking-series` outside mock mode and does not create local booking mirrors; recurring plan CRUD remains fail-closed outside mock mode until its backend authority route exists
+  - Current multi-week rule: `multiWeekBookingService` calls `/v1/booking-series` outside mock mode for create, list/detail, and cancel; it does not create or update local booking-series mirrors outside mock mode
+  - Current recurring rule: `recurringBookingService.createRecurring()` and `cancelRecurring()` bridge to `/v1/booking-series` outside mock mode for backend-owned generated bookings; pause/resume/update/generate/clear remain fail-closed until dedicated backend recurring-plan semantics exist
 
 ### Progress and development
 

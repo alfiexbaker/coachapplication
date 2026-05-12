@@ -76,6 +76,7 @@ interface CreateApiBookingSeriesInput {
   duration: number;
   location: string;
   sessionType: string;
+  frequency?: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'CUSTOM';
   focus?: string;
   notes?: string;
   pricePerSession?: number;
@@ -83,24 +84,40 @@ interface CreateApiBookingSeriesInput {
   idempotencyKey?: string;
 }
 
+interface ApiBookingSeries {
+  id: string;
+  coachUserId: string;
+  bookedByUserId: string;
+  athleteIds: string[];
+  frequency: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'CUSTOM';
+  patternLabel?: string | null;
+  status: 'ACTIVE' | 'PARTIAL' | 'COMPLETED' | 'CANCELLED';
+  startDate: string;
+  endDate: string;
+  bookingIds: string[];
+  scheduledDates: string[];
+  durationMinutes?: number | null;
+  location?: string | null;
+  serviceType?: string | null;
+  objectives: string[];
+  priceMinor?: number | null;
+  totalPriceMinor?: number | null;
+  currency: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface ApiBookingSeriesResponse {
-  series: {
-    id: string;
-    coachUserId: string;
-    bookedByUserId: string;
-    athleteIds: string[];
-    frequency: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'CUSTOM';
-    patternLabel?: string | null;
-    status: 'ACTIVE' | 'PARTIAL' | 'COMPLETED' | 'CANCELLED';
-    startDate: string;
-    endDate: string;
-    bookingIds: string[];
-    totalPriceMinor?: number | null;
-    currency: string;
-    createdAt: string;
-    updatedAt: string;
-  };
+  series: ApiBookingSeries;
   bookings: ApiBookingResponse[];
+  requestId: string;
+}
+
+interface ApiBookingSeriesListResponse {
+  series: ApiBookingSeries[];
+  total: number;
+  seedVersion?: string | null;
   requestId: string;
 }
 
@@ -152,6 +169,7 @@ function buildBookingSeriesIdempotencyKey(input: CreateApiBookingSeriesInput): s
     })),
     location: input.location,
     serviceType: input.sessionType,
+    frequency: input.frequency ?? 'WEEKLY',
     objectives: input.focus ? [input.focus] : [],
     notes: input.notes ?? null,
     priceMinor:
@@ -313,7 +331,7 @@ class BookingAuthorityService {
           ? { priceMinor: Math.max(0, Math.round(input.pricePerSession * 100)) }
           : {}),
         currency: 'GBP',
-        frequency: 'WEEKLY',
+        frequency: input.frequency ?? 'WEEKLY',
         ...(input.patternLabel ? { patternLabel: input.patternLabel } : {}),
         idempotencyKey: input.idempotencyKey ?? buildBookingSeriesIdempotencyKey(input),
       }),
@@ -325,6 +343,81 @@ class BookingAuthorityService {
         bookedById: input.bookedById,
         athleteIds: input.athleteIds,
         weekCount: input.selectedWeeks.length,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+
+    return result;
+  }
+
+  async listBookingSeries(): Promise<Result<ApiBookingSeries[], ServiceError>> {
+    const headersResult = await resolveBookingAccessHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiBookingSeriesListResponse>('/v1/booking-series', {
+      method: 'GET',
+      headers: headersResult.data,
+    });
+
+    if (!result.success) {
+      logger.error('Failed to list booking series via API', { error: result.error });
+      return err(result.error);
+    }
+
+    return ok(result.data.series);
+  }
+
+  async getBookingSeries(seriesId: string): Promise<Result<ApiBookingSeries, ServiceError>> {
+    const headersResult = await resolveBookingAccessHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiBookingSeries>(`/v1/booking-series/${seriesId}`, {
+      method: 'GET',
+      headers: headersResult.data,
+    });
+
+    if (!result.success) {
+      logger.error('Failed to get booking series via API', {
+        seriesId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+
+    return result;
+  }
+
+  async cancelBookingSeries(
+    seriesId: string,
+    input: { reason: string; note?: string; expectedVersion?: number; idempotencyKey?: string },
+  ): Promise<Result<ApiBookingSeriesResponse, ServiceError>> {
+    const headersResult = await resolveBookingAccessHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiBookingSeriesResponse>(
+      `/v1/booking-series/${seriesId}/cancel`,
+      {
+        method: 'POST',
+        headers: headersResult.data,
+        body: JSON.stringify({
+          ...input,
+          idempotencyKey:
+            input.idempotencyKey ??
+            buildBookingLifecycleIdempotencyKey('cancel', seriesId, input),
+        }),
+      },
+    );
+
+    if (!result.success) {
+      logger.error('Failed to cancel booking series via API', {
+        seriesId,
         error: result.error,
       });
       return err(result.error);
