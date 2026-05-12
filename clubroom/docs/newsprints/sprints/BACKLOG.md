@@ -1,12 +1,13 @@
 # Sprint Backlog
 
-Updated: 2026-05-10
+Updated: 2026-05-12
 Rule: active work only. Completed sprint rows are intentionally removed.
 
 ## Open Queue
 
 | ID          | Exactly what it does                                                                                                                                                                                                                                                     | Spine(s)                                                     | Status |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ | ------ |
+| OBS-RUNTIME-01 | Close the Sentry/runtime smoke loop: keep one app Sentry initializer, remove wizard/test noise, require API-mode startup to run with the Fastify API reachable, add API `SENTRY_DSN`, and use Sentry issue review as a release gate before staging rehearsal.             | Trust/Safety/Ops                                             | OPEN   |
 | PROD-API-01 | Use the production readiness matrix to burn down API authority and UI linkup risk: trace untraced backend routes, keep API boundary audit clean, triage the 90 route decisions, and start booking authority hardening before broader feature work.                       | Trust/Safety/Ops + Booking/Revenue + Development + Club Ops  | OPEN   |
 | UX-QA-01    | Build the repeatable micro-interaction defect pipeline: static audits, UI-flow capture/review, hot-path issue inventory, and first burn-down slice for dead controls, native popups, spinner-only actions, missing accessibility labels, and broken transition feedback. | Trust/Safety/Ops + Booking/Revenue + Development + Community | OPEN   |
 | PDOS-01     | Give every launch route and major component a persona, paid-development job, source-of-truth service, primary CTA, loading/action contract, and keep/demote/delete verdict.                                                                                              | Trust/Safety/Ops + Booking/Revenue + Development + Community | READY  |
@@ -23,19 +24,20 @@ Rule: active work only. Completed sprint rows are intentionally removed.
 
 ## Execution Order
 
-1. `PROD-API-01`
-2. `UX-QA-01`
-3. `PDOS-01`
-4. `PDOS-02`
-5. `PDOS-03`
-6. `PDOS-04`
-7. `PDOS-05`
-8. `PDOS-06`
-9. `PDOS-07`
-10. `PDOS-08`
-11. `PDOS-09`
-12. `PDOS-10`
-13. `PDOS-11`
+1. `OBS-RUNTIME-01`
+2. `PROD-API-01`
+3. `UX-QA-01`
+4. `PDOS-01`
+5. `PDOS-02`
+6. `PDOS-03`
+7. `PDOS-04`
+8. `PDOS-05`
+9. `PDOS-06`
+10. `PDOS-07`
+11. `PDOS-08`
+12. `PDOS-09`
+13. `PDOS-10`
+14. `PDOS-11`
 
 ## Active Pruning Plan
 
@@ -119,6 +121,31 @@ Decision:
   - `UI-LOAD-08` route closure is done; `UX-QA-01` inherits the manifest and focuses on interaction defects outside loading classification
 
 ## Sprint Notes
+
+### `OBS-RUNTIME-01`
+
+- Need:
+  - One app-side Sentry initialization path through `services/observability/sentry-service.ts`.
+  - No hardcoded DSN or broad PII/session-replay wizard config in product code.
+  - API-mode local startup instructions that run `apps/api` before Expo.
+  - API Sentry project and `SENTRY_DSN` set so `/v1/ready` is not degraded only because observability is missing.
+  - Sentry issue review before staging rehearsal, separating deliberate setup test issues from real runtime failures.
+- Current Sentry findings from 2026-05-12:
+  - `REACT-NATIVE-1` and `REACT-NATIVE-4` are deliberate setup test events and should be resolved in Sentry.
+  - `REACT-NATIVE-2` is `TypeError: Network request failed` from the iOS simulator in `runtime_mode=api`.
+  - `REACT-NATIVE-3` is the app logging failed API reads for `clubroom.clubs`, `clubroom.club_memberships`, and `clubroom.club_invite_codes`.
+  - Root cause for `REACT-NATIVE-2/3`: Expo was started in API mode while port `4000` was not serving the Fastify API.
+- Acceptance:
+  - `npx expo install --check` stays clean.
+  - `npm run typecheck` stays clean.
+  - `curl http://127.0.0.1:4000/v1/ready` responds after starting `npm --prefix apps/api run dev`.
+  - API-mode Expo startup is tested with the API already running.
+  - Unresolved Sentry issues contain no setup-test noise before production rehearsal.
+- Verify:
+  - `npm run typecheck`
+  - `npx expo install --check`
+  - `git diff --check`
+  - Sentry issue list for `tubton/react-native`
 
 ### `UX-QA-01`
 

@@ -1,8 +1,17 @@
 # Last Step Handoff
 
-Date: 2026-05-11
+Date: 2026-05-12
 
 ## Latest Update
+
+1. Sentry app project `tubton/react-native` is connected and receiving staging events.
+2. Resolved the local wizard drift in code: app Sentry initialization remains centralized in `services/observability/sentry-service.ts`, with no hardcoded DSN, duplicate wrapper, or broad PII/session-replay config in `app/_layout.tsx`.
+3. Added `OBS-RUNTIME-01` to the sprint backlog as the immediate runtime/observability gate.
+4. Sentry triage found two setup-test issues (`REACT-NATIVE-1`, `REACT-NATIVE-4`) and two real runtime smoke issues (`REACT-NATIVE-2`, `REACT-NATIVE-3`).
+5. Root cause for the real Sentry issues: the Expo app was running in API mode while the Fastify API was not listening on port `4000`.
+6. Starting `npm --prefix apps/api run dev` makes `/v1/ready` respond; it remains `degraded` until API `SENTRY_DSN` is configured.
+
+## Previous Update
 
 1. Added API/UI anti-slop rules to `CODEX.md`, backend API docs, and UI/API bilateral alignment docs.
 2. Added `scripts/api-boundary-audit.js` and wired `npm run audit:api-boundaries` into `npm run audit:architecture`.
@@ -22,11 +31,12 @@ Date: 2026-05-11
 
 ## Next Exact Action
 
-1. Continue `PROD-API-02`.
-2. Finish booking lifecycle hardening: cancel/reopen idempotency, transactionality, audit, denial tests, and local mirror cleanup.
-3. Keep `/v1/meta/seed-health` and `/v1/drills` marked as cleanup candidates: auth-gate, disable, or delete before production.
-4. Keep `node ./scripts/api-boundary-audit.js` green on every slice.
-5. Do not run production rehearsal until booking, child readiness, payment/refund, attendance, proof, club operations, and compliance evidence have backend-authoritative launch paths.
+1. Finish `OBS-RUNTIME-01`: resolve setup-test issues in Sentry, create/configure the API Sentry project DSN, and run API-mode Expo only with `apps/api` already reachable.
+2. Continue `PROD-API-02`.
+3. Finish booking lifecycle hardening: cancel/reopen idempotency, transactionality, audit, denial tests, and local mirror cleanup.
+4. Keep `/v1/meta/seed-health` and `/v1/drills` marked as cleanup candidates: auth-gate, disable, or delete before production.
+5. Keep `node ./scripts/api-boundary-audit.js` green on every slice.
+6. Do not run production rehearsal until booking, child readiness, payment/refund, attendance, proof, club operations, and compliance evidence have backend-authoritative launch paths.
 
 ## Verification For This Planning Step
 

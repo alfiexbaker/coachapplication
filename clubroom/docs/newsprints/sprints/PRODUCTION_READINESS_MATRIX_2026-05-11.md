@@ -7,6 +7,12 @@ Purpose: turn Clubroom from a broad POC into a production-ready paid football de
 
 Latest local evidence:
 
+- Sentry app project `tubton/react-native` is receiving events in `staging`.
+- 2026-05-12 Sentry issue triage:
+  - setup-test noise: `REACT-NATIVE-1` native client crash test and `REACT-NATIVE-4` manual `First error` event
+  - real runtime smoke failures: `REACT-NATIVE-2` network request failure and `REACT-NATIVE-3` failed API reads for club stores
+  - root cause: Expo was started in API mode while the Fastify API was not listening on port `4000`
+- `curl http://127.0.0.1:4000/v1/ready` works after starting `npm --prefix apps/api run dev`, but returns `degraded` until API `SENTRY_DSN` is configured.
 - `node ./scripts/agentic-readiness-pipeline.js` -> `1 passed`, `2 warned`, `0 failed`
 - `node ./scripts/api-boundary-audit.js` -> pass with `259` legacy findings baselined and `0` untraced backend routes
 - `node ./scripts/pdos-route-authority-audit.js` -> `154` routes, `90` still need product/source-of-truth decisions
@@ -15,6 +21,8 @@ Latest local evidence:
 
 Current blockers:
 
+- API-mode app startup must run with `apps/api` reachable; otherwise launch-critical club reads immediately produce Sentry noise and app-facing API errors.
+- API Sentry is not fully configured: `/v1/ready` reports `SENTRY_DSN_MISSING` for the Fastify runtime.
 - DB staging preflight is blocked by environment/release items.
 - API boundary debt still exists behind the baseline: `104` legacy `/api/*` paths, `148` trust-sensitive local-storage authority patterns, `5` route literals, `2` frontend raw fetches.
 - Several launch-critical API routes are still `scaffolded` or `planned` in `docs/backend-api/ROUTE_INVENTORY_V1.md`.
