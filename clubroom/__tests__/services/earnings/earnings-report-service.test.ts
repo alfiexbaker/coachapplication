@@ -18,6 +18,24 @@ function nextId(prefix: string): string {
   return `${prefix}_${seq}`;
 }
 
+async function withApiMode<T>(isMockMode: boolean, run: () => Promise<T>): Promise<T> {
+  const originalDescriptor = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+  Object.defineProperty(apiClient, 'isMockMode', {
+    configurable: true,
+    get: () => isMockMode,
+  });
+
+  try {
+    return await run();
+  } finally {
+    if (originalDescriptor) {
+      Object.defineProperty(apiClient, 'isMockMode', originalDescriptor);
+    } else {
+      delete (apiClient as unknown as { isMockMode?: boolean }).isMockMode;
+    }
+  }
+}
+
 describe('EarningsReportService', () => {
   beforeEach(async () => {
     seq = 0;
@@ -41,7 +59,9 @@ describe('EarningsReportService', () => {
     it('creates a completed payment transaction and updates coach balances', async () => {
       const coachId = nextId('coach');
       const bookingId = nextId('booking');
-      const payment = expectOk(await earningsReportService.recordSessionPayment(coachId, bookingId, 100));
+      const payment = expectOk(
+        await earningsReportService.recordSessionPayment(coachId, bookingId, 100),
+      );
 
       assert.ok(payment.id);
       assert.equal(payment.type, 'SESSION_PAYMENT');
@@ -54,6 +74,22 @@ describe('EarningsReportService', () => {
       assert.ok(earnings.availableBalance >= payment.amount);
       assert.equal(earnings.totalSessions, 1);
     });
+
+    it('fails closed in API mode instead of recording local payment state', async () => {
+      await withApiMode(false, async () => {
+        const result = await earningsReportService.recordSessionPayment(
+          nextId('coach'),
+          nextId('booking'),
+          100,
+        );
+
+        assert.equal(result.success, false);
+        assert.equal(result.error?.code, 'VALIDATION');
+        assert.match(result.error?.message ?? '', /backend invoice\/payment authority/i);
+        const transactions = await apiClient.get(STORAGE_KEYS.EARNING_TRANSACTIONS, []);
+        assert.equal(transactions.length, 0);
+      });
+    });
   });
 
   describe('recordRefund', () => {
@@ -63,17 +99,31 @@ describe('EarningsReportService', () => {
       expectOk(await earningsReportService.recordSessionPayment(coachId, bookingId, 120));
       const before = expectOk(await earningsReportService.getEarnings(coachId));
 
-      const refund = expectOk(await earningsReportService.recordRefund(
-        coachId,
-        bookingId,
-        60,
-        'Cancelled by parent',
-      ));
+      const refund = expectOk(
+        await earningsReportService.recordRefund(coachId, bookingId, 60, 'Cancelled by parent'),
+      );
       assert.equal(refund.type, 'REFUND');
       assert.ok(refund.amount < 0);
 
       const after = expectOk(await earningsReportService.getEarnings(coachId));
       assert.ok(after.totalEarned < before.totalEarned);
+    });
+
+    it('fails closed in API mode instead of recording local refund state', async () => {
+      await withApiMode(false, async () => {
+        const result = await earningsReportService.recordRefund(
+          nextId('coach'),
+          nextId('booking'),
+          60,
+          'Cancelled by parent',
+        );
+
+        assert.equal(result.success, false);
+        assert.equal(result.error?.code, 'VALIDATION');
+        assert.match(result.error?.message ?? '', /backend refund authority/i);
+        const transactions = await apiClient.get(STORAGE_KEYS.EARNING_TRANSACTIONS, []);
+        assert.equal(transactions.length, 0);
+      });
     });
   });
 

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-11T20:53:54.981Z",
+  "updatedAt": "2026-05-12T14:52:57.203Z",
   "note": "Legacy anti-slop findings allowed for now. New findings fail scripts/api-boundary-audit.js.",
   "allowedFindings": [
     {
@@ -326,18 +326,6 @@
       "file": "services/earnings/earnings-report-service.ts",
       "snippet": "const response = await fetch(`/api/earnings/${coachId}`);",
       "fingerprint": "legacy-api-path|services/earnings/earnings-report-service.ts|const response = await fetch(`/api/earnings/${coachId}`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/earnings/earnings-report-service.ts",
-      "snippet": "const response = await fetch('/api/transactions/session-payment', {",
-      "fingerprint": "legacy-api-path|services/earnings/earnings-report-service.ts|const response = await fetch('/api/transactions/session-payment', {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/earnings/earnings-report-service.ts",
-      "snippet": "const response = await fetch('/api/transactions/refund', {",
-      "fingerprint": "legacy-api-path|services/earnings/earnings-report-service.ts|const response = await fetch('/api/transactions/refund', {"
     },
     {
       "rule": "legacy-api-path",
@@ -1050,14 +1038,14 @@
     {
       "rule": "trust-sensitive-local-storage",
       "file": "services/multi-week-booking-service.ts",
-      "snippet": "return await apiClient.get<BookingSeries[]>(STORAGE_KEYS.BOOKING_SERIES, []);",
-      "fingerprint": "trust-sensitive-local-storage|services/multi-week-booking-service.ts|return await apiClient.get<BookingSeries[]>(STORAGE_KEYS.BOOKING_SERIES, []);"
+      "snippet": "await apiClient.set(STORAGE_KEYS.BOOKING_SERIES, series);",
+      "fingerprint": "trust-sensitive-local-storage|services/multi-week-booking-service.ts|await apiClient.set(STORAGE_KEYS.BOOKING_SERIES, series);"
     },
     {
       "rule": "trust-sensitive-local-storage",
       "file": "services/multi-week-booking-service.ts",
-      "snippet": "await apiClient.set(STORAGE_KEYS.BOOKING_SERIES, series);",
-      "fingerprint": "trust-sensitive-local-storage|services/multi-week-booking-service.ts|await apiClient.set(STORAGE_KEYS.BOOKING_SERIES, series);"
+      "snippet": "return await apiClient.get<BookingSeries[]>(STORAGE_KEYS.BOOKING_SERIES, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/multi-week-booking-service.ts|return await apiClient.get<BookingSeries[]>(STORAGE_KEYS.BOOKING_SERIES, []);"
     },
     {
       "rule": "trust-sensitive-local-storage",

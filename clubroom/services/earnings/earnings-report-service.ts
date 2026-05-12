@@ -12,8 +12,7 @@
  *
  * API Integration Notes:
  * - GET /api/earnings/:coachId - Get coach earnings
- * - POST /api/transactions/session-payment - Record payment
- * - POST /api/transactions/refund - Record refund
+ * - Legacy transaction writes are mock-only; API mode must use invoice/payment authority
  * - GET /api/transactions/:coachId - Transaction history
  */
 
@@ -21,11 +20,15 @@ import { apiClient } from '../api-client';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { api } from '@/constants/config';
-import type {
-  CoachEarnings,
-  EarningTransaction,
-} from '@/constants/types';
-import { type Result, type ServiceError, ok, err, networkError } from '@/types/result';
+import type { CoachEarnings, EarningTransaction } from '@/constants/types';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  networkError,
+  validationError,
+} from '@/types/result';
 
 const logger = createLogger('EarningsReportService');
 
@@ -423,6 +426,14 @@ export const earningsReportService = {
   ): Promise<Result<EarningTransaction, ServiceError>> {
     logger.debug('Recording session payment', { coachId, bookingId, amount });
 
+    if (!apiClient.isMockMode) {
+      return err(
+        validationError(
+          'Session payment state requires backend invoice/payment authority in API mode.',
+        ),
+      );
+    }
+
     const transaction: EarningTransaction = {
       id: `txn_${Date.now()}`,
       coachId,
@@ -486,19 +497,11 @@ export const earningsReportService = {
         return ok(transaction);
       }
 
-      const response = await fetch('/api/transactions/session-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ coachId, bookingId, amount, sessionDate }),
-      });
-
-      if (!response.ok) {
-        logger.error('Failed to record session payment via API', { coachId, bookingId });
-        return err(networkError('Failed to record session payment'));
-      }
-
-      const data = await response.json();
-      return ok(data);
+      return err(
+        validationError(
+          'Session payment state requires backend invoice/payment authority in API mode.',
+        ),
+      );
     } catch (error) {
       logger.error('Error recording session payment', error);
       return err(networkError('Failed to record session payment'));
@@ -515,6 +518,14 @@ export const earningsReportService = {
     reason?: string,
   ): Promise<Result<EarningTransaction, ServiceError>> {
     logger.debug('Recording refund', { coachId, bookingId, amount });
+
+    if (!apiClient.isMockMode) {
+      return err(
+        validationError(
+          'Refunds require backend refund authority with registered-number verification in API mode.',
+        ),
+      );
+    }
 
     const transaction: EarningTransaction = {
       id: `txn_refund_${Date.now()}`,
@@ -553,19 +564,11 @@ export const earningsReportService = {
         return ok(transaction);
       }
 
-      const response = await fetch('/api/transactions/refund', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ coachId, bookingId, amount, reason }),
-      });
-
-      if (!response.ok) {
-        logger.error('Failed to record refund via API', { coachId, bookingId });
-        return err(networkError('Failed to record refund'));
-      }
-
-      const data = await response.json();
-      return ok(data);
+      return err(
+        validationError(
+          'Refunds require backend refund authority with registered-number verification in API mode.',
+        ),
+      );
     } catch (error) {
       logger.error('Error recording refund', error);
       return err(networkError('Failed to record refund'));
