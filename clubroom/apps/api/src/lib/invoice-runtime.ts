@@ -8,11 +8,16 @@ import {
   getConfiguredPaymentProvider,
   verifySimulatedPaymentToken,
 } from './payment-provider.js';
+import type { PrismaClient } from '@clubroom/db';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from './prisma-runtime.js';
 import { normalizeForJson } from '../repositories/p0/normalize.js';
 
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
+type InvoicePrismaTransaction = Pick<
+  PrismaClient,
+  'invoice' | 'invoiceEvent' | 'paymentAttempt' | 'reconcilerEntry'
+>;
 
 export interface InvoiceListQuery {
   status?: string;
@@ -103,6 +108,13 @@ export interface TransitionInvoiceInput {
   invoiceId: string;
   actorUserId: string;
   action: InvoiceTransitionAction;
+  reason?: string;
+  requestId?: string;
+}
+
+export interface BookingInvoiceLifecycleInput {
+  bookingId: string;
+  actorUserId: string;
   reason?: string;
   requestId?: string;
 }
@@ -390,6 +402,25 @@ function updateReconcilerEntry(params: {
   });
 }
 
+function cancelActivePaymentAttemptsForInvoice(params: {
+  paymentAttempts: SeedRow[];
+  invoiceId: string;
+  now: string;
+  reason: string;
+}): void {
+  for (const row of params.paymentAttempts) {
+    if (
+      asString(row.invoiceId) === params.invoiceId &&
+      ACTIVE_PAYMENT_ATTEMPT_STATUSES.has(coerceAttemptStatus(row.status))
+    ) {
+      row.status = 'CANCELED';
+      row.canceledAt = params.now;
+      row.updatedAt = params.now;
+      row.failureReason = params.reason;
+    }
+  }
+}
+
 function getInvoiceTransitionPlan(params: {
   action: InvoiceTransitionAction;
   currentStatus: (typeof INVOICE_STATUSES)[number];
@@ -484,6 +515,148 @@ function assertMutableInvoiceBookingLink(
     throw badRequest('Invoice booking coach link does not match authoritative booking', {
       invoiceId,
       bookingId,
+    });
+  }
+}
+
+function applyBookingCancellationInvoiceEffectsInTables(
+  tables: SeedTables,
+  input: BookingInvoiceLifecycleInput,
+): void {
+  const invoices = getActiveRows(getMutableRows(tables, 'invoices')).filter(
+    (row) => asString(row.bookingId) === input.bookingId,
+  );
+  if (invoices.length === 0) {
+    return;
+  }
+
+  const paidInvoice = invoices.find((row) => toInvoiceStatus(row.status) === 'PAID');
+  if (paidInvoice) {
+    throw badRequest('Paid booking invoices require a refund workflow before cancellation', {
+      bookingId: input.bookingId,
+      invoiceId: asString(paidInvoice.id),
+    });
+  }
+
+  const now = nowIso();
+  const paymentAttempts = getMutableRows(tables, 'paymentAttempts');
+  const invoiceEvents = getMutableRows(tables, 'invoiceEvents');
+  const reconcilerEntries = getMutableRows(tables, 'reconcilerEntries');
+
+  for (const invoice of invoices) {
+    const invoiceId = asString(invoice.id) ?? '';
+    cancelActivePaymentAttemptsForInvoice({
+      paymentAttempts,
+      invoiceId,
+      now,
+      reason: 'Booking was cancelled before payment completion.',
+    });
+
+    const status = toInvoiceStatus(invoice.status);
+    if (status !== 'DRAFT' && status !== 'SENT') {
+      continue;
+    }
+
+    const voidReason = input.reason ?? 'Booking cancelled before payment.';
+    invoice.status = 'VOID';
+    invoice.paidAt = null;
+    invoice.voidedAt = now;
+    invoice.voidReason = voidReason;
+    invoice.updatedAt = now;
+    invoice.updatedByUserId = input.actorUserId;
+    invoice.version = (asNumber(invoice.version) ?? 1) + 1;
+
+    appendInvoiceEvent({
+      invoiceEvents,
+      invoiceId,
+      eventType: 'VOIDED',
+      actorUserId: input.actorUserId,
+      reason: voidReason,
+      requestId: input.requestId,
+      occurredAt: now,
+      metadata: {
+        source: 'booking-cancellation',
+        bookingId: input.bookingId,
+      },
+    });
+    updateReconcilerEntry({
+      reconcilerEntries,
+      invoice,
+      actorUserId: input.actorUserId,
+      nextStatus: 'VOID',
+      note: 'Voided because the linked booking was cancelled before payment.',
+      now,
+    });
+  }
+}
+
+function wasInvoiceVoidedByBookingCancellation(
+  invoiceEvents: SeedRow[],
+  invoiceId: string,
+  bookingId: string,
+): boolean {
+  return invoiceEvents.some((event) => {
+    const metadata = coerceMetadata(event.metadataJson);
+    return (
+      asString(event.invoiceId) === invoiceId &&
+      asString(event.eventType) === 'VOIDED' &&
+      asString(metadata.source) === 'booking-cancellation' &&
+      asString(metadata.bookingId) === bookingId
+    );
+  });
+}
+
+function applyBookingReopenInvoiceEffectsInTables(
+  tables: SeedTables,
+  input: BookingInvoiceLifecycleInput,
+): void {
+  const invoices = getActiveRows(getMutableRows(tables, 'invoices')).filter(
+    (row) => asString(row.bookingId) === input.bookingId,
+  );
+  if (invoices.length === 0) {
+    return;
+  }
+
+  const invoiceEvents = getMutableRows(tables, 'invoiceEvents');
+  const reconcilerEntries = getMutableRows(tables, 'reconcilerEntries');
+  const now = nowIso();
+
+  for (const invoice of invoices) {
+    const invoiceId = asString(invoice.id) ?? '';
+    if (
+      toInvoiceStatus(invoice.status) !== 'VOID' ||
+      !wasInvoiceVoidedByBookingCancellation(invoiceEvents, invoiceId, input.bookingId)
+    ) {
+      continue;
+    }
+
+    invoice.status = 'SENT';
+    invoice.voidedAt = null;
+    invoice.voidReason = null;
+    invoice.updatedAt = now;
+    invoice.updatedByUserId = input.actorUserId;
+    invoice.version = (asNumber(invoice.version) ?? 1) + 1;
+
+    appendInvoiceEvent({
+      invoiceEvents,
+      invoiceId,
+      eventType: 'RESTORED',
+      actorUserId: input.actorUserId,
+      reason: input.reason ?? 'Linked booking reopened.',
+      requestId: input.requestId,
+      occurredAt: now,
+      metadata: {
+        source: 'booking-reopen',
+        bookingId: input.bookingId,
+      },
+    });
+    updateReconcilerEntry({
+      reconcilerEntries,
+      invoice,
+      actorUserId: input.actorUserId,
+      nextStatus: 'SENT',
+      note: 'Restored because the linked booking was reopened.',
+      now,
     });
   }
 }
@@ -622,6 +795,227 @@ export async function getBookingInvoiceContext(
     return resolveBookingInvoiceContextFromTables(mutable.tables, bookingId);
   }
   return resolveBookingInvoiceContextFromDb(bookingId);
+}
+
+export async function applyBookingCancellationInvoiceEffectsInDbTransaction(
+  tx: InvoicePrismaTransaction,
+  input: BookingInvoiceLifecycleInput,
+): Promise<void> {
+  const invoices = await tx.invoice.findMany({
+    where: {
+      bookingId: input.bookingId,
+      deletedAt: null,
+    },
+  });
+  if (invoices.length === 0) {
+    return;
+  }
+
+  const paidInvoice = invoices.find((invoice) => invoice.status === 'PAID');
+  if (paidInvoice) {
+    throw badRequest('Paid booking invoices require a refund workflow before cancellation', {
+      bookingId: input.bookingId,
+      invoiceId: paidInvoice.id,
+    });
+  }
+
+  const now = new Date();
+  for (const invoice of invoices) {
+    await tx.paymentAttempt.updateMany({
+      where: {
+        invoiceId: invoice.id,
+        status: {
+          in: ['PENDING', 'ACTION_REQUIRED'],
+        },
+      },
+      data: {
+        status: 'CANCELED',
+        canceledAt: now,
+        failureReason: 'Booking was cancelled before payment completion.',
+      },
+    });
+
+    if (invoice.status !== 'DRAFT' && invoice.status !== 'SENT') {
+      continue;
+    }
+
+    const voidReason = input.reason ?? 'Booking cancelled before payment.';
+    await tx.invoice.update({
+      where: { id: invoice.id },
+      data: {
+        status: 'VOID',
+        paidAt: null,
+        voidedAt: now,
+        voidReason,
+        updatedByUserId: input.actorUserId,
+        version: {
+          increment: 1,
+        },
+      },
+    });
+    await tx.invoiceEvent.create({
+      data: {
+        id: newId('ine'),
+        invoiceId: invoice.id,
+        eventType: 'VOIDED',
+        actorUserId: input.actorUserId,
+        reason: voidReason,
+        requestId: input.requestId ?? null,
+        metadataJson: {
+          source: 'booking-cancellation',
+          bookingId: input.bookingId,
+        } as never,
+      },
+    });
+
+    const existingReconciler = await tx.reconcilerEntry.findFirst({
+      where: { invoiceId: invoice.id },
+    });
+    if (existingReconciler) {
+      await tx.reconcilerEntry.update({
+        where: { id: existingReconciler.id },
+        data: {
+          state: 'VOID',
+          internalNote: 'Voided because the linked booking was cancelled before payment.',
+          updatedByUserId: input.actorUserId,
+          version: {
+            increment: 1,
+          },
+        },
+      });
+    } else {
+      await tx.reconcilerEntry.create({
+        data: {
+          id: newId('rec'),
+          invoiceId: invoice.id,
+          coachUserId: invoice.coachUserId,
+          state: 'VOID',
+          internalNote: 'Voided because the linked booking was cancelled before payment.',
+          createdByUserId: input.actorUserId,
+          updatedByUserId: input.actorUserId,
+        },
+      });
+    }
+  }
+}
+
+export async function applyBookingReopenInvoiceEffectsInDbTransaction(
+  tx: InvoicePrismaTransaction,
+  input: BookingInvoiceLifecycleInput,
+): Promise<void> {
+  const invoices = await tx.invoice.findMany({
+    where: {
+      bookingId: input.bookingId,
+      status: 'VOID',
+      deletedAt: null,
+    },
+  });
+  if (invoices.length === 0) {
+    return;
+  }
+
+  const now = new Date();
+  for (const invoice of invoices) {
+    const cancellationVoidEvent = await tx.invoiceEvent.findFirst({
+      where: {
+        invoiceId: invoice.id,
+        eventType: 'VOIDED',
+        metadataJson: {
+          path: ['source'],
+          equals: 'booking-cancellation',
+        },
+      },
+      orderBy: {
+        occurredAt: 'desc',
+      },
+    });
+    const metadata = coerceMetadata(cancellationVoidEvent?.metadataJson);
+    if (asString(metadata.bookingId) !== input.bookingId) {
+      continue;
+    }
+
+    await tx.invoice.update({
+      where: { id: invoice.id },
+      data: {
+        status: 'SENT',
+        voidedAt: null,
+        voidReason: null,
+        updatedByUserId: input.actorUserId,
+        version: {
+          increment: 1,
+        },
+      },
+    });
+    await tx.invoiceEvent.create({
+      data: {
+        id: newId('ine'),
+        invoiceId: invoice.id,
+        eventType: 'RESTORED',
+        actorUserId: input.actorUserId,
+        reason: input.reason ?? 'Linked booking reopened.',
+        requestId: input.requestId ?? null,
+        metadataJson: {
+          source: 'booking-reopen',
+          bookingId: input.bookingId,
+        } as never,
+      },
+    });
+
+    const existingReconciler = await tx.reconcilerEntry.findFirst({
+      where: { invoiceId: invoice.id },
+    });
+    if (existingReconciler) {
+      await tx.reconcilerEntry.update({
+        where: { id: existingReconciler.id },
+        data: {
+          state: 'OUTSTANDING',
+          internalNote: 'Restored because the linked booking was reopened.',
+          updatedByUserId: input.actorUserId,
+          version: {
+            increment: 1,
+          },
+        },
+      });
+    } else {
+      await tx.reconcilerEntry.create({
+        data: {
+          id: newId('rec'),
+          invoiceId: invoice.id,
+          coachUserId: invoice.coachUserId,
+          state: 'OUTSTANDING',
+          internalNote: 'Restored because the linked booking was reopened.',
+          createdByUserId: input.actorUserId,
+          updatedByUserId: input.actorUserId,
+        },
+      });
+    }
+  }
+}
+
+export async function applyBookingCancellationInvoiceEffects(
+  input: BookingInvoiceLifecycleInput,
+): Promise<void> {
+  const mutable = resolveMutableTables();
+  if (mutable) {
+    applyBookingCancellationInvoiceEffectsInTables(mutable.tables, input);
+    return;
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  await prisma.$transaction((tx) => applyBookingCancellationInvoiceEffectsInDbTransaction(tx, input));
+}
+
+export async function applyBookingReopenInvoiceEffects(
+  input: BookingInvoiceLifecycleInput,
+): Promise<void> {
+  const mutable = resolveMutableTables();
+  if (mutable) {
+    applyBookingReopenInvoiceEffectsInTables(mutable.tables, input);
+    return;
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  await prisma.$transaction((tx) => applyBookingReopenInvoiceEffectsInDbTransaction(tx, input));
 }
 
 function mapPaymentAttemptRow(row: SeedRow): SeedRow {

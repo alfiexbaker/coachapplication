@@ -11,6 +11,12 @@ import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
+import {
+  applyBookingCancellationInvoiceEffects,
+  applyBookingCancellationInvoiceEffectsInDbTransaction,
+  applyBookingReopenInvoiceEffects,
+  applyBookingReopenInvoiceEffectsInDbTransaction,
+} from '../../lib/invoice-runtime.js';
 import { normalizeForJson } from './normalize.js';
 import { badRequest, conflict, forbidden, notFound } from '../../lib/http-errors.js';
 
@@ -707,6 +713,13 @@ class SeedBookingRepository implements BookingRepository {
       throw badRequest('Only upcoming bookings can be cancelled');
     }
 
+    await applyBookingCancellationInvoiceEffects({
+      bookingId: params.bookingId,
+      actorUserId: params.authUserId,
+      reason: params.body.reason,
+      requestId: params.requestId,
+    });
+
     const now = isoNow();
     booking.status = 'CANCELLED';
     booking.cancelledByUserId = params.authUserId;
@@ -818,6 +831,13 @@ class SeedBookingRepository implements BookingRepository {
       },
       requestId: params.requestId,
       occurredAt: now,
+    });
+
+    await applyBookingReopenInvoiceEffects({
+      bookingId: params.bookingId,
+      actorUserId: params.authUserId,
+      reason: 'Booking reopened',
+      requestId: params.requestId,
     });
 
     const response = mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
@@ -1379,6 +1399,13 @@ class DbBookingRepository implements BookingRepository {
 
     try {
       const response = await prisma.$transaction(async (tx) => {
+        await applyBookingCancellationInvoiceEffectsInDbTransaction(tx, {
+          bookingId: params.bookingId,
+          actorUserId: params.authUserId,
+          reason: params.body.reason,
+          requestId: params.requestId,
+        });
+
         const updateResult = await tx.booking.updateMany({
           where: { id: params.bookingId, version: booking.version },
           data: {
@@ -1599,6 +1626,13 @@ class DbBookingRepository implements BookingRepository {
             requestId: params.requestId,
             occurredAt: now,
           },
+        });
+
+        await applyBookingReopenInvoiceEffectsInDbTransaction(tx, {
+          bookingId: params.bookingId,
+          actorUserId: params.authUserId,
+          reason: 'Booking reopened',
+          requestId: params.requestId,
         });
 
         const nextResponse = bookingResponseSchema.parse({

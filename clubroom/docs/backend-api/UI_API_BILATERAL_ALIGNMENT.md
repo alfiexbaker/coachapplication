@@ -110,7 +110,7 @@ These are minimum flows that must be traced before backend cutover by spine.
 - booking review/confirmation/cancel/reopen
 - group session registration + waitlist
 - recurring booking flows
-- invoice generation + reconciler actions (paid/unpaid/write-off/restore)
+- invoice generation + reconciler actions (paid/unpaid/write-off/restore) plus booking cancellation/refund hard-wall behavior
 
 ### Family / Parent
 

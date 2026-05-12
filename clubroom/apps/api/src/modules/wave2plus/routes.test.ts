@@ -76,6 +76,23 @@ function findBillableBookingWithoutInvoice(tables: SeedTables): SeedRow | undefi
   });
 }
 
+function prepareCancellableBillableBookingWithoutInvoice(tables: SeedTables): SeedRow | undefined {
+  const booking = findBillableBookingWithoutInvoice(tables);
+  if (!booking) {
+    return undefined;
+  }
+  const scheduledAt = new Date();
+  scheduledAt.setUTCDate(scheduledAt.getUTCDate() + 14);
+  scheduledAt.setUTCHours(18, 0, 0, 0);
+  booking.status = 'CONFIRMED';
+  booking.scheduledAt = scheduledAt.toISOString();
+  booking.cancelledByUserId = null;
+  booking.cancelledAt = null;
+  booking.cancelReason = null;
+  booking.version = 1;
+  return booking;
+}
+
 function findUnprivilegedUserId(tables: SeedTables, excludedUserIds: Set<string>): string {
   const userId = asRows(tables.users)
     .map((row) => asString(row.id))
@@ -781,6 +798,205 @@ describe('wave2+ routes', () => {
         (row) => asString(row.id) === generatedPayload.invoice.id,
       );
       assert.equal(asString(storedInvoice?.status), 'SENT');
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetMarketplaceSeedStoreForTests();
+      resetDbFixtureStoreForTests();
+    }
+  });
+
+  it('voids open booking invoices on cancellation and restores them on booking reopen', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const authTables = loadTables();
+      const fixtureStore = getDbFixtureStore();
+      const booking = prepareCancellableBillableBookingWithoutInvoice(fixtureStore.tables);
+      assert.ok(booking, 'expected db-fixture billable booking without existing invoice');
+      const bookingId = asString(booking.id) as string;
+      const coachUserId = asString(booking.coachUserId) as string;
+
+      const generated = await app.inject({
+        method: 'POST',
+        url: '/v1/invoices/generate',
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+        payload: { bookingId },
+      });
+      assert.equal(generated.statusCode, 201);
+      const generatedPayload = generated.json() as {
+        invoice: { id: string; userId?: string; status: string };
+      };
+      const invoiceId = generatedPayload.invoice.id;
+      const payerUserId = generatedPayload.invoice.userId;
+      assert.ok(payerUserId, 'expected generated invoice to resolve a payer');
+      assert.equal(generatedPayload.invoice.status, 'SENT');
+
+      const payment = await app.inject({
+        method: 'POST',
+        url: `/v1/invoices/${invoiceId}/payments`,
+        headers: authHeaders(authTables, payerUserId, 'parent'),
+        payload: {
+          method: 'card',
+          idempotencyKey: 'booking-cancel-voids-open-invoice',
+        },
+      });
+      assert.equal(payment.statusCode, 201);
+      const paymentPayload = payment.json() as {
+        paymentSession: { attemptId: string; nextAction: { url?: string } };
+      };
+      const token = tokenFromHostedUrl(paymentPayload.paymentSession.nextAction.url ?? '');
+      assert.equal(Boolean(token), true);
+
+      const cancelled = await app.inject({
+        method: 'POST',
+        url: `/v1/bookings/${bookingId}/cancel`,
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+        payload: {
+          reason: 'Weather cancellation',
+          expectedVersion: asNumber(booking.version) ?? 1,
+          idempotencyKey: 'booking-cancel-voids-open-invoice-key',
+        },
+      });
+      assert.equal(cancelled.statusCode, 200);
+      const cancelledPayload = cancelled.json() as { status: string; version: number };
+      assert.equal(cancelledPayload.status, 'CANCELLED');
+
+      const invoiceAfterCancel = await app.inject({
+        method: 'GET',
+        url: `/v1/invoices/${invoiceId}`,
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+      });
+      assert.equal(invoiceAfterCancel.statusCode, 200);
+      const cancelDetail = invoiceAfterCancel.json() as {
+        invoice: { status: string; voidReason?: string };
+        events: Array<{ eventType?: string; metadataJson?: { source?: string; bookingId?: string } }>;
+        paymentAttempts: Array<{ id: string; status: string }>;
+        reconcilerEntry: { state?: string } | null;
+      };
+      assert.equal(cancelDetail.invoice.status, 'VOID');
+      assert.equal(cancelDetail.invoice.voidReason, 'Weather cancellation');
+      assert.equal(cancelDetail.reconcilerEntry?.state, 'VOID');
+      assert.equal(
+        cancelDetail.events.some(
+          (event) =>
+            event.eventType === 'VOIDED' &&
+            event.metadataJson?.source === 'booking-cancellation' &&
+            event.metadataJson?.bookingId === bookingId,
+        ),
+        true,
+      );
+      assert.equal(
+        cancelDetail.paymentAttempts.some(
+          (attempt) =>
+            attempt.id === paymentPayload.paymentSession.attemptId &&
+            attempt.status === 'CANCELED',
+        ),
+        true,
+      );
+
+      const completedCancelledAttempt = await app.inject({
+        method: 'POST',
+        url: `/v1/payment-attempts/${paymentPayload.paymentSession.attemptId}/simulated-complete`,
+        payload: { token },
+      });
+      assert.equal(completedCancelledAttempt.statusCode, 400);
+      assert.match(completedCancelledAttempt.body, /payment attempt is not payable/i);
+
+      const reopened = await app.inject({
+        method: 'POST',
+        url: `/v1/bookings/${bookingId}/reopen`,
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+        payload: {
+          expectedVersion: cancelledPayload.version,
+          idempotencyKey: 'booking-reopen-restores-open-invoice-key',
+        },
+      });
+      assert.equal(reopened.statusCode, 200);
+
+      const invoiceAfterReopen = await app.inject({
+        method: 'GET',
+        url: `/v1/invoices/${invoiceId}`,
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+      });
+      assert.equal(invoiceAfterReopen.statusCode, 200);
+      const reopenDetail = invoiceAfterReopen.json() as {
+        invoice: { status: string; voidReason?: string };
+        events: Array<{ eventType?: string; metadataJson?: { source?: string; bookingId?: string } }>;
+        reconcilerEntry: { state?: string } | null;
+      };
+      assert.equal(reopenDetail.invoice.status, 'SENT');
+      assert.equal(reopenDetail.invoice.voidReason, undefined);
+      assert.equal(reopenDetail.reconcilerEntry?.state, 'OUTSTANDING');
+      assert.equal(
+        reopenDetail.events.some(
+          (event) =>
+            event.eventType === 'RESTORED' &&
+            event.metadataJson?.source === 'booking-reopen' &&
+            event.metadataJson?.bookingId === bookingId,
+        ),
+        true,
+      );
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetMarketplaceSeedStoreForTests();
+      resetDbFixtureStoreForTests();
+    }
+  });
+
+  it('rejects booking cancellation when a linked invoice is already paid', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const authTables = loadTables();
+      const fixtureStore = getDbFixtureStore();
+      const booking = prepareCancellableBillableBookingWithoutInvoice(fixtureStore.tables);
+      assert.ok(booking, 'expected db-fixture billable booking without existing invoice');
+      const bookingId = asString(booking.id) as string;
+      const coachUserId = asString(booking.coachUserId) as string;
+
+      const generated = await app.inject({
+        method: 'POST',
+        url: '/v1/invoices/generate',
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+        payload: { bookingId },
+      });
+      assert.equal(generated.statusCode, 201);
+      const generatedPayload = generated.json() as {
+        invoice: { id: string; status: string };
+      };
+      const invoiceId = generatedPayload.invoice.id;
+
+      const paid = await app.inject({
+        method: 'POST',
+        url: `/v1/invoices/${invoiceId}/mark-paid`,
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+        payload: { reason: 'Bank transfer received before cancellation' },
+      });
+      assert.equal(paid.statusCode, 200);
+
+      const cancelled = await app.inject({
+        method: 'POST',
+        url: `/v1/bookings/${bookingId}/cancel`,
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+        payload: {
+          reason: 'Cannot fulfil session',
+          expectedVersion: asNumber(booking.version) ?? 1,
+          idempotencyKey: 'paid-invoice-cancel-hard-wall',
+        },
+      });
+      assert.equal(cancelled.statusCode, 400);
+      assert.match(cancelled.body, /refund workflow before cancellation/i);
+
+      const storedBooking = asRows(getDbFixtureStore().tables.bookings).find(
+        (row) => asString(row.id) === bookingId,
+      );
+      const storedInvoice = asRows(getDbFixtureStore().tables.invoices).find(
+        (row) => asString(row.id) === invoiceId,
+      );
+      assert.equal(asString(storedBooking?.status), asString(booking.status));
+      assert.equal(asString(storedInvoice?.status), 'PAID');
     } finally {
       env.API_DATA_BACKEND = previousBackend;
       resetMarketplaceSeedStoreForTests();
