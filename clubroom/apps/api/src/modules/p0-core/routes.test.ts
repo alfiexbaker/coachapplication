@@ -1718,6 +1718,7 @@ describe('p0 core routes', () => {
       bookingToComplete.scheduledAt = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       bookingToComplete.updatedAt = bookingToComplete.scheduledAt;
       const completeExpectedVersion = asNumber(bookingToComplete.version) ?? 1;
+      const attendanceCountBeforeCompletion = asRows(fixtureStore.tables.attendanceRecords).length;
 
       const deniedCompletionByParent = await app.inject({
         method: 'POST',
@@ -1731,6 +1732,7 @@ describe('p0 core routes', () => {
         },
       });
       assert.equal(deniedCompletionByParent.statusCode, 403);
+      assert.equal(asRows(fixtureStore.tables.attendanceRecords).length, attendanceCountBeforeCompletion);
 
       const futureBooking = linkedBookingsForCompletion[1];
       assert.ok(futureBooking, 'expected future linked booking for completion denial');
@@ -1763,6 +1765,29 @@ describe('p0 core routes', () => {
       const completed = completedRes.json() as { status: string; version: number };
       assert.equal(completed.status, 'COMPLETED');
       assert.equal(completed.version, completeExpectedVersion + 1);
+      const completedAttendanceRecords = asRows(fixtureStore.tables.attendanceRecords).filter(
+        (row) => asString(row.bookingId) === asString(bookingToComplete.id),
+      );
+      assert.equal(completedAttendanceRecords.length, 1);
+      assert.equal(asString(completedAttendanceRecords[0]?.status), 'ATTENDED');
+      assert.equal(asString(completedAttendanceRecords[0]?.recordedByUserId), coachUserId);
+      assert.equal(asString(completedAttendanceRecords[0]?.notes), 'Delivered and ready for proof follow-up');
+      const completionStatusEvent = asRows(fixtureStore.tables.bookingStatusEvents)
+        .filter(
+          (row) =>
+            asString(row.bookingId) === asString(bookingToComplete.id) &&
+            asString(row.toStatus) === 'COMPLETED',
+        )
+        .at(-1);
+      assert.deepEqual(
+        (completionStatusEvent?.metadataJson as { attendanceRecordIds?: string[]; proofSource?: string } | undefined)
+          ?.attendanceRecordIds,
+        completedAttendanceRecords.map((row) => asString(row.id)),
+      );
+      assert.equal(
+        (completionStatusEvent?.metadataJson as { proofSource?: string } | undefined)?.proofSource,
+        'attendance-record',
+      );
 
       const completeReplay = await app.inject({
         method: 'POST',
@@ -1777,6 +1802,12 @@ describe('p0 core routes', () => {
       });
       assert.equal(completeReplay.statusCode, 200);
       assert.equal(completeReplay.json().version, completed.version);
+      assert.equal(
+        asRows(fixtureStore.tables.attendanceRecords).filter(
+          (row) => asString(row.bookingId) === asString(bookingToComplete.id),
+        ).length,
+        1,
+      );
 
       const seriesAfterCompletion = await app.inject({
         method: 'GET',
