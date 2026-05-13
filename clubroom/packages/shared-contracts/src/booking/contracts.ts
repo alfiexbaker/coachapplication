@@ -104,6 +104,13 @@ export const reopenBookingRequestSchema = z.object({
   idempotencyKey: z.string().min(8).max(200).optional(),
 });
 
+export const completeBookingRequestSchema = z.object({
+  note: z.string().max(1000).optional(),
+  completedAt: z.string().datetime().optional(),
+  expectedVersion: z.number().int().positive().optional(),
+  idempotencyKey: z.string().min(8).max(200).optional(),
+});
+
 export const inviteSelectedSlotSchema = z.object({
   date: z.string().min(1).max(40),
   startTime: z.string().min(1).max(20),
@@ -253,6 +260,7 @@ export type PauseBookingSeriesRequest = z.infer<typeof pauseBookingSeriesRequest
 export type ResumeBookingSeriesRequest = z.infer<typeof resumeBookingSeriesRequestSchema>;
 export type UpdateBookingSeriesRequest = z.infer<typeof updateBookingSeriesRequestSchema>;
 export type ReopenBookingRequest = z.infer<typeof reopenBookingRequestSchema>;
+export type CompleteBookingRequest = z.infer<typeof completeBookingRequestSchema>;
 export type BookingResponse = z.infer<typeof bookingResponseSchema>;
 export type BookingListResponse = z.infer<typeof bookingListResponseSchema>;
 export type BookingSeriesResponse = z.infer<typeof bookingSeriesResponseSchema>;

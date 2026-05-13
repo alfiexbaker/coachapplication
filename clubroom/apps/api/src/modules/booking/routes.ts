@@ -5,6 +5,7 @@ import {
   bookingIdSchema,
   cancelBookingSeriesRequestSchema,
   cancelBookingRequestSchema,
+  completeBookingRequestSchema,
   createBookingRequestSchema,
   createBookingSeriesRequestSchema,
   inviteResponseRequestSchema,
@@ -713,6 +714,28 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
 
     const repository = resolveBookingRepository();
     const response = await repository.reopenBooking({
+      authUserId,
+      requestId: request.requestId,
+      bookingId,
+      body,
+    });
+
+    return reply.send(response);
+  });
+
+  app.post('/bookings/:bookingId/complete', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const bookingId = bookingIdSchema.parse(
+      (request.params as { bookingId?: string } | undefined)?.bookingId,
+    );
+    const body = completeBookingRequestSchema.parse(request.body ?? {});
+
+    const repository = resolveBookingRepository();
+    const response = await repository.completeBooking({
       authUserId,
       requestId: request.requestId,
       bookingId,

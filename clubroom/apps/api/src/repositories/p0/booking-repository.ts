@@ -4,6 +4,7 @@ import {
   bookingStatusSchema,
   type BookingResponse,
   type CancelBookingRequest,
+  type CompleteBookingRequest,
   type CreateBookingRequest,
   type ReopenBookingRequest,
 } from '@clubroom/shared-contracts';
@@ -39,7 +40,7 @@ type BookingStatusCode =
   | 'CANCELLED';
 const BOOKING_CREATE_ENDPOINT_KEY = 'POST:/v1/bookings';
 const IDEMPOTENCY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const bookingLifecycleEndpointKey = (bookingId: string, action: 'cancel' | 'reopen') =>
+const bookingLifecycleEndpointKey = (bookingId: string, action: 'cancel' | 'reopen' | 'complete') =>
   `POST:/v1/bookings/${bookingId}/${action}`;
 
 export interface ListBookingsParams {
@@ -72,6 +73,13 @@ export interface ReopenBookingParams {
   body: ReopenBookingRequest;
 }
 
+export interface CompleteBookingParams {
+  authUserId: string;
+  requestId: string;
+  bookingId: string;
+  body: CompleteBookingRequest;
+}
+
 export interface ListBookingsResult {
   bookings: BookingResponse[];
   dataVersion: string | null;
@@ -83,6 +91,7 @@ export interface BookingRepository {
   createBooking(params: CreateBookingParams): Promise<BookingResponse>;
   cancelBooking(params: CancelBookingParams): Promise<BookingResponse>;
   reopenBooking(params: ReopenBookingParams): Promise<BookingResponse>;
+  completeBooking(params: CompleteBookingParams): Promise<BookingResponse>;
 }
 
 function isSupportedBookingStatus(status: string): boolean {
@@ -119,7 +128,7 @@ function hashCreateBookingRequest(body: CreateBookingRequest): string {
 
 function hashBookingLifecycleRequest(params: {
   bookingId: string;
-  body: CancelBookingRequest | ReopenBookingRequest;
+  body: CancelBookingRequest | ReopenBookingRequest | CompleteBookingRequest;
 }): string {
   return crypto
     .createHash('sha256')
@@ -853,6 +862,96 @@ class SeedBookingRepository implements BookingRepository {
 
     return response;
   }
+
+  async completeBooking(params: CompleteBookingParams): Promise<BookingResponse> {
+    const store = this.loadStore();
+    const bookings = asRows(store.tables.bookings);
+    const statusEvents = asRows(store.tables.bookingStatusEvents);
+    const participantRowsByBooking = getParticipantRowsByBooking(store.tables);
+    const endpointKey = bookingLifecycleEndpointKey(params.bookingId, 'complete');
+    const requestHash = hashBookingLifecycleRequest({
+      bookingId: params.bookingId,
+      body: params.body,
+    });
+    const idempotentResponse = findSeedLifecycleBookingIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      endpointKey,
+      idempotencyKey: params.body.idempotencyKey,
+      requestHash,
+    });
+    if (idempotentResponse) {
+      return idempotentResponse;
+    }
+
+    const booking = bookings.find((row) => asString(row.id) === params.bookingId);
+    if (!booking) {
+      throw notFound('Booking not found', { bookingId: params.bookingId });
+    }
+    if (asString(booking.coachUserId) !== params.authUserId) {
+      throw forbidden('Only the assigned coach can complete this booking');
+    }
+
+    const currentStatus = asString(booking.status)?.toUpperCase();
+    if (currentStatus === 'COMPLETED') {
+      return mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
+    }
+    assertExpectedBookingVersion(asNumber(booking.version) ?? 1, params.body.expectedVersion);
+    if (currentStatus === 'CANCELLED') {
+      throw badRequest('Cancelled bookings cannot be completed');
+    }
+    if (currentStatus !== 'CONFIRMED' && currentStatus !== 'AWAITING_COMPLETION') {
+      throw badRequest('Only confirmed bookings can be completed', {
+        bookingId: params.bookingId,
+        status: currentStatus,
+      });
+    }
+
+    const completedAt = params.body.completedAt ?? isoNow();
+    const completedAtMs = Date.parse(completedAt);
+    if (!Number.isFinite(completedAtMs)) {
+      throw badRequest('Completed-at timestamp is invalid', { completedAt });
+    }
+    const scheduledAt = Date.parse(asString(booking.scheduledAt) ?? '');
+    if (!Number.isFinite(scheduledAt) || scheduledAt > completedAtMs) {
+      throw badRequest('Bookings cannot be completed before their scheduled start time', {
+        bookingId: params.bookingId,
+      });
+    }
+
+    booking.status = 'COMPLETED';
+    booking.updatedByUserId = params.authUserId;
+    booking.updatedAt = completedAt;
+    booking.version = (asNumber(booking.version) ?? 1) + 1;
+
+    statusEvents.push({
+      id: newId('bse'),
+      bookingId: params.bookingId,
+      fromStatus: currentStatus,
+      toStatus: 'COMPLETED',
+      actorUserId: params.authUserId,
+      reason: 'Booking completed',
+      metadataJson: {
+        note: params.body.note ?? null,
+        source: 'api-runtime',
+      },
+      requestId: params.requestId,
+      occurredAt: completedAt,
+    });
+
+    const response = mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
+    recordSeedLifecycleBookingIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      endpointKey,
+      idempotencyKey: params.body.idempotencyKey,
+      requestHash,
+      response,
+      now: completedAt,
+    });
+
+    return response;
+  }
 }
 
 export async function resolveCreateBookingIdempotency(params: {
@@ -904,8 +1003,8 @@ export async function resolveCreateBookingIdempotency(params: {
 async function resolveLifecycleBookingIdempotency(params: {
   authUserId: string;
   bookingId: string;
-  action: 'cancel' | 'reopen';
-  body: CancelBookingRequest | ReopenBookingRequest;
+  action: 'cancel' | 'reopen' | 'complete';
+  body: CancelBookingRequest | ReopenBookingRequest | CompleteBookingRequest;
 }): Promise<{ responseStatus: number; response: BookingResponse } | null> {
   if (!params.body.idempotencyKey) {
     return null;
@@ -1687,6 +1786,211 @@ class DbBookingRepository implements BookingRepository {
           authUserId: params.authUserId,
           bookingId: params.bookingId,
           action: 'reopen',
+          body: params.body,
+        });
+        if (replay) {
+          return replay.response;
+        }
+      }
+      throw error;
+    }
+  }
+
+  async completeBooking(params: CompleteBookingParams): Promise<BookingResponse> {
+    if (shouldUseDbFixtureFallback()) {
+      const seedRepository = new SeedBookingRepository(getDbFixtureStore);
+      return seedRepository.completeBooking({
+        ...params,
+        requestId: params.requestId,
+        authUserId: params.authUserId,
+        body: params.body,
+      });
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const idempotentResponse = await resolveLifecycleBookingIdempotency({
+      authUserId: params.authUserId,
+      bookingId: params.bookingId,
+      action: 'complete',
+      body: params.body,
+    });
+    if (idempotentResponse) {
+      return idempotentResponse.response;
+    }
+
+    const booking = await prisma.booking.findUnique({
+      where: { id: params.bookingId },
+      include: {
+        participants: {
+          include: {
+            athlete: {
+              select: { userId: true },
+            },
+          },
+        },
+        objectives: true,
+      },
+    });
+
+    if (!booking) {
+      throw notFound('Booking not found', { bookingId: params.bookingId });
+    }
+    if (booking.coachUserId !== params.authUserId) {
+      throw forbidden('Only the assigned coach can complete this booking');
+    }
+
+    if (booking.status === 'COMPLETED') {
+      return normalizeForJson(
+        bookingResponseSchema.parse({
+          id: booking.id,
+          coachUserId: booking.coachUserId,
+          bookedByUserId: booking.bookedByUserId ?? undefined,
+          status: booking.status,
+          scheduledAt: booking.scheduledAt.toISOString(),
+          durationMinutes: booking.durationMinutes,
+          location: booking.location,
+          serviceType: booking.serviceType ?? undefined,
+          sessionTemplateId: null,
+          objectives: booking.objectives
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .map((objective) => objective.objective),
+          notes: booking.notes ?? null,
+          priceMinor: booking.priceMinor ?? null,
+          currency: booking.currency,
+          participants: booking.participants.map((participant) => ({
+            athleteId: participant.athleteId,
+            guardianUserId: participant.guardianUserId ?? undefined,
+            status: participant.status as 'confirmed' | 'pending' | 'cancelled',
+          })),
+          version: Number(booking.version),
+          createdAt: booking.createdAt.toISOString(),
+          updatedAt: booking.updatedAt.toISOString(),
+          cancelledAt: booking.cancelledAt?.toISOString() ?? null,
+        }),
+      );
+    }
+
+    assertExpectedBookingVersion(Number(booking.version), params.body.expectedVersion);
+
+    if (booking.status === 'CANCELLED') {
+      throw badRequest('Cancelled bookings cannot be completed');
+    }
+    if (booking.status !== 'CONFIRMED' && booking.status !== 'AWAITING_COMPLETION') {
+      throw badRequest('Only confirmed bookings can be completed', {
+        bookingId: params.bookingId,
+        status: booking.status,
+      });
+    }
+
+    const completedAt = params.body.completedAt ? new Date(params.body.completedAt) : new Date();
+    if (Number.isNaN(completedAt.getTime())) {
+      throw badRequest('Completed-at timestamp is invalid', {
+        completedAt: params.body.completedAt,
+      });
+    }
+    if (booking.scheduledAt.getTime() > completedAt.getTime()) {
+      throw badRequest('Bookings cannot be completed before their scheduled start time', {
+        bookingId: params.bookingId,
+      });
+    }
+
+    const endpointKey = bookingLifecycleEndpointKey(params.bookingId, 'complete');
+    const requestHash = hashBookingLifecycleRequest({
+      bookingId: params.bookingId,
+      body: params.body,
+    });
+
+    try {
+      const response = await prisma.$transaction(async (tx) => {
+        const updateResult = await tx.booking.updateMany({
+          where: { id: params.bookingId, version: booking.version },
+          data: {
+            status: 'COMPLETED',
+            updatedByUserId: params.authUserId,
+            version: {
+              increment: 1,
+            },
+          },
+        });
+        if (updateResult.count !== 1) {
+          throw conflict('Booking version changed since it was loaded', {
+            currentVersion: Number(booking.version),
+          });
+        }
+
+        const updated = await tx.booking.findUniqueOrThrow({
+          where: { id: params.bookingId },
+        });
+
+        await tx.bookingStatusEvent.create({
+          data: {
+            id: newId('bse'),
+            bookingId: params.bookingId,
+            fromStatus: booking.status,
+            toStatus: 'COMPLETED',
+            actorUserId: params.authUserId,
+            reason: 'Booking completed',
+            metadataJson: {
+              note: params.body.note ?? null,
+              source: 'api-db-runtime',
+            } as never,
+            requestId: params.requestId,
+            occurredAt: completedAt,
+          },
+        });
+
+        const nextResponse = bookingResponseSchema.parse({
+          id: updated.id,
+          coachUserId: updated.coachUserId,
+          bookedByUserId: updated.bookedByUserId ?? undefined,
+          status: updated.status,
+          scheduledAt: updated.scheduledAt.toISOString(),
+          durationMinutes: updated.durationMinutes,
+          location: updated.location,
+          serviceType: updated.serviceType ?? undefined,
+          sessionTemplateId: null,
+          objectives: booking.objectives
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .map((objective) => objective.objective),
+          notes: updated.notes ?? null,
+          priceMinor: updated.priceMinor ?? null,
+          currency: updated.currency,
+          participants: booking.participants.map((participant) => ({
+            athleteId: participant.athleteId,
+            guardianUserId: participant.guardianUserId ?? undefined,
+            status: participant.status as 'confirmed' | 'pending' | 'cancelled',
+          })),
+          version: Number(updated.version),
+          createdAt: updated.createdAt.toISOString(),
+          updatedAt: updated.updatedAt.toISOString(),
+          cancelledAt: updated.cancelledAt?.toISOString() ?? null,
+        });
+
+        if (params.body.idempotencyKey) {
+          await tx.idempotencyKey.create({
+            data: {
+              id: newId('idk'),
+              userId: params.authUserId,
+              endpointKey,
+              idempotencyKey: params.body.idempotencyKey,
+              requestHash,
+              responseStatus: 200,
+              responseBodyJson: nextResponse as never,
+              expiresAt: new Date(completedAt.getTime() + IDEMPOTENCY_TTL_MS),
+            },
+          });
+        }
+
+        return nextResponse;
+      });
+
+      return normalizeForJson(response);
+    } catch (error) {
+      if (params.body.idempotencyKey && isCreateBookingIdempotencyRace(error)) {
+        const replay = await resolveLifecycleBookingIdempotency({
+          authUserId: params.authUserId,
+          bookingId: params.bookingId,
+          action: 'complete',
           body: params.body,
         });
         if (replay) {

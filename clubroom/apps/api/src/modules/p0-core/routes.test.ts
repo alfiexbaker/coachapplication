@@ -1709,6 +1709,83 @@ describe('p0 core routes', () => {
       assert.equal(resumeReplay.statusCode, 200);
       assert.equal(resumeReplay.json().series.status, 'ACTIVE');
 
+      const linkedBookingsForCompletion = asRows(fixtureStore.tables.bookings)
+        .filter((row) => asString(row.recurringSeriesId) === created.series.id)
+        .sort((left, right) => (asNumber(left.seriesIndex) ?? 0) - (asNumber(right.seriesIndex) ?? 0));
+      const bookingToComplete = linkedBookingsForCompletion[0];
+      assert.ok(bookingToComplete, 'expected linked booking to complete');
+      const completedAt = new Date().toISOString();
+      bookingToComplete.scheduledAt = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      bookingToComplete.updatedAt = bookingToComplete.scheduledAt;
+      const completeExpectedVersion = asNumber(bookingToComplete.version) ?? 1;
+
+      const deniedCompletionByParent = await app.inject({
+        method: 'POST',
+        url: `/v1/bookings/${asString(bookingToComplete.id)}/complete`,
+        headers,
+        payload: {
+          note: 'Parent cannot complete delivery',
+          completedAt,
+          expectedVersion: completeExpectedVersion,
+          idempotencyKey: 'booking-complete-denied-parent-test',
+        },
+      });
+      assert.equal(deniedCompletionByParent.statusCode, 403);
+
+      const futureBooking = linkedBookingsForCompletion[1];
+      assert.ok(futureBooking, 'expected future linked booking for completion denial');
+      const deniedFutureCompletion = await app.inject({
+        method: 'POST',
+        url: `/v1/bookings/${asString(futureBooking.id)}/complete`,
+        headers: authHeaders(tables, coachUserId, 'coach'),
+        payload: {
+          note: 'Cannot complete before session starts',
+          completedAt,
+          expectedVersion: asNumber(futureBooking.version) ?? 1,
+          idempotencyKey: 'booking-complete-future-denied-test',
+        },
+      });
+      assert.equal(deniedFutureCompletion.statusCode, 400);
+      assert.match(deniedFutureCompletion.body, /before their scheduled start time/i);
+
+      const completedRes = await app.inject({
+        method: 'POST',
+        url: `/v1/bookings/${asString(bookingToComplete.id)}/complete`,
+        headers: authHeaders(tables, coachUserId, 'coach'),
+        payload: {
+          note: 'Delivered and ready for proof follow-up',
+          completedAt,
+          expectedVersion: completeExpectedVersion,
+          idempotencyKey: 'booking-complete-series-test',
+        },
+      });
+      assert.equal(completedRes.statusCode, 200);
+      const completed = completedRes.json() as { status: string; version: number };
+      assert.equal(completed.status, 'COMPLETED');
+      assert.equal(completed.version, completeExpectedVersion + 1);
+
+      const completeReplay = await app.inject({
+        method: 'POST',
+        url: `/v1/bookings/${asString(bookingToComplete.id)}/complete`,
+        headers: authHeaders(tables, coachUserId, 'coach'),
+        payload: {
+          note: 'Delivered and ready for proof follow-up',
+          completedAt,
+          expectedVersion: completeExpectedVersion,
+          idempotencyKey: 'booking-complete-series-test',
+        },
+      });
+      assert.equal(completeReplay.statusCode, 200);
+      assert.equal(completeReplay.json().version, completed.version);
+
+      const seriesAfterCompletion = await app.inject({
+        method: 'GET',
+        url: `/v1/booking-series/${created.series.id}`,
+        headers,
+      });
+      assert.equal(seriesAfterCompletion.statusCode, 200);
+      assert.equal(seriesAfterCompletion.json().status, 'PARTIAL');
+
       const deniedCancel = await app.inject({
         method: 'POST',
         url: `/v1/booking-series/${created.series.id}/cancel`,
@@ -1737,11 +1814,11 @@ describe('p0 core routes', () => {
         bookings: { status: string }[];
       };
       assert.equal(cancelled.series.id, created.series.id);
-      assert.equal(cancelled.series.status, 'CANCELLED');
+      assert.equal(cancelled.series.status, 'PARTIAL');
       assert.equal(cancelled.series.version, 5);
       assert.deepEqual(
         cancelled.bookings.map((booking) => booking.status),
-        ['CANCELLED', 'CANCELLED'],
+        ['COMPLETED', 'CANCELLED'],
       );
 
       const staleCancel = await app.inject({
