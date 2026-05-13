@@ -5,7 +5,7 @@ Date: 2026-05-12
 ## Latest Update
 
 1. Continued `PROD-API-02` with the booking cancellation/refund hard-wall slice.
-2. Booking cancellation now runs linked invoice effects through `apps/api/src/lib/invoice-runtime.ts`: open linked invoices are voided, active hosted payment attempts are canceled, and paid linked invoices block cancellation until a real refund workflow exists.
+2. Booking cancellation now runs linked invoice effects through `apps/api/src/lib/invoice-runtime.ts`: open linked invoices are voided, active hosted payment attempts are canceled, and paid linked invoices require backend refund approval before cancellation proceeds.
 3. Booking reopen restores only invoices voided by booking cancellation, leaving manually voided or written-off invoices alone.
 4. Added API tests for open-invoice cancellation/reopen behavior, canceled hosted payment attempt completion denial, and paid-invoice cancellation denial.
 5. Verification: `npm --prefix apps/api run typecheck` passed and `npm --prefix apps/api run test` passed (`94/94`).

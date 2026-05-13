@@ -78,6 +78,22 @@ export interface InvoicePaymentSessionRecord {
   reused: boolean;
 }
 
+export interface RequestInvoiceRefundInput {
+  invoiceId: string;
+  actorUserId: string;
+  reason: string;
+  verificationCode: string;
+  idempotencyKey: string;
+  amountMinor?: number;
+  requestId?: string;
+}
+
+export interface InvoiceRefundRecord {
+  invoice: SeedRow;
+  refund: SeedRow;
+  reused: boolean;
+}
+
 export interface CompleteSimulatedInvoicePaymentInput {
   attemptId: string;
   token: string;
@@ -137,6 +153,7 @@ interface BookingInvoiceContext {
 
 const INVOICE_STATUSES = ['DRAFT', 'SENT', 'PAID', 'VOID', 'WRITTEN_OFF'] as const;
 const ACTIVE_PAYMENT_ATTEMPT_STATUSES = new Set(['PENDING', 'ACTION_REQUIRED']);
+const SIMULATED_REFUND_VERIFICATION_CODE = '000000';
 
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined =>
@@ -313,6 +330,29 @@ function coerceMetadata(value: unknown): Record<string, unknown> {
     return {};
   }
   return value as Record<string, unknown>;
+}
+
+function buildRefundRequestHash(params: { amountMinor: number; reason: string }): string {
+  return crypto
+    .createHash('sha256')
+    .update(JSON.stringify({ amountMinor: params.amountMinor, reason: params.reason.trim() }))
+    .digest('hex');
+}
+
+function existingRefundEventFromRows(
+  invoiceEvents: SeedRow[],
+  invoiceId: string,
+  idempotencyKey: string,
+): SeedRow | undefined {
+  return invoiceEvents.find((event) => {
+    const metadata = coerceMetadata(event.metadataJson);
+    return (
+      asString(event.invoiceId) === invoiceId &&
+      asString(event.eventType) === 'VOIDED' &&
+      asString(metadata.source) === 'invoice-refund' &&
+      asString(metadata.idempotencyKey) === idempotencyKey
+    );
+  });
 }
 
 function computeTaxBreakdown(
@@ -1396,6 +1436,254 @@ export async function transitionInvoiceStatus(input: TransitionInvoiceInput): Pr
     }
 
     return normalizeForJson(updatedInvoice);
+  });
+}
+
+export async function requestInvoiceRefund(
+  input: RequestInvoiceRefundInput,
+): Promise<InvoiceRefundRecord> {
+  const reason = input.reason.trim();
+  if (!reason) {
+    throw badRequest('Refund reason is required', { invoiceId: input.invoiceId });
+  }
+  if (input.verificationCode.trim() !== SIMULATED_REFUND_VERIFICATION_CODE) {
+    throw badRequest('Refund verification code is invalid', { invoiceId: input.invoiceId });
+  }
+
+  const mutable = resolveMutableTables();
+  if (mutable) {
+    const invoices = getMutableRows(mutable.tables, 'invoices');
+    const invoice = getActiveRows(invoices).find((row) => asString(row.id) === input.invoiceId);
+    if (!invoice) {
+      throw notFound('Invoice not found', { invoiceId: input.invoiceId });
+    }
+    assertMutableInvoiceBookingLink(mutable.tables, invoice, input.invoiceId);
+
+    const totalMinor = asNumber(invoice.totalMinor) ?? 0;
+    const amountMinor = input.amountMinor ?? totalMinor;
+    if (amountMinor !== totalMinor || amountMinor <= 0) {
+      throw badRequest('Refund amount must match the paid invoice total', {
+        invoiceId: input.invoiceId,
+        totalMinor,
+        amountMinor,
+      });
+    }
+
+    const requestHash = buildRefundRequestHash({ amountMinor, reason });
+    const invoiceEvents = getMutableRows(mutable.tables, 'invoiceEvents');
+    const existing = existingRefundEventFromRows(invoiceEvents, input.invoiceId, input.idempotencyKey);
+    if (existing) {
+      const metadata = coerceMetadata(existing.metadataJson);
+      if (asString(metadata.requestHash) !== requestHash) {
+        throw badRequest('Refund idempotency key already belongs to a different request', {
+          invoiceId: input.invoiceId,
+          idempotencyKey: input.idempotencyKey,
+        });
+      }
+      return { invoice, refund: existing, reused: true };
+    }
+
+    const status = toInvoiceStatus(invoice.status);
+    if (status !== 'PAID') {
+      throw badRequest('Only paid invoices can be refunded', {
+        invoiceId: input.invoiceId,
+        status,
+      });
+    }
+
+    const now = nowIso();
+    const refundId = newId('rfnd');
+    invoice.status = 'VOID';
+    invoice.paidAt = null;
+    invoice.voidedAt = now;
+    invoice.voidReason = reason;
+    invoice.updatedAt = now;
+    invoice.updatedByUserId = input.actorUserId;
+    invoice.version = (asNumber(invoice.version) ?? 1) + 1;
+
+    appendInvoiceEvent({
+      invoiceEvents,
+      invoiceId: input.invoiceId,
+      eventType: 'VOIDED',
+      actorUserId: input.actorUserId,
+      reason,
+      requestId: input.requestId,
+      occurredAt: now,
+      metadata: {
+        source: 'invoice-refund',
+        refundId,
+        provider: 'simulated',
+        status: 'APPROVED',
+        amountMinor,
+        currency: asString(invoice.currency) ?? 'GBP',
+        idempotencyKey: input.idempotencyKey,
+        requestHash,
+        bookingId: asString(invoice.bookingId) ?? null,
+      },
+    });
+
+    const refundEvent = invoiceEvents[invoiceEvents.length - 1];
+    updateReconcilerEntry({
+      reconcilerEntries: getMutableRows(mutable.tables, 'reconcilerEntries'),
+      invoice,
+      actorUserId: input.actorUserId,
+      nextStatus: 'VOID',
+      note: 'Refund approved through backend invoice authority.',
+      now,
+    });
+    return { invoice, refund: refundEvent, reused: false };
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  return prisma.$transaction(async (tx) => {
+    const invoice = await tx.invoice.findFirst({
+      where: {
+        id: input.invoiceId,
+        deletedAt: null,
+      },
+    });
+    if (!invoice) {
+      throw notFound('Invoice not found', { invoiceId: input.invoiceId });
+    }
+    if (invoice.bookingId) {
+      const booking = await tx.booking.findFirst({
+        where: {
+          id: invoice.bookingId,
+          deletedAt: null,
+        },
+      });
+      if (!booking) {
+        throw badRequest('Invoice booking link is no longer authoritative', {
+          invoiceId: input.invoiceId,
+          bookingId: invoice.bookingId,
+        });
+      }
+      if (booking.coachUserId !== invoice.coachUserId) {
+        throw badRequest('Invoice booking coach link does not match authoritative booking', {
+          invoiceId: input.invoiceId,
+          bookingId: invoice.bookingId,
+        });
+      }
+    }
+
+    const totalMinor = invoice.totalMinor;
+    const amountMinor = input.amountMinor ?? totalMinor;
+    if (amountMinor !== totalMinor || amountMinor <= 0) {
+      throw badRequest('Refund amount must match the paid invoice total', {
+        invoiceId: input.invoiceId,
+        totalMinor,
+        amountMinor,
+      });
+    }
+
+    const requestHash = buildRefundRequestHash({ amountMinor, reason });
+    const existing = await tx.invoiceEvent.findFirst({
+      where: {
+        invoiceId: input.invoiceId,
+        eventType: 'VOIDED',
+        metadataJson: {
+          path: ['idempotencyKey'],
+          equals: input.idempotencyKey,
+        },
+      },
+      orderBy: {
+        occurredAt: 'desc',
+      },
+    });
+    const existingMetadata = coerceMetadata(existing?.metadataJson);
+    if (existing && asString(existingMetadata.source) === 'invoice-refund') {
+      if (asString(existingMetadata.requestHash) !== requestHash) {
+        throw badRequest('Refund idempotency key already belongs to a different request', {
+          invoiceId: input.invoiceId,
+          idempotencyKey: input.idempotencyKey,
+        });
+      }
+      return {
+        invoice: normalizeForJson(invoice),
+        refund: normalizeForJson(existing),
+        reused: true,
+      };
+    }
+
+    if (invoice.status !== 'PAID') {
+      throw badRequest('Only paid invoices can be refunded', {
+        invoiceId: input.invoiceId,
+        status: invoice.status,
+      });
+    }
+
+    const now = new Date();
+    const refundId = newId('rfnd');
+    const updatedInvoice = await tx.invoice.update({
+      where: { id: input.invoiceId },
+      data: {
+        status: 'VOID',
+        paidAt: null,
+        voidedAt: now,
+        voidReason: reason,
+        updatedByUserId: input.actorUserId,
+        version: {
+          increment: 1,
+        },
+      },
+    });
+
+    const refundEvent = await tx.invoiceEvent.create({
+      data: {
+        id: newId('ine'),
+        invoiceId: input.invoiceId,
+        eventType: 'VOIDED',
+        actorUserId: input.actorUserId,
+        reason,
+        requestId: input.requestId ?? null,
+        metadataJson: {
+          source: 'invoice-refund',
+          refundId,
+          provider: 'simulated',
+          status: 'APPROVED',
+          amountMinor,
+          currency: invoice.currency,
+          idempotencyKey: input.idempotencyKey,
+          requestHash,
+          bookingId: invoice.bookingId ?? null,
+        } as never,
+      },
+    });
+
+    const existingReconciler = await tx.reconcilerEntry.findFirst({
+      where: { invoiceId: input.invoiceId },
+    });
+    if (existingReconciler) {
+      await tx.reconcilerEntry.update({
+        where: { id: existingReconciler.id },
+        data: {
+          state: 'VOID',
+          internalNote: 'Refund approved through backend invoice authority.',
+          updatedByUserId: input.actorUserId,
+          version: {
+            increment: 1,
+          },
+        },
+      });
+    } else {
+      await tx.reconcilerEntry.create({
+        data: {
+          id: newId('rec'),
+          invoiceId: input.invoiceId,
+          coachUserId: invoice.coachUserId,
+          state: 'VOID',
+          internalNote: 'Refund approved through backend invoice authority.',
+          createdByUserId: input.actorUserId,
+          updatedByUserId: input.actorUserId,
+        },
+      });
+    }
+
+    return {
+      invoice: normalizeForJson(updatedInvoice),
+      refund: normalizeForJson(refundEvent),
+      reused: false,
+    };
   });
 }
 

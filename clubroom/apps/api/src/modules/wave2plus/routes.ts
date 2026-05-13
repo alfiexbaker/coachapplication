@@ -13,6 +13,7 @@ import {
   getInvoiceDetail,
   getInvoiceRow,
   listAccessibleInvoices,
+  requestInvoiceRefund,
   transitionInvoiceStatus,
 } from '../../lib/invoice-runtime.js';
 import { getApiDataBackend } from '../../lib/data-backend.js';
@@ -32,6 +33,8 @@ const asString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
 const asNumber = (value: unknown): number | undefined =>
   typeof value === 'number' ? value : undefined;
+const coerceMetadata = (value: unknown): Record<string, unknown> =>
+  value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 const nowIso = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 const INVOICE_STATUSES = ['DRAFT', 'SENT', 'PAID', 'VOID', 'WRITTEN_OFF'] as const;
@@ -113,6 +116,13 @@ const invoicePaymentRequestSchema = z.object({
   idempotencyKey: z.string().trim().min(8).max(120),
   returnUrl: z.string().trim().url().optional(),
   cancelUrl: z.string().trim().url().optional(),
+});
+
+const invoiceRefundRequestSchema = z.object({
+  reason: z.string().trim().min(1).max(400),
+  verificationCode: z.string().trim().min(6).max(12),
+  idempotencyKey: z.string().trim().min(8).max(120),
+  amountMinor: z.number().int().positive().optional(),
 });
 
 const generateInvoiceRequestSchema = z.object({
@@ -637,6 +647,67 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         expiresAt: paymentSession.hostedSession.expiresAt,
         nextAction: paymentSession.hostedSession.nextAction,
       },
+      requestId: request.requestId,
+    });
+  });
+
+  app.post('/invoices/:invoiceId/refunds', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const invoiceId = asString((request.params as { invoiceId?: string }).invoiceId);
+    if (!invoiceId) {
+      throw notFound('Invoice id is required');
+    }
+    const invoice = await getInvoiceRow(invoiceId);
+    if (!invoice) {
+      throw notFound('Invoice not found', { invoiceId });
+    }
+
+    const isAdmin = isPrivilegedAdminAuth(request.auth);
+    if (!isAdmin && asString(invoice.coachUserId) !== authUserId) {
+      throw forbidden('Not allowed to refund this invoice');
+    }
+
+    const body = invoiceRefundRequestSchema.parse(request.body ?? {});
+    const refund = await requestInvoiceRefund({
+      invoiceId,
+      actorUserId: authUserId,
+      reason: body.reason,
+      verificationCode: body.verificationCode,
+      idempotencyKey: body.idempotencyKey,
+      amountMinor: body.amountMinor,
+      requestId: request.requestId,
+    });
+
+    const detail = await getInvoiceDetail(invoiceId);
+    if (!detail) {
+      throw notFound('Invoice not found', { invoiceId });
+    }
+
+    await recordAuditEvent({
+      request,
+      action: 'invoice.refund_approve',
+      resourceType: 'invoice',
+      resourceId: invoiceId,
+      subjectUserId: asString(detail.invoice.userId) ?? null,
+      result: 'SUCCESS',
+      metadata: {
+        reused: refund.reused,
+        amountMinor: body.amountMinor ?? asNumber(invoice.totalMinor) ?? null,
+        refundId: asString(coerceMetadata(refund.refund.metadataJson).refundId) ?? null,
+      },
+    });
+
+    reply.code(refund.reused ? 200 : 201);
+    return reply.send({
+      invoice: detail.invoice,
+      refund: refund.refund,
+      events: detail.events,
+      reconcilerEntry: detail.reconcilerEntry,
+      reused: refund.reused,
       requestId: request.requestId,
     });
   });

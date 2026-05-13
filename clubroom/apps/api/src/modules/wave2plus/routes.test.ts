@@ -944,7 +944,7 @@ describe('wave2+ routes', () => {
     }
   });
 
-  it('rejects booking cancellation when a linked invoice is already paid', async () => {
+  it('requires backend refund authority before cancelling a booking with a paid invoice', async () => {
     const previousBackend = env.API_DATA_BACKEND;
     env.API_DATA_BACKEND = 'db';
 
@@ -964,9 +964,11 @@ describe('wave2+ routes', () => {
       });
       assert.equal(generated.statusCode, 201);
       const generatedPayload = generated.json() as {
-        invoice: { id: string; status: string };
+        invoice: { id: string; status: string; userId?: string; totalMinor?: number };
       };
       const invoiceId = generatedPayload.invoice.id;
+      const payerUserId = generatedPayload.invoice.userId;
+      assert.ok(payerUserId, 'expected generated invoice to resolve a payer');
 
       const paid = await app.inject({
         method: 'POST',
@@ -989,14 +991,103 @@ describe('wave2+ routes', () => {
       assert.equal(cancelled.statusCode, 400);
       assert.match(cancelled.body, /refund workflow before cancellation/i);
 
+      const refundDeniedForPayer = await app.inject({
+        method: 'POST',
+        url: `/v1/invoices/${invoiceId}/refunds`,
+        headers: authHeaders(authTables, payerUserId, 'parent'),
+        payload: {
+          reason: 'Parent cannot approve their own refund',
+          verificationCode: '000000',
+          idempotencyKey: 'paid-invoice-refund-denied-payer',
+        },
+      });
+      assert.equal(refundDeniedForPayer.statusCode, 403);
+
+      const refundDeniedBadCode = await app.inject({
+        method: 'POST',
+        url: `/v1/invoices/${invoiceId}/refunds`,
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+        payload: {
+          reason: 'Coach approved cancellation refund',
+          verificationCode: '111111',
+          idempotencyKey: 'paid-invoice-refund-bad-code',
+        },
+      });
+      assert.equal(refundDeniedBadCode.statusCode, 400);
+      assert.match(refundDeniedBadCode.body, /verification code is invalid/i);
+
+      const refundDeniedPartialAmount = await app.inject({
+        method: 'POST',
+        url: `/v1/invoices/${invoiceId}/refunds`,
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+        payload: {
+          reason: 'Partial refund cannot unlock booking cancellation',
+          verificationCode: '000000',
+          idempotencyKey: 'paid-invoice-refund-partial',
+          amountMinor: Math.max(1, (generatedPayload.invoice.totalMinor ?? 0) - 1),
+        },
+      });
+      assert.equal(refundDeniedPartialAmount.statusCode, 400);
+      assert.match(refundDeniedPartialAmount.body, /must match the paid invoice total/i);
+
+      const refunded = await app.inject({
+        method: 'POST',
+        url: `/v1/invoices/${invoiceId}/refunds`,
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+        payload: {
+          reason: 'Coach approved cancellation refund',
+          verificationCode: '000000',
+          idempotencyKey: 'paid-invoice-refund-approved',
+        },
+      });
+      assert.equal(refunded.statusCode, 201);
+      const refundedPayload = refunded.json() as {
+        invoice: { status: string; voidReason?: string };
+        refund: { eventType?: string; metadataJson?: { source?: string; status?: string; idempotencyKey?: string } };
+        reconcilerEntry: { state?: string } | null;
+      };
+      assert.equal(refundedPayload.invoice.status, 'VOID');
+      assert.equal(refundedPayload.invoice.voidReason, 'Coach approved cancellation refund');
+      assert.equal(refundedPayload.refund.eventType, 'VOIDED');
+      assert.equal(refundedPayload.refund.metadataJson?.source, 'invoice-refund');
+      assert.equal(refundedPayload.refund.metadataJson?.status, 'APPROVED');
+      assert.equal(refundedPayload.refund.metadataJson?.idempotencyKey, 'paid-invoice-refund-approved');
+      assert.equal(refundedPayload.reconcilerEntry?.state, 'VOID');
+
+      const idempotentRefund = await app.inject({
+        method: 'POST',
+        url: `/v1/invoices/${invoiceId}/refunds`,
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+        payload: {
+          reason: 'Coach approved cancellation refund',
+          verificationCode: '000000',
+          idempotencyKey: 'paid-invoice-refund-approved',
+        },
+      });
+      assert.equal(idempotentRefund.statusCode, 200);
+      assert.equal((idempotentRefund.json() as { reused: boolean }).reused, true);
+
+      const cancelledAfterRefund = await app.inject({
+        method: 'POST',
+        url: `/v1/bookings/${bookingId}/cancel`,
+        headers: authHeaders(authTables, coachUserId, 'coach'),
+        payload: {
+          reason: 'Cannot fulfil session',
+          expectedVersion: asNumber(booking.version) ?? 1,
+          idempotencyKey: 'paid-invoice-cancel-after-refund',
+        },
+      });
+      assert.equal(cancelledAfterRefund.statusCode, 200);
+      assert.equal((cancelledAfterRefund.json() as { status: string }).status, 'CANCELLED');
+
       const storedBooking = asRows(getDbFixtureStore().tables.bookings).find(
         (row) => asString(row.id) === bookingId,
       );
       const storedInvoice = asRows(getDbFixtureStore().tables.invoices).find(
         (row) => asString(row.id) === invoiceId,
       );
-      assert.equal(asString(storedBooking?.status), asString(booking.status));
-      assert.equal(asString(storedInvoice?.status), 'PAID');
+      assert.equal(asString(storedBooking?.status), 'CANCELLED');
+      assert.equal(asString(storedInvoice?.status), 'VOID');
     } finally {
       env.API_DATA_BACKEND = previousBackend;
       resetMarketplaceSeedStoreForTests();

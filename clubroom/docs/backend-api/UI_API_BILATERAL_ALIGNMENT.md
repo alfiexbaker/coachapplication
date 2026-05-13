@@ -110,7 +110,7 @@ These are minimum flows that must be traced before backend cutover by spine.
 - booking review/confirmation/cancel/reopen
 - group session registration + waitlist
 - recurring booking create/list/detail/cancel/pause/resume/update flows; update/reschedule is limited to existing future linked bookings and blocks invoice-linked changes until invoice adjustment semantics exist
-- invoice generation + reconciler actions (paid/unpaid/write-off/restore) plus booking cancellation/refund hard-wall behavior
+- invoice generation + reconciler actions (paid/unpaid/write-off/restore), hosted payment attempts, verified refund authority, and booking cancellation/refund hard-wall behavior
 
 ### Family / Parent
 
