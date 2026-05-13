@@ -16,7 +16,13 @@ type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
 type InvoicePrismaTransaction = Pick<
   PrismaClient,
-  'invoice' | 'invoiceEvent' | 'paymentAttempt' | 'reconcilerEntry'
+  | 'booking'
+  | 'invoice'
+  | 'invoiceEvent'
+  | 'invoiceLineItem'
+  | 'paymentAttempt'
+  | 'reconcilerEntry'
+  | 'user'
 >;
 
 export interface InvoiceListQuery {
@@ -130,6 +136,13 @@ export interface TransitionInvoiceInput {
 
 export interface BookingInvoiceLifecycleInput {
   bookingId: string;
+  actorUserId: string;
+  reason?: string;
+  requestId?: string;
+}
+
+export interface BookingInvoiceAdjustmentInput {
+  bookingIds: string[];
   actorUserId: string;
   reason?: string;
   requestId?: string;
@@ -701,6 +714,87 @@ function applyBookingReopenInvoiceEffectsInTables(
   }
 }
 
+function applyBookingInvoiceAdjustmentsInTables(
+  tables: SeedTables,
+  input: BookingInvoiceAdjustmentInput,
+): void {
+  const bookingIds = new Set(input.bookingIds);
+  if (bookingIds.size === 0) {
+    return;
+  }
+
+  const invoices = getActiveRows(getMutableRows(tables, 'invoices')).filter((row) =>
+    bookingIds.has(asString(row.bookingId) ?? ''),
+  );
+  if (invoices.length === 0) {
+    return;
+  }
+
+  const blockedInvoice = invoices.find((row) => {
+    const status = toInvoiceStatus(row.status);
+    return status !== 'DRAFT' && status !== 'SENT';
+  });
+  if (blockedInvoice) {
+    throw badRequest('Booking series updates require explicit invoice adjustment for settled invoices', {
+      bookingId: asString(blockedInvoice.bookingId),
+      invoiceId: asString(blockedInvoice.id),
+      invoiceStatus: toInvoiceStatus(blockedInvoice.status),
+    });
+  }
+
+  const now = nowIso();
+  const invoiceEvents = getMutableRows(tables, 'invoiceEvents');
+  const lineItems = getMutableRows(tables, 'invoiceLineItems');
+  for (const invoice of invoices) {
+    const bookingId = asString(invoice.bookingId);
+    const invoiceId = asString(invoice.id) ?? '';
+    if (!bookingId) {
+      continue;
+    }
+
+    const context = resolveBookingInvoiceContextFromTables(tables, bookingId);
+    if (!context) {
+      throw badRequest('Invoice booking link is no longer authoritative', {
+        invoiceId,
+        bookingId,
+      });
+    }
+    if (context.coachUserId !== asString(invoice.coachUserId)) {
+      throw badRequest('Invoice booking coach link does not match authoritative booking', {
+        invoiceId,
+        bookingId,
+      });
+    }
+
+    invoice.sessionDate = context.sessionDate;
+    invoice.sessionType = context.sessionType;
+    invoice.sessionLocation = context.sessionLocation;
+    invoice.sessionDurationMinutes = context.sessionDurationMinutes;
+    invoice.updatedAt = now;
+    invoice.updatedByUserId = input.actorUserId;
+    invoice.version = (asNumber(invoice.version) ?? 1) + 1;
+
+    for (const lineItem of lineItems.filter((row) => asString(row.invoiceId) === invoiceId)) {
+      lineItem.description = formatSessionType(context.sessionType) ?? context.sessionType;
+      lineItem.updatedAt = now;
+    }
+
+    appendInvoiceEvent({
+      invoiceEvents,
+      invoiceId,
+      eventType: 'SENT',
+      actorUserId: input.actorUserId,
+      reason: input.reason ?? 'Linked booking series was updated.',
+      requestId: input.requestId,
+      occurredAt: now,
+      metadata: {
+        source: 'booking-series-update',
+        bookingId,
+      },
+    });
+  }
+}
+
 function defaultDueDateIso(): string {
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 14);
@@ -798,6 +892,60 @@ async function resolveBookingInvoiceContextFromDb(
   const totalMinor =
     (booking.status === 'CANCELLED' ? booking.cancellationFeeMinor : booking.priceMinor) ?? 0;
   const users = await prisma.user.findMany({
+    where: {
+      id: {
+        in: [booking.coachUserId, booking.bookedByUserId, firstParticipant?.guardianUserId].filter(
+          (value): value is string => Boolean(value),
+        ),
+      },
+    },
+  });
+  const coachUser = users.find((row) => row.id === booking.coachUserId);
+  const payerUserId = booking.bookedByUserId ?? firstParticipant?.guardianUserId ?? null;
+  const payerUser = users.find((row) => row.id === payerUserId);
+
+  return {
+    bookingId: booking.id,
+    coachUserId: booking.coachUserId,
+    payerUserId,
+    athleteId: firstParticipant?.athleteId ?? null,
+    sessionDate: booking.scheduledAt.toISOString(),
+    sessionType: booking.serviceType ?? 'Training Session',
+    sessionLocation: booking.location,
+    sessionDurationMinutes: booking.durationMinutes,
+    totalMinor,
+    currency: booking.currency,
+    coachBusinessName: coachUser?.name || coachUser?.email || null,
+    coachBusinessEmail: coachUser?.email ?? null,
+    billingAddress: payerUser?.name || payerUser?.email || null,
+  };
+}
+
+async function resolveBookingInvoiceContextFromDbTransaction(
+  tx: Pick<PrismaClient, 'booking' | 'user'>,
+  bookingId: string,
+): Promise<BookingInvoiceContext | null> {
+  const booking = await tx.booking.findFirst({
+    where: {
+      id: bookingId,
+      deletedAt: null,
+    },
+    include: {
+      participants: {
+        where: {
+          deletedAt: null,
+        },
+      },
+    },
+  });
+  if (!booking) {
+    return null;
+  }
+
+  const firstParticipant = booking.participants[0] ?? null;
+  const totalMinor =
+    (booking.status === 'CANCELLED' ? booking.cancellationFeeMinor : booking.priceMinor) ?? 0;
+  const users = await tx.user.findMany({
     where: {
       id: {
         in: [booking.coachUserId, booking.bookedByUserId, firstParticipant?.guardianUserId].filter(
@@ -1032,6 +1180,92 @@ export async function applyBookingReopenInvoiceEffectsInDbTransaction(
   }
 }
 
+export async function applyBookingInvoiceAdjustmentsInDbTransaction(
+  tx: InvoicePrismaTransaction,
+  input: BookingInvoiceAdjustmentInput,
+): Promise<void> {
+  if (input.bookingIds.length === 0) {
+    return;
+  }
+
+  const invoices = await tx.invoice.findMany({
+    where: {
+      bookingId: { in: input.bookingIds },
+      deletedAt: null,
+    },
+  });
+  if (invoices.length === 0) {
+    return;
+  }
+
+  const blockedInvoice = invoices.find(
+    (invoice) => invoice.status !== 'DRAFT' && invoice.status !== 'SENT',
+  );
+  if (blockedInvoice) {
+    throw badRequest('Booking series updates require explicit invoice adjustment for settled invoices', {
+      bookingId: blockedInvoice.bookingId,
+      invoiceId: blockedInvoice.id,
+      invoiceStatus: blockedInvoice.status,
+    });
+  }
+
+  const now = new Date();
+  for (const invoice of invoices) {
+    if (!invoice.bookingId) {
+      continue;
+    }
+
+    const context = await resolveBookingInvoiceContextFromDbTransaction(tx, invoice.bookingId);
+    if (!context) {
+      throw badRequest('Invoice booking link is no longer authoritative', {
+        invoiceId: invoice.id,
+        bookingId: invoice.bookingId,
+      });
+    }
+    if (context.coachUserId !== invoice.coachUserId) {
+      throw badRequest('Invoice booking coach link does not match authoritative booking', {
+        invoiceId: invoice.id,
+        bookingId: invoice.bookingId,
+      });
+    }
+
+    await tx.invoice.update({
+      where: { id: invoice.id },
+      data: {
+        sessionDate: new Date(context.sessionDate),
+        sessionType: context.sessionType,
+        sessionLocation: context.sessionLocation,
+        sessionDurationMinutes: context.sessionDurationMinutes,
+        updatedByUserId: input.actorUserId,
+        version: {
+          increment: 1,
+        },
+      },
+    });
+    await tx.invoiceLineItem.updateMany({
+      where: { invoiceId: invoice.id },
+      data: {
+        description: formatSessionType(context.sessionType) ?? context.sessionType,
+      },
+    });
+    await tx.invoiceEvent.create({
+      data: {
+        id: newId('ine'),
+        invoiceId: invoice.id,
+        eventType: 'SENT',
+        actorUserId: input.actorUserId,
+        reason: input.reason ?? 'Linked booking series was updated.',
+        requestId: input.requestId ?? null,
+        occurredAt: now,
+        metadataJson: {
+          source: 'booking-series-update',
+          bookingId: invoice.bookingId,
+        } as never,
+      },
+    });
+  }
+}
+
 export async function applyBookingCancellationInvoiceEffects(
   input: BookingInvoiceLifecycleInput,
 ): Promise<void> {
@@ -1056,6 +1290,19 @@ export async function applyBookingReopenInvoiceEffects(
 
   const prisma = getPrismaClientOrThrow();
   await prisma.$transaction((tx) => applyBookingReopenInvoiceEffectsInDbTransaction(tx, input));
+}
+
+export async function applyBookingInvoiceAdjustments(
+  input: BookingInvoiceAdjustmentInput,
+): Promise<void> {
+  const mutable = resolveMutableTables();
+  if (mutable) {
+    applyBookingInvoiceAdjustmentsInTables(mutable.tables, input);
+    return;
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  await prisma.$transaction((tx) => applyBookingInvoiceAdjustmentsInDbTransaction(tx, input));
 }
 
 function mapPaymentAttemptRow(row: SeedRow): SeedRow {

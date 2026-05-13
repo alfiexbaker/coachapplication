@@ -1480,8 +1480,51 @@ describe('p0 core routes', () => {
       fixtureStore.tables.invoices = [
         ...(fixtureStore.tables.invoices ?? []),
         {
-          id: 'invc_booking_series_update_block',
-          invoiceNumber: 'INV-SERIES-UPDATE-BLOCK',
+          id: 'invc_booking_series_paid_update_block',
+          invoiceNumber: 'INV-SERIES-PAID-UPDATE-BLOCK',
+          bookingId: firstSeriesBookingId,
+          coachUserId,
+          payerUserId: bookedByUserId,
+          athleteId,
+          status: 'PAID',
+          sessionDate: payload.occurrences[0].scheduledAt,
+          sessionType: payload.serviceType,
+          sessionLocation: payload.location,
+          sessionDurationMinutes: 60,
+          subtotalMinor: 4000,
+          taxMinor: 0,
+          taxRatePercent: 0,
+          totalMinor: 4000,
+          currency: 'GBP',
+          paidAt: new Date().toISOString(),
+          createdByUserId: coachUserId,
+          updatedByUserId: coachUserId,
+          version: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          deletedAt: null,
+        },
+      ];
+      const invoiceBlockedUpdate = await app.inject({
+        method: 'PATCH',
+        url: `/v1/booking-series/${created.series.id}`,
+        headers,
+        payload: {
+          location: 'Invoice Blocked Pitch',
+          expectedVersion: created.series.version,
+          idempotencyKey: 'booking-series-paid-invoice-blocked-update-test',
+        },
+      });
+      assert.equal(invoiceBlockedUpdate.statusCode, 400);
+      fixtureStore.tables.invoices = asRows(fixtureStore.tables.invoices).filter(
+        (row) => asString(row.id) !== 'invc_booking_series_paid_update_block',
+      );
+
+      fixtureStore.tables.invoices = [
+        ...(fixtureStore.tables.invoices ?? []),
+        {
+          id: 'invc_booking_series_update_sync',
+          invoiceNumber: 'INV-SERIES-UPDATE-SYNC',
           bookingId: firstSeriesBookingId,
           coachUserId,
           payerUserId: bookedByUserId,
@@ -1504,20 +1547,23 @@ describe('p0 core routes', () => {
           deletedAt: null,
         },
       ];
-      const invoiceBlockedUpdate = await app.inject({
-        method: 'PATCH',
-        url: `/v1/booking-series/${created.series.id}`,
-        headers,
-        payload: {
-          location: 'Invoice Blocked Pitch',
-          expectedVersion: created.series.version,
-          idempotencyKey: 'booking-series-invoice-blocked-update-test',
+      fixtureStore.tables.invoiceLineItems = [
+        ...(fixtureStore.tables.invoiceLineItems ?? []),
+        {
+          id: 'ili_booking_series_update_sync',
+          invoiceId: 'invc_booking_series_update_sync',
+          description: 'Old session description',
+          quantity: 1,
+          unitAmountMinor: 4000,
+          lineSubtotalMinor: 4000,
+          taxRatePercent: 0,
+          taxMinor: 0,
+          totalMinor: 4000,
+          sortOrder: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         },
-      });
-      assert.equal(invoiceBlockedUpdate.statusCode, 400);
-      fixtureStore.tables.invoices = asRows(fixtureStore.tables.invoices).filter(
-        (row) => asString(row.id) !== 'invc_booking_series_update_block',
-      );
+      ];
 
       const deniedUpdate = await app.inject({
         method: 'PATCH',
@@ -1562,6 +1608,30 @@ describe('p0 core routes', () => {
       assert.equal(updated.series.version, 2);
       assert.equal(updated.series.location, 'Rescheduled Series Pitch');
       assert.equal(updated.series.endDate, updateEndDate);
+      const syncedInvoice = asRows(fixtureStore.tables.invoices).find(
+        (row) => asString(row.id) === 'invc_booking_series_update_sync',
+      );
+      assert.equal(asString(syncedInvoice?.status), 'SENT');
+      assert.equal(asString(syncedInvoice?.sessionLocation), 'Rescheduled Series Pitch');
+      assert.equal(asNumber(syncedInvoice?.sessionDurationMinutes), 75);
+      assert.equal(asString(syncedInvoice?.sessionDate)?.slice(11, 16), '10:30');
+      assert.equal(asNumber(syncedInvoice?.version), 2);
+      const syncedLineItem = asRows(fixtureStore.tables.invoiceLineItems).find(
+        (row) => asString(row.id) === 'ili_booking_series_update_sync',
+      );
+      assert.equal(asString(syncedLineItem?.description), '1-on-1 Training');
+      assert.equal(
+        asRows(fixtureStore.tables.invoiceEvents).some((row) => {
+          const metadata = row.metadataJson as { source?: string; bookingId?: string } | undefined;
+          return (
+            asString(row.invoiceId) === 'invc_booking_series_update_sync' &&
+            asString(row.eventType) === 'SENT' &&
+            metadata?.source === 'booking-series-update' &&
+            metadata.bookingId === firstSeriesBookingId
+          );
+        }),
+        true,
+      );
       assert.deepEqual(
         updated.bookings.map((booking) => booking.scheduledAt.slice(11, 16)),
         ['10:30', '10:30'],
@@ -1817,6 +1887,56 @@ describe('p0 core routes', () => {
       assert.equal(seriesAfterCompletion.statusCode, 200);
       assert.equal(seriesAfterCompletion.json().status, 'PARTIAL');
 
+      const secondSeriesBookingId = created.series.bookingIds[1];
+      fixtureStore.tables.invoices = [
+        ...(fixtureStore.tables.invoices ?? []),
+        {
+          id: 'invc_booking_series_cancel_void',
+          invoiceNumber: 'INV-SERIES-CANCEL-VOID',
+          bookingId: secondSeriesBookingId,
+          coachUserId,
+          payerUserId: bookedByUserId,
+          athleteId,
+          status: 'SENT',
+          sessionDate: payload.occurrences[1].scheduledAt,
+          sessionType: payload.serviceType,
+          sessionLocation: payload.location,
+          sessionDurationMinutes: 60,
+          subtotalMinor: 4000,
+          taxMinor: 0,
+          taxRatePercent: 0,
+          totalMinor: 4000,
+          currency: 'GBP',
+          createdByUserId: coachUserId,
+          updatedByUserId: coachUserId,
+          version: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          deletedAt: null,
+        },
+      ];
+      fixtureStore.tables.paymentAttempts = [
+        ...(fixtureStore.tables.paymentAttempts ?? []),
+        {
+          id: 'pay_booking_series_cancel_void',
+          invoiceId: 'invc_booking_series_cancel_void',
+          actorUserId: bookedByUserId,
+          provider: 'simulated',
+          providerSessionId: 'hosted_cancel_void',
+          idempotencyKey: 'booking-series-cancel-void-payment',
+          status: 'ACTION_REQUIRED',
+          amountMinor: 4000,
+          currency: 'GBP',
+          expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          confirmedAt: null,
+          failureCode: null,
+          failureReason: null,
+          metadataJson: {},
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ];
+
       const deniedCancel = await app.inject({
         method: 'POST',
         url: `/v1/booking-series/${created.series.id}/cancel`,
@@ -1828,6 +1948,14 @@ describe('p0 core routes', () => {
         },
       });
       assert.equal(deniedCancel.statusCode, 403);
+      assert.equal(
+        asString(
+          asRows(fixtureStore.tables.invoices).find(
+            (row) => asString(row.id) === 'invc_booking_series_cancel_void',
+          )?.status,
+        ),
+        'SENT',
+      );
 
       const cancelledRes = await app.inject({
         method: 'POST',
@@ -1850,6 +1978,29 @@ describe('p0 core routes', () => {
       assert.deepEqual(
         cancelled.bookings.map((booking) => booking.status),
         ['COMPLETED', 'CANCELLED'],
+      );
+      const voidedSeriesInvoice = asRows(fixtureStore.tables.invoices).find(
+        (row) => asString(row.id) === 'invc_booking_series_cancel_void',
+      );
+      assert.equal(asString(voidedSeriesInvoice?.status), 'VOID');
+      assert.equal(asString(voidedSeriesInvoice?.voidReason), 'Parent cancelled package');
+      assert.equal(asNumber(voidedSeriesInvoice?.version), 2);
+      const canceledAttempt = asRows(fixtureStore.tables.paymentAttempts).find(
+        (row) => asString(row.id) === 'pay_booking_series_cancel_void',
+      );
+      assert.equal(asString(canceledAttempt?.status), 'CANCELED');
+      assert.equal(asString(canceledAttempt?.failureReason), 'Booking was cancelled before payment completion.');
+      assert.equal(
+        asRows(fixtureStore.tables.invoiceEvents).some((row) => {
+          const metadata = row.metadataJson as { source?: string; bookingId?: string } | undefined;
+          return (
+            asString(row.invoiceId) === 'invc_booking_series_cancel_void' &&
+            asString(row.eventType) === 'VOIDED' &&
+            metadata?.source === 'booking-cancellation' &&
+            metadata.bookingId === secondSeriesBookingId
+          );
+        }),
+        true,
       );
 
       const staleCancel = await app.inject({

@@ -28,6 +28,12 @@ import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
 import { badRequest, conflict, forbidden } from '../../lib/http-errors.js';
+import {
+  applyBookingCancellationInvoiceEffects,
+  applyBookingCancellationInvoiceEffectsInDbTransaction,
+  applyBookingInvoiceAdjustments,
+  applyBookingInvoiceAdjustmentsInDbTransaction,
+} from '../../lib/invoice-runtime.js';
 import { normalizeForJson } from './normalize.js';
 import {
   createBookingInSeedTables,
@@ -688,14 +694,15 @@ function getMutableSeedBookingsForSeriesUpdate(params: {
   });
 }
 
-function assertNoSeedInvoicesForBookingUpdate(tables: SeedTables, bookingIds: string[]): void {
+function assertSeedInvoicesAdjustableForBookingUpdate(tables: SeedTables, bookingIds: string[]): void {
   const invoice = asRows(tables.invoices).find(
     (row) =>
       !asString(row.deletedAt) &&
-      bookingIds.includes(asString(row.bookingId) ?? ''),
+      bookingIds.includes(asString(row.bookingId) ?? '') &&
+      !['DRAFT', 'SENT'].includes(asString(row.status)?.toUpperCase() ?? ''),
   );
   if (invoice) {
-    throw badRequest('Booking series updates require invoice adjustment authority first', {
+    throw badRequest('Booking series updates require explicit invoice adjustment for settled invoices', {
       bookingId: asString(invoice.bookingId),
       invoiceId: asString(invoice.id),
       invoiceStatus: asString(invoice.status),
@@ -1164,6 +1171,13 @@ class SeedBookingSeriesRepository implements BookingSeriesRepository {
         continue;
       }
 
+      await applyBookingCancellationInvoiceEffects({
+        bookingId: asString(booking.id) ?? '',
+        actorUserId: params.authUserId,
+        reason: params.body.reason,
+        requestId: params.requestId,
+      });
+
       booking.status = 'CANCELLED';
       booking.cancelledByUserId = params.authUserId;
       booking.cancelledAt = now;
@@ -1445,12 +1459,10 @@ class SeedBookingSeriesRepository implements BookingSeriesRepository {
         seriesId: params.seriesId,
       });
     }
-    assertNoSeedInvoicesForBookingUpdate(
-      store.tables,
-      mutableBookings
-        .map((booking) => asString(booking.id))
-        .filter((bookingId): bookingId is string => Boolean(bookingId)),
-    );
+    const mutableBookingIds = mutableBookings
+      .map((booking) => asString(booking.id))
+      .filter((bookingId): bookingId is string => Boolean(bookingId));
+    assertSeedInvoicesAdjustableForBookingUpdate(store.tables, mutableBookingIds);
 
     for (const booking of mutableBookings) {
       if (params.body.time) {
@@ -1469,6 +1481,13 @@ class SeedBookingSeriesRepository implements BookingSeriesRepository {
       booking.updatedAt = now;
       booking.version = (asNumber(booking.version) ?? 1) + 1;
     }
+
+    await applyBookingInvoiceAdjustments({
+      bookingIds: mutableBookingIds,
+      actorUserId: params.authUserId,
+      reason: 'Linked booking series was updated.',
+      requestId: params.requestId,
+    });
 
     if (params.body.time) {
       series.timeLocal = params.body.time;
@@ -2301,6 +2320,13 @@ class DbBookingSeriesRepository implements BookingSeriesRepository {
             continue;
           }
 
+          await applyBookingCancellationInvoiceEffectsInDbTransaction(tx, {
+            bookingId: booking.id,
+            actorUserId: params.authUserId,
+            reason: params.body.reason,
+            requestId: params.requestId,
+          });
+
           await tx.booking.update({
             where: { id: booking.id },
             data: {
@@ -2698,10 +2724,13 @@ class DbBookingSeriesRepository implements BookingSeriesRepository {
       where: {
         bookingId: { in: mutableBookingIds },
         deletedAt: null,
+        status: {
+          notIn: ['DRAFT', 'SENT'],
+        },
       },
     });
     if (blockingInvoice) {
-      throw badRequest('Booking series updates require invoice adjustment authority first', {
+      throw badRequest('Booking series updates require explicit invoice adjustment for settled invoices', {
         bookingId: blockingInvoice.bookingId,
         invoiceId: blockingInvoice.id,
         invoiceStatus: blockingInvoice.status,
@@ -2737,6 +2766,13 @@ class DbBookingSeriesRepository implements BookingSeriesRepository {
             },
           });
         }
+
+        await applyBookingInvoiceAdjustmentsInDbTransaction(tx, {
+          bookingIds: mutableBookingIds,
+          actorUserId: params.authUserId,
+          reason: 'Linked booking series was updated.',
+          requestId: params.requestId,
+        });
 
         const updatedBookings = await tx.booking.findMany({
           where: { recurringSeriesId: params.seriesId },
