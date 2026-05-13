@@ -7,6 +7,7 @@ import {
   createBookingSeriesResponseSchema,
   pauseBookingSeriesResponseSchema,
   resumeBookingSeriesResponseSchema,
+  updateBookingSeriesResponseSchema,
   type BookingResponse,
   type BookingSeriesListResponse,
   type BookingSeriesResponse,
@@ -19,6 +20,8 @@ import {
   type PauseBookingSeriesResponse,
   type ResumeBookingSeriesRequest,
   type ResumeBookingSeriesResponse,
+  type UpdateBookingSeriesRequest,
+  type UpdateBookingSeriesResponse,
 } from '@clubroom/shared-contracts';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
@@ -40,15 +43,17 @@ const asNumber = (value: unknown): number | undefined =>
 const isoNow = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 const BOOKING_SERIES_CREATE_ENDPOINT_KEY = 'POST:/v1/booking-series';
-type BookingSeriesLifecycleAction = 'cancel' | 'pause' | 'resume';
+type BookingSeriesLifecycleAction = 'cancel' | 'pause' | 'resume' | 'update';
 type BookingSeriesLifecycleRequest =
   | CancelBookingSeriesRequest
   | PauseBookingSeriesRequest
-  | ResumeBookingSeriesRequest;
+  | ResumeBookingSeriesRequest
+  | UpdateBookingSeriesRequest;
 type BookingSeriesLifecycleResponse =
   | CancelBookingSeriesResponse
   | PauseBookingSeriesResponse
-  | ResumeBookingSeriesResponse;
+  | ResumeBookingSeriesResponse
+  | UpdateBookingSeriesResponse;
 
 const bookingSeriesLifecycleEndpointKey = (
   seriesId: string,
@@ -93,6 +98,13 @@ export interface ResumeBookingSeriesParams {
   body: ResumeBookingSeriesRequest;
 }
 
+export interface UpdateBookingSeriesParams {
+  authUserId: string;
+  requestId: string;
+  seriesId: string;
+  body: UpdateBookingSeriesRequest;
+}
+
 export interface BookingSeriesRepository {
   listVisibleBookingSeries(params: ListBookingSeriesParams): Promise<BookingSeriesListResponse>;
   getVisibleBookingSeriesById(params: GetBookingSeriesParams): Promise<BookingSeriesResponse>;
@@ -100,6 +112,7 @@ export interface BookingSeriesRepository {
   cancelBookingSeries(params: CancelBookingSeriesParams): Promise<CancelBookingSeriesResponse>;
   pauseBookingSeries(params: PauseBookingSeriesParams): Promise<PauseBookingSeriesResponse>;
   resumeBookingSeries(params: ResumeBookingSeriesParams): Promise<ResumeBookingSeriesResponse>;
+  updateBookingSeries(params: UpdateBookingSeriesParams): Promise<UpdateBookingSeriesResponse>;
 }
 
 function canonicalizeJson(value: unknown): unknown {
@@ -171,6 +184,13 @@ function parseIdempotentResumeBookingSeriesResponse(
   value: unknown,
 ): ResumeBookingSeriesResponse | null {
   const parsed = resumeBookingSeriesResponseSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
+
+function parseIdempotentUpdateBookingSeriesResponse(
+  value: unknown,
+): UpdateBookingSeriesResponse | null {
+  const parsed = updateBookingSeriesResponseSchema.safeParse(value);
   return parsed.success ? parsed.data : null;
 }
 
@@ -436,6 +456,31 @@ function findSeedResumeBookingSeriesIdempotency(params: {
   return parseIdempotentResumeBookingSeriesResponse(entry.responseBodyJson);
 }
 
+function findSeedUpdateBookingSeriesIdempotency(params: {
+  tables: SeedTables;
+  authUserId: string;
+  endpointKey: string;
+  idempotencyKey?: string;
+  requestHash: string;
+}): UpdateBookingSeriesResponse | null {
+  if (!params.idempotencyKey) {
+    return null;
+  }
+
+  const entry = asRows(params.tables.idempotencyKeys).find(
+    (row) =>
+      asString(row.userId) === params.authUserId &&
+      asString(row.endpointKey) === params.endpointKey &&
+      asString(row.idempotencyKey) === params.idempotencyKey,
+  );
+  if (!entry) {
+    return null;
+  }
+
+  assertMatchingIdempotencyRequest(entry, params.requestHash);
+  return parseIdempotentUpdateBookingSeriesResponse(entry.responseBodyJson);
+}
+
 function recordSeedCancelBookingSeriesIdempotency(params: {
   tables: SeedTables;
   authUserId: string;
@@ -600,6 +645,86 @@ function assertSeriesCanResume(status: BookingSeriesResponse['status']): void {
   });
 }
 
+function assertSeriesCanUpdate(status: BookingSeriesResponse['status']): void {
+  if (status === 'ACTIVE' || status === 'PARTIAL' || status === 'PAUSED') {
+    return;
+  }
+  throw conflict(`Cannot update a booking series that is ${status.toLowerCase()}`, {
+    status,
+  });
+}
+
+function applyTimeToDate(dateValue: string, timeLocal: string): string {
+  const [hoursValue, minutesValue] = timeLocal.split(':').map(Number);
+  const date = new Date(dateValue);
+  if (
+    Number.isNaN(date.getTime()) ||
+    !Number.isInteger(hoursValue) ||
+    !Number.isInteger(minutesValue) ||
+    hoursValue < 0 ||
+    hoursValue > 23 ||
+    minutesValue < 0 ||
+    minutesValue > 59
+  ) {
+    throw badRequest('Booking series update has an invalid time value', { time: timeLocal });
+  }
+  date.setUTCHours(hoursValue, minutesValue, 0, 0);
+  return date.toISOString();
+}
+
+function getMutableSeedBookingsForSeriesUpdate(params: {
+  linkedBookings: SeedRow[];
+  nowMs: number;
+}): SeedRow[] {
+  return params.linkedBookings.filter((booking) => {
+    const status = asString(booking.status)?.toUpperCase();
+    const scheduledAtMs = Date.parse(asString(booking.scheduledAt) ?? '');
+    return (
+      status !== 'CANCELLED' &&
+      status !== 'COMPLETED' &&
+      Number.isFinite(scheduledAtMs) &&
+      scheduledAtMs > params.nowMs
+    );
+  });
+}
+
+function assertNoSeedInvoicesForBookingUpdate(tables: SeedTables, bookingIds: string[]): void {
+  const invoice = asRows(tables.invoices).find(
+    (row) =>
+      !asString(row.deletedAt) &&
+      bookingIds.includes(asString(row.bookingId) ?? ''),
+  );
+  if (invoice) {
+    throw badRequest('Booking series updates require invoice adjustment authority first', {
+      bookingId: asString(invoice.bookingId),
+      invoiceId: asString(invoice.id),
+      invoiceStatus: asString(invoice.status),
+    });
+  }
+}
+
+function getUpdatedSeriesEndDate(params: {
+  body: UpdateBookingSeriesRequest;
+  bookings: BookingResponse[];
+}): string {
+  const lastScheduledAt = params.bookings[params.bookings.length - 1]?.scheduledAt;
+  if (!params.body.endDate) {
+    return lastScheduledAt ?? isoNow();
+  }
+  const endDateMs = Date.parse(params.body.endDate);
+  const lastMs = Date.parse(lastScheduledAt ?? '');
+  if (!Number.isFinite(endDateMs)) {
+    throw badRequest('Booking series update has an invalid endDate value');
+  }
+  if (Number.isFinite(lastMs) && endDateMs < lastMs) {
+    throw badRequest('Booking series endDate cannot exclude existing linked bookings', {
+      endDate: params.body.endDate,
+      lastScheduledAt,
+    });
+  }
+  return new Date(endDateMs).toISOString();
+}
+
 function mapSeedBookingSeriesRow(params: {
   tables: SeedTables;
   series: SeedRow;
@@ -638,7 +763,7 @@ function mapSeedBookingSeriesRow(params: {
       bookings,
     }),
     startDate: firstBooking?.scheduledAt ?? asString(params.series.startDate),
-    endDate: lastBooking?.scheduledAt ?? asString(params.series.endDate) ?? asString(params.series.startDate),
+    endDate: asString(params.series.endDate) ?? lastBooking?.scheduledAt ?? asString(params.series.startDate),
     bookingIds: bookings.map((booking) => booking.id),
     scheduledDates,
     durationMinutes: firstBooking?.durationMinutes ?? null,
@@ -1259,6 +1384,131 @@ class SeedBookingSeriesRepository implements BookingSeriesRepository {
 
     return response;
   }
+
+  async updateBookingSeries(
+    params: UpdateBookingSeriesParams,
+  ): Promise<UpdateBookingSeriesResponse> {
+    const store = this.loadStore();
+    const series = asRows(store.tables.recurringSeries).find(
+      (row) => asString(row.id) === params.seriesId && !asString(row.deletedAt),
+    );
+    if (!series) {
+      throw badRequest('Booking series not found', { seriesId: params.seriesId });
+    }
+
+    const linkedBookings = getSeedBookingsForSeries(store.tables, params.seriesId);
+    if (
+      !canUserAccessSeedSeries({
+        tables: store.tables,
+        series,
+        authUserId: params.authUserId,
+        linkedBookings,
+      })
+    ) {
+      throw forbidden('Booking series does not belong to authenticated user');
+    }
+
+    const endpointKey = bookingSeriesLifecycleEndpointKey(params.seriesId, 'update');
+    const requestHash = hashBookingSeriesLifecycleRequest({
+      seriesId: params.seriesId,
+      body: params.body,
+    });
+    const idempotentResponse = findSeedUpdateBookingSeriesIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      endpointKey,
+      idempotencyKey: params.body.idempotencyKey,
+      requestHash,
+    });
+    if (idempotentResponse) {
+      return idempotentResponse;
+    }
+
+    const responseBookingsBefore = linkedBookings.map((booking) =>
+      mapSeedBookingRow(store.tables, booking),
+    );
+    assertExpectedSeriesVersion(asNumber(series.version) ?? 1, params.body.expectedVersion);
+    assertSeriesCanUpdate(
+      getSeriesResponseStatus({
+        storedStatus: asString(series.status),
+        bookings: responseBookingsBefore,
+      }),
+    );
+
+    const now = isoNow();
+    const mutableBookings = getMutableSeedBookingsForSeriesUpdate({
+      linkedBookings,
+      nowMs: Date.parse(now),
+    });
+    if (mutableBookings.length === 0) {
+      throw badRequest('Booking series has no future bookings that can be updated', {
+        seriesId: params.seriesId,
+      });
+    }
+    assertNoSeedInvoicesForBookingUpdate(
+      store.tables,
+      mutableBookings
+        .map((booking) => asString(booking.id))
+        .filter((bookingId): bookingId is string => Boolean(bookingId)),
+    );
+
+    for (const booking of mutableBookings) {
+      if (params.body.time) {
+        booking.scheduledAt = applyTimeToDate(asString(booking.scheduledAt) ?? '', params.body.time);
+      }
+      if (params.body.durationMinutes !== undefined) {
+        booking.durationMinutes = params.body.durationMinutes;
+      }
+      if (params.body.location !== undefined) {
+        booking.location = params.body.location;
+      }
+      if (params.body.notes !== undefined) {
+        booking.notes = params.body.notes;
+      }
+      booking.updatedByUserId = params.authUserId;
+      booking.updatedAt = now;
+      booking.version = (asNumber(booking.version) ?? 1) + 1;
+    }
+
+    if (params.body.time) {
+      series.timeLocal = params.body.time;
+    }
+    if (params.body.notes !== undefined) {
+      series.notes = params.body.notes;
+    }
+    series.updatedByUserId = params.authUserId;
+    series.updatedAt = now;
+    series.version = (asNumber(series.version) ?? 1) + 1;
+
+    const responseBookings = linkedBookings.map((booking) => mapSeedBookingRow(store.tables, booking));
+    if (params.body.endDate) {
+      series.endDate = getUpdatedSeriesEndDate({ body: params.body, bookings: responseBookings });
+    } else {
+      series.endDate = responseBookings[responseBookings.length - 1]?.scheduledAt ?? asString(series.endDate);
+    }
+
+    const response = updateBookingSeriesResponseSchema.parse({
+      series: mapSeedBookingSeriesRow({
+        tables: store.tables,
+        series,
+        bookings: linkedBookings,
+      }),
+      bookings: responseBookings,
+      requestId: params.requestId,
+    });
+
+    recordSeedBookingSeriesLifecycleIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      endpointKey,
+      idempotencyKey: params.body.idempotencyKey,
+      requestHash,
+      response,
+      now,
+    });
+
+    return response;
+  }
 }
 
 export async function resolveCreateBookingSeriesIdempotency(params: {
@@ -1469,6 +1719,60 @@ async function resolveResumeBookingSeriesIdempotency(params: {
   return { responseStatus: entry.responseStatus, response };
 }
 
+async function resolveUpdateBookingSeriesIdempotency(params: {
+  authUserId: string;
+  seriesId: string;
+  body: UpdateBookingSeriesRequest;
+}): Promise<{ responseStatus: number; response: UpdateBookingSeriesResponse } | null> {
+  if (!params.body.idempotencyKey) {
+    return null;
+  }
+
+  const endpointKey = bookingSeriesLifecycleEndpointKey(params.seriesId, 'update');
+  const requestHash = hashBookingSeriesLifecycleRequest({
+    seriesId: params.seriesId,
+    body: params.body,
+  });
+
+  if (getApiDataBackend() !== 'db' || shouldUseDbFixtureFallback()) {
+    const tables =
+      getApiDataBackend() === 'db' ? getDbFixtureStore().tables : getMarketplaceSeedStore().tables;
+    const response = findSeedUpdateBookingSeriesIdempotency({
+      tables,
+      authUserId: params.authUserId,
+      endpointKey,
+      idempotencyKey: params.body.idempotencyKey,
+      requestHash,
+    });
+    return response ? { responseStatus: 200, response } : null;
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  const entry = await prisma.idempotencyKey.findUnique({
+    where: {
+      userId_endpointKey_idempotencyKey: {
+        userId: params.authUserId,
+        endpointKey,
+        idempotencyKey: params.body.idempotencyKey,
+      },
+    },
+  });
+  if (!entry) {
+    return null;
+  }
+
+  if (entry.requestHash !== requestHash) {
+    throw conflict('Idempotency key was already used with a different booking series payload');
+  }
+
+  const response = parseIdempotentUpdateBookingSeriesResponse(entry.responseBodyJson);
+  if (!response) {
+    throw conflict('Stored idempotency response is no longer valid');
+  }
+
+  return { responseStatus: entry.responseStatus, response };
+}
+
 function mapDbBookingRecord(booking: Record<string, unknown>): BookingResponse {
   const participants = asRows(booking.participants);
   const objectives = asRows(booking.objectives);
@@ -1534,7 +1838,7 @@ function mapDbBookingSeriesRecord(params: {
       bookings: params.bookings,
     }),
     startDate: firstBooking?.scheduledAt ?? asString(params.series.startDate),
-    endDate: lastBooking?.scheduledAt ?? asString(params.series.endDate) ?? asString(params.series.startDate),
+    endDate: asString(params.series.endDate) ?? lastBooking?.scheduledAt ?? asString(params.series.startDate),
     bookingIds: params.bookings.map((booking) => booking.id),
     scheduledDates: params.bookings.map((booking) => booking.scheduledAt),
     durationMinutes: firstBooking?.durationMinutes ?? null,
@@ -2315,6 +2619,187 @@ class DbBookingSeriesRepository implements BookingSeriesRepository {
     } catch (error) {
       if (params.body.idempotencyKey && isBookingSeriesIdempotencyRace(error)) {
         const replay = await resolveResumeBookingSeriesIdempotency({
+          authUserId: params.authUserId,
+          seriesId: params.seriesId,
+          body: params.body,
+        });
+        if (replay) {
+          return replay.response;
+        }
+      }
+      throw error;
+    }
+  }
+
+  async updateBookingSeries(
+    params: UpdateBookingSeriesParams,
+  ): Promise<UpdateBookingSeriesResponse> {
+    if (shouldUseDbFixtureFallback()) {
+      const seedRepository = new SeedBookingSeriesRepository(getDbFixtureStore);
+      return seedRepository.updateBookingSeries(params);
+    }
+
+    const idempotentResponse = await resolveUpdateBookingSeriesIdempotency({
+      authUserId: params.authUserId,
+      seriesId: params.seriesId,
+      body: params.body,
+    });
+    if (idempotentResponse) {
+      return idempotentResponse.response;
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const series = await prisma.recurringSeries.findFirst({
+      where: { id: params.seriesId, deletedAt: null },
+    });
+    if (!series) {
+      throw badRequest('Booking series not found', { seriesId: params.seriesId });
+    }
+
+    const bookings = await prisma.booking.findMany({
+      where: { recurringSeriesId: params.seriesId },
+      include: {
+        participants: { include: { athlete: { select: { userId: true } } } },
+        objectives: true,
+      },
+      orderBy: [{ seriesIndex: 'asc' }, { scheduledAt: 'asc' }],
+    });
+
+    if (!canUserAccessDbSeries({ series, bookings, authUserId: params.authUserId })) {
+      throw forbidden('Booking series does not belong to authenticated user');
+    }
+
+    const responseBookingsBefore = (normalizeForJson(bookings) as Record<string, unknown>[]).map(
+      mapDbBookingRecord,
+    );
+    assertExpectedSeriesVersion(Number(series.version), params.body.expectedVersion);
+    assertSeriesCanUpdate(
+      getSeriesResponseStatus({
+        storedStatus: series.status,
+        bookings: responseBookingsBefore,
+      }),
+    );
+
+    const now = new Date();
+    const mutableBookings = bookings.filter(
+      (booking) =>
+        booking.status !== 'CANCELLED' &&
+        booking.status !== 'COMPLETED' &&
+        booking.scheduledAt.getTime() > now.getTime(),
+    );
+    if (mutableBookings.length === 0) {
+      throw badRequest('Booking series has no future bookings that can be updated', {
+        seriesId: params.seriesId,
+      });
+    }
+
+    const mutableBookingIds = mutableBookings.map((booking) => booking.id);
+    const blockingInvoice = await prisma.invoice.findFirst({
+      where: {
+        bookingId: { in: mutableBookingIds },
+        deletedAt: null,
+      },
+    });
+    if (blockingInvoice) {
+      throw badRequest('Booking series updates require invoice adjustment authority first', {
+        bookingId: blockingInvoice.bookingId,
+        invoiceId: blockingInvoice.id,
+        invoiceStatus: blockingInvoice.status,
+      });
+    }
+
+    const endpointKey = bookingSeriesLifecycleEndpointKey(params.seriesId, 'update');
+    const requestHash = hashBookingSeriesLifecycleRequest({
+      seriesId: params.seriesId,
+      body: params.body,
+    });
+
+    try {
+      const response = await prisma.$transaction(async (tx) => {
+        const updateData = {
+          ...(params.body.durationMinutes !== undefined
+            ? { durationMinutes: params.body.durationMinutes }
+            : {}),
+          ...(params.body.location !== undefined ? { location: params.body.location } : {}),
+          ...(params.body.notes !== undefined ? { notes: params.body.notes } : {}),
+          updatedByUserId: params.authUserId,
+          version: { increment: 1 },
+        };
+
+        for (const booking of mutableBookings) {
+          await tx.booking.update({
+            where: { id: booking.id },
+            data: {
+              ...updateData,
+              ...(params.body.time
+                ? { scheduledAt: new Date(applyTimeToDate(booking.scheduledAt.toISOString(), params.body.time)) }
+                : {}),
+            },
+          });
+        }
+
+        const updatedBookings = await tx.booking.findMany({
+          where: { recurringSeriesId: params.seriesId },
+          include: {
+            participants: { include: { athlete: { select: { userId: true } } } },
+            objectives: true,
+          },
+          orderBy: [{ seriesIndex: 'asc' }, { scheduledAt: 'asc' }],
+        });
+        const responseBookings = (normalizeForJson(updatedBookings) as Record<string, unknown>[]).map(
+          mapDbBookingRecord,
+        );
+        const nextEndDate = getUpdatedSeriesEndDate({ body: params.body, bookings: responseBookings });
+        const seriesUpdate = await tx.recurringSeries.updateMany({
+          where: { id: params.seriesId, version: series.version },
+          data: {
+            ...(params.body.time ? { timeLocal: params.body.time } : {}),
+            ...(params.body.notes !== undefined ? { notes: params.body.notes } : {}),
+            endDate: new Date(nextEndDate),
+            updatedByUserId: params.authUserId,
+            version: { increment: 1 },
+          },
+        });
+        if (seriesUpdate.count !== 1) {
+          throw conflict('Booking series version changed since it was loaded', {
+            currentVersion: Number(series.version),
+          });
+        }
+
+        const updatedSeries = await tx.recurringSeries.findUniqueOrThrow({
+          where: { id: params.seriesId },
+        });
+        const nextResponse = updateBookingSeriesResponseSchema.parse({
+          series: mapDbBookingSeriesRecord({
+            series: normalizeForJson(updatedSeries) as Record<string, unknown>,
+            bookings: responseBookings,
+          }),
+          bookings: responseBookings,
+          requestId: params.requestId,
+        });
+
+        if (params.body.idempotencyKey) {
+          await tx.idempotencyKey.create({
+            data: {
+              id: newId('idk'),
+              userId: params.authUserId,
+              endpointKey,
+              idempotencyKey: params.body.idempotencyKey,
+              requestHash,
+              responseStatus: 200,
+              responseBodyJson: nextResponse as never,
+              expiresAt: new Date(now.getTime() + IDEMPOTENCY_TTL_MS),
+            },
+          });
+        }
+
+        return nextResponse;
+      });
+
+      return normalizeForJson(response);
+    } catch (error) {
+      if (params.body.idempotencyKey && isBookingSeriesIdempotencyRace(error)) {
+        const replay = await resolveUpdateBookingSeriesIdempotency({
           authUserId: params.authUserId,
           seriesId: params.seriesId,
           body: params.body,

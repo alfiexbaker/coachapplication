@@ -109,7 +109,7 @@ These are minimum flows that must be traced before backend cutover by spine.
 - direct booking wizard (parent and athlete variants)
 - booking review/confirmation/cancel/reopen
 - group session registration + waitlist
-- recurring booking create/list/detail/cancel/pause/resume flows; update/reschedule remains deferred until slot and money effects are explicit
+- recurring booking create/list/detail/cancel/pause/resume/update flows; update/reschedule is limited to existing future linked bookings and blocks invoice-linked changes until invoice adjustment semantics exist
 - invoice generation + reconciler actions (paid/unpaid/write-off/restore) plus booking cancellation/refund hard-wall behavior
 
 ### Family / Parent

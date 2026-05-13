@@ -182,7 +182,7 @@ function buildBookingSeriesIdempotencyKey(input: CreateApiBookingSeriesInput): s
 }
 
 function buildBookingLifecycleIdempotencyKey(
-  action: 'cancel' | 'reopen' | 'pause' | 'resume',
+  action: 'cancel' | 'reopen' | 'pause' | 'resume' | 'update',
   bookingId: string,
   input: { reason?: string; note?: string; expectedVersion?: number },
 ): string {
@@ -483,6 +483,44 @@ class BookingAuthorityService {
 
     if (!result.success) {
       logger.error('Failed to resume booking series via API', {
+        seriesId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+
+    return result;
+  }
+
+  async updateBookingSeries(
+    seriesId: string,
+    input: {
+      time?: string;
+      durationMinutes?: number;
+      location?: string;
+      notes?: string;
+      endDate?: string;
+      expectedVersion?: number;
+      idempotencyKey?: string;
+    },
+  ): Promise<Result<ApiBookingSeriesResponse, ServiceError>> {
+    const headersResult = await resolveBookingAccessHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiBookingSeriesResponse>(`/v1/booking-series/${seriesId}`, {
+      method: 'PATCH',
+      headers: headersResult.data,
+      body: JSON.stringify({
+        ...input,
+        idempotencyKey:
+          input.idempotencyKey ?? buildBookingLifecycleIdempotencyKey('update', seriesId, input),
+      }),
+    });
+
+    if (!result.success) {
+      logger.error('Failed to update booking series via API', {
         seriesId,
         error: result.error,
       });

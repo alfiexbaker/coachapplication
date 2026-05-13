@@ -895,10 +895,33 @@ class RecurringBookingService {
     >,
   ): Promise<Result<RecurringBooking, ServiceError>> {
     try {
-      const authorityError = this.getApiModeAuthorityError('updateRecurring');
-      if (authorityError) {
-        return err(authorityError);
+      if (!apiClient.isMockMode) {
+        const apiEndDate =
+          updates.endDate !== undefined
+            ? (() => {
+                const parsed = new Date(updates.endDate);
+                return Number.isNaN(parsed.getTime()) ? updates.endDate : parsed.toISOString();
+              })()
+            : undefined;
+        const apiResult = await bookingAuthorityService.updateBookingSeries(recurringId, {
+          ...(updates.time !== undefined ? { time: updates.time } : {}),
+          ...(updates.duration !== undefined ? { durationMinutes: updates.duration } : {}),
+          ...(updates.location !== undefined ? { location: updates.location } : {}),
+          ...(updates.notes !== undefined ? { notes: updates.notes } : {}),
+          ...(apiEndDate !== undefined ? { endDate: apiEndDate } : {}),
+        });
+        if (!apiResult.success) {
+          return err(apiResult.error);
+        }
+
+        const updated = mapApiSeriesToRecurringBooking(apiResult.data.series);
+        logger.info('recurring_booking_updated_via_api_series', {
+          id: recurringId,
+          updates,
+        });
+        return ok(updated);
       }
+
       const bookings = await this.listValue();
       const index = bookings.findIndex((b) => b.id === recurringId);
 

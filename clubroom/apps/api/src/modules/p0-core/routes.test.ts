@@ -1476,12 +1476,140 @@ describe('p0 core routes', () => {
         2,
       );
 
+      const firstSeriesBookingId = created.series.bookingIds[0];
+      fixtureStore.tables.invoices = [
+        ...(fixtureStore.tables.invoices ?? []),
+        {
+          id: 'invc_booking_series_update_block',
+          invoiceNumber: 'INV-SERIES-UPDATE-BLOCK',
+          bookingId: firstSeriesBookingId,
+          coachUserId,
+          payerUserId: bookedByUserId,
+          athleteId,
+          status: 'SENT',
+          sessionDate: payload.occurrences[0].scheduledAt,
+          sessionType: payload.serviceType,
+          sessionLocation: payload.location,
+          sessionDurationMinutes: 60,
+          subtotalMinor: 4000,
+          taxMinor: 0,
+          taxRatePercent: 0,
+          totalMinor: 4000,
+          currency: 'GBP',
+          createdByUserId: coachUserId,
+          updatedByUserId: coachUserId,
+          version: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          deletedAt: null,
+        },
+      ];
+      const invoiceBlockedUpdate = await app.inject({
+        method: 'PATCH',
+        url: `/v1/booking-series/${created.series.id}`,
+        headers,
+        payload: {
+          location: 'Invoice Blocked Pitch',
+          expectedVersion: created.series.version,
+          idempotencyKey: 'booking-series-invoice-blocked-update-test',
+        },
+      });
+      assert.equal(invoiceBlockedUpdate.statusCode, 400);
+      fixtureStore.tables.invoices = asRows(fixtureStore.tables.invoices).filter(
+        (row) => asString(row.id) !== 'invc_booking_series_update_block',
+      );
+
+      const deniedUpdate = await app.inject({
+        method: 'PATCH',
+        url: `/v1/booking-series/${created.series.id}`,
+        headers: authHeaders(tables, unrelatedParentId, 'parent'),
+        payload: {
+          location: 'Should not be allowed',
+          expectedVersion: created.series.version,
+          idempotencyKey: 'booking-series-denied-update-test',
+        },
+      });
+      assert.equal(deniedUpdate.statusCode, 403);
+
+      const lastCreatedBooking = asRows(fixtureStore.tables.bookings)
+        .filter((row) => asString(row.recurringSeriesId) === created.series.id)
+        .sort((left, right) => Date.parse(asString(left.scheduledAt) ?? '') - Date.parse(asString(right.scheduledAt) ?? ''))
+        .at(-1);
+      const updateEndDate = new Date(
+        Date.parse(asString(lastCreatedBooking?.scheduledAt) ?? '') + 24 * 60 * 60 * 1000,
+      ).toISOString();
+      const updatedRes = await app.inject({
+        method: 'PATCH',
+        url: `/v1/booking-series/${created.series.id}`,
+        headers,
+        payload: {
+          time: '10:30',
+          durationMinutes: 75,
+          location: 'Rescheduled Series Pitch',
+          notes: 'Updated through backend series authority',
+          endDate: updateEndDate,
+          expectedVersion: created.series.version,
+          idempotencyKey: 'booking-series-update-test',
+        },
+      });
+      assert.equal(updatedRes.statusCode, 200);
+      const updated = updatedRes.json() as {
+        series: { id: string; status: string; version: number; location: string; endDate: string };
+        bookings: { scheduledAt: string; durationMinutes: number; location: string; notes: string }[];
+      };
+      assert.equal(updated.series.id, created.series.id);
+      assert.equal(updated.series.status, 'ACTIVE');
+      assert.equal(updated.series.version, 2);
+      assert.equal(updated.series.location, 'Rescheduled Series Pitch');
+      assert.equal(updated.series.endDate, updateEndDate);
+      assert.deepEqual(
+        updated.bookings.map((booking) => booking.scheduledAt.slice(11, 16)),
+        ['10:30', '10:30'],
+      );
+      assert.deepEqual(
+        updated.bookings.map((booking) => booking.durationMinutes),
+        [75, 75],
+      );
+      assert.deepEqual(
+        updated.bookings.map((booking) => booking.location),
+        ['Rescheduled Series Pitch', 'Rescheduled Series Pitch'],
+      );
+
+      const staleUpdate = await app.inject({
+        method: 'PATCH',
+        url: `/v1/booking-series/${created.series.id}`,
+        headers,
+        payload: {
+          location: 'Stale update',
+          expectedVersion: created.series.version,
+          idempotencyKey: 'booking-series-stale-update-test',
+        },
+      });
+      assert.equal(staleUpdate.statusCode, 409);
+
+      const updateReplay = await app.inject({
+        method: 'PATCH',
+        url: `/v1/booking-series/${created.series.id}`,
+        headers,
+        payload: {
+          time: '10:30',
+          durationMinutes: 75,
+          location: 'Rescheduled Series Pitch',
+          notes: 'Updated through backend series authority',
+          endDate: updateEndDate,
+          expectedVersion: created.series.version,
+          idempotencyKey: 'booking-series-update-test',
+        },
+      });
+      assert.equal(updateReplay.statusCode, 200);
+      assert.equal(updateReplay.json().series.version, 2);
+
       const deniedResumeActive = await app.inject({
         method: 'POST',
         url: `/v1/booking-series/${created.series.id}/resume`,
         headers,
         payload: {
-          expectedVersion: created.series.version,
+          expectedVersion: updated.series.version,
           idempotencyKey: 'booking-series-active-resume-test',
         },
       });
@@ -1493,7 +1621,7 @@ describe('p0 core routes', () => {
         headers: authHeaders(tables, unrelatedParentId, 'parent'),
         payload: {
           reason: 'Should not be allowed',
-          expectedVersion: created.series.version,
+          expectedVersion: updated.series.version,
           idempotencyKey: 'booking-series-denied-pause-test',
         },
       });
@@ -1505,7 +1633,7 @@ describe('p0 core routes', () => {
         headers,
         payload: {
           reason: 'Family holiday',
-          expectedVersion: created.series.version,
+          expectedVersion: updated.series.version,
           idempotencyKey: 'booking-series-pause-test',
         },
       });
@@ -1516,7 +1644,7 @@ describe('p0 core routes', () => {
       };
       assert.equal(paused.series.id, created.series.id);
       assert.equal(paused.series.status, 'PAUSED');
-      assert.equal(paused.series.version, 2);
+      assert.equal(paused.series.version, 3);
       assert.deepEqual(
         paused.bookings.map((booking) => booking.status),
         ['CONFIRMED', 'CONFIRMED'],
@@ -1528,7 +1656,7 @@ describe('p0 core routes', () => {
         headers,
         payload: {
           reason: 'Stale pause',
-          expectedVersion: created.series.version,
+          expectedVersion: updated.series.version,
           idempotencyKey: 'booking-series-stale-pause-test',
         },
       });
@@ -1540,7 +1668,7 @@ describe('p0 core routes', () => {
         headers,
         payload: {
           reason: 'Family holiday',
-          expectedVersion: created.series.version,
+          expectedVersion: updated.series.version,
           idempotencyKey: 'booking-series-pause-test',
         },
       });
@@ -1563,7 +1691,7 @@ describe('p0 core routes', () => {
       };
       assert.equal(resumed.series.id, created.series.id);
       assert.equal(resumed.series.status, 'ACTIVE');
-      assert.equal(resumed.series.version, 3);
+      assert.equal(resumed.series.version, 4);
       assert.deepEqual(
         resumed.bookings.map((booking) => booking.status),
         ['CONFIRMED', 'CONFIRMED'],
@@ -1610,7 +1738,7 @@ describe('p0 core routes', () => {
       };
       assert.equal(cancelled.series.id, created.series.id);
       assert.equal(cancelled.series.status, 'CANCELLED');
-      assert.equal(cancelled.series.version, 4);
+      assert.equal(cancelled.series.version, 5);
       assert.deepEqual(
         cancelled.bookings.map((booking) => booking.status),
         ['CANCELLED', 'CANCELLED'],
