@@ -65,6 +65,19 @@ export const cancelBookingSeriesRequestSchema = z.object({
   idempotencyKey: z.string().min(8).max(200).optional(),
 });
 
+export const pauseBookingSeriesRequestSchema = z.object({
+  reason: z.string().max(200).optional(),
+  note: z.string().max(1000).optional(),
+  expectedVersion: z.number().int().positive().optional(),
+  idempotencyKey: z.string().min(8).max(200).optional(),
+});
+
+export const resumeBookingSeriesRequestSchema = z.object({
+  note: z.string().max(1000).optional(),
+  expectedVersion: z.number().int().positive().optional(),
+  idempotencyKey: z.string().min(8).max(200).optional(),
+});
+
 export const reopenBookingRequestSchema = z.object({
   note: z.string().max(1000).optional(),
   expectedVersion: z.number().int().positive().optional(),
@@ -124,7 +137,7 @@ export const bookingSeriesResponseSchema = z.object({
   athleteIds: z.array(athleteIdSchema),
   frequency: bookingSeriesFrequencySchema,
   patternLabel: z.string().nullable().optional(),
-  status: z.enum(['ACTIVE', 'PARTIAL', 'COMPLETED', 'CANCELLED']),
+  status: z.enum(['ACTIVE', 'PARTIAL', 'PAUSED', 'COMPLETED', 'CANCELLED']),
   startDate: z.string().datetime(),
   endDate: z.string().datetime(),
   bookingIds: z.array(bookingIdSchema),
@@ -159,6 +172,9 @@ export const cancelBookingSeriesResponseSchema = z.object({
   bookings: z.array(bookingResponseSchema),
   requestId: z.string().min(1),
 });
+
+export const pauseBookingSeriesResponseSchema = cancelBookingSeriesResponseSchema;
+export const resumeBookingSeriesResponseSchema = cancelBookingSeriesResponseSchema;
 
 export const inviteResponseResultSchema = z.object({
   inviteId: z.string().min(1),
@@ -212,6 +228,8 @@ export type CreateBookingSeriesOccurrence = z.infer<
 export type CreateBookingSeriesRequest = z.infer<typeof createBookingSeriesRequestSchema>;
 export type CancelBookingRequest = z.infer<typeof cancelBookingRequestSchema>;
 export type CancelBookingSeriesRequest = z.infer<typeof cancelBookingSeriesRequestSchema>;
+export type PauseBookingSeriesRequest = z.infer<typeof pauseBookingSeriesRequestSchema>;
+export type ResumeBookingSeriesRequest = z.infer<typeof resumeBookingSeriesRequestSchema>;
 export type ReopenBookingRequest = z.infer<typeof reopenBookingRequestSchema>;
 export type BookingResponse = z.infer<typeof bookingResponseSchema>;
 export type BookingListResponse = z.infer<typeof bookingListResponseSchema>;
@@ -219,6 +237,8 @@ export type BookingSeriesResponse = z.infer<typeof bookingSeriesResponseSchema>;
 export type BookingSeriesListResponse = z.infer<typeof bookingSeriesListResponseSchema>;
 export type CreateBookingSeriesResponse = z.infer<typeof createBookingSeriesResponseSchema>;
 export type CancelBookingSeriesResponse = z.infer<typeof cancelBookingSeriesResponseSchema>;
+export type PauseBookingSeriesResponse = z.infer<typeof pauseBookingSeriesResponseSchema>;
+export type ResumeBookingSeriesResponse = z.infer<typeof resumeBookingSeriesResponseSchema>;
 export type InviteResponseRequest = z.infer<typeof inviteResponseRequestSchema>;
 export type InviteResponseResult = z.infer<typeof inviteResponseResultSchema>;
 export type RegisterGroupSessionRequest = z.infer<typeof registerGroupSessionRequestSchema>;

@@ -383,7 +383,7 @@ export interface EventPayloads {
   };
   [ServiceEvents.SERIES_UPDATED]: {
     seriesId: string;
-    status: 'ACTIVE' | 'PARTIAL' | 'COMPLETED' | 'CANCELLED';
+    status: 'ACTIVE' | 'PARTIAL' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
     changes: Record<string, unknown>;
   };
 

@@ -8,8 +8,10 @@ import {
   createBookingRequestSchema,
   createBookingSeriesRequestSchema,
   inviteResponseRequestSchema,
+  pauseBookingSeriesRequestSchema,
   reopenBookingRequestSchema,
   registerGroupSessionRequestSchema,
+  resumeBookingSeriesRequestSchema,
 } from '@clubroom/shared-contracts';
 import { badRequest, forbidden, notFound } from '../../lib/http-errors.js';
 import {
@@ -600,6 +602,50 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
 
     const repository = resolveBookingSeriesRepository();
     const response = await repository.cancelBookingSeries({
+      authUserId,
+      requestId: request.requestId,
+      seriesId,
+      body,
+    });
+
+    return reply.send(response);
+  });
+
+  app.post('/booking-series/:seriesId/pause', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const seriesId = bookingSeriesIdSchema.parse(
+      (request.params as { seriesId?: string } | undefined)?.seriesId,
+    );
+    const body = pauseBookingSeriesRequestSchema.parse(request.body);
+
+    const repository = resolveBookingSeriesRepository();
+    const response = await repository.pauseBookingSeries({
+      authUserId,
+      requestId: request.requestId,
+      seriesId,
+      body,
+    });
+
+    return reply.send(response);
+  });
+
+  app.post('/booking-series/:seriesId/resume', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const seriesId = bookingSeriesIdSchema.parse(
+      (request.params as { seriesId?: string } | undefined)?.seriesId,
+    );
+    const body = resumeBookingSeriesRequestSchema.parse(request.body);
+
+    const repository = resolveBookingSeriesRepository();
+    const response = await repository.resumeBookingSeries({
       authUserId,
       requestId: request.requestId,
       seriesId,

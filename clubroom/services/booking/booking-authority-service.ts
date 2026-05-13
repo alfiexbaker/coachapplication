@@ -91,7 +91,7 @@ interface ApiBookingSeries {
   athleteIds: string[];
   frequency: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'CUSTOM';
   patternLabel?: string | null;
-  status: 'ACTIVE' | 'PARTIAL' | 'COMPLETED' | 'CANCELLED';
+  status: 'ACTIVE' | 'PARTIAL' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
   startDate: string;
   endDate: string;
   bookingIds: string[];
@@ -182,7 +182,7 @@ function buildBookingSeriesIdempotencyKey(input: CreateApiBookingSeriesInput): s
 }
 
 function buildBookingLifecycleIdempotencyKey(
-  action: 'cancel' | 'reopen',
+  action: 'cancel' | 'reopen' | 'pause' | 'resume',
   bookingId: string,
   input: { reason?: string; note?: string; expectedVersion?: number },
 ): string {
@@ -417,6 +417,72 @@ class BookingAuthorityService {
 
     if (!result.success) {
       logger.error('Failed to cancel booking series via API', {
+        seriesId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+
+    return result;
+  }
+
+  async pauseBookingSeries(
+    seriesId: string,
+    input: { reason?: string; note?: string; expectedVersion?: number; idempotencyKey?: string },
+  ): Promise<Result<ApiBookingSeriesResponse, ServiceError>> {
+    const headersResult = await resolveBookingAccessHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiBookingSeriesResponse>(
+      `/v1/booking-series/${seriesId}/pause`,
+      {
+        method: 'POST',
+        headers: headersResult.data,
+        body: JSON.stringify({
+          ...input,
+          idempotencyKey:
+            input.idempotencyKey ?? buildBookingLifecycleIdempotencyKey('pause', seriesId, input),
+        }),
+      },
+    );
+
+    if (!result.success) {
+      logger.error('Failed to pause booking series via API', {
+        seriesId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+
+    return result;
+  }
+
+  async resumeBookingSeries(
+    seriesId: string,
+    input: { note?: string; expectedVersion?: number; idempotencyKey?: string },
+  ): Promise<Result<ApiBookingSeriesResponse, ServiceError>> {
+    const headersResult = await resolveBookingAccessHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiBookingSeriesResponse>(
+      `/v1/booking-series/${seriesId}/resume`,
+      {
+        method: 'POST',
+        headers: headersResult.data,
+        body: JSON.stringify({
+          ...input,
+          idempotencyKey:
+            input.idempotencyKey ?? buildBookingLifecycleIdempotencyKey('resume', seriesId, input),
+        }),
+      },
+    );
+
+    if (!result.success) {
+      logger.error('Failed to resume booking series via API', {
         seriesId,
         error: result.error,
       });

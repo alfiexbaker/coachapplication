@@ -227,7 +227,7 @@ export interface BookingSeries {
   location: string;
   sessionInviteId?: string;
   createdAt: string;
-  status: 'ACTIVE' | 'PARTIAL' | 'COMPLETED' | 'CANCELLED';
+  status: 'ACTIVE' | 'PARTIAL' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
 }
 
 export interface WeekAcceptance {

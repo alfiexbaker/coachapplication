@@ -38,7 +38,7 @@ interface ApiSeriesLike {
   bookedByUserId: string;
   athleteIds: string[];
   frequency: RecurrenceFrequency | 'CUSTOM';
-  status: 'ACTIVE' | 'PARTIAL' | 'COMPLETED' | 'CANCELLED';
+  status: 'ACTIVE' | 'PARTIAL' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
   startDate: string;
   endDate: string;
   bookingIds: string[];
@@ -56,6 +56,7 @@ function mapSeriesStatusToRecurringStatus(
   status: ApiSeriesLike['status'],
 ): RecurringBookingStatus {
   if (status === 'CANCELLED') return 'CANCELLED';
+  if (status === 'PAUSED') return 'PAUSED';
   if (status === 'COMPLETED') return 'EXPIRED';
   return 'ACTIVE';
 }
@@ -592,10 +593,24 @@ class RecurringBookingService {
     reason?: string,
   ): Promise<Result<RecurringBooking, ServiceError>> {
     try {
-      const authorityError = this.getApiModeAuthorityError('pauseRecurring');
-      if (authorityError) {
-        return err(authorityError);
+      if (!apiClient.isMockMode) {
+        const apiResult = await bookingAuthorityService.pauseBookingSeries(recurringId, {
+          reason,
+        });
+        if (!apiResult.success) {
+          return err(apiResult.error);
+        }
+
+        const updated = mapApiSeriesToRecurringBooking(apiResult.data.series);
+        logger.info('recurring_booking_paused_via_api_series', {
+          id: recurringId,
+          userId: updated.userId,
+          coachId: updated.coachId,
+          reason,
+        });
+        return ok(updated);
       }
+
       const bookings = await this.listValue();
       const index = bookings.findIndex((b) => b.id === recurringId);
 
@@ -659,10 +674,21 @@ class RecurringBookingService {
    */
   async resumeRecurring(recurringId: string): Promise<Result<RecurringBooking, ServiceError>> {
     try {
-      const authorityError = this.getApiModeAuthorityError('resumeRecurring');
-      if (authorityError) {
-        return err(authorityError);
+      if (!apiClient.isMockMode) {
+        const apiResult = await bookingAuthorityService.resumeBookingSeries(recurringId, {});
+        if (!apiResult.success) {
+          return err(apiResult.error);
+        }
+
+        const updated = mapApiSeriesToRecurringBooking(apiResult.data.series);
+        logger.info('recurring_booking_resumed_via_api_series', {
+          id: recurringId,
+          userId: updated.userId,
+          coachId: updated.coachId,
+        });
+        return ok(updated);
       }
+
       const bookings = await this.listValue();
       const index = bookings.findIndex((b) => b.id === recurringId);
 

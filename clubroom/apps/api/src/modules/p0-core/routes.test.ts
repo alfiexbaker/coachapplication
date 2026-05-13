@@ -1476,13 +1476,118 @@ describe('p0 core routes', () => {
         2,
       );
 
+      const deniedResumeActive = await app.inject({
+        method: 'POST',
+        url: `/v1/booking-series/${created.series.id}/resume`,
+        headers,
+        payload: {
+          expectedVersion: created.series.version,
+          idempotencyKey: 'booking-series-active-resume-test',
+        },
+      });
+      assert.equal(deniedResumeActive.statusCode, 409);
+
+      const deniedPause = await app.inject({
+        method: 'POST',
+        url: `/v1/booking-series/${created.series.id}/pause`,
+        headers: authHeaders(tables, unrelatedParentId, 'parent'),
+        payload: {
+          reason: 'Should not be allowed',
+          expectedVersion: created.series.version,
+          idempotencyKey: 'booking-series-denied-pause-test',
+        },
+      });
+      assert.equal(deniedPause.statusCode, 403);
+
+      const pausedRes = await app.inject({
+        method: 'POST',
+        url: `/v1/booking-series/${created.series.id}/pause`,
+        headers,
+        payload: {
+          reason: 'Family holiday',
+          expectedVersion: created.series.version,
+          idempotencyKey: 'booking-series-pause-test',
+        },
+      });
+      assert.equal(pausedRes.statusCode, 200);
+      const paused = pausedRes.json() as {
+        series: { id: string; status: string; version: number };
+        bookings: { status: string }[];
+      };
+      assert.equal(paused.series.id, created.series.id);
+      assert.equal(paused.series.status, 'PAUSED');
+      assert.equal(paused.series.version, 2);
+      assert.deepEqual(
+        paused.bookings.map((booking) => booking.status),
+        ['CONFIRMED', 'CONFIRMED'],
+      );
+
+      const stalePause = await app.inject({
+        method: 'POST',
+        url: `/v1/booking-series/${created.series.id}/pause`,
+        headers,
+        payload: {
+          reason: 'Stale pause',
+          expectedVersion: created.series.version,
+          idempotencyKey: 'booking-series-stale-pause-test',
+        },
+      });
+      assert.equal(stalePause.statusCode, 409);
+
+      const pauseReplay = await app.inject({
+        method: 'POST',
+        url: `/v1/booking-series/${created.series.id}/pause`,
+        headers,
+        payload: {
+          reason: 'Family holiday',
+          expectedVersion: created.series.version,
+          idempotencyKey: 'booking-series-pause-test',
+        },
+      });
+      assert.equal(pauseReplay.statusCode, 200);
+      assert.equal(pauseReplay.json().series.status, 'PAUSED');
+
+      const resumedRes = await app.inject({
+        method: 'POST',
+        url: `/v1/booking-series/${created.series.id}/resume`,
+        headers,
+        payload: {
+          expectedVersion: paused.series.version,
+          idempotencyKey: 'booking-series-resume-test',
+        },
+      });
+      assert.equal(resumedRes.statusCode, 200);
+      const resumed = resumedRes.json() as {
+        series: { id: string; status: string; version: number };
+        bookings: { status: string }[];
+      };
+      assert.equal(resumed.series.id, created.series.id);
+      assert.equal(resumed.series.status, 'ACTIVE');
+      assert.equal(resumed.series.version, 3);
+      assert.deepEqual(
+        resumed.bookings.map((booking) => booking.status),
+        ['CONFIRMED', 'CONFIRMED'],
+      );
+
+      const resumeReplay = await app.inject({
+        method: 'POST',
+        url: `/v1/booking-series/${created.series.id}/resume`,
+        headers,
+        payload: {
+          expectedVersion: paused.series.version,
+          idempotencyKey: 'booking-series-resume-test',
+        },
+      });
+      assert.equal(resumeReplay.statusCode, 200);
+      assert.equal(resumeReplay.json().series.status, 'ACTIVE');
+
       const deniedCancel = await app.inject({
         method: 'POST',
         url: `/v1/booking-series/${created.series.id}/cancel`,
         headers: authHeaders(tables, unrelatedParentId, 'parent'),
         payload: {
           reason: 'Should not be allowed',
-          expectedVersion: created.series.version,
+          expectedVersion: resumed.series.version,
           idempotencyKey: 'booking-series-denied-cancel-test',
         },
       });
@@ -1494,7 +1599,7 @@ describe('p0 core routes', () => {
         headers,
         payload: {
           reason: 'Parent cancelled package',
-          expectedVersion: created.series.version,
+          expectedVersion: resumed.series.version,
           idempotencyKey: 'booking-series-cancel-test',
         },
       });
@@ -1505,7 +1610,7 @@ describe('p0 core routes', () => {
       };
       assert.equal(cancelled.series.id, created.series.id);
       assert.equal(cancelled.series.status, 'CANCELLED');
-      assert.equal(cancelled.series.version, 2);
+      assert.equal(cancelled.series.version, 4);
       assert.deepEqual(
         cancelled.bookings.map((booking) => booking.status),
         ['CANCELLED', 'CANCELLED'],
@@ -1517,7 +1622,7 @@ describe('p0 core routes', () => {
         headers,
         payload: {
           reason: 'Stale update',
-          expectedVersion: created.series.version,
+          expectedVersion: resumed.series.version,
           idempotencyKey: 'booking-series-stale-cancel-test',
         },
       });
@@ -1529,7 +1634,7 @@ describe('p0 core routes', () => {
         headers,
         payload: {
           reason: 'Parent cancelled package',
-          expectedVersion: created.series.version,
+          expectedVersion: resumed.series.version,
           idempotencyKey: 'booking-series-cancel-test',
         },
       });
