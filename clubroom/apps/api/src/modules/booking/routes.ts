@@ -17,7 +17,6 @@ import {
 } from '@clubroom/shared-contracts';
 import { badRequest, forbidden, notFound } from '../../lib/http-errors.js';
 import {
-  createBookingInSeedTables,
   resolveCreateBookingIdempotency,
   resolveBookingRepository,
   type SeedTables,
@@ -30,7 +29,10 @@ import {
 } from '../../repositories/p0/booking-series-repository.js';
 import { resolveGroupSessionRepository } from '../../repositories/p0/group-session-repository.js';
 import { isPrivilegedAdminAuth } from '../../lib/authz.js';
+import { getApiDataBackend } from '../../lib/data-backend.js';
+import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
+import { shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
 import {
   assertCoachAvailabilitySlotOpen,
   resolveCoachAvailabilityTables,
@@ -53,6 +55,13 @@ const asObject = (value: unknown): SeedRow | undefined =>
 const isoNow = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 const bookingSeriesIdSchema = z.string().regex(/^rec_[A-Za-z0-9-]+$/);
+
+function getInviteRuntimeStore(): { version: string | null; tables: SeedTables } {
+  if (getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()) {
+    return getDbFixtureStore();
+  }
+  return getMarketplaceSeedStore();
+}
 
 const eventRsvpRequestSchema = z.object({
   status: z.enum(['GOING', 'MAYBE', 'NOT_GOING']),
@@ -1038,7 +1047,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
-    const store = getMarketplaceSeedStore();
+    const store = getInviteRuntimeStore();
     const invites = asRows(store.tables.invites);
     const targets = asRows(store.tables.inviteTargets);
 
@@ -1214,7 +1223,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('coachUserId must match authenticated user');
     }
 
-    const store = getMarketplaceSeedStore();
+    const store = getInviteRuntimeStore();
     const groupSessionRepository = resolveGroupSessionRepository();
     const users = asRows(store.tables.users);
     const coachExists = users.some((row) => asString(row.id) === body.coachUserId);
@@ -1353,7 +1362,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       throw notFound('Invite id is required');
     }
 
-    const store = getMarketplaceSeedStore();
+    const store = getInviteRuntimeStore();
     const invites = asRows(store.tables.invites);
     const targets = asRows(store.tables.inviteTargets);
     const invite = invites.find((row) => asString(row.id) === inviteId);
@@ -1390,7 +1399,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       throw notFound('Invite id is required');
     }
 
-    const store = getMarketplaceSeedStore();
+    const store = getInviteRuntimeStore();
     const invites = asRows(store.tables.invites);
     const targets = asRows(store.tables.inviteTargets);
     const invite = invites.find((row) => asString(row.id) === inviteId);
@@ -1432,7 +1441,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       throw notFound('Invite id is required');
     }
 
-    const store = getMarketplaceSeedStore();
+    const store = getInviteRuntimeStore();
     const invites = asRows(store.tables.invites);
     const invite = invites.find((row) => asString(row.id) === inviteId);
     if (!invite) {
@@ -1471,7 +1480,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       throw notFound('Invite id is required');
     }
 
-    const store = getMarketplaceSeedStore();
+    const store = getInviteRuntimeStore();
     const invite = asRows(store.tables.invites).find((row) => asString(row.id) === inviteId);
     if (!invite) {
       throw notFound('Invite not found', { inviteId });
@@ -1510,7 +1519,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
     const body = inviteResponseRequestSchema.parse(request.body);
 
-    const store = getMarketplaceSeedStore();
+    const store = getInviteRuntimeStore();
     const invites = asRows(store.tables.invites);
     const targets = asRows(store.tables.inviteTargets);
     const invite = invites.find((row) => asString(row.id) === inviteId);
@@ -1600,8 +1609,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
           durationMinutes,
           applySchedulingRules: true,
         });
-        booking = createBookingInSeedTables({
-          tables: store.tables,
+        booking = await resolveBookingRepository().createBooking({
           authUserId,
           requestId: request.requestId,
           body: createBookingRequestSchema.parse({
@@ -1616,6 +1624,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
             notes: asString(metadata?.notes) ?? null,
             priceMinor: asNumber(metadata?.priceMinor) ?? 0,
             currency: asString(metadata?.currency) ?? 'GBP',
+            idempotencyKey: `invite-accept-${inviteId}-${authUserId}`,
           }),
           bookingRowOverrides: {
             clubId: asString(invite.clubId) ?? null,

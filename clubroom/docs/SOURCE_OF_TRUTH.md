@@ -1,6 +1,6 @@
 # Clubroom - Single Source of Truth
 
-Last updated: 2026-05-10
+Last updated: 2026-05-13
 Project: operating system for paid football development
 Status: live-featured Expo app with a real Fastify API alongside it; backend cutover is still in progress, and runtime `/v1` auth is now JWT-backed
 
@@ -104,7 +104,7 @@ Feed is a centrepiece when it is operational: staff top-level posts only, parent
   - `community-group-service.ts`, `community-messaging-service.ts`, `messaging-service.ts`, and the root notification services now read from the db-aware `/v1` community/media routes in non-mock mode; local storage in those domains is now only a compatibility overlay for unsupported writes, not the authority path
   - `video-service.ts` now uses `/v1/uploads/init` plus `/v1/videos*` for non-mock list/detail/create/share/delete/annotation flows; the upload screen is private-by-default and no longer shows fake progress or dead visibility controls
   - session-invite create/list/detail/respond/cancel/remind/dismiss now use `/v1/invites*` in non-mock mode through `services/invite/session-invite-authority-service.ts`
-  - direct invite acceptance now creates bookings through the `/v1` invite path instead of falling back to removed legacy `/api/session-invites/*` behavior
+  - direct invite acceptance now creates bookings through the backend booking repository in `db` mode, with idempotent replay, instead of creating local or marketplace-seed booking state
   - `/v1/bookings` create, `/v1/invites` create, and direct-invite accept now validate chosen slots against the same backend availability resolver instead of trusting client-side slot math
   - booking changes are intentionally `cancel` or `reopen`; the old counter-offer and invite counter workflow has been removed from the runtime product surface
   - coach scheduling rules no longer advertise a separate reschedule policy; bookings now change by cancellation and rebooking/reopening instead of negotiation

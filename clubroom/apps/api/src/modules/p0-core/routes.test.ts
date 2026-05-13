@@ -2568,6 +2568,110 @@ describe('p0 core routes', () => {
     assert.equal(cancelledDetailPayload.invite.status, 'EXPIRED');
   });
 
+  it('accepts direct session invites through db booking authority in API mode', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+
+    try {
+      const tables = loadTables();
+      const coachProfile = asRows(tables.coachProfiles)[0];
+      assert.ok(coachProfile, 'expected seeded coach profile');
+      const coachUserId = asString(coachProfile.userId) as string;
+      const guardianLink = asRows(tables.guardianChildLinks).find(
+        (row) => asString(row.guardianUserId) && asString(row.guardianUserId) !== coachUserId,
+      );
+      assert.ok(guardianLink, 'expected guardian-child link');
+      const parentUserId = asString(guardianLink?.guardianUserId) as string;
+      const athleteId = asString(guardianLink?.athleteId) as string;
+      const acceptedSlot = await getFirstAvailableSlot({
+        app,
+        tables,
+        authUserId: coachUserId,
+        coachUserId,
+        excludePendingInvites: true,
+      });
+      const marketplaceStore = getMarketplaceSeedStore();
+      const marketplaceBookingCountBefore = asRows(marketplaceStore.tables.bookings).length;
+      const fixtureStore = getDbFixtureStore();
+      const dbBookingCountBefore = asRows(fixtureStore.tables.bookings).length;
+
+      env.API_DATA_BACKEND = 'db';
+      const created = await app.inject({
+        method: 'POST',
+        url: '/v1/invites',
+        headers: authHeaders(tables, coachUserId, 'coach'),
+        payload: {
+          coachUserId,
+          athleteIds: [athleteId],
+          parentUserId,
+          proposedSlots: [acceptedSlot],
+          sessionType: '1:1 Coaching',
+          focus: 'DB invite authority',
+          notes: 'DB invite authority session',
+          inviteType: 'CLOSED',
+          priceMinor: 3500,
+          durationMinutes: 60,
+        },
+      });
+      assert.equal(created.statusCode, 201);
+      const createdPayload = created.json() as { invite: { id: string } };
+
+      const accepted = await app.inject({
+        method: 'POST',
+        url: `/v1/invites/${createdPayload.invite.id}/respond`,
+        headers: authHeaders(tables, parentUserId, 'parent'),
+        payload: {
+          response: 'ACCEPTED',
+          selectedSlot: acceptedSlot,
+        },
+      });
+      assert.equal(accepted.statusCode, 200, accepted.body);
+      const acceptedPayload = accepted.json() as {
+        invite: { id: string; status: string; bookingId?: string | null };
+        bookingId?: string | null;
+        booking?: { id: string; coachUserId: string; bookedByUserId?: string } | null;
+      };
+      assert.equal(acceptedPayload.invite.id, createdPayload.invite.id);
+      assert.equal(acceptedPayload.invite.status, 'ACCEPTED');
+      assert.match(acceptedPayload.bookingId ?? '', /^bok_/);
+      assert.equal(acceptedPayload.bookingId, acceptedPayload.booking?.id ?? acceptedPayload.bookingId);
+      assert.equal(acceptedPayload.booking?.coachUserId, coachUserId);
+      assert.equal(acceptedPayload.booking?.bookedByUserId, parentUserId);
+      assert.equal(asRows(marketplaceStore.tables.bookings).length, marketplaceBookingCountBefore);
+      assert.equal(asRows(fixtureStore.tables.bookings).length, dbBookingCountBefore + 1);
+      assert.equal(
+        asRows(fixtureStore.tables.bookings).some(
+          (row) => asString(row.id) === acceptedPayload.bookingId,
+        ),
+        true,
+      );
+
+      const detail = await app.inject({
+        method: 'GET',
+        url: `/v1/bookings/${acceptedPayload.bookingId}`,
+        headers: authHeaders(tables, parentUserId, 'parent'),
+      });
+      assert.equal(detail.statusCode, 200);
+      assert.equal(detail.json().id, acceptedPayload.bookingId);
+
+      const replay = await app.inject({
+        method: 'POST',
+        url: `/v1/invites/${createdPayload.invite.id}/respond`,
+        headers: authHeaders(tables, parentUserId, 'parent'),
+        payload: {
+          response: 'ACCEPTED',
+          selectedSlot: acceptedSlot,
+        },
+      });
+      assert.equal(replay.statusCode, 200);
+      assert.equal(replay.json().bookingId, acceptedPayload.bookingId);
+      assert.equal(asRows(fixtureStore.tables.bookings).length, dbBookingCountBefore + 1);
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetMarketplaceSeedStoreForTests();
+      resetDbFixtureStoreForTests();
+    }
+  });
+
   it('rejects a direct session invite that reuses a still-held pending slot', async () => {
     const tables = loadTables();
     const coachProfile = asRows(tables.coachProfiles)[0];

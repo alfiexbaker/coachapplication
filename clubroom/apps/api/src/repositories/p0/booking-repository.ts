@@ -52,6 +52,9 @@ export interface CreateBookingParams {
   authUserId: string;
   requestId: string;
   body: CreateBookingRequest;
+  bookingRowOverrides?: {
+    clubId?: string | null;
+  };
 }
 
 export interface GetBookingParams {
@@ -721,6 +724,7 @@ class SeedBookingRepository implements BookingRepository {
       authUserId: params.authUserId,
       requestId: params.requestId,
       body: params.body,
+      bookingRowOverrides: params.bookingRowOverrides,
     });
   }
 
@@ -1277,6 +1281,7 @@ class DbBookingRepository implements BookingRepository {
         authUserId: params.authUserId,
         requestId: params.requestId,
         body: params.body,
+        bookingRowOverrides: params.bookingRowOverrides,
       });
     }
 
@@ -1379,6 +1384,7 @@ class DbBookingRepository implements BookingRepository {
             id: bookingId,
             coachUserId: body.coachUserId,
             bookedByUserId: body.bookedByUserId,
+            clubId: params.bookingRowOverrides?.clubId ?? null,
             status: 'CONFIRMED',
             scheduledAt: new Date(body.scheduledAt),
             durationMinutes: body.durationMinutes,
