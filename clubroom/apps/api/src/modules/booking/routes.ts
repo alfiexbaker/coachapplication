@@ -34,6 +34,10 @@ import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
 import {
+  generateInvoiceForBooking,
+  getBookingInvoiceContext,
+} from '../../lib/invoice-runtime.js';
+import {
   assertCoachAvailabilitySlotOpen,
   resolveCoachAvailabilityTables,
   slotToScheduledAt,
@@ -55,6 +59,25 @@ const asObject = (value: unknown): SeedRow | undefined =>
 const isoNow = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 const bookingSeriesIdSchema = z.string().regex(/^rec_[A-Za-z0-9-]+$/);
+
+async function generateRegistrationInvoiceIfBillable(params: {
+  bookingId?: string | null;
+  actorUserId: string;
+}): Promise<SeedRow | null> {
+  if (!params.bookingId) {
+    return null;
+  }
+  const context = await getBookingInvoiceContext(params.bookingId);
+  if (!context || context.totalMinor <= 0) {
+    return null;
+  }
+  const generated = await generateInvoiceForBooking({
+    bookingId: params.bookingId,
+    actorUserId: params.actorUserId,
+    notes: 'Generated from group session registration.',
+  });
+  return generated.invoice;
+}
 
 function getInviteRuntimeStore(): { version: string | null; tables: SeedTables } {
   if (getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()) {
@@ -900,6 +923,10 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       bookedByUserId: body.parentUserId ?? authUserId,
       note: 'Registered via /v1/group-sessions/:sessionId/register',
     });
+    const invoice = await generateRegistrationInvoiceIfBillable({
+      bookingId: result.booking?.id,
+      actorUserId: authUserId,
+    });
 
     return reply.send({
       registration: {
@@ -913,6 +940,15 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         notes: result.registration.notes ?? null,
       },
       booking: result.booking,
+      invoice: invoice
+        ? {
+            id: asString(invoice.id) ?? '',
+            bookingId: asString(invoice.bookingId) ?? null,
+            status: asString(invoice.status) ?? 'SENT',
+            totalMinor: asNumber(invoice.totalMinor) ?? null,
+            currency: asString(invoice.currency) ?? 'GBP',
+          }
+        : null,
       sessionStatus: result.sessionStatus,
       seedVersion: result.dataVersion,
       requestId: request.requestId,

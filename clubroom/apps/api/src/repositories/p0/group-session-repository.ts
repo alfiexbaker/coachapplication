@@ -998,7 +998,7 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
       athleteId: params.athleteId,
       parentUserId: params.bookedByUserId,
       status,
-      paidAt: isFull ? null : now,
+      paidAt: null,
       notes: params.note,
       createdByUserId: params.authUserId,
       updatedByUserId: params.authUserId,
@@ -1124,7 +1124,7 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
         )[0];
       if (promoted) {
         promoted.status = 'REGISTERED';
-        promoted.paidAt = now;
+        promoted.paidAt = null;
         promoted.updatedAt = now;
         promoted.updatedByUserId = params.authUserId;
         promoted.version = (asNumber(promoted.version) ?? 1) + 1;
@@ -1713,7 +1713,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
           athleteId: params.athleteId,
           parentUserId: params.bookedByUserId,
           status: isFull ? 'WAITLISTED' : 'REGISTERED',
-          paidAt: isFull ? null : now,
+          paidAt: null,
           notes: params.note,
           createdByUserId: params.authUserId,
           updatedByUserId: params.authUserId,
@@ -1981,7 +1981,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
             where: { id: promoted.id },
             data: {
               status: 'REGISTERED',
-              paidAt: now,
+              paidAt: null,
               updatedByUserId: params.authUserId,
               version: { increment: 1 },
             },

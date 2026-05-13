@@ -338,6 +338,45 @@ function resolveMutableTables(): { tables: SeedTables; version: string } | null 
   return null;
 }
 
+function markMutableGroupSessionRegistrationPaid(params: {
+  tables: SeedTables;
+  invoice: SeedRow;
+  paidAt: string;
+  actorUserId: string;
+}): void {
+  const bookingId = asString(params.invoice.bookingId);
+  if (!bookingId) {
+    return;
+  }
+  const booking = getActiveRows(getMutableRows(params.tables, 'bookings')).find(
+    (row) => asString(row.id) === bookingId,
+  );
+  const groupSessionId = asString(booking?.groupSessionId);
+  if (!booking || !groupSessionId) {
+    return;
+  }
+  const participant = getActiveRows(getMutableRows(params.tables, 'bookingParticipants')).find(
+    (row) => asString(row.bookingId) === bookingId,
+  );
+  const athleteId = asString(participant?.athleteId);
+  if (!athleteId) {
+    return;
+  }
+  const registration = getActiveRows(getMutableRows(params.tables, 'groupSessionRegistrations')).find(
+    (row) =>
+      asString(row.groupSessionId) === groupSessionId &&
+      asString(row.athleteId) === athleteId &&
+      asString(row.status)?.toUpperCase() !== 'CANCELLED',
+  );
+  if (!registration) {
+    return;
+  }
+  registration.paidAt = params.paidAt;
+  registration.updatedAt = params.paidAt;
+  registration.updatedByUserId = params.actorUserId;
+  registration.version = (asNumber(registration.version) ?? 1) + 1;
+}
+
 function coerceMetadata(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return {};
@@ -2677,6 +2716,12 @@ export async function completeSimulatedInvoicePayment(
           updatedAt: now,
         });
       }
+      markMutableGroupSessionRegistrationPaid({
+        tables: mutable.tables,
+        invoice,
+        paidAt: now,
+        actorUserId: asString(attempt.actorUserId) ?? 'system',
+      });
     }
 
     return { invoice, attempt, alreadyCompleted };
@@ -2801,6 +2846,37 @@ export async function completeSimulatedInvoicePayment(
           updatedByUserId: attempt.actorUserId,
         },
       });
+    }
+    if (attempt.invoice.bookingId) {
+      const paidBooking = await prisma.booking.findFirst({
+        where: { id: attempt.invoice.bookingId, deletedAt: null },
+        select: {
+          groupSessionId: true,
+          participants: {
+            where: { deletedAt: null },
+            select: { athleteId: true },
+            take: 1,
+          },
+        },
+      });
+      const athleteId = paidBooking?.participants[0]?.athleteId;
+      if (paidBooking?.groupSessionId && athleteId) {
+        await prisma.groupSessionRegistration.updateMany({
+          where: {
+            groupSessionId: paidBooking.groupSessionId,
+            athleteId,
+            deletedAt: null,
+            status: { not: 'CANCELLED' },
+          },
+          data: {
+            paidAt: now,
+            updatedByUserId: attempt.actorUserId,
+            version: {
+              increment: 1,
+            },
+          },
+        });
+      }
     }
   }
 

@@ -244,6 +244,16 @@ export const groupSessionRegistrationResponseSchema = z.object({
 export const registerGroupSessionResponseSchema = z.object({
   registration: groupSessionRegistrationResponseSchema,
   booking: bookingResponseSchema.nullable().optional(),
+  invoice: z
+    .object({
+      id: z.string().min(1),
+      bookingId: bookingIdSchema.nullable().optional(),
+      status: z.string().min(1),
+      totalMinor: z.number().int().nonnegative().nullable().optional(),
+      currency: z.literal('GBP').optional(),
+    })
+    .nullable()
+    .optional(),
   sessionStatus: z.string().min(1),
   requestId: z.string(),
 });

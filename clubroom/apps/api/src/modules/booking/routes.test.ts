@@ -11,6 +11,8 @@ type SeedTables = Record<string, SeedRow[]>;
 
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
+const tokenFromHostedUrl = (value: string): string =>
+  new URL(value, 'https://clubroom.test').searchParams.get('token') ?? '';
 
 function isoDaysFromNow(days: number, hour: number, durationMinutes = 60): {
   startsAt: string;
@@ -144,7 +146,7 @@ function createRegistrationRow(params: {
     athleteId: params.athleteId,
     parentUserId: params.parentUserId,
     status: params.status,
-    paidAt: params.status === 'REGISTERED' ? params.registeredAt : null,
+    paidAt: null,
     notes: params.note ?? null,
     createdByUserId: params.parentUserId,
     updatedByUserId: params.parentUserId,
@@ -247,13 +249,51 @@ describe('booking group-session routes', () => {
     });
     assert.equal(registered.statusCode, 200);
     const registeredPayload = registered.json() as {
-      registration: { id: string; athleteId: string; parentUserId: string; status: string };
+      registration: {
+        id: string;
+        athleteId: string;
+        parentUserId: string;
+        status: string;
+        paidAt?: string | null;
+      };
       booking: { id: string; status: string } | null;
+      invoice: { id: string; bookingId: string | null; status: string; totalMinor: number | null } | null;
     };
     assert.equal(registeredPayload.registration.athleteId, guardianSelection.athleteId);
     assert.equal(registeredPayload.registration.parentUserId, guardianSelection.guardianUserId);
     assert.equal(registeredPayload.registration.status, 'REGISTERED');
+    assert.equal(registeredPayload.registration.paidAt ?? null, null);
     assert.equal(registeredPayload.booking?.status, 'CONFIRMED');
+    assert.equal(registeredPayload.invoice?.bookingId, registeredPayload.booking?.id);
+    assert.equal(registeredPayload.invoice?.status, 'SENT');
+    assert.equal(registeredPayload.invoice?.totalMinor, 2500);
+
+    const paymentSession = await app.inject({
+      method: 'POST',
+      url: `/v1/invoices/${registeredPayload.invoice?.id}/payments`,
+      headers: authHeaders(store.tables, guardianSelection.guardianUserId, 'parent'),
+      payload: {
+        method: 'card',
+        idempotencyKey: 'group-session-registration-payment',
+      },
+    });
+    assert.equal(paymentSession.statusCode, 201);
+    const paymentPayload = paymentSession.json() as {
+      paymentSession: { attemptId: string; nextAction: { url?: string } };
+    };
+    const token = tokenFromHostedUrl(paymentPayload.paymentSession.nextAction.url ?? '');
+    assert.equal(Boolean(token), true);
+
+    const completed = await app.inject({
+      method: 'POST',
+      url: `/v1/payment-attempts/${paymentPayload.paymentSession.attemptId}/simulated-complete`,
+      payload: { token },
+    });
+    assert.equal(completed.statusCode, 200);
+    const storedRegistration = ensureTable(store.tables, 'groupSessionRegistrations').find(
+      (row) => asString(row.id) === registeredPayload.registration.id,
+    );
+    assert.equal(Boolean(asString(storedRegistration?.paidAt)), true);
 
     const roster = await app.inject({
       method: 'GET',
@@ -337,7 +377,7 @@ describe('booking group-session routes', () => {
     const cancelledRegistration = registrations.find((row) => asString(row.id) === 'gsr_route_registered');
     assert.equal(asString(cancelledRegistration?.status), 'CANCELLED');
     assert.equal(asString(promoted?.status), 'REGISTERED');
-    assert.equal(asString(promoted?.paidAt) != null, true);
+    assert.equal(asString(promoted?.paidAt) ?? null, null);
     assert.equal(sessionRow?.currentParticipants, 1);
     assert.equal(sessionRow?.waitlistCount, 0);
   });
