@@ -320,6 +320,192 @@ describe('booking group-session routes', () => {
     assert.deepEqual(attendancePayload.registration.attendedDates, [slot.date]);
   });
 
+  it('voids open group registration invoices and payment attempts on cancellation', async () => {
+    const store = getMarketplaceSeedStore();
+    const coachUserId = getSeededCoachUserId(store.tables);
+    const guardianSelection = getGuardianSelections(store.tables)[0];
+    assert.ok(guardianSelection, 'expected guardian-child link');
+
+    const slot = isoDaysFromNow(10, 17, 60);
+    const sessionId = 'gse_route_cancel_voids_invoice';
+    ensureTable(store.tables, 'groupSessions').push(
+      createSessionRow({
+        id: sessionId,
+        coachUserId,
+        title: 'Cancellation Invoice Flow',
+        startsAt: slot.startsAt,
+        endsAt: slot.endsAt,
+        maxParticipants: 8,
+      }),
+    );
+
+    const registered = await app.inject({
+      method: 'POST',
+      url: `/v1/group-sessions/${sessionId}/register`,
+      headers: authHeaders(store.tables, guardianSelection.guardianUserId, 'parent'),
+      payload: {
+        athleteId: guardianSelection.athleteId,
+        parentUserId: guardianSelection.guardianUserId,
+      },
+    });
+    assert.equal(registered.statusCode, 200);
+    const registeredPayload = registered.json() as {
+      registration: { id: string; status: string; paidAt?: string | null };
+      booking: { id: string; status: string } | null;
+      invoice: { id: string; bookingId: string | null; status: string } | null;
+    };
+    assert.equal(registeredPayload.registration.status, 'REGISTERED');
+    assert.equal(registeredPayload.registration.paidAt ?? null, null);
+    assert.equal(registeredPayload.invoice?.bookingId, registeredPayload.booking?.id);
+    assert.equal(registeredPayload.invoice?.status, 'SENT');
+
+    const paymentSession = await app.inject({
+      method: 'POST',
+      url: `/v1/invoices/${registeredPayload.invoice?.id}/payments`,
+      headers: authHeaders(store.tables, guardianSelection.guardianUserId, 'parent'),
+      payload: {
+        method: 'card',
+        idempotencyKey: 'group-registration-cancel-open-payment',
+      },
+    });
+    assert.equal(paymentSession.statusCode, 201);
+    const paymentPayload = paymentSession.json() as {
+      paymentSession: { attemptId: string };
+    };
+
+    const cancelled = await app.inject({
+      method: 'DELETE',
+      url: `/v1/group-session-registrations/${registeredPayload.registration.id}`,
+      headers: authHeaders(store.tables, guardianSelection.guardianUserId, 'parent'),
+    });
+    assert.equal(cancelled.statusCode, 204);
+
+    const registration = ensureTable(store.tables, 'groupSessionRegistrations').find(
+      (row) => asString(row.id) === registeredPayload.registration.id,
+    );
+    const invoice = ensureTable(store.tables, 'invoices').find(
+      (row) => asString(row.id) === registeredPayload.invoice?.id,
+    );
+    const attempt = ensureTable(store.tables, 'paymentAttempts').find(
+      (row) => asString(row.id) === paymentPayload.paymentSession.attemptId,
+    );
+    const booking = ensureTable(store.tables, 'bookings').find(
+      (row) => asString(row.id) === registeredPayload.booking?.id,
+    );
+
+    assert.equal(asString(registration?.status), 'CANCELLED');
+    assert.equal(asString(booking?.status), 'CANCELLED');
+    assert.equal(asString(invoice?.status), 'VOID');
+    assert.equal(asString(invoice?.voidReason), 'Group session registration cancelled.');
+    assert.equal(asString(attempt?.status), 'CANCELED');
+  });
+
+  it('requires refund authority before cancelling paid group registrations', async () => {
+    const store = getMarketplaceSeedStore();
+    const coachUserId = getSeededCoachUserId(store.tables);
+    const guardianSelection = getGuardianSelections(store.tables)[0];
+    assert.ok(guardianSelection, 'expected guardian-child link');
+
+    const slot = isoDaysFromNow(11, 17, 60);
+    const sessionId = 'gse_route_paid_cancel_refund';
+    ensureTable(store.tables, 'groupSessions').push(
+      createSessionRow({
+        id: sessionId,
+        coachUserId,
+        title: 'Paid Cancellation Refund Flow',
+        startsAt: slot.startsAt,
+        endsAt: slot.endsAt,
+        maxParticipants: 8,
+      }),
+    );
+
+    const registered = await app.inject({
+      method: 'POST',
+      url: `/v1/group-sessions/${sessionId}/register`,
+      headers: authHeaders(store.tables, guardianSelection.guardianUserId, 'parent'),
+      payload: {
+        athleteId: guardianSelection.athleteId,
+        parentUserId: guardianSelection.guardianUserId,
+      },
+    });
+    assert.equal(registered.statusCode, 200);
+    const registeredPayload = registered.json() as {
+      registration: { id: string; paidAt?: string | null };
+      booking: { id: string } | null;
+      invoice: { id: string; status: string } | null;
+    };
+    assert.equal(registeredPayload.registration.paidAt ?? null, null);
+
+    const paymentSession = await app.inject({
+      method: 'POST',
+      url: `/v1/invoices/${registeredPayload.invoice?.id}/payments`,
+      headers: authHeaders(store.tables, guardianSelection.guardianUserId, 'parent'),
+      payload: {
+        method: 'card',
+        idempotencyKey: 'group-registration-paid-cancel-payment',
+      },
+    });
+    assert.equal(paymentSession.statusCode, 201);
+    const paymentPayload = paymentSession.json() as {
+      paymentSession: { attemptId: string; nextAction: { url?: string } };
+    };
+    const token = tokenFromHostedUrl(paymentPayload.paymentSession.nextAction.url ?? '');
+    assert.equal(Boolean(token), true);
+
+    const completed = await app.inject({
+      method: 'POST',
+      url: `/v1/payment-attempts/${paymentPayload.paymentSession.attemptId}/simulated-complete`,
+      payload: { token },
+    });
+    assert.equal(completed.statusCode, 200);
+    const paidRegistration = ensureTable(store.tables, 'groupSessionRegistrations').find(
+      (row) => asString(row.id) === registeredPayload.registration.id,
+    );
+    assert.equal(Boolean(asString(paidRegistration?.paidAt)), true);
+
+    const denied = await app.inject({
+      method: 'DELETE',
+      url: `/v1/group-session-registrations/${registeredPayload.registration.id}`,
+      headers: authHeaders(store.tables, guardianSelection.guardianUserId, 'parent'),
+    });
+    assert.equal(denied.statusCode, 400);
+    assert.match(denied.body, /refund workflow before cancellation/i);
+    assert.equal(asString(paidRegistration?.status), 'REGISTERED');
+
+    const refunded = await app.inject({
+      method: 'POST',
+      url: `/v1/invoices/${registeredPayload.invoice?.id}/refunds`,
+      headers: authHeaders(store.tables, coachUserId, 'coach'),
+      payload: {
+        reason: 'Coach approved group session refund',
+        verificationCode: '000000',
+        idempotencyKey: 'group-registration-refund-approved',
+      },
+    });
+    assert.equal(refunded.statusCode, 201);
+
+    const cancelled = await app.inject({
+      method: 'DELETE',
+      url: `/v1/group-session-registrations/${registeredPayload.registration.id}`,
+      headers: authHeaders(store.tables, guardianSelection.guardianUserId, 'parent'),
+    });
+    assert.equal(cancelled.statusCode, 204);
+
+    const finalRegistration = ensureTable(store.tables, 'groupSessionRegistrations').find(
+      (row) => asString(row.id) === registeredPayload.registration.id,
+    );
+    const finalBooking = ensureTable(store.tables, 'bookings').find(
+      (row) => asString(row.id) === registeredPayload.booking?.id,
+    );
+    const finalInvoice = ensureTable(store.tables, 'invoices').find(
+      (row) => asString(row.id) === registeredPayload.invoice?.id,
+    );
+    assert.equal(asString(finalRegistration?.status), 'CANCELLED');
+    assert.equal(asString(finalBooking?.status), 'CANCELLED');
+    assert.equal(asString(finalInvoice?.status), 'VOID');
+    assert.equal(asString(finalInvoice?.voidReason), 'Coach approved group session refund');
+  });
+
   it('cancels a registered athlete and promotes the earliest waitlisted athlete', async () => {
     const store = getMarketplaceSeedStore();
     const coachUserId = getSeededCoachUserId(store.tables);

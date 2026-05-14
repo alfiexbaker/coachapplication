@@ -2,6 +2,10 @@ import crypto from 'node:crypto';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { badRequest, forbidden, notFound } from '../../lib/http-errors.js';
+import {
+  applyBookingCancellationInvoiceEffects,
+  applyBookingCancellationInvoiceEffectsInDbTransaction,
+} from '../../lib/invoice-runtime.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
 import { createBookingInSeedTables, type SeedTables } from './booking-repository.js';
@@ -1094,6 +1098,18 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
 
     const now = isoNow();
     const previousStatus = asString(registration.status)?.toUpperCase() ?? 'REGISTERED';
+    const booking =
+      previousStatus === 'REGISTERED' || previousStatus === 'ATTENDED' || previousStatus === 'NO_SHOW'
+        ? findLinkedSeedBooking(store.tables, sessionId, athleteId)
+        : null;
+    if (booking) {
+      await applyBookingCancellationInvoiceEffects({
+        bookingId: asString(booking.id) ?? '',
+        actorUserId: params.authUserId,
+        reason: 'Group session registration cancelled.',
+      });
+    }
+
     registration.status = 'CANCELLED';
     registration.updatedAt = now;
     registration.updatedByUserId = params.authUserId;
@@ -1101,7 +1117,6 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
 
     if (previousStatus === 'REGISTERED' || previousStatus === 'ATTENDED' || previousStatus === 'NO_SHOW') {
       session.currentParticipants = Math.max(0, (asNumber(session.currentParticipants) ?? 0) - 1);
-      const booking = findLinkedSeedBooking(store.tables, sessionId, athleteId);
       if (booking) {
         cancelSeedBooking(
           store.tables,
@@ -1909,6 +1924,32 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
     const now = new Date();
     const previousStatus = registration.status.toUpperCase();
     await prisma.$transaction(async (tx) => {
+      let linkedBookingId: string | null = null;
+      if (previousStatus === 'REGISTERED' || previousStatus === 'ATTENDED' || previousStatus === 'NO_SHOW') {
+        const booking = await tx.booking.findFirst({
+          where: {
+            groupSessionId: registration.groupSessionId,
+            deletedAt: null,
+            status: { not: 'CANCELLED' },
+            participants: {
+              some: {
+                athleteId: registration.athleteId,
+                deletedAt: null,
+              },
+            },
+          },
+          select: { id: true },
+        });
+        linkedBookingId = booking?.id ?? null;
+        if (linkedBookingId) {
+          await applyBookingCancellationInvoiceEffectsInDbTransaction(tx, {
+            bookingId: linkedBookingId,
+            actorUserId: params.authUserId,
+            reason: 'Group session registration cancelled.',
+          });
+        }
+      }
+
       await tx.groupSessionRegistration.update({
         where: { id: params.registrationId },
         data: {
@@ -1927,23 +1968,9 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
             version: { increment: 1 },
           },
         });
-        const booking = await tx.booking.findFirst({
-          where: {
-            groupSessionId: registration.groupSessionId,
-            deletedAt: null,
-            status: { not: 'CANCELLED' },
-            participants: {
-              some: {
-                athleteId: registration.athleteId,
-                deletedAt: null,
-              },
-            },
-          },
-          select: { id: true },
-        });
-        if (booking) {
+        if (linkedBookingId) {
           await tx.booking.update({
-            where: { id: booking.id },
+            where: { id: linkedBookingId },
             data: {
               status: 'CANCELLED',
               cancelledAt: now,
@@ -1956,7 +1983,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
           await tx.bookingStatusEvent.create({
             data: {
               id: newId('bse'),
-              bookingId: booking.id,
+              bookingId: linkedBookingId,
               fromStatus: 'CONFIRMED',
               toStatus: 'CANCELLED',
               actorUserId: params.authUserId,
