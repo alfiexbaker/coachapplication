@@ -29,6 +29,7 @@ import {
 } from '../../repositories/p0/booking-series-repository.js';
 import { resolveGroupSessionRepository } from '../../repositories/p0/group-session-repository.js';
 import { isPrivilegedAdminAuth } from '../../lib/authz.js';
+import { recordAuditEvent } from '../../lib/audit-runtime.js';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
@@ -1023,6 +1024,22 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       registrationId,
       date: body.date,
       attended: body.attended,
+    });
+    await recordAuditEvent({
+      request,
+      action: body.attended
+        ? 'group_session.attendance_marked'
+        : 'group_session.attendance_cleared',
+      resourceType: 'group_session_registration',
+      resourceId: registrationId,
+      result: 'SUCCESS',
+      metadata: {
+        sessionId: result.registration.sessionId,
+        athleteId: result.registration.athleteId,
+        attendanceDate: body.date,
+        attended: body.attended,
+        registrationStatus: result.registration.status,
+      },
     });
 
     return reply.send({

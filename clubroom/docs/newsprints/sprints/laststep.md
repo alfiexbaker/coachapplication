@@ -4,13 +4,21 @@ Date: 2026-05-19
 
 ## Latest Update
 
+1. Continued `PROD-API-02` with the group-session attendance audit hardening slice.
+2. `/v1/group-session-registrations/:registrationId/attendance` now writes backend audit events for both mark-attended and clear-attendance operations.
+3. Attendance audit metadata includes session id, athlete id, attendance date, requested attended state, and resulting registration status.
+4. Added API proof for both `group_session.attendance_marked` and `group_session.attendance_cleared` audit events.
+5. Verification: `npm run verify:slice:api` passed, including API typecheck and full API test suite.
+
+## Previous Update
+
 1. Continued `PROD-API-02` with the group-session waitlist promotion payment-linkage slice.
 2. Waitlist promotion now creates the promoted athlete's linked backend booking when cancellation opens capacity, including the previously missing Prisma path.
 3. Billable promoted registrations now receive a sent invoice through the shared invoice runtime; `paidAt` still remains backend-payment-confirmation only.
 4. Added API proof that cancellation promotes the earliest waitlisted athlete and creates a confirmed linked booking plus sent invoice.
 5. Verification: `npm run verify:slice:api` passed, including API typecheck and full API test suite.
 
-## Previous Update
+## Earlier Update
 
 1. Continued `PROD-API-02` with the group-session cancellation/refund effects slice.
 2. Group registration cancellation now runs linked booking invoice lifecycle effects before mutating registration state.
@@ -18,7 +26,7 @@ Date: 2026-05-19
 4. Paid group-registration invoices now block cancellation until the backend refund endpoint approves the refund; after refund, cancellation can proceed.
 5. Verification: `npm run verify:slice:api` passed, including API typecheck and full API test suite (`97/97`).
 
-## Earlier Update
+## Older Update
 
 1. Continued `PROD-API-02` with the group-session payment proof linkage slice.
 2. Billable `/v1/group-sessions/:sessionId/register` now creates a linked backend booking and invoice, while registration `paidAt` stays unset until backend payment confirmation.
@@ -73,14 +81,14 @@ Date: 2026-05-19
 1. The rules are now strong enough to block new obvious slop, but not enough to claim elite production readiness.
 2. Main risk is API/source-of-truth maturity, not static UI quality.
 3. The current API boundary baseline is a ratchet, not a release pass: `102` legacy `/api/*`, `148` trust-sensitive local-storage patterns, `5` route literals, and `2` frontend raw fetches remain.
-4. Booking create/list/detail/cancel/reopen/complete are improved with db-fixture parent/coach/deny proof, and completion now creates backend attendance proof records; multi-week package plus initial recurring-plan creation/list/detail/cancel/pause/resume/update now use backend series authority, recurring reschedule/cancel syncs or voids mutable linked invoices while blocking settled invoices, invoice money transitions now require authoritative booking linkage, legacy earnings payment/refund writes fail closed outside mock, direct invite acceptance creates db-mode bookings through booking repository authority, billable group-session registration and waitlist promotion link booking/invoice/payment proof, and group registration cancellation now applies invoice/refund hard walls. Richer media/feedback proof linkage, media scan enforcement, guardian sharing, health/injury linkup, club admin operations, and community writes remain the highest-risk gaps.
+4. Booking create/list/detail/cancel/reopen/complete are improved with db-fixture parent/coach/deny proof, and completion now creates backend attendance proof records; multi-week package plus initial recurring-plan creation/list/detail/cancel/pause/resume/update now use backend series authority, recurring reschedule/cancel syncs or voids mutable linked invoices while blocking settled invoices, invoice money transitions now require authoritative booking linkage, legacy earnings payment/refund writes fail closed outside mock, direct invite acceptance creates db-mode bookings through booking repository authority, billable group-session registration and waitlist promotion link booking/invoice/payment proof, group registration cancellation now applies invoice/refund hard walls, and group attendance writes now emit audit events. Richer media/feedback proof linkage, media scan enforcement, guardian sharing, health/injury linkup, club admin operations, and community writes remain the highest-risk gaps.
 5. Production rehearsal must wait until P0 journeys have API authority plus UI linkup packets complete.
 
 ## Next Exact Action
 
 1. Keep `OBS-RUNTIME-01` green: Sentry is clean, API-mode Expo must continue to start only with `apps/api` reachable.
 2. Continue `PROD-API-02`.
-3. Continue `PROD-API-02` by moving the next backend-authoritative delivery slice: richer media/feedback proof linkage, attendance audit hardening, or full invite repository/audit hardening.
+3. Continue `PROD-API-02` by moving the next backend-authoritative delivery slice: richer media/feedback proof linkage, full invite repository/audit hardening, or group-session cancel fan-out.
 4. Keep `/v1/meta/seed-health` and `/v1/drills` marked as cleanup candidates: auth-gate, disable, or delete before production.
 5. Keep `node ./scripts/api-boundary-audit.js` green on every slice.
 6. Do not run production rehearsal until booking, child readiness, payment/refund, attendance, proof, club operations, and compliance evidence have backend-authoritative launch paths.

@@ -318,6 +318,48 @@ describe('booking group-session routes', () => {
     const attendancePayload = attendance.json() as { registration: { status: string; attendedDates: string[] } };
     assert.equal(attendancePayload.registration.status, 'ATTENDED');
     assert.deepEqual(attendancePayload.registration.attendedDates, [slot.date]);
+    const attendanceAudit = ensureTable(store.tables, 'auditEvents').find(
+      (row) =>
+        asString(row.action) === 'group_session.attendance_marked' &&
+        asString(row.resourceId) === registeredPayload.registration.id,
+    );
+    assert.equal(asString(attendanceAudit?.actorUserId), coachUserId);
+    assert.equal(asString(attendanceAudit?.resourceType), 'group_session_registration');
+    assert.equal(asString(attendanceAudit?.result), 'SUCCESS');
+    assert.deepEqual(attendanceAudit?.metadataJson, {
+      sessionId,
+      athleteId: guardianSelection.athleteId,
+      attendanceDate: slot.date,
+      attended: true,
+      registrationStatus: 'ATTENDED',
+    });
+
+    const clearedAttendance = await app.inject({
+      method: 'PATCH',
+      url: `/v1/group-session-registrations/${registeredPayload.registration.id}/attendance`,
+      headers: authHeaders(store.tables, coachUserId, 'coach'),
+      payload: {
+        date: slot.date,
+        attended: false,
+      },
+    });
+    assert.equal(clearedAttendance.statusCode, 200);
+    const clearedPayload = clearedAttendance.json() as { registration: { status: string; attendedDates: string[] } };
+    assert.equal(clearedPayload.registration.status, 'REGISTERED');
+    assert.deepEqual(clearedPayload.registration.attendedDates, []);
+    const clearedAudit = ensureTable(store.tables, 'auditEvents').find(
+      (row) =>
+        asString(row.action) === 'group_session.attendance_cleared' &&
+        asString(row.resourceId) === registeredPayload.registration.id,
+    );
+    assert.equal(asString(clearedAudit?.actorUserId), coachUserId);
+    assert.deepEqual(clearedAudit?.metadataJson, {
+      sessionId,
+      athleteId: guardianSelection.athleteId,
+      attendanceDate: slot.date,
+      attended: false,
+      registrationStatus: 'REGISTERED',
+    });
   });
 
   it('voids open group registration invoices and payment attempts on cancellation', async () => {
