@@ -561,9 +561,25 @@ describe('booking group-session routes', () => {
     const sessionRow = ensureTable(store.tables, 'groupSessions').find((row) => asString(row.id) === sessionId);
     const promoted = registrations.find((row) => asString(row.id) === 'gsr_route_waitlisted');
     const cancelledRegistration = registrations.find((row) => asString(row.id) === 'gsr_route_registered');
+    const promotedBooking = ensureTable(store.tables, 'bookings').find(
+      (row) =>
+        asString(row.groupSessionId) === sessionId &&
+        asString(row.status) !== 'CANCELLED' &&
+        ensureTable(store.tables, 'bookingParticipants').some(
+          (participant) =>
+            asString(participant.bookingId) === asString(row.id) &&
+            asString(participant.athleteId) === secondGuardian.athleteId,
+        ),
+    );
+    const promotedInvoice = ensureTable(store.tables, 'invoices').find(
+      (row) => asString(row.bookingId) === asString(promotedBooking?.id),
+    );
     assert.equal(asString(cancelledRegistration?.status), 'CANCELLED');
     assert.equal(asString(promoted?.status), 'REGISTERED');
     assert.equal(asString(promoted?.paidAt) ?? null, null);
+    assert.equal(asString(promotedBooking?.status), 'CONFIRMED');
+    assert.equal(asString(promotedInvoice?.status), 'SENT');
+    assert.equal(promotedInvoice?.totalMinor, 2500);
     assert.equal(sessionRow?.currentParticipants, 1);
     assert.equal(sessionRow?.waitlistCount, 0);
   });

@@ -5,6 +5,7 @@ import { badRequest, forbidden, notFound } from '../../lib/http-errors.js';
 import {
   applyBookingCancellationInvoiceEffects,
   applyBookingCancellationInvoiceEffectsInDbTransaction,
+  generateInvoiceForBooking,
 } from '../../lib/invoice-runtime.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
@@ -775,6 +776,21 @@ function createSeedLinkedBooking(params: {
   };
 }
 
+async function generateLinkedRegistrationInvoiceIfBillable(params: {
+  bookingId: string | null | undefined;
+  actorUserId: string;
+  priceMinor: number | null | undefined;
+}): Promise<void> {
+  if (!params.bookingId || (params.priceMinor ?? 0) <= 0) {
+    return;
+  }
+  await generateInvoiceForBooking({
+    bookingId: params.bookingId,
+    actorUserId: params.actorUserId,
+    notes: 'Generated from group session waitlist promotion.',
+  });
+}
+
 function sortSessionsByUpcomingDate(sessions: AppGroupSession[]): AppGroupSession[] {
   return [...sessions].sort((left, right) => {
     const leftAt = left.schedule[0] ? `${left.schedule[0].date}T${left.schedule[0].startTime}:00Z` : '';
@@ -1146,7 +1162,7 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
         session.currentParticipants = (asNumber(session.currentParticipants) ?? 0) + 1;
         session.waitlistCount = Math.max(0, (asNumber(session.waitlistCount) ?? 0) - 1);
         if (!findLinkedSeedBooking(store.tables, sessionId, asString(promoted.athleteId) ?? '')) {
-          createSeedLinkedBooking({
+          const promotedBooking = createSeedLinkedBooking({
             tables: store.tables,
             authUserId: params.authUserId,
             requestId: 'waitlist_promotion',
@@ -1154,6 +1170,11 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
             athleteId: asString(promoted.athleteId) ?? '',
             bookedByUserId: asString(promoted.parentUserId) ?? params.authUserId,
             note: asString(promoted.notes) ?? 'Promoted from waitlist.',
+          });
+          await generateLinkedRegistrationInvoiceIfBillable({
+            bookingId: promotedBooking.id,
+            actorUserId: params.authUserId,
+            priceMinor: asNumber(session.pricePerParticipantMinor),
           });
         }
       }
@@ -1923,7 +1944,8 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
 
     const now = new Date();
     const previousStatus = registration.status.toUpperCase();
-    await prisma.$transaction(async (tx) => {
+    const promotedBookingIds = await prisma.$transaction(async (tx) => {
+      const createdPromotedBookingIds: string[] = [];
       let linkedBookingId: string | null = null;
       if (previousStatus === 'REGISTERED' || previousStatus === 'ATTENDED' || previousStatus === 'NO_SHOW') {
         const booking = await tx.booking.findFirst({
@@ -2022,6 +2044,105 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
               version: { increment: 1 },
             },
           });
+
+          const existingPromotedBooking = await tx.booking.findFirst({
+            where: {
+              groupSessionId: registration.groupSessionId,
+              deletedAt: null,
+              status: { not: 'CANCELLED' },
+              participants: {
+                some: {
+                  athleteId: promoted.athleteId,
+                  deletedAt: null,
+                },
+              },
+            },
+            select: { id: true },
+          });
+          if (!existingPromotedBooking) {
+            const bookingId = newId('bok');
+            const schedule = buildScheduleEntries(registration.groupSession.scheduleJson);
+            const firstSlot = schedule[0];
+            const startsAt = firstSlot
+              ? new Date(`${firstSlot.date}T${firstSlot.startTime}:00.000Z`)
+              : now;
+            const durationMinutes = firstSlot
+              ? Math.max(
+                  15,
+                  Math.round(
+                    (Date.parse(`${firstSlot.date}T${firstSlot.endTime}:00.000Z`) -
+                      startsAt.getTime()) /
+                      60000,
+                  ),
+                )
+              : 60;
+            const bookedByUserId = promoted.parentUserId ?? params.authUserId;
+            await tx.booking.create({
+              data: {
+                id: bookingId,
+                coachUserId: registration.groupSession.coachUserId,
+                bookedByUserId,
+                clubId: registration.groupSession.clubId,
+                coachingOfferingId: null,
+                status: 'CONFIRMED',
+                scheduledAt: startsAt,
+                durationMinutes,
+                location: registration.groupSession.location ?? 'Club training ground',
+                serviceType: registration.groupSession.sessionType,
+                notes: promoted.notes ?? 'Promoted from waitlist.',
+                objectivesJson: asStringArray(registration.groupSession.focusJson),
+                priceMinor: registration.groupSession.pricePerParticipantMinor ?? 0,
+                currency: registration.groupSession.currency,
+                confirmationMode: 'manual',
+                confirmedAt: now,
+                cancelledByUserId: null,
+                cancelledAt: null,
+                cancelReason: null,
+                cancellationFeeMinor: null,
+                groupSessionId: registration.groupSessionId,
+                recurringSeriesId: null,
+                seriesIndex: null,
+                createdByUserId: params.authUserId,
+                updatedByUserId: params.authUserId,
+              },
+            });
+            await tx.bookingParticipant.create({
+              data: {
+                id: newId('bkp'),
+                bookingId,
+                athleteId: promoted.athleteId,
+                guardianUserId: bookedByUserId,
+                status: 'confirmed',
+                createdByUserId: params.authUserId,
+                updatedByUserId: params.authUserId,
+              },
+            });
+            await tx.bookingStatusEvent.create({
+              data: {
+                id: newId('bse'),
+                bookingId,
+                fromStatus: null,
+                toStatus: 'CONFIRMED',
+                actorUserId: params.authUserId,
+                reason: 'Created from group session waitlist promotion.',
+                metadataJson: { source: 'group-session-waitlist-promotion' },
+                requestId: 'waitlist_promotion',
+                occurredAt: now,
+              },
+            });
+            for (const [index, objective] of asStringArray(registration.groupSession.focusJson).entries()) {
+              await tx.bookingObjective.create({
+                data: {
+                  id: newId('bko'),
+                  bookingId,
+                  objective,
+                  sortOrder: index,
+                  createdAt: now,
+                },
+              });
+            }
+            createdPromotedBookingIds.push(bookingId);
+          }
         }
       } else if (previousStatus === 'WAITLISTED') {
         await tx.groupSession.update({
@@ -2033,7 +2154,16 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
           },
         });
       }
+      return createdPromotedBookingIds;
     });
+
+    for (const bookingId of promotedBookingIds) {
+      await generateLinkedRegistrationInvoiceIfBillable({
+        bookingId,
+        actorUserId: params.authUserId,
+        priceMinor: registration.groupSession.pricePerParticipantMinor,
+      });
+    }
 
     const refreshed = normalizeAs<PrismaRegistrationRow | null>(
       await prisma.groupSessionRegistration.findUnique({

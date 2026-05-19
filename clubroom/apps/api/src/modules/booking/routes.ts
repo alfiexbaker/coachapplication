@@ -1574,6 +1574,36 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const now = isoNow();
+    const existingBookingId = asString(invite.bookingId);
+    if (
+      body.response === 'ACCEPTED' &&
+      asString(invite.status) === 'ACCEPTED' &&
+      existingBookingId
+    ) {
+      const existingBooking = await resolveBookingRepository().getVisibleBookingById({
+        authUserId,
+        bookingId: existingBookingId,
+      });
+      return reply.send({
+        invite: buildSessionInviteView({
+          tables: store.tables,
+          invite,
+          targets: visibleTargets,
+        }),
+        inviteId,
+        response: 'ACCEPTED',
+        status: asString(invite.status) ?? 'ACCEPTED',
+        targetStatus: asString(visibleTargets[0]?.status) ?? 'ACCEPTED',
+        respondedAt: asString(visibleTargets[0]?.respondedAt) ?? now,
+        selectedSlot: body.selectedSlot,
+        bookingId: existingBooking.id,
+        registrationId: null,
+        registrationStatus: null,
+        booking: existingBooking,
+        requestId: request.requestId,
+      });
+    }
+
     let registrationId: string | null = null;
     let registrationStatus:
       | 'REGISTERED'
