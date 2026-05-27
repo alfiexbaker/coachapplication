@@ -4,6 +4,14 @@ Date: 2026-05-27
 
 ## Latest Update
 
+1. Continued `OBS-RUNTIME-01` with the API-mode startup reachability slice.
+2. Added `npm --prefix apps/api run dev:staging` plus root `npm run api:dev:staging`; the staging dev command loads `.env.staging.local`, binds Fastify with `API_HOST=0.0.0.0`, and exposes the configured LAN API origin used by the app and smoke runner.
+3. `scripts/api-mode-runtime-smoke.js` now reports the loaded server host/port, probes loopback when a non-loopback API origin fails, and tells agents to restart with `dev:staging` instead of the plain loopback-only dev command.
+4. Runtime docs and sprint runbooks now point API-mode staging startup at `dev:staging`.
+5. Verification: `npm run smoke:api-mode` passed against `http://192.168.1.127:4000` with Fastify running; `npm run smoke:api-mode:strict` still fails on Supabase `DATABASE_UNAVAILABLE` because the configured Postgres tenant/user `postgres.oucxazyrimujqmakxfiv` is not found.
+
+## Previous Update
+
 1. Continued `PROD-API-02` / `PROD-API-08` with the direct/thread message send and delete authority slice.
 2. Added backend-owned `POST /v1/message-threads/:threadId/messages` and `DELETE /v1/messages/:messageId`.
 3. Direct/thread message creation now requires authenticated active thread participation; the sender is derived from auth, attachments are denied until backend media proof exists, idempotency replay/conflict is enforced, and allowed/denied writes are audited.
@@ -11,7 +19,7 @@ Date: 2026-05-27
 5. `messagingService.sendMessage` and `messagingService.deleteMessage` now use the backend authority path outside mock mode instead of creating or hiding direct messages through local overlays.
 6. Verification: `npm --prefix apps/api run typecheck`, `npm run typecheck`, `npm run test:compile`, focused `LOG_LEVEL=fatal npx tsx --test src/modules/wave2plus/routes.test.ts` passed (`38/38`), compiled messaging smoke tests passed (`6/6`), and `npm run verify:slice:full` passed with API tests `117/117` and `0` new API-boundary findings.
 
-## Previous Update
+## Earlier Update
 
 1. Continued `PROD-API-02` / `PROD-API-08` with the staff-led feed post creation authority slice.
 2. Added backend-owned `POST /v1/posts` for staff top-level feed publishing.

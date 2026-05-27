@@ -109,7 +109,9 @@ The preflight checks:
 Use `node ./scripts/db-staging-preflight.js --strict` as the hard gate once the staging environment values are expected to exist.
 Use `node ./scripts/db-staging-preflight.js --write` to write transient outputs under `reviews/`.
 
+For API-mode staging startup, start Fastify with the same staging env the app and smoke runner use: `npm --prefix apps/api run dev:staging` or `npm run api:dev:staging`.
 Use `npm run smoke:api-mode` before starting Expo in API mode. It loads `.env.staging.local`, confirms `EXPO_PUBLIC_USE_MOCK=false`, and verifies the configured Fastify API responds at `/v1/ready`.
+If the configured API URL is a LAN address, the API must bind to `API_HOST=0.0.0.0`; otherwise loopback can respond while the app-configured origin still fails.
 Use `npm run smoke:api-mode:strict` before release-ready staging rehearsal; strict mode requires `/v1/ready` to report `ready`, not merely reachable.
 
 Use `npm run smoke:staging` after migrations and seed import are applied to prove the db-backed API path against the configured staging Supabase project.

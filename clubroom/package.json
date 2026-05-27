@@ -54,6 +54,7 @@
     "audit:agentic": "node ./scripts/agentic-readiness-pipeline.js",
     "audit:agentic:write": "node ./scripts/agentic-readiness-pipeline.js --write",
     "audit:agentic:strict": "node ./scripts/agentic-readiness-pipeline.js --strict",
+    "api:dev:staging": "npm --prefix apps/api run dev:staging",
     "smoke:api-mode": "node ./scripts/api-mode-runtime-smoke.js",
     "smoke:api-mode:strict": "node ./scripts/api-mode-runtime-smoke.js --require-ready",
     "verify:slice": "node ./scripts/verify-slice.js",

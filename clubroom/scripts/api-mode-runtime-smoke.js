@@ -67,6 +67,19 @@ function normalizeBaseUrl(rawUrl) {
   return url.toString().replace(/\/$/, '');
 }
 
+function isLoopbackHostname(hostname) {
+  return hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '::1';
+}
+
+function getLoopbackProbeUrl(apiBaseUrl) {
+  const url = new URL(apiBaseUrl);
+  if (isLoopbackHostname(url.hostname)) {
+    return null;
+  }
+  url.hostname = '127.0.0.1';
+  return url.toString().replace(/\/$/, '');
+}
+
 async function fetchReady(apiBaseUrl) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 3000);
@@ -111,6 +124,13 @@ function printText(report) {
   );
   console.log(`- api mode: ${report.apiMode ? 'yes' : 'no'}`);
   console.log(`- api url: ${report.apiBaseUrl}`);
+  if (report.serverEnv.apiHost || report.serverEnv.apiPort) {
+    console.log(
+      `- server env: API_HOST=${report.serverEnv.apiHost ?? '(default)'}, API_PORT=${
+        report.serverEnv.apiPort ?? '(default)'
+      }`,
+    );
+  }
   if (report.ready.skipped) {
     console.log(`- skipped: ${report.ready.reason}`);
     console.log(`- result: ${report.status}`);
@@ -126,6 +146,13 @@ function printText(report) {
     }
   } else if (report.ready.error) {
     console.log(`- error: ${report.ready.error}`);
+    if (report.diagnostics.loopbackReady) {
+      console.log(
+        `- loopback probe: ${
+          report.diagnostics.loopbackReady.reachable ? 'reachable' : 'not reachable'
+        } at ${report.diagnostics.loopbackApiBaseUrl}`,
+      );
+    }
   }
   console.log(`- result: ${report.status}`);
   if (report.action) {
@@ -144,6 +171,8 @@ async function main() {
   const ready = apiMode
     ? await fetchReady(apiBaseUrl)
     : { reachable: true, skipped: true, reason: 'EXPO_PUBLIC_USE_MOCK is not false' };
+  const loopbackApiBaseUrl = apiMode && !ready.reachable ? getLoopbackProbeUrl(apiBaseUrl) : null;
+  const loopbackReady = loopbackApiBaseUrl ? await fetchReady(loopbackApiBaseUrl) : null;
 
   const status = !apiMode
     ? 'skipped'
@@ -153,8 +182,10 @@ async function main() {
         ? 'fail'
         : 'pass';
   const action =
-    status === 'fail' && !ready.reachable
-      ? `Start the Fastify API before API-mode Expo: npm --prefix apps/api run dev`
+    status === 'fail' && !ready.reachable && loopbackReady?.reachable
+      ? 'Fastify is reachable only on loopback. Restart it with the staging env so API_HOST=0.0.0.0: npm --prefix apps/api run dev:staging'
+      : status === 'fail' && !ready.reachable
+        ? 'Start the Fastify API before API-mode Expo with the same env file used by this smoke: npm --prefix apps/api run dev:staging'
       : status === 'fail'
         ? 'Fix /v1/ready issues before treating staging runtime as release-ready.'
         : null;
@@ -168,8 +199,16 @@ async function main() {
     },
     apiMode,
     apiBaseUrl,
+    serverEnv: {
+      apiHost: process.env.API_HOST ?? null,
+      apiPort: process.env.API_PORT ?? null,
+    },
     requireReady: options.requireReady,
     ready,
+    diagnostics: {
+      loopbackApiBaseUrl,
+      loopbackReady,
+    },
     status,
     action,
   };

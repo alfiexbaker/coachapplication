@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "dev:staging": "node --env-file=../../.env.staging.local --import tsx --watch src/server.ts",
     "start": "node dist/server.js",
     "build": "tsc -p tsconfig.json",
     "release:preflight": "NODE_ENV=production tsx ./scripts/release-preflight.ts",
