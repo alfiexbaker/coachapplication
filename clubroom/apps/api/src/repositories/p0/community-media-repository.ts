@@ -20,6 +20,8 @@ const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 const IDEMPOTENCY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const GROUP_MESSAGE_CREATE_ENDPOINT_KEY = 'community.group-message.create';
 const POST_COMMENT_CREATE_ENDPOINT_KEY = 'community.post-comment.create';
+const POST_CREATE_ENDPOINT_KEY = 'community.post.create';
+const STAFF_POST_ROLES = new Set(['ADMIN', 'CLUB_ADMIN', 'COACH', 'HEAD_COACH', 'OWNER', 'STAFF']);
 
 interface StoreProvider {
   version: string;
@@ -33,6 +35,15 @@ export interface CommunityMediaAccessParams {
 
 export interface PostListParams extends CommunityMediaAccessParams {
   communityGroupId?: string;
+}
+
+export interface PostCreateParams extends CommunityMediaAccessParams {
+  clubId?: string;
+  communityGroupId?: string;
+  content: string;
+  visibility?: 'PUBLIC' | 'CLUB' | 'GROUP' | 'PRIVATE';
+  metadata?: Record<string, unknown>;
+  idempotencyKey?: string;
 }
 
 export interface PostCommentListParams extends CommunityMediaAccessParams {
@@ -71,6 +82,11 @@ export interface CommunityGroupListResult {
 
 export interface PostListResult {
   posts: SeedRow[];
+  dataVersion: string | null;
+}
+
+export interface PostMutationResult {
+  post: SeedRow;
   dataVersion: string | null;
 }
 
@@ -150,6 +166,7 @@ export interface GroupMessageReadResult {
 export interface CommunityMediaRepository {
   listCommunityGroups(params: CommunityMediaAccessParams): Promise<CommunityGroupListResult>;
   listPosts(params: PostListParams): Promise<PostListResult>;
+  createPost(params: PostCreateParams): Promise<PostMutationResult>;
   listPostComments(params: PostCommentListParams): Promise<PostCommentListResult>;
   getPostComment(params: PostCommentReadParams): Promise<PostCommentMutationResult>;
   createPostComment(params: PostCommentCreateParams): Promise<PostCommentMutationResult>;
@@ -226,6 +243,37 @@ function hashPostCommentCreateRequest(params: PostCommentCreateParams): string {
     .digest('hex');
 }
 
+function stableJson(value: unknown): string {
+  if (value === undefined) {
+    return 'null';
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => stableJson(entry)).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, entryValue]) => `${JSON.stringify(key)}:${stableJson(entryValue)}`);
+    return `{${entries.join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function hashPostCreateRequest(params: PostCreateParams): string {
+  return crypto
+    .createHash('sha256')
+    .update(
+      stableJson({
+        clubId: params.clubId ?? null,
+        communityGroupId: params.communityGroupId ?? null,
+        content: params.content.trim(),
+        visibility: params.visibility ?? null,
+        metadata: params.metadata ?? {},
+      }),
+    )
+    .digest('hex');
+}
+
 function assertMatchingIdempotencyRequest(
   row: SeedRow,
   requestHash: string,
@@ -234,6 +282,93 @@ function assertMatchingIdempotencyRequest(
   if (asString(row.requestHash) !== requestHash) {
     throw conflict(message);
   }
+}
+
+function normalizeRole(value: unknown): string {
+  return String(value ?? '').trim().toUpperCase();
+}
+
+function canStaffPostWithRole(value: unknown): boolean {
+  return STAFF_POST_ROLES.has(normalizeRole(value));
+}
+
+function hydrateStorePost(tables: SeedTables, post: SeedRow): SeedRow {
+  return {
+    ...post,
+    author: storeUserSummary(tables, asString(post.authorUserId)),
+  };
+}
+
+function visibleStoreClub(tables: SeedTables, clubId: string | undefined): SeedRow | null {
+  if (!clubId) {
+    return null;
+  }
+  return activeRows(asRows(tables.clubs)).find((row) => asString(row.id) === clubId) ?? null;
+}
+
+function activeStoreCommunityGroup(tables: SeedTables, groupId: string | undefined): SeedRow | null {
+  if (!groupId) {
+    return null;
+  }
+  return activeRows(asRows(tables.communityGroups)).find((row) => asString(row.id) === groupId) ?? null;
+}
+
+function assertCanCreateStorePost(
+  tables: SeedTables,
+  params: PostCreateParams,
+): { clubId: string | null; communityGroupId: string | null; visibility: string } {
+  const group = activeStoreCommunityGroup(tables, params.communityGroupId);
+  if (params.communityGroupId && !group) {
+    throw notFound('Community group not found', { communityGroupId: params.communityGroupId });
+  }
+
+  const groupClubId = asString(group?.clubId);
+  if (params.clubId && groupClubId && params.clubId !== groupClubId) {
+    throw badRequest('Post clubId must match the community group clubId', {
+      clubId: params.clubId,
+      communityGroupId: params.communityGroupId,
+    });
+  }
+
+  const clubId = params.clubId ?? groupClubId ?? null;
+  if (!clubId && !params.communityGroupId) {
+    throw badRequest('A clubId or communityGroupId is required for staff-led feed posting');
+  }
+  if (clubId && !visibleStoreClub(tables, clubId)) {
+    throw notFound('Club not found', { clubId });
+  }
+
+  if (!params.isPrivilegedAdmin) {
+    const groupMembership = params.communityGroupId
+      ? asRows(tables.communityGroupMemberships).find(
+          (row) =>
+            isActiveMembership(row) &&
+            asString(row.communityGroupId) === params.communityGroupId &&
+            asString(row.userId) === params.authUserId,
+        )
+      : undefined;
+    const clubMembership = clubId
+      ? asRows(tables.clubMemberships).find(
+          (row) =>
+            isActiveMembership(row) &&
+            asString(row.clubId) === clubId &&
+            asString(row.userId) === params.authUserId,
+        )
+      : undefined;
+
+    if (!canStaffPostWithRole(groupMembership?.role) && !canStaffPostWithRole(clubMembership?.role)) {
+      throw forbidden('Only active staff can create feed posts for this club or group', {
+        clubId,
+        communityGroupId: params.communityGroupId,
+      });
+    }
+  }
+
+  return {
+    clubId,
+    communityGroupId: params.communityGroupId ?? null,
+    visibility: params.visibility ?? (params.communityGroupId ? 'GROUP' : 'CLUB'),
+  };
 }
 
 function storeUserSummary(tables: SeedTables, userId: string | undefined): SeedRow | null {
@@ -581,6 +716,58 @@ function recordSeedGroupMessageCreateIdempotency(params: {
   });
 }
 
+function findSeedPostCreateIdempotency(params: {
+  tables: SeedTables;
+  authUserId: string;
+  body: PostCreateParams;
+}): PostMutationResult | null {
+  if (!params.body.idempotencyKey) {
+    return null;
+  }
+
+  const requestHash = hashPostCreateRequest(params.body);
+  const entry = asRows(params.tables.idempotencyKeys).find(
+    (row) =>
+      asString(row.userId) === params.authUserId &&
+      asString(row.endpointKey) === POST_CREATE_ENDPOINT_KEY &&
+      asString(row.idempotencyKey) === params.body.idempotencyKey,
+  );
+  if (!entry) {
+    return null;
+  }
+
+  assertMatchingIdempotencyRequest(
+    entry,
+    requestHash,
+    'Idempotency key was already used with a different post payload',
+  );
+  return normalizeAs<PostMutationResult>(entry.responseBodyJson);
+}
+
+function recordSeedPostCreateIdempotency(params: {
+  tables: SeedTables;
+  authUserId: string;
+  body: PostCreateParams;
+  response: PostMutationResult;
+  now: string;
+}): void {
+  if (!params.body.idempotencyKey) {
+    return;
+  }
+
+  ensureRows(params.tables, 'idempotencyKeys').push({
+    id: newId('idk'),
+    userId: params.authUserId,
+    endpointKey: POST_CREATE_ENDPOINT_KEY,
+    idempotencyKey: params.body.idempotencyKey,
+    requestHash: hashPostCreateRequest(params.body),
+    responseStatus: 201,
+    responseBodyJson: params.response,
+    createdAt: params.now,
+    expiresAt: new Date(Date.parse(params.now) + IDEMPOTENCY_TTL_MS).toISOString(),
+  });
+}
+
 function findSeedPostCommentCreateIdempotency(params: {
   tables: SeedTables;
   authUserId: string;
@@ -695,6 +882,70 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       posts,
       dataVersion: store.version,
     };
+  }
+
+  async createPost(params: PostCreateParams): Promise<PostMutationResult> {
+    const store = this.storeProvider();
+    const scope = assertCanCreateStorePost(store.tables, params);
+    const replay = findSeedPostCreateIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      body: params,
+    });
+    if (replay) {
+      return replay;
+    }
+
+    const content = params.content.trim();
+    if (!content) {
+      throw badRequest('Post content cannot be empty');
+    }
+    if (content.length > 4000) {
+      throw badRequest('Post content must be 4000 characters or fewer');
+    }
+
+    const now = nowIso();
+    const post: SeedRow = {
+      id: newId('pst'),
+      authorUserId: params.authUserId,
+      clubId: scope.clubId,
+      communityGroupId: scope.communityGroupId,
+      visibility: scope.visibility,
+      content,
+      attachmentsJson: params.metadata ?? {},
+      commentsCount: 0,
+      reactionsCount: 0,
+      createdByUserId: params.authUserId,
+      updatedByUserId: params.authUserId,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      deletedByUserId: null,
+    };
+    ensureRows(store.tables, 'posts').push(post);
+
+    if (scope.communityGroupId) {
+      const group = activeStoreCommunityGroup(store.tables, scope.communityGroupId);
+      if (group) {
+        group.updatedAt = now;
+        group.updatedByUserId = params.authUserId;
+        group.version = Number(group.version ?? 1) + 1;
+      }
+    }
+
+    const response: PostMutationResult = {
+      post: hydrateStorePost(store.tables, post),
+      dataVersion: store.version,
+    };
+    recordSeedPostCreateIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      body: params,
+      response,
+      now,
+    });
+    return response;
   }
 
   async listPostComments(params: PostCommentListParams): Promise<PostCommentListResult> {
@@ -1254,6 +1505,121 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     throw forbidden('Post is not visible to authenticated user', { postId });
   }
 
+  private async assertCanCreatePost(params: PostCreateParams): Promise<{
+    clubId: string | null;
+    communityGroupId: string | null;
+    visibility: 'PUBLIC' | 'CLUB' | 'GROUP' | 'PRIVATE';
+  }> {
+    const prisma = getPrismaClientOrThrow();
+    const group = params.communityGroupId
+      ? await prisma.communityGroup.findFirst({
+          where: { id: params.communityGroupId, deletedAt: null },
+        })
+      : null;
+    if (params.communityGroupId && !group) {
+      throw notFound('Community group not found', { communityGroupId: params.communityGroupId });
+    }
+
+    if (params.clubId && group?.clubId && params.clubId !== group.clubId) {
+      throw badRequest('Post clubId must match the community group clubId', {
+        clubId: params.clubId,
+        communityGroupId: params.communityGroupId,
+      });
+    }
+
+    const clubId = params.clubId ?? group?.clubId ?? null;
+    if (!clubId && !params.communityGroupId) {
+      throw badRequest('A clubId or communityGroupId is required for staff-led feed posting');
+    }
+    if (clubId) {
+      const club = await prisma.club.findFirst({
+        where: { id: clubId, deletedAt: null },
+        select: { id: true },
+      });
+      if (!club) {
+        throw notFound('Club not found', { clubId });
+      }
+    }
+
+    if (!params.isPrivilegedAdmin) {
+      const [groupMembership, clubMembership] = await Promise.all([
+        params.communityGroupId
+          ? prisma.communityGroupMembership.findFirst({
+              where: {
+                communityGroupId: params.communityGroupId,
+                userId: params.authUserId,
+                active: true,
+                deletedAt: null,
+              },
+              select: { role: true },
+            })
+          : Promise.resolve(null),
+        clubId
+          ? prisma.clubMembership.findFirst({
+              where: {
+                clubId,
+                userId: params.authUserId,
+                active: true,
+                deletedAt: null,
+              },
+              select: { role: true },
+            })
+          : Promise.resolve(null),
+      ]);
+      if (!canStaffPostWithRole(groupMembership?.role) && !canStaffPostWithRole(clubMembership?.role)) {
+        throw forbidden('Only active staff can create feed posts for this club or group', {
+          clubId,
+          communityGroupId: params.communityGroupId,
+        });
+      }
+    }
+
+    return {
+      clubId,
+      communityGroupId: params.communityGroupId ?? null,
+      visibility: params.visibility ?? (params.communityGroupId ? 'GROUP' : 'CLUB'),
+    };
+  }
+
+  private async hydratePosts(posts: SeedRow[]): Promise<SeedRow[]> {
+    if (posts.length === 0) {
+      return [];
+    }
+
+    const userIds = Array.from(
+      new Set(
+        posts
+          .map((post) => asString(post.authorUserId))
+          .filter((userId): userId is string => Boolean(userId)),
+      ),
+    );
+    const prisma = getPrismaClientOrThrow();
+    const users = normalizeAs<SeedRow[]>(
+      userIds.length > 0
+        ? await prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, name: true, avatarUrl: true },
+          })
+        : [],
+    );
+    const usersById = new Map(users.map((user) => [asString(user.id), user] as const));
+
+    return posts.map((post) => {
+      const authorUserId = asString(post.authorUserId);
+      const user = authorUserId ? usersById.get(authorUserId) : undefined;
+      return {
+        ...post,
+        author: authorUserId
+          ? {
+              id: authorUserId,
+              name: asString(user?.name) ?? authorUserId,
+              avatarUrl: asString(user?.avatarUrl) ?? null,
+            }
+          : null,
+      };
+    });
+  }
+
   private async hydratePostComments(comments: SeedRow[]): Promise<SeedRow[]> {
     if (comments.length === 0) {
       return [];
@@ -1459,9 +1825,119 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     );
 
     return {
-      posts,
+      posts: await this.hydratePosts(posts),
       dataVersion: null,
     };
+  }
+
+  async createPost(params: PostCreateParams): Promise<PostMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.createPost(params);
+    }
+
+    const scope = await this.assertCanCreatePost(params);
+    const prisma = getPrismaClientOrThrow();
+    const requestHash = hashPostCreateRequest(params);
+    if (params.idempotencyKey) {
+      const existing = await prisma.idempotencyKey.findUnique({
+        where: {
+          userId_endpointKey_idempotencyKey: {
+            userId: params.authUserId,
+            endpointKey: POST_CREATE_ENDPOINT_KEY,
+            idempotencyKey: params.idempotencyKey,
+          },
+        },
+      });
+      if (existing) {
+        assertMatchingIdempotencyRequest(
+          normalizeAs<SeedRow>(existing),
+          requestHash,
+          'Idempotency key was already used with a different post payload',
+        );
+        return normalizeAs<PostMutationResult>(existing.responseBodyJson);
+      }
+    }
+
+    const content = params.content.trim();
+    if (!content) {
+      throw badRequest('Post content cannot be empty');
+    }
+    if (content.length > 4000) {
+      throw badRequest('Post content must be 4000 characters or fewer');
+    }
+
+    const now = new Date();
+    let response: PostMutationResult | null = null;
+    await prisma.$transaction(async (tx) => {
+      const post = await tx.post.create({
+        data: {
+          id: newId('pst'),
+          authorUserId: params.authUserId,
+          clubId: scope.clubId,
+          communityGroupId: scope.communityGroupId,
+          visibility: scope.visibility,
+          content,
+          attachmentsJson: normalizeForJson(params.metadata ?? {}) as never,
+          commentsCount: 0,
+          reactionsCount: 0,
+          createdByUserId: params.authUserId,
+          updatedByUserId: params.authUserId,
+          version: 1,
+          createdAt: now,
+          updatedAt: now,
+          deletedAt: null,
+          deletedByUserId: null,
+        },
+      });
+
+      if (scope.communityGroupId) {
+        await tx.communityGroup.update({
+          where: { id: scope.communityGroupId },
+          data: {
+            updatedByUserId: params.authUserId,
+            version: { increment: 1 },
+          },
+        });
+      }
+
+      const author = await tx.user.findUnique({
+        where: { id: params.authUserId },
+        select: { id: true, name: true, avatarUrl: true },
+      });
+      response = {
+        post: {
+          ...normalizeAs<SeedRow>(post),
+          author: author
+            ? normalizeAs<SeedRow>(author)
+            : {
+                id: params.authUserId,
+                name: params.authUserId,
+                avatarUrl: null,
+              },
+        },
+        dataVersion: null,
+      };
+
+      if (params.idempotencyKey) {
+        await tx.idempotencyKey.create({
+          data: {
+            id: newId('idk'),
+            userId: params.authUserId,
+            endpointKey: POST_CREATE_ENDPOINT_KEY,
+            idempotencyKey: params.idempotencyKey,
+            requestHash,
+            responseStatus: 201,
+            responseBodyJson: response as never,
+            expiresAt: new Date(now.getTime() + IDEMPOTENCY_TTL_MS),
+          },
+        });
+      }
+    });
+
+    if (!response) {
+      throw notFound('Post was not created');
+    }
+    return response;
   }
 
   async listPostComments(params: PostCommentListParams): Promise<PostCommentListResult> {

@@ -16,13 +16,20 @@ import {
   err,
   unauthorized,
   validationError,
+  serviceError,
 } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import { isExpoStaticRender } from '@/utils/runtime-environment';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { notificationService } from './notification-service';
-import { apiClient } from './api-client';
+import { api } from '@/constants/config';
+import { apiClient, apiFetch } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+} from '@/services/api-auth-context';
 
 type CreateClubPostInput = {
   clubId: string;
@@ -62,6 +69,38 @@ type CreateCoachPostInput = {
   clubId?: string;
   clubName?: string;
 };
+
+interface ApiPostAuthor {
+  id?: string;
+  name?: string | null;
+  avatarUrl?: string | null;
+}
+
+interface ApiPost {
+  id: string;
+  authorUserId?: string;
+  clubId?: string | null;
+  communityGroupId?: string | null;
+  visibility?: string | null;
+  content?: string | null;
+  attachmentsJson?: unknown;
+  commentsCount?: number;
+  reactionsCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  author?: ApiPostAuthor | null;
+}
+
+interface ApiPostCreateResponse {
+  post: ApiPost;
+}
+
+interface FeedApiContext {
+  currentUserId: string;
+  currentUserName: string;
+  currentUserAvatar?: string;
+  headers: Record<string, string>;
+}
 
 export interface CreateClubInput {
   ownerId: string;
@@ -439,6 +478,154 @@ let clubInvitesStore: ClubInvite[] = SEED_CLUBS.map((club) => ({
 }));
 const userReactions: Map<string, Set<string>> = new Map();
 const CLUB_POSTING_ROLES: ClubMembership['role'][] = ['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH'];
+const USE_MOCK = api.useMock;
+
+async function resolveFeedApiContext(message: string): Promise<Result<FeedApiContext, ServiceError>> {
+  const currentUserResult = await resolveSignedInApiUser(message);
+  if (!currentUserResult.success) {
+    return currentUserResult;
+  }
+
+  const currentUser = currentUserResult.data;
+  const currentUserName = [currentUser.firstName, currentUser.lastName].filter(Boolean).join(' ').trim();
+  return ok({
+    currentUserId: currentUser.id,
+    currentUserName: currentUserName || currentUser.email || currentUser.id,
+    currentUserAvatar: currentUser.photoUrl,
+    headers: buildApiAuthHeaders({
+      actingRole: deriveApiActingRole(currentUser, 'coach'),
+    }),
+  });
+}
+
+function coerceApiPostMetadata(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function metadataString(
+  metadata: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const value = metadata[key];
+  return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
+}
+
+function metadataPostType(metadata: Record<string, unknown>): ClubPostType {
+  const value = metadataString(metadata, 'postType');
+  return value === 'announcement' ||
+    value === 'photo' ||
+    value === 'video' ||
+    value === 'event' ||
+    value === 'general' ||
+    value === 'achievement' ||
+    value === 'session' ||
+    value === 'match' ||
+    value === 'session_announcement'
+    ? value
+    : 'general';
+}
+
+function metadataFeedType(metadata: Record<string, unknown>): FeedType {
+  const value = metadataString(metadata, 'feedType');
+  return value === 'PERSONAL' || value === 'BOTH' || value === 'CLUB' ? value : 'CLUB';
+}
+
+function metadataAudience(metadata: Record<string, unknown>): ClubFeedPost['audience'] {
+  const value = metadataString(metadata, 'audience');
+  return value === 'squad' || value === 'staff' || value === 'club' ? value : 'club';
+}
+
+function metadataPostAs(metadata: Record<string, unknown>): ClubFeedPost['postAs'] {
+  return metadataString(metadata, 'postAs') === 'club' ? 'club' : 'self';
+}
+
+function mapApiPostToClubFeedPost(
+  post: ApiPost,
+  context?: FeedApiContext,
+): ClubFeedPost {
+  const metadata = coerceApiPostMetadata(post.attachmentsJson);
+  const authorId = post.authorUserId || post.author?.id || context?.currentUserId;
+  return {
+    id: post.id,
+    clubId: post.clubId ?? '',
+    title: metadataString(metadata, 'title') || 'Update',
+    body: post.content?.trim() || '',
+    createdAt: post.createdAt ?? new Date().toISOString(),
+    audience: metadataAudience(metadata),
+    audienceLabel: metadataString(metadata, 'audienceLabel'),
+    authorId,
+    postAs: metadataPostAs(metadata),
+    postType: metadataPostType(metadata),
+    feedType: metadataFeedType(metadata),
+    badgeAwarded: metadataString(metadata, 'badgeAwarded'),
+    imageUrl: metadataString(metadata, 'imageUrl'),
+    videoUrl: metadataString(metadata, 'videoUrl'),
+    reactionCount: post.reactionsCount ?? 0,
+    commentCount: post.commentsCount ?? 0,
+    eventId: metadataString(metadata, 'eventId'),
+    eventDate: metadataString(metadata, 'eventDate'),
+    eventLocation: metadataString(metadata, 'eventLocation'),
+    sessionId: metadataString(metadata, 'sessionId'),
+    matchId: metadataString(metadata, 'matchId'),
+    athleteId: metadataString(metadata, 'athleteId'),
+    badgeId: metadataString(metadata, 'badgeId'),
+    badgeAwardId: metadataString(metadata, 'badgeAwardId'),
+  };
+}
+
+function mirrorClubFeedPost(post: ClubFeedPost): void {
+  const index = clubFeedStore.findIndex((candidate) => candidate.id === post.id);
+  if (index >= 0) {
+    clubFeedStore[index] = post;
+    return;
+  }
+  clubFeedStore.unshift(post);
+}
+
+function unsupportedApiPostMedia(input: Pick<CreateClubPostInput, 'attachments' | 'imageUrl' | 'videoUrl'>): boolean {
+  return Boolean(input.imageUrl || input.videoUrl || (input.attachments && input.attachments.length > 0));
+}
+
+function metadataForClubPost(input: CreateClubPostInput): Record<string, unknown> {
+  return {
+    title:
+      input.title ||
+      (input.postType === 'photo' ? 'Photo' : input.postType === 'video' ? 'Video' : 'Update'),
+    postType: input.postType || 'general',
+    postAs: input.postAs || 'self',
+    feedType: input.feedType || 'CLUB',
+    audience: input.audience || 'club',
+    audienceLabel: input.audienceLabel,
+    squadId: input.squadId,
+    eventId: input.eventId,
+    eventDate: input.eventDate,
+    eventLocation: input.eventLocation,
+    badgeAwarded: input.badgeAwarded,
+  };
+}
+
+function metadataForCoachPost(input: CreateCoachPostInput): Record<string, unknown> {
+  return {
+    title:
+      input.title ||
+      (input.postType === 'photo' ? 'Photo' : input.postType === 'video' ? 'Video' : 'Update'),
+    postType: input.postType || 'general',
+    postAs: 'self',
+    feedType: input.feedType || 'PERSONAL',
+    audience: 'club',
+    audienceLabel:
+      input.feedType === 'PERSONAL'
+        ? 'Personal Feed'
+        : input.feedType === 'BOTH'
+          ? 'Personal + Club'
+          : 'Club-wide',
+    eventId: input.eventId,
+    eventDate: input.eventDate,
+    eventLocation: input.eventLocation,
+  };
+}
 
 function getClubById(clubId: string): Club | undefined {
   return clubsStore.find((club) => club.id === clubId);
@@ -690,6 +877,10 @@ class ClubFeedService {
   }
 
   createPost(input: CreateClubPostInput): Result<ClubFeedPost, ServiceError> {
+    if (!USE_MOCK) {
+      return err(serviceError('UNKNOWN', 'Use backend post authority for API-mode feed publishing.'));
+    }
+
     if (!input.clubId) {
       return err(validationError('Club ID is required'));
     }
@@ -765,6 +956,57 @@ class ClubFeedService {
         input.authorId,
       );
     }
+
+    return ok(post);
+  }
+
+  async createPostAuthority(input: CreateClubPostInput): Promise<Result<ClubFeedPost, ServiceError>> {
+    if (USE_MOCK) {
+      return this.createPost(input);
+    }
+
+    if (!input.clubId) {
+      return err(validationError('Club ID is required'));
+    }
+    if (unsupportedApiPostMedia(input)) {
+      return err(validationError('Feed media posts require backend upload proof before publishing.'));
+    }
+
+    const body = input.body.trim();
+    if (!body) {
+      return err(validationError('Post content is required'));
+    }
+
+    const contextResult = await resolveFeedApiContext('Sign in to publish club posts');
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const context = contextResult.data;
+
+    const result = await apiFetch<ApiPostCreateResponse>('/v1/posts', {
+      method: 'POST',
+      headers: context.headers,
+      body: JSON.stringify({
+        clubId: input.clubId,
+        content: body,
+        visibility: 'CLUB',
+        metadata: metadataForClubPost(input),
+        idempotencyKey: generateId('post-create'),
+      }),
+    });
+    if (!result.success) {
+      return err(result.error);
+    }
+
+    const post = mapApiPostToClubFeedPost(result.data.post, context);
+    mirrorClubFeedPost(post);
+    this.logger.info('club_post_created_backend', {
+      postId: post.id,
+      clubId: post.clubId,
+      postType: post.postType,
+      audience: post.audience,
+      feedType: post.feedType,
+    });
 
     return ok(post);
   }
@@ -1612,6 +1854,10 @@ class ClubFeedService {
   }
 
   createCoachPost(input: CreateCoachPostInput): Result<ClubFeedPost, ServiceError> {
+    if (!USE_MOCK) {
+      return err(serviceError('UNKNOWN', 'Use backend post authority for API-mode feed publishing.'));
+    }
+
     const body = input.body.trim();
     if (!body && !input.imageUrl && !input.videoUrl) {
       return err(validationError('Post must have content, a photo, or a video'));
@@ -1678,6 +1924,66 @@ class ClubFeedService {
       feedType,
       postType: post.postType || 'general',
       clubId: clubId || undefined,
+    });
+
+    return ok(post);
+  }
+
+  async createCoachPostAuthority(input: CreateCoachPostInput): Promise<Result<ClubFeedPost, ServiceError>> {
+    if (USE_MOCK) {
+      return this.createCoachPost(input);
+    }
+
+    if (unsupportedApiPostMedia(input)) {
+      return err(validationError('Feed media posts require backend upload proof before publishing.'));
+    }
+
+    const body = input.body.trim();
+    if (!body) {
+      return err(validationError('Post content is required'));
+    }
+    if (!input.clubId) {
+      return err(validationError('Club ID is required for backend feed publishing'));
+    }
+
+    const contextResult = await resolveFeedApiContext('Sign in to publish coach posts');
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const context = contextResult.data;
+
+    const result = await apiFetch<ApiPostCreateResponse>('/v1/posts', {
+      method: 'POST',
+      headers: context.headers,
+      body: JSON.stringify({
+        clubId: input.clubId,
+        content: body,
+        visibility: 'CLUB',
+        metadata: metadataForCoachPost(input),
+        idempotencyKey: generateId('coach-post-create'),
+      }),
+    });
+    if (!result.success) {
+      return err(result.error);
+    }
+
+    const post = mapApiPostToClubFeedPost(result.data.post, context);
+    mirrorClubFeedPost(post);
+    this.logger.info('coach_post_created_backend', {
+      postId: post.id,
+      coachId: context.currentUserId,
+      clubId: post.clubId,
+      postType: post.postType,
+      feedType: post.feedType,
+    });
+
+    emitTyped(ServiceEvents.COACH_POST_CREATED, {
+      postId: post.id,
+      coachId: context.currentUserId,
+      coachName: context.currentUserName,
+      feedType: post.feedType || 'CLUB',
+      postType: post.postType || 'general',
+      clubId: post.clubId || undefined,
     });
 
     return ok(post);

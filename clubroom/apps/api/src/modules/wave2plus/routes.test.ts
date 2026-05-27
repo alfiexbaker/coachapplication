@@ -121,6 +121,59 @@ function findPrivilegedAdminUserId(tables: SeedTables, excludedUserIds = new Set
   return userId;
 }
 
+const STAFF_POST_ROLES = new Set(['ADMIN', 'CLUB_ADMIN', 'COACH', 'HEAD_COACH', 'OWNER', 'STAFF']);
+
+function isActiveMembership(row: SeedRow): boolean {
+  return asString(row.deletedAt) == null && row.active !== false;
+}
+
+function normalizedRole(value: unknown): string {
+  return String(value ?? '').trim().toUpperCase();
+}
+
+function canStaffPost(value: unknown): boolean {
+  return STAFF_POST_ROLES.has(normalizedRole(value));
+}
+
+function findClubPostActors(tables: SeedTables): {
+  clubId: string;
+  staffUserId: string;
+  staffRole: string;
+  memberUserId: string;
+  memberUserIds: Set<string>;
+} {
+  for (const staffMembership of asRows(tables.clubMemberships)) {
+    const clubId = asString(staffMembership.clubId);
+    const staffUserId = asString(staffMembership.userId);
+    if (!clubId || !staffUserId || !isActiveMembership(staffMembership) || !canStaffPost(staffMembership.role)) {
+      continue;
+    }
+
+    const clubMembers = asRows(tables.clubMemberships).filter(
+      (row) => asString(row.clubId) === clubId && isActiveMembership(row) && Boolean(asString(row.userId)),
+    );
+    const memberMembership = clubMembers.find((row) => !canStaffPost(row.role));
+    const memberUserId = asString(memberMembership?.userId);
+    if (!memberUserId) {
+      continue;
+    }
+
+    return {
+      clubId,
+      staffUserId,
+      staffRole: normalizedRole(staffMembership.role).toLowerCase(),
+      memberUserId,
+      memberUserIds: new Set(
+        clubMembers
+          .map((row) => asString(row.userId))
+          .filter((userId): userId is string => Boolean(userId)),
+      ),
+    };
+  }
+
+  throw new Error('expected club with active staff and member actors');
+}
+
 function authHeaders(
   tables: SeedTables,
   userId: string,
@@ -2120,6 +2173,239 @@ describe('wave2+ routes', () => {
       assert.equal(
         listedPayload.threads.some((thread) =>
           thread.messages.some((message) => message.content === 'DB fixture community write'),
+        ),
+        true,
+      );
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetDbFixtureStoreForTests();
+    }
+  });
+
+  it('creates staff feed posts through backend authority', async () => {
+    const tables = loadTables();
+    const { clubId, staffUserId, staffRole, memberUserId, memberUserIds } = findClubPostActors(tables);
+    const outsiderUserId = findUnprivilegedUserId(tables, memberUserIds);
+
+    const unauthenticated = await app.inject({
+      method: 'POST',
+      url: '/v1/posts',
+      payload: {
+        clubId,
+        content: 'Unauthenticated local state should not create posts',
+        idempotencyKey: 'staff-feed-post-unauth-test',
+      },
+    });
+    assert.equal(unauthenticated.statusCode, 403);
+
+    const deniedMember = await app.inject({
+      method: 'POST',
+      url: '/v1/posts',
+      headers: authHeaders(tables, memberUserId, 'member'),
+      payload: {
+        clubId,
+        content: 'Member top-level post spoof',
+        idempotencyKey: 'staff-feed-post-member-deny',
+      },
+    });
+    assert.equal(deniedMember.statusCode, 403);
+
+    const deniedOutsider = await app.inject({
+      method: 'POST',
+      url: '/v1/posts',
+      headers: authHeaders(tables, outsiderUserId),
+      payload: {
+        clubId,
+        content: 'Outsider top-level post spoof',
+        idempotencyKey: 'staff-feed-post-outsider-deny',
+      },
+    });
+    assert.equal(deniedOutsider.statusCode, 403);
+
+    const deniedMedia = await app.inject({
+      method: 'POST',
+      url: '/v1/posts',
+      headers: authHeaders(tables, staffUserId, staffRole),
+      payload: {
+        clubId,
+        content: 'Media must be proved before publishing',
+        attachments: [{ mediaObjectId: 'med_unproved' }],
+        idempotencyKey: 'staff-feed-post-media-deny',
+      },
+    });
+    assert.equal(deniedMedia.statusCode, 400);
+
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/posts',
+      headers: authHeaders(tables, staffUserId, staffRole),
+      payload: {
+        clubId,
+        content: 'Backend-owned staff update',
+        visibility: 'CLUB',
+        metadata: {
+          title: 'Training update',
+          postType: 'announcement',
+          postAs: 'club',
+          feedType: 'CLUB',
+          audience: 'club',
+          audienceLabel: 'Club-wide',
+        },
+        idempotencyKey: 'staff-feed-post-create-test',
+      },
+    });
+    assert.equal(created.statusCode, 201);
+    const createdPayload = created.json() as {
+      post: {
+        id: string;
+        clubId: string;
+        communityGroupId: string | null;
+        authorUserId: string;
+        content: string;
+        visibility: string;
+        attachmentsJson?: { title?: string; postType?: string };
+        commentsCount: number;
+        reactionsCount: number;
+      };
+    };
+    assert.equal(createdPayload.post.clubId, clubId);
+    assert.equal(createdPayload.post.communityGroupId, null);
+    assert.equal(createdPayload.post.authorUserId, staffUserId);
+    assert.equal(createdPayload.post.content, 'Backend-owned staff update');
+    assert.equal(createdPayload.post.visibility, 'CLUB');
+    assert.equal(createdPayload.post.attachmentsJson?.title, 'Training update');
+    assert.equal(createdPayload.post.attachmentsJson?.postType, 'announcement');
+    assert.equal(createdPayload.post.commentsCount, 0);
+    assert.equal(createdPayload.post.reactionsCount, 0);
+
+    const replayed = await app.inject({
+      method: 'POST',
+      url: '/v1/posts',
+      headers: authHeaders(tables, staffUserId, staffRole),
+      payload: {
+        clubId,
+        content: 'Backend-owned staff update',
+        visibility: 'CLUB',
+        metadata: {
+          title: 'Training update',
+          postType: 'announcement',
+          postAs: 'club',
+          feedType: 'CLUB',
+          audience: 'club',
+          audienceLabel: 'Club-wide',
+        },
+        idempotencyKey: 'staff-feed-post-create-test',
+      },
+    });
+    assert.equal(replayed.statusCode, 201);
+    const replayedPayload = replayed.json() as { post: { id: string } };
+    assert.equal(replayedPayload.post.id, createdPayload.post.id);
+
+    const conflict = await app.inject({
+      method: 'POST',
+      url: '/v1/posts',
+      headers: authHeaders(tables, staffUserId, staffRole),
+      payload: {
+        clubId,
+        content: 'Different post content cannot reuse the key',
+        visibility: 'CLUB',
+        metadata: {
+          title: 'Training update',
+          postType: 'announcement',
+          postAs: 'club',
+          feedType: 'CLUB',
+          audience: 'club',
+          audienceLabel: 'Club-wide',
+        },
+        idempotencyKey: 'staff-feed-post-create-test',
+      },
+    });
+    assert.equal(conflict.statusCode, 409);
+
+    const listedForMember = await app.inject({
+      method: 'GET',
+      url: '/v1/posts',
+      headers: authHeaders(tables, memberUserId, 'member'),
+    });
+    assert.equal(listedForMember.statusCode, 200);
+    const listedPayload = listedForMember.json() as { posts: Array<{ id: string; content: string }> };
+    assert.equal(
+      listedPayload.posts.some(
+        (post) => post.id === createdPayload.post.id && post.content === 'Backend-owned staff update',
+      ),
+      true,
+    );
+
+    const liveTables = getMarketplaceSeedStore().tables;
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'community.post.create',
+        resourceId: clubId,
+        result: 'DENY',
+      }).length >= 1,
+      true,
+    );
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'community.post.create',
+        resourceId: createdPayload.post.id,
+        result: 'SUCCESS',
+      }).length >= 1,
+      true,
+    );
+  });
+
+  it('uses the db fixture repository seam for staff feed post writes in db mode', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const tables = getDbFixtureStore().tables;
+      const { clubId, staffUserId, staffRole, memberUserId } = findClubPostActors(tables);
+
+      const created = await app.inject({
+        method: 'POST',
+        url: '/v1/posts',
+        headers: authHeaders(tables, staffUserId, staffRole),
+        payload: {
+          clubId,
+          content: 'DB fixture staff post',
+          visibility: 'CLUB',
+          metadata: {
+            title: 'DB fixture update',
+            postType: 'announcement',
+            postAs: 'club',
+            feedType: 'CLUB',
+            audience: 'club',
+            audienceLabel: 'Club-wide',
+          },
+          idempotencyKey: 'staff-feed-post-db-fixture-test',
+        },
+      });
+      assert.equal(created.statusCode, 201);
+      const createdPayload = created.json() as {
+        post: { id: string; clubId: string; authorUserId: string; content: string };
+      };
+      assert.equal(createdPayload.post.clubId, clubId);
+      assert.equal(createdPayload.post.authorUserId, staffUserId);
+      assert.equal(createdPayload.post.content, 'DB fixture staff post');
+
+      const storedPost = asRows(getDbFixtureStore().tables.posts).find(
+        (row) => asString(row.id) === createdPayload.post.id,
+      );
+      assert.equal(asString(storedPost?.authorUserId), staffUserId);
+      assert.equal(asString(storedPost?.clubId), clubId);
+
+      const listed = await app.inject({
+        method: 'GET',
+        url: '/v1/posts',
+        headers: authHeaders(tables, memberUserId, 'member'),
+      });
+      assert.equal(listed.statusCode, 200);
+      const listedPayload = listed.json() as { posts: Array<{ id: string; content: string }> };
+      assert.equal(
+        listedPayload.posts.some(
+          (post) => post.id === createdPayload.post.id && post.content === 'DB fixture staff post',
         ),
         true,
       );

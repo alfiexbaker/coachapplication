@@ -88,6 +88,23 @@ export default function CreateClubPostScreen() {
         <SubmitProgressState label="Publishing club post" style={styles.submitState} />
       ) : null}
 
+      {p.postError ? (
+        <Row
+          style={[
+            styles.errorBanner,
+            {
+              backgroundColor: withAlpha(palette.error, 0.08),
+              borderColor: withAlpha(palette.error, 0.24),
+            },
+          ]}
+        >
+          <Ionicons name="alert-circle-outline" size={18} color={palette.error} />
+          <ThemedText style={[styles.errorText, { color: palette.error }]}>
+            {p.postError}
+          </ThemedText>
+        </Row>
+      ) : null}
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -295,6 +312,17 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.md,
     marginTop: Spacing.sm,
   },
+  errorBanner: {
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
+  },
+  errorText: { ...Typography.caption, flex: 1 },
   clubIndicator: {
     alignItems: 'center',
     gap: Spacing.sm,

@@ -97,6 +97,7 @@ export function useCreateClubPost(clubId: string | undefined) {
   const [selectedSquadId, setSelectedSquadId] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [isPosting, setIsPosting] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
   const [availableSquads, setAvailableSquads] = useState<ClubSquad[]>([]);
   const [availableEvents, setAvailableEvents] = useState<ClubEvent[]>([]);
 
@@ -231,6 +232,7 @@ export function useCreateClubPost(clubId: string | undefined) {
   const removeImage = useCallback(() => {
     setImageUri(null);
     setVideoUri(null);
+    setPostError(null);
   }, []);
 
   const handleSetPostAs = useCallback(
@@ -267,10 +269,11 @@ export function useCreateClubPost(clubId: string | undefined) {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     setIsPosting(true);
+    setPostError(null);
     try {
       let posted = false;
       if (isCoach && (feedType === 'PERSONAL' || feedType === 'BOTH')) {
-        const result = await clubFeedService.createCoachPost({
+        const result = await clubFeedService.createCoachPostAuthority({
           coachId: currentUser.id,
           coachName: currentUser.fullName || currentUser.username || 'Unknown',
           title:
@@ -288,11 +291,14 @@ export function useCreateClubPost(clubId: string | undefined) {
           clubName: club?.name,
         });
         posted = result.success;
+        if (!result.success) {
+          setPostError(result.error.message);
+        }
       } else {
         const audience = audienceType === 'squad' && selectedSquadId ? 'squad' : 'club';
         const finalAudienceLabel =
           audienceType === 'squad' && selectedSquad ? selectedSquad.name : 'Club-wide';
-        const result = clubFeedService.createPost({
+        const result = await clubFeedService.createPostAuthority({
           clubId: resolvedClubId,
           authorId: currentUser.id,
           authorName:
@@ -316,6 +322,9 @@ export function useCreateClubPost(clubId: string | undefined) {
           eventLocation: eventLocation.trim() || undefined,
         });
         posted = result.success;
+        if (!result.success) {
+          setPostError(result.error.message);
+        }
       }
 
       if (posted) {
@@ -408,6 +417,7 @@ export function useCreateClubPost(clubId: string | undefined) {
     clearSelectedEvent,
     audienceLabel,
     isPosting,
+    postError,
     canPost,
     handlePost,
   };

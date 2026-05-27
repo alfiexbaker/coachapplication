@@ -218,6 +218,16 @@ const groupMessageCreateRequestSchema = z.object({
   attachments: z.array(z.unknown()).max(0, 'Message attachments require backend media proof before send').optional(),
 });
 
+const postCreateRequestSchema = z.object({
+  clubId: z.string().trim().min(1).optional(),
+  communityGroupId: z.string().trim().min(1).optional(),
+  content: z.string().trim().min(1).max(4000),
+  visibility: z.enum(['PUBLIC', 'CLUB', 'GROUP', 'PRIVATE']).optional(),
+  metadata: z.record(z.unknown()).optional(),
+  idempotencyKey: z.string().trim().min(8).max(120).optional(),
+  attachments: z.array(z.unknown()).max(0, 'Post attachments require backend media proof before publishing').optional(),
+});
+
 const postCommentCreateRequestSchema = z.object({
   content: z.string().trim().min(1).max(2000),
   parentCommentId: z.string().trim().min(1).optional(),
@@ -1774,6 +1784,63 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
+  });
+
+  app.post('/posts', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+    const body = postCreateRequestSchema.parse(request.body ?? {});
+
+    try {
+      const result = await resolveCommunityMediaRepository().createPost({
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        clubId: body.clubId,
+        communityGroupId: body.communityGroupId,
+        content: body.content,
+        visibility: body.visibility,
+        metadata: body.metadata,
+        idempotencyKey: body.idempotencyKey,
+      });
+
+      await recordAuditEvent({
+        request,
+        action: 'community.post.create',
+        resourceType: 'post',
+        resourceId: asString(result.post.id),
+        result: 'SUCCESS',
+        metadata: {
+          clubId: body.clubId,
+          communityGroupId: body.communityGroupId,
+          visibility: asString(result.post.visibility),
+          idempotencyKey: body.idempotencyKey,
+        },
+      });
+
+      return reply.status(201).send({
+        post: result.post,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'community.post.create',
+        resourceType: body.communityGroupId ? 'community_group' : 'club',
+        resourceId: body.communityGroupId ?? body.clubId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          clubId: body.clubId,
+          communityGroupId: body.communityGroupId,
+          idempotencyKey: body.idempotencyKey,
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
   });
 
   app.get('/posts/:postId/comments', async (request, reply) => {
