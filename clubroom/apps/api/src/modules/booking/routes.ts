@@ -909,6 +909,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       authUserId,
       isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
       sessionId,
+      requestId: request.requestId,
     });
 
     return reply.send({

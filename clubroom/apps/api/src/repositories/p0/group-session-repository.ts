@@ -135,6 +135,7 @@ export interface GroupSessionAccessParams {
   authUserId: string;
   isPrivilegedAdmin: boolean;
   sessionId: string;
+  requestId?: string;
 }
 
 export interface GroupSessionRegisterParams {
@@ -392,6 +393,17 @@ function normalizeSessionStatus(value: string | undefined): GroupSessionStatus {
     return normalized;
   }
   return 'DRAFT';
+}
+
+function assertSessionOpenForRegistration(sessionId: string, status: string | undefined): GroupSessionStatus {
+  const normalized = normalizeSessionStatus(status);
+  if (normalized !== 'PUBLISHED' && normalized !== 'FULL') {
+    throw badRequest('Group session is not open for registration', {
+      sessionId,
+      status: normalized,
+    });
+  }
+  return normalized;
 }
 
 function buildScheduleEntries(value: unknown): AppGroupSessionSchedule[] {
@@ -707,8 +719,10 @@ function cancelSeedBooking(
   booking: SeedRow,
   authUserId: string,
   reason: string,
+  metadataSource = 'group-session-registration',
 ): void {
   const now = isoNow();
+  const fromStatus = asString(booking.status)?.toUpperCase() ?? 'CONFIRMED';
   booking.status = 'CANCELLED';
   booking.cancelledAt = now;
   booking.cancelledByUserId = authUserId;
@@ -720,11 +734,11 @@ function cancelSeedBooking(
   asRows(tables.bookingStatusEvents).push({
     id: newId('bse'),
     bookingId: asString(booking.id),
-    fromStatus: 'CONFIRMED',
+    fromStatus,
     toStatus: 'CANCELLED',
     actorUserId: authUserId,
     reason,
-    metadataJson: { source: 'group-session-registration' },
+    metadataJson: { source: metadataSource },
     requestId: null,
     occurredAt: now,
   });
@@ -960,8 +974,71 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
       throw forbidden('Group session does not belong to authenticated user');
     }
 
+    const activeBookings = asRows(store.tables.bookings).filter(
+      (row) =>
+        asString(row.groupSessionId) === params.sessionId &&
+        asString(row.deletedAt) == null &&
+        asString(row.status)?.toUpperCase() !== 'CANCELLED',
+    );
+    const activeBookingIds = new Set(
+      activeBookings
+        .map((row) => asString(row.id))
+        .filter((bookingId): bookingId is string => Boolean(bookingId)),
+    );
+    const paidInvoice = asRows(store.tables.invoices).find(
+      (row) =>
+        activeBookingIds.has(asString(row.bookingId) ?? '') &&
+        asString(row.deletedAt) == null &&
+        asString(row.status)?.toUpperCase() === 'PAID',
+    );
+    if (paidInvoice) {
+      throw badRequest('Paid booking invoices require a refund workflow before cancellation', {
+        bookingId: asString(paidInvoice.bookingId),
+        invoiceId: asString(paidInvoice.id),
+      });
+    }
+
+    for (const booking of activeBookings) {
+      await applyBookingCancellationInvoiceEffects({
+        bookingId: asString(booking.id) ?? '',
+        actorUserId: params.authUserId,
+        reason: 'Group session cancelled.',
+        requestId: params.requestId,
+      });
+    }
+
+    const now = isoNow();
+    for (const registration of asRows(store.tables.groupSessionRegistrations).filter(
+      (row) =>
+        asString(row.groupSessionId) === params.sessionId &&
+        asString(row.deletedAt) == null &&
+        asString(row.status)?.toUpperCase() !== 'CANCELLED',
+    )) {
+      registration.status = 'CANCELLED';
+      registration.updatedAt = now;
+      registration.updatedByUserId = params.authUserId;
+      registration.version = (asNumber(registration.version) ?? 1) + 1;
+    }
+    for (const attendance of asRows(store.tables.attendanceRecords).filter(
+      (row) => asString(row.groupSessionId) === params.sessionId,
+    )) {
+      attendance.groupSessionId = null;
+      attendance.updatedAt = now;
+    }
+    for (const booking of activeBookings) {
+      cancelSeedBooking(
+        store.tables,
+        booking,
+        params.authUserId,
+        'Group session cancelled.',
+        'group-session-cancellation',
+      );
+    }
+
     session.status = 'CANCELLED';
-    session.updatedAt = isoNow();
+    session.currentParticipants = 0;
+    session.waitlistCount = 0;
+    session.updatedAt = now;
     session.updatedByUserId = params.authUserId;
     session.version = (asNumber(session.version) ?? 1) + 1;
     return {
@@ -979,6 +1056,7 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
       throw notFound('Group session not found', { sessionId: params.sessionId });
     }
     assertAthleteReadAccess(store.tables, params.authUserId, params.athleteId, params.isPrivilegedAdmin);
+    assertSessionOpenForRegistration(params.sessionId, asString(session.status));
 
     const registrations = asRows(store.tables.groupSessionRegistrations);
     const activeRegistration = registrations.find(
@@ -1657,13 +1735,81 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
     await this.assertSessionWriteAccess(params.authUserId, params.isPrivilegedAdmin, params.sessionId);
     const prisma = getPrismaClientOrThrow();
     const updated = normalizeForJson(
-      await prisma.groupSession.update({
-        where: { id: params.sessionId },
-        data: {
-          status: 'CANCELLED',
-          updatedByUserId: params.authUserId,
-          version: { increment: 1 },
-        },
+      await prisma.$transaction(async (tx) => {
+        const activeBookings = await tx.booking.findMany({
+          where: {
+            groupSessionId: params.sessionId,
+            deletedAt: null,
+            status: { not: 'CANCELLED' },
+          },
+          select: {
+            id: true,
+            status: true,
+          },
+        });
+        for (const booking of activeBookings) {
+          await applyBookingCancellationInvoiceEffectsInDbTransaction(tx, {
+            bookingId: booking.id,
+            actorUserId: params.authUserId,
+            reason: 'Group session cancelled.',
+            requestId: params.requestId,
+          });
+        }
+
+        const now = new Date();
+        await tx.groupSessionRegistration.updateMany({
+          where: {
+            groupSessionId: params.sessionId,
+            deletedAt: null,
+            status: { not: 'CANCELLED' },
+          },
+          data: {
+            status: 'CANCELLED',
+            updatedByUserId: params.authUserId,
+            version: { increment: 1 },
+          },
+        });
+        await tx.attendanceRecord.updateMany({
+          where: { groupSessionId: params.sessionId },
+          data: { groupSessionId: null },
+        });
+        for (const booking of activeBookings) {
+          await tx.booking.update({
+            where: { id: booking.id },
+            data: {
+              status: 'CANCELLED',
+              cancelledAt: now,
+              cancelledByUserId: params.authUserId,
+              cancelReason: 'Group session cancelled.',
+              updatedByUserId: params.authUserId,
+              version: { increment: 1 },
+            },
+          });
+          await tx.bookingStatusEvent.create({
+            data: {
+              id: newId('bse'),
+              bookingId: booking.id,
+              fromStatus: booking.status,
+              toStatus: 'CANCELLED',
+              actorUserId: params.authUserId,
+              reason: 'Group session cancelled.',
+              metadataJson: { source: 'group-session-cancellation' },
+              requestId: params.requestId ?? null,
+              occurredAt: now,
+            },
+          });
+        }
+
+        return tx.groupSession.update({
+          where: { id: params.sessionId },
+          data: {
+            status: 'CANCELLED',
+            currentParticipants: 0,
+            waitlistCount: 0,
+            updatedByUserId: params.authUserId,
+            version: { increment: 1 },
+          },
+        });
       }),
     ) as SeedRow;
 
@@ -1680,6 +1826,12 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
 
     await this.assertAthleteAccess(params.authUserId, params.athleteId, params.isPrivilegedAdmin);
     const prisma = getPrismaClientOrThrow();
+    const session = await this.assertSessionWriteAccess(
+      params.authUserId,
+      true,
+      params.sessionId,
+    );
+    assertSessionOpenForRegistration(params.sessionId, session.status);
     const existing = normalizeAs<PrismaRegistrationRow | null>(
       await prisma.groupSessionRegistration.findFirst({
         where: {
@@ -1723,11 +1875,6 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
       };
     }
 
-    const session = await this.assertSessionWriteAccess(
-      params.authUserId,
-      true,
-      params.sessionId,
-    );
     const currentParticipants = session.currentParticipants;
     const maxParticipants = session.maxParticipants;
     const isFull = maxParticipants > 0 && currentParticipants >= maxParticipants;
