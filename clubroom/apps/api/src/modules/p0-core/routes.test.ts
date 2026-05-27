@@ -2029,6 +2029,21 @@ describe('p0 core routes', () => {
       });
       assert.equal(deniedUnrelatedParentReview.statusCode, 403);
 
+      const deniedUnrelatedReviewStatus = await app.inject({
+        method: 'GET',
+        url: `/v1/bookings/${asString(bookingToComplete.id)}/reviews/me`,
+        headers: authHeaders(tables, unrelatedParentId, 'parent'),
+      });
+      assert.equal(deniedUnrelatedReviewStatus.statusCode, 403);
+
+      const initialReviewStatus = await app.inject({
+        method: 'GET',
+        url: `/v1/bookings/${asString(bookingToComplete.id)}/reviews/me`,
+        headers,
+      });
+      assert.equal(initialReviewStatus.statusCode, 200);
+      assert.equal((initialReviewStatus.json() as { hasReviewed: boolean }).hasReviewed, false);
+
       const submittedReview = await app.inject({
         method: 'POST',
         url: `/v1/bookings/${asString(bookingToComplete.id)}/reviews`,
@@ -2083,6 +2098,21 @@ describe('p0 core routes', () => {
         communication: 5,
         punctuality: 4,
       });
+
+      const submittedReviewStatus = await app.inject({
+        method: 'GET',
+        url: `/v1/bookings/${asString(bookingToComplete.id)}/reviews/me`,
+        headers,
+      });
+      assert.equal(submittedReviewStatus.statusCode, 200);
+      const submittedReviewStatusPayload = submittedReviewStatus.json() as {
+        hasReviewed: boolean;
+        review: { id: string; bookingId: string; reviewerUserId: string } | null;
+      };
+      assert.equal(submittedReviewStatusPayload.hasReviewed, true);
+      assert.equal(submittedReviewStatusPayload.review?.id, reviewPayload.review.id);
+      assert.equal(submittedReviewStatusPayload.review?.bookingId, asString(bookingToComplete.id));
+      assert.equal(submittedReviewStatusPayload.review?.reviewerUserId, bookedByUserId);
 
       const reviewReplay = await app.inject({
         method: 'POST',

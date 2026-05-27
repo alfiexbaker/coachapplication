@@ -108,6 +108,7 @@ These are minimum flows that must be traced before backend cutover by spine.
 - coach availability templates + overrides
 - direct booking wizard (parent and athlete variants)
 - booking review/confirmation/cancel/reopen
+- booking-linked review status/submission/profile proof
 - coach session completion and recurring-series derived status
 - group session registration + waitlist
 - recurring booking create/list/detail/cancel/pause/resume/update flows; update/reschedule is limited to existing future linked bookings and blocks invoice-linked changes until invoice adjustment semantics exist
@@ -202,6 +203,14 @@ No single manual pass is enough. Use a layered process:
 - Components: `components/ui/booking/*` (per repo guidance), plus booking wizard/review components
 - Services: `services/booking-service.ts`, `services/availability-service.ts`, `services/recurring-booking-service.ts`
 - API modules: `booking`, `availability`, `invites`, `group-sessions`
+
+### Booking-linked reviews
+
+- Routes: `app/review/[bookingId].tsx`, `app/(tabs)/bookings/[id].tsx`, coach profile review tabs
+- Services: `services/review-sync-service.ts`, `services/coach-service.ts`
+- API modules: `booking`, `coach-club`
+- Endpoints: `GET /v1/bookings/:bookingId/reviews/me`, `POST /v1/bookings/:bookingId/reviews`, `GET /v1/coaches/:coachId/reviews`
+- Authority: booked guardian/athlete status and submission only; public coach profile proof reads verified completed-booking reviews
 
 ### Family + medical + SEN
 

@@ -42,12 +42,21 @@ export interface BookingReviewResult {
   dataVersion: string | null;
 }
 
+export interface BookingReviewStatusResult {
+  review: BookingReviewResponse | null;
+  dataVersion: string | null;
+}
+
 export interface BookingReviewRepository {
   createBookingReview(params: {
     authUserId: string;
     bookingId: string;
     input: BookingReviewInput;
   }): Promise<BookingReviewResult>;
+  getBookingReviewForActor(params: {
+    authUserId: string;
+    bookingId: string;
+  }): Promise<BookingReviewStatusResult>;
   listCoachReviews(params: { coachUserId: string }): Promise<BookingReviewListResult>;
 }
 
@@ -185,6 +194,63 @@ function mapReviewRow(
 
 class StoreBookingReviewRepository implements BookingReviewRepository {
   constructor(private readonly storeProvider: () => { version: string; tables: SeedTables }) {}
+
+  async getBookingReviewForActor(params: {
+    authUserId: string;
+    bookingId: string;
+  }): Promise<BookingReviewStatusResult> {
+    const store = this.storeProvider();
+    const booking = asRows(store.tables.bookings).find(
+      (row) => asString(row.id) === params.bookingId && asString(row.deletedAt) == null,
+    );
+    if (!booking) {
+      throw notFound('Booking not found', { bookingId: params.bookingId });
+    }
+
+    const participants = asRows(store.tables.bookingParticipants).filter(
+      (row) => asString(row.bookingId) === params.bookingId && asString(row.deletedAt) == null,
+    );
+    const athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(store.tables);
+    const canReview = canUserReviewBooking({
+      booking,
+      participants,
+      athleteUserIdsByAthleteId,
+      userId: params.authUserId,
+    });
+    if (!canReview) {
+      throw forbidden('Only the booked family or athlete can read this booking review status', {
+        bookingId: params.bookingId,
+      });
+    }
+
+    const existing = asRows(store.tables.sessionFeedback).find((row) =>
+      isBookingReviewRow(row, params.bookingId, params.authUserId),
+    );
+    if (!existing) {
+      return { review: null, dataVersion: store.version };
+    }
+
+    const usersById = new Map(
+      asRows(store.tables.users)
+        .map((user) => [asString(user.id), user] as const)
+        .filter((entry): entry is [string, SeedRow] => Boolean(entry[0])),
+    );
+    const athletesById = new Map(
+      asRows(store.tables.athletes)
+        .map((athlete) => [asString(athlete.id), athlete] as const)
+        .filter((entry): entry is [string, SeedRow] => Boolean(entry[0])),
+    );
+    const athleteId = asString(existing.athleteId);
+
+    return {
+      review: mapReviewRow(existing, asString(booking.coachUserId) ?? '', {
+        reviewerName: displayNameForUser(usersById.get(params.authUserId)),
+        athleteName: athleteId ? displayNameForAthlete(athletesById.get(athleteId)) : null,
+        sessionType: asString(booking.serviceType) ?? null,
+      }),
+      dataVersion: store.version,
+    };
+  }
 
   async createBookingReview(params: {
     authUserId: string;
@@ -347,6 +413,86 @@ class StoreBookingReviewRepository implements BookingReviewRepository {
 }
 
 class PrismaBookingReviewRepository implements BookingReviewRepository {
+  async getBookingReviewForActor(params: {
+    authUserId: string;
+    bookingId: string;
+  }): Promise<BookingReviewStatusResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return dbFixtureRepository.getBookingReviewForActor(params);
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const booking = await prisma.booking.findFirst({
+      where: {
+        id: params.bookingId,
+        deletedAt: null,
+      },
+      include: {
+        participants: {
+          where: { deletedAt: null },
+          include: {
+            athlete: {
+              select: {
+                userId: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!booking) {
+      throw notFound('Booking not found', { bookingId: params.bookingId });
+    }
+
+    const canReview =
+      booking.bookedByUserId === params.authUserId ||
+      booking.participants.some(
+        (participant) =>
+          participant.guardianUserId === params.authUserId ||
+          participant.athlete.userId === params.authUserId,
+      );
+    if (!canReview) {
+      throw forbidden('Only the booked family or athlete can read this booking review status', {
+        bookingId: params.bookingId,
+      });
+    }
+
+    const existing = await prisma.sessionFeedback.findFirst({
+      where: {
+        bookingId: params.bookingId,
+        authorUserId: params.authUserId,
+        deletedAt: null,
+        rating: { not: null },
+      },
+      include: {
+        athlete: {
+          select: {
+            displayName: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (!existing) {
+      return { review: null, dataVersion: null };
+    }
+
+    return {
+      review: {
+        ...mapReviewRow(normalizeForJson(existing) as SeedRow, booking.coachUserId, {
+          reviewerName: null,
+          athleteName: existing.athlete.displayName,
+          sessionType: booking.serviceType ?? null,
+        }),
+        coachUserId: booking.coachUserId,
+        reviewerUserId: params.authUserId,
+        athleteId: existing.athleteId,
+        categories: {},
+      },
+      dataVersion: null,
+    };
+  }
+
   async createBookingReview(params: {
     authUserId: string;
     bookingId: string;

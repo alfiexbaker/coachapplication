@@ -861,6 +861,29 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     return reply.send(response);
   });
 
+  app.get('/bookings/:bookingId/reviews/me', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const bookingId = bookingIdSchema.parse(
+      (request.params as { bookingId?: string } | undefined)?.bookingId,
+    );
+    const repository = resolveBookingReviewRepository();
+    const result = await repository.getBookingReviewForActor({
+      authUserId,
+      bookingId,
+    });
+
+    return reply.send({
+      hasReviewed: Boolean(result.review),
+      review: result.review,
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
   app.post('/bookings/:bookingId/reviews', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {

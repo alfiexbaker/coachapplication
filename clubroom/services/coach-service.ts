@@ -8,7 +8,7 @@
 import { apiClient, apiFetch } from './api-client';
 import { createLogger } from '@/utils/logger';
 import type { Result, ServiceError } from '@/types/result';
-import { ok, err, notFound, storageError } from '@/types/result';
+import { ok, err, notFound, serviceError, storageError } from '@/types/result';
 import { accountIdsMatch } from '@/utils/account-id';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
@@ -449,6 +449,15 @@ export const coachService = {
     },
   ): Promise<Result<PublicReview, ServiceError>> {
     logger.info('Submitting review', { coachId, rating: review.rating });
+    if (!apiClient.isMockMode) {
+      return err(
+        serviceError(
+          'VALIDATION',
+          'Reviews must be submitted from a completed booking in API mode.',
+        ),
+      );
+    }
+
     try {
       const coaches = await apiClient.get<Coach[]>(COACHES_KEY, MOCK_COACHES);
       const canonicalCoachId =

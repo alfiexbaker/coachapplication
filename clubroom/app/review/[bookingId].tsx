@@ -28,8 +28,7 @@ import { ErrorState, EmptyState, SectionSkeleton } from '@/components/ui/screen-
 import { useToast } from '@/components/ui/toast';
 import { bookingService } from '@/services/booking-service';
 import {
-  getStoredCoachReviews,
-  isReviewForBookingByUser,
+  getBookingReviewStatus,
   submitBookingReview,
   type StoredCoachReview,
 } from '@/services/review-sync-service';
@@ -80,19 +79,12 @@ export default function ReviewScreen() {
     }
 
     try {
-      const [found, reviews] = await Promise.all([
-        bookingService.getBooking(bookingId),
-        getStoredCoachReviews(),
-      ]);
+      const found = await bookingService.getBooking(bookingId);
       if (!found) {
         return ok<BookingInfo | null>(null);
       }
 
-      const existingReview =
-        reviews.find((review) => isReviewForBookingByUser(review, bookingId, currentUser?.id)) ??
-        null;
-
-      return ok<BookingInfo | null>({
+      const bookingInfo: BookingInfo = {
         id: found.id,
         coachId: found.coachId,
         coachName: found.coachName ?? 'Coach',
@@ -101,8 +93,22 @@ export default function ReviewScreen() {
         service: found.service ?? 'Session',
         scheduledAt: found.scheduledAt,
         status: found.status,
-        existingReview,
+        existingReview: null,
+      };
+      const reviewStatus = await getBookingReviewStatus({
+        booking: bookingInfo,
+        currentUser,
       });
+      if (reviewStatus.success) {
+        bookingInfo.existingReview = reviewStatus.data;
+      } else {
+        logger.warn('Failed to load booking review status', {
+          bookingId,
+          error: reviewStatus.error,
+        });
+      }
+
+      return ok<BookingInfo | null>(bookingInfo);
     } catch (loadError) {
       logger.error('Failed to load booking', loadError);
       return err(

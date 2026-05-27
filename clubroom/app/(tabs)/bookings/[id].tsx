@@ -41,7 +41,7 @@ import {
 } from '@/utils/booking-display';
 import { Routes } from '@/navigation/routes';
 import { useRequiredParam } from '@/hooks/use-required-param';
-import { getStoredCoachReviews, isReviewForBookingByUser } from '@/services/review-sync-service';
+import { getBookingReviewStatus } from '@/services/review-sync-service';
 import { resolveDeepLink } from '@/utils/deep-link';
 import { buildBookingDeliverySummary } from '@/utils/booking-delivery';
 
@@ -194,15 +194,32 @@ export default function SessionDetailScreen() {
     }
 
     try {
-      const reviews = await getStoredCoachReviews();
-      const alreadyReviewed = reviews.some((review) => {
-        return isReviewForBookingByUser(review, bookingId, currentUser?.id);
+      if (!booking) {
+        setHasSubmittedReview(false);
+        return;
+      }
+      if (!booking.coachId) {
+        setHasSubmittedReview(false);
+        return;
+      }
+
+      const reviewStatus = await getBookingReviewStatus({
+        booking: {
+          id: bookingId,
+          coachId: booking.coachId,
+          coachName: booking.coach?.name,
+          athleteId: booking.clientId,
+          athleteName: booking.client?.name,
+          service: booking.service,
+          scheduledAt: booking.start,
+        },
+        currentUser,
       });
-      setHasSubmittedReview(alreadyReviewed);
+      setHasSubmittedReview(reviewStatus.success && Boolean(reviewStatus.data));
     } catch {
       setHasSubmittedReview(false);
     }
-  }, [booking?.status, bookingId, currentUser?.id, isCoach]);
+  }, [booking, bookingId, currentUser, isCoach]);
 
   useFocusEffect(
     useCallback(() => {

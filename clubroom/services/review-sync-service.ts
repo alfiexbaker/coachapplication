@@ -109,6 +109,12 @@ interface ApiBookingReviewResponse {
   requestId: string;
 }
 
+interface ApiBookingReviewStatusResponse {
+  hasReviewed: boolean;
+  review: ApiBookingReviewResponse['review'] | null;
+  requestId: string;
+}
+
 function dedupeById<T extends { id: string }>(rows: T[]): T[] {
   const seen = new Set<string>();
   const result: T[] = [];
@@ -268,6 +274,10 @@ function toStoredReviewFromApi(
 }
 
 export async function getStoredCoachReviews(): Promise<StoredCoachReview[]> {
+  if (!apiClient.isMockMode) {
+    return [];
+  }
+
   const rows = await apiClient.get<StoredCoachReview[]>(STORAGE_KEYS.RATE_COACH_REVIEWS, []);
   return dedupeById(rows);
 }
@@ -287,6 +297,14 @@ export function isReviewForBookingByUser(
 }
 
 export async function appendCoachReview(review: StoredCoachReview): Promise<void> {
+  if (!apiClient.isMockMode) {
+    logger.warn('Skipped local review mirror write outside mock mode', {
+      bookingId: review.bookingId,
+      reviewId: review.id,
+    });
+    return;
+  }
+
   const [rateReviews, publicReviews, domainReviews] = await Promise.all([
     apiClient.get<StoredCoachReview[]>(STORAGE_KEYS.RATE_COACH_REVIEWS, []),
     apiClient.get<PublicCoachReviewRecord[]>(STORAGE_KEYS.COACH_PUBLIC_REVIEWS, []),
@@ -311,6 +329,52 @@ export async function appendCoachReview(review: StoredCoachReview): Promise<void
     apiClient.set(STORAGE_KEYS.COACH_PUBLIC_REVIEWS, nextPublicReviews),
     apiClient.set(STORAGE_KEYS.REVIEWS, nextDomainReviews),
   ]);
+}
+
+export async function getBookingReviewStatus(input: {
+  booking: ReviewBookingContext;
+  currentUser?: ReviewCurrentUserContext | null;
+}): Promise<Result<StoredCoachReview | null, ServiceError>> {
+  if (!input.booking.id) {
+    return err(serviceError('VALIDATION', 'A booking is required to check review status.'));
+  }
+
+  if (apiClient.isMockMode) {
+    try {
+      const existingReview = (await getStoredCoachReviews()).find((review) =>
+        isReviewForBookingByUser(review, input.booking.id, input.currentUser?.id),
+      );
+      return ok(existingReview ?? null);
+    } catch (error) {
+      logger.error('Failed to load local booking review status', error);
+      return err(serviceError('STORAGE', 'Failed to load review status locally.', error));
+    }
+  }
+
+  const userResult = await resolveSignedInApiUser('Sign in to view this review status.');
+  if (!userResult.success) {
+    return err(userResult.error);
+  }
+
+  const actingRole = deriveApiActingRole(userResult.data, 'parent');
+  const headers = buildApiAuthHeaders({ actingRole });
+  const apiResult = await apiFetch<ApiBookingReviewStatusResponse>(
+    `/v1/bookings/${encodeURIComponent(input.booking.id)}/reviews/me`,
+    {
+      method: 'GET',
+      headers,
+    },
+  );
+
+  if (!apiResult.success) {
+    return err(apiResult.error);
+  }
+
+  if (!apiResult.data.hasReviewed || !apiResult.data.review) {
+    return ok(null);
+  }
+
+  return ok(toStoredReviewFromApi(apiResult.data.review, input.booking, input.currentUser));
 }
 
 export async function submitBookingReview(
@@ -373,16 +437,6 @@ export async function submitBookingReview(
   }
 
   const review = toStoredReviewFromApi(apiResult.data.review, input.booking, input.currentUser);
-
-  try {
-    await appendCoachReview(review);
-  } catch (mirrorError) {
-    logger.warn('Booking review submitted, but local review mirror failed', {
-      bookingId: input.booking.id,
-      reviewId: review.id,
-      error: String(mirrorError),
-    });
-  }
 
   return ok({ review, reused: apiResult.data.reused });
 }
