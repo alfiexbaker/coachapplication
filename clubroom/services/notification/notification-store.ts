@@ -179,6 +179,15 @@ class NotificationStore {
    */
   async markAsRead(id: string): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
     try {
+      if (!USE_MOCK) {
+        const result = await communityMediaAuthorityService.markNotificationRead(id);
+        if (!result.success) {
+          return result;
+        }
+        emitTyped(ServiceEvents.NOTIFICATION_READ, { notificationId: id });
+        return this.list();
+      }
+
       const [currentResult, overlays] = await Promise.all([this.list(), this.loadLocalOverlays()]);
       if (!currentResult.success) {
         return currentResult;
@@ -204,6 +213,15 @@ class NotificationStore {
    */
   async markAllAsRead(): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
     try {
+      if (!USE_MOCK) {
+        const result = await communityMediaAuthorityService.markAllNotificationsRead();
+        if (!result.success) {
+          return result;
+        }
+        emitTyped(ServiceEvents.NOTIFICATION_READ, { notificationId: '*' });
+        return this.list();
+      }
+
       const [currentResult, overlays] = await Promise.all([this.list(), this.loadLocalOverlays()]);
       if (!currentResult.success) {
         return currentResult;
@@ -229,6 +247,19 @@ class NotificationStore {
     id: string,
   ): Promise<Result<ExtendedNotificationItem | undefined, ServiceError>> {
     try {
+      if (!USE_MOCK) {
+        const readResult = await communityMediaAuthorityService.markNotificationRead(id);
+        if (!readResult.success) {
+          return readResult;
+        }
+        const overlays = await this.loadLocalOverlays();
+        await this.saveLocalOverlays(
+          this.upsertOverlay(overlays, { ...readResult.data, read: true, handled: true }),
+        );
+        emitTyped(ServiceEvents.NOTIFICATION_READ, { notificationId: id });
+        return ok({ ...readResult.data, read: true, handled: true });
+      }
+
       const [currentResult, overlays] = await Promise.all([this.list(), this.loadLocalOverlays()]);
       if (!currentResult.success) {
         return currentResult;
@@ -254,6 +285,15 @@ class NotificationStore {
    */
   async dismiss(id: string): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
     try {
+      if (!USE_MOCK) {
+        const result = await communityMediaAuthorityService.dismissNotification(id);
+        if (!result.success) {
+          return result;
+        }
+        emitTyped(ServiceEvents.NOTIFICATION_DISMISSED, { notificationId: id });
+        return this.list();
+      }
+
       const [currentResult, overlays] = await Promise.all([this.list(), this.loadLocalOverlays()]);
       if (!currentResult.success) {
         return currentResult;
@@ -282,17 +322,10 @@ class NotificationStore {
   async clearAll(): Promise<Result<void, ServiceError>> {
     try {
       if (!USE_MOCK) {
-        const [currentResult, overlays] = await Promise.all([this.list(), this.loadLocalOverlays()]);
-        if (!currentResult.success) {
-          return currentResult;
+        const result = await communityMediaAuthorityService.dismissAllNotifications();
+        if (!result.success) {
+          return result;
         }
-
-        const nextOverlays = currentResult.data.reduce(
-          (items, notification) =>
-            this.upsertOverlay(items, { ...notification, dismissed: true }),
-          overlays,
-        );
-        await this.saveLocalOverlays(nextOverlays);
       } else {
         await this.saveLocalOverlays([]);
       }

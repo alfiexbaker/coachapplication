@@ -157,6 +157,10 @@ const communityGroupParamsSchema = z.object({
   groupId: z.string().trim().min(1),
 });
 
+const notificationParamsSchema = z.object({
+  notificationId: z.string().trim().min(1),
+});
+
 const groupMessageCreateRequestSchema = z.object({
   body: z.string().trim().min(1).max(2000),
   idempotencyKey: z.string().trim().min(8).max(120).optional(),
@@ -1849,6 +1853,150 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
+  });
+
+  app.post('/me/notifications/read-all', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const result = await resolveCommunityMediaRepository().markAllNotificationsRead({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+    });
+
+    await recordAuditEvent({
+      request,
+      action: 'notification.read_all',
+      resourceType: 'notification',
+      result: 'SUCCESS',
+      metadata: {
+        count: result.notifications.length,
+      },
+    });
+
+    return reply.send({
+      notifications: result.notifications,
+      unreadCount: result.unreadCount,
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.post('/me/notifications/dismiss-all', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const result = await resolveCommunityMediaRepository().dismissAllNotifications({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+    });
+
+    await recordAuditEvent({
+      request,
+      action: 'notification.dismiss_all',
+      resourceType: 'notification',
+      result: 'SUCCESS',
+      metadata: {
+        count: result.notifications.length,
+      },
+    });
+
+    return reply.send({
+      notifications: result.notifications,
+      unreadCount: result.unreadCount,
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.post('/me/notifications/:notificationId/read', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    const params = notificationParamsSchema.parse(request.params ?? {});
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    try {
+      const result = await resolveCommunityMediaRepository().markNotificationRead({
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        notificationId: params.notificationId,
+      });
+
+      await recordAuditEvent({
+        request,
+        action: 'notification.read',
+        resourceType: 'notification',
+        resourceId: params.notificationId,
+        result: 'SUCCESS',
+      });
+
+      return reply.send({
+        notification: result.notification,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'notification.read',
+        resourceType: 'notification',
+        resourceId: params.notificationId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
+  });
+
+  app.post('/me/notifications/:notificationId/dismiss', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    const params = notificationParamsSchema.parse(request.params ?? {});
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    try {
+      const result = await resolveCommunityMediaRepository().dismissNotification({
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        notificationId: params.notificationId,
+      });
+
+      await recordAuditEvent({
+        request,
+        action: 'notification.dismiss',
+        resourceType: 'notification',
+        resourceId: params.notificationId,
+        result: 'SUCCESS',
+      });
+
+      return reply.send({
+        notification: result.notification,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'notification.dismiss',
+        resourceType: 'notification',
+        resourceId: params.notificationId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
   });
 
   app.get('/access-grants', async (request, reply) => {

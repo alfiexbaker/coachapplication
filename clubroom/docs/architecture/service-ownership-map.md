@@ -136,7 +136,8 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - `services/notification/index.ts`
 - Notification primitives live under the domain module even though root compatibility files also exist
 - Backend notification reads now have a db-aware authority route at `GET /v1/me/notifications`
-- Root notification services now read from `GET /v1/me/notifications` in non-mock mode and keep local AsyncStorage overlays only for unsupported write actions until backend notification mutation routes exist
+- Notification read/dismiss/clear state now uses `/v1/me/notifications/*` mutation routes in non-mock mode; the authenticated notification owner is the only mutable actor and denied cross-user writes are audited
+- Root notification services now read from `GET /v1/me/notifications` in non-mock mode and keep local AsyncStorage overlays only for unsupported create/handled/preference compatibility writes until those backend mutation routes exist
 
 ### Analytics
 

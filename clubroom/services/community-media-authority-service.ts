@@ -156,6 +156,15 @@ interface ApiNotificationListResponse {
   unreadCount?: number;
 }
 
+interface ApiNotificationMutationResponse {
+  notification: ApiNotification;
+}
+
+interface ApiNotificationBulkMutationResponse {
+  notifications: ApiNotification[];
+  unreadCount?: number;
+}
+
 interface AuthorityContext {
   currentUserId: string;
   currentUserAccountType?: string;
@@ -994,6 +1003,120 @@ class CommunityMediaAuthorityService {
       return stateResult;
     }
     return ok(stateResult.data.notifications);
+  }
+
+  async markNotificationRead(
+    notificationId: string,
+  ): Promise<Result<AuthorityNotificationItem, ServiceError>> {
+    const contextResult = await resolveContext('Sign in to update notifications.');
+    if (!contextResult.success) {
+      return contextResult;
+    }
+
+    const result = await apiFetch<ApiNotificationMutationResponse>(
+      `/v1/me/notifications/${encodeURIComponent(notificationId)}/read`,
+      {
+        method: 'POST',
+        headers: contextResult.data.headers,
+        body: JSON.stringify({}),
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to mark notification read via API', { notificationId, error: result.error });
+      return err(result.error);
+    }
+
+    return ok(
+      mapNotification(
+        result.data.notification,
+        contextResult.data.currentUserId,
+        contextResult.data.currentUserAccountType,
+      ),
+    );
+  }
+
+  async markAllNotificationsRead(): Promise<Result<AuthorityNotificationItem[], ServiceError>> {
+    const contextResult = await resolveContext('Sign in to update notifications.');
+    if (!contextResult.success) {
+      return contextResult;
+    }
+
+    const result = await apiFetch<ApiNotificationBulkMutationResponse>('/v1/me/notifications/read-all', {
+      method: 'POST',
+      headers: contextResult.data.headers,
+      body: JSON.stringify({}),
+    });
+    if (!result.success) {
+      logger.error('Failed to mark all notifications read via API', { error: result.error });
+      return err(result.error);
+    }
+
+    return ok(
+      result.data.notifications.map((notification) =>
+        mapNotification(
+          notification,
+          contextResult.data.currentUserId,
+          contextResult.data.currentUserAccountType,
+        ),
+      ),
+    );
+  }
+
+  async dismissNotification(
+    notificationId: string,
+  ): Promise<Result<AuthorityNotificationItem, ServiceError>> {
+    const contextResult = await resolveContext('Sign in to update notifications.');
+    if (!contextResult.success) {
+      return contextResult;
+    }
+
+    const result = await apiFetch<ApiNotificationMutationResponse>(
+      `/v1/me/notifications/${encodeURIComponent(notificationId)}/dismiss`,
+      {
+        method: 'POST',
+        headers: contextResult.data.headers,
+        body: JSON.stringify({}),
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to dismiss notification via API', { notificationId, error: result.error });
+      return err(result.error);
+    }
+
+    return ok(
+      mapNotification(
+        result.data.notification,
+        contextResult.data.currentUserId,
+        contextResult.data.currentUserAccountType,
+      ),
+    );
+  }
+
+  async dismissAllNotifications(): Promise<Result<AuthorityNotificationItem[], ServiceError>> {
+    const contextResult = await resolveContext('Sign in to update notifications.');
+    if (!contextResult.success) {
+      return contextResult;
+    }
+
+    const result = await apiFetch<ApiNotificationBulkMutationResponse>('/v1/me/notifications/dismiss-all', {
+      method: 'POST',
+      headers: contextResult.data.headers,
+      body: JSON.stringify({}),
+    });
+    if (!result.success) {
+      logger.error('Failed to dismiss all notifications via API', { error: result.error });
+      return err(result.error);
+    }
+
+    return ok(
+      result.data.notifications.map((notification) =>
+        mapNotification(
+          notification,
+          contextResult.data.currentUserId,
+          contextResult.data.currentUserAccountType,
+        ),
+      ),
+    );
   }
 
   async getNotificationPreferences(): Promise<

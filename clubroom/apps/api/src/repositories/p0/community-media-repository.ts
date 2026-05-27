@@ -66,6 +66,21 @@ export interface NotificationListResult {
   dataVersion: string | null;
 }
 
+export interface NotificationMutationParams extends CommunityMediaAccessParams {
+  notificationId: string;
+}
+
+export interface NotificationMutationResult {
+  notification: SeedRow;
+  dataVersion: string | null;
+}
+
+export interface NotificationBulkMutationResult {
+  notifications: SeedRow[];
+  unreadCount: number;
+  dataVersion: string | null;
+}
+
 export interface GroupMessageCreateResult {
   message: SeedRow;
   thread: SeedRow;
@@ -82,6 +97,10 @@ export interface CommunityMediaRepository {
   listPosts(params: PostListParams): Promise<PostListResult>;
   listMessageThreads(params: CommunityMediaAccessParams): Promise<MessageThreadListResult>;
   listNotifications(params: CommunityMediaAccessParams): Promise<NotificationListResult>;
+  markNotificationRead(params: NotificationMutationParams): Promise<NotificationMutationResult>;
+  markAllNotificationsRead(params: CommunityMediaAccessParams): Promise<NotificationBulkMutationResult>;
+  dismissNotification(params: NotificationMutationParams): Promise<NotificationMutationResult>;
+  dismissAllNotifications(params: CommunityMediaAccessParams): Promise<NotificationBulkMutationResult>;
   createGroupMessage(params: GroupMessageCreateParams): Promise<GroupMessageCreateResult>;
   markGroupMessagesRead(params: GroupMessageReadParams): Promise<GroupMessageReadResult>;
 }
@@ -168,6 +187,33 @@ function hydrateStoreThread(tables: SeedTables, thread: SeedRow): SeedRow {
     ),
     messages: messages.map((message) => hydrateStoreMessage(tables, message)),
   };
+}
+
+function isVisibleNotification(row: SeedRow): boolean {
+  return asString(row.dismissedAt) == null && String(row.status ?? '').toUpperCase() !== 'DISMISSED';
+}
+
+function notificationUnreadCount(rows: SeedRow[]): number {
+  return rows.filter((row) => isVisibleNotification(row) && asString(row.status) !== 'READ').length;
+}
+
+function storeNotificationsForUser(tables: SeedTables, authUserId: string): SeedRow[] {
+  return asRows(tables.notifications).filter((row) => asString(row.userId) === authUserId);
+}
+
+function findMutableStoreNotification(
+  tables: SeedTables,
+  notificationId: string,
+  authUserId: string,
+): SeedRow {
+  const notification = asRows(tables.notifications).find((row) => asString(row.id) === notificationId);
+  if (!notification) {
+    throw notFound('Notification not found', { notificationId });
+  }
+  if (asString(notification.userId) !== authUserId) {
+    throw forbidden('Notification does not belong to authenticated user', { notificationId });
+  }
+  return notification;
 }
 
 function activeGroupMemberships(tables: SeedTables, communityGroupId: string): SeedRow[] {
@@ -424,7 +470,73 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       ),
       quietHours:
         asRows(store.tables.quietHours).find((row) => asString(row.userId) === params.authUserId) ?? null,
-      unreadCount: notifications.filter((row) => asString(row.status) !== 'READ').length,
+      unreadCount: notificationUnreadCount(notifications),
+      dataVersion: store.version,
+    };
+  }
+
+  async markNotificationRead(params: NotificationMutationParams): Promise<NotificationMutationResult> {
+    const store = this.storeProvider();
+    const notification = findMutableStoreNotification(
+      store.tables,
+      params.notificationId,
+      params.authUserId,
+    );
+    const now = nowIso();
+    notification.status = 'READ';
+    notification.readAt = asString(notification.readAt) ?? now;
+    notification.updatedAt = now;
+    return {
+      notification,
+      dataVersion: store.version,
+    };
+  }
+
+  async markAllNotificationsRead(params: CommunityMediaAccessParams): Promise<NotificationBulkMutationResult> {
+    const store = this.storeProvider();
+    const notifications = storeNotificationsForUser(store.tables, params.authUserId);
+    const now = nowIso();
+    for (const notification of notifications.filter(isVisibleNotification)) {
+      notification.status = 'READ';
+      notification.readAt = asString(notification.readAt) ?? now;
+      notification.updatedAt = now;
+    }
+    return {
+      notifications,
+      unreadCount: notificationUnreadCount(notifications),
+      dataVersion: store.version,
+    };
+  }
+
+  async dismissNotification(params: NotificationMutationParams): Promise<NotificationMutationResult> {
+    const store = this.storeProvider();
+    const notification = findMutableStoreNotification(
+      store.tables,
+      params.notificationId,
+      params.authUserId,
+    );
+    const now = nowIso();
+    notification.status = 'DISMISSED';
+    notification.dismissedAt = asString(notification.dismissedAt) ?? now;
+    notification.updatedAt = now;
+    return {
+      notification,
+      dataVersion: store.version,
+    };
+  }
+
+  async dismissAllNotifications(params: CommunityMediaAccessParams): Promise<NotificationBulkMutationResult> {
+    const store = this.storeProvider();
+    const notifications = storeNotificationsForUser(store.tables, params.authUserId);
+    const now = nowIso();
+    for (const notification of notifications.filter(isVisibleNotification)) {
+      notification.status = 'DISMISSED';
+      notification.dismissedAt = asString(notification.dismissedAt) ?? now;
+      notification.updatedAt = now;
+    }
+    return {
+      notifications,
+      unreadCount: notificationUnreadCount(notifications),
       dataVersion: store.version,
     };
   }
@@ -801,7 +913,131 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       preferences: normalizeAs<SeedRow | null>(preferences),
       mutedSources: normalizeAs<SeedRow[]>(mutedSources),
       quietHours: normalizeAs<SeedRow | null>(quietHours),
-      unreadCount: normalizedNotifications.filter((row) => asString(row.status) !== 'READ').length,
+      unreadCount: notificationUnreadCount(normalizedNotifications),
+      dataVersion: null,
+    };
+  }
+
+  async markNotificationRead(params: NotificationMutationParams): Promise<NotificationMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.markNotificationRead(params);
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const notification = await prisma.notification.findUnique({
+      where: { id: params.notificationId },
+    });
+    if (!notification) {
+      throw notFound('Notification not found', { notificationId: params.notificationId });
+    }
+    if (notification.userId !== params.authUserId) {
+      throw forbidden('Notification does not belong to authenticated user', {
+        notificationId: params.notificationId,
+      });
+    }
+
+    const updated = await prisma.notification.update({
+      where: { id: params.notificationId },
+      data: {
+        status: 'READ',
+        readAt: notification.readAt ?? new Date(),
+      },
+    });
+    return {
+      notification: normalizeAs<SeedRow>(updated),
+      dataVersion: null,
+    };
+  }
+
+  async markAllNotificationsRead(params: CommunityMediaAccessParams): Promise<NotificationBulkMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.markAllNotificationsRead(params);
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const now = new Date();
+    await prisma.notification.updateMany({
+      where: {
+        userId: params.authUserId,
+        dismissedAt: null,
+        status: { not: 'DISMISSED' },
+      },
+      data: {
+        status: 'READ',
+        readAt: now,
+      },
+    });
+    const notifications = normalizeAs<SeedRow[]>(
+      await prisma.notification.findMany({
+        where: { userId: params.authUserId },
+        orderBy: { createdAt: 'desc' },
+      }),
+    );
+    return {
+      notifications,
+      unreadCount: notificationUnreadCount(notifications),
+      dataVersion: null,
+    };
+  }
+
+  async dismissNotification(params: NotificationMutationParams): Promise<NotificationMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.dismissNotification(params);
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const notification = await prisma.notification.findUnique({
+      where: { id: params.notificationId },
+    });
+    if (!notification) {
+      throw notFound('Notification not found', { notificationId: params.notificationId });
+    }
+    if (notification.userId !== params.authUserId) {
+      throw forbidden('Notification does not belong to authenticated user', {
+        notificationId: params.notificationId,
+      });
+    }
+
+    const updated = await prisma.notification.update({
+      where: { id: params.notificationId },
+      data: {
+        status: 'DISMISSED',
+        dismissedAt: notification.dismissedAt ?? new Date(),
+      },
+    });
+    return {
+      notification: normalizeAs<SeedRow>(updated),
+      dataVersion: null,
+    };
+  }
+
+  async dismissAllNotifications(params: CommunityMediaAccessParams): Promise<NotificationBulkMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.dismissAllNotifications(params);
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const now = new Date();
+    await prisma.notification.updateMany({
+      where: {
+        userId: params.authUserId,
+        dismissedAt: null,
+        status: { not: 'DISMISSED' },
+      },
+      data: {
+        status: 'DISMISSED',
+        dismissedAt: now,
+      },
+    });
+    const notifications = normalizeAs<SeedRow[]>(
+      await prisma.notification.findMany({
+        where: { userId: params.authUserId },
+        orderBy: { createdAt: 'desc' },
+      }),
+    );
+    return {
+      notifications,
+      unreadCount: notificationUnreadCount(notifications),
       dataVersion: null,
     };
   }

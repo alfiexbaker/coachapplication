@@ -4,13 +4,21 @@ Date: 2026-05-27
 
 ## Latest Update
 
+1. Continued `PROD-API-02` with the notification read/dismiss authority slice.
+2. Added backend-owned notification mutation routes: `POST /v1/me/notifications/:notificationId/read`, `POST /v1/me/notifications/:notificationId/dismiss`, `POST /v1/me/notifications/read-all`, and `POST /v1/me/notifications/dismiss-all`.
+3. Notification read/dismiss state now requires authenticated owner scope; cross-user mutations are denied and audited, while bulk read/clear runs against the authenticated user's notifications only.
+4. `notificationStore` now uses the `/v1` mutation routes outside mock mode; local read/dismiss/clear overlays are no longer API-mode authority.
+5. Verification: `npm --prefix apps/api run typecheck`, `npm run typecheck`, focused `LOG_LEVEL=fatal npx tsx --test src/modules/wave2plus/routes.test.ts` passed (`30/30`), and `npm run verify:slice:full` passed with API tests `109/109` and `0` new API-boundary findings.
+
+## Previous Update
+
 1. Continued `PROD-API-02` with the community group messaging write authority slice.
 2. Added backend-owned `POST /v1/community-groups/:groupId/messages` and `POST /v1/community-groups/:groupId/messages/read`.
 3. Group message sender/read state now comes from authenticated active group membership; outsiders are denied, message create uses idempotency replay/conflict, and allowed/denied write paths are audited.
 4. `communityMessagingService` now uses the `/v1` routes outside mock mode; local group-message and read-receipt overlays are mock-only.
 5. Verification: `npm --prefix apps/api run typecheck`, `npm run typecheck`, focused `LOG_LEVEL=fatal npx tsx --test src/modules/wave2plus/routes.test.ts` passed (`29/29`), and `npm run verify:slice:full` passed with API tests `108/108` and `0` new API-boundary findings.
 
-## Previous Update
+## Earlier Update
 
 1. Continued `PROD-API-01` with the seed-only route cleanup slice.
 2. `/v1/meta/seed-health` now requires an authenticated privileged admin before exposing internal seed coverage counters.
@@ -225,14 +233,14 @@ Date: 2026-05-27
 1. The rules are now strong enough to block new obvious slop, but not enough to claim elite production readiness.
 2. Main risk is API/source-of-truth maturity, not static UI quality.
 3. The current API boundary baseline is a ratchet, not a release pass: `102` legacy `/api/*`, `148` trust-sensitive local-storage patterns, `5` route literals, and `2` frontend raw fetches remain.
-4. Booking create/list/detail/cancel/reopen/complete are improved with db-fixture parent/coach/deny proof, completion now creates backend attendance plus progress-visible session-note proof records, repeat booking context now resolves through backend-visible booking truth, saved coaches now use self-scoped backend favourite relationships, and booking review status/submission now run through completed-booking backend authority without API-mode local review mirrors; coach profile review reads now use verified backend proof; multi-week package plus initial recurring-plan creation/list/detail/cancel/pause/resume/update now use backend series authority, recurring reschedule/cancel syncs or voids mutable linked invoices while blocking settled invoices, invoice money transitions now require authoritative booking linkage, legacy earnings payment/refund writes fail closed outside mock, direct invite create/respond has backend idempotency/replay hardening, direct invite acceptance creates db-mode bookings through booking repository authority, invite writes now emit allowed/denied audit events, guardian sharing invite/list/accept/decline/cancel/remove now uses backend family authority, billable group-session registration and waitlist promotion link booking/invoice/payment proof, group registration and session cancellation now apply invoice/refund hard walls, group session cancellation fans out to registrations/bookings/attendance, cancelled sessions reject new registration, group attendance writes now emit audit events, community group message send/read now uses backend authority, media/video creation now requires backend upload finalization plus clean scan proof, and injury frontend linkup now uses `/v1` without local fallback outside mock. Club admin operations, remaining feed/comment/notification writes, full invite repository extraction, broader profile/storefront proof cleanup, and real malware scanning/storage verification remain the highest-risk gaps.
+4. Booking create/list/detail/cancel/reopen/complete are improved with db-fixture parent/coach/deny proof, completion now creates backend attendance plus progress-visible session-note proof records, repeat booking context now resolves through backend-visible booking truth, saved coaches now use self-scoped backend favourite relationships, and booking review status/submission now run through completed-booking backend authority without API-mode local review mirrors; coach profile review reads now use verified backend proof; multi-week package plus initial recurring-plan creation/list/detail/cancel/pause/resume/update now use backend series authority, recurring reschedule/cancel syncs or voids mutable linked invoices while blocking settled invoices, invoice money transitions now require authoritative booking linkage, legacy earnings payment/refund writes fail closed outside mock, direct invite create/respond has backend idempotency/replay hardening, direct invite acceptance creates db-mode bookings through booking repository authority, invite writes now emit allowed/denied audit events, guardian sharing invite/list/accept/decline/cancel/remove now uses backend family authority, billable group-session registration and waitlist promotion link booking/invoice/payment proof, group registration and session cancellation now apply invoice/refund hard walls, group session cancellation fans out to registrations/bookings/attendance, cancelled sessions reject new registration, group attendance writes now emit audit events, community group message send/read and notification read/dismiss/clear now use backend authority, media/video creation now requires backend upload finalization plus clean scan proof, and injury frontend linkup now uses `/v1` without local fallback outside mock. Club admin operations, remaining feed/comment/notification-preference writes, full invite repository extraction, broader profile/storefront proof cleanup, and real malware scanning/storage verification remain the highest-risk gaps.
 5. Production rehearsal must wait until P0 journeys have API authority plus UI linkup packets complete.
 
 ## Next Exact Action
 
 1. Clear the Supabase staging database readiness issue that makes `npm run smoke:api-mode:strict` fail with `DATABASE_UNAVAILABLE`.
 2. Keep `OBS-RUNTIME-01` green: Sentry is clean, API-mode Expo must continue to start only with `apps/api` reachable.
-3. Continue backend-authoritative delivery burn-down with the next high-risk slice: full invite repository extraction, club admin operations, remaining feed/comment/notification writes, broader profile/storefront proof cleanup, or guardian permission/versioning.
+3. Continue backend-authoritative delivery burn-down with the next high-risk slice: full invite repository extraction, club admin operations, remaining feed/comment/notification-preference writes, broader profile/storefront proof cleanup, or guardian permission/versioning.
 4. Keep remaining seed-only/scaffolded route cleanup moving; `/v1/meta/seed-health` and `/v1/drills` are now auth-gated but still not launch product surfaces.
 5. Keep `node ./scripts/api-boundary-audit.js` green on every slice.
 6. Do not run production rehearsal until booking, child readiness, payment/refund, attendance, proof, club operations, and compliance evidence have backend-authoritative launch paths.

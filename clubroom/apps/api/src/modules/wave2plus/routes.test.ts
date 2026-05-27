@@ -1528,6 +1528,121 @@ describe('wave2+ routes', () => {
     });
   });
 
+  it('mutates notification read and dismiss state through backend authority', async () => {
+    const tables = loadTables();
+    const notification = asRows(tables.notifications).find(
+      (row) => Boolean(asString(row.id)) && Boolean(asString(row.userId)),
+    );
+    assert.ok(notification, 'expected seeded notification');
+    const notificationId = asString(notification.id) as string;
+    const ownerUserId = asString(notification.userId) as string;
+    const outsiderUserId = findUnprivilegedUserId(tables, new Set([ownerUserId]));
+
+    const deniedRead = await app.inject({
+      method: 'POST',
+      url: `/v1/me/notifications/${notificationId}/read`,
+      headers: authHeaders(tables, outsiderUserId),
+    });
+    assert.equal(deniedRead.statusCode, 403);
+
+    const read = await app.inject({
+      method: 'POST',
+      url: `/v1/me/notifications/${notificationId}/read`,
+      headers: authHeaders(tables, ownerUserId),
+    });
+    assert.equal(read.statusCode, 200);
+    const readPayload = read.json() as {
+      notification: { id: string; status: string; readAt: string | null };
+    };
+    assert.equal(readPayload.notification.id, notificationId);
+    assert.equal(readPayload.notification.status, 'READ');
+    assert.equal(Boolean(readPayload.notification.readAt), true);
+
+    const dismiss = await app.inject({
+      method: 'POST',
+      url: `/v1/me/notifications/${notificationId}/dismiss`,
+      headers: authHeaders(tables, ownerUserId),
+    });
+    assert.equal(dismiss.statusCode, 200);
+    const dismissPayload = dismiss.json() as {
+      notification: { id: string; status: string; dismissedAt: string | null };
+    };
+    assert.equal(dismissPayload.notification.id, notificationId);
+    assert.equal(dismissPayload.notification.status, 'DISMISSED');
+    assert.equal(Boolean(dismissPayload.notification.dismissedAt), true);
+
+    const listed = await app.inject({
+      method: 'GET',
+      url: '/v1/me/notifications',
+      headers: authHeaders(tables, ownerUserId),
+    });
+    assert.equal(listed.statusCode, 200);
+    const listedPayload = listed.json() as {
+      notifications: Array<{ id: string; dismissedAt: string | null }>;
+      unreadCount: number;
+    };
+    assert.equal(
+      listedPayload.notifications.some(
+        (candidate) => candidate.id === notificationId && Boolean(candidate.dismissedAt),
+      ),
+      true,
+    );
+    assert.equal(listedPayload.unreadCount >= 0, true);
+
+    const allRead = await app.inject({
+      method: 'POST',
+      url: '/v1/me/notifications/read-all',
+      headers: authHeaders(tables, ownerUserId),
+    });
+    assert.equal(allRead.statusCode, 200);
+    const allReadPayload = allRead.json() as {
+      notifications: Array<{ userId: string; status: string; dismissedAt: string | null }>;
+      unreadCount: number;
+    };
+    assert.equal(allReadPayload.unreadCount, 0);
+    assert.equal(
+      allReadPayload.notifications
+        .filter((candidate) => candidate.userId === ownerUserId && !candidate.dismissedAt)
+        .every((candidate) => candidate.status === 'READ'),
+      true,
+    );
+
+    const dismissAll = await app.inject({
+      method: 'POST',
+      url: '/v1/me/notifications/dismiss-all',
+      headers: authHeaders(tables, ownerUserId),
+    });
+    assert.equal(dismissAll.statusCode, 200);
+    const dismissAllPayload = dismissAll.json() as {
+      notifications: Array<{ userId: string; dismissedAt: string | null }>;
+      unreadCount: number;
+    };
+    assert.equal(dismissAllPayload.unreadCount, 0);
+    assert.equal(
+      dismissAllPayload.notifications
+        .filter((candidate) => candidate.userId === ownerUserId)
+        .every((candidate) => Boolean(candidate.dismissedAt)),
+      true,
+    );
+
+    const liveTables = getMarketplaceSeedStore().tables;
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'notification.read',
+        resourceId: notificationId,
+        result: 'DENY',
+      }).length >= 1,
+      true,
+    );
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'notification.dismiss_all',
+        result: 'SUCCESS',
+      }).length >= 1,
+      true,
+    );
+  });
+
   it('uses the db fixture repository seam for active community and media reads in db mode', async () => {
     const previousBackend = env.API_DATA_BACKEND;
     env.API_DATA_BACKEND = 'db';
