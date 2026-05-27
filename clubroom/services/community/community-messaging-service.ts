@@ -11,7 +11,15 @@
 
 import { GroupMessage, ChatAttachment } from '@/constants/types';
 import { generateId } from '@/utils/generate-id';
-import { type Result, type ServiceError, ok, err, storageError, unauthorized } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  storageError,
+  unauthorized,
+  validationError,
+} from '@/types/result';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { communityGroupService } from './community-group-service';
@@ -111,6 +119,13 @@ class CommunityMessagingService {
     attachments?: ChatAttachment[],
   ): Promise<Result<GroupMessage, ServiceError>> {
     try {
+      if (!USE_MOCK) {
+        if (attachments && attachments.length > 0) {
+          return err(validationError('Message attachments require backend media proof before send'));
+        }
+        return communityMediaAuthorityService.sendGroupMessage(groupId, body);
+      }
+
       // S-37: Verify sender is a member of this group
       const groupResult = await communityGroupService.getGroup(groupId);
       if (groupResult.success) {
@@ -175,6 +190,10 @@ class CommunityMessagingService {
    */
   async markMessagesRead(groupId: string, parentId: string): Promise<Result<void, ServiceError>> {
     try {
+      if (!USE_MOCK) {
+        return communityMediaAuthorityService.markGroupMessagesRead(groupId);
+      }
+
       const persisted = await this.loadPersistedMessages();
       const messagesResult = await this.getGroupMessages(groupId);
       if (!messagesResult.success) {

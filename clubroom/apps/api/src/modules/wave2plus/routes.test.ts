@@ -1585,6 +1585,218 @@ describe('wave2+ routes', () => {
     }
   });
 
+  it('creates community group messages and read receipts through backend authority', async () => {
+    const tables = loadTables();
+    const group = asRows(tables.communityGroups)[0];
+    assert.ok(group, 'expected seeded community group');
+    const groupId = asString(group.id) as string;
+    const memberUserIds = asRows(tables.communityGroupMemberships)
+      .filter(
+        (row) =>
+          asString(row.communityGroupId) === groupId &&
+          !asString(row.deletedAt) &&
+          asString(row.userId),
+      )
+      .map((row) => asString(row.userId) as string);
+    assert.equal(memberUserIds.length >= 2, true);
+    const senderUserId = memberUserIds[0] as string;
+    const readerUserId = memberUserIds[1] as string;
+    const outsiderUserId = findUnprivilegedUserId(tables, new Set(memberUserIds));
+
+    const unauthenticated = await app.inject({
+      method: 'POST',
+      url: `/v1/community-groups/${groupId}/messages`,
+      payload: {
+        body: 'This should not be accepted from local state',
+        idempotencyKey: 'community-message-unauth-test',
+      },
+    });
+    assert.equal(unauthenticated.statusCode, 403);
+
+    const denied = await app.inject({
+      method: 'POST',
+      url: `/v1/community-groups/${groupId}/messages`,
+      headers: authHeaders(tables, outsiderUserId),
+      payload: {
+        body: 'Outsider spoof attempt',
+        idempotencyKey: 'community-message-deny-test',
+      },
+    });
+    assert.equal(denied.statusCode, 403);
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/v1/community-groups/${groupId}/messages`,
+      headers: authHeaders(tables, senderUserId),
+      payload: {
+        body: 'Backend-owned group update',
+        idempotencyKey: 'community-message-create-test',
+      },
+    });
+    assert.equal(created.statusCode, 201);
+    const createdPayload = created.json() as {
+      message: {
+        id: string;
+        messageThreadId: string;
+        senderUserId: string;
+        content: string;
+        receipts: Array<{ userId: string; readAt: string | null }>;
+      };
+      thread: { messages: Array<{ id: string; content: string }> };
+    };
+    assert.equal(createdPayload.message.senderUserId, senderUserId);
+    assert.equal(createdPayload.message.content, 'Backend-owned group update');
+    assert.equal(
+      createdPayload.message.receipts.some(
+        (receipt) => receipt.userId === readerUserId && receipt.readAt == null,
+      ),
+      true,
+    );
+    assert.equal(
+      createdPayload.thread.messages.some(
+        (message) =>
+          message.id === createdPayload.message.id &&
+          message.content === 'Backend-owned group update',
+      ),
+      true,
+    );
+
+    const replayed = await app.inject({
+      method: 'POST',
+      url: `/v1/community-groups/${groupId}/messages`,
+      headers: authHeaders(tables, senderUserId),
+      payload: {
+        body: 'Backend-owned group update',
+        idempotencyKey: 'community-message-create-test',
+      },
+    });
+    assert.equal(replayed.statusCode, 201);
+    const replayedPayload = replayed.json() as { message: { id: string } };
+    assert.equal(replayedPayload.message.id, createdPayload.message.id);
+
+    const conflict = await app.inject({
+      method: 'POST',
+      url: `/v1/community-groups/${groupId}/messages`,
+      headers: authHeaders(tables, senderUserId),
+      payload: {
+        body: 'Different content cannot reuse the same idempotency key',
+        idempotencyKey: 'community-message-create-test',
+      },
+    });
+    assert.equal(conflict.statusCode, 409);
+
+    const markedRead = await app.inject({
+      method: 'POST',
+      url: `/v1/community-groups/${groupId}/messages/read`,
+      headers: authHeaders(tables, readerUserId),
+    });
+    assert.equal(markedRead.statusCode, 200);
+    const readPayload = markedRead.json() as {
+      thread: {
+        messages: Array<{
+          id: string;
+          receipts: Array<{ userId: string; readAt: string | null }>;
+        }>;
+      };
+    };
+    const readMessage = readPayload.thread.messages.find(
+      (message) => message.id === createdPayload.message.id,
+    );
+    assert.ok(readMessage, 'expected created message after marking read');
+    assert.equal(
+      readMessage.receipts.some(
+        (receipt) => receipt.userId === readerUserId && Boolean(receipt.readAt),
+      ),
+      true,
+    );
+
+    const deniedRead = await app.inject({
+      method: 'POST',
+      url: `/v1/community-groups/${groupId}/messages/read`,
+      headers: authHeaders(tables, outsiderUserId),
+    });
+    assert.equal(deniedRead.statusCode, 403);
+
+    const listed = await app.inject({
+      method: 'GET',
+      url: '/v1/message-threads',
+      headers: authHeaders(tables, senderUserId),
+    });
+    assert.equal(listed.statusCode, 200);
+    const listedPayload = listed.json() as {
+      threads: Array<{ messages: Array<{ id: string; content: string }> }>;
+    };
+    assert.equal(
+      listedPayload.threads.some((thread) =>
+        thread.messages.some((message) => message.id === createdPayload.message.id),
+      ),
+      true,
+    );
+
+    const liveTables = getMarketplaceSeedStore().tables;
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'community.message.create',
+        resourceId: groupId,
+        result: 'DENY',
+      }).length >= 1,
+      true,
+    );
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'community.message.read',
+        resourceId: groupId,
+        result: 'DENY',
+      }).length >= 1,
+      true,
+    );
+  });
+
+  it('uses the db fixture repository seam for community group message writes in db mode', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const tables = getDbFixtureStore().tables;
+      const groupId = asString(asRows(tables.communityGroups)[0]?.id) as string;
+      const senderUserId = asString(
+        asRows(tables.communityGroupMemberships).find(
+          (row) => asString(row.communityGroupId) === groupId && !asString(row.deletedAt),
+        )?.userId,
+      ) as string;
+
+      const created = await app.inject({
+        method: 'POST',
+        url: `/v1/community-groups/${groupId}/messages`,
+        headers: authHeaders(tables, senderUserId),
+        payload: {
+          body: 'DB fixture community write',
+          idempotencyKey: 'community-message-db-fixture-test',
+        },
+      });
+      assert.equal(created.statusCode, 201);
+
+      const listed = await app.inject({
+        method: 'GET',
+        url: '/v1/message-threads',
+        headers: authHeaders(tables, senderUserId),
+      });
+      assert.equal(listed.statusCode, 200);
+      const listedPayload = listed.json() as {
+        threads: Array<{ messages: Array<{ content: string }> }>;
+      };
+      assert.equal(
+        listedPayload.threads.some((thread) =>
+          thread.messages.some((message) => message.content === 'DB fixture community write'),
+        ),
+        true,
+      );
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetDbFixtureStoreForTests();
+    }
+  });
+
   it('denies outsider access to unrelated video detail', async () => {
     const tables = loadTables();
     const video = asRows(tables.videos).find(

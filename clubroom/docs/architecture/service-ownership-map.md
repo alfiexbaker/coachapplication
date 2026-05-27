@@ -94,7 +94,8 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - `services/community-media-authority-service.ts`
 - Canonical `/v1` bridge for non-mock community groups, message threads/messages, and notification preference reads
 - Backend community/media reads now have db-aware authority routes at `GET /v1/community-groups`, `GET /v1/posts`, and `GET /v1/message-threads`
-- `community-group-service.ts` and `community-messaging-service.ts` now read from those `/v1` routes in non-mock mode and keep local AsyncStorage overlays only for unsupported writes like local group edits and message send/read simulation
+- Group chat send/read transitions now use `POST /v1/community-groups/:groupId/messages` and `POST /v1/community-groups/:groupId/messages/read` in non-mock mode; active group membership is enforced by the backend and local message/read overlays are mock-only
+- `community-group-service.ts` and `community-messaging-service.ts` now read from those `/v1` routes in non-mock mode and keep local AsyncStorage overlays only for unsupported writes like local group edits
 
 ### Events
 

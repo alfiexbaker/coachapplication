@@ -22,6 +22,7 @@ import {
   resolveSignedInApiUser,
 } from '@/services/api-auth-context';
 import { userService } from '@/services/user-service';
+import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
 import {
   err,
@@ -95,6 +96,15 @@ interface ApiMessageThread {
 
 interface ApiMessageThreadListResponse {
   threads: ApiMessageThread[];
+}
+
+interface ApiGroupMessageWriteResponse {
+  message: ApiMessage;
+  thread?: ApiMessageThread | null;
+}
+
+interface ApiGroupMessageReadResponse {
+  thread?: ApiMessageThread | null;
 }
 
 interface ApiNotification {
@@ -378,6 +388,21 @@ function mapGroupMessages(messages: ApiMessage[]): GroupMessage[] {
       (left, right) =>
         new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime(),
     );
+}
+
+function mapGroupMessage(message: ApiMessage, groupId: string): GroupMessage {
+  return {
+    id: message.id,
+    groupId,
+    senderId: message.senderUserId || '',
+    body: message.content?.trim() || '',
+    createdAt: coerceIso(message.createdAt, new Date().toISOString()),
+    status: message.receipts?.some((receipt) => receipt.readAt) ? 'seen' : 'delivered',
+    readBy: (message.receipts ?? [])
+      .filter((receipt) => Boolean(receipt.userId) && Boolean(receipt.readAt))
+      .map((receipt) => receipt.userId as string),
+    attachments: [],
+  };
 }
 
 async function loadBookingsById(): Promise<Map<string, Booking>> {
@@ -894,6 +919,73 @@ class CommunityMediaAuthorityService {
         groupId,
       })),
     );
+  }
+
+  async sendGroupMessage(
+    groupId: string,
+    body: string,
+  ): Promise<Result<GroupMessage, ServiceError>> {
+    if (USE_MOCK) {
+      return ok({
+        id: generateId('gmsg'),
+        groupId,
+        senderId: '',
+        body,
+        createdAt: new Date().toISOString(),
+        status: 'sent',
+        readBy: [],
+        attachments: [],
+      });
+    }
+
+    const contextResult = await resolveContext('Sign in to send community messages.');
+    if (!contextResult.success) {
+      return contextResult;
+    }
+
+    const result = await apiFetch<ApiGroupMessageWriteResponse>(
+      `/v1/community-groups/${encodeURIComponent(groupId)}/messages`,
+      {
+        method: 'POST',
+        headers: contextResult.data.headers,
+        body: JSON.stringify({
+          body,
+          idempotencyKey: generateId('gmsg-send'),
+        }),
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to send group message via API', { groupId, error: result.error });
+      return err(result.error);
+    }
+
+    return ok(mapGroupMessage(result.data.message, groupId));
+  }
+
+  async markGroupMessagesRead(groupId: string): Promise<Result<void, ServiceError>> {
+    if (USE_MOCK) {
+      return ok(undefined);
+    }
+
+    const contextResult = await resolveContext('Sign in to mark community messages read.');
+    if (!contextResult.success) {
+      return contextResult;
+    }
+
+    const result = await apiFetch<ApiGroupMessageReadResponse>(
+      `/v1/community-groups/${encodeURIComponent(groupId)}/messages/read`,
+      {
+        method: 'POST',
+        headers: contextResult.data.headers,
+        body: JSON.stringify({}),
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to mark group messages read via API', { groupId, error: result.error });
+      return err(result.error);
+    }
+
+    return ok(undefined);
   }
 
   async listNotifications(): Promise<Result<AuthorityNotificationItem[], ServiceError>> {

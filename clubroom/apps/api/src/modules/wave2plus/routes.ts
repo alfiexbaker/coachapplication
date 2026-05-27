@@ -153,6 +153,16 @@ const invoiceReminderRequestSchema = z.object({
   message: z.string().trim().max(2000).optional(),
 });
 
+const communityGroupParamsSchema = z.object({
+  groupId: z.string().trim().min(1),
+});
+
+const groupMessageCreateRequestSchema = z.object({
+  body: z.string().trim().min(1).max(2000),
+  idempotencyKey: z.string().trim().min(8).max(120).optional(),
+  attachments: z.array(z.unknown()).max(0, 'Message attachments require backend media proof before send').optional(),
+});
+
 const simulatedCompleteRequestSchema = z.object({
   token: z.string().trim().min(20),
 });
@@ -1703,6 +1713,102 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
+  });
+
+  app.post('/community-groups/:groupId/messages', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    const params = communityGroupParamsSchema.parse(request.params ?? {});
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+    const body = groupMessageCreateRequestSchema.parse(request.body ?? {});
+
+    try {
+      const result = await resolveCommunityMediaRepository().createGroupMessage({
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        communityGroupId: params.groupId,
+        body: body.body,
+        idempotencyKey: body.idempotencyKey,
+      });
+
+      await recordAuditEvent({
+        request,
+        action: 'community.message.create',
+        resourceType: 'message',
+        resourceId: asString(result.message.id),
+        result: 'SUCCESS',
+        metadata: {
+          communityGroupId: params.groupId,
+          messageThreadId: asString(result.message.messageThreadId),
+          idempotencyKey: body.idempotencyKey,
+        },
+      });
+
+      return reply.status(201).send({
+        message: result.message,
+        thread: result.thread,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'community.message.create',
+        resourceType: 'community_group',
+        resourceId: params.groupId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          idempotencyKey: body.idempotencyKey,
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
+  });
+
+  app.post('/community-groups/:groupId/messages/read', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    const params = communityGroupParamsSchema.parse(request.params ?? {});
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    try {
+      const result = await resolveCommunityMediaRepository().markGroupMessagesRead({
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        communityGroupId: params.groupId,
+      });
+
+      await recordAuditEvent({
+        request,
+        action: 'community.message.read',
+        resourceType: 'community_group',
+        resourceId: params.groupId,
+        result: 'SUCCESS',
+      });
+
+      return reply.send({
+        thread: result.thread,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'community.message.read',
+        resourceType: 'community_group',
+        resourceId: params.groupId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
   });
 
   app.get('/message-threads', async (request, reply) => {
