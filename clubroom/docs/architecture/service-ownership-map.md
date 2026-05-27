@@ -95,6 +95,8 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - Canonical `/v1` bridge for non-mock community groups, message threads/messages, and notification preference reads
 - Backend community/media reads now have db-aware authority routes at `GET /v1/community-groups`, `GET /v1/posts`, and `GET /v1/message-threads`
 - Group chat send/read transitions now use `POST /v1/community-groups/:groupId/messages` and `POST /v1/community-groups/:groupId/messages/read` in non-mock mode; active group membership is enforced by the backend and local message/read overlays are mock-only
+- `services/comment-service.ts` now uses `GET/POST /v1/posts/:postId/comments` and `GET/DELETE /v1/comments/:commentId` outside mock mode; the backend derives the author from auth, enforces readable-post visibility, keeps comment soft-delete authoritative, and local comment storage is mock-only
+- Comment likes are deliberately fail-closed outside mock mode until a backend comment-reaction model exists; do not reintroduce local API-mode likes as fake interaction state
 - `community-group-service.ts` and `community-messaging-service.ts` now read from those `/v1` routes in non-mock mode and keep local AsyncStorage overlays only for unsupported writes like local group edits
 
 ### Events

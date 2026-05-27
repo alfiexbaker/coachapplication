@@ -107,6 +107,20 @@ function findUnprivilegedUserId(tables: SeedTables, excludedUserIds: Set<string>
   return userId;
 }
 
+function findPrivilegedAdminUserId(tables: SeedTables, excludedUserIds = new Set<string>()): string {
+  const userId = asRows(tables.users)
+    .map((row) => asString(row.id))
+    .find((candidateUserId): candidateUserId is string => {
+      if (!candidateUserId || excludedUserIds.has(candidateUserId)) {
+        return false;
+      }
+      const roles = rolesForUser(tables, candidateUserId);
+      return roles.includes('club_admin') || roles.includes('admin') || roles.includes('security_admin');
+    });
+  assert.ok(userId, 'expected privileged admin user');
+  return userId;
+}
+
 function authHeaders(
   tables: SeedTables,
   userId: string,
@@ -2109,6 +2123,334 @@ describe('wave2+ routes', () => {
         ),
         true,
       );
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetDbFixtureStoreForTests();
+    }
+  });
+
+  it('mutates post comments through backend authority', async () => {
+    const tables = loadTables();
+    const post = asRows(tables.posts).find(
+      (row) => Boolean(asString(row.id)) && Boolean(asString(row.communityGroupId)),
+    );
+    assert.ok(post, 'expected seeded community post');
+    const postId = asString(post.id) as string;
+    const groupId = asString(post.communityGroupId) as string;
+    const clubId = asString(post.clubId);
+    const memberUserIds = asRows(tables.communityGroupMemberships)
+      .filter(
+        (row) =>
+          asString(row.communityGroupId) === groupId &&
+          !asString(row.deletedAt) &&
+          asString(row.userId),
+      )
+      .map((row) => asString(row.userId) as string);
+    assert.equal(memberUserIds.length >= 2, true);
+    const commenterUserId = memberUserIds[0] as string;
+    const otherMemberUserId =
+      memberUserIds.find((userId) => {
+        if (userId === commenterUserId) {
+          return false;
+        }
+        const roles = rolesForUser(tables, userId);
+        return !roles.includes('club_admin') && !roles.includes('admin') && !roles.includes('security_admin');
+      }) ??
+      (memberUserIds.find((userId) => userId !== commenterUserId) as string);
+    const clubMemberUserIds = clubId
+      ? asRows(tables.clubMemberships)
+          .filter(
+            (row) =>
+              asString(row.clubId) === clubId &&
+              !asString(row.deletedAt) &&
+              asString(row.userId),
+          )
+          .map((row) => asString(row.userId) as string)
+      : [];
+    const outsiderUserId = findUnprivilegedUserId(
+      tables,
+      new Set([
+        ...memberUserIds,
+        ...clubMemberUserIds,
+        asString(post.authorUserId) ?? '',
+      ]),
+    );
+    const adminUserId = findPrivilegedAdminUserId(tables, new Set([commenterUserId]));
+
+    const unauthenticated = await app.inject({
+      method: 'POST',
+      url: `/v1/posts/${postId}/comments`,
+      payload: {
+        content: 'Unauthenticated local state should not create comments',
+        idempotencyKey: 'post-comment-unauth-test',
+      },
+    });
+    assert.equal(unauthenticated.statusCode, 403);
+
+    const deniedCreate = await app.inject({
+      method: 'POST',
+      url: `/v1/posts/${postId}/comments`,
+      headers: authHeaders(tables, outsiderUserId),
+      payload: {
+        content: 'Outsider comment spoof',
+        idempotencyKey: 'post-comment-deny-test',
+      },
+    });
+    assert.equal(deniedCreate.statusCode, 403);
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/v1/posts/${postId}/comments`,
+      headers: authHeaders(tables, commenterUserId),
+      payload: {
+        content: 'Backend-owned parent comment',
+        idempotencyKey: 'post-comment-create-test',
+      },
+    });
+    assert.equal(created.statusCode, 201);
+    const createdPayload = created.json() as {
+      comment: {
+        id: string;
+        postId: string;
+        authorUserId: string;
+        content: string;
+        parentCommentId: string | null;
+        author?: { id: string; name: string };
+      };
+    };
+    assert.equal(createdPayload.comment.postId, postId);
+    assert.equal(createdPayload.comment.authorUserId, commenterUserId);
+    assert.equal(createdPayload.comment.content, 'Backend-owned parent comment');
+    assert.equal(createdPayload.comment.parentCommentId, null);
+    assert.equal(createdPayload.comment.author?.id, commenterUserId);
+
+    const replayed = await app.inject({
+      method: 'POST',
+      url: `/v1/posts/${postId}/comments`,
+      headers: authHeaders(tables, commenterUserId),
+      payload: {
+        content: 'Backend-owned parent comment',
+        idempotencyKey: 'post-comment-create-test',
+      },
+    });
+    assert.equal(replayed.statusCode, 201);
+    const replayedPayload = replayed.json() as { comment: { id: string } };
+    assert.equal(replayedPayload.comment.id, createdPayload.comment.id);
+
+    const idempotencyConflict = await app.inject({
+      method: 'POST',
+      url: `/v1/posts/${postId}/comments`,
+      headers: authHeaders(tables, commenterUserId),
+      payload: {
+        content: 'Different content cannot reuse the key',
+        idempotencyKey: 'post-comment-create-test',
+      },
+    });
+    assert.equal(idempotencyConflict.statusCode, 409);
+
+    const reply = await app.inject({
+      method: 'POST',
+      url: `/v1/posts/${postId}/comments`,
+      headers: authHeaders(tables, otherMemberUserId),
+      payload: {
+        content: 'Backend-owned reply',
+        parentCommentId: createdPayload.comment.id,
+        idempotencyKey: 'post-comment-reply-test',
+      },
+    });
+    assert.equal(reply.statusCode, 201);
+    const replyPayload = reply.json() as {
+      comment: { id: string; authorUserId: string; parentCommentId: string | null };
+    };
+    assert.equal(replyPayload.comment.authorUserId, otherMemberUserId);
+    assert.equal(replyPayload.comment.parentCommentId, createdPayload.comment.id);
+
+    const replyToReply = await app.inject({
+      method: 'POST',
+      url: `/v1/posts/${postId}/comments`,
+      headers: authHeaders(tables, commenterUserId),
+      payload: {
+        content: 'Nested replies are not supported',
+        parentCommentId: replyPayload.comment.id,
+        idempotencyKey: 'post-comment-deep-reply-test',
+      },
+    });
+    assert.equal(replyToReply.statusCode, 400);
+
+    const listed = await app.inject({
+      method: 'GET',
+      url: `/v1/posts/${postId}/comments`,
+      headers: authHeaders(tables, commenterUserId),
+    });
+    assert.equal(listed.statusCode, 200);
+    const listedPayload = listed.json() as {
+      comments: Array<{ id: string; content: string; parentCommentId: string | null }>;
+    };
+    assert.equal(
+      listedPayload.comments.some(
+        (comment) =>
+          comment.id === replyPayload.comment.id &&
+          comment.parentCommentId === createdPayload.comment.id,
+      ),
+      true,
+    );
+
+    const deniedDelete = await app.inject({
+      method: 'DELETE',
+      url: `/v1/comments/${createdPayload.comment.id}`,
+      headers: authHeaders(tables, otherMemberUserId),
+    });
+    assert.equal(deniedDelete.statusCode, 403);
+
+    const adminOwned = await app.inject({
+      method: 'POST',
+      url: `/v1/posts/${postId}/comments`,
+      headers: authHeaders(tables, commenterUserId),
+      payload: {
+        content: 'Admin can remove this if needed',
+        idempotencyKey: 'post-comment-admin-delete-test',
+      },
+    });
+    assert.equal(adminOwned.statusCode, 201);
+    const adminOwnedPayload = adminOwned.json() as { comment: { id: string } };
+
+    const adminDeleted = await app.inject({
+      method: 'DELETE',
+      url: `/v1/comments/${adminOwnedPayload.comment.id}`,
+      headers: authHeaders(tables, adminUserId),
+    });
+    assert.equal(adminDeleted.statusCode, 200);
+    const adminDeletedPayload = adminDeleted.json() as {
+      comment: { id: string; isDeleted: boolean; content: string };
+    };
+    assert.equal(adminDeletedPayload.comment.id, adminOwnedPayload.comment.id);
+    assert.equal(adminDeletedPayload.comment.isDeleted, true);
+    assert.equal(adminDeletedPayload.comment.content, '[deleted]');
+
+    const deleted = await app.inject({
+      method: 'DELETE',
+      url: `/v1/comments/${createdPayload.comment.id}`,
+      headers: authHeaders(tables, commenterUserId),
+    });
+    assert.equal(deleted.statusCode, 200);
+    const deletedPayload = deleted.json() as {
+      comment: { id: string; isDeleted: boolean; deletedAt: string | null; content: string };
+    };
+    assert.equal(deletedPayload.comment.id, createdPayload.comment.id);
+    assert.equal(deletedPayload.comment.isDeleted, true);
+    assert.equal(Boolean(deletedPayload.comment.deletedAt), true);
+    assert.equal(deletedPayload.comment.content, '[deleted]');
+
+    const repeatDelete = await app.inject({
+      method: 'DELETE',
+      url: `/v1/comments/${createdPayload.comment.id}`,
+      headers: authHeaders(tables, commenterUserId),
+    });
+    assert.equal(repeatDelete.statusCode, 409);
+
+    const listedAfterDelete = await app.inject({
+      method: 'GET',
+      url: `/v1/posts/${postId}/comments`,
+      headers: authHeaders(tables, commenterUserId),
+    });
+    assert.equal(listedAfterDelete.statusCode, 200);
+    const listedAfterDeletePayload = listedAfterDelete.json() as {
+      comments: Array<{ id: string; isDeleted: boolean; content: string }>;
+    };
+    assert.equal(
+      listedAfterDeletePayload.comments.some(
+        (comment) =>
+          comment.id === createdPayload.comment.id &&
+          comment.isDeleted === true &&
+          comment.content === '[deleted]',
+      ),
+      true,
+    );
+
+    const liveTables = getMarketplaceSeedStore().tables;
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'community.comment.create',
+        resourceId: postId,
+        result: 'DENY',
+      }).length >= 1,
+      true,
+    );
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'community.comment.delete',
+        resourceId: createdPayload.comment.id,
+        result: 'DENY',
+      }).length >= 1,
+      true,
+    );
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'community.comment.delete',
+        resourceId: createdPayload.comment.id,
+        result: 'SUCCESS',
+      }).length >= 1,
+      true,
+    );
+  });
+
+  it('uses the db fixture repository seam for post comment writes in db mode', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const tables = getDbFixtureStore().tables;
+      const post = asRows(tables.posts).find(
+        (row) => Boolean(asString(row.id)) && Boolean(asString(row.communityGroupId)),
+      );
+      assert.ok(post, 'expected db-fixture post');
+      const postId = asString(post.id) as string;
+      const groupId = asString(post.communityGroupId) as string;
+      const commenterUserId = asString(
+        asRows(tables.communityGroupMemberships).find(
+          (row) => asString(row.communityGroupId) === groupId && !asString(row.deletedAt),
+        )?.userId,
+      ) as string;
+
+      const created = await app.inject({
+        method: 'POST',
+        url: `/v1/posts/${postId}/comments`,
+        headers: authHeaders(tables, commenterUserId),
+        payload: {
+          content: 'DB fixture post comment',
+          idempotencyKey: 'post-comment-db-fixture-test',
+        },
+      });
+      assert.equal(created.statusCode, 201);
+      const createdPayload = created.json() as {
+        comment: { id: string; content: string; authorUserId: string };
+      };
+      assert.equal(createdPayload.comment.content, 'DB fixture post comment');
+      assert.equal(createdPayload.comment.authorUserId, commenterUserId);
+
+      const listed = await app.inject({
+        method: 'GET',
+        url: `/v1/posts/${postId}/comments`,
+        headers: authHeaders(tables, commenterUserId),
+      });
+      assert.equal(listed.statusCode, 200);
+      const listedPayload = listed.json() as {
+        comments: Array<{ id: string; content: string }>;
+      };
+      assert.equal(
+        listedPayload.comments.some((comment) => comment.id === createdPayload.comment.id),
+        true,
+      );
+
+      const deleted = await app.inject({
+        method: 'DELETE',
+        url: `/v1/comments/${createdPayload.comment.id}`,
+        headers: authHeaders(tables, commenterUserId),
+      });
+      assert.equal(deleted.statusCode, 200);
+      const deletedPayload = deleted.json() as { comment: { isDeleted: boolean; content: string } };
+      assert.equal(deletedPayload.comment.isDeleted, true);
+      assert.equal(deletedPayload.comment.content, '[deleted]');
     } finally {
       env.API_DATA_BACKEND = previousBackend;
       resetDbFixtureStoreForTests();

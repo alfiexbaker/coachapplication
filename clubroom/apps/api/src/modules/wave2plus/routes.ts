@@ -157,6 +157,14 @@ const communityGroupParamsSchema = z.object({
   groupId: z.string().trim().min(1),
 });
 
+const postParamsSchema = z.object({
+  postId: z.string().trim().min(1),
+});
+
+const commentParamsSchema = z.object({
+  commentId: z.string().trim().min(1),
+});
+
 const notificationParamsSchema = z.object({
   notificationId: z.string().trim().min(1),
 });
@@ -208,6 +216,12 @@ const groupMessageCreateRequestSchema = z.object({
   body: z.string().trim().min(1).max(2000),
   idempotencyKey: z.string().trim().min(8).max(120).optional(),
   attachments: z.array(z.unknown()).max(0, 'Message attachments require backend media proof before send').optional(),
+});
+
+const postCommentCreateRequestSchema = z.object({
+  content: z.string().trim().min(1).max(2000),
+  parentCommentId: z.string().trim().min(1).optional(),
+  idempotencyKey: z.string().trim().min(8).max(120).optional(),
 });
 
 const simulatedCompleteRequestSchema = z.object({
@@ -1760,6 +1774,146 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
+  });
+
+  app.get('/posts/:postId/comments', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    const params = postParamsSchema.parse(request.params ?? {});
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const result = await resolveCommunityMediaRepository().listPostComments({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      postId: params.postId,
+    });
+
+    return reply.send({
+      comments: result.comments,
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.get('/comments/:commentId', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    const params = commentParamsSchema.parse(request.params ?? {});
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const result = await resolveCommunityMediaRepository().getPostComment({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      commentId: params.commentId,
+    });
+
+    return reply.send({
+      comment: result.comment,
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.post('/posts/:postId/comments', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    const params = postParamsSchema.parse(request.params ?? {});
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+    const body = postCommentCreateRequestSchema.parse(request.body ?? {});
+
+    try {
+      const result = await resolveCommunityMediaRepository().createPostComment({
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        postId: params.postId,
+        content: body.content,
+        parentCommentId: body.parentCommentId,
+        idempotencyKey: body.idempotencyKey,
+      });
+
+      await recordAuditEvent({
+        request,
+        action: 'community.comment.create',
+        resourceType: 'post_comment',
+        resourceId: asString(result.comment.id),
+        result: 'SUCCESS',
+        metadata: {
+          postId: params.postId,
+          parentCommentId: body.parentCommentId,
+          idempotencyKey: body.idempotencyKey,
+        },
+      });
+
+      return reply.status(201).send({
+        comment: result.comment,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'community.comment.create',
+        resourceType: 'post',
+        resourceId: params.postId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          parentCommentId: body.parentCommentId,
+          idempotencyKey: body.idempotencyKey,
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
+  });
+
+  app.delete('/comments/:commentId', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    const params = commentParamsSchema.parse(request.params ?? {});
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    try {
+      const result = await resolveCommunityMediaRepository().deletePostComment({
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        commentId: params.commentId,
+      });
+
+      await recordAuditEvent({
+        request,
+        action: 'community.comment.delete',
+        resourceType: 'post_comment',
+        resourceId: params.commentId,
+        result: 'SUCCESS',
+        metadata: {
+          postId: asString(result.comment.postId),
+        },
+      });
+
+      return reply.send({
+        comment: result.comment,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'community.comment.delete',
+        resourceType: 'post_comment',
+        resourceId: params.commentId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
   });
 
   app.post('/community-groups/:groupId/messages', async (request, reply) => {

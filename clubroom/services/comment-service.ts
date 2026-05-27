@@ -4,14 +4,20 @@
  * Handles threaded comments on feed posts.
  * Supports 1-level deep threading, likes, and soft-delete.
  *
- * Storage: apiClient (via STORAGE_KEYS.COMMENTS)
+ * Storage: apiClient (via STORAGE_KEYS.COMMENTS) in mock mode only; `/v1` in API mode.
  * Events: COMMENT_CREATED, COMMENT_DELETED, COMMENT_LIKED, COMMENT_REPLIED
  */
 
-import { apiClient } from '@/services/api-client';
+import { api } from '@/constants/config';
+import { apiClient, apiFetch } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+} from '@/services/api-auth-context';
 import {
   ok,
   err,
@@ -22,6 +28,7 @@ import {
   storageError,
   unauthorized,
   conflictError,
+  serviceError,
 } from '@/types/result';
 import type {
   ThreadedComment,
@@ -32,6 +39,41 @@ import type {
 } from '@/constants/comment-types';
 
 const logger = createLogger('CommentService');
+const USE_MOCK = api.useMock;
+
+interface ApiCommentAuthor {
+  id?: string;
+  name?: string | null;
+  avatarUrl?: string | null;
+}
+
+interface ApiPostComment {
+  id: string;
+  postId?: string;
+  authorUserId?: string;
+  parentCommentId?: string | null;
+  content?: string | null;
+  isDeleted?: boolean;
+  deletedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  author?: ApiCommentAuthor | null;
+}
+
+interface ApiPostCommentsResponse {
+  comments: ApiPostComment[];
+}
+
+interface ApiPostCommentResponse {
+  comment: ApiPostComment;
+}
+
+interface CommentApiContext {
+  currentUserId: string;
+  currentUserName: string;
+  currentUserAvatar?: string;
+  headers: Record<string, string>;
+}
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -51,6 +93,105 @@ async function saveAllComments(comments: ThreadedComment[]): Promise<Result<void
   }
 }
 
+async function resolveCommentApiContext(message: string): Promise<Result<CommentApiContext, ServiceError>> {
+  const currentUserResult = await resolveSignedInApiUser(message);
+  if (!currentUserResult.success) {
+    return currentUserResult;
+  }
+
+  const currentUser = currentUserResult.data;
+  const currentUserName = [currentUser.firstName, currentUser.lastName].filter(Boolean).join(' ').trim();
+  return ok({
+    currentUserId: currentUser.id,
+    currentUserName: currentUserName || currentUser.email || currentUser.id,
+    currentUserAvatar: currentUser.photoUrl,
+    headers: buildApiAuthHeaders({
+      actingRole: deriveApiActingRole(currentUser, 'parent'),
+    }),
+  });
+}
+
+function coerceIso(value: string | null | undefined): string {
+  return value && value.trim().length > 0 ? value : new Date().toISOString();
+}
+
+function mapApiComment(comment: ApiPostComment, context?: CommentApiContext): ThreadedComment {
+  const authorId = comment.authorUserId || comment.author?.id || context?.currentUserId || '';
+  const isDeleted = comment.isDeleted === true || Boolean(comment.deletedAt);
+  return {
+    id: comment.id,
+    postId: comment.postId || '',
+    authorId,
+    authorName:
+      comment.author?.name?.trim() ||
+      (context?.currentUserId === authorId ? context.currentUserName : undefined) ||
+      authorId ||
+      'Member',
+    authorAvatar:
+      comment.author?.avatarUrl ??
+      (context?.currentUserId === authorId ? context.currentUserAvatar : undefined),
+    content: isDeleted ? '[deleted]' : comment.content?.trim() || '',
+    likes: [],
+    createdAt: coerceIso(comment.createdAt),
+    updatedAt: comment.updatedAt ?? undefined,
+    parentId: comment.parentCommentId ?? undefined,
+    replyCount: 0,
+    isDeleted,
+    deletedAt: comment.deletedAt ?? undefined,
+  };
+}
+
+function buildCommentThreads(comments: ThreadedComment[]): CommentThread[] {
+  const postComments = [...comments].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  );
+
+  const topLevel = postComments.filter((comment) => !comment.parentId);
+  const repliesMap = new Map<string, ThreadedComment[]>();
+  for (const comment of postComments) {
+    if (!comment.parentId) {
+      continue;
+    }
+    const existing = repliesMap.get(comment.parentId) ?? [];
+    existing.push(comment);
+    repliesMap.set(comment.parentId, existing);
+  }
+
+  return topLevel.map((comment) => {
+    const replies = repliesMap.get(comment.id) ?? [];
+    return {
+      comment: {
+        ...comment,
+        replyCount: replies.length,
+      },
+      replies,
+    };
+  });
+}
+
+async function fetchApiCommentsForPost(
+  postId: string,
+): Promise<Result<ThreadedComment[], ServiceError>> {
+  const contextResult = await resolveCommentApiContext('Sign in to view comments.');
+  if (!contextResult.success) {
+    return contextResult;
+  }
+
+  const result = await apiFetch<ApiPostCommentsResponse>(
+    `/v1/posts/${encodeURIComponent(postId)}/comments`,
+    {
+      method: 'GET',
+      headers: contextResult.data.headers,
+    },
+  );
+  if (!result.success) {
+    logger.error('Failed to load comments via API', { postId, error: result.error });
+    return err(result.error);
+  }
+
+  return ok(result.data.comments.map((comment) => mapApiComment(comment, contextResult.data)));
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -64,36 +205,22 @@ async function saveAllComments(comments: ThreadedComment[]): Promise<Result<void
  * to preserve thread structure and reply chains.
  */
 async function getCommentsForPost(postId: string): Promise<Result<CommentThread[], ServiceError>> {
+  if (!postId) {
+    return err(validationError('Post ID is required'));
+  }
+
+  if (!USE_MOCK) {
+    const commentsResult = await fetchApiCommentsForPost(postId);
+    if (!commentsResult.success) {
+      return err(commentsResult.error);
+    }
+    return ok(buildCommentThreads(commentsResult.data));
+  }
+
   try {
     const allComments = await loadAllComments();
     const postComments = allComments.filter((c) => c.postId === postId);
-
-    // Separate top-level vs replies
-    const topLevel = postComments
-      .filter((c) => !c.parentId)
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-    const repliesMap = new Map<string, ThreadedComment[]>();
-    for (const comment of postComments) {
-      if (comment.parentId) {
-        const existing = repliesMap.get(comment.parentId) ?? [];
-        existing.push(comment);
-        repliesMap.set(comment.parentId, existing);
-      }
-    }
-
-    // Sort replies by createdAt ascending
-    for (const [key, replies] of repliesMap) {
-      repliesMap.set(
-        key,
-        replies.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
-      );
-    }
-
-    const threads: CommentThread[] = topLevel.map((comment) => ({
-      comment,
-      replies: repliesMap.get(comment.id) ?? [],
-    }));
+    const threads = buildCommentThreads(postComments);
 
     logger.info('Comments loaded for post', { postId, threadCount: threads.length });
     return ok(threads);
@@ -107,6 +234,18 @@ async function getCommentsForPost(postId: string): Promise<Result<CommentThread[
  * Get total comment count for a post (includes replies, excludes soft-deleted).
  */
 async function getCommentCount(postId: string): Promise<Result<number, ServiceError>> {
+  if (!postId) {
+    return err(validationError('Post ID is required'));
+  }
+
+  if (!USE_MOCK) {
+    const commentsResult = await fetchApiCommentsForPost(postId);
+    if (!commentsResult.success) {
+      return err(commentsResult.error);
+    }
+    return ok(commentsResult.data.filter((comment) => !comment.isDeleted).length);
+  }
+
   try {
     const allComments = await loadAllComments();
     const count = allComments.filter((c) => c.postId === postId && !c.isDeleted).length;
@@ -133,6 +272,53 @@ async function createComment(
   }
   if (!input.postId) {
     return err(validationError('Post ID is required'));
+  }
+  if (!USE_MOCK) {
+    const contextResult = await resolveCommentApiContext('Sign in to comment.');
+    if (!contextResult.success) {
+      return contextResult;
+    }
+
+    const result = await apiFetch<ApiPostCommentResponse>(
+      `/v1/posts/${encodeURIComponent(input.postId)}/comments`,
+      {
+        method: 'POST',
+        headers: contextResult.data.headers,
+        body: JSON.stringify({
+          content: input.content,
+          parentCommentId: input.parentId,
+          idempotencyKey: apiClient.generateId('comment-create'),
+        }),
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to create comment via API', {
+        postId: input.postId,
+        parentId: input.parentId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+
+    const newComment = mapApiComment(result.data.comment, contextResult.data);
+    if (newComment.parentId) {
+      emitTyped(ServiceEvents.COMMENT_REPLIED, {
+        commentId: newComment.id,
+        parentId: newComment.parentId,
+        postId: newComment.postId,
+        authorId: newComment.authorId,
+        authorName: newComment.authorName,
+      });
+    } else {
+      emitTyped(ServiceEvents.COMMENT_CREATED, {
+        commentId: newComment.id,
+        postId: newComment.postId,
+        authorId: newComment.authorId,
+        authorName: newComment.authorName,
+      });
+    }
+
+    return ok(newComment);
   }
   if (!input.authorId) {
     return err(validationError('Author ID is required'));
@@ -228,6 +414,36 @@ async function deleteComment(
     return err(validationError('Comment ID is required'));
   }
 
+  if (!USE_MOCK) {
+    const contextResult = await resolveCommentApiContext('Sign in to delete comments.');
+    if (!contextResult.success) {
+      return contextResult;
+    }
+
+    const result = await apiFetch<ApiPostCommentResponse>(
+      `/v1/comments/${encodeURIComponent(input.commentId)}`,
+      {
+        method: 'DELETE',
+        headers: contextResult.data.headers,
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to delete comment via API', {
+        commentId: input.commentId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+
+    const deletedComment = mapApiComment(result.data.comment, contextResult.data);
+    emitTyped(ServiceEvents.COMMENT_DELETED, {
+      commentId: input.commentId,
+      postId: deletedComment.postId,
+      authorId: deletedComment.authorId,
+    });
+    return ok(deletedComment);
+  }
+
   try {
     const allComments = await loadAllComments();
     const index = allComments.findIndex((c) => c.id === input.commentId);
@@ -280,7 +496,20 @@ async function deleteComment(
 async function toggleLike(
   input: ToggleCommentLikeInput,
 ): Promise<Result<ThreadedComment, ServiceError>> {
-  if (!input.commentId || !input.userId) {
+  if (!input.commentId) {
+    return err(validationError('Comment ID is required'));
+  }
+
+  if (!USE_MOCK) {
+    return err(
+      serviceError(
+        'UNKNOWN',
+        'Comment likes are unavailable in API mode until backend comment reaction authority exists.',
+      ),
+    );
+  }
+
+  if (!input.userId) {
     return err(validationError('Comment ID and user ID are required'));
   }
 
@@ -332,6 +561,28 @@ async function toggleLike(
  * Get a single comment by ID.
  */
 async function getCommentById(commentId: string): Promise<Result<ThreadedComment, ServiceError>> {
+  if (!commentId) {
+    return err(validationError('Comment ID is required'));
+  }
+
+  if (!USE_MOCK) {
+    const contextResult = await resolveCommentApiContext('Sign in to view comments.');
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const result = await apiFetch<ApiPostCommentResponse>(
+      `/v1/comments/${encodeURIComponent(commentId)}`,
+      {
+        method: 'GET',
+        headers: contextResult.data.headers,
+      },
+    );
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(mapApiComment(result.data.comment, contextResult.data));
+  }
+
   try {
     const allComments = await loadAllComments();
     const comment = allComments.find((c) => c.id === commentId);
@@ -351,6 +602,21 @@ async function getCommentById(commentId: string): Promise<Result<ThreadedComment
 async function getLatestComment(
   postId: string,
 ): Promise<Result<ThreadedComment | null, ServiceError>> {
+  if (!postId) {
+    return err(validationError('Post ID is required'));
+  }
+
+  if (!USE_MOCK) {
+    const commentsResult = await fetchApiCommentsForPost(postId);
+    if (!commentsResult.success) {
+      return err(commentsResult.error);
+    }
+    const postComments = commentsResult.data
+      .filter((comment) => !comment.isDeleted)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return ok(postComments.length > 0 ? postComments[0] : null);
+  }
+
   try {
     const allComments = await loadAllComments();
     const postComments = allComments

@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
-import { conflict, forbidden, notFound } from '../../lib/http-errors.js';
+import { badRequest, conflict, forbidden, notFound } from '../../lib/http-errors.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
 import { normalizeForJson } from './normalize.js';
@@ -19,6 +19,7 @@ const nowIso = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 const IDEMPOTENCY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const GROUP_MESSAGE_CREATE_ENDPOINT_KEY = 'community.group-message.create';
+const POST_COMMENT_CREATE_ENDPOINT_KEY = 'community.post-comment.create';
 
 interface StoreProvider {
   version: string;
@@ -32,6 +33,25 @@ export interface CommunityMediaAccessParams {
 
 export interface PostListParams extends CommunityMediaAccessParams {
   communityGroupId?: string;
+}
+
+export interface PostCommentListParams extends CommunityMediaAccessParams {
+  postId: string;
+}
+
+export interface PostCommentReadParams extends CommunityMediaAccessParams {
+  commentId: string;
+}
+
+export interface PostCommentCreateParams extends CommunityMediaAccessParams {
+  postId: string;
+  content: string;
+  parentCommentId?: string;
+  idempotencyKey?: string;
+}
+
+export interface PostCommentDeleteParams extends CommunityMediaAccessParams {
+  commentId: string;
 }
 
 export interface GroupMessageCreateParams extends CommunityMediaAccessParams {
@@ -51,6 +71,16 @@ export interface CommunityGroupListResult {
 
 export interface PostListResult {
   posts: SeedRow[];
+  dataVersion: string | null;
+}
+
+export interface PostCommentListResult {
+  comments: SeedRow[];
+  dataVersion: string | null;
+}
+
+export interface PostCommentMutationResult {
+  comment: SeedRow;
   dataVersion: string | null;
 }
 
@@ -120,6 +150,10 @@ export interface GroupMessageReadResult {
 export interface CommunityMediaRepository {
   listCommunityGroups(params: CommunityMediaAccessParams): Promise<CommunityGroupListResult>;
   listPosts(params: PostListParams): Promise<PostListResult>;
+  listPostComments(params: PostCommentListParams): Promise<PostCommentListResult>;
+  getPostComment(params: PostCommentReadParams): Promise<PostCommentMutationResult>;
+  createPostComment(params: PostCommentCreateParams): Promise<PostCommentMutationResult>;
+  deletePostComment(params: PostCommentDeleteParams): Promise<PostCommentMutationResult>;
   listMessageThreads(params: CommunityMediaAccessParams): Promise<MessageThreadListResult>;
   listNotifications(params: CommunityMediaAccessParams): Promise<NotificationListResult>;
   markNotificationRead(params: NotificationMutationParams): Promise<NotificationMutationResult>;
@@ -179,10 +213,121 @@ function hashGroupMessageCreateRequest(params: GroupMessageCreateParams): string
     .digest('hex');
 }
 
-function assertMatchingIdempotencyRequest(row: SeedRow, requestHash: string): void {
+function hashPostCommentCreateRequest(params: PostCommentCreateParams): string {
+  return crypto
+    .createHash('sha256')
+    .update(
+      JSON.stringify({
+        postId: params.postId,
+        content: params.content.trim(),
+        parentCommentId: params.parentCommentId ?? null,
+      }),
+    )
+    .digest('hex');
+}
+
+function assertMatchingIdempotencyRequest(
+  row: SeedRow,
+  requestHash: string,
+  message = 'Idempotency key was already used with a different payload',
+): void {
   if (asString(row.requestHash) !== requestHash) {
-    throw conflict('Idempotency key was already used with a different community message payload');
+    throw conflict(message);
   }
+}
+
+function storeUserSummary(tables: SeedTables, userId: string | undefined): SeedRow | null {
+  if (!userId) {
+    return null;
+  }
+  const user = asRows(tables.users).find((row) => asString(row.id) === userId);
+  return {
+    id: userId,
+    name: asString(user?.name) ?? userId,
+    avatarUrl: asString(user?.avatarUrl) ?? null,
+  };
+}
+
+function hydrateStorePostComment(tables: SeedTables, comment: SeedRow): SeedRow {
+  return {
+    ...comment,
+    author: storeUserSummary(tables, asString(comment.authorUserId)),
+  };
+}
+
+function assertReadableStorePost(
+  tables: SeedTables,
+  postId: string,
+  authUserId: string,
+  isPrivilegedAdmin: boolean,
+): SeedRow {
+  const post = activeRows(asRows(tables.posts)).find((row) => asString(row.id) === postId);
+  if (!post) {
+    throw notFound('Post not found', { postId });
+  }
+
+  if (isPrivilegedAdmin || asString(post.authorUserId) === authUserId) {
+    return post;
+  }
+
+  const postGroupId = asString(post.communityGroupId);
+  const postClubId = asString(post.clubId);
+  const readableGroupIds = readableCommunityGroupIds(tables, authUserId);
+  const readableClubIds = readableClubIdsForUser(tables, authUserId);
+  if (
+    (postGroupId ? readableGroupIds.has(postGroupId) : false) ||
+    (postClubId ? readableClubIds.has(postClubId) : false)
+  ) {
+    return post;
+  }
+
+  throw forbidden('Post is not visible to authenticated user', { postId });
+}
+
+function assertValidStoreParentComment(
+  tables: SeedTables,
+  postId: string,
+  parentCommentId: string | undefined,
+): void {
+  if (!parentCommentId) {
+    return;
+  }
+
+  const parent = asRows(tables.postComments).find(
+    (row) => asString(row.id) === parentCommentId,
+  );
+  if (!parent || asString(parent.postId) !== postId) {
+    throw badRequest('Parent comment must belong to the target post', {
+      postId,
+      parentCommentId,
+    });
+  }
+  if (asBoolean(parent.isDeleted) === true || asString(parent.deletedAt) != null) {
+    throw badRequest('Cannot reply to a deleted comment', { parentCommentId });
+  }
+  if (asString(parent.parentCommentId)) {
+    throw badRequest('Cannot reply to a reply; comments support one reply level', {
+      parentCommentId,
+    });
+  }
+}
+
+function refreshStorePostCommentCount(
+  tables: SeedTables,
+  post: SeedRow,
+  authUserId: string,
+  now: string,
+): void {
+  const postId = asString(post.id);
+  post.commentsCount = asRows(tables.postComments).filter(
+    (row) =>
+      asString(row.postId) === postId &&
+      asBoolean(row.isDeleted) !== true &&
+      asString(row.deletedAt) == null,
+  ).length;
+  post.updatedAt = now;
+  post.updatedByUserId = authUserId;
+  post.version = Number(post.version ?? 1) + 1;
 }
 
 function groupThreadForStore(tables: SeedTables, communityGroupId: string): SeedRow | undefined {
@@ -404,7 +549,11 @@ function findSeedGroupMessageCreateIdempotency(params: {
     return null;
   }
 
-  assertMatchingIdempotencyRequest(entry, requestHash);
+  assertMatchingIdempotencyRequest(
+    entry,
+    requestHash,
+    'Idempotency key was already used with a different community message payload',
+  );
   return normalizeAs<GroupMessageCreateResult>(entry.responseBodyJson);
 }
 
@@ -425,6 +574,58 @@ function recordSeedGroupMessageCreateIdempotency(params: {
     endpointKey: GROUP_MESSAGE_CREATE_ENDPOINT_KEY,
     idempotencyKey: params.body.idempotencyKey,
     requestHash: hashGroupMessageCreateRequest(params.body),
+    responseStatus: 201,
+    responseBodyJson: params.response,
+    createdAt: params.now,
+    expiresAt: new Date(Date.parse(params.now) + IDEMPOTENCY_TTL_MS).toISOString(),
+  });
+}
+
+function findSeedPostCommentCreateIdempotency(params: {
+  tables: SeedTables;
+  authUserId: string;
+  body: PostCommentCreateParams;
+}): PostCommentMutationResult | null {
+  if (!params.body.idempotencyKey) {
+    return null;
+  }
+
+  const requestHash = hashPostCommentCreateRequest(params.body);
+  const entry = asRows(params.tables.idempotencyKeys).find(
+    (row) =>
+      asString(row.userId) === params.authUserId &&
+      asString(row.endpointKey) === POST_COMMENT_CREATE_ENDPOINT_KEY &&
+      asString(row.idempotencyKey) === params.body.idempotencyKey,
+  );
+  if (!entry) {
+    return null;
+  }
+
+  assertMatchingIdempotencyRequest(
+    entry,
+    requestHash,
+    'Idempotency key was already used with a different post comment payload',
+  );
+  return normalizeAs<PostCommentMutationResult>(entry.responseBodyJson);
+}
+
+function recordSeedPostCommentCreateIdempotency(params: {
+  tables: SeedTables;
+  authUserId: string;
+  body: PostCommentCreateParams;
+  response: PostCommentMutationResult;
+  now: string;
+}): void {
+  if (!params.body.idempotencyKey) {
+    return;
+  }
+
+  ensureRows(params.tables, 'idempotencyKeys').push({
+    id: newId('idk'),
+    userId: params.authUserId,
+    endpointKey: POST_COMMENT_CREATE_ENDPOINT_KEY,
+    idempotencyKey: params.body.idempotencyKey,
+    requestHash: hashPostCommentCreateRequest(params.body),
     responseStatus: 201,
     responseBodyJson: params.response,
     createdAt: params.now,
@@ -492,6 +693,151 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
 
     return {
       posts,
+      dataVersion: store.version,
+    };
+  }
+
+  async listPostComments(params: PostCommentListParams): Promise<PostCommentListResult> {
+    const store = this.storeProvider();
+    assertReadableStorePost(
+      store.tables,
+      params.postId,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+
+    const comments = asRows(store.tables.postComments)
+      .filter((row) => asString(row.postId) === params.postId)
+      .sort(
+        (left, right) =>
+          Date.parse(asString(left.createdAt) ?? '') - Date.parse(asString(right.createdAt) ?? ''),
+      )
+      .map((comment) => hydrateStorePostComment(store.tables, comment));
+
+    return {
+      comments,
+      dataVersion: store.version,
+    };
+  }
+
+  async getPostComment(params: PostCommentReadParams): Promise<PostCommentMutationResult> {
+    const store = this.storeProvider();
+    const comment = asRows(store.tables.postComments).find(
+      (row) => asString(row.id) === params.commentId,
+    );
+    if (!comment) {
+      throw notFound('Comment not found', { commentId: params.commentId });
+    }
+    const postId = asString(comment.postId);
+    if (!postId) {
+      throw notFound('Post not found', { commentId: params.commentId });
+    }
+    assertReadableStorePost(
+      store.tables,
+      postId,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+
+    return {
+      comment: hydrateStorePostComment(store.tables, comment),
+      dataVersion: store.version,
+    };
+  }
+
+  async createPostComment(params: PostCommentCreateParams): Promise<PostCommentMutationResult> {
+    const store = this.storeProvider();
+    const post = assertReadableStorePost(
+      store.tables,
+      params.postId,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+    const replay = findSeedPostCommentCreateIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      body: params,
+    });
+    if (replay) {
+      return replay;
+    }
+
+    const content = params.content.trim();
+    if (!content) {
+      throw badRequest('Comment content cannot be empty');
+    }
+    if (content.length > 2000) {
+      throw badRequest('Comment must be 2000 characters or fewer');
+    }
+
+    assertValidStoreParentComment(store.tables, params.postId, params.parentCommentId);
+
+    const now = nowIso();
+    const comment: SeedRow = {
+      id: newId('cmt'),
+      postId: params.postId,
+      authorUserId: params.authUserId,
+      parentCommentId: params.parentCommentId ?? null,
+      content,
+      isDeleted: false,
+      deletedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    ensureRows(store.tables, 'postComments').push(comment);
+    refreshStorePostCommentCount(store.tables, post, params.authUserId, now);
+
+    const response: PostCommentMutationResult = {
+      comment: hydrateStorePostComment(store.tables, comment),
+      dataVersion: store.version,
+    };
+    recordSeedPostCommentCreateIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      body: params,
+      response,
+      now,
+    });
+    return response;
+  }
+
+  async deletePostComment(params: PostCommentDeleteParams): Promise<PostCommentMutationResult> {
+    const store = this.storeProvider();
+    const comment = asRows(store.tables.postComments).find(
+      (row) => asString(row.id) === params.commentId,
+    );
+    if (!comment) {
+      throw notFound('Comment not found', { commentId: params.commentId });
+    }
+    const postId = asString(comment.postId);
+    if (!postId) {
+      throw notFound('Post not found', { commentId: params.commentId });
+    }
+    const post = assertReadableStorePost(
+      store.tables,
+      postId,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+
+    if (!params.isPrivilegedAdmin && asString(comment.authorUserId) !== params.authUserId) {
+      throw forbidden('Only the comment author or privileged admin can delete this comment', {
+        commentId: params.commentId,
+      });
+    }
+    if (asBoolean(comment.isDeleted) === true || asString(comment.deletedAt) != null) {
+      throw conflict('Comment is already deleted', { commentId: params.commentId });
+    }
+
+    const now = nowIso();
+    comment.content = '[deleted]';
+    comment.isDeleted = true;
+    comment.deletedAt = now;
+    comment.updatedAt = now;
+    refreshStorePostCommentCount(store.tables, post, params.authUserId, now);
+
+    return {
+      comment: hydrateStorePostComment(store.tables, comment),
       dataVersion: store.version,
     };
   }
@@ -857,6 +1203,128 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     return memberships.map((row) => row.clubId);
   }
 
+  private async assertReadablePost(
+    postId: string,
+    authUserId: string,
+    isPrivilegedAdmin: boolean,
+  ): Promise<SeedRow> {
+    const prisma = getPrismaClientOrThrow();
+    const post = await prisma.post.findFirst({
+      where: {
+        id: postId,
+        deletedAt: null,
+      },
+    });
+    if (!post) {
+      throw notFound('Post not found', { postId });
+    }
+
+    if (isPrivilegedAdmin || post.authorUserId === authUserId) {
+      return normalizeAs<SeedRow>(post);
+    }
+
+    const [groupMembership, clubMembership] = await Promise.all([
+      post.communityGroupId
+        ? prisma.communityGroupMembership.findFirst({
+            where: {
+              communityGroupId: post.communityGroupId,
+              userId: authUserId,
+              active: true,
+              deletedAt: null,
+            },
+            select: { id: true },
+          })
+        : Promise.resolve(null),
+      post.clubId
+        ? prisma.clubMembership.findFirst({
+            where: {
+              clubId: post.clubId,
+              userId: authUserId,
+              active: true,
+              deletedAt: null,
+            },
+            select: { id: true },
+          })
+        : Promise.resolve(null),
+    ]);
+    if (groupMembership || clubMembership) {
+      return normalizeAs<SeedRow>(post);
+    }
+
+    throw forbidden('Post is not visible to authenticated user', { postId });
+  }
+
+  private async hydratePostComments(comments: SeedRow[]): Promise<SeedRow[]> {
+    if (comments.length === 0) {
+      return [];
+    }
+
+    const userIds = Array.from(
+      new Set(
+        comments
+          .map((comment) => asString(comment.authorUserId))
+          .filter((userId): userId is string => Boolean(userId)),
+      ),
+    );
+    const prisma = getPrismaClientOrThrow();
+    const users = normalizeAs<SeedRow[]>(
+      userIds.length > 0
+        ? await prisma.user.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, name: true, avatarUrl: true },
+          })
+        : [],
+    );
+    const usersById = new Map(users.map((user) => [asString(user.id), user] as const));
+
+    return comments.map((comment) => {
+      const authorUserId = asString(comment.authorUserId);
+      const user = authorUserId ? usersById.get(authorUserId) : undefined;
+      return {
+        ...comment,
+        author: authorUserId
+          ? {
+              id: authorUserId,
+              name: asString(user?.name) ?? authorUserId,
+              avatarUrl: asString(user?.avatarUrl) ?? null,
+            }
+          : null,
+      };
+    });
+  }
+
+  private async hydratePostComment(comment: SeedRow): Promise<SeedRow> {
+    return (await this.hydratePostComments([comment]))[0] as SeedRow;
+  }
+
+  private async assertValidPrismaParentComment(
+    postId: string,
+    parentCommentId: string | undefined,
+  ): Promise<void> {
+    if (!parentCommentId) {
+      return;
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const parent = await prisma.postComment.findUnique({
+      where: { id: parentCommentId },
+    });
+    if (!parent || parent.postId !== postId) {
+      throw badRequest('Parent comment must belong to the target post', {
+        postId,
+        parentCommentId,
+      });
+    }
+    if (parent.isDeleted || parent.deletedAt) {
+      throw badRequest('Cannot reply to a deleted comment', { parentCommentId });
+    }
+    if (parent.parentCommentId) {
+      throw badRequest('Cannot reply to a reply; comments support one reply level', {
+        parentCommentId,
+      });
+    }
+  }
+
   private async assertCanWriteGroupMessages(
     communityGroupId: string,
     authUserId: string,
@@ -992,6 +1460,241 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
 
     return {
       posts,
+      dataVersion: null,
+    };
+  }
+
+  async listPostComments(params: PostCommentListParams): Promise<PostCommentListResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.listPostComments(params);
+    }
+
+    await this.assertReadablePost(
+      params.postId,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+
+    const prisma = getPrismaClientOrThrow();
+    const comments = normalizeAs<SeedRow[]>(
+      await prisma.postComment.findMany({
+        where: {
+          postId: params.postId,
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+    );
+
+    return {
+      comments: await this.hydratePostComments(comments),
+      dataVersion: null,
+    };
+  }
+
+  async getPostComment(params: PostCommentReadParams): Promise<PostCommentMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.getPostComment(params);
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const comment = await prisma.postComment.findUnique({
+      where: { id: params.commentId },
+    });
+    if (!comment) {
+      throw notFound('Comment not found', { commentId: params.commentId });
+    }
+
+    await this.assertReadablePost(
+      comment.postId,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+
+    return {
+      comment: await this.hydratePostComment(normalizeAs<SeedRow>(comment)),
+      dataVersion: null,
+    };
+  }
+
+  async createPostComment(params: PostCommentCreateParams): Promise<PostCommentMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.createPostComment(params);
+    }
+
+    await this.assertReadablePost(
+      params.postId,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+
+    const prisma = getPrismaClientOrThrow();
+    const requestHash = hashPostCommentCreateRequest(params);
+    if (params.idempotencyKey) {
+      const existing = await prisma.idempotencyKey.findUnique({
+        where: {
+          userId_endpointKey_idempotencyKey: {
+            userId: params.authUserId,
+            endpointKey: POST_COMMENT_CREATE_ENDPOINT_KEY,
+            idempotencyKey: params.idempotencyKey,
+          },
+        },
+      });
+      if (existing) {
+        assertMatchingIdempotencyRequest(
+          normalizeAs<SeedRow>(existing),
+          requestHash,
+          'Idempotency key was already used with a different post comment payload',
+        );
+        return normalizeAs<PostCommentMutationResult>(existing.responseBodyJson);
+      }
+    }
+
+    const content = params.content.trim();
+    if (!content) {
+      throw badRequest('Comment content cannot be empty');
+    }
+    if (content.length > 2000) {
+      throw badRequest('Comment must be 2000 characters or fewer');
+    }
+    await this.assertValidPrismaParentComment(params.postId, params.parentCommentId);
+
+    const now = new Date();
+    let response: PostCommentMutationResult | null = null;
+
+    await prisma.$transaction(async (tx) => {
+      const comment = await tx.postComment.create({
+        data: {
+          id: newId('cmt'),
+          postId: params.postId,
+          authorUserId: params.authUserId,
+          parentCommentId: params.parentCommentId ?? null,
+          content,
+          isDeleted: false,
+          deletedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+
+      const commentsCount = await tx.postComment.count({
+        where: {
+          postId: params.postId,
+          isDeleted: false,
+          deletedAt: null,
+        },
+      });
+      await tx.post.update({
+        where: { id: params.postId },
+        data: {
+          commentsCount,
+          updatedByUserId: params.authUserId,
+          version: { increment: 1 },
+        },
+      });
+
+      const author = await tx.user.findUnique({
+        where: { id: params.authUserId },
+        select: { id: true, name: true, avatarUrl: true },
+      });
+      response = {
+        comment: {
+          ...normalizeAs<SeedRow>(comment),
+          author: author
+            ? normalizeAs<SeedRow>(author)
+            : {
+                id: params.authUserId,
+                name: params.authUserId,
+                avatarUrl: null,
+              },
+        },
+        dataVersion: null,
+      };
+
+      if (params.idempotencyKey) {
+        await tx.idempotencyKey.create({
+          data: {
+            id: newId('idk'),
+            userId: params.authUserId,
+            endpointKey: POST_COMMENT_CREATE_ENDPOINT_KEY,
+            idempotencyKey: params.idempotencyKey,
+            requestHash,
+            responseStatus: 201,
+            responseBodyJson: response as never,
+            expiresAt: new Date(now.getTime() + IDEMPOTENCY_TTL_MS),
+          },
+        });
+      }
+    });
+
+    if (!response) {
+      throw notFound('Comment was not created');
+    }
+    return response;
+  }
+
+  async deletePostComment(params: PostCommentDeleteParams): Promise<PostCommentMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.deletePostComment(params);
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const comment = await prisma.postComment.findUnique({
+      where: { id: params.commentId },
+    });
+    if (!comment) {
+      throw notFound('Comment not found', { commentId: params.commentId });
+    }
+
+    await this.assertReadablePost(
+      comment.postId,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+
+    if (!params.isPrivilegedAdmin && comment.authorUserId !== params.authUserId) {
+      throw forbidden('Only the comment author or privileged admin can delete this comment', {
+        commentId: params.commentId,
+      });
+    }
+    if (comment.isDeleted || comment.deletedAt) {
+      throw conflict('Comment is already deleted', { commentId: params.commentId });
+    }
+
+    const now = new Date();
+    let updatedComment: SeedRow | null = null;
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.postComment.update({
+        where: { id: params.commentId },
+        data: {
+          content: '[deleted]',
+          isDeleted: true,
+          deletedAt: now,
+          updatedAt: now,
+        },
+      });
+      const commentsCount = await tx.postComment.count({
+        where: {
+          postId: comment.postId,
+          isDeleted: false,
+          deletedAt: null,
+        },
+      });
+      await tx.post.update({
+        where: { id: comment.postId },
+        data: {
+          commentsCount,
+          updatedByUserId: params.authUserId,
+          version: { increment: 1 },
+        },
+      });
+      updatedComment = normalizeAs<SeedRow>(updated);
+    });
+
+    if (!updatedComment) {
+      throw notFound('Comment was not deleted');
+    }
+    return {
+      comment: await this.hydratePostComment(updatedComment),
       dataVersion: null,
     };
   }
