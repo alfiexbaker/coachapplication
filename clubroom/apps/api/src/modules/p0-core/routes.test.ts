@@ -21,6 +21,20 @@ const asString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
 const asNumber = (value: unknown): number | undefined =>
   typeof value === 'number' ? value : undefined;
+const asRecord = (value: unknown): SeedRow | undefined =>
+  value && typeof value === 'object' && !Array.isArray(value) ? (value as SeedRow) : undefined;
+
+function auditEventsFor(
+  tables: SeedTables,
+  params: { action: string; resourceId?: string; result?: string },
+): SeedRow[] {
+  return asRows(tables.auditEvents).filter(
+    (row) =>
+      asString(row.action) === params.action &&
+      (params.resourceId === undefined || asString(row.resourceId) === params.resourceId) &&
+      (params.result === undefined || asString(row.result) === params.result),
+  );
+}
 
 function resolveDatasetPath(): string {
   const primary = path.resolve(
@@ -2435,6 +2449,7 @@ describe('p0 core routes', () => {
     assert.ok(guardianLink, 'expected guardian-child link');
     const parentUserId = asString(guardianLink?.guardianUserId) as string;
     const athleteId = asString(guardianLink?.athleteId) as string;
+    const store = getMarketplaceSeedStore();
 
     const createInvite = async (
       focus: string,
@@ -2472,6 +2487,34 @@ describe('p0 core routes', () => {
       excludePendingInvites: true,
     });
 
+    const deniedCreate = await app.inject({
+      method: 'POST',
+      url: '/v1/invites',
+      headers: {
+        'x-auth-user-id': parentUserId,
+        'x-auth-roles': rolesForUser(tables, parentUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, parentUserId)[0] ?? 'parent',
+      },
+      payload: {
+        coachUserId,
+        athleteIds: [athleteId],
+        parentUserId,
+        proposedSlots: [firstSlot],
+        sessionType: '1:1 Coaching',
+        focus: 'Denied create',
+        inviteType: 'CLOSED',
+        priceMinor: 3500,
+        durationMinutes: 60,
+      },
+    });
+    assert.equal(deniedCreate.statusCode, 403);
+    assert.equal(
+      auditEventsFor(store.tables, { action: 'invite.create', result: 'DENY' }).some(
+        (event) => asString(asRecord(event.metadataJson)?.reason) === 'coachUserId_mismatch',
+      ),
+      true,
+    );
+
     const pendingCreate = await createInvite('First Touch', firstSlot, 'grp_direct_test');
     assert.equal(pendingCreate.statusCode, 201);
     const pendingPayload = pendingCreate.json() as {
@@ -2487,6 +2530,14 @@ describe('p0 core routes', () => {
     assert.equal(pendingPayload.invite.focus, 'First Touch');
     assert.equal(pendingPayload.invite.groupId, 'grp_direct_test');
     assert.equal(pendingPayload.invite.parentId, parentUserId);
+    assert.equal(
+      auditEventsFor(store.tables, {
+        action: 'invite.create',
+        resourceId: pendingPayload.invite.id,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
 
     const groupList = await app.inject({
       method: 'GET',
@@ -2506,6 +2557,25 @@ describe('p0 core routes', () => {
       true,
     );
 
+    const deniedRemind = await app.inject({
+      method: 'POST',
+      url: `/v1/invites/${pendingPayload.invite.id}/remind`,
+      headers: {
+        'x-auth-user-id': parentUserId,
+        'x-auth-roles': rolesForUser(tables, parentUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, parentUserId)[0] ?? 'parent',
+      },
+    });
+    assert.equal(deniedRemind.statusCode, 403);
+    assert.equal(
+      auditEventsFor(store.tables, {
+        action: 'invite.remind',
+        resourceId: pendingPayload.invite.id,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+
     const remind = await app.inject({
       method: 'POST',
       url: `/v1/invites/${pendingPayload.invite.id}/remind`,
@@ -2516,6 +2586,31 @@ describe('p0 core routes', () => {
       },
     });
     assert.equal(remind.statusCode, 204);
+    const remindAudit = auditEventsFor(store.tables, {
+      action: 'invite.remind',
+      resourceId: pendingPayload.invite.id,
+      result: 'SUCCESS',
+    }).at(-1);
+    assert.equal(asNumber(asRecord(remindAudit?.metadataJson)?.reminderCount), 1);
+
+    const deniedDismiss = await app.inject({
+      method: 'POST',
+      url: `/v1/invites/${pendingPayload.invite.id}/dismiss`,
+      headers: {
+        'x-auth-user-id': coachUserId,
+        'x-auth-roles': rolesForUser(tables, coachUserId).join(',') || 'coach',
+        'x-acting-role': rolesForUser(tables, coachUserId)[0] ?? 'coach',
+      },
+    });
+    assert.equal(deniedDismiss.statusCode, 403);
+    assert.equal(
+      auditEventsFor(store.tables, {
+        action: 'invite.dismiss',
+        resourceId: pendingPayload.invite.id,
+        result: 'DENY',
+      }).length,
+      1,
+    );
 
     const dismiss = await app.inject({
       method: 'POST',
@@ -2527,6 +2622,14 @@ describe('p0 core routes', () => {
       },
     });
     assert.equal(dismiss.statusCode, 204);
+    assert.equal(
+      auditEventsFor(store.tables, {
+        action: 'invite.dismiss',
+        resourceId: pendingPayload.invite.id,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
 
     const parentListAfterDismiss = await app.inject({
       method: 'GET',
@@ -2560,6 +2663,29 @@ describe('p0 core routes', () => {
       invite: { id: string };
     };
 
+    const deniedRespond = await app.inject({
+      method: 'POST',
+      url: `/v1/invites/${acceptedPayload.invite.id}/respond`,
+      headers: {
+        'x-auth-user-id': coachUserId,
+        'x-auth-roles': rolesForUser(tables, coachUserId).join(',') || 'coach',
+        'x-acting-role': rolesForUser(tables, coachUserId)[0] ?? 'coach',
+      },
+      payload: {
+        response: 'ACCEPTED',
+        selectedSlot: acceptedSlot,
+      },
+    });
+    assert.equal(deniedRespond.statusCode, 403);
+    assert.equal(
+      auditEventsFor(store.tables, {
+        action: 'invite.respond',
+        resourceId: acceptedPayload.invite.id,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+
     const acceptInvite = await app.inject({
       method: 'POST',
       url: `/v1/invites/${acceptedPayload.invite.id}/respond`,
@@ -2583,6 +2709,13 @@ describe('p0 core routes', () => {
     assert.equal(acceptPayload.invite.status, 'ACCEPTED');
     assert.match(acceptPayload.bookingId ?? '', /^bok_/);
     assert.equal(acceptPayload.bookingId, acceptPayload.booking?.id ?? acceptPayload.bookingId);
+    const acceptAudit = auditEventsFor(store.tables, {
+      action: 'invite.respond',
+      resourceId: acceptedPayload.invite.id,
+      result: 'SUCCESS',
+    }).at(-1);
+    assert.equal(asString(asRecord(acceptAudit?.metadataJson)?.response), 'ACCEPTED');
+    assert.equal(asString(asRecord(acceptAudit?.metadataJson)?.bookingId), acceptPayload.bookingId);
 
     const createdBooking = await app.inject({
       method: 'GET',
@@ -2609,6 +2742,25 @@ describe('p0 core routes', () => {
       invite: { id: string };
     };
 
+    const deniedCancelInvite = await app.inject({
+      method: 'DELETE',
+      url: `/v1/invites/${cancelledPayload.invite.id}`,
+      headers: {
+        'x-auth-user-id': parentUserId,
+        'x-auth-roles': rolesForUser(tables, parentUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, parentUserId)[0] ?? 'parent',
+      },
+    });
+    assert.equal(deniedCancelInvite.statusCode, 403);
+    assert.equal(
+      auditEventsFor(store.tables, {
+        action: 'invite.cancel',
+        resourceId: cancelledPayload.invite.id,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+
     const cancelInvite = await app.inject({
       method: 'DELETE',
       url: `/v1/invites/${cancelledPayload.invite.id}`,
@@ -2619,6 +2771,14 @@ describe('p0 core routes', () => {
       },
     });
     assert.equal(cancelInvite.statusCode, 204);
+    assert.equal(
+      auditEventsFor(store.tables, {
+        action: 'invite.cancel',
+        resourceId: cancelledPayload.invite.id,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
 
     const cancelledDetail = await app.inject({
       method: 'GET',
@@ -2682,6 +2842,14 @@ describe('p0 core routes', () => {
       });
       assert.equal(created.statusCode, 201);
       const createdPayload = created.json() as { invite: { id: string } };
+      assert.equal(
+        auditEventsFor(fixtureStore.tables, {
+          action: 'invite.create',
+          resourceId: createdPayload.invite.id,
+          result: 'SUCCESS',
+        }).length,
+        1,
+      );
 
       const accepted = await app.inject({
         method: 'POST',
@@ -2712,6 +2880,13 @@ describe('p0 core routes', () => {
         ),
         true,
       );
+      const dbAcceptAudit = auditEventsFor(fixtureStore.tables, {
+        action: 'invite.respond',
+        resourceId: createdPayload.invite.id,
+        result: 'SUCCESS',
+      }).at(-1);
+      assert.equal(asString(asRecord(dbAcceptAudit?.metadataJson)?.bookingId), acceptedPayload.bookingId);
+      assert.equal(asRecord(dbAcceptAudit?.metadataJson)?.replay, false);
 
       const detail = await app.inject({
         method: 'GET',
@@ -2733,6 +2908,13 @@ describe('p0 core routes', () => {
       assert.equal(replay.statusCode, 200);
       assert.equal(replay.json().bookingId, acceptedPayload.bookingId);
       assert.equal(asRows(fixtureStore.tables.bookings).length, dbBookingCountBefore + 1);
+      const dbRespondAudits = auditEventsFor(fixtureStore.tables, {
+        action: 'invite.respond',
+        resourceId: createdPayload.invite.id,
+        result: 'SUCCESS',
+      });
+      assert.equal(dbRespondAudits.length, 2);
+      assert.equal(asRecord(dbRespondAudits.at(-1)?.metadataJson)?.replay, true);
     } finally {
       env.API_DATA_BACKEND = previousBackend;
       resetMarketplaceSeedStoreForTests();

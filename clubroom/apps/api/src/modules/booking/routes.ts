@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import {
   bookingIdSchema,
@@ -60,6 +60,25 @@ const asObject = (value: unknown): SeedRow | undefined =>
 const isoNow = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 const bookingSeriesIdSchema = z.string().regex(/^rec_[A-Za-z0-9-]+$/);
+
+async function recordInviteAudit(params: {
+  request: FastifyRequest;
+  action: 'invite.create' | 'invite.cancel' | 'invite.remind' | 'invite.dismiss' | 'invite.respond';
+  resourceId?: string | null;
+  subjectUserId?: string | null;
+  result: 'SUCCESS' | 'DENY' | 'ERROR';
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  await recordAuditEvent({
+    request: params.request,
+    action: params.action,
+    resourceType: 'invite',
+    resourceId: params.resourceId ?? null,
+    subjectUserId: params.subjectUserId ?? null,
+    result: params.result,
+    metadata: params.metadata,
+  });
+}
 
 async function generateRegistrationInvoiceIfBillable(params: {
   bookingId?: string | null;
@@ -1273,6 +1292,18 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     const body = createInviteRequestSchema.parse(request.body ?? {});
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
     if (!isPrivilegedAdmin && body.coachUserId !== authUserId) {
+      await recordInviteAudit({
+        request,
+        action: 'invite.create',
+        result: 'DENY',
+        subjectUserId: body.parentUserId,
+        metadata: {
+          reason: 'coachUserId_mismatch',
+          coachUserId: body.coachUserId,
+          parentUserId: body.parentUserId,
+          athleteIds: body.athleteIds,
+        },
+      });
       throw forbidden('coachUserId must match authenticated user');
     }
 
@@ -1393,6 +1424,23 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       return targetRow;
     });
 
+    await recordInviteAudit({
+      request,
+      action: 'invite.create',
+      resourceId: inviteId,
+      subjectUserId: body.parentUserId,
+      result: 'SUCCESS',
+      metadata: {
+        coachUserId: body.coachUserId,
+        parentUserId: body.parentUserId,
+        athleteIds: body.athleteIds,
+        inviteAudienceType: body.inviteType ?? 'OPEN',
+        groupId: body.groupId ?? null,
+        existingSessionId: body.existingSessionId ?? null,
+        targetIds: createdTargets.map((target) => asString(target.id)).filter(Boolean),
+      },
+    });
+
     return reply.status(201).send({
       invite: buildSessionInviteView({
         tables: store.tables,
@@ -1463,22 +1511,49 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
     const isOwner = asString(invite.senderUserId) === authUserId;
     if (!isOwner && !isPrivilegedAdmin) {
+      await recordInviteAudit({
+        request,
+        action: 'invite.cancel',
+        resourceId: inviteId,
+        subjectUserId: asString(targets.find((target) => asString(target.inviteId) === inviteId)?.targetUserId),
+        result: 'DENY',
+        metadata: {
+          reason: 'not_owner_or_admin',
+          senderUserId: asString(invite.senderUserId) ?? null,
+          status: asString(invite.status) ?? null,
+        },
+      });
       throw forbidden('Invite does not belong to authenticated user');
     }
 
     const now = isoNow();
+    const previousStatus = asString(invite.status) ?? null;
     invite.status = 'EXPIRED';
     invite.revokedAt = now;
     invite.updatedAt = now;
 
-    targets
-      .filter((target) => asString(target.inviteId) === inviteId)
+    const inviteTargets = targets.filter((target) => asString(target.inviteId) === inviteId);
+    inviteTargets
       .forEach((target) => {
         if (asString(target.status) === 'PENDING') {
           target.status = 'EXPIRED';
         }
         target.updatedAt = now;
       });
+
+    await recordInviteAudit({
+      request,
+      action: 'invite.cancel',
+      resourceId: inviteId,
+      subjectUserId: asString(inviteTargets[0]?.targetUserId) ?? null,
+      result: 'SUCCESS',
+      metadata: {
+        previousStatus,
+        status: asString(invite.status) ?? null,
+        targetIds: inviteTargets.map((target) => asString(target.id)).filter(Boolean),
+        targetUserIds: inviteTargets.map((target) => asString(target.targetUserId)).filter(Boolean),
+      },
+    });
 
     return reply.status(204).send();
   });
@@ -1504,6 +1579,17 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
     const isOwner = asString(invite.senderUserId) === authUserId;
     if (!isOwner && !isPrivilegedAdmin) {
+      await recordInviteAudit({
+        request,
+        action: 'invite.remind',
+        resourceId: inviteId,
+        result: 'DENY',
+        metadata: {
+          reason: 'not_owner_or_admin',
+          senderUserId: asString(invite.senderUserId) ?? null,
+          status: asString(invite.status) ?? null,
+        },
+      });
       throw forbidden('Invite does not belong to authenticated user');
     }
     if (asString(invite.revokedAt) || asString(invite.status) !== 'PENDING') {
@@ -1518,6 +1604,18 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       reminderCount: (asNumber(metadata.reminderCount) ?? 0) + 1,
     };
     invite.updatedAt = now;
+
+    await recordInviteAudit({
+      request,
+      action: 'invite.remind',
+      resourceId: inviteId,
+      result: 'SUCCESS',
+      metadata: {
+        status: asString(invite.status) ?? null,
+        reminderCount: asNumber((asObject(invite.metadataJson) ?? {}).reminderCount) ?? null,
+        lastRemindedAt: now,
+      },
+    });
 
     return reply.status(204).send();
   });
@@ -1543,6 +1641,16 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       (row) => asString(row.inviteId) === inviteId && asString(row.targetUserId) === authUserId,
     );
     if (visibleTargets.length === 0) {
+      await recordInviteAudit({
+        request,
+        action: 'invite.dismiss',
+        resourceId: inviteId,
+        result: 'DENY',
+        metadata: {
+          reason: 'not_invite_target',
+          status: asString(invite.status) ?? null,
+        },
+      });
       throw forbidden('Invite does not belong to authenticated user');
     }
 
@@ -1555,6 +1663,18 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         dismissedAt: now,
       };
       target.updatedAt = now;
+    });
+
+    await recordInviteAudit({
+      request,
+      action: 'invite.dismiss',
+      resourceId: inviteId,
+      subjectUserId: authUserId,
+      result: 'SUCCESS',
+      metadata: {
+        status: asString(invite.status) ?? null,
+        targetIds: visibleTargets.map((target) => asString(target.id)).filter(Boolean),
+      },
     });
 
     return reply.status(204).send();
@@ -1587,6 +1707,17 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       (row) => asString(row.inviteId) === inviteId && asString(row.targetUserId) === authUserId,
     );
     if (visibleTargets.length === 0) {
+      await recordInviteAudit({
+        request,
+        action: 'invite.respond',
+        resourceId: inviteId,
+        result: 'DENY',
+        metadata: {
+          reason: 'not_invite_target',
+          requestedResponse: body.response,
+          status: asString(invite.status) ?? null,
+        },
+      });
       throw forbidden('Invite does not belong to authenticated user');
     }
 
@@ -1600,6 +1731,20 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       const existingBooking = await resolveBookingRepository().getVisibleBookingById({
         authUserId,
         bookingId: existingBookingId,
+      });
+      await recordInviteAudit({
+        request,
+        action: 'invite.respond',
+        resourceId: inviteId,
+        subjectUserId: authUserId,
+        result: 'SUCCESS',
+        metadata: {
+          replay: true,
+          response: body.response,
+          status: asString(invite.status) ?? 'ACCEPTED',
+          targetStatus: asString(visibleTargets[0]?.status) ?? 'ACCEPTED',
+          bookingId: existingBooking.id,
+        },
       });
       return reply.send({
         invite: buildSessionInviteView({
@@ -1732,6 +1877,25 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     });
     invite.status = body.response;
     invite.updatedAt = now;
+
+    await recordInviteAudit({
+      request,
+      action: 'invite.respond',
+      resourceId: inviteId,
+      subjectUserId: authUserId,
+      result: 'SUCCESS',
+      metadata: {
+        replay: false,
+        response: body.response,
+        status: asString(invite.status) ?? body.response,
+        targetStatus: asString(visibleTargets[0]?.status) ?? body.response,
+        selectedSlot: body.selectedSlot ?? null,
+        bookingId: asString(invite.bookingId) ?? booking?.id ?? null,
+        registrationId,
+        registrationStatus,
+        targetIds: visibleTargets.map((target) => asString(target.id)).filter(Boolean),
+      },
+    });
 
     return reply.send({
       invite: buildSessionInviteView({
