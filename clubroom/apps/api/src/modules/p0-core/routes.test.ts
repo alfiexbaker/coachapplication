@@ -2074,6 +2074,75 @@ describe('p0 core routes', () => {
         1,
       );
 
+      fixtureStore.tables.sessionFeedback = [
+        ...(fixtureStore.tables.sessionFeedback ?? []),
+        {
+          id: 'sfb_coach_authored_profile_leak_probe',
+          bookingId: asString(bookingToComplete.id),
+          athleteId,
+          authorUserId: coachUserId,
+          coachUserId,
+          rating: 1,
+          publicComment: 'Coach-authored feedback must not appear as a public review.',
+          privateCommentEncrypted: null,
+          visibility: 'public',
+          metadataJson: {
+            source: 'booking-review',
+            coachUserId,
+            reviewerUserId: coachUserId,
+          },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          deletedAt: null,
+        },
+      ];
+
+      const coachReviewList = await app.inject({
+        method: 'GET',
+        url: `/v1/coaches/${coachUserId}/reviews`,
+      });
+      assert.equal(coachReviewList.statusCode, 200);
+      const coachReviewListPayload = coachReviewList.json() as {
+        reviews: Array<{
+          id: string;
+          bookingId: string;
+          coachUserId: string;
+          reviewerUserId: string;
+          reviewerName: string | null;
+          athleteId: string;
+          athleteName: string | null;
+          rating: number;
+          comment: string | null;
+          sessionType: string | null;
+          categories: Record<string, number>;
+          isVerifiedBooking: boolean;
+        }>;
+      };
+      const profileReview = coachReviewListPayload.reviews.find(
+        (review) => review.id === reviewPayload.review.id,
+      );
+      assert.ok(profileReview);
+      assert.equal(
+        coachReviewListPayload.reviews.some(
+          (review) => review.id === 'sfb_coach_authored_profile_leak_probe',
+        ),
+        false,
+      );
+      assert.equal(profileReview.bookingId, asString(bookingToComplete.id));
+      assert.equal(profileReview.coachUserId, coachUserId);
+      assert.equal(profileReview.reviewerUserId, bookedByUserId);
+      assert.equal(profileReview.athleteId, athleteId);
+      assert.equal(profileReview.rating, 5);
+      assert.equal(
+        profileReview.comment,
+        'Clear feedback and useful next steps.',
+      );
+      assert.equal(profileReview.isVerifiedBooking, true);
+      assert.deepEqual(profileReview.categories, {
+        communication: 5,
+        punctuality: 4,
+      });
+
       const reviewSuccessAudit = auditEventsFor(fixtureStore.tables, {
         action: 'booking_review.create',
         resourceId: asString(bookingToComplete.id),

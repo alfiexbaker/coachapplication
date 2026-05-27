@@ -61,6 +61,7 @@ const asObject = (value: unknown): SeedRow | undefined =>
 const isoNow = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 const bookingSeriesIdSchema = z.string().regex(/^rec_[A-Za-z0-9-]+$/);
+const coachIdSchema = z.string().trim().min(1);
 
 async function recordInviteAudit(params: {
   request: FastifyRequest;
@@ -511,6 +512,20 @@ const createInviteRequestSchema = z.object({
 });
 
 const bookingRoutes: FastifyPluginAsync = async (app) => {
+  app.get('/coaches/:coachId/reviews', async (request, reply) => {
+    const coachId = coachIdSchema.parse(
+      (request.params as { coachId?: string } | undefined)?.coachId,
+    );
+    const repository = resolveBookingReviewRepository();
+    const result = await repository.listCoachReviews({ coachUserId: coachId });
+
+    return reply.send({
+      reviews: result.reviews,
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
   app.get('/bookings', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {

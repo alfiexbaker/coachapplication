@@ -4,13 +4,21 @@ Date: 2026-05-27
 
 ## Latest Update
 
+1. Continued `PROD-API-02` with the coach profile review read authority slice.
+2. Added `GET /v1/coaches/:coachId/reviews` so coach profiles can read verified public reviews from backend session feedback instead of local review mirrors.
+3. The backend read path only returns public reviews tied to completed bookings for that coach, and filters out coach-authored or unrelated feedback even if it is public-looking.
+4. `coachService.getCoachReviews` now uses `/v1/coaches/:coachId/reviews` in non-mock mode; mock mode keeps the existing seeded/local merge.
+5. Verification: `npm run verify:slice:full` passed, including app typecheck, app test compile, API typecheck, and the full API test suite.
+
+## Previous Update
+
 1. Continued `PROD-API-02` with the review UI linkup slice.
 2. `app/review/[bookingId].tsx` now loads the booking through `bookingService.getBooking`, so non-mock review context comes from `/v1/bookings/:bookingId` instead of local booking storage.
 3. Review submission now calls `POST /v1/bookings/:bookingId/reviews` in non-mock mode through `services/review-sync-service.ts`; local/mock review creation remains the mock-mode fallback.
 4. Successful backend review responses are best-effort mirrored into legacy review read models only for current coach profile/UI compatibility.
 5. Verification: `npm run verify:slice:app` passed; the API-boundary baseline was ratcheted down after one retired legacy finding.
 
-## Previous Update
+## Earlier Update
 
 1. Continued `PROD-API-02` with the booking-linked review authority slice.
 2. Added `POST /v1/bookings/:bookingId/reviews` as a backend authority path for verified coach reviews.
@@ -124,14 +132,14 @@ Date: 2026-05-27
 1. The rules are now strong enough to block new obvious slop, but not enough to claim elite production readiness.
 2. Main risk is API/source-of-truth maturity, not static UI quality.
 3. The current API boundary baseline is a ratchet, not a release pass: `102` legacy `/api/*`, `148` trust-sensitive local-storage patterns, `5` route literals, and `2` frontend raw fetches remain.
-4. Booking create/list/detail/cancel/reopen/complete are improved with db-fixture parent/coach/deny proof, and completion now creates backend attendance plus progress-visible session-note proof records; booking-linked review submission now requires completed-booking authority, audits success/deny paths, and the review screen submits through that authority in non-mock mode; multi-week package plus initial recurring-plan creation/list/detail/cancel/pause/resume/update now use backend series authority, recurring reschedule/cancel syncs or voids mutable linked invoices while blocking settled invoices, invoice money transitions now require authoritative booking linkage, legacy earnings payment/refund writes fail closed outside mock, direct invite acceptance creates db-mode bookings through booking repository authority, invite writes now emit allowed/denied audit events, billable group-session registration and waitlist promotion link booking/invoice/payment proof, group registration and session cancellation now apply invoice/refund hard walls, group session cancellation fans out to registrations/bookings/attendance, cancelled sessions reject new registration, and group attendance writes now emit audit events. Media scan enforcement, guardian sharing, health/injury linkup, club admin operations, community writes, coach profile review read linkup, and rebook proof remain the highest-risk gaps.
+4. Booking create/list/detail/cancel/reopen/complete are improved with db-fixture parent/coach/deny proof, and completion now creates backend attendance plus progress-visible session-note proof records; booking-linked review submission now requires completed-booking authority, audits success/deny paths, the review screen submits through that authority in non-mock mode, and coach profile review reads now use verified backend review proof; multi-week package plus initial recurring-plan creation/list/detail/cancel/pause/resume/update now use backend series authority, recurring reschedule/cancel syncs or voids mutable linked invoices while blocking settled invoices, invoice money transitions now require authoritative booking linkage, legacy earnings payment/refund writes fail closed outside mock, direct invite acceptance creates db-mode bookings through booking repository authority, invite writes now emit allowed/denied audit events, billable group-session registration and waitlist promotion link booking/invoice/payment proof, group registration and session cancellation now apply invoice/refund hard walls, group session cancellation fans out to registrations/bookings/attendance, cancelled sessions reject new registration, and group attendance writes now emit audit events. Media scan enforcement, guardian sharing, health/injury linkup, club admin operations, community writes, remaining review mirror cleanup, and rebook proof remain the highest-risk gaps.
 5. Production rehearsal must wait until P0 journeys have API authority plus UI linkup packets complete.
 
 ## Next Exact Action
 
 1. Keep `OBS-RUNTIME-01` green: Sentry is clean, API-mode Expo must continue to start only with `apps/api` reachable.
 2. Continue `PROD-API-02`.
-3. Continue `PROD-API-02` by moving the next backend-authoritative delivery slice: coach profile review read linkup, rebook context authority, full invite repository extraction/idempotency, or media upload finalization/scan enforcement.
+3. Continue `PROD-API-02` by moving the next backend-authoritative delivery slice: rebook context authority, full invite repository extraction/idempotency, media upload finalization/scan enforcement, or remaining review mirror cleanup.
 4. Keep `/v1/meta/seed-health` and `/v1/drills` marked as cleanup candidates: auth-gate, disable, or delete before production.
 5. Keep `node ./scripts/api-boundary-audit.js` green on every slice.
 6. Do not run production rehearsal until booking, child readiness, payment/refund, attendance, proof, club operations, and compliance evidence have backend-authoritative launch paths.

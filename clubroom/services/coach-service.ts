@@ -2,10 +2,10 @@
  * Coach Service
  *
  * Manages coach profiles, reviews, and public-facing data.
- * Uses apiClient for all data access (AsyncStorage in mock mode, API in production).
+ * Uses apiClient for mock/local data and explicit `/v1` routes for API-mode authority.
  */
 
-import { apiClient } from './api-client';
+import { apiClient, apiFetch } from './api-client';
 import { createLogger } from '@/utils/logger';
 import type { Result, ServiceError } from '@/types/result';
 import { ok, err, notFound, storageError } from '@/types/result';
@@ -92,6 +92,24 @@ export interface PublicReview {
   isVerifiedBooking?: boolean;
   categories?: Record<string, number>;
   createdAt: string;
+}
+
+interface ApiCoachReviewsResponse {
+  reviews: Array<{
+    id: string;
+    bookingId: string;
+    coachUserId: string;
+    reviewerUserId: string;
+    reviewerName: string | null;
+    athleteId: string;
+    athleteName: string | null;
+    rating: number;
+    comment: string | null;
+    sessionType: string | null;
+    categories: Record<string, number>;
+    isVerifiedBooking: true;
+    createdAt: string;
+  }>;
 }
 
 // ============================================================================
@@ -297,6 +315,26 @@ function toPublicReview(review: RateCoachReviewRecord): PublicReview {
   };
 }
 
+function toPublicReviewFromApi(
+  review: ApiCoachReviewsResponse['reviews'][number],
+): PublicReview {
+  return {
+    id: review.id,
+    coachId: review.coachUserId,
+    reviewerName: review.reviewerName?.trim() || 'Parent',
+    reviewerId: review.reviewerUserId,
+    athleteId: review.athleteId,
+    athleteName: review.athleteName ?? undefined,
+    rating: review.rating,
+    comment: review.comment?.trim() || undefined,
+    sessionType: review.sessionType ?? undefined,
+    bookingId: review.bookingId,
+    isVerifiedBooking: review.isVerifiedBooking,
+    categories: review.categories,
+    createdAt: review.createdAt,
+  };
+}
+
 function dedupePublicReviews(reviews: PublicReview[]): PublicReview[] {
   const seen = new Set<string>();
   const result: PublicReview[] = [];
@@ -363,6 +401,21 @@ export const coachService = {
   async getCoachReviews(coachId: string): Promise<Result<PublicReview[], ServiceError>> {
     logger.info('Getting coach reviews', { coachId });
     try {
+      if (!apiClient.isMockMode) {
+        const apiResult = await apiFetch<ApiCoachReviewsResponse>(
+          `/v1/coaches/${encodeURIComponent(coachId)}/reviews`,
+        );
+        if (!apiResult.success) {
+          return err(apiResult.error);
+        }
+
+        return ok(
+          apiResult.data.reviews
+            .map(toPublicReviewFromApi)
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+        );
+      }
+
       const [publicReviews, rateCoachReviews] = await Promise.all([
         apiClient.get<PublicReview[]>(COACH_REVIEWS_KEY, MOCK_REVIEWS),
         apiClient.get<RateCoachReviewRecord[]>(STORAGE_KEYS.RATE_COACH_REVIEWS, []),
