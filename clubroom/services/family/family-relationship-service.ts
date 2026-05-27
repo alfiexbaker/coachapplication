@@ -5,7 +5,7 @@
  * Single responsibility: guardian lifecycle and relationships.
  */
 
-import { apiClient } from '../api-client';
+import { apiClient, apiFetch } from '../api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
@@ -25,14 +25,22 @@ import {
 } from '@/types/result';
 import {
   type FamilyAccount,
+  type FamilyMember,
   type FamilyGuardian,
   type GuardianInvite,
   type GuardianRole,
   type GuardianPermission,
 } from '@/constants/types';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+} from '@/services/api-auth-context';
+import { mapApiFamilyAthleteToChildProfile, type ApiFamilyAthlete } from './family-api-support';
 
 const logger = createLogger('FamilyRelationshipService');
 const USE_MOCK = api.useMock;
+const FAMILY_MEMBER_COLOR = '#3B82F6';
 
 // ============================================================================
 // CONSTANTS
@@ -99,6 +107,130 @@ export const PERMISSION_DESCRIPTIONS: Record<
   },
 };
 
+interface ApiFamilyMembership {
+  id: string;
+  familyId: string;
+  userId: string;
+  role?: string | null;
+  permissions?: string[] | null;
+  relationshipLabel?: string | null;
+  childAccessAthleteIds?: string[] | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  user?: {
+    id?: string | null;
+    email?: string | null;
+    name?: string | null;
+    avatarUrl?: string | null;
+  } | null;
+}
+
+interface ApiFamilyResponse {
+  family: {
+    id: string;
+    name?: string | null;
+    primaryGuardianUserId?: string | null;
+    createdAt?: string | null;
+    updatedAt?: string | null;
+  };
+  memberships: ApiFamilyMembership[];
+  athletes: ApiFamilyAthlete[];
+  guardianInvites?: GuardianInvite[];
+  pendingGuardianInvites?: GuardianInvite[];
+}
+
+function mapBackendPermissions(
+  role: GuardianRole,
+  permissions: string[] | null | undefined,
+): GuardianPermission[] {
+  if (role === 'PRIMARY') {
+    return DEFAULT_ROLE_PERMISSIONS.PRIMARY;
+  }
+  const normalized = new Set((permissions ?? []).map((permission) => permission.toLowerCase()));
+  const mapped: GuardianPermission[] = [];
+  if (normalized.has('schedule') || normalized.has('messages') || normalized.has('book')) {
+    mapped.push('VIEW_SCHEDULE');
+  }
+  if (normalized.has('progress') || normalized.has('messages')) {
+    mapped.push('VIEW_PROGRESS');
+  }
+  if (normalized.has('book')) {
+    mapped.push('BOOK_SESSIONS');
+  }
+  if (normalized.has('payments')) {
+    mapped.push('MANAGE_PAYMENTS');
+  }
+  if (normalized.has('medical') || normalized.has('profile')) {
+    mapped.push('MANAGE_PROFILE');
+  }
+  if (normalized.has('admin')) {
+    mapped.push('ADMIN');
+  }
+  return mapped.length > 0 ? mapped : DEFAULT_ROLE_PERMISSIONS[role];
+}
+
+function membershipRoleToGuardianRole(
+  membership: ApiFamilyMembership,
+  primaryGuardianUserId: string | null | undefined,
+): GuardianRole {
+  const role = membership.role?.toLowerCase();
+  if (membership.userId === primaryGuardianUserId || role === 'owner' || role === 'admin') {
+    return 'PRIMARY';
+  }
+  if (role === 'viewer') {
+    return 'VIEWER';
+  }
+  return 'GUARDIAN';
+}
+
+function mapApiFamilyMember(athlete: ApiFamilyAthlete, fallbackParentId: string): FamilyMember {
+  const child = mapApiFamilyAthleteToChildProfile(athlete, fallbackParentId);
+  const dateOfBirth = child.dateOfBirth ? new Date(child.dateOfBirth) : null;
+  const age =
+    dateOfBirth && !Number.isNaN(dateOfBirth.getTime())
+      ? Math.max(0, new Date().getFullYear() - dateOfBirth.getFullYear())
+      : 0;
+  return {
+    id: child.id,
+    name: child.nickname?.trim() || `${child.firstName} ${child.lastName}`.trim(),
+    avatar: child.photoUrl,
+    relationship: child.relationship.toLowerCase() as FamilyMember['relationship'],
+    age,
+    colorCode: FAMILY_MEMBER_COLOR,
+    dateOfBirth: child.dateOfBirth,
+    isActive: true,
+    addedAt: child.createdAt,
+  };
+}
+
+function mapApiFamilyAccount(payload: ApiFamilyResponse, fallbackUserId: string): FamilyAccount {
+  const primaryGuardianId = payload.family.primaryGuardianUserId ?? fallbackUserId;
+  return {
+    id: payload.family.id,
+    name: payload.family.name ?? 'Family Account',
+    primaryGuardianId,
+    guardians: payload.memberships.map((membership) => {
+      const role = membershipRoleToGuardianRole(membership, payload.family.primaryGuardianUserId);
+      return {
+        id: membership.id,
+        userId: membership.userId,
+        email: membership.user?.email ?? '',
+        avatar: membership.user?.avatarUrl ?? undefined,
+        role,
+        permissions: mapBackendPermissions(role, membership.permissions),
+        relationship: membership.relationshipLabel ?? (role === 'PRIMARY' ? 'Primary guardian' : 'Guardian'),
+        isPrimary: role === 'PRIMARY',
+        childAccess: membership.childAccessAthleteIds ?? [],
+        addedAt: membership.createdAt ?? new Date().toISOString(),
+      };
+    }),
+    children: payload.athletes.map((athlete) => mapApiFamilyMember(athlete, primaryGuardianId)),
+    pendingInvites: payload.pendingGuardianInvites ?? payload.guardianInvites ?? [],
+    createdAt: payload.family.createdAt ?? new Date().toISOString(),
+    updatedAt: payload.family.updatedAt ?? payload.family.createdAt ?? new Date().toISOString(),
+  };
+}
+
 // ============================================================================
 // SERVICE CLASS
 // ============================================================================
@@ -159,6 +291,40 @@ class FamilyRelationshipService {
    * Get or create a family account for a user.
    */
   async getFamilyAccount(userId: string, userName: string): Promise<FamilyAccount> {
+    if (!USE_MOCK) {
+      const currentUserResult = await resolveSignedInApiUser('Sign in to view family sharing.');
+      if (!currentUserResult.success) {
+        throw new Error(currentUserResult.error.message);
+      }
+      const meResult = await apiFetch<{ linkedFamilies: Array<{ familyId?: string | null }> }>(
+        '/v1/me',
+        {
+          method: 'GET',
+          headers: buildApiAuthHeaders({
+            actingRole: deriveApiActingRole(currentUserResult.data, 'parent'),
+          }),
+        },
+      );
+      if (!meResult.success) {
+        throw new Error(meResult.error.message);
+      }
+      const familyId = meResult.data.linkedFamilies.find((family) => family.familyId)?.familyId;
+      if (!familyId) {
+        throw new Error('No family account found for this user.');
+      }
+
+      const familyResult = await apiFetch<ApiFamilyResponse>(`/v1/families/${familyId}`, {
+        method: 'GET',
+        headers: buildApiAuthHeaders({
+          actingRole: deriveApiActingRole(currentUserResult.data, 'parent'),
+        }),
+      });
+      if (!familyResult.success) {
+        throw new Error(familyResult.error.message);
+      }
+      return mapApiFamilyAccount(familyResult.data, userId);
+    }
+
     const accounts = await this.loadAccounts();
 
     // Find existing account where user is primary or a guardian
@@ -223,6 +389,23 @@ class FamilyRelationshipService {
    * Get all guardians for a family.
    */
   async getGuardians(familyId: string): Promise<FamilyGuardian[]> {
+    if (!USE_MOCK) {
+      const currentUserResult = await resolveSignedInApiUser('Sign in to view guardians.');
+      if (!currentUserResult.success) {
+        throw new Error(currentUserResult.error.message);
+      }
+      const result = await apiFetch<ApiFamilyResponse>(`/v1/families/${familyId}`, {
+        method: 'GET',
+        headers: buildApiAuthHeaders({
+          actingRole: deriveApiActingRole(currentUserResult.data, 'parent'),
+        }),
+      });
+      if (!result.success) {
+        throw new Error(result.error.message);
+      }
+      return mapApiFamilyAccount(result.data, currentUserResult.data.id).guardians;
+    }
+
     const accounts = await this.loadAccounts();
     const account = accounts.find((a) => a.id === familyId);
     return account?.guardians || [];
@@ -244,6 +427,23 @@ class FamilyRelationshipService {
     requesterId: string,
     guardianId: string,
   ): Promise<Result<void, ServiceError>> {
+    if (!USE_MOCK) {
+      const currentUserResult = await resolveSignedInApiUser('Sign in to remove guardians.');
+      if (!currentUserResult.success) {
+        return err(currentUserResult.error);
+      }
+      const result = await apiFetch<void>(`/v1/families/${familyId}/guardians/${guardianId}`, {
+        method: 'DELETE',
+        headers: buildApiAuthHeaders({
+          actingRole: deriveApiActingRole(currentUserResult.data, 'parent'),
+        }),
+      });
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(undefined);
+    }
+
     const hasAdmin = await familyPermissionService.isAdmin(requesterId, familyId);
     if (!hasAdmin) {
       return err(storageError('You do not have permission to remove guardians'));
@@ -295,6 +495,32 @@ class FamilyRelationshipService {
     childAccess: string[],
     message?: string,
   ): Promise<Result<GuardianInvite, ServiceError>> {
+    if (!USE_MOCK) {
+      const currentUserResult = await resolveSignedInApiUser('Sign in to invite guardians.');
+      if (!currentUserResult.success) {
+        return err(currentUserResult.error);
+      }
+      const result = await apiFetch<GuardianInvite>(`/v1/families/${familyId}/guardians`, {
+        method: 'POST',
+        headers: buildApiAuthHeaders({
+          actingRole: deriveApiActingRole(currentUserResult.data, 'parent'),
+        }),
+        body: JSON.stringify({
+          inviteeEmail,
+          inviteeName,
+          role,
+          relationship,
+          childAccess,
+          message,
+        }),
+      });
+      if (!result.success) {
+        return err(result.error);
+      }
+      logger.success('GuardianInvited', { familyId, inviteeEmail, role, source: 'api' });
+      return ok(result.data);
+    }
+
     // Check if inviter has permission
     const hasAdmin = await familyPermissionService.isAdmin(inviterId, familyId);
     if (!hasAdmin) {
@@ -379,6 +605,11 @@ class FamilyRelationshipService {
    * Get pending invites for a user by email.
    */
   async getPendingInvitesForUser(email: string): Promise<GuardianInvite[]> {
+    if (!USE_MOCK) {
+      logger.debug('guardian_invite_inbox_deferred_to_backend', { email });
+      return [];
+    }
+
     const invites = await this.loadInvites();
     const now = new Date();
 
@@ -399,6 +630,10 @@ class FamilyRelationshipService {
     userName: string,
     userEmail: string,
   ): Promise<Result<FamilyAccount, ServiceError>> {
+    if (!USE_MOCK) {
+      return err(storageError('Guardian invite acceptance is not available until the backend accept route is enabled.'));
+    }
+
     const invites = await this.loadInvites();
     const invite = invites.find((i) => i.id === inviteId);
 
@@ -469,6 +704,10 @@ class FamilyRelationshipService {
    * Decline a guardian invitation.
    */
   async declineInvite(inviteId: string): Promise<Result<void, ServiceError>> {
+    if (!USE_MOCK) {
+      return err(storageError('Guardian invite decline is not available until the backend decline route is enabled.'));
+    }
+
     const invites = await this.loadInvites();
     const invite = invites.find((i) => i.id === inviteId);
 
@@ -501,6 +740,26 @@ class FamilyRelationshipService {
     requesterId: string,
     inviteId: string,
   ): Promise<Result<void, ServiceError>> {
+    if (!USE_MOCK) {
+      const currentUserResult = await resolveSignedInApiUser('Sign in to cancel guardian invitations.');
+      if (!currentUserResult.success) {
+        return err(currentUserResult.error);
+      }
+      const result = await apiFetch<void>(
+        `/v1/families/${familyId}/guardian-invites/${inviteId}`,
+        {
+          method: 'DELETE',
+          headers: buildApiAuthHeaders({
+            actingRole: deriveApiActingRole(currentUserResult.data, 'parent'),
+          }),
+        },
+      );
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(undefined);
+    }
+
     const hasAdmin = await familyPermissionService.isAdmin(requesterId, familyId);
     if (!hasAdmin) {
       return err(storageError('You do not have permission to cancel invitations'));

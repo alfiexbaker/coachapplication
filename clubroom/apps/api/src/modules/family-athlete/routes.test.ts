@@ -5,7 +5,7 @@ import { after, beforeEach, describe, it } from 'node:test';
 import { env } from '@clubroom/config';
 import { buildApp } from '../../app.js';
 import { resetAuthRuntimeForTests } from '../../lib/auth-runtime.js';
-import { resetDbFixtureStoreForTests } from '../../lib/db-fixture-store.js';
+import { getDbFixtureStore, resetDbFixtureStoreForTests } from '../../lib/db-fixture-store.js';
 import { resetMarketplaceSeedStoreForTests } from '../../lib/marketplace-seed-store.js';
 import { resetFamilyAthleteRouteStateForTests } from './routes.js';
 
@@ -14,6 +14,18 @@ type SeedTables = Record<string, SeedRow[]>;
 
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
+
+function auditEventsFor(
+  tables: SeedTables,
+  params: { action: string; resourceId?: string; result?: string },
+): SeedRow[] {
+  return asRows(tables.auditEvents).filter(
+    (row) =>
+      asString(row.action) === params.action &&
+      (params.resourceId === undefined || asString(row.resourceId) === params.resourceId) &&
+      (params.result === undefined || asString(row.result) === params.result),
+  );
+}
 
 function resolveDatasetPath(): string {
   const primary = path.resolve(process.cwd(), 'docs/backend-api/test-data/marketplace/linked-dataset.json');
@@ -266,6 +278,250 @@ describe('family-athlete routes', () => {
       familyPayload.athletes.some((athlete) => athlete.id === created.athleteId),
       false,
     );
+  });
+
+  it('creates guardian invitations through backend family authority', async () => {
+    const originalBackend = env.API_DATA_BACKEND;
+    try {
+      env.API_DATA_BACKEND = 'db';
+      const store = getDbFixtureStore();
+      const ownerMembership = asRows(store.tables.familyMemberships).find(
+        (row) => asString(row.role) === 'owner',
+      );
+      assert.ok(ownerMembership, 'expected family owner membership');
+
+      const familyId = asString(ownerMembership.familyId) as string;
+      const ownerUserId = asString(ownerMembership.userId) as string;
+      const athleteId = asRows(store.tables.guardianChildLinks)
+        .filter((row) => asString(row.familyId) === familyId)
+        .map((row) => asString(row.athleteId))
+        .find((id): id is string => Boolean(id));
+      assert.ok(athleteId, 'expected family athlete');
+
+      const headers = {
+        'x-auth-user-id': ownerUserId,
+        'x-auth-roles': rolesForUser(store.tables, ownerUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(store.tables, ownerUserId)[0] ?? 'parent',
+      };
+      const payload = {
+        inviteeEmail: 'trusted.guardian@example.com',
+        inviteeName: 'Trusted Guardian',
+        role: 'GUARDIAN',
+        relationship: 'Grandparent',
+        childAccess: [athleteId],
+        message: 'Please help with session pickups.',
+      };
+
+      const create = await app.inject({
+        method: 'POST',
+        url: `/v1/families/${familyId}/guardians`,
+        headers,
+        payload,
+      });
+      assert.equal(create.statusCode, 201);
+      const created = create.json() as {
+        id: string;
+        familyId: string;
+        inviteeEmail: string;
+        role: string;
+        childAccess: string[];
+        status: string;
+      };
+      assert.match(created.id, /^ginv_/);
+      assert.equal(created.familyId, familyId);
+      assert.equal(created.inviteeEmail, 'trusted.guardian@example.com');
+      assert.equal(created.role, 'GUARDIAN');
+      assert.deepEqual(created.childAccess, [athleteId]);
+      assert.equal(created.status, 'PENDING');
+
+      const replay = await app.inject({
+        method: 'POST',
+        url: `/v1/families/${familyId}/guardians`,
+        headers,
+        payload,
+      });
+      assert.equal(replay.statusCode, 200);
+      assert.equal((replay.json() as { id: string }).id, created.id);
+
+      const conflict = await app.inject({
+        method: 'POST',
+        url: `/v1/families/${familyId}/guardians`,
+        headers,
+        payload: {
+          ...payload,
+          role: 'VIEWER',
+        },
+      });
+      assert.equal(conflict.statusCode, 409);
+
+      const family = await app.inject({
+        method: 'GET',
+        url: `/v1/families/${familyId}`,
+        headers,
+      });
+      assert.equal(family.statusCode, 200);
+      const familyPayload = family.json() as {
+        pendingGuardianInvites: Array<{ id: string; inviteeEmail: string }>;
+      };
+      assert.equal(
+        familyPayload.pendingGuardianInvites.some((invite) => invite.id === created.id),
+        true,
+      );
+
+      assert.equal(
+        auditEventsFor(store.tables, {
+          action: 'family_guardian_invite.create',
+          resourceId: created.id,
+          result: 'SUCCESS',
+        }).length >= 1,
+        true,
+      );
+      assert.equal(
+        auditEventsFor(store.tables, {
+          action: 'family_guardian_invite.create',
+          result: 'DENY',
+        }).some((event) => asString(event.actorUserId) === ownerUserId),
+        true,
+      );
+    } finally {
+      env.API_DATA_BACKEND = originalBackend;
+      resetDbFixtureStoreForTests();
+    }
+  });
+
+  it('denies guardian invitation writes for non-admin family members', async () => {
+    const originalBackend = env.API_DATA_BACKEND;
+    try {
+      env.API_DATA_BACKEND = 'db';
+      const store = getDbFixtureStore();
+      const ownerMembership = asRows(store.tables.familyMemberships).find(
+        (row) => asString(row.role) === 'owner',
+      );
+      assert.ok(ownerMembership, 'expected family owner membership');
+      const familyId = asString(ownerMembership.familyId) as string;
+      const nonAdminMembership = asRows(store.tables.familyMemberships).find(
+        (row) => asString(row.familyId) === familyId && asString(row.role) !== 'owner',
+      );
+      assert.ok(nonAdminMembership, 'expected non-admin family membership');
+      const nonAdminUserId = asString(nonAdminMembership.userId) as string;
+
+      const denied = await app.inject({
+        method: 'POST',
+        url: `/v1/families/${familyId}/guardians`,
+        headers: {
+          'x-auth-user-id': nonAdminUserId,
+          'x-auth-roles': rolesForUser(store.tables, nonAdminUserId).join(',') || 'parent',
+          'x-acting-role': rolesForUser(store.tables, nonAdminUserId)[0] ?? 'parent',
+        },
+        payload: {
+          inviteeEmail: 'blocked.guardian@example.com',
+          role: 'VIEWER',
+          relationship: 'Family friend',
+          childAccess: [],
+        },
+      });
+      assert.equal(denied.statusCode, 403);
+      assert.equal(
+        auditEventsFor(store.tables, {
+          action: 'family_guardian_invite.create',
+          result: 'DENY',
+        }).some((event) => asString(event.actorUserId) === nonAdminUserId),
+        true,
+      );
+    } finally {
+      env.API_DATA_BACKEND = originalBackend;
+      resetDbFixtureStoreForTests();
+    }
+  });
+
+  it('cancels guardian invites and removes non-primary guardians through backend authority', async () => {
+    const originalBackend = env.API_DATA_BACKEND;
+    try {
+      env.API_DATA_BACKEND = 'db';
+      const store = getDbFixtureStore();
+      const ownerMembership = asRows(store.tables.familyMemberships).find(
+        (row) => asString(row.role) === 'owner',
+      );
+      assert.ok(ownerMembership, 'expected family owner membership');
+      const familyId = asString(ownerMembership.familyId) as string;
+      const ownerUserId = asString(ownerMembership.userId) as string;
+      const headers = {
+        'x-auth-user-id': ownerUserId,
+        'x-auth-roles': rolesForUser(store.tables, ownerUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(store.tables, ownerUserId)[0] ?? 'parent',
+      };
+
+      const create = await app.inject({
+        method: 'POST',
+        url: `/v1/families/${familyId}/guardians`,
+        headers,
+        payload: {
+          inviteeEmail: 'cancel.me@example.com',
+          role: 'VIEWER',
+          relationship: 'Family friend',
+          childAccess: [],
+        },
+      });
+      assert.equal(create.statusCode, 201);
+      const inviteId = (create.json() as { id: string }).id;
+
+      const cancel = await app.inject({
+        method: 'DELETE',
+        url: `/v1/families/${familyId}/guardian-invites/${inviteId}`,
+        headers,
+      });
+      assert.equal(cancel.statusCode, 204);
+      assert.equal(
+        auditEventsFor(store.tables, {
+          action: 'family_guardian_invite.cancel',
+          resourceId: inviteId,
+          result: 'SUCCESS',
+        }).length,
+        1,
+      );
+
+      const removableMembership = asRows(store.tables.familyMemberships).find(
+        (row) => asString(row.familyId) === familyId && asString(row.role) !== 'owner',
+      );
+      assert.ok(removableMembership, 'expected removable guardian membership');
+      const guardianId = asString(removableMembership.id) as string;
+      const guardianUserId = asString(removableMembership.userId) as string;
+
+      const remove = await app.inject({
+        method: 'DELETE',
+        url: `/v1/families/${familyId}/guardians/${guardianId}`,
+        headers,
+      });
+      assert.equal(remove.statusCode, 204);
+      assert.equal(asString(removableMembership.deletedAt) !== undefined, true);
+      assert.equal(
+        asRows(store.tables.guardianChildLinks).every((row) => {
+          if (asString(row.familyId) !== familyId || asString(row.guardianUserId) !== guardianUserId) {
+            return true;
+          }
+          return asString(row.deletedAt) !== undefined;
+        }),
+        true,
+      );
+
+      const removePrimary = await app.inject({
+        method: 'DELETE',
+        url: `/v1/families/${familyId}/guardians/${asString(ownerMembership.id)}`,
+        headers,
+      });
+      assert.equal(removePrimary.statusCode, 409);
+      assert.equal(
+        auditEventsFor(store.tables, {
+          action: 'family_guardian.remove',
+          resourceId: guardianId,
+          result: 'SUCCESS',
+        }).length,
+        1,
+      );
+    } finally {
+      env.API_DATA_BACKEND = originalBackend;
+      resetDbFixtureStoreForTests();
+    }
   });
 
   it('allows a verified assigned coach to read athlete detail', async () => {

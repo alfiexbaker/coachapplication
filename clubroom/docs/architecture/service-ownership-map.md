@@ -40,6 +40,7 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - Validated entrypoint: `services/family/index.ts`
 - Exposes `familyService`, `familyMemberService`, `familyHealthService`, `familyRelationshipService`, `familyPermissionService`
 - `familyHealthService` is the canonical path for athlete medical, emergency contacts, and consent records
+- `familyRelationshipService` is the canonical guardian-sharing bridge; in non-mock mode it reads `/v1/families/:familyId`, creates pending guardian invites through `POST /v1/families/:familyId/guardians`, and cancels/removes through the family guardian `/v1` routes instead of local family account storage
 - `services/safety-service.ts` is the read/write runtime facade that routes those trust-sensitive records to `familyHealthService` in non-mock mode and to the mock emergency store in mock mode
 - `services/injury-service.ts` is the canonical health/injury bridge for `/v1/athletes/:athleteId/injuries` and `/v1/injuries/:injuryId` in non-mock mode; it fails closed instead of writing local injury records when the backend denies or fails
 - `services/child-service.ts` is now the canonical child-profile bridge for non-mock `/v1/families/:familyId` and `/v1/athletes*` reads/writes; it no longer owns child profile, injury, medical, emergency-contact, or consent persistence outside mock mode

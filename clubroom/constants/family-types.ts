@@ -93,7 +93,7 @@ export interface FamilyGuardian {
 /**
  * Status of a guardian invitation
  */
-export type GuardianInviteStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED';
+export type GuardianInviteStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'CANCELLED';
 
 /**
  * Invitation to join a family account as a guardian

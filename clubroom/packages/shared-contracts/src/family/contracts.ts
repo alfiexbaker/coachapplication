@@ -2,9 +2,55 @@ import { z } from 'zod';
 import {
   athleteIdSchema,
   emergencyContactIdSchema,
+  familyIdSchema,
+  guardianInviteIdSchema,
   injuryIdSchema,
   userIdSchema,
 } from '../common/ids.js';
+
+export const guardianRoleSchema = z.enum(['PRIMARY', 'GUARDIAN', 'VIEWER']);
+export const guardianInviteRoleSchema = z.enum(['GUARDIAN', 'VIEWER']);
+export const guardianPermissionSchema = z.enum([
+  'VIEW_SCHEDULE',
+  'VIEW_PROGRESS',
+  'BOOK_SESSIONS',
+  'MANAGE_PAYMENTS',
+  'MANAGE_PROFILE',
+  'ADMIN',
+]);
+export const guardianInviteStatusSchema = z.enum([
+  'PENDING',
+  'ACCEPTED',
+  'DECLINED',
+  'EXPIRED',
+  'CANCELLED',
+]);
+
+export const createGuardianInviteRequestSchema = z.object({
+  inviteeEmail: z.string().trim().email().max(254),
+  inviteeName: z.string().trim().min(1).max(120).optional(),
+  role: guardianInviteRoleSchema.default('GUARDIAN'),
+  relationship: z.string().trim().min(1).max(80),
+  childAccess: z.array(athleteIdSchema).max(20).default([]),
+  message: z.string().trim().max(500).optional(),
+});
+
+export const guardianInviteResponseSchema = z.object({
+  id: guardianInviteIdSchema,
+  familyId: familyIdSchema,
+  inviteeEmail: z.string().email(),
+  inviteeName: z.string().optional(),
+  role: guardianInviteRoleSchema,
+  permissions: z.array(guardianPermissionSchema),
+  relationship: z.string(),
+  childAccess: z.array(athleteIdSchema),
+  status: guardianInviteStatusSchema,
+  invitedBy: userIdSchema,
+  createdAt: z.string().datetime(),
+  expiresAt: z.string().datetime(),
+  respondedAt: z.string().datetime().optional(),
+  message: z.string().optional(),
+});
 
 export const injurySeveritySchema = z.enum(['low', 'medium', 'high']);
 export const injuryStatusSchema = z.enum(['active', 'recovering', 'resolved']);
@@ -139,6 +185,13 @@ export type CreateInjuryRequest = z.infer<typeof createInjuryRequestSchema>;
 export type UpdateInjuryRequest = z.infer<typeof updateInjuryRequestSchema>;
 export type InjuryRecord = z.infer<typeof injuryRecordSchema>;
 export type InjuriesResponse = z.infer<typeof injuriesResponseSchema>;
+
+export type GuardianRole = z.infer<typeof guardianRoleSchema>;
+export type GuardianInviteRole = z.infer<typeof guardianInviteRoleSchema>;
+export type GuardianPermission = z.infer<typeof guardianPermissionSchema>;
+export type GuardianInviteStatus = z.infer<typeof guardianInviteStatusSchema>;
+export type CreateGuardianInviteRequest = z.infer<typeof createGuardianInviteRequestSchema>;
+export type GuardianInviteResponse = z.infer<typeof guardianInviteResponseSchema>;
 
 export type UpdateMedicalRecordRequest = z.infer<typeof updateMedicalRecordRequestSchema>;
 export type MedicalRecordResponse = z.infer<typeof medicalRecordResponseSchema>;

@@ -5,8 +5,10 @@ import {
   consentsResponseSchema,
   consentTypeSchema,
   createInjuryRequestSchema,
+  createGuardianInviteRequestSchema,
   emergencyContactsResponseSchema,
   familyIdSchema,
+  guardianInviteResponseSchema,
   injuryIdSchema,
   injuriesResponseSchema,
   medicalRecordResponseSchema,
@@ -15,7 +17,7 @@ import {
   updateMedicalRecordRequestSchema,
   upsertConsentsRequestSchema,
 } from '@clubroom/shared-contracts';
-import { forbidden, notFound } from '../../lib/http-errors.js';
+import { ApiProblemError, forbidden, notFound } from '../../lib/http-errors.js';
 import {
   assertCanReadAthleteHealth,
   assertCanReadAthleteMedical,
@@ -95,6 +97,8 @@ const createAthleteRequestSchema = z.object({
 });
 
 const updateAthleteRequestSchema = createAthleteRequestSchema.omit({ familyId: true }).partial();
+const guardianInviteIdSchema = z.string().regex(/^ginv_[A-Za-z0-9-]+$/);
+const familyGuardianIdSchema = z.string().trim().min(1);
 
 function resolveParentIdFromAthlete(athlete: Record<string, unknown>): string | null {
   const guardians = Array.isArray(athlete.guardians) ? (athlete.guardians as SeedRow[]) : [];
@@ -136,6 +140,13 @@ const ensureAuthUserId = (userId?: string) => {
 
 export function resetFamilyAthleteRouteStateForTests(): void {}
 
+function auditResultForError(error: unknown): 'DENY' | 'ERROR' {
+  if (error instanceof ApiProblemError && [400, 403, 409].includes(error.status)) {
+    return 'DENY';
+  }
+  return 'ERROR';
+}
+
 const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
   app.get('/families/:familyId', async (request, reply) => {
     const familyId = familyIdSchema.parse((request.params as { familyId: string }).familyId);
@@ -162,9 +173,129 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
       athletes: aggregate.athletes
         .filter((athlete) => !asString(athlete.deletedAt))
         .map((athlete) => decorateAthlete(athlete)),
+      guardianInvites: aggregate.guardianInvites,
+      pendingGuardianInvites: aggregate.guardianInvites,
       seedVersion: aggregate.dataVersion,
       requestId: request.requestId,
     });
+  });
+
+  app.post('/families/:familyId/guardians', async (request, reply) => {
+    const familyId = familyIdSchema.parse((request.params as { familyId: string }).familyId);
+    const authUserId = ensureAuthUserId(request.auth?.userId);
+    const body = createGuardianInviteRequestSchema.parse(request.body);
+    const repository = resolveFamilyRepository();
+
+    try {
+      const result = await repository.createGuardianInvite({
+        familyId,
+        inviterUserId: authUserId,
+        inviteeEmail: body.inviteeEmail,
+        inviteeName: body.inviteeName,
+        role: body.role,
+        relationship: body.relationship,
+        childAccess: body.childAccess,
+        message: body.message,
+      });
+      await recordAuditEvent({
+        request,
+        action: 'family_guardian_invite.create',
+        resourceType: 'family_guardian_invite',
+        resourceId: result.invite.id,
+        subjectUserId: null,
+        result: 'SUCCESS',
+        metadata: {
+          familyId,
+          inviteeEmail: result.invite.inviteeEmail,
+          role: result.invite.role,
+          replayed: result.replayed,
+        },
+      });
+
+      return reply
+        .code(result.replayed ? 200 : 201)
+        .send(guardianInviteResponseSchema.parse(result.invite));
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'family_guardian_invite.create',
+        resourceType: 'family_guardian_invite',
+        resourceId: null,
+        result: auditResultForError(error),
+        metadata: {
+          familyId,
+          inviteeEmail: body.inviteeEmail.toLowerCase(),
+          role: body.role,
+        },
+      });
+      throw error;
+    }
+  });
+
+  app.delete('/families/:familyId/guardian-invites/:inviteId', async (request, reply) => {
+    const familyId = familyIdSchema.parse((request.params as { familyId: string }).familyId);
+    const inviteId = guardianInviteIdSchema.parse((request.params as { inviteId: string }).inviteId);
+    const authUserId = ensureAuthUserId(request.auth?.userId);
+    const repository = resolveFamilyRepository();
+
+    try {
+      const cancelled = await repository.cancelGuardianInvite(familyId, inviteId, authUserId);
+      if (!cancelled) {
+        throw notFound('Guardian invitation not found', { inviteId });
+      }
+      await recordAuditEvent({
+        request,
+        action: 'family_guardian_invite.cancel',
+        resourceType: 'family_guardian_invite',
+        resourceId: inviteId,
+        result: 'SUCCESS',
+        metadata: { familyId },
+      });
+      return reply.code(204).send();
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'family_guardian_invite.cancel',
+        resourceType: 'family_guardian_invite',
+        resourceId: inviteId,
+        result: auditResultForError(error),
+        metadata: { familyId },
+      });
+      throw error;
+    }
+  });
+
+  app.delete('/families/:familyId/guardians/:guardianId', async (request, reply) => {
+    const familyId = familyIdSchema.parse((request.params as { familyId: string }).familyId);
+    const guardianId = familyGuardianIdSchema.parse((request.params as { guardianId: string }).guardianId);
+    const authUserId = ensureAuthUserId(request.auth?.userId);
+    const repository = resolveFamilyRepository();
+
+    try {
+      const removed = await repository.removeGuardian(familyId, guardianId, authUserId);
+      if (!removed) {
+        throw notFound('Guardian not found', { guardianId });
+      }
+      await recordAuditEvent({
+        request,
+        action: 'family_guardian.remove',
+        resourceType: 'family_guardian',
+        resourceId: guardianId,
+        result: 'SUCCESS',
+        metadata: { familyId },
+      });
+      return reply.code(204).send();
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'family_guardian.remove',
+        resourceType: 'family_guardian',
+        resourceId: guardianId,
+        result: auditResultForError(error),
+        metadata: { familyId },
+      });
+      throw error;
+    }
   });
 
   app.post('/athletes', async (request, reply) => {

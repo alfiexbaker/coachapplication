@@ -137,6 +137,7 @@ async function main() {
     await tx.childEmergencyContact.deleteMany();
     await tx.childSenTag.deleteMany();
     await tx.guardianChildLink.deleteMany();
+    await tx.familyGuardianInvite.deleteMany();
     await tx.athlete.deleteMany();
     await tx.familyMembership.deleteMany();
     await tx.family.deleteMany();

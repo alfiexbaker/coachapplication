@@ -250,6 +250,7 @@ model User {
   familyMemberships    FamilyMembership[]
   linkedAthleteAccount Athlete?
   guardianChildLinks   GuardianChildLink[]
+  sentFamilyGuardianInvites FamilyGuardianInvite[] @relation("FamilyGuardianInviteInviter")
   coachProfile         CoachProfile?
   clubMemberships      ClubMembership[]
   eventRsvps           EventRsvp[]
@@ -388,6 +389,7 @@ model Family {
 
   memberships        FamilyMembership[]
   guardianChildLinks GuardianChildLink[]
+  guardianInvites    FamilyGuardianInvite[]
 
   @@index([primaryGuardianUserId])
 }
@@ -483,6 +485,33 @@ model GuardianChildLink {
   @@unique([guardianUserId, athleteId])
   @@index([familyId])
   @@index([athleteId])
+}
+
+model FamilyGuardianInvite {
+  id                    String   @id
+  familyId              String
+  inviteeEmail          String
+  inviteeName           String?
+  role                  String
+  permissions           String[]
+  relationshipLabel     String
+  childAccessAthleteIds String[]
+  status                String   @default("PENDING")
+  invitedByUserId       String
+  message               String?
+  createdAt             DateTime @default(now())
+  expiresAt             DateTime
+  respondedAt           DateTime?
+  updatedAt             DateTime @updatedAt
+  deletedAt             DateTime?
+  deletedByUserId       String?
+
+  family                Family   @relation(fields: [familyId], references: [id], onDelete: Restrict)
+  invitedBy             User     @relation("FamilyGuardianInviteInviter", fields: [invitedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([familyId, status, deletedAt])
+  @@index([inviteeEmail, status, deletedAt])
+  @@index([invitedByUserId])
 }
 
 model ChildEmergencyContact {

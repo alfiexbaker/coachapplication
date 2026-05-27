@@ -117,7 +117,7 @@ export function useFamilySharing() {
     }
     setInviting(true);
     try {
-      await familyService.inviteGuardian(
+      const result = await familyService.inviteGuardian(
         family.id,
         currentUser.id,
         currentUser.fullName || 'Parent',
@@ -128,6 +128,10 @@ export function useFamilySharing() {
         [],
         inviteMessage.trim() || undefined,
       );
+      if (!result.success) {
+        uiFeedback.showToast(result.error.message, 'error');
+        return;
+      }
       uiFeedback.showToast(`An invitation has been sent to ${email}. They'll receive instructions to join your family account.`, 'success');
       setShowInviteModal(false);
       resetInviteForm();
@@ -166,7 +170,11 @@ export function useFamilySharing() {
             style: 'destructive',
             onPress: async () => {
               try {
-                await familyService.removeGuardian(family.id, currentUser.id, guardian.id);
+                const result = await familyService.removeGuardian(family.id, currentUser.id, guardian.id);
+                if (!result.success) {
+                  uiFeedback.showToast(result.error.message, 'error');
+                  return;
+                }
                 uiFeedback.showToast(`${guardianLabel} has been removed from your family account.`);
                 onRefresh();
               } catch (error: unknown) {
@@ -190,7 +198,11 @@ export function useFamilySharing() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await familyService.cancelInvite(family.id, currentUser.id, inviteId);
+              const result = await familyService.cancelInvite(family.id, currentUser.id, inviteId);
+              if (!result.success) {
+                uiFeedback.showToast(result.error.message, 'error');
+                return;
+              }
               onRefresh();
             } catch (error: unknown) {
               uiFeedback.showToast(error instanceof Error ? error.message : 'Failed to cancel invitation', 'error');
