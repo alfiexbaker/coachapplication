@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { badRequest, forbidden, notFound } from '../../lib/http-errors.js';
+import { ApiProblemError, badRequest, forbidden, notFound } from '../../lib/http-errors.js';
 import {
   type InvoiceTransitionAction,
   completeSimulatedInvoicePayment,
@@ -27,7 +27,7 @@ import { resolveTrustAccessRepository } from '../../repositories/p0/trust-access
 import { resolveCommunityMediaRepository } from '../../repositories/p0/community-media-repository.js';
 import { resolveVideoAuthorityRepository } from '../../repositories/p0/video-authority-repository.js';
 import { normalizeForJson } from '../../repositories/p0/normalize.js';
-import { createSignedReadUrl, createUploadInit } from '../../lib/storage-runtime.js';
+import { completeUploadSession, createSignedReadUrl, createUploadInit } from '../../lib/storage-runtime.js';
 
 type SeedRow = Record<string, unknown>;
 
@@ -62,6 +62,19 @@ const uploadInitRequestSchema = z.object({
   fileName: z.string().min(1).max(260),
   sizeBytes: z.number().int().positive().max(2_000_000_000),
   metadata: z.record(z.unknown()).optional(),
+});
+
+const uploadCompleteParamsSchema = z.object({
+  uploadSessionId: z.string().trim().min(1),
+});
+
+const uploadCompleteRequestSchema = z.object({
+  mediaObjectId: z.string().trim().min(1),
+  sha256Hex: z
+    .string()
+    .trim()
+    .regex(/^[a-fA-F0-9]{64}$/)
+    .optional(),
 });
 
 const videoListQuerySchema = z
@@ -323,8 +336,10 @@ function normalizeVideoUploadStatus(
   switch (String(value ?? '').toUpperCase()) {
     case 'PENDING_UPLOAD':
       return 'UPLOADING';
+    case 'UPLOADED_UNSCANNED':
     case 'PENDING_SCAN':
       return 'PROCESSING';
+    case 'REJECTED':
     case 'FAILED':
     case 'QUARANTINED':
       return 'FAILED';
@@ -1139,6 +1154,19 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         sizeBytes: body.sizeBytes,
         metadata: body.metadata,
       });
+      await recordAuditEvent({
+        request,
+        action: 'upload.init',
+        resourceType: 'media_object',
+        resourceId: initialized.mediaObjectId,
+        result: 'SUCCESS',
+        metadata: {
+          uploadSessionId: initialized.uploadSessionId,
+          kind: body.kind,
+          contentType: body.contentType,
+          sizeBytes: body.sizeBytes,
+        },
+      });
       return reply.status(201).send({
         ...initialized,
         requestId: request.requestId,
@@ -1173,7 +1201,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       id: mediaObjectId,
       ownerUserId: authUserId,
       kind: body.kind,
-      status: 'PENDING_SCAN',
+      status: 'PENDING_UPLOAD',
       storageKey: `uploads/${authUserId}/${uploadSessionId}/${body.fileName}`,
       bucketName: 'clubroom-private',
       contentType: body.contentType,
@@ -1199,13 +1227,30 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       id: newId('msr'),
       uploadSessionId,
       mediaObjectId,
+      verdict: 'PENDING',
       status: 'PENDING',
+      scanner: 'seed-runtime',
       engine: 'seed-runtime',
       scannedAt: null,
+      detailsJson: {},
       signatureVersion: null,
       notes: null,
       createdAt: now,
       updatedAt: now,
+    });
+
+    await recordAuditEvent({
+      request,
+      action: 'upload.init',
+      resourceType: 'media_object',
+      resourceId: mediaObjectId,
+      result: 'SUCCESS',
+      metadata: {
+        uploadSessionId,
+        kind: body.kind,
+        contentType: body.contentType,
+        sizeBytes: body.sizeBytes,
+      },
     });
 
     return reply.status(201).send({
@@ -1216,6 +1261,63 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
       seedVersion: store.version,
     });
+  });
+
+  app.post('/uploads/:uploadSessionId/complete', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const params = uploadCompleteParamsSchema.parse(request.params ?? {});
+    const body = uploadCompleteRequestSchema.parse(request.body ?? {});
+
+    try {
+      const completed = await completeUploadSession({
+        requesterUserId: authUserId,
+        uploadSessionId: params.uploadSessionId,
+        mediaObjectId: body.mediaObjectId,
+        sha256Hex: body.sha256Hex,
+      });
+
+      await recordAuditEvent({
+        request,
+        action: 'upload.complete',
+        resourceType: 'media_object',
+        resourceId: completed.mediaObjectId,
+        result: 'SUCCESS',
+        metadata: {
+          uploadSessionId: completed.uploadSessionId,
+          scanVerdict: completed.scanVerdict,
+          scanner: completed.scanner,
+        },
+      });
+
+      return reply.send({
+        uploadSessionId: completed.uploadSessionId,
+        mediaObjectId: completed.mediaObjectId,
+        mediaStatus: completed.mediaStatus,
+        scanVerdict: completed.scanVerdict,
+        scanner: completed.scanner,
+        scannedAt: completed.scannedAt,
+        seedVersion: completed.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'upload.complete',
+        resourceType: 'media_object',
+        resourceId: body.mediaObjectId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          uploadSessionId: params.uploadSessionId,
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
   });
 
   app.get('/videos', async (request, reply) => {
@@ -1257,36 +1359,52 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const body = videoCreateRequestSchema.parse(request.body);
-    const result = await resolveVideoAuthorityRepository().createVideo({
-      authUserId,
-      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
-      mediaObjectId: body.mediaObjectId,
-      athleteId: body.athleteIds[0],
-      title: body.title,
-      description: body.description,
-      sourceContextType: body.bookingId ? 'booking' : body.sessionId ? 'session' : undefined,
-      sourceContextId: body.bookingId ?? body.sessionId,
-      durationMs:
-        typeof body.durationSeconds === 'number' ? body.durationSeconds * 1000 : undefined,
-    });
-
-    await recordAuditEvent({
-      request,
-      action: 'video.create',
-      resourceType: 'video',
-      resourceId: asString(result.video.id) ?? undefined,
-      result: 'SUCCESS',
-      metadata: {
+    try {
+      const result = await resolveVideoAuthorityRepository().createVideo({
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
         mediaObjectId: body.mediaObjectId,
-        athleteId: body.athleteIds[0] ?? null,
-      },
-    });
+        athleteId: body.athleteIds[0],
+        title: body.title,
+        description: body.description,
+        sourceContextType: body.bookingId ? 'booking' : body.sessionId ? 'session' : undefined,
+        sourceContextId: body.bookingId ?? body.sessionId,
+        durationMs:
+          typeof body.durationSeconds === 'number' ? body.durationSeconds * 1000 : undefined,
+      });
 
-    return reply.status(201).send({
-      video: mapVideoRecord(result),
-      seedVersion: result.dataVersion,
-      requestId: request.requestId,
-    });
+      await recordAuditEvent({
+        request,
+        action: 'video.create',
+        resourceType: 'video',
+        resourceId: asString(result.video.id) ?? undefined,
+        result: 'SUCCESS',
+        metadata: {
+          mediaObjectId: body.mediaObjectId,
+          athleteId: body.athleteIds[0] ?? null,
+        },
+      });
+
+      return reply.status(201).send({
+        video: mapVideoRecord(result),
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'video.create',
+        resourceType: 'media_object',
+        resourceId: body.mediaObjectId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          athleteId: body.athleteIds[0] ?? null,
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
   });
 
   app.get('/videos/:videoId', async (request, reply) => {

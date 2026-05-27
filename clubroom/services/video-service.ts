@@ -13,6 +13,7 @@
  *
  * API Integration Notes:
  * - POST /v1/uploads/init - Initialize secure media upload
+ * - POST /v1/uploads/:uploadSessionId/complete - Finalize upload and backend scan
  * - POST /v1/videos - Create authoritative video record after upload
  * - GET /v1/videos?coachId=X - Coach-owned videos
  * - GET /v1/videos?athleteId=X - Explicitly shared athlete videos
@@ -221,6 +222,7 @@ export interface CreateVideoInput {
 export type VideoCreateStage =
   | 'initializing-upload'
   | 'uploading-file'
+  | 'finalizing-upload'
   | 'creating-record'
   | 'ready';
 
@@ -289,6 +291,13 @@ interface ApiUploadInitResponse {
   mediaObjectId: string;
   uploadUrl: string;
   uploadHeaders?: Record<string, string>;
+}
+
+interface ApiUploadCompleteResponse {
+  uploadSessionId: string;
+  mediaObjectId: string;
+  mediaStatus: 'AVAILABLE';
+  scanVerdict: 'CLEAN';
 }
 
 interface ApiAnnotationResponse {
@@ -520,6 +529,17 @@ export const videoService = {
 
     reportStage?.('uploading-file');
     await uploadFileToSignedUrl(videoUrl, uploadInit.uploadUrl, uploadInit.uploadHeaders);
+
+    reportStage?.('finalizing-upload');
+    requireApiResult(
+      await apiFetch<ApiUploadCompleteResponse>(`/v1/uploads/${uploadInit.uploadSessionId}/complete`, {
+        method: 'POST',
+        body: JSON.stringify({
+          mediaObjectId: uploadInit.mediaObjectId,
+        }),
+      }),
+      'Failed to finalize video upload',
+    );
 
     reportStage?.('creating-record');
     const created = requireApiResult(

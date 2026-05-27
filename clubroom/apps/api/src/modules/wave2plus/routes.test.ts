@@ -123,6 +123,24 @@ function authHeaders(
   };
 }
 
+function auditEventsFor(
+  tables: SeedTables,
+  filters: { action?: string; resourceId?: string; result?: string },
+): SeedRow[] {
+  return asRows(tables.auditEvents).filter((row) => {
+    if (filters.action && asString(row.action) !== filters.action) {
+      return false;
+    }
+    if (filters.resourceId && asString(row.resourceId) !== filters.resourceId) {
+      return false;
+    }
+    if (filters.result && asString(row.result) !== filters.result) {
+      return false;
+    }
+    return true;
+  });
+}
+
 async function withStorageEnv(run: () => Promise<void>): Promise<void> {
   const previousEndpoint = env.S3_ENDPOINT;
   const previousBucket = env.S3_BUCKET_PRIVATE;
@@ -1682,6 +1700,14 @@ describe('wave2+ routes', () => {
       assert.ok(uploadSession);
       assert.ok(mediaObject);
       assert.equal(asString(mediaObject?.status), 'PENDING_UPLOAD');
+      assert.equal(
+        auditEventsFor(fixtureTables, {
+          action: 'upload.init',
+          resourceId: payload.mediaObjectId,
+          result: 'SUCCESS',
+        }).length,
+        1,
+      );
     } finally {
       env.API_DATA_BACKEND = previousBackend;
       env.S3_ENDPOINT = previousEndpoint;
@@ -1713,7 +1739,69 @@ describe('wave2+ routes', () => {
           },
         });
         assert.equal(uploadInit.statusCode, 201);
-        const uploadPayload = uploadInit.json() as { mediaObjectId: string };
+        const uploadPayload = uploadInit.json() as { uploadSessionId: string; mediaObjectId: string };
+
+        const premature = await app.inject({
+          method: 'POST',
+          url: '/v1/videos',
+          headers: authHeaders(tables, coachUserId, 'coach'),
+          payload: {
+            mediaObjectId: uploadPayload.mediaObjectId,
+            title: 'Too Early',
+            durationSeconds: 92,
+          },
+        });
+        assert.equal(premature.statusCode, 400);
+        assert.match(premature.body, /finalized and pass malware scanning/i);
+        assert.equal(
+          auditEventsFor(getDbFixtureStore().tables, {
+            action: 'video.create',
+            resourceId: uploadPayload.mediaObjectId,
+            result: 'DENY',
+          }).length,
+          1,
+        );
+
+        const finalized = await app.inject({
+          method: 'POST',
+          url: `/v1/uploads/${uploadPayload.uploadSessionId}/complete`,
+          headers: authHeaders(tables, coachUserId, 'coach'),
+          payload: {
+            mediaObjectId: uploadPayload.mediaObjectId,
+          },
+        });
+        assert.equal(finalized.statusCode, 200);
+        const finalizedPayload = finalized.json() as {
+          mediaStatus: string;
+          scanVerdict: string;
+          scanner: string;
+        };
+        assert.equal(finalizedPayload.mediaStatus, 'AVAILABLE');
+        assert.equal(finalizedPayload.scanVerdict, 'CLEAN');
+        assert.equal(finalizedPayload.scanner, 'clubroom-backend-upload-finalizer');
+
+        const fixtureTables = getDbFixtureStore().tables;
+        const uploadSession = asRows(fixtureTables.uploadSessions).find(
+          (row) => asString(row.id) === uploadPayload.uploadSessionId,
+        );
+        const mediaObject = asRows(fixtureTables.mediaObjects).find(
+          (row) => asString(row.id) === uploadPayload.mediaObjectId,
+        );
+        const malwareScan = asRows(fixtureTables.malwareScanResults).find(
+          (row) => asString(row.mediaObjectId) === uploadPayload.mediaObjectId,
+        );
+        assert.equal(asString(uploadSession?.status), 'COMPLETED');
+        assert.ok(asString(uploadSession?.completedAt), 'expected upload completion timestamp');
+        assert.equal(asString(mediaObject?.status), 'AVAILABLE');
+        assert.equal(asString(malwareScan?.verdict) ?? asString(malwareScan?.status), 'CLEAN');
+        assert.equal(
+          auditEventsFor(fixtureTables, {
+            action: 'upload.complete',
+            resourceId: uploadPayload.mediaObjectId,
+            result: 'SUCCESS',
+          }).length,
+          1,
+        );
 
         const created = await app.inject({
           method: 'POST',
@@ -1760,6 +1848,84 @@ describe('wave2+ routes', () => {
         assert.equal(detail.statusCode, 200);
         const detailPayload = detail.json() as { video: { annotations: Array<{ label: string }> } };
         assert.equal(detailPayload.video.annotations[0]?.label, 'Footwork');
+      });
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetDbFixtureStoreForTests();
+    }
+  });
+
+  it('rejects upload completion and video creation from unsafe media state', async () => {
+    const tables = loadTables();
+    const coachUserId = asString(asRows(tables.drills)[0]?.authorUserId) as string;
+    const outsiderUserId = findUnprivilegedUserId(tables, new Set([coachUserId]));
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      await withStorageEnv(async () => {
+        const uploadInit = await app.inject({
+          method: 'POST',
+          url: '/v1/uploads/init',
+          headers: authHeaders(tables, coachUserId, 'coach'),
+          payload: {
+            kind: 'VIDEO',
+            contentType: 'video/mp4',
+            fileName: 'unsafe-video.mp4',
+            sizeBytes: 2_400_000,
+          },
+        });
+        assert.equal(uploadInit.statusCode, 201);
+        const uploadPayload = uploadInit.json() as { uploadSessionId: string; mediaObjectId: string };
+
+        const outsiderComplete = await app.inject({
+          method: 'POST',
+          url: `/v1/uploads/${uploadPayload.uploadSessionId}/complete`,
+          headers: authHeaders(tables, outsiderUserId, 'parent'),
+          payload: {
+            mediaObjectId: uploadPayload.mediaObjectId,
+          },
+        });
+        assert.equal(outsiderComplete.statusCode, 403);
+        assert.equal(
+          auditEventsFor(getDbFixtureStore().tables, {
+            action: 'upload.complete',
+            resourceId: uploadPayload.mediaObjectId,
+            result: 'DENY',
+          }).length,
+          1,
+        );
+
+        const fixtureTables = getDbFixtureStore().tables;
+        const mediaObject = asRows(fixtureTables.mediaObjects).find(
+          (row) => asString(row.id) === uploadPayload.mediaObjectId,
+        );
+        assert.ok(mediaObject, 'expected media object created by upload init');
+        mediaObject.status = 'QUARANTINED';
+        asRows(fixtureTables.malwareScanResults).push({
+          id: 'msr_unsafe_video_test',
+          uploadSessionId: uploadPayload.uploadSessionId,
+          mediaObjectId: uploadPayload.mediaObjectId,
+          verdict: 'INFECTED',
+          status: 'INFECTED',
+          scanner: 'test-scanner',
+          engine: 'test-scanner',
+          scannedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+
+        const unsafeVideo = await app.inject({
+          method: 'POST',
+          url: '/v1/videos',
+          headers: authHeaders(tables, coachUserId, 'coach'),
+          payload: {
+            mediaObjectId: uploadPayload.mediaObjectId,
+            title: 'Unsafe media',
+          },
+        });
+        assert.equal(unsafeVideo.statusCode, 400);
+        assert.match(unsafeVideo.body, /finalized and pass malware scanning/i);
       });
     } finally {
       env.API_DATA_BACKEND = previousBackend;

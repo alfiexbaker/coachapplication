@@ -24,6 +24,7 @@ const UPLOAD_STAGE_MESSAGES: Record<VideoUploadStage, string | null> = {
   idle: null,
   'initializing-upload': 'Preparing a private upload slot...',
   'uploading-file': 'Uploading video to private storage...',
+  'finalizing-upload': 'Finalizing and scanning video...',
   'creating-record': 'Creating the video record...',
   ready: 'Video uploaded and ready.',
   failed: 'Upload failed. The video was not saved.',
@@ -32,6 +33,7 @@ const UPLOAD_STAGE_MESSAGES: Record<VideoUploadStage, string | null> = {
 const IN_PROGRESS_STAGES = new Set<VideoUploadStage>([
   'initializing-upload',
   'uploading-file',
+  'finalizing-upload',
   'creating-record',
 ]);
 

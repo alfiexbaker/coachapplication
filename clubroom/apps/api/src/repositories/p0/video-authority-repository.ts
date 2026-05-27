@@ -237,6 +237,42 @@ function assertFamilyAccessToAthlete(tables: SeedTables, authUserId: string, ath
   }
 }
 
+function mediaStatus(value: SeedRow): string {
+  return String(value.status ?? '').toUpperCase();
+}
+
+function scanVerdict(value: SeedRow | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  return String(value.verdict ?? value.status ?? '').toUpperCase();
+}
+
+function latestScanForMedia(tables: SeedTables, mediaObjectId: string): SeedRow | undefined {
+  return [...asRows(tables.malwareScanResults)]
+    .filter((row) => asString(row.mediaObjectId) === mediaObjectId)
+    .sort((left, right) => {
+      const leftTime = Date.parse(asString(left.scannedAt) ?? asString(left.createdAt) ?? '');
+      const rightTime = Date.parse(asString(right.scannedAt) ?? asString(right.createdAt) ?? '');
+      return (Number.isFinite(rightTime) ? rightTime : 0) - (Number.isFinite(leftTime) ? leftTime : 0);
+    })[0];
+}
+
+function assertMediaObjectReadyForVideo(tables: SeedTables, mediaObject: SeedRow): void {
+  const mediaObjectId = asString(mediaObject.id);
+  const status = mediaStatus(mediaObject);
+  const latestScan = latestScanForMedia(tables, mediaObjectId ?? '');
+  const verdict = scanVerdict(latestScan);
+
+  if (status !== 'AVAILABLE' || verdict !== 'CLEAN') {
+    throw badRequest('Media object must be finalized and pass malware scanning before video creation', {
+      mediaObjectId,
+      mediaStatus: status || null,
+      scanVerdict: verdict ?? null,
+    });
+  }
+}
+
 class StoreVideoAuthorityRepository implements VideoAuthorityRepository {
   constructor(private readonly storeProvider: () => StoreProvider) {}
 
@@ -306,6 +342,7 @@ class StoreVideoAuthorityRepository implements VideoAuthorityRepository {
     if (activeRows(asRows(store.tables.videos)).some((row) => asString(row.mediaObjectId) === params.mediaObjectId)) {
       throw badRequest('Media object is already linked to a video', { mediaObjectId: params.mediaObjectId });
     }
+    assertMediaObjectReadyForVideo(store.tables, mediaObject);
 
     const video: SeedRow = {
       id: newId('vid'),
@@ -326,7 +363,6 @@ class StoreVideoAuthorityRepository implements VideoAuthorityRepository {
     };
 
     asRows(store.tables.videos).push(video);
-    mediaObject.status = 'AVAILABLE';
     mediaObject.updatedByUserId = params.authUserId;
     mediaObject.updatedAt = now;
     mediaObject.version = nextVersion(mediaObject.version);
@@ -750,7 +786,16 @@ class PrismaVideoAuthorityRepository implements VideoAuthorityRepository {
           id: params.mediaObjectId,
           deletedAt: null,
         },
-        select: { id: true, ownerUserId: true },
+        select: {
+          id: true,
+          ownerUserId: true,
+          status: true,
+          scans: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: { verdict: true },
+          },
+        },
       });
       if (!mediaObject) {
         throw notFound('Media object not found', { mediaObjectId: params.mediaObjectId });
@@ -769,6 +814,14 @@ class PrismaVideoAuthorityRepository implements VideoAuthorityRepository {
       });
       if (existing) {
         throw badRequest('Media object is already linked to a video', { mediaObjectId: params.mediaObjectId });
+      }
+      const latestScan = mediaObject.scans[0];
+      if (mediaObject.status !== 'AVAILABLE' || latestScan?.verdict !== 'CLEAN') {
+        throw badRequest('Media object must be finalized and pass malware scanning before video creation', {
+          mediaObjectId: params.mediaObjectId,
+          mediaStatus: mediaObject.status,
+          scanVerdict: latestScan?.verdict ?? null,
+        });
       }
 
       await tx.video.create({
@@ -790,7 +843,6 @@ class PrismaVideoAuthorityRepository implements VideoAuthorityRepository {
       await tx.mediaObject.update({
         where: { id: params.mediaObjectId },
         data: {
-          status: 'AVAILABLE',
           durationMs:
             typeof params.durationMs === 'number' && params.durationMs > 0 ? params.durationMs : undefined,
           updatedByUserId: params.authUserId,

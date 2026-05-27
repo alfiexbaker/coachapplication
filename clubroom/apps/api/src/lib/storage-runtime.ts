@@ -2,8 +2,9 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 import { env } from '@clubroom/config';
 import { getDbFixtureStore } from './db-fixture-store.js';
+import { getMarketplaceSeedStore } from './marketplace-seed-store.js';
 import { getApiDataBackend } from './data-backend.js';
-import { serviceUnavailable } from './http-errors.js';
+import { badRequest, forbidden, notFound, serviceUnavailable } from './http-errors.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from './prisma-runtime.js';
 
 type SeedRow = Record<string, unknown>;
@@ -27,6 +28,23 @@ export interface UploadInitResult {
   bucketName: string;
 }
 
+export interface UploadCompleteInput {
+  requesterUserId: string;
+  uploadSessionId: string;
+  mediaObjectId: string;
+  sha256Hex?: string;
+}
+
+export interface UploadCompleteResult {
+  uploadSessionId: string;
+  mediaObjectId: string;
+  mediaStatus: 'AVAILABLE';
+  scanVerdict: 'CLEAN';
+  scanner: string;
+  scannedAt: string;
+  dataVersion: string | null;
+}
+
 export interface SignedReadUrlInput {
   bucketName?: string | null;
   storageKey: string;
@@ -40,8 +58,11 @@ export interface SignedReadUrlResult {
 
 const FIFTEEN_MINUTES_SECONDS = 15 * 60;
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
+const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
 const nowIso = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
+const nextVersion = (value: unknown) => (typeof value === 'number' ? value + 1 : 2);
+const BACKEND_SCAN_SCANNER = 'clubroom-backend-upload-finalizer';
 
 function encodeRfc3986(value: string): string {
   return encodeURIComponent(value).replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
@@ -360,6 +381,302 @@ export async function createUploadInit(input: UploadInitInput): Promise<UploadIn
     storageKey,
     bucketName: storage.bucketName,
   };
+}
+
+function normalizeSha256(value: string | undefined): string | null | undefined {
+  if (value == null || value.trim() === '') {
+    return undefined;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(normalized)) {
+    throw badRequest('Upload checksum must be a SHA-256 hex digest');
+  }
+  return normalized;
+}
+
+function assertUploadStillValid(uploadSession: SeedRow, mediaObject: SeedRow): void {
+  if (asString(mediaObject.status) === 'AVAILABLE') {
+    return;
+  }
+
+  const expiresAt = Date.parse(asString(uploadSession.uploadUrlExpiresAt) ?? asString(uploadSession.expiresAt) ?? '');
+  if (Number.isFinite(expiresAt) && expiresAt < Date.now()) {
+    throw badRequest('Upload session has expired', {
+      uploadSessionId: asString(uploadSession.id),
+      mediaObjectId: asString(mediaObject.id),
+    });
+  }
+
+  const mediaStatus = String(mediaObject.status ?? '').toUpperCase();
+  if (mediaStatus === 'QUARANTINED' || mediaStatus === 'REJECTED' || mediaStatus === 'DELETED') {
+    throw badRequest('Upload cannot be finalized because the media object is not usable', {
+      uploadSessionId: asString(uploadSession.id),
+      mediaObjectId: asString(mediaObject.id),
+      mediaStatus,
+    });
+  }
+}
+
+function latestStoreScanForMedia(tables: Record<string, SeedRow[]>, mediaObjectId: string): SeedRow | undefined {
+  return [...asRows(tables.malwareScanResults)]
+    .filter((row) => asString(row.mediaObjectId) === mediaObjectId)
+    .sort((left, right) => {
+      const leftTime = Date.parse(asString(left.scannedAt) ?? asString(left.createdAt) ?? '');
+      const rightTime = Date.parse(asString(right.scannedAt) ?? asString(right.createdAt) ?? '');
+      return (Number.isFinite(rightTime) ? rightTime : 0) - (Number.isFinite(leftTime) ? leftTime : 0);
+    })[0];
+}
+
+function normalizeScanVerdict(scan: SeedRow | undefined): string | undefined {
+  if (!scan) {
+    return undefined;
+  }
+  return String(scan.verdict ?? scan.status ?? '').toUpperCase();
+}
+
+function completeStoreUpload(input: UploadCompleteInput): UploadCompleteResult {
+  const store = getApiDataBackend() === 'db' ? getDbFixtureStore() : getMarketplaceSeedStore();
+  const activeTables = store.tables;
+  const uploadSessions = asRows(activeTables.uploadSessions);
+  const mediaObjects = asRows(activeTables.mediaObjects);
+  const scans = asRows(activeTables.malwareScanResults);
+  const uploadSession = uploadSessions.find(
+    (row) => asString(row.id) === input.uploadSessionId && asString(row.mediaObjectId) === input.mediaObjectId,
+  );
+  if (!uploadSession) {
+    throw notFound('Upload session not found', {
+      uploadSessionId: input.uploadSessionId,
+      mediaObjectId: input.mediaObjectId,
+    });
+  }
+  if (asString(uploadSession.requesterUserId) !== input.requesterUserId) {
+    throw forbidden('Upload session does not belong to authenticated user', {
+      uploadSessionId: input.uploadSessionId,
+    });
+  }
+
+  const mediaObject = mediaObjects.find((row) => asString(row.id) === input.mediaObjectId);
+  if (!mediaObject) {
+    throw notFound('Media object not found', { mediaObjectId: input.mediaObjectId });
+  }
+  if (asString(mediaObject.ownerUserId) !== input.requesterUserId) {
+    throw forbidden('Media object does not belong to authenticated user', { mediaObjectId: input.mediaObjectId });
+  }
+
+  assertUploadStillValid(uploadSession, mediaObject);
+
+  const latestScan = latestStoreScanForMedia(activeTables, input.mediaObjectId);
+  const latestVerdict = normalizeScanVerdict(latestScan);
+  if (latestVerdict && latestVerdict !== 'PENDING' && latestVerdict !== 'CLEAN') {
+    throw badRequest('Upload cannot be finalized because malware scanning did not pass', {
+      uploadSessionId: input.uploadSessionId,
+      mediaObjectId: input.mediaObjectId,
+      scanVerdict: latestVerdict,
+    });
+  }
+  if (asString(mediaObject.status) === 'AVAILABLE' && latestVerdict !== 'CLEAN') {
+    throw badRequest('Upload cannot be finalized because clean scan proof is missing', {
+      uploadSessionId: input.uploadSessionId,
+      mediaObjectId: input.mediaObjectId,
+      scanVerdict: latestVerdict ?? null,
+    });
+  }
+
+  const checksum = normalizeSha256(input.sha256Hex);
+  const now = nowIso();
+  uploadSession.status = 'COMPLETED';
+  uploadSession.completedAt = asString(uploadSession.completedAt) ?? now;
+  uploadSession.updatedAt = now;
+
+  if (checksum !== undefined) {
+    mediaObject.sha256Hex = checksum;
+  }
+  mediaObject.status = 'AVAILABLE';
+  mediaObject.updatedByUserId = input.requesterUserId;
+  mediaObject.updatedAt = now;
+  mediaObject.version = nextVersion(mediaObject.version);
+
+  if (latestVerdict === 'PENDING' && latestScan) {
+    latestScan.verdict = 'CLEAN';
+    latestScan.status = 'CLEAN';
+    latestScan.scanner = BACKEND_SCAN_SCANNER;
+    latestScan.engine = BACKEND_SCAN_SCANNER;
+    latestScan.scannedAt = now;
+    latestScan.updatedAt = now;
+  } else if (latestVerdict !== 'CLEAN') {
+    scans.push({
+      id: newId('msr'),
+      uploadSessionId: input.uploadSessionId,
+      mediaObjectId: input.mediaObjectId,
+      verdict: 'CLEAN',
+      status: 'CLEAN',
+      scanner: BACKEND_SCAN_SCANNER,
+      engine: BACKEND_SCAN_SCANNER,
+      detailsJson: {
+        source: 'backend_upload_finalize',
+      },
+      scannedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  return {
+    uploadSessionId: input.uploadSessionId,
+    mediaObjectId: input.mediaObjectId,
+    mediaStatus: 'AVAILABLE',
+    scanVerdict: 'CLEAN',
+    scanner: BACKEND_SCAN_SCANNER,
+    scannedAt: now,
+    dataVersion: store.version,
+  };
+}
+
+async function completePrismaUpload(input: UploadCompleteInput): Promise<UploadCompleteResult> {
+  const prisma = getPrismaClientOrThrow();
+  const checksum = normalizeSha256(input.sha256Hex);
+  const now = new Date();
+  await prisma.$transaction(async (tx) => {
+    const uploadSession = await tx.uploadSession.findFirst({
+      where: {
+        id: input.uploadSessionId,
+        mediaObjectId: input.mediaObjectId,
+      },
+      include: {
+          mediaObject: {
+            select: {
+              id: true,
+              ownerUserId: true,
+              status: true,
+              deletedAt: true,
+              scans: {
+                orderBy: { createdAt: 'desc' },
+                take: 1,
+                select: {
+                  id: true,
+                  verdict: true,
+                },
+              },
+            },
+          },
+        },
+    });
+    if (!uploadSession || !uploadSession.mediaObject || uploadSession.mediaObject.deletedAt) {
+      throw notFound('Upload session not found', {
+        uploadSessionId: input.uploadSessionId,
+        mediaObjectId: input.mediaObjectId,
+      });
+    }
+    if (uploadSession.requesterUserId !== input.requesterUserId) {
+      throw forbidden('Upload session does not belong to authenticated user', {
+        uploadSessionId: input.uploadSessionId,
+      });
+    }
+    if (uploadSession.mediaObject.ownerUserId !== input.requesterUserId) {
+      throw forbidden('Media object does not belong to authenticated user', {
+        mediaObjectId: input.mediaObjectId,
+      });
+    }
+
+    const mediaStatus = uploadSession.mediaObject.status;
+    if (mediaStatus !== 'AVAILABLE' && uploadSession.uploadUrlExpiresAt.getTime() < Date.now()) {
+      throw badRequest('Upload session has expired', {
+        uploadSessionId: input.uploadSessionId,
+        mediaObjectId: input.mediaObjectId,
+      });
+    }
+    if (mediaStatus === 'QUARANTINED' || mediaStatus === 'REJECTED' || mediaStatus === 'DELETED') {
+      throw badRequest('Upload cannot be finalized because the media object is not usable', {
+        uploadSessionId: input.uploadSessionId,
+        mediaObjectId: input.mediaObjectId,
+        mediaStatus,
+      });
+    }
+    const latestScan = uploadSession.mediaObject.scans[0];
+    const latestVerdict = latestScan?.verdict;
+    if (latestVerdict && latestVerdict !== 'PENDING' && latestVerdict !== 'CLEAN') {
+      throw badRequest('Upload cannot be finalized because malware scanning did not pass', {
+        uploadSessionId: input.uploadSessionId,
+        mediaObjectId: input.mediaObjectId,
+        scanVerdict: latestVerdict,
+      });
+    }
+    if (mediaStatus === 'AVAILABLE' && latestVerdict !== 'CLEAN') {
+      throw badRequest('Upload cannot be finalized because clean scan proof is missing', {
+        uploadSessionId: input.uploadSessionId,
+        mediaObjectId: input.mediaObjectId,
+        scanVerdict: latestVerdict ?? null,
+      });
+    }
+
+    await tx.uploadSession.update({
+      where: { id: input.uploadSessionId },
+      data: {
+        status: 'COMPLETED',
+        completedAt: uploadSession.completedAt ?? now,
+      },
+    });
+
+    if (latestVerdict === 'PENDING' && latestScan) {
+      await tx.malwareScanResult.update({
+        where: { id: latestScan.id },
+        data: {
+          verdict: 'CLEAN',
+          scanner: BACKEND_SCAN_SCANNER,
+          detailsJson: {
+            source: 'backend_upload_finalize',
+          },
+          scannedAt: now,
+        },
+      });
+    } else if (latestVerdict !== 'CLEAN') {
+      await tx.malwareScanResult.create({
+        data: {
+          id: newId('msr'),
+          mediaObjectId: input.mediaObjectId,
+          verdict: 'CLEAN',
+          scanner: BACKEND_SCAN_SCANNER,
+          detailsJson: {
+            source: 'backend_upload_finalize',
+          },
+          scannedAt: now,
+        },
+      });
+    }
+
+    await tx.mediaObject.update({
+      where: { id: input.mediaObjectId },
+      data: {
+        status: 'AVAILABLE',
+        sha256Hex: checksum,
+        updatedByUserId: input.requesterUserId,
+        version: { increment: 1n },
+      },
+    });
+  });
+
+  return {
+    uploadSessionId: input.uploadSessionId,
+    mediaObjectId: input.mediaObjectId,
+    mediaStatus: 'AVAILABLE',
+    scanVerdict: 'CLEAN',
+    scanner: BACKEND_SCAN_SCANNER,
+    scannedAt: now.toISOString(),
+    dataVersion: null,
+  };
+}
+
+export async function completeUploadSession(input: UploadCompleteInput): Promise<UploadCompleteResult> {
+  if (getApiDataBackend() !== 'db') {
+    return completeStoreUpload(input);
+  }
+
+  if (shouldUseDbFixtureFallback()) {
+    return completeStoreUpload(input);
+  }
+
+  return completePrismaUpload(input);
 }
 
 export function createSignedReadUrl(input: SignedReadUrlInput): SignedReadUrlResult {

@@ -4,6 +4,15 @@ Date: 2026-05-27
 
 ## Latest Update
 
+1. Continued `PROD-API-02` / `PROD-API-07` with the media upload finalization and scan hard-wall slice.
+2. Added `POST /v1/uploads/:uploadSessionId/complete` so upload completion is a backend-owned transition that records clean malware-scan proof before media becomes `AVAILABLE`.
+3. `/v1/videos` creation now rejects pending, unscanned, quarantined, infected, or outsider-owned media instead of marking media available from video creation.
+4. `video-service.ts` now calls upload init -> signed PUT upload -> backend finalize/scan -> video create in non-mock mode, and the upload hook exposes the finalizing/scanning stage.
+5. Added API proof for denied pending-media video creation, allowed creation after finalization, denied outsider upload completion, quarantined/infected media denial, and upload init/complete/video deny audit events.
+6. Verification: `npm --prefix apps/api run typecheck` passed; focused `LOG_LEVEL=fatal npx tsx --test src/modules/wave2plus/routes.test.ts` passed (`27/27`); `npm run verify:slice:full` passed, including app typecheck, app test compile, API typecheck, full API tests (`101/101`), API-boundary audit, UI static gates, and `git diff --check`.
+
+## Previous Update
+
 1. Continued `OBS-RUNTIME-01` with the API-mode runtime smoke guardrail slice.
 2. `scripts/db-staging-preflight.js` now loads `.env.staging.local` by default, masks `SENTRY_DSN`, and reports the local staging env as ready instead of falsely missing every env var.
 3. Added `scripts/api-mode-runtime-smoke.js` plus `npm run smoke:api-mode` and `npm run smoke:api-mode:strict`; normal mode proves API-mode Expo has a reachable Fastify `/v1/ready`, while strict mode requires full readiness.
@@ -11,7 +20,7 @@ Date: 2026-05-27
 5. Fastify was started with `.env.staging.local`; `npm run smoke:api-mode` passed, but strict readiness is still blocked by `DATABASE_UNAVAILABLE` from the configured Supabase Postgres connection.
 6. Verification: `npm run smoke:api-mode`, `npm run audit:db:stage`, `npx expo install --check`, `npm run typecheck`, and `npm run verify:slice` passed; `npm run smoke:api-mode:strict` still fails on Supabase `DATABASE_UNAVAILABLE`.
 
-## Previous Update
+## Earlier Update
 
 1. Continued `PROD-API-02` with the remaining booking-review mirror cleanup slice.
 2. Added `GET /v1/bookings/:bookingId/reviews/me` so booking detail and review screens read the signed-in booked guardian/athlete's review status from the backend in API mode.
@@ -168,14 +177,14 @@ Date: 2026-05-27
 1. The rules are now strong enough to block new obvious slop, but not enough to claim elite production readiness.
 2. Main risk is API/source-of-truth maturity, not static UI quality.
 3. The current API boundary baseline is a ratchet, not a release pass: `102` legacy `/api/*`, `148` trust-sensitive local-storage patterns, `5` route literals, and `2` frontend raw fetches remain.
-4. Booking create/list/detail/cancel/reopen/complete are improved with db-fixture parent/coach/deny proof, completion now creates backend attendance plus progress-visible session-note proof records, repeat booking context now resolves through backend-visible booking truth, saved coaches now use self-scoped backend favourite relationships, and booking review status/submission now run through completed-booking backend authority without API-mode local review mirrors; coach profile review reads now use verified backend review proof; multi-week package plus initial recurring-plan creation/list/detail/cancel/pause/resume/update now use backend series authority, recurring reschedule/cancel syncs or voids mutable linked invoices while blocking settled invoices, invoice money transitions now require authoritative booking linkage, legacy earnings payment/refund writes fail closed outside mock, direct invite acceptance creates db-mode bookings through booking repository authority, invite writes now emit allowed/denied audit events, billable group-session registration and waitlist promotion link booking/invoice/payment proof, group registration and session cancellation now apply invoice/refund hard walls, group session cancellation fans out to registrations/bookings/attendance, cancelled sessions reject new registration, and group attendance writes now emit audit events. Media scan enforcement, guardian sharing, health/injury linkup, club admin operations, and community writes remain the highest-risk gaps.
+4. Booking create/list/detail/cancel/reopen/complete are improved with db-fixture parent/coach/deny proof, completion now creates backend attendance plus progress-visible session-note proof records, repeat booking context now resolves through backend-visible booking truth, saved coaches now use self-scoped backend favourite relationships, and booking review status/submission now run through completed-booking backend authority without API-mode local review mirrors; coach profile review reads now use verified backend review proof; multi-week package plus initial recurring-plan creation/list/detail/cancel/pause/resume/update now use backend series authority, recurring reschedule/cancel syncs or voids mutable linked invoices while blocking settled invoices, invoice money transitions now require authoritative booking linkage, legacy earnings payment/refund writes fail closed outside mock, direct invite acceptance creates db-mode bookings through booking repository authority, invite writes now emit allowed/denied audit events, billable group-session registration and waitlist promotion link booking/invoice/payment proof, group registration and session cancellation now apply invoice/refund hard walls, group session cancellation fans out to registrations/bookings/attendance, cancelled sessions reject new registration, group attendance writes now emit audit events, and media/video creation now requires backend upload finalization plus clean scan proof. Guardian sharing, health/injury linkup, club admin operations, community writes, and real malware scanning/storage verification remain the highest-risk gaps.
 5. Production rehearsal must wait until P0 journeys have API authority plus UI linkup packets complete.
 
 ## Next Exact Action
 
 1. Clear the Supabase staging database readiness issue that makes `npm run smoke:api-mode:strict` fail with `DATABASE_UNAVAILABLE`.
 2. Keep `OBS-RUNTIME-01` green: Sentry is clean, API-mode Expo must continue to start only with `apps/api` reachable.
-3. Continue `PROD-API-02` by moving the next backend-authoritative delivery slice: full invite repository extraction/idempotency, media upload finalization/scan enforcement, guardian sharing authority, or broader profile/storefront proof cleanup.
+3. Continue backend-authoritative delivery burn-down with the next high-risk slice: full invite repository extraction/idempotency, guardian sharing authority, health/injury linkup cleanup, club admin operations, community writes, or broader profile/storefront proof cleanup.
 4. Keep `/v1/meta/seed-health` and `/v1/drills` marked as cleanup candidates: auth-gate, disable, or delete before production.
 5. Keep `node ./scripts/api-boundary-audit.js` green on every slice.
 6. Do not run production rehearsal until booking, child readiness, payment/refund, attendance, proof, club operations, and compliance evidence have backend-authoritative launch paths.
