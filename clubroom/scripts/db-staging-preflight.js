@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
 
-const { existsSync, readdirSync, writeFileSync, mkdirSync } = require('node:fs');
+const { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync } = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..');
 const DEFAULT_PAYMENT_SIMULATION_SECRET = 'clubroom-simulated-payments-dev-secret';
+const DEFAULT_ENV_FILE = '.env.staging.local';
 
 const REQUIRED_ENV = [
   {
@@ -108,17 +109,52 @@ const REQUIRED_FILES = [
 ];
 
 function parseArgs(argv) {
+  const envFileArg = argv.find((arg) => arg.startsWith('--staging-env-file='));
   return {
     json: argv.includes('--json'),
     markdown: argv.includes('--markdown'),
     write: argv.includes('--write'),
     strict: argv.includes('--strict'),
+    envFile: envFileArg ? envFileArg.slice('--staging-env-file='.length) : DEFAULT_ENV_FILE,
   };
+}
+
+function loadEnvFile(relativeOrAbsolutePath) {
+  const absolutePath = path.isAbsolute(relativeOrAbsolutePath)
+    ? relativeOrAbsolutePath
+    : path.join(ROOT, relativeOrAbsolutePath);
+  if (!existsSync(absolutePath)) {
+    return { path: relativeOrAbsolutePath, loaded: false, keys: [] };
+  }
+
+  const keys = [];
+  const content = readFileSync(absolutePath, 'utf8');
+  for (const line of content.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) {
+      continue;
+    }
+
+    const match = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/.exec(trimmed);
+    if (!match) {
+      continue;
+    }
+
+    const [, key, rawValue] = match;
+    keys.push(key);
+    if (process.env[key] !== undefined) {
+      continue;
+    }
+
+    process.env[key] = rawValue.replace(/^['"]|['"]$/g, '');
+  }
+
+  return { path: relativeOrAbsolutePath, loaded: true, keys };
 }
 
 function maskValue(key, value) {
   if (!value) return '';
-  if (/secret|token|password|url|key/i.test(key)) {
+  if (/dsn|secret|token|password|url|key/i.test(key)) {
     if (value.length <= 8) return '********';
     return `${value.slice(0, 4)}...${value.slice(-4)}`;
   }
@@ -217,7 +253,7 @@ function getToolStatus() {
   }));
 }
 
-function buildReport() {
+function buildReport(envFileLoad) {
   const issues = [...REQUIRED_ENV.flatMap(checkEnvRule), ...REQUIRED_FILES.flatMap(checkFileRule)];
   const migrationCount = getMigrationCount();
   const toolStatus = getToolStatus();
@@ -248,6 +284,11 @@ function buildReport() {
 
   return {
     generatedAt: new Date().toISOString(),
+    envFile: {
+      path: envFileLoad.path,
+      loaded: envFileLoad.loaded,
+      keysLoaded: envFileLoad.keys.length,
+    },
     status: blockers.length > 0 ? 'blocked' : warnings.length > 0 ? 'ready-with-warnings' : 'ready',
     migrationCount,
     tools: toolStatus,
@@ -270,6 +311,9 @@ function toMarkdown(report) {
   lines.push('# DB Staging Preflight');
   lines.push('');
   lines.push(`Generated: ${report.generatedAt}`);
+  lines.push(
+    `Env file: ${report.envFile.loaded ? 'loaded' : 'not found'} ${report.envFile.path} (${report.envFile.keysLoaded} keys)`,
+  );
   lines.push(`Status: ${report.status}`);
   lines.push(`Prisma migrations: ${report.migrationCount}`);
   lines.push('');
@@ -316,6 +360,9 @@ function writeReport(report) {
 
 function printText(report) {
   console.log('DB staging preflight');
+  console.log(
+    `- env file: ${report.envFile.loaded ? 'loaded' : 'not found'} ${report.envFile.path} (${report.envFile.keysLoaded} keys)`,
+  );
   console.log(`- status: ${report.status}`);
   console.log(`- migrations: ${report.migrationCount}`);
   console.log(`- blockers: ${report.summary.blockers}`);
@@ -329,7 +376,8 @@ function printText(report) {
 
 function main() {
   const options = parseArgs(process.argv.slice(2));
-  const report = buildReport();
+  const envFileLoad = loadEnvFile(options.envFile);
+  const report = buildReport(envFileLoad);
 
   if (options.write) {
     writeReport(report);

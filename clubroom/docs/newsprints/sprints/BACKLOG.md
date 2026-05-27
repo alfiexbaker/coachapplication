@@ -72,6 +72,7 @@ Decision:
 - `docs/templates/AI_TASK_PACKET.md` is the standard planning packet for non-trivial AI implementation slices.
 - `node ./scripts/agentic-readiness-pipeline.js` is the broad local runner for DB staging readiness, PDOS route authority, and static UI-quality checks.
 - `node ./scripts/db-staging-preflight.js` checks whether a real staging DB/API/object-storage rehearsal can start without pretending missing env is product progress.
+- `npm run smoke:api-mode` checks that API-mode Expo has a reachable Fastify `/v1/ready` endpoint before startup; use `npm run smoke:api-mode:strict` when the rehearsal must require full readiness, not just reachability.
 - `node ./scripts/pdos-route-authority-audit.js` gives agents the current route-to-sprint/persona/verdict matrix plus route risks such as direct fetches, local storage authority, native alerts, money hard walls, and sensitive reads.
 - Add `--write` to these commands when a review artifact is needed under `reviews/`; do not commit generated review output unless the sprint explicitly asks for a frozen snapshot.
 - Add `--strict` only when the sprint is meant to fail on blockers, because `PDOS-01` intentionally starts with routes still needing product decisions.
@@ -142,9 +143,13 @@ Decision:
   - `npx expo install --check` stays clean.
   - `npm run typecheck` stays clean.
   - `curl http://127.0.0.1:4000/v1/ready` responds after starting `npm --prefix apps/api run dev`.
+  - `npm run smoke:api-mode` passes before starting Expo in API mode.
+  - `npm run smoke:api-mode:strict` passes before treating the staging runtime as release-ready.
   - API-mode Expo startup is tested with the API already running.
   - Unresolved Sentry issues contain no setup-test noise before production rehearsal.
 - Verify:
+  - `npm run smoke:api-mode`
+  - `npm run smoke:api-mode:strict` for release-ready staging rehearsals
   - `npm run typecheck`
   - `npx expo install --check`
   - `git diff --check`

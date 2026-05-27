@@ -98,6 +98,7 @@ Implication:
 ## Staging Readiness Tooling
 
 Use `node ./scripts/db-staging-preflight.js` before switching a serious rehearsal to `API_DATA_BACKEND=db`.
+The preflight loads `.env.staging.local` by default when present, without overriding already-exported shell variables.
 
 The preflight checks:
 
@@ -107,6 +108,9 @@ The preflight checks:
 
 Use `node ./scripts/db-staging-preflight.js --strict` as the hard gate once the staging environment values are expected to exist.
 Use `node ./scripts/db-staging-preflight.js --write` to write transient outputs under `reviews/`.
+
+Use `npm run smoke:api-mode` before starting Expo in API mode. It loads `.env.staging.local`, confirms `EXPO_PUBLIC_USE_MOCK=false`, and verifies the configured Fastify API responds at `/v1/ready`.
+Use `npm run smoke:api-mode:strict` before release-ready staging rehearsal; strict mode requires `/v1/ready` to report `ready`, not merely reachable.
 
 Use `npm run smoke:staging` after migrations and seed import are applied to prove the db-backed API path against the configured staging Supabase project.
 The smoke run loads `.env.staging.local` when present and verifies bearer auth, identity, coach profile/offerings, bookable slots, direct booking creation, invoice generation, simulated payment confirmation, family/athlete sensitive reads, group-session creation/registration, private signed upload/readback, and community/media read surfaces.

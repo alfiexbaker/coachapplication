@@ -8,11 +8,15 @@ Purpose: turn Clubroom from a broad POC into a production-ready paid football de
 Latest local evidence:
 
 - Sentry app project `tubton/react-native` is receiving events in `staging`.
+- 2026-05-27 Sentry MCP review found no unresolved `staging` issues for `tubton/react-native` and no unresolved issues for `tubton/clubroom-api`.
+- `npm run audit:db:stage` now loads `.env.staging.local` and reports `ready` locally: `0` blockers, `0` warnings, `5` migrations.
+- `npm run smoke:api-mode` passes when the Fastify API is running, proving API-mode startup has a reachable `/v1/ready` endpoint before Expo starts.
+- `npm run smoke:api-mode:strict` currently fails because `/v1/ready` reports `DATABASE_UNAVAILABLE` from the configured Supabase Postgres connection.
 - 2026-05-12 Sentry issue triage:
   - setup-test noise: `REACT-NATIVE-1` native client crash test and `REACT-NATIVE-4` manual `First error` event
   - real runtime smoke failures: `REACT-NATIVE-2` network request failure and `REACT-NATIVE-3` failed API reads for club stores
   - root cause: Expo was started in API mode while the Fastify API was not listening on port `4000`
-- `curl http://127.0.0.1:4000/v1/ready` works after starting `npm --prefix apps/api run dev`, but returns `degraded` until API `SENTRY_DSN` is configured.
+- `curl http://127.0.0.1:4000/v1/ready` works after starting `npm --prefix apps/api run dev`; strict readiness depends on db/object-storage/Sentry checks.
 - `node ./scripts/agentic-readiness-pipeline.js` -> `1 passed`, `2 warned`, `0 failed`
 - `node ./scripts/api-boundary-audit.js` -> pass with `259` legacy findings baselined and `0` untraced backend routes
 - `node ./scripts/pdos-route-authority-audit.js` -> `154` routes, `90` still need product/source-of-truth decisions
@@ -22,8 +26,8 @@ Latest local evidence:
 Current blockers:
 
 - API-mode app startup must run with `apps/api` reachable; otherwise launch-critical club reads immediately produce Sentry noise and app-facing API errors.
-- API Sentry is not fully configured: `/v1/ready` reports `SENTRY_DSN_MISSING` for the Fastify runtime.
-- DB staging preflight is blocked by environment/release items.
+- API Sentry env is present in `.env.staging.local`, and unresolved Sentry issue review is clean as of 2026-05-27.
+- DB staging preflight env/config is green locally, but strict API readiness is blocked by the configured Supabase Postgres connection returning `DATABASE_UNAVAILABLE`.
 - API boundary debt still exists behind the baseline: `104` legacy `/api/*` paths, `148` trust-sensitive local-storage authority patterns, `5` route literals, `2` frontend raw fetches.
 - Several launch-critical API routes are still `scaffolded` or `planned` in `docs/backend-api/ROUTE_INVENTORY_V1.md`.
 - Static UI quality is healthier than API/source-of-truth maturity; the main deployment risk is runtime truth, not just polish.

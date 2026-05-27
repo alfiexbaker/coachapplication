@@ -4,6 +4,15 @@ Date: 2026-05-27
 
 ## Latest Update
 
+1. Continued `OBS-RUNTIME-01` with the API-mode runtime smoke guardrail slice.
+2. `scripts/db-staging-preflight.js` now loads `.env.staging.local` by default, masks `SENTRY_DSN`, and reports the local staging env as ready instead of falsely missing every env var.
+3. Added `scripts/api-mode-runtime-smoke.js` plus `npm run smoke:api-mode` and `npm run smoke:api-mode:strict`; normal mode proves API-mode Expo has a reachable Fastify `/v1/ready`, while strict mode requires full readiness.
+4. Sentry MCP review found no unresolved `staging` issues for `tubton/react-native` and no unresolved issues for `tubton/clubroom-api`.
+5. Fastify was started with `.env.staging.local`; `npm run smoke:api-mode` passed, but strict readiness is still blocked by `DATABASE_UNAVAILABLE` from the configured Supabase Postgres connection.
+6. Verification: `npm run smoke:api-mode`, `npm run audit:db:stage`, `npx expo install --check`, `npm run typecheck`, and `npm run verify:slice` passed; `npm run smoke:api-mode:strict` still fails on Supabase `DATABASE_UNAVAILABLE`.
+
+## Previous Update
+
 1. Continued `PROD-API-02` with the remaining booking-review mirror cleanup slice.
 2. Added `GET /v1/bookings/:bookingId/reviews/me` so booking detail and review screens read the signed-in booked guardian/athlete's review status from the backend in API mode.
 3. Unrelated actors are denied from reading booking review status, while submitted reviews return the existing verified booking review proof.
@@ -11,7 +20,7 @@ Date: 2026-05-27
 5. Generic coach review submission fails closed outside mock mode so reviews must come from a completed booking context.
 6. Verification: `npm run verify:slice:full` passed, including app typecheck, app test compile, API typecheck, and the full API test suite.
 
-## Previous Update
+## Earlier Update
 
 1. Continued `PROD-API-02` with the saved-coach/favourite authority slice.
 2. Added `/v1/me/favourite-coaches*` so saved coaches are self-scoped backend relationships in API mode instead of local `favourites` storage.
@@ -164,8 +173,8 @@ Date: 2026-05-27
 
 ## Next Exact Action
 
-1. Keep `OBS-RUNTIME-01` green: Sentry is clean, API-mode Expo must continue to start only with `apps/api` reachable.
-2. Continue `PROD-API-02`.
+1. Clear the Supabase staging database readiness issue that makes `npm run smoke:api-mode:strict` fail with `DATABASE_UNAVAILABLE`.
+2. Keep `OBS-RUNTIME-01` green: Sentry is clean, API-mode Expo must continue to start only with `apps/api` reachable.
 3. Continue `PROD-API-02` by moving the next backend-authoritative delivery slice: full invite repository extraction/idempotency, media upload finalization/scan enforcement, guardian sharing authority, or broader profile/storefront proof cleanup.
 4. Keep `/v1/meta/seed-health` and `/v1/drills` marked as cleanup candidates: auth-gate, disable, or delete before production.
 5. Keep `node ./scripts/api-boundary-audit.js` green on every slice.
