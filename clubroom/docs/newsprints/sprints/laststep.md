@@ -4,13 +4,22 @@ Date: 2026-05-27
 
 ## Latest Update
 
+1. Continued `PROD-API-02` with the rebook context authority slice.
+2. Added `GET /v1/bookings/:bookingId/rebook-context` so repeat booking uses backend-visible booking context instead of local screen state.
+3. Coach-only actors are denied from using a delivered booking as a family rebook source; booked family/athlete context returns coach, athlete, service, location, duration, objectives, and price context for the next draft.
+4. `bookingService.getRebookDraftContext` now uses the backend route in non-mock mode and preserves mock-mode local mapping.
+5. Booking detail `Book Again` now resolves this context before resetting/prefilling the booking draft and routing to schedule.
+6. Verification: `npm run verify:slice:full` passed, including app typecheck, app test compile, API typecheck, and the full API test suite.
+
+## Previous Update
+
 1. Continued `PROD-API-02` with the coach profile review read authority slice.
 2. Added `GET /v1/coaches/:coachId/reviews` so coach profiles can read verified public reviews from backend session feedback instead of local review mirrors.
 3. The backend read path only returns public reviews tied to completed bookings for that coach, and filters out coach-authored or unrelated feedback even if it is public-looking.
 4. `coachService.getCoachReviews` now uses `/v1/coaches/:coachId/reviews` in non-mock mode; mock mode keeps the existing seeded/local merge.
 5. Verification: `npm run verify:slice:full` passed, including app typecheck, app test compile, API typecheck, and the full API test suite.
 
-## Previous Update
+## Earlier Update
 
 1. Continued `PROD-API-02` with the review UI linkup slice.
 2. `app/review/[bookingId].tsx` now loads the booking through `bookingService.getBooking`, so non-mock review context comes from `/v1/bookings/:bookingId` instead of local booking storage.
@@ -132,14 +141,14 @@ Date: 2026-05-27
 1. The rules are now strong enough to block new obvious slop, but not enough to claim elite production readiness.
 2. Main risk is API/source-of-truth maturity, not static UI quality.
 3. The current API boundary baseline is a ratchet, not a release pass: `102` legacy `/api/*`, `148` trust-sensitive local-storage patterns, `5` route literals, and `2` frontend raw fetches remain.
-4. Booking create/list/detail/cancel/reopen/complete are improved with db-fixture parent/coach/deny proof, and completion now creates backend attendance plus progress-visible session-note proof records; booking-linked review submission now requires completed-booking authority, audits success/deny paths, the review screen submits through that authority in non-mock mode, and coach profile review reads now use verified backend review proof; multi-week package plus initial recurring-plan creation/list/detail/cancel/pause/resume/update now use backend series authority, recurring reschedule/cancel syncs or voids mutable linked invoices while blocking settled invoices, invoice money transitions now require authoritative booking linkage, legacy earnings payment/refund writes fail closed outside mock, direct invite acceptance creates db-mode bookings through booking repository authority, invite writes now emit allowed/denied audit events, billable group-session registration and waitlist promotion link booking/invoice/payment proof, group registration and session cancellation now apply invoice/refund hard walls, group session cancellation fans out to registrations/bookings/attendance, cancelled sessions reject new registration, and group attendance writes now emit audit events. Media scan enforcement, guardian sharing, health/injury linkup, club admin operations, community writes, remaining review mirror cleanup, and rebook proof remain the highest-risk gaps.
+4. Booking create/list/detail/cancel/reopen/complete are improved with db-fixture parent/coach/deny proof, completion now creates backend attendance plus progress-visible session-note proof records, and repeat booking context now resolves through backend-visible booking truth; booking-linked review submission now requires completed-booking authority, audits success/deny paths, the review screen submits through that authority in non-mock mode, and coach profile review reads now use verified backend review proof; multi-week package plus initial recurring-plan creation/list/detail/cancel/pause/resume/update now use backend series authority, recurring reschedule/cancel syncs or voids mutable linked invoices while blocking settled invoices, invoice money transitions now require authoritative booking linkage, legacy earnings payment/refund writes fail closed outside mock, direct invite acceptance creates db-mode bookings through booking repository authority, invite writes now emit allowed/denied audit events, billable group-session registration and waitlist promotion link booking/invoice/payment proof, group registration and session cancellation now apply invoice/refund hard walls, group session cancellation fans out to registrations/bookings/attendance, cancelled sessions reject new registration, and group attendance writes now emit audit events. Media scan enforcement, guardian sharing, health/injury linkup, club admin operations, community writes, remaining review mirror cleanup, and saved-coach/favourite authority remain the highest-risk gaps.
 5. Production rehearsal must wait until P0 journeys have API authority plus UI linkup packets complete.
 
 ## Next Exact Action
 
 1. Keep `OBS-RUNTIME-01` green: Sentry is clean, API-mode Expo must continue to start only with `apps/api` reachable.
 2. Continue `PROD-API-02`.
-3. Continue `PROD-API-02` by moving the next backend-authoritative delivery slice: rebook context authority, full invite repository extraction/idempotency, media upload finalization/scan enforcement, or remaining review mirror cleanup.
+3. Continue `PROD-API-02` by moving the next backend-authoritative delivery slice: full invite repository extraction/idempotency, media upload finalization/scan enforcement, remaining review mirror cleanup, or saved-coach/favourite authority.
 4. Keep `/v1/meta/seed-health` and `/v1/drills` marked as cleanup candidates: auth-gate, disable, or delete before production.
 5. Keep `node ./scripts/api-boundary-audit.js` green on every slice.
 6. Do not run production rehearsal until booking, child readiness, payment/refund, attendance, proof, club operations, and compliance evidence have backend-authoritative launch paths.

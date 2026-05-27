@@ -13,6 +13,7 @@ import { apiClient } from '@/services/api-client';
 import { bookingService } from '@/services/booking-service';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { useAuth } from '@/hooks/use-auth';
+import { useBookingFlow } from '@/context/booking-flow-context';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { useSessionNote } from '@/hooks/use-session-note';
 import type { BookingSummary, Booking, RecurringBooking } from '@/constants/types';
@@ -134,6 +135,7 @@ const toBookingSummary = (
 
 export function useBookingDetail(id: string): BookingDetailResult {
   const { currentUser } = useAuth();
+  const { reset: resetBookingDraft, updateDraft } = useBookingFlow();
   const isCoach = currentUser?.role === 'COACH';
 
   const sessionNote = useSessionNote(id);
@@ -274,10 +276,27 @@ export function useBookingDetail(id: string): BookingDetailResult {
     router.push(Routes.BOOKINGS_REPORT_PROBLEM);
   }, [booking?.id]);
 
-  const handleRebook = useCallback(() => {
-    if (!booking?.coachId) return;
-    router.push(Routes.bookSchedule(booking.coachId));
-  }, [booking?.coachId]);
+  const handleRebook = useCallback(async () => {
+    if (!booking?.id) return;
+    const draftResult = await bookingService.getRebookDraftContext(booking.id);
+    if (!draftResult.success) {
+      uiFeedback.showToast(draftResult.error.message, 'error');
+      return;
+    }
+    const targetCoachId = draftResult.data.coachId ?? booking.coachId;
+    if (!targetCoachId) {
+      uiFeedback.showToast('We could not find the coach for this booking.', 'error');
+      return;
+    }
+
+    resetBookingDraft();
+    updateDraft({
+      ...draftResult.data,
+      coachName: draftResult.data.coachName ?? booking.coach?.name,
+      athleteName: draftResult.data.athleteName ?? booking.client?.name,
+    });
+    router.push(Routes.bookSchedule(targetCoachId));
+  }, [booking, resetBookingDraft, updateDraft]);
 
   const handleManageRecurring = useCallback(() => {
     if (!booking?.recurringBookingId) return;

@@ -1961,6 +1961,40 @@ describe('p0 core routes', () => {
         1,
       );
 
+      const rebookContext = await app.inject({
+        method: 'GET',
+        url: `/v1/bookings/${asString(bookingToComplete.id)}/rebook-context`,
+        headers,
+      });
+      assert.equal(rebookContext.statusCode, 200);
+      const rebookPayload = rebookContext.json() as {
+        sourceBookingId: string;
+        coachId: string;
+        bookedByUserId: string | null;
+        serviceType: string | null;
+        durationMinutes: number;
+        location: string;
+        objectives: string[];
+        priceMinor: number | null;
+        athleteIds: string[];
+      };
+      assert.equal(rebookPayload.sourceBookingId, asString(bookingToComplete.id));
+      assert.equal(rebookPayload.coachId, asString(bookingToComplete.coachUserId));
+      assert.equal(rebookPayload.bookedByUserId, asString(bookingToComplete.bookedByUserId));
+      assert.equal(rebookPayload.serviceType, asString(bookingToComplete.serviceType));
+      assert.equal(rebookPayload.durationMinutes, asNumber(bookingToComplete.durationMinutes));
+      assert.equal(rebookPayload.location, asString(bookingToComplete.location));
+      assert.deepEqual(rebookPayload.objectives, payload.objectives);
+      assert.equal(rebookPayload.priceMinor, asNumber(bookingToComplete.priceMinor));
+      assert.deepEqual(rebookPayload.athleteIds, [athleteId]);
+
+      const deniedCoachRebookContext = await app.inject({
+        method: 'GET',
+        url: `/v1/bookings/${asString(bookingToComplete.id)}/rebook-context`,
+        headers: authHeaders(tables, coachUserId, 'coach'),
+      });
+      assert.equal(deniedCoachRebookContext.statusCode, 403);
+
       const deniedFutureReview = await app.inject({
         method: 'POST',
         url: `/v1/bookings/${asString(futureBooking.id)}/reviews`,

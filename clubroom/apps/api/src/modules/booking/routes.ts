@@ -547,6 +547,48 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
+  app.get('/bookings/:bookingId/rebook-context', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const bookingId = bookingIdSchema.parse(
+      (request.params as { bookingId?: string } | undefined)?.bookingId,
+    );
+    const repository = resolveBookingRepository();
+    const booking = await repository.getVisibleBookingById({
+      authUserId,
+      bookingId,
+    });
+
+    const actorIsBookedFamily =
+      booking.bookedByUserId === authUserId ||
+      booking.participants.some((participant) => participant.guardianUserId === authUserId);
+    const actorIsCoachOnly = booking.coachUserId === authUserId && !actorIsBookedFamily;
+    if (actorIsCoachOnly) {
+      throw forbidden('Only the booked family or athlete can rebook from this booking context');
+    }
+
+    return reply.send({
+      sourceBookingId: booking.id,
+      coachId: booking.coachUserId,
+      bookedByUserId: booking.bookedByUserId ?? null,
+      status: booking.status,
+      serviceType: booking.serviceType ?? null,
+      sessionTemplateId: booking.sessionTemplateId ?? null,
+      durationMinutes: booking.durationMinutes,
+      location: booking.location,
+      objectives: booking.objectives,
+      priceMinor: booking.priceMinor ?? null,
+      currency: booking.currency,
+      athleteIds: booking.participants
+        .filter((participant) => participant.status !== 'cancelled')
+        .map((participant) => participant.athleteId),
+      requestId: request.requestId,
+    });
+  });
+
   app.get('/bookings/:bookingId', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {

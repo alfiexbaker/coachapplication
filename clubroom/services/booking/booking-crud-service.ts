@@ -28,7 +28,8 @@ import { blockService, getBlockActionMessage } from '@/services/block-service';
 import { progressAttendanceService } from '@/services/progress/progress-attendance-service';
 import { authService } from '@/services/auth-service';
 import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
-import { bookingAuthorityService } from './booking-authority-service';
+import { getBookingAthleteName } from '@/utils/booking-display';
+import { bookingAuthorityService, type ApiRebookContextResponse } from './booking-authority-service';
 import {
   type Result,
   type ServiceError,
@@ -235,6 +236,54 @@ class BookingCrudService {
     };
   }
 
+  private mapBookingToRebookDraft(booking: Booking): BookingDraft {
+    const athleteIds = booking.athleteIds?.length
+      ? booking.athleteIds
+      : [booking.athleteId].filter((value): value is string => Boolean(value));
+    const athleteName = getBookingAthleteName(booking);
+
+    return {
+      coachId: booking.coachId,
+      coachName: booking.coachName,
+      childId: athleteIds[0],
+      childIds: athleteIds,
+      athleteId: athleteIds[0],
+      athleteName,
+      duration: booking.duration,
+      locationText: booking.location,
+      sessionType: booking.serviceType ?? booking.service,
+      sessionTypeLabel: booking.service,
+      sessionTemplateId: booking.sessionTemplateId,
+      sessionSource: 'direct',
+      sessionSourceEntityId: booking.id,
+      objectives: booking.objectives,
+      price: booking.price,
+      totalPrice: booking.price,
+    };
+  }
+
+  private mapApiRebookContextToDraft(context: ApiRebookContextResponse): BookingDraft {
+    const price =
+      typeof context.priceMinor === 'number' ? Math.max(0, context.priceMinor / 100) : undefined;
+
+    return {
+      coachId: context.coachId,
+      childId: context.athleteIds[0],
+      childIds: context.athleteIds,
+      athleteId: context.athleteIds[0],
+      duration: context.durationMinutes,
+      locationText: context.location,
+      sessionType: context.serviceType ?? undefined,
+      sessionTypeLabel: context.serviceType ?? undefined,
+      sessionTemplateId: context.sessionTemplateId ?? undefined,
+      sessionSource: 'direct',
+      sessionSourceEntityId: context.sourceBookingId,
+      objectives: context.objectives,
+      price,
+      totalPrice: price,
+    };
+  }
+
   private async syncAuthoritativeBookings(
     apiBookings: {
       id: string;
@@ -380,6 +429,22 @@ class BookingCrudService {
       logger.error('Failed to get booking by id', error);
       return undefined;
     }
+  }
+
+  async getRebookDraftContext(id: string): Promise<Result<BookingDraft, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const apiResult = await bookingAuthorityService.getRebookContext(id);
+      if (!apiResult.success) {
+        return err(apiResult.error);
+      }
+      return ok(this.mapApiRebookContextToDraft(apiResult.data));
+    }
+
+    const booking = await this.getBooking(id);
+    if (!booking) {
+      return err(notFound('Booking', id));
+    }
+    return ok(this.mapBookingToRebookDraft(booking));
   }
 
   // ---------------------------------------------------------------------------

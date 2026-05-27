@@ -52,6 +52,22 @@ interface ApiBookingListResponse {
   requestId: string;
 }
 
+export interface ApiRebookContextResponse {
+  sourceBookingId: string;
+  coachId: string;
+  bookedByUserId: string | null;
+  status: ApiBookingStatus;
+  serviceType: string | null;
+  sessionTemplateId: string | null;
+  durationMinutes: number;
+  location: string;
+  objectives: string[];
+  priceMinor: number | null;
+  currency: string;
+  athleteIds: string[];
+  requestId: string;
+}
+
 interface CreateApiBookingInput {
   coachId: string;
   athleteIds: string[];
@@ -252,6 +268,33 @@ class BookingAuthorityService {
 
     if (!result.success) {
       logger.error('Failed to get booking via API', {
+        bookingId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+
+    return result;
+  }
+
+  async getRebookContext(
+    bookingId: string,
+  ): Promise<Result<ApiRebookContextResponse, ServiceError>> {
+    const headersResult = await resolveBookingAccessHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiRebookContextResponse>(
+      `/v1/bookings/${bookingId}/rebook-context`,
+      {
+        method: 'GET',
+        headers: headersResult.data,
+      },
+    );
+
+    if (!result.success) {
+      logger.error('Failed to get rebook context via API', {
         bookingId,
         error: result.error,
       });

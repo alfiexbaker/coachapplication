@@ -59,6 +59,7 @@ export const bookingService = {
   list: bookingCrudService.list.bind(bookingCrudService),
   getBooking: bookingCrudService.getBooking.bind(bookingCrudService),
   getById: bookingCrudService.getById.bind(bookingCrudService),
+  getRebookDraftContext: bookingCrudService.getRebookDraftContext.bind(bookingCrudService),
   createBookingViaApi: bookingAuthorityService.createBooking.bind(bookingAuthorityService),
   cancelBookingViaApi: bookingAuthorityService.cancelBooking.bind(bookingAuthorityService),
   reopenBookingViaApi: bookingAuthorityService.reopenBooking.bind(bookingAuthorityService),
