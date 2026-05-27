@@ -161,6 +161,49 @@ const notificationParamsSchema = z.object({
   notificationId: z.string().trim().min(1),
 });
 
+const notificationChannelSettingsSchema = z
+  .object({
+    push: z.boolean().optional(),
+    email: z.boolean().optional(),
+    sms: z.boolean().optional(),
+  })
+  .strict();
+
+const notificationQuietHoursSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    startTime: z.string().trim().regex(/^\d{2}:\d{2}$/).optional(),
+    endTime: z.string().trim().regex(/^\d{2}:\d{2}$/).optional(),
+    timezone: z.string().trim().min(1).max(80).optional(),
+  })
+  .strict();
+
+const notificationTypePreferenceSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    channels: z.array(z.enum(['PUSH', 'EMAIL', 'SMS'])).max(3).optional(),
+  })
+  .strict();
+
+const notificationPreferenceUpdateSchema = z
+  .object({
+    channels: notificationChannelSettingsSchema.optional(),
+    quietHours: notificationQuietHoursSchema.optional(),
+    typePreferences: z.record(notificationTypePreferenceSchema).optional(),
+    mutedCoaches: z
+      .array(
+        z
+          .object({
+            coachId: z.string().trim().min(1),
+            reason: z.string().trim().max(240).nullable().optional(),
+          })
+          .strict(),
+      )
+      .max(200)
+      .optional(),
+  })
+  .strict();
+
 const groupMessageCreateRequestSchema = z.object({
   body: z.string().trim().min(1).max(2000),
   idempotencyKey: z.string().trim().min(8).max(120).optional(),
@@ -1853,6 +1896,60 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
+  });
+
+  app.patch('/me/notifications/preferences', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+    const body = notificationPreferenceUpdateSchema.parse(request.body ?? {});
+
+    try {
+      const result = await resolveCommunityMediaRepository().updateNotificationPreferences({
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        channels: body.channels,
+        quietHours: body.quietHours,
+        typePreferences: body.typePreferences,
+        mutedCoaches: body.mutedCoaches,
+      });
+
+      await recordAuditEvent({
+        request,
+        action: 'notification.preferences.update',
+        resourceType: 'notification_preference',
+        resourceId: authUserId,
+        result: 'SUCCESS',
+        metadata: {
+          channels: body.channels ? Object.keys(body.channels) : [],
+          quietHours: Boolean(body.quietHours),
+          typePreferenceCount: body.typePreferences ? Object.keys(body.typePreferences).length : 0,
+          mutedCoachCount: body.mutedCoaches?.length ?? 0,
+        },
+      });
+
+      return reply.send({
+        preferences: result.preferences,
+        mutedSources: result.mutedSources,
+        quietHours: result.quietHours,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'notification.preferences.update',
+        resourceType: 'notification_preference',
+        resourceId: authUserId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
   });
 
   app.post('/me/notifications/read-all', async (request, reply) => {

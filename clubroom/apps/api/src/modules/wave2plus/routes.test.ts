@@ -1643,6 +1643,168 @@ describe('wave2+ routes', () => {
     );
   });
 
+  it('mutates notification preferences through authenticated backend authority', async () => {
+    const tables = loadTables();
+    const preference = asRows(tables.notificationPreferences).find((row) =>
+      Boolean(asString(row.userId)),
+    );
+    assert.ok(preference, 'expected seeded notification preferences');
+    const ownerUserId = asString(preference.userId) as string;
+    const coachUserId = asString(
+      asRows(tables.coachProfiles).find((row) => asString(row.userId) !== ownerUserId)?.userId,
+    ) as string;
+    assert.ok(coachUserId, 'expected coach to mute');
+    const outsiderUserId = findUnprivilegedUserId(tables, new Set([ownerUserId]));
+
+    const updated = await app.inject({
+      method: 'PATCH',
+      url: '/v1/me/notifications/preferences',
+      headers: authHeaders(tables, ownerUserId),
+      payload: {
+        channels: {
+          push: false,
+          sms: true,
+        },
+        quietHours: {
+          enabled: true,
+          startTime: '20:30',
+          endTime: '06:45',
+          timezone: 'Europe/London',
+        },
+        typePreferences: {
+          MESSAGE_RECEIVED: {
+            enabled: false,
+            channels: ['EMAIL'],
+          },
+        },
+        mutedCoaches: [
+          {
+            coachId: coachUserId,
+            reason: 'too-many-updates',
+          },
+        ],
+      },
+    });
+    assert.equal(updated.statusCode, 200);
+    const updatedPayload = updated.json() as {
+      preferences: {
+        userId: string;
+        pushEnabled: boolean;
+        emailEnabled: boolean;
+        smsEnabled: boolean;
+        settingsJson?: {
+          typePreferences?: Record<string, { enabled: boolean; channels: string[] }>;
+        };
+      };
+      mutedSources: Array<{
+        sourceType: string;
+        sourceId: string;
+        reason?: string;
+        unmutedAt: string | null;
+      }>;
+      quietHours: {
+        userId: string;
+        enabled: boolean;
+        startTimeLocal: string;
+        endTimeLocal: string;
+        timeZone: string;
+      };
+    };
+    assert.equal(updatedPayload.preferences.userId, ownerUserId);
+    assert.equal(updatedPayload.preferences.pushEnabled, false);
+    assert.equal(updatedPayload.preferences.emailEnabled, true);
+    assert.equal(updatedPayload.preferences.smsEnabled, true);
+    assert.equal(
+      updatedPayload.preferences.settingsJson?.typePreferences?.MESSAGE_RECEIVED?.enabled,
+      false,
+    );
+    assert.deepEqual(
+      updatedPayload.preferences.settingsJson?.typePreferences?.MESSAGE_RECEIVED?.channels,
+      ['EMAIL'],
+    );
+    assert.equal(updatedPayload.quietHours.enabled, true);
+    assert.equal(updatedPayload.quietHours.startTimeLocal, '20:30');
+    assert.equal(updatedPayload.quietHours.endTimeLocal, '06:45');
+    assert.equal(
+      updatedPayload.mutedSources.some(
+        (source) =>
+          source.sourceType === 'coach' &&
+          source.sourceId === coachUserId &&
+          source.reason === 'too-many-updates' &&
+          source.unmutedAt == null,
+      ),
+      true,
+    );
+
+    const outsiderUpdate = await app.inject({
+      method: 'PATCH',
+      url: '/v1/me/notifications/preferences',
+      headers: authHeaders(tables, outsiderUserId),
+      payload: {
+        channels: {
+          push: true,
+        },
+      },
+    });
+    assert.equal(outsiderUpdate.statusCode, 200);
+    const outsiderPayload = outsiderUpdate.json() as { preferences: { userId: string } };
+    assert.equal(outsiderPayload.preferences.userId, outsiderUserId);
+
+    const ownerAfterOutsider = await app.inject({
+      method: 'GET',
+      url: '/v1/me/notifications',
+      headers: authHeaders(tables, ownerUserId),
+    });
+    assert.equal(ownerAfterOutsider.statusCode, 200);
+    const ownerAfterOutsiderPayload = ownerAfterOutsider.json() as {
+      preferences: { pushEnabled: boolean; smsEnabled: boolean };
+      mutedSources: Array<{ sourceType: string; sourceId: string; unmutedAt: string | null }>;
+    };
+    assert.equal(ownerAfterOutsiderPayload.preferences.pushEnabled, false);
+    assert.equal(ownerAfterOutsiderPayload.preferences.smsEnabled, true);
+    assert.equal(
+      ownerAfterOutsiderPayload.mutedSources.some(
+        (source) =>
+          source.sourceType === 'coach' &&
+          source.sourceId === coachUserId &&
+          source.unmutedAt == null,
+      ),
+      true,
+    );
+
+    const unmuted = await app.inject({
+      method: 'PATCH',
+      url: '/v1/me/notifications/preferences',
+      headers: authHeaders(tables, ownerUserId),
+      payload: {
+        mutedCoaches: [],
+      },
+    });
+    assert.equal(unmuted.statusCode, 200);
+    const unmutedPayload = unmuted.json() as {
+      mutedSources: Array<{ sourceType: string; sourceId: string; unmutedAt: string | null }>;
+    };
+    assert.equal(
+      unmutedPayload.mutedSources.some(
+        (source) =>
+          source.sourceType === 'coach' &&
+          source.sourceId === coachUserId &&
+          source.unmutedAt == null,
+      ),
+      false,
+    );
+
+    const liveTables = getMarketplaceSeedStore().tables;
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'notification.preferences.update',
+        resourceId: ownerUserId,
+        result: 'SUCCESS',
+      }).length >= 2,
+      true,
+    );
+  });
+
   it('uses the db fixture repository seam for active community and media reads in db mode', async () => {
     const previousBackend = env.API_DATA_BACKEND;
     env.API_DATA_BACKEND = 'db';
@@ -1694,6 +1856,47 @@ describe('wave2+ routes', () => {
         assert.equal(threads.statusCode, 200);
         assert.equal(notifications.statusCode, 200);
       });
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetDbFixtureStoreForTests();
+    }
+  });
+
+  it('uses the db fixture repository seam for notification preference writes in db mode', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const tables = getDbFixtureStore().tables;
+      const userId = asString(asRows(tables.notificationPreferences)[0]?.userId) as string;
+      assert.ok(userId, 'expected notification preference user');
+
+      const updated = await app.inject({
+        method: 'PATCH',
+        url: '/v1/me/notifications/preferences',
+        headers: authHeaders(tables, userId),
+        payload: {
+          channels: {
+            email: false,
+          },
+          quietHours: {
+            enabled: true,
+            startTime: '21:15',
+            endTime: '06:30',
+            timezone: 'Europe/London',
+          },
+        },
+      });
+      assert.equal(updated.statusCode, 200);
+      const updatedPayload = updated.json() as {
+        preferences: { userId: string; emailEnabled: boolean };
+        quietHours: { enabled: boolean; startTimeLocal: string; endTimeLocal: string };
+      };
+      assert.equal(updatedPayload.preferences.userId, userId);
+      assert.equal(updatedPayload.preferences.emailEnabled, false);
+      assert.equal(updatedPayload.quietHours.enabled, true);
+      assert.equal(updatedPayload.quietHours.startTimeLocal, '21:15');
+      assert.equal(updatedPayload.quietHours.endTimeLocal, '06:30');
     } finally {
       env.API_DATA_BACKEND = previousBackend;
       resetDbFixtureStoreForTests();

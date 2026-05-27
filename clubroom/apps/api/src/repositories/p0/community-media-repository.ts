@@ -12,6 +12,8 @@ type SeedTables = Record<string, SeedRow[]>;
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
 const asBoolean = (value: unknown): boolean | undefined => (typeof value === 'boolean' ? value : undefined);
+const coerceMetadata = (value: unknown): Record<string, unknown> =>
+  value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 const normalizeAs = <T>(value: unknown): T => normalizeForJson(value) as unknown as T;
 const nowIso = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
@@ -81,6 +83,29 @@ export interface NotificationBulkMutationResult {
   dataVersion: string | null;
 }
 
+export interface NotificationPreferenceUpdateParams extends CommunityMediaAccessParams {
+  channels?: {
+    push?: boolean;
+    email?: boolean;
+    sms?: boolean;
+  };
+  quietHours?: {
+    enabled?: boolean;
+    startTime?: string;
+    endTime?: string;
+    timezone?: string;
+  };
+  typePreferences?: Record<string, { enabled?: boolean; channels?: string[] }>;
+  mutedCoaches?: Array<{ coachId: string; reason?: string | null }>;
+}
+
+export interface NotificationPreferenceMutationResult {
+  preferences: SeedRow;
+  mutedSources: SeedRow[];
+  quietHours: SeedRow | null;
+  dataVersion: string | null;
+}
+
 export interface GroupMessageCreateResult {
   message: SeedRow;
   thread: SeedRow;
@@ -101,6 +126,7 @@ export interface CommunityMediaRepository {
   markAllNotificationsRead(params: CommunityMediaAccessParams): Promise<NotificationBulkMutationResult>;
   dismissNotification(params: NotificationMutationParams): Promise<NotificationMutationResult>;
   dismissAllNotifications(params: CommunityMediaAccessParams): Promise<NotificationBulkMutationResult>;
+  updateNotificationPreferences(params: NotificationPreferenceUpdateParams): Promise<NotificationPreferenceMutationResult>;
   createGroupMessage(params: GroupMessageCreateParams): Promise<GroupMessageCreateResult>;
   markGroupMessagesRead(params: GroupMessageReadParams): Promise<GroupMessageReadResult>;
 }
@@ -199,6 +225,60 @@ function notificationUnreadCount(rows: SeedRow[]): number {
 
 function storeNotificationsForUser(tables: SeedTables, authUserId: string): SeedRow[] {
   return asRows(tables.notifications).filter((row) => asString(row.userId) === authUserId);
+}
+
+function activeMutedSourcesForUser(tables: SeedTables, authUserId: string): SeedRow[] {
+  return asRows(tables.mutedSources).filter(
+    (row) => asString(row.userId) === authUserId && asString(row.unmutedAt) == null,
+  );
+}
+
+function quietHoursForUser(tables: SeedTables, authUserId: string): SeedRow | null {
+  return asRows(tables.quietHours).find((row) => asString(row.userId) === authUserId) ?? null;
+}
+
+function normalizeTypePreferences(
+  value: Record<string, { enabled?: boolean; channels?: string[] }> | undefined,
+): Record<string, { enabled: boolean; channels: string[] }> | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [
+      key,
+      {
+        enabled: entry.enabled !== false,
+        channels: Array.isArray(entry.channels)
+          ? Array.from(new Set(entry.channels.map((channel) => String(channel).toUpperCase())))
+          : [],
+      },
+    ]),
+  );
+}
+
+function ensureStoreNotificationPreference(
+  tables: SeedTables,
+  authUserId: string,
+  now: string,
+): SeedRow {
+  const preferences = ensureRows(tables, 'notificationPreferences');
+  const existing = preferences.find((row) => asString(row.userId) === authUserId);
+  if (existing) {
+    return existing;
+  }
+
+  const created: SeedRow = {
+    userId: authUserId,
+    pushEnabled: true,
+    emailEnabled: true,
+    smsEnabled: false,
+    settingsJson: {},
+    createdAt: now,
+    updatedAt: now,
+  };
+  preferences.push(created);
+  return created;
 }
 
 function findMutableStoreNotification(
@@ -537,6 +617,87 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     return {
       notifications,
       unreadCount: notificationUnreadCount(notifications),
+      dataVersion: store.version,
+    };
+  }
+
+  async updateNotificationPreferences(
+    params: NotificationPreferenceUpdateParams,
+  ): Promise<NotificationPreferenceMutationResult> {
+    const store = this.storeProvider();
+    const now = nowIso();
+    const preferences = ensureStoreNotificationPreference(store.tables, params.authUserId, now);
+    preferences.pushEnabled = params.channels?.push ?? preferences.pushEnabled ?? true;
+    preferences.emailEnabled = params.channels?.email ?? preferences.emailEnabled ?? true;
+    preferences.smsEnabled = params.channels?.sms ?? preferences.smsEnabled ?? false;
+
+    const typePreferences = normalizeTypePreferences(params.typePreferences);
+    if (typePreferences) {
+      const existingSettings = coerceMetadata(preferences.settingsJson);
+      preferences.settingsJson = {
+        ...existingSettings,
+        typePreferences,
+      };
+    }
+    preferences.updatedAt = now;
+
+    let quietHours = quietHoursForUser(store.tables, params.authUserId);
+    if (params.quietHours) {
+      if (!quietHours) {
+        quietHours = {
+          userId: params.authUserId,
+          enabled: false,
+          startTimeLocal: '22:00',
+          endTimeLocal: '07:00',
+          timeZone: 'Europe/London',
+          createdAt: now,
+          updatedAt: now,
+        };
+        ensureRows(store.tables, 'quietHours').push(quietHours);
+      }
+      quietHours.enabled = params.quietHours.enabled ?? quietHours.enabled ?? false;
+      quietHours.startTimeLocal = params.quietHours.startTime ?? quietHours.startTimeLocal ?? '22:00';
+      quietHours.endTimeLocal = params.quietHours.endTime ?? quietHours.endTimeLocal ?? '07:00';
+      quietHours.timeZone = params.quietHours.timezone ?? quietHours.timeZone ?? 'Europe/London';
+      quietHours.updatedAt = now;
+    }
+
+    if (params.mutedCoaches) {
+      const desired = new Map(
+        params.mutedCoaches.map((coach) => [coach.coachId, coach.reason ?? null] as const),
+      );
+      const mutedSources = ensureRows(store.tables, 'mutedSources');
+      for (const source of mutedSources.filter(
+        (row) =>
+          asString(row.userId) === params.authUserId &&
+          String(row.sourceType ?? '').toLowerCase() === 'coach',
+      )) {
+        const coachId = asString(source.sourceId);
+        if (!coachId || !desired.has(coachId)) {
+          source.unmutedAt = asString(source.unmutedAt) ?? now;
+          continue;
+        }
+        source.reason = desired.get(coachId);
+        source.unmutedAt = null;
+        desired.delete(coachId);
+      }
+      for (const [coachId, reason] of desired.entries()) {
+        mutedSources.push({
+          id: newId('mut'),
+          userId: params.authUserId,
+          sourceType: 'coach',
+          sourceId: coachId,
+          reason,
+          mutedAt: now,
+          unmutedAt: null,
+        });
+      }
+    }
+
+    return {
+      preferences,
+      mutedSources: activeMutedSourcesForUser(store.tables, params.authUserId),
+      quietHours,
       dataVersion: store.version,
     };
   }
@@ -1038,6 +1199,133 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     return {
       notifications,
       unreadCount: notificationUnreadCount(notifications),
+      dataVersion: null,
+    };
+  }
+
+  async updateNotificationPreferences(
+    params: NotificationPreferenceUpdateParams,
+  ): Promise<NotificationPreferenceMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.updateNotificationPreferences(params);
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const now = new Date();
+    const existing = await prisma.notificationPreference.findUnique({
+      where: { userId: params.authUserId },
+    });
+    const existingSettings = coerceMetadata(existing?.settingsJson);
+    const typePreferences = normalizeTypePreferences(params.typePreferences);
+
+    const preferences = await prisma.notificationPreference.upsert({
+      where: { userId: params.authUserId },
+      create: {
+        userId: params.authUserId,
+        pushEnabled: params.channels?.push ?? true,
+        emailEnabled: params.channels?.email ?? true,
+        smsEnabled: params.channels?.sms ?? false,
+        settingsJson: {
+          ...existingSettings,
+          ...(typePreferences ? { typePreferences } : {}),
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+      update: {
+        ...(params.channels?.push == null ? {} : { pushEnabled: params.channels.push }),
+        ...(params.channels?.email == null ? {} : { emailEnabled: params.channels.email }),
+        ...(params.channels?.sms == null ? {} : { smsEnabled: params.channels.sms }),
+        ...(typePreferences
+          ? {
+              settingsJson: {
+                ...existingSettings,
+                typePreferences,
+              },
+            }
+          : {}),
+      },
+    });
+
+    let quietHours = await prisma.quietHours.findUnique({
+      where: { userId: params.authUserId },
+    });
+    if (params.quietHours) {
+      quietHours = await prisma.quietHours.upsert({
+        where: { userId: params.authUserId },
+        create: {
+          userId: params.authUserId,
+          enabled: params.quietHours.enabled ?? false,
+          startTimeLocal: params.quietHours.startTime ?? '22:00',
+          endTimeLocal: params.quietHours.endTime ?? '07:00',
+          timeZone: params.quietHours.timezone ?? 'Europe/London',
+          createdAt: now,
+          updatedAt: now,
+        },
+        update: {
+          ...(params.quietHours.enabled == null ? {} : { enabled: params.quietHours.enabled }),
+          ...(params.quietHours.startTime == null ? {} : { startTimeLocal: params.quietHours.startTime }),
+          ...(params.quietHours.endTime == null ? {} : { endTimeLocal: params.quietHours.endTime }),
+          ...(params.quietHours.timezone == null ? {} : { timeZone: params.quietHours.timezone }),
+        },
+      });
+    }
+
+    if (params.mutedCoaches) {
+      const desired = new Map(
+        params.mutedCoaches.map((coach) => [coach.coachId, coach.reason ?? null] as const),
+      );
+      const existingCoachMutes = await prisma.mutedSource.findMany({
+        where: {
+          userId: params.authUserId,
+          sourceType: 'coach',
+        },
+      });
+      await Promise.all(
+        existingCoachMutes.map((source) => {
+          if (!desired.has(source.sourceId)) {
+            return prisma.mutedSource.update({
+              where: { id: source.id },
+              data: { unmutedAt: source.unmutedAt ?? now },
+            });
+          }
+          const reason = desired.get(source.sourceId);
+          desired.delete(source.sourceId);
+          return prisma.mutedSource.update({
+            where: { id: source.id },
+            data: {
+              reason,
+              unmutedAt: null,
+            },
+          });
+        }),
+      );
+      for (const [coachId, reason] of desired.entries()) {
+        await prisma.mutedSource.create({
+          data: {
+            id: newId('mut'),
+            userId: params.authUserId,
+            sourceType: 'coach',
+            sourceId: coachId,
+            reason,
+            mutedAt: now,
+            unmutedAt: null,
+          },
+        });
+      }
+    }
+
+    const mutedSources = await prisma.mutedSource.findMany({
+      where: {
+        userId: params.authUserId,
+        unmutedAt: null,
+      },
+    });
+
+    return {
+      preferences: normalizeAs<SeedRow>(preferences),
+      mutedSources: normalizeAs<SeedRow[]>(mutedSources),
+      quietHours: normalizeAs<SeedRow | null>(quietHours),
       dataVersion: null,
     };
   }

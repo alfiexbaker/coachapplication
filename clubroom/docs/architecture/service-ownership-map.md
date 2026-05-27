@@ -137,7 +137,8 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - Notification primitives live under the domain module even though root compatibility files also exist
 - Backend notification reads now have a db-aware authority route at `GET /v1/me/notifications`
 - Notification read/dismiss/clear state now uses `/v1/me/notifications/*` mutation routes in non-mock mode; the authenticated notification owner is the only mutable actor and denied cross-user writes are audited
-- Root notification services now read from `GET /v1/me/notifications` in non-mock mode and keep local AsyncStorage overlays only for unsupported create/handled/preference compatibility writes until those backend mutation routes exist
+- Notification preference changes now use `PATCH /v1/me/notifications/preferences` in non-mock mode; channel, quiet-hours, type-preference, and muted-coach state is backend-owned and self-scoped from auth
+- Root notification services now read from `GET /v1/me/notifications` in non-mock mode and keep local AsyncStorage overlays only for unsupported create/handled compatibility writes until those backend mutation routes exist
 
 ### Analytics
 

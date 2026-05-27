@@ -165,6 +165,12 @@ interface ApiNotificationBulkMutationResponse {
   unreadCount?: number;
 }
 
+interface ApiNotificationPreferenceMutationResponse {
+  preferences?: ApiNotificationPreference | null;
+  mutedSources?: ApiMutedSource[];
+  quietHours?: ApiQuietHours | null;
+}
+
 interface AuthorityContext {
   currentUserId: string;
   currentUserAccountType?: string;
@@ -1127,6 +1133,49 @@ class CommunityMediaAuthorityService {
       return stateResult;
     }
     return ok(stateResult.data.preferences);
+  }
+
+  async updateNotificationPreferences(
+    updates: Partial<Omit<EnhancedNotificationPreferences, 'userId' | 'createdAt' | 'updatedAt'>>,
+  ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
+    const contextResult = await resolveContext('Sign in to update notification preferences.');
+    if (!contextResult.success) {
+      return contextResult;
+    }
+
+    const result = await apiFetch<ApiNotificationPreferenceMutationResponse>(
+      '/v1/me/notifications/preferences',
+      {
+        method: 'PATCH',
+        headers: contextResult.data.headers,
+        body: JSON.stringify({
+          ...(updates.channels ? { channels: updates.channels } : {}),
+          ...(updates.quietHours ? { quietHours: updates.quietHours } : {}),
+          ...(updates.typePreferences ? { typePreferences: updates.typePreferences } : {}),
+          ...(updates.mutedCoaches
+            ? {
+                mutedCoaches: updates.mutedCoaches.map((coach) => ({
+                  coachId: coach.coachId,
+                  reason: coach.reason ?? null,
+                })),
+              }
+            : {}),
+        }),
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to update notification preferences via API', { error: result.error });
+      return err(result.error);
+    }
+
+    return ok(
+      mapNotificationPreferences({
+        currentUserId: contextResult.data.currentUserId,
+        preferences: result.data.preferences ?? null,
+        mutedSources: result.data.mutedSources ?? [],
+        quietHours: result.data.quietHours ?? null,
+      }),
+    );
   }
 
   async getNotificationUnreadCount(): Promise<Result<number, ServiceError>> {

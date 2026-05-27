@@ -80,39 +80,12 @@ class NotificationPreferencesService {
    */
   private async getPreferencesValue(userId: string): Promise<EnhancedNotificationPreferences> {
     if (!USE_MOCK) {
-      const [authoritativeResult, all] = await Promise.all([
-        communityMediaAuthorityService.getNotificationPreferences(),
-        this.loadAllPreferences(),
-      ]);
+      const authoritativeResult = await communityMediaAuthorityService.getNotificationPreferences();
       if (!authoritativeResult.success) {
         throw new Error(authoritativeResult.error.message);
       }
 
-      const overlay = all.find((prefs) => prefs.userId === userId);
-      if (!overlay) {
-        return authoritativeResult.data;
-      }
-
-      return {
-        ...authoritativeResult.data,
-        ...overlay,
-        userId,
-        channels: {
-          ...authoritativeResult.data.channels,
-          ...overlay.channels,
-        },
-        quietHours: {
-          ...authoritativeResult.data.quietHours,
-          ...overlay.quietHours,
-        },
-        typePreferences: {
-          ...authoritativeResult.data.typePreferences,
-          ...overlay.typePreferences,
-        },
-        mutedCoaches: overlay.mutedCoaches,
-        createdAt: authoritativeResult.data.createdAt,
-        updatedAt: overlay.updatedAt || authoritativeResult.data.updatedAt,
-      };
+      return authoritativeResult.data;
     }
 
     const all = await this.loadAllPreferences();
@@ -150,6 +123,15 @@ class NotificationPreferencesService {
     updates: Partial<EnhancedNotificationPreferences>,
   ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     try {
+      if (!USE_MOCK) {
+        const updatedResult = await communityMediaAuthorityService.updateNotificationPreferences(updates);
+        if (!updatedResult.success) {
+          return updatedResult;
+        }
+        logger.info('Preferences updated', { userId, source: 'api' });
+        return ok(updatedResult.data);
+      }
+
       const current = await this.getPreferencesValue(userId);
       const updated: EnhancedNotificationPreferences = {
         ...current,
@@ -448,6 +430,14 @@ class NotificationPreferencesService {
   ): Promise<Result<EnhancedNotificationPreferences, ServiceError>> {
     try {
       const defaults = this.createDefaultPreferences(userId);
+      if (!USE_MOCK) {
+        return this.updatePreferences(userId, {
+          channels: defaults.channels,
+          quietHours: defaults.quietHours,
+          typePreferences: defaults.typePreferences,
+          mutedCoaches: defaults.mutedCoaches,
+        });
+      }
       await this.savePreferences(userId, defaults);
       logger.info('Preferences reset', { userId });
       return ok(defaults);
