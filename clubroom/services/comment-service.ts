@@ -28,7 +28,6 @@ import {
   storageError,
   unauthorized,
   conflictError,
-  serviceError,
 } from '@/types/result';
 import type {
   ThreadedComment,
@@ -58,6 +57,9 @@ interface ApiPostComment {
   createdAt?: string;
   updatedAt?: string;
   author?: ApiCommentAuthor | null;
+  likes?: string[];
+  likesCount?: number;
+  likedByCurrentUser?: boolean;
 }
 
 interface ApiPostCommentsResponse {
@@ -118,6 +120,13 @@ function coerceIso(value: string | null | undefined): string {
 function mapApiComment(comment: ApiPostComment, context?: CommentApiContext): ThreadedComment {
   const authorId = comment.authorUserId || comment.author?.id || context?.currentUserId || '';
   const isDeleted = comment.isDeleted === true || Boolean(comment.deletedAt);
+  const likedByCurrentUser = comment.likedByCurrentUser === true;
+  const likes = Array.isArray(comment.likes)
+    ? comment.likes.filter((userId): userId is string => typeof userId === 'string')
+    : likedByCurrentUser && context?.currentUserId
+      ? [context.currentUserId]
+      : [];
+  const likeCount = typeof comment.likesCount === 'number' ? comment.likesCount : likes.length;
   return {
     id: comment.id,
     postId: comment.postId || '',
@@ -131,7 +140,9 @@ function mapApiComment(comment: ApiPostComment, context?: CommentApiContext): Th
       comment.author?.avatarUrl ??
       (context?.currentUserId === authorId ? context.currentUserAvatar : undefined),
     content: isDeleted ? '[deleted]' : comment.content?.trim() || '',
-    likes: [],
+    likes,
+    likeCount,
+    likedByCurrentUser,
     createdAt: coerceIso(comment.createdAt),
     updatedAt: comment.updatedAt ?? undefined,
     parentId: comment.parentCommentId ?? undefined,
@@ -501,12 +512,40 @@ async function toggleLike(
   }
 
   if (!USE_MOCK) {
-    return err(
-      serviceError(
-        'UNKNOWN',
-        'Comment likes are unavailable in API mode until backend comment reaction authority exists.',
-      ),
+    const contextResult = await resolveCommentApiContext('Sign in to like comments.');
+    if (!contextResult.success) {
+      return contextResult;
+    }
+
+    const result = await apiFetch<ApiPostCommentResponse>(
+      `/v1/comments/${encodeURIComponent(input.commentId)}/reactions/toggle`,
+      {
+        method: 'POST',
+        headers: contextResult.data.headers,
+      },
     );
+    if (!result.success) {
+      logger.error('Failed to toggle comment like via API', {
+        commentId: input.commentId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+
+    const updatedComment = mapApiComment(result.data.comment, contextResult.data);
+    emitTyped(ServiceEvents.COMMENT_LIKED, {
+      commentId: input.commentId,
+      postId: updatedComment.postId,
+      userId: contextResult.data.currentUserId,
+      liked: updatedComment.likedByCurrentUser === true,
+    });
+
+    logger.info('Comment like toggled via API', {
+      commentId: input.commentId,
+      liked: updatedComment.likedByCurrentUser === true,
+    });
+
+    return ok(updatedComment);
   }
 
   if (!input.userId) {

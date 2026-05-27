@@ -17,6 +17,8 @@ export interface ThreadedComment {
   authorAvatar?: string;
   content: string;
   likes: string[]; // User IDs who liked
+  likeCount?: number;
+  likedByCurrentUser?: boolean;
   createdAt: string;
   updatedAt?: string;
 

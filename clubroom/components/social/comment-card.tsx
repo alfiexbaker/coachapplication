@@ -42,8 +42,8 @@ function CommentCardInner({
 }: CommentCardProps) {
   const { colors: palette } = useTheme();
 
-  const isLiked = comment.likes.includes(currentUserId);
-  const likeCount = comment.likes.length;
+  const isLiked = comment.likedByCurrentUser ?? comment.likes.includes(currentUserId);
+  const likeCount = comment.likeCount ?? comment.likes.length;
   const isOwnComment = comment.authorId === currentUserId;
   const isDeleted = comment.isDeleted;
   const initials = comment.authorAvatar ?? comment.authorName?.slice(0, 2).toUpperCase() ?? '??';

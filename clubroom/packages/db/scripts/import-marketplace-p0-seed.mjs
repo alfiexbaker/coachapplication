@@ -96,6 +96,7 @@ async function main() {
     await tx.message.deleteMany();
     await tx.messageParticipant.deleteMany();
     await tx.messageThread.deleteMany();
+    await tx.postCommentReaction.deleteMany();
     await tx.postReaction.deleteMany();
     await tx.postComment.deleteMany();
     await tx.post.deleteMany();
@@ -777,6 +778,17 @@ async function main() {
     }));
     if (postComments.length > 0) {
       await tx.postComment.createMany({ data: postComments });
+    }
+
+    const postCommentReactions = asRows(tables.postCommentReactions).map((row) => ({
+      id: row.id,
+      commentId: row.commentId,
+      userId: row.userId,
+      reaction: asString(row.reaction) ?? 'LIKE',
+      createdAt: toDate(row.createdAt) ?? new Date(),
+    }));
+    if (postCommentReactions.length > 0) {
+      await tx.postCommentReaction.createMany({ data: postCommentReactions });
     }
 
     const postReactions = asRows(tables.postReactions).map((row) => ({

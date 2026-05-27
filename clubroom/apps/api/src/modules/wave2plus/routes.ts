@@ -1891,6 +1891,54 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
+  app.post('/comments/:commentId/reactions/toggle', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    const params = commentParamsSchema.parse(request.params ?? {});
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    try {
+      const result = await resolveCommunityMediaRepository().togglePostCommentReaction({
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        commentId: params.commentId,
+      });
+
+      await recordAuditEvent({
+        request,
+        action: 'community.comment.reaction.toggle',
+        resourceType: 'post_comment',
+        resourceId: params.commentId,
+        result: 'SUCCESS',
+        metadata: {
+          postId: asString(result.comment.postId),
+          likedByCurrentUser: result.comment.likedByCurrentUser === true,
+          likesCount: asNumber(result.comment.likesCount),
+        },
+      });
+
+      return reply.send({
+        comment: result.comment,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'community.comment.reaction.toggle',
+        resourceType: 'post_comment',
+        resourceId: params.commentId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
+  });
+
   app.post('/posts/:postId/comments', async (request, reply) => {
     const authUserId = request.auth?.userId;
     const params = postParamsSchema.parse(request.params ?? {});

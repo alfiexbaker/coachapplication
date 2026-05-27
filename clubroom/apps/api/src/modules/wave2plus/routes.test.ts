@@ -2824,6 +2824,65 @@ describe('wave2+ routes', () => {
     });
     assert.equal(idempotencyConflict.statusCode, 409);
 
+    const deniedReaction = await app.inject({
+      method: 'POST',
+      url: `/v1/comments/${createdPayload.comment.id}/reactions/toggle`,
+      headers: authHeaders(tables, outsiderUserId),
+    });
+    assert.equal(deniedReaction.statusCode, 403);
+
+    const liked = await app.inject({
+      method: 'POST',
+      url: `/v1/comments/${createdPayload.comment.id}/reactions/toggle`,
+      headers: authHeaders(tables, commenterUserId),
+    });
+    assert.equal(liked.statusCode, 200);
+    const likedPayload = liked.json() as {
+      comment: {
+        id: string;
+        likesCount: number;
+        likedByCurrentUser: boolean;
+        likes: string[];
+      };
+    };
+    assert.equal(likedPayload.comment.id, createdPayload.comment.id);
+    assert.equal(likedPayload.comment.likesCount, 1);
+    assert.equal(likedPayload.comment.likedByCurrentUser, true);
+    assert.deepEqual(likedPayload.comment.likes, [commenterUserId]);
+
+    const listedAfterLike = await app.inject({
+      method: 'GET',
+      url: `/v1/posts/${postId}/comments`,
+      headers: authHeaders(tables, commenterUserId),
+    });
+    assert.equal(listedAfterLike.statusCode, 200);
+    const listedAfterLikePayload = listedAfterLike.json() as {
+      comments: Array<{ id: string; likesCount: number; likedByCurrentUser: boolean }>;
+    };
+    assert.equal(
+      listedAfterLikePayload.comments.some(
+        (comment) =>
+          comment.id === createdPayload.comment.id &&
+          comment.likesCount === 1 &&
+          comment.likedByCurrentUser === true,
+      ),
+      true,
+    );
+
+    const unliked = await app.inject({
+      method: 'POST',
+      url: `/v1/comments/${createdPayload.comment.id}/reactions/toggle`,
+      headers: authHeaders(tables, commenterUserId),
+    });
+    assert.equal(unliked.statusCode, 200);
+    const unlikedPayload = unliked.json() as {
+      comment: { id: string; likesCount: number; likedByCurrentUser: boolean; likes: string[] };
+    };
+    assert.equal(unlikedPayload.comment.id, createdPayload.comment.id);
+    assert.equal(unlikedPayload.comment.likesCount, 0);
+    assert.equal(unlikedPayload.comment.likedByCurrentUser, false);
+    assert.deepEqual(unlikedPayload.comment.likes, []);
+
     const reply = await app.inject({
       method: 'POST',
       url: `/v1/posts/${postId}/comments`,
@@ -2924,6 +2983,13 @@ describe('wave2+ routes', () => {
     });
     assert.equal(repeatDelete.statusCode, 409);
 
+    const deletedReaction = await app.inject({
+      method: 'POST',
+      url: `/v1/comments/${createdPayload.comment.id}/reactions/toggle`,
+      headers: authHeaders(tables, commenterUserId),
+    });
+    assert.equal(deletedReaction.statusCode, 400);
+
     const listedAfterDelete = await app.inject({
       method: 'GET',
       url: `/v1/posts/${postId}/comments`,
@@ -2968,6 +3034,22 @@ describe('wave2+ routes', () => {
       }).length >= 1,
       true,
     );
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'community.comment.reaction.toggle',
+        resourceId: createdPayload.comment.id,
+        result: 'SUCCESS',
+      }).length >= 1,
+      true,
+    );
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'community.comment.reaction.toggle',
+        resourceId: createdPayload.comment.id,
+        result: 'DENY',
+      }).length >= 1,
+      true,
+    );
   });
 
   it('uses the db fixture repository seam for post comment writes in db mode', async () => {
@@ -2987,6 +3069,33 @@ describe('wave2+ routes', () => {
           (row) => asString(row.communityGroupId) === groupId && !asString(row.deletedAt),
         )?.userId,
       ) as string;
+      const clubId = asString(post.clubId);
+      const memberUserIds = asRows(tables.communityGroupMemberships)
+        .filter(
+          (row) =>
+            asString(row.communityGroupId) === groupId &&
+            !asString(row.deletedAt) &&
+            asString(row.userId),
+        )
+        .map((row) => asString(row.userId) as string);
+      const clubMemberUserIds = clubId
+        ? asRows(tables.clubMemberships)
+            .filter(
+              (row) =>
+                asString(row.clubId) === clubId &&
+                !asString(row.deletedAt) &&
+                asString(row.userId),
+            )
+            .map((row) => asString(row.userId) as string)
+        : [];
+      const outsiderUserId = findUnprivilegedUserId(
+        tables,
+        new Set([
+          ...memberUserIds,
+          ...clubMemberUserIds,
+          asString(post.authorUserId) ?? '',
+        ]),
+      );
 
       const created = await app.inject({
         method: 'POST',
@@ -3003,6 +3112,39 @@ describe('wave2+ routes', () => {
       };
       assert.equal(createdPayload.comment.content, 'DB fixture post comment');
       assert.equal(createdPayload.comment.authorUserId, commenterUserId);
+
+      const deniedReaction = await app.inject({
+        method: 'POST',
+        url: `/v1/comments/${createdPayload.comment.id}/reactions/toggle`,
+        headers: authHeaders(tables, outsiderUserId),
+      });
+      assert.equal(deniedReaction.statusCode, 403);
+
+      const liked = await app.inject({
+        method: 'POST',
+        url: `/v1/comments/${createdPayload.comment.id}/reactions/toggle`,
+        headers: authHeaders(tables, commenterUserId),
+      });
+      assert.equal(liked.statusCode, 200);
+      const likedPayload = liked.json() as {
+        comment: { likesCount: number; likedByCurrentUser: boolean; likes: string[] };
+      };
+      assert.equal(likedPayload.comment.likesCount, 1);
+      assert.equal(likedPayload.comment.likedByCurrentUser, true);
+      assert.deepEqual(likedPayload.comment.likes, [commenterUserId]);
+
+      const unliked = await app.inject({
+        method: 'POST',
+        url: `/v1/comments/${createdPayload.comment.id}/reactions/toggle`,
+        headers: authHeaders(tables, commenterUserId),
+      });
+      assert.equal(unliked.statusCode, 200);
+      const unlikedPayload = unliked.json() as {
+        comment: { likesCount: number; likedByCurrentUser: boolean; likes: string[] };
+      };
+      assert.equal(unlikedPayload.comment.likesCount, 0);
+      assert.equal(unlikedPayload.comment.likedByCurrentUser, false);
+      assert.deepEqual(unlikedPayload.comment.likes, []);
 
       const listed = await app.inject({
         method: 'GET',
@@ -3027,6 +3169,13 @@ describe('wave2+ routes', () => {
       const deletedPayload = deleted.json() as { comment: { isDeleted: boolean; content: string } };
       assert.equal(deletedPayload.comment.isDeleted, true);
       assert.equal(deletedPayload.comment.content, '[deleted]');
+
+      const deletedReaction = await app.inject({
+        method: 'POST',
+        url: `/v1/comments/${createdPayload.comment.id}/reactions/toggle`,
+        headers: authHeaders(tables, commenterUserId),
+      });
+      assert.equal(deletedReaction.statusCode, 400);
     } finally {
       env.API_DATA_BACKEND = previousBackend;
       resetDbFixtureStoreForTests();

@@ -256,6 +256,7 @@ model User {
   eventRsvps           EventRsvp[]
   communityGroupMemberships CommunityGroupMembership[]
   postReactions        PostReaction[]
+  postCommentReactions PostCommentReaction[]
   messageParticipations MessageParticipant[]
   messageReceipts      MessageReceipt[]
   notifications        Notification[]
@@ -1893,9 +1894,24 @@ model PostComment {
   updatedAt          DateTime @updatedAt
 
   post               Post     @relation(fields: [postId], references: [id], onDelete: Restrict)
+  reactions          PostCommentReaction[]
 
   @@index([postId, createdAt])
   @@index([parentCommentId])
+}
+
+model PostCommentReaction {
+  id                 String   @id
+  commentId          String
+  userId             String
+  reaction           String   @default("LIKE")
+  createdAt          DateTime @default(now())
+
+  comment            PostComment @relation(fields: [commentId], references: [id], onDelete: Restrict)
+  user               User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([commentId, userId, reaction])
+  @@index([userId])
 }
 
 model PostReaction {

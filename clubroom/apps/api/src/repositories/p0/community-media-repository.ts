@@ -66,6 +66,10 @@ export interface PostCommentDeleteParams extends CommunityMediaAccessParams {
   commentId: string;
 }
 
+export interface PostCommentReactionParams extends CommunityMediaAccessParams {
+  commentId: string;
+}
+
 export interface GroupMessageCreateParams extends CommunityMediaAccessParams {
   communityGroupId: string;
   body: string;
@@ -188,6 +192,7 @@ export interface CommunityMediaRepository {
   getPostComment(params: PostCommentReadParams): Promise<PostCommentMutationResult>;
   createPostComment(params: PostCommentCreateParams): Promise<PostCommentMutationResult>;
   deletePostComment(params: PostCommentDeleteParams): Promise<PostCommentMutationResult>;
+  togglePostCommentReaction(params: PostCommentReactionParams): Promise<PostCommentMutationResult>;
   listMessageThreads(params: CommunityMediaAccessParams): Promise<MessageThreadListResult>;
   listNotifications(params: CommunityMediaAccessParams): Promise<NotificationListResult>;
   markNotificationRead(params: NotificationMutationParams): Promise<NotificationMutationResult>;
@@ -414,10 +419,40 @@ function storeUserSummary(tables: SeedTables, userId: string | undefined): SeedR
   };
 }
 
-function hydrateStorePostComment(tables: SeedTables, comment: SeedRow): SeedRow {
+function getStoreCommentReactionState(
+  tables: SeedTables,
+  commentId: string | undefined,
+  authUserId: string | undefined,
+): { likesCount: number; likedByCurrentUser: boolean; likes: string[] } {
+  if (!commentId) {
+    return { likesCount: 0, likedByCurrentUser: false, likes: [] };
+  }
+
+  const likes = asRows(tables.postCommentReactions).filter(
+    (row) =>
+      asString(row.commentId) === commentId &&
+      String(row.reaction ?? 'LIKE').toUpperCase() === 'LIKE',
+  );
+  const likedByCurrentUser = Boolean(
+    authUserId && likes.some((row) => asString(row.userId) === authUserId),
+  );
+  return {
+    likesCount: likes.length,
+    likedByCurrentUser,
+    likes: likedByCurrentUser && authUserId ? [authUserId] : [],
+  };
+}
+
+function hydrateStorePostComment(
+  tables: SeedTables,
+  comment: SeedRow,
+  authUserId?: string,
+): SeedRow {
+  const reactionState = getStoreCommentReactionState(tables, asString(comment.id), authUserId);
   return {
     ...comment,
     author: storeUserSummary(tables, asString(comment.authorUserId)),
+    ...reactionState,
   };
 }
 
@@ -1139,7 +1174,7 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
         (left, right) =>
           Date.parse(asString(left.createdAt) ?? '') - Date.parse(asString(right.createdAt) ?? ''),
       )
-      .map((comment) => hydrateStorePostComment(store.tables, comment));
+      .map((comment) => hydrateStorePostComment(store.tables, comment, params.authUserId));
 
     return {
       comments,
@@ -1167,7 +1202,7 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     );
 
     return {
-      comment: hydrateStorePostComment(store.tables, comment),
+      comment: hydrateStorePostComment(store.tables, comment, params.authUserId),
       dataVersion: store.version,
     };
   }
@@ -1215,7 +1250,7 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     refreshStorePostCommentCount(store.tables, post, params.authUserId, now);
 
     const response: PostCommentMutationResult = {
-      comment: hydrateStorePostComment(store.tables, comment),
+      comment: hydrateStorePostComment(store.tables, comment, params.authUserId),
       dataVersion: store.version,
     };
     recordSeedPostCommentCreateIdempotency({
@@ -1264,7 +1299,54 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     refreshStorePostCommentCount(store.tables, post, params.authUserId, now);
 
     return {
-      comment: hydrateStorePostComment(store.tables, comment),
+      comment: hydrateStorePostComment(store.tables, comment, params.authUserId),
+      dataVersion: store.version,
+    };
+  }
+
+  async togglePostCommentReaction(params: PostCommentReactionParams): Promise<PostCommentMutationResult> {
+    const store = this.storeProvider();
+    const comment = asRows(store.tables.postComments).find(
+      (row) => asString(row.id) === params.commentId,
+    );
+    if (!comment) {
+      throw notFound('Comment not found', { commentId: params.commentId });
+    }
+    const postId = asString(comment.postId);
+    if (!postId) {
+      throw notFound('Post not found', { commentId: params.commentId });
+    }
+    assertReadableStorePost(
+      store.tables,
+      postId,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+    if (asBoolean(comment.isDeleted) === true || asString(comment.deletedAt) != null) {
+      throw badRequest('Cannot react to a deleted comment', { commentId: params.commentId });
+    }
+
+    const reactions = ensureRows(store.tables, 'postCommentReactions');
+    const existingIndex = reactions.findIndex(
+      (row) =>
+        asString(row.commentId) === params.commentId &&
+        asString(row.userId) === params.authUserId &&
+        String(row.reaction ?? 'LIKE').toUpperCase() === 'LIKE',
+    );
+    if (existingIndex >= 0) {
+      reactions.splice(existingIndex, 1);
+    } else {
+      reactions.push({
+        id: newId('pcr'),
+        commentId: params.commentId,
+        userId: params.authUserId,
+        reaction: 'LIKE',
+        createdAt: nowIso(),
+      });
+    }
+
+    return {
+      comment: hydrateStorePostComment(store.tables, comment, params.authUserId),
       dataVersion: store.version,
     };
   }
@@ -1899,11 +1981,14 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     });
   }
 
-  private async hydratePostComments(comments: SeedRow[]): Promise<SeedRow[]> {
+  private async hydratePostComments(comments: SeedRow[], authUserId?: string): Promise<SeedRow[]> {
     if (comments.length === 0) {
       return [];
     }
 
+    const commentIds = comments
+      .map((comment) => asString(comment.id))
+      .filter((commentId): commentId is string => Boolean(commentId));
     const userIds = Array.from(
       new Set(
         comments
@@ -1921,10 +2006,34 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         : [],
     );
     const usersById = new Map(users.map((user) => [asString(user.id), user] as const));
+    const reactions = normalizeAs<SeedRow[]>(
+      commentIds.length > 0
+        ? await prisma.postCommentReaction.findMany({
+            where: {
+              commentId: { in: commentIds },
+              reaction: 'LIKE',
+            },
+          })
+        : [],
+    );
+    const likesCountByCommentId = new Map<string, number>();
+    const likedCommentIds = new Set<string>();
+    for (const reaction of reactions) {
+      const commentId = asString(reaction.commentId);
+      if (!commentId) {
+        continue;
+      }
+      likesCountByCommentId.set(commentId, (likesCountByCommentId.get(commentId) ?? 0) + 1);
+      if (authUserId && asString(reaction.userId) === authUserId) {
+        likedCommentIds.add(commentId);
+      }
+    }
 
     return comments.map((comment) => {
       const authorUserId = asString(comment.authorUserId);
       const user = authorUserId ? usersById.get(authorUserId) : undefined;
+      const commentId = asString(comment.id);
+      const likedByCurrentUser = Boolean(commentId && likedCommentIds.has(commentId));
       return {
         ...comment,
         author: authorUserId
@@ -1934,12 +2043,15 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
               avatarUrl: asString(user?.avatarUrl) ?? null,
             }
           : null,
+        likesCount: commentId ? likesCountByCommentId.get(commentId) ?? 0 : 0,
+        likedByCurrentUser,
+        likes: likedByCurrentUser && authUserId ? [authUserId] : [],
       };
     });
   }
 
-  private async hydratePostComment(comment: SeedRow): Promise<SeedRow> {
-    return (await this.hydratePostComments([comment]))[0] as SeedRow;
+  private async hydratePostComment(comment: SeedRow, authUserId?: string): Promise<SeedRow> {
+    return (await this.hydratePostComments([comment], authUserId))[0] as SeedRow;
   }
 
   private async assertValidPrismaParentComment(
@@ -2272,7 +2384,7 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     );
 
     return {
-      comments: await this.hydratePostComments(comments),
+      comments: await this.hydratePostComments(comments, params.authUserId),
       dataVersion: null,
     };
   }
@@ -2297,7 +2409,7 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     );
 
     return {
-      comment: await this.hydratePostComment(normalizeAs<SeedRow>(comment)),
+      comment: await this.hydratePostComment(normalizeAs<SeedRow>(comment), params.authUserId),
       dataVersion: null,
     };
   }
@@ -2392,6 +2504,9 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
                 name: params.authUserId,
                 avatarUrl: null,
               },
+          likesCount: 0,
+          likedByCurrentUser: false,
+          likes: [],
         },
         dataVersion: null,
       };
@@ -2480,7 +2595,62 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       throw notFound('Comment was not deleted');
     }
     return {
-      comment: await this.hydratePostComment(updatedComment),
+      comment: await this.hydratePostComment(updatedComment, params.authUserId),
+      dataVersion: null,
+    };
+  }
+
+  async togglePostCommentReaction(params: PostCommentReactionParams): Promise<PostCommentMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.togglePostCommentReaction(params);
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const comment = await prisma.postComment.findUnique({
+      where: { id: params.commentId },
+    });
+    if (!comment) {
+      throw notFound('Comment not found', { commentId: params.commentId });
+    }
+
+    await this.assertReadablePost(
+      comment.postId,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+    if (comment.isDeleted || comment.deletedAt) {
+      throw badRequest('Cannot react to a deleted comment', { commentId: params.commentId });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.postCommentReaction.findUnique({
+        where: {
+          commentId_userId_reaction: {
+            commentId: params.commentId,
+            userId: params.authUserId,
+            reaction: 'LIKE',
+          },
+        },
+      });
+      if (existing) {
+        await tx.postCommentReaction.delete({
+          where: { id: existing.id },
+        });
+        return;
+      }
+
+      await tx.postCommentReaction.create({
+        data: {
+          id: newId('pcr'),
+          commentId: params.commentId,
+          userId: params.authUserId,
+          reaction: 'LIKE',
+        },
+      });
+    });
+
+    return {
+      comment: await this.hydratePostComment(normalizeAs<SeedRow>(comment), params.authUserId),
       dataVersion: null,
     };
   }

@@ -4,6 +4,15 @@ Date: 2026-05-27
 
 ## Latest Update
 
+1. Continued `PROD-API-02` / `PROD-API-08` with the backend-owned comment reaction slice.
+2. Added Prisma `PostCommentReaction` persistence plus import/migration support so comment likes have a real backend-owned model in `db` mode.
+3. Added `POST /v1/comments/:commentId/reactions/toggle`; readable-post scope is required, actors come from auth, deleted comments reject reactions, and allowed/denied toggles are audited.
+4. `comment-service.ts` now calls the reaction toggle route outside mock mode and maps backend `likesCount` / `likedByCurrentUser` into the comment UI model instead of failing closed or writing local like state.
+5. Route inventory, source-of-truth docs, and the production readiness matrix now mark comment reactions as backend-authoritative; remaining operational communication risk is richer moderation/versioning.
+6. Verification: `DATABASE_URL=postgresql://clubroom:clubroom@localhost:5432/clubroom?schema=public npm --prefix packages/db run prisma:validate`, `DATABASE_URL=postgresql://clubroom:clubroom@localhost:5432/clubroom?schema=public npm --prefix packages/db run prisma:generate`, `npm --prefix apps/api run typecheck`, focused `LOG_LEVEL=fatal npx tsx --test src/modules/wave2plus/routes.test.ts` passed (`38/38`), `npm run typecheck`, and `npm run verify:slice:full` passed with API tests `118/118` and `0` new API-boundary findings.
+
+## Previous Update
+
 1. Continued `PROD-API-02` with the real-db session invite persistence slice.
 2. `/v1/invites*` now loads real `db` mode session invites from Prisma `Invite`/`InviteTarget` rows instead of returning `503` or falling back to marketplace seed rows.
 3. Session-invite create/cancel/remind/dismiss/respond now commits invite, target, and create-idempotency mutations through the Prisma-backed route adapter; direct invite acceptance still creates bookings through the backend booking repository.
@@ -11,7 +20,7 @@ Date: 2026-05-27
 5. Verification: `npm --prefix apps/api run typecheck`, focused `LOG_LEVEL=fatal npx tsx --test src/modules/p0-core/routes.test.ts` passed (`24/24`), and `npm run verify:slice:api` passed with API tests `118/118` and `0` new API-boundary findings.
 6. `OBS-RUNTIME-01` follow-up: Sentry MCP found no unresolved `staging` issues for `tubton/react-native` or `tubton/clubroom-api`; with `npm run api:dev:staging` running, `npm run smoke:api-mode` passed reachability and `npm run smoke:api-mode:strict` still failed because `/v1/ready` reports `DATABASE_UNAVAILABLE` for Supabase pooler user `postgres.oucxazyrimujqmakxfiv`.
 
-## Previous Update
+## Earlier Update
 
 1. Continued `PROD-API-01` / `PROD-API-02` with the real-db invite scaffold hard-wall slice.
 2. `/v1/invites*` no longer falls back to marketplace seed rows when `API_DATA_BACKEND=db` and a real `DATABASE_URL` is configured; outside the API test db-fixture fallback, the scaffold returns `503` until a Prisma invite repository exists.
