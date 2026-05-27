@@ -524,6 +524,239 @@ describe('family-athlete routes', () => {
     }
   });
 
+  it('lists and accepts guardian invitations only for the invited user', async () => {
+    const originalBackend = env.API_DATA_BACKEND;
+    try {
+      env.API_DATA_BACKEND = 'db';
+      const store = getDbFixtureStore();
+      const ownerMembership = asRows(store.tables.familyMemberships).find(
+        (row) => asString(row.role) === 'owner',
+      );
+      assert.ok(ownerMembership, 'expected family owner membership');
+      const familyId = asString(ownerMembership.familyId) as string;
+      const ownerUserId = asString(ownerMembership.userId) as string;
+      const familyAthleteIds = asRows(store.tables.guardianChildLinks)
+        .filter((row) => asString(row.familyId) === familyId)
+        .map((row) => asString(row.athleteId))
+        .filter((id): id is string => Boolean(id));
+      assert.equal(familyAthleteIds.length > 0, true);
+
+      const invitee = asRows(store.tables.users).find((row) => {
+        const userId = asString(row.id);
+        const email = asString(row.email);
+        return Boolean(
+          userId &&
+            email &&
+            !asRows(store.tables.familyMemberships).some(
+              (membership) =>
+                asString(membership.familyId) === familyId &&
+                asString(membership.userId) === userId,
+            ),
+        );
+      });
+      assert.ok(invitee, 'expected user outside the family');
+      const inviteeUserId = asString(invitee.id) as string;
+      const inviteeEmail = asString(invitee.email) as string;
+
+      const create = await app.inject({
+        method: 'POST',
+        url: `/v1/families/${familyId}/guardians`,
+        headers: {
+          'x-auth-user-id': ownerUserId,
+          'x-auth-roles': rolesForUser(store.tables, ownerUserId).join(',') || 'parent',
+          'x-acting-role': rolesForUser(store.tables, ownerUserId)[0] ?? 'parent',
+        },
+        payload: {
+          inviteeEmail,
+          role: 'GUARDIAN',
+          relationship: 'Aunt/Uncle',
+          childAccess: [familyAthleteIds[0]],
+        },
+      });
+      assert.equal(create.statusCode, 201);
+      const inviteId = (create.json() as { id: string }).id;
+
+      const outsider = asRows(store.tables.users).find((row) => {
+        const userId = asString(row.id);
+        return userId && userId !== ownerUserId && userId !== inviteeUserId;
+      });
+      assert.ok(outsider, 'expected unrelated user');
+      const outsiderAccept = await app.inject({
+        method: 'POST',
+        url: `/v1/guardian-invites/${inviteId}/accept`,
+        headers: {
+          'x-auth-user-id': asString(outsider.id) as string,
+          'x-auth-roles': rolesForUser(store.tables, asString(outsider.id) as string).join(',') || 'parent',
+          'x-acting-role': rolesForUser(store.tables, asString(outsider.id) as string)[0] ?? 'parent',
+        },
+      });
+      assert.equal(outsiderAccept.statusCode, 403);
+
+      const inbox = await app.inject({
+        method: 'GET',
+        url: '/v1/me/guardian-invites',
+        headers: {
+          'x-auth-user-id': inviteeUserId,
+          'x-auth-roles': rolesForUser(store.tables, inviteeUserId).join(',') || 'parent',
+          'x-acting-role': rolesForUser(store.tables, inviteeUserId)[0] ?? 'parent',
+        },
+      });
+      assert.equal(inbox.statusCode, 200);
+      assert.equal(
+        (inbox.json() as { invites: Array<{ id: string }> }).invites.some((invite) => invite.id === inviteId),
+        true,
+      );
+
+      const accept = await app.inject({
+        method: 'POST',
+        url: `/v1/guardian-invites/${inviteId}/accept`,
+        headers: {
+          'x-auth-user-id': inviteeUserId,
+          'x-auth-roles': rolesForUser(store.tables, inviteeUserId).join(',') || 'parent',
+          'x-acting-role': rolesForUser(store.tables, inviteeUserId)[0] ?? 'parent',
+        },
+      });
+      assert.equal(accept.statusCode, 200);
+      assert.equal((accept.json() as { status: string }).status, 'ACCEPTED');
+      assert.equal(
+        asRows(store.tables.familyMemberships).some(
+          (row) =>
+            asString(row.familyId) === familyId &&
+            asString(row.userId) === inviteeUserId &&
+            !asString(row.deletedAt),
+        ),
+        true,
+      );
+      assert.equal(
+        asRows(store.tables.guardianChildLinks).some(
+          (row) =>
+            asString(row.familyId) === familyId &&
+            asString(row.guardianUserId) === inviteeUserId &&
+            asString(row.athleteId) === familyAthleteIds[0] &&
+            !asString(row.deletedAt),
+        ),
+        true,
+      );
+
+      const family = await app.inject({
+        method: 'GET',
+        url: `/v1/families/${familyId}`,
+        headers: {
+          'x-auth-user-id': inviteeUserId,
+          'x-auth-roles': rolesForUser(store.tables, inviteeUserId).join(',') || 'parent',
+          'x-acting-role': rolesForUser(store.tables, inviteeUserId)[0] ?? 'parent',
+        },
+      });
+      assert.equal(family.statusCode, 200);
+      assert.equal(
+        auditEventsFor(store.tables, {
+          action: 'family_guardian_invite.accept',
+          resourceId: inviteId,
+          result: 'SUCCESS',
+        }).length,
+        1,
+      );
+      assert.equal(
+        auditEventsFor(store.tables, {
+          action: 'family_guardian_invite.accept',
+          resourceId: inviteId,
+          result: 'DENY',
+        }).length,
+        1,
+      );
+    } finally {
+      env.API_DATA_BACKEND = originalBackend;
+      resetDbFixtureStoreForTests();
+    }
+  });
+
+  it('declines guardian invitations without granting family access', async () => {
+    const originalBackend = env.API_DATA_BACKEND;
+    try {
+      env.API_DATA_BACKEND = 'db';
+      const store = getDbFixtureStore();
+      const ownerMembership = asRows(store.tables.familyMemberships).find(
+        (row) => asString(row.role) === 'owner',
+      );
+      assert.ok(ownerMembership, 'expected family owner membership');
+      const familyId = asString(ownerMembership.familyId) as string;
+      const ownerUserId = asString(ownerMembership.userId) as string;
+      const invitee = asRows(store.tables.users).find((row) => {
+        const userId = asString(row.id);
+        const email = asString(row.email);
+        return Boolean(
+          userId &&
+            email &&
+            !asRows(store.tables.familyMemberships).some(
+              (membership) =>
+                asString(membership.familyId) === familyId &&
+                asString(membership.userId) === userId,
+            ),
+        );
+      });
+      assert.ok(invitee, 'expected user outside the family');
+      const inviteeUserId = asString(invitee.id) as string;
+
+      const create = await app.inject({
+        method: 'POST',
+        url: `/v1/families/${familyId}/guardians`,
+        headers: {
+          'x-auth-user-id': ownerUserId,
+          'x-auth-roles': rolesForUser(store.tables, ownerUserId).join(',') || 'parent',
+          'x-acting-role': rolesForUser(store.tables, ownerUserId)[0] ?? 'parent',
+        },
+        payload: {
+          inviteeEmail: asString(invitee.email),
+          role: 'VIEWER',
+          relationship: 'Family friend',
+          childAccess: [],
+        },
+      });
+      assert.equal(create.statusCode, 201);
+      const inviteId = (create.json() as { id: string }).id;
+
+      const decline = await app.inject({
+        method: 'POST',
+        url: `/v1/guardian-invites/${inviteId}/decline`,
+        headers: {
+          'x-auth-user-id': inviteeUserId,
+          'x-auth-roles': rolesForUser(store.tables, inviteeUserId).join(',') || 'parent',
+          'x-acting-role': rolesForUser(store.tables, inviteeUserId)[0] ?? 'parent',
+        },
+      });
+      assert.equal(decline.statusCode, 200);
+      assert.equal((decline.json() as { status: string }).status, 'DECLINED');
+      assert.equal(
+        asRows(store.tables.familyMemberships).some(
+          (row) => asString(row.familyId) === familyId && asString(row.userId) === inviteeUserId,
+        ),
+        false,
+      );
+
+      const family = await app.inject({
+        method: 'GET',
+        url: `/v1/families/${familyId}`,
+        headers: {
+          'x-auth-user-id': inviteeUserId,
+          'x-auth-roles': rolesForUser(store.tables, inviteeUserId).join(',') || 'parent',
+          'x-acting-role': rolesForUser(store.tables, inviteeUserId)[0] ?? 'parent',
+        },
+      });
+      assert.equal(family.statusCode, 403);
+      assert.equal(
+        auditEventsFor(store.tables, {
+          action: 'family_guardian_invite.decline',
+          resourceId: inviteId,
+          result: 'SUCCESS',
+        }).length,
+        1,
+      );
+    } finally {
+      env.API_DATA_BACKEND = originalBackend;
+      resetDbFixtureStoreForTests();
+    }
+  });
+
   it('allows a verified assigned coach to read athlete detail', async () => {
     const detail = await app.inject({
       method: 'GET',

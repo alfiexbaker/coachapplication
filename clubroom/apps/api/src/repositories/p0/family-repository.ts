@@ -61,6 +61,12 @@ export interface GuardianInviteCreateResult {
   replayed: boolean;
 }
 
+export interface GuardianInviteRespondResult {
+  invite: GuardianInviteRecord;
+  familyId: string;
+  replayed: boolean;
+}
+
 export interface FamilyAggregate {
   family: Record<string, unknown>;
   memberships: Array<Record<string, unknown>>;
@@ -71,7 +77,13 @@ export interface FamilyAggregate {
 
 export interface FamilyRepository {
   getFamilyAggregate(familyId: string, authUserId: string, isClubAdmin: boolean): Promise<FamilyAggregate>;
+  listGuardianInvitesForUser(authUserId: string): Promise<GuardianInviteRecord[]>;
   createGuardianInvite(input: CreateGuardianInviteInput): Promise<GuardianInviteCreateResult>;
+  respondGuardianInvite(
+    inviteId: string,
+    authUserId: string,
+    response: 'ACCEPTED' | 'DECLINED',
+  ): Promise<GuardianInviteRespondResult>;
   cancelGuardianInvite(familyId: string, inviteId: string, authUserId: string): Promise<boolean>;
   removeGuardian(familyId: string, guardianId: string, authUserId: string): Promise<boolean>;
 }
@@ -88,6 +100,13 @@ function defaultInvitePermissions(role: GuardianInviteRole): GuardianPermission[
     return ['VIEW_SCHEDULE', 'VIEW_PROGRESS'];
   }
   return ['VIEW_SCHEDULE', 'VIEW_PROGRESS', 'BOOK_SESSIONS'];
+}
+
+function membershipPermissionsForRole(role: GuardianInviteRole): string[] {
+  if (role === 'VIEWER') {
+    return ['messages'];
+  }
+  return ['book', 'messages'];
 }
 
 function normalizeEmail(value: string): string {
@@ -187,6 +206,14 @@ function activeUserEmailById(tables: SeedTables): Map<string, string> {
   );
 }
 
+function activeUserEmail(tables: SeedTables, authUserId: string): string {
+  const email = activeUserEmailById(tables).get(authUserId);
+  if (!email) {
+    throw forbidden(`Authenticated user ${authUserId} does not exist or has no email`);
+  }
+  return email;
+}
+
 function assertInviteeIsNotActiveFamilyMember(
   tables: SeedTables,
   familyId: string,
@@ -260,6 +287,138 @@ function createGuardianInviteFromTables(
   };
   invites.push(invite);
   return { invite: inviteFromRow(invite), replayed: false };
+}
+
+function listGuardianInvitesForUserFromTables(
+  tables: SeedTables,
+  authUserId: string,
+): GuardianInviteRecord[] {
+  const email = activeUserEmail(tables, authUserId);
+  return asRows(tables.familyGuardianInvites)
+    .filter((row) => asString(row.inviteeEmail)?.toLowerCase() === email && isPending(row))
+    .sort((left, right) => Date.parse(asString(right.createdAt) ?? '') - Date.parse(asString(left.createdAt) ?? ''))
+    .map(inviteFromRow);
+}
+
+function familyInviteAthleteIds(tables: SeedTables, familyId: string, childAccess: string[]): string[] {
+  if (childAccess.length > 0) {
+    return [...new Set(childAccess)];
+  }
+  return [...familyAthleteIdsFromRows(tables, familyId)];
+}
+
+function respondGuardianInviteFromTables(
+  tables: SeedTables,
+  inviteId: string,
+  authUserId: string,
+  response: 'ACCEPTED' | 'DECLINED',
+): GuardianInviteRespondResult {
+  const email = activeUserEmail(tables, authUserId);
+  const invite = ensureStoreTable(tables, 'familyGuardianInvites').find(
+    (row) => asString(row.id) === inviteId && !asString(row.deletedAt),
+  );
+  if (!invite) {
+    throw notFound('Guardian invitation not found', { inviteId });
+  }
+  const familyId = asString(invite.familyId);
+  if (!familyId) {
+    throw notFound('Guardian invitation family not found', { inviteId });
+  }
+  if (asString(invite.inviteeEmail)?.toLowerCase() !== email) {
+    throw forbidden('Guardian invitation does not belong to authenticated user');
+  }
+
+  const currentStatus = asString(invite.status);
+  if (currentStatus === response) {
+    return { invite: inviteFromRow(invite), familyId, replayed: true };
+  }
+  if (currentStatus !== 'PENDING') {
+    throw conflict('Guardian invitation has already been responded to', { inviteId, status: currentStatus });
+  }
+  const expiresAt = asString(invite.expiresAt);
+  if (expiresAt && Date.parse(expiresAt) <= Date.now()) {
+    invite.status = 'EXPIRED';
+    invite.updatedAt = isoNow();
+    throw conflict('Guardian invitation has expired', { inviteId });
+  }
+
+  const now = isoNow();
+  invite.status = response;
+  invite.respondedAt = now;
+  invite.updatedAt = now;
+  if (response === 'DECLINED') {
+    return { invite: inviteFromRow(invite), familyId, replayed: false };
+  }
+
+  const memberships = ensureStoreTable(tables, 'familyMemberships');
+  const existingMembership = memberships.find(
+    (row) => asString(row.familyId) === familyId && asString(row.userId) === authUserId,
+  );
+  const childAccess = asStringArray(invite.childAccessAthleteIds ?? invite.childAccess);
+  const athleteIds = familyInviteAthleteIds(tables, familyId, childAccess);
+  const role = (asString(invite.role) as GuardianInviteRole | undefined) ?? 'GUARDIAN';
+
+  if (existingMembership) {
+    existingMembership.role = role.toLowerCase();
+    existingMembership.permissions = membershipPermissionsForRole(role);
+    existingMembership.relationshipLabel = asString(invite.relationshipLabel) ?? 'Guardian';
+    existingMembership.childAccessAthleteIds = athleteIds;
+    existingMembership.deletedAt = null;
+    existingMembership.deletedByUserId = null;
+    existingMembership.updatedAt = now;
+    existingMembership.updatedByUserId = authUserId;
+  } else {
+    memberships.push({
+      id: newId('fmb'),
+      familyId,
+      userId: authUserId,
+      role: role.toLowerCase(),
+      permissions: membershipPermissionsForRole(role),
+      relationshipLabel: asString(invite.relationshipLabel) ?? 'Guardian',
+      childAccessAthleteIds: athleteIds,
+      createdByUserId: asString(invite.invitedByUserId) ?? authUserId,
+      updatedByUserId: authUserId,
+      createdAt: now,
+      updatedAt: now,
+      version: 1,
+      deletedAt: null,
+      deletedByUserId: null,
+    });
+  }
+
+  const guardianLinks = ensureStoreTable(tables, 'guardianChildLinks');
+  for (const athleteId of athleteIds) {
+    const existingLink = guardianLinks.find(
+      (row) => asString(row.guardianUserId) === authUserId && asString(row.athleteId) === athleteId,
+    );
+    if (existingLink) {
+      existingLink.familyId = familyId;
+      existingLink.relationshipType = (asString(invite.relationshipLabel) ?? 'guardian').toLowerCase();
+      existingLink.isPrimary = false;
+      existingLink.deletedAt = null;
+      existingLink.deletedByUserId = null;
+      existingLink.updatedAt = now;
+      existingLink.updatedByUserId = authUserId;
+      continue;
+    }
+    guardianLinks.push({
+      id: newId('gcl'),
+      familyId,
+      guardianUserId: authUserId,
+      athleteId,
+      relationshipType: (asString(invite.relationshipLabel) ?? 'guardian').toLowerCase(),
+      isPrimary: false,
+      createdByUserId: asString(invite.invitedByUserId) ?? authUserId,
+      updatedByUserId: authUserId,
+      createdAt: now,
+      updatedAt: now,
+      version: 1,
+      deletedAt: null,
+      deletedByUserId: null,
+    });
+  }
+
+  return { invite: inviteFromRow(invite), familyId, replayed: false };
 }
 
 function cancelGuardianInviteFromTables(
@@ -429,6 +588,20 @@ class SeedFamilyRepository implements FamilyRepository {
   async createGuardianInvite(input: CreateGuardianInviteInput): Promise<GuardianInviteCreateResult> {
     const store = getMarketplaceSeedStore();
     return createGuardianInviteFromTables(store.tables, input);
+  }
+
+  async listGuardianInvitesForUser(authUserId: string): Promise<GuardianInviteRecord[]> {
+    const store = getMarketplaceSeedStore();
+    return listGuardianInvitesForUserFromTables(store.tables, authUserId);
+  }
+
+  async respondGuardianInvite(
+    inviteId: string,
+    authUserId: string,
+    response: 'ACCEPTED' | 'DECLINED',
+  ): Promise<GuardianInviteRespondResult> {
+    const store = getMarketplaceSeedStore();
+    return respondGuardianInviteFromTables(store.tables, inviteId, authUserId, response);
   }
 
   async cancelGuardianInvite(
@@ -638,6 +811,201 @@ class DbFamilyRepository implements FamilyRepository {
     });
 
     return { invite: inviteFromRow(normalizeForJson(created) as SeedRow), replayed: false };
+  }
+
+  async listGuardianInvitesForUser(authUserId: string): Promise<GuardianInviteRecord[]> {
+    if (shouldUseDbFixtureFallback()) {
+      const store = getDbFixtureStore();
+      return listGuardianInvitesForUserFromTables(store.tables, authUserId);
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const user = await prisma.user.findUnique({
+      where: { id: authUserId },
+      select: { email: true },
+    });
+    const email = user?.email?.trim().toLowerCase();
+    if (!email) {
+      throw forbidden(`Authenticated user ${authUserId} does not exist or has no email`);
+    }
+    const invites = await prisma.familyGuardianInvite.findMany({
+      where: {
+        inviteeEmail: email,
+        status: 'PENDING',
+        deletedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return invites.map((row) => inviteFromRow(normalizeForJson(row) as SeedRow));
+  }
+
+  async respondGuardianInvite(
+    inviteId: string,
+    authUserId: string,
+    response: 'ACCEPTED' | 'DECLINED',
+  ): Promise<GuardianInviteRespondResult> {
+    if (shouldUseDbFixtureFallback()) {
+      const store = getDbFixtureStore();
+      return respondGuardianInviteFromTables(store.tables, inviteId, authUserId, response);
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const user = await prisma.user.findUnique({
+      where: { id: authUserId },
+      select: { email: true },
+    });
+    const email = user?.email?.trim().toLowerCase();
+    if (!email) {
+      throw forbidden(`Authenticated user ${authUserId} does not exist or has no email`);
+    }
+
+    const existing = await prisma.familyGuardianInvite.findFirst({
+      where: { id: inviteId, deletedAt: null },
+    });
+    if (!existing) {
+      throw notFound('Guardian invitation not found', { inviteId });
+    }
+    if (existing.inviteeEmail.trim().toLowerCase() !== email) {
+      throw forbidden('Guardian invitation does not belong to authenticated user');
+    }
+    if (existing.status === response) {
+      return {
+        invite: inviteFromRow(normalizeForJson(existing) as SeedRow),
+        familyId: existing.familyId,
+        replayed: true,
+      };
+    }
+    if (existing.status !== 'PENDING') {
+      throw conflict('Guardian invitation has already been responded to', {
+        inviteId,
+        status: existing.status,
+      });
+    }
+    if (existing.expiresAt.getTime() <= Date.now()) {
+      await prisma.familyGuardianInvite.update({
+        where: { id: inviteId },
+        data: { status: 'EXPIRED', updatedAt: new Date() },
+      });
+      throw conflict('Guardian invitation has expired', { inviteId });
+    }
+
+    const now = new Date();
+    if (response === 'DECLINED') {
+      const declined = await prisma.familyGuardianInvite.update({
+        where: { id: inviteId },
+        data: {
+          status: 'DECLINED',
+          respondedAt: now,
+          updatedAt: now,
+        },
+      });
+      return {
+        invite: inviteFromRow(normalizeForJson(declined) as SeedRow),
+        familyId: declined.familyId,
+        replayed: false,
+      };
+    }
+
+    const childAccess = existing.childAccessAthleteIds;
+    const familyLinks = await prisma.guardianChildLink.findMany({
+      where: { familyId: existing.familyId, deletedAt: null },
+      select: { athleteId: true },
+    });
+    const familyAthleteIds = [...new Set(familyLinks.map((row) => row.athleteId))];
+    const athleteIds = childAccess.length > 0 ? [...new Set(childAccess)] : familyAthleteIds;
+    const outsideFamily = athleteIds.find((athleteId) => !familyAthleteIds.includes(athleteId));
+    if (outsideFamily) {
+      throw badRequest('Guardian child access must belong to this family', { athleteId: outsideFamily });
+    }
+    const role = (existing.role as GuardianInviteRole | undefined) ?? 'GUARDIAN';
+
+    const accepted = await prisma.$transaction(async (tx) => {
+      const currentMembership = await tx.familyMembership.findFirst({
+        where: { familyId: existing.familyId, userId: authUserId },
+      });
+      if (currentMembership) {
+        await tx.familyMembership.update({
+          where: { id: currentMembership.id },
+          data: {
+            role: role.toLowerCase(),
+            permissions: membershipPermissionsForRole(role),
+            relationshipLabel: existing.relationshipLabel,
+            childAccessAthleteIds: athleteIds,
+            deletedAt: null,
+            deletedByUserId: null,
+            updatedByUserId: authUserId,
+            updatedAt: now,
+          },
+        });
+      } else {
+        await tx.familyMembership.create({
+          data: {
+            id: newId('fmb'),
+            familyId: existing.familyId,
+            userId: authUserId,
+            role: role.toLowerCase(),
+            permissions: membershipPermissionsForRole(role),
+            relationshipLabel: existing.relationshipLabel,
+            childAccessAthleteIds: athleteIds,
+            createdByUserId: existing.invitedByUserId,
+            updatedByUserId: authUserId,
+            createdAt: now,
+            updatedAt: now,
+          },
+        });
+      }
+
+      for (const athleteId of athleteIds) {
+        const currentLink = await tx.guardianChildLink.findFirst({
+          where: { guardianUserId: authUserId, athleteId },
+        });
+        if (currentLink) {
+          await tx.guardianChildLink.update({
+            where: { id: currentLink.id },
+            data: {
+              familyId: existing.familyId,
+              relationshipType: existing.relationshipLabel.toLowerCase(),
+              isPrimary: false,
+              deletedAt: null,
+              deletedByUserId: null,
+              updatedByUserId: authUserId,
+              updatedAt: now,
+            },
+          });
+          continue;
+        }
+        await tx.guardianChildLink.create({
+          data: {
+            id: newId('gcl'),
+            familyId: existing.familyId,
+            guardianUserId: authUserId,
+            athleteId,
+            relationshipType: existing.relationshipLabel.toLowerCase(),
+            isPrimary: false,
+            createdByUserId: existing.invitedByUserId,
+            updatedByUserId: authUserId,
+            createdAt: now,
+            updatedAt: now,
+          },
+        });
+      }
+
+      return tx.familyGuardianInvite.update({
+        where: { id: inviteId },
+        data: {
+          status: 'ACCEPTED',
+          respondedAt: now,
+          updatedAt: now,
+        },
+      });
+    });
+
+    return {
+      invite: inviteFromRow(normalizeForJson(accepted) as SeedRow),
+      familyId: accepted.familyId,
+      replayed: false,
+    };
   }
 
   async cancelGuardianInvite(

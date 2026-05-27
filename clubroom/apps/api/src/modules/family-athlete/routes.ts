@@ -8,6 +8,7 @@ import {
   createGuardianInviteRequestSchema,
   emergencyContactsResponseSchema,
   familyIdSchema,
+  guardianInviteListResponseSchema,
   guardianInviteResponseSchema,
   injuryIdSchema,
   injuriesResponseSchema,
@@ -180,6 +181,22 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
+  app.get('/me/guardian-invites', async (request, reply) => {
+    const authUserId = ensureAuthUserId(request.auth?.userId);
+    const repository = resolveFamilyRepository();
+    const invites = await repository.listGuardianInvitesForUser(authUserId);
+    await recordAuditEvent({
+      request,
+      action: 'family_guardian_invite.list',
+      resourceType: 'family_guardian_invite',
+      resourceId: authUserId,
+      result: 'SUCCESS',
+      sensitiveRead: true,
+      metadata: { count: invites.length },
+    });
+    return reply.send(guardianInviteListResponseSchema.parse({ invites }));
+  });
+
   app.post('/families/:familyId/guardians', async (request, reply) => {
     const familyId = familyIdSchema.parse((request.params as { familyId: string }).familyId);
     const authUserId = ensureAuthUserId(request.auth?.userId);
@@ -227,6 +244,76 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
           inviteeEmail: body.inviteeEmail.toLowerCase(),
           role: body.role,
         },
+      });
+      throw error;
+    }
+  });
+
+  app.post('/guardian-invites/:inviteId/accept', async (request, reply) => {
+    const inviteId = guardianInviteIdSchema.parse((request.params as { inviteId: string }).inviteId);
+    const authUserId = ensureAuthUserId(request.auth?.userId);
+    const repository = resolveFamilyRepository();
+
+    try {
+      const result = await repository.respondGuardianInvite(inviteId, authUserId, 'ACCEPTED');
+      await recordAuditEvent({
+        request,
+        action: 'family_guardian_invite.accept',
+        resourceType: 'family_guardian_invite',
+        resourceId: inviteId,
+        result: 'SUCCESS',
+        metadata: {
+          familyId: result.familyId,
+          replayed: result.replayed,
+        },
+      });
+      return reply.send({
+        ...guardianInviteResponseSchema.parse(result.invite),
+        familyId: result.familyId,
+        replayed: result.replayed,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'family_guardian_invite.accept',
+        resourceType: 'family_guardian_invite',
+        resourceId: inviteId,
+        result: auditResultForError(error),
+      });
+      throw error;
+    }
+  });
+
+  app.post('/guardian-invites/:inviteId/decline', async (request, reply) => {
+    const inviteId = guardianInviteIdSchema.parse((request.params as { inviteId: string }).inviteId);
+    const authUserId = ensureAuthUserId(request.auth?.userId);
+    const repository = resolveFamilyRepository();
+
+    try {
+      const result = await repository.respondGuardianInvite(inviteId, authUserId, 'DECLINED');
+      await recordAuditEvent({
+        request,
+        action: 'family_guardian_invite.decline',
+        resourceType: 'family_guardian_invite',
+        resourceId: inviteId,
+        result: 'SUCCESS',
+        metadata: {
+          familyId: result.familyId,
+          replayed: result.replayed,
+        },
+      });
+      return reply.send({
+        ...guardianInviteResponseSchema.parse(result.invite),
+        familyId: result.familyId,
+        replayed: result.replayed,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'family_guardian_invite.decline',
+        resourceType: 'family_guardian_invite',
+        resourceId: inviteId,
+        result: auditResultForError(error),
       });
       throw error;
     }

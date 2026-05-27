@@ -606,8 +606,22 @@ class FamilyRelationshipService {
    */
   async getPendingInvitesForUser(email: string): Promise<GuardianInvite[]> {
     if (!USE_MOCK) {
-      logger.debug('guardian_invite_inbox_deferred_to_backend', { email });
-      return [];
+      const currentUserResult = await resolveSignedInApiUser('Sign in to view guardian invitations.');
+      if (!currentUserResult.success) {
+        logger.warn('guardian_invite_inbox_unavailable', { email, error: currentUserResult.error.message });
+        return [];
+      }
+      const result = await apiFetch<{ invites: GuardianInvite[] }>('/v1/me/guardian-invites', {
+        method: 'GET',
+        headers: buildApiAuthHeaders({
+          actingRole: deriveApiActingRole(currentUserResult.data, 'parent'),
+        }),
+      });
+      if (!result.success) {
+        logger.warn('guardian_invite_inbox_failed', { email, error: result.error.message });
+        return [];
+      }
+      return result.data.invites;
     }
 
     const invites = await this.loadInvites();
@@ -631,7 +645,35 @@ class FamilyRelationshipService {
     userEmail: string,
   ): Promise<Result<FamilyAccount, ServiceError>> {
     if (!USE_MOCK) {
-      return err(storageError('Guardian invite acceptance is not available until the backend accept route is enabled.'));
+      const currentUserResult = await resolveSignedInApiUser('Sign in to accept guardian invitations.');
+      if (!currentUserResult.success) {
+        return err(currentUserResult.error);
+      }
+      const acceptResult = await apiFetch<GuardianInvite & { familyId: string }>(
+        `/v1/guardian-invites/${inviteId}/accept`,
+        {
+          method: 'POST',
+          headers: buildApiAuthHeaders({
+            actingRole: deriveApiActingRole(currentUserResult.data, 'parent'),
+          }),
+        },
+      );
+      if (!acceptResult.success) {
+        return err(acceptResult.error);
+      }
+      const familyResult = await apiFetch<ApiFamilyResponse>(
+        `/v1/families/${acceptResult.data.familyId}`,
+        {
+          method: 'GET',
+          headers: buildApiAuthHeaders({
+            actingRole: deriveApiActingRole(currentUserResult.data, 'parent'),
+          }),
+        },
+      );
+      if (!familyResult.success) {
+        return err(familyResult.error);
+      }
+      return ok(mapApiFamilyAccount(familyResult.data, currentUserResult.data.id));
     }
 
     const invites = await this.loadInvites();
@@ -705,7 +747,20 @@ class FamilyRelationshipService {
    */
   async declineInvite(inviteId: string): Promise<Result<void, ServiceError>> {
     if (!USE_MOCK) {
-      return err(storageError('Guardian invite decline is not available until the backend decline route is enabled.'));
+      const currentUserResult = await resolveSignedInApiUser('Sign in to decline guardian invitations.');
+      if (!currentUserResult.success) {
+        return err(currentUserResult.error);
+      }
+      const result = await apiFetch<void>(`/v1/guardian-invites/${inviteId}/decline`, {
+        method: 'POST',
+        headers: buildApiAuthHeaders({
+          actingRole: deriveApiActingRole(currentUserResult.data, 'parent'),
+        }),
+      });
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(undefined);
     }
 
     const invites = await this.loadInvites();

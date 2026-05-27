@@ -52,6 +52,10 @@ export const guardianInviteResponseSchema = z.object({
   message: z.string().optional(),
 });
 
+export const guardianInviteListResponseSchema = z.object({
+  invites: z.array(guardianInviteResponseSchema),
+});
+
 export const injurySeveritySchema = z.enum(['low', 'medium', 'high']);
 export const injuryStatusSchema = z.enum(['active', 'recovering', 'resolved']);
 
@@ -192,6 +196,7 @@ export type GuardianPermission = z.infer<typeof guardianPermissionSchema>;
 export type GuardianInviteStatus = z.infer<typeof guardianInviteStatusSchema>;
 export type CreateGuardianInviteRequest = z.infer<typeof createGuardianInviteRequestSchema>;
 export type GuardianInviteResponse = z.infer<typeof guardianInviteResponseSchema>;
+export type GuardianInviteListResponse = z.infer<typeof guardianInviteListResponseSchema>;
 
 export type UpdateMedicalRecordRequest = z.infer<typeof updateMedicalRecordRequestSchema>;
 export type MedicalRecordResponse = z.infer<typeof medicalRecordResponseSchema>;
