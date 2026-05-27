@@ -17,13 +17,16 @@ import {
   transitionInvoiceStatus,
 } from '../../lib/invoice-runtime.js';
 import { getApiDataBackend } from '../../lib/data-backend.js';
+import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { verifySimulatedPaymentToken } from '../../lib/payment-provider.js';
+import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
 import { assertCanReadAthleteHealth, isPrivilegedAdminAuth } from '../../lib/authz.js';
 import { recordAuditEvent } from '../../lib/audit-runtime.js';
 import { resolveTrustAccessRepository } from '../../repositories/p0/trust-access-repository.js';
 import { resolveCommunityMediaRepository } from '../../repositories/p0/community-media-repository.js';
 import { resolveVideoAuthorityRepository } from '../../repositories/p0/video-authority-repository.js';
+import { normalizeForJson } from '../../repositories/p0/normalize.js';
 import { createSignedReadUrl, createUploadInit } from '../../lib/storage-runtime.js';
 
 type SeedRow = Record<string, unknown>;
@@ -385,6 +388,97 @@ function mapVideoRecord(bundle: {
     createdAt: asString(bundle.video.createdAt) ?? nowIso(),
     updatedAt: asString(bundle.video.updatedAt) ?? undefined,
     annotations: bundle.annotations.map(mapVideoAnnotation),
+  };
+}
+
+async function getAthleteProgressPayload(athleteId: string) {
+  if (getApiDataBackend() === 'db') {
+    if (shouldUseDbFixtureFallback()) {
+      const store = getDbFixtureStore();
+      const sessionNotes = asRows(store.tables.sessionNotes).filter(
+        (row) => asString(row.athleteId) === athleteId && !asString(row.deletedAt),
+      );
+      const sessionFeedback = asRows(store.tables.sessionFeedback).filter(
+        (row) => asString(row.athleteId) === athleteId && !asString(row.deletedAt),
+      );
+      const skillAssessments = asRows(store.tables.athleteSkillAssessments).filter(
+        (row) => asString(row.athleteId) === athleteId,
+      );
+      const skillDefinitionIds = new Set(
+        skillAssessments
+          .map((row) => asString(row.skillDefinitionId))
+          .filter((id): id is string => Boolean(id)),
+      );
+      const skillDefinitions = asRows(store.tables.skillDefinitions).filter((row) =>
+        skillDefinitionIds.has(asString(row.id) ?? ''),
+      );
+      return {
+        sessionNotes,
+        sessionFeedback,
+        skillAssessments,
+        skillDefinitions,
+        seedVersion: store.version,
+      };
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const [sessionNotes, sessionFeedback, skillAssessments] = await Promise.all([
+      prisma.sessionNote.findMany({
+        where: { athleteId, deletedAt: null },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.sessionFeedback.findMany({
+        where: { athleteId, deletedAt: null },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.athleteSkillAssessment.findMany({
+        where: { athleteId },
+        orderBy: { assessedAt: 'desc' },
+      }),
+    ]);
+    const skillDefinitionIds = [
+      ...new Set(skillAssessments.map((assessment) => assessment.skillDefinitionId)),
+    ];
+    const skillDefinitions = skillDefinitionIds.length
+      ? await prisma.skillDefinition.findMany({
+          where: { id: { in: skillDefinitionIds } },
+        })
+      : [];
+
+    return normalizeForJson({
+      sessionNotes,
+      sessionFeedback,
+      skillAssessments,
+      skillDefinitions,
+      seedVersion: null,
+    });
+  }
+
+  const store = getMarketplaceSeedStore();
+  const sessionNotes = asRows(store.tables.sessionNotes).filter(
+    (row) => asString(row.athleteId) === athleteId && !asString(row.deletedAt),
+  );
+  const sessionFeedback = asRows(store.tables.sessionFeedback).filter(
+    (row) => asString(row.athleteId) === athleteId && !asString(row.deletedAt),
+  );
+  const skillAssessments = asRows(store.tables.athleteSkillAssessments).filter(
+    (row) => asString(row.athleteId) === athleteId,
+  );
+  const skillDefinitionIds = new Set(
+    skillAssessments
+      .map((row) => asString(row.skillDefinitionId))
+      .filter((id): id is string => Boolean(id)),
+  );
+  const skillDefinitions = asRows(store.tables.skillDefinitions).filter((row) =>
+    skillDefinitionIds.has(asString(row.id) ?? ''),
+  );
+
+  return {
+    sessionNotes,
+    sessionFeedback,
+    skillAssessments,
+    skillDefinitions,
+    seedVersion: store.version,
   };
 }
 
@@ -902,24 +996,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     }
     await assertCanReadAthleteHealth(request, athleteId);
 
-    const store = getMarketplaceSeedStore();
-    const sessionNotes = asRows(store.tables.sessionNotes).filter(
-      (row) => asString(row.athleteId) === athleteId,
-    );
-    const sessionFeedback = asRows(store.tables.sessionFeedback).filter(
-      (row) => asString(row.athleteId) === athleteId,
-    );
-    const skillAssessments = asRows(store.tables.athleteSkillAssessments).filter(
-      (row) => asString(row.athleteId) === athleteId,
-    );
-    const skillDefinitionIds = new Set(
-      skillAssessments
-        .map((row) => asString(row.skillDefinitionId))
-        .filter((id): id is string => Boolean(id)),
-    );
-    const skillDefinitions = asRows(store.tables.skillDefinitions).filter((row) =>
-      skillDefinitionIds.has(asString(row.id) ?? ''),
-    );
+    const progress = await getAthleteProgressPayload(athleteId);
 
     await recordAuditEvent({
       request,
@@ -932,11 +1009,11 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
 
     return reply.send({
       athleteId,
-      sessionNotes,
-      sessionFeedback,
-      skillAssessments,
-      skillDefinitions,
-      seedVersion: store.version,
+      sessionNotes: progress.sessionNotes,
+      sessionFeedback: progress.sessionFeedback,
+      skillAssessments: progress.skillAssessments,
+      skillDefinitions: progress.skillDefinitions,
+      seedVersion: progress.seedVersion,
       requestId: request.requestId,
     });
   });

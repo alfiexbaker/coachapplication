@@ -493,6 +493,85 @@ function upsertSeedBookingAttendanceRecords(params: {
   return attendanceRecordIds.filter(Boolean);
 }
 
+function upsertSeedBookingCompletionSessionNotes(params: {
+  tables: SeedTables;
+  booking: SeedRow;
+  participantRows: SeedRow[];
+  attendanceRecordIds: string[];
+  actorUserId: string;
+  recordedAt: string;
+  note?: string | null;
+}): string[] {
+  const noteText = params.note?.trim();
+  if (!noteText) {
+    return [];
+  }
+
+  const sessionNotes = getMutableRows(params.tables, 'sessionNotes');
+  const bookingId = asString(params.booking.id) ?? '';
+  const focusAreas = getObjectiveValuesForBooking(params.tables, bookingId);
+  const sessionNoteIds: string[] = [];
+
+  params.participantRows.forEach((participant, index) => {
+    const athleteId = asString(participant.athleteId);
+    if (!athleteId) {
+      return;
+    }
+
+    const attendanceRecordId = params.attendanceRecordIds[index] ?? null;
+    const metadataJson = {
+      source: 'booking-completion',
+      proofSource: 'attendance-record',
+      attendanceRecordId,
+      attendanceRecordIds: attendanceRecordId ? [attendanceRecordId] : [],
+      focus: focusAreas,
+      completedAt: params.recordedAt,
+    };
+    const existing = sessionNotes.find(
+      (row) =>
+        asString(row.bookingId) === bookingId &&
+        asString(row.athleteId) === athleteId &&
+        asString(row.createdByUserId) === params.actorUserId &&
+        !asString(row.deletedAt),
+    );
+    if (existing) {
+      existing.groupSessionId = asString(params.booking.groupSessionId) ?? null;
+      existing.coachUserId = params.actorUserId;
+      existing.visibility = 'PUBLIC';
+      existing.noteText = noteText;
+      existing.metadataJson = metadataJson;
+      existing.updatedByUserId = params.actorUserId;
+      existing.updatedAt = params.recordedAt;
+      existing.version = (asNumber(existing.version) ?? 1) + 1;
+      sessionNoteIds.push(asString(existing.id) ?? '');
+      return;
+    }
+
+    const sessionNoteId = newId('snt');
+    sessionNotes.push({
+      id: sessionNoteId,
+      bookingId,
+      groupSessionId: asString(params.booking.groupSessionId) ?? null,
+      athleteId,
+      coachUserId: params.actorUserId,
+      visibility: 'PUBLIC',
+      noteText,
+      privateNotesEncrypted: null,
+      metadataJson,
+      createdByUserId: params.actorUserId,
+      updatedByUserId: params.actorUserId,
+      version: 1,
+      createdAt: params.recordedAt,
+      updatedAt: params.recordedAt,
+      deletedAt: null,
+      deletedByUserId: null,
+    });
+    sessionNoteIds.push(sessionNoteId);
+  });
+
+  return sessionNoteIds.filter(Boolean);
+}
+
 function getVisibleSeedBookingById(
   tables: SeedTables,
   authUserId: string,
@@ -986,6 +1065,15 @@ class SeedBookingRepository implements BookingRepository {
       recordedAt: completedAt,
       note: params.body.note ?? null,
     });
+    const sessionNoteIds = upsertSeedBookingCompletionSessionNotes({
+      tables: store.tables,
+      booking,
+      participantRows,
+      attendanceRecordIds,
+      actorUserId: params.authUserId,
+      recordedAt: completedAt,
+      note: params.body.note ?? null,
+    });
 
     booking.status = 'COMPLETED';
     booking.updatedByUserId = params.authUserId;
@@ -1003,7 +1091,11 @@ class SeedBookingRepository implements BookingRepository {
         note: params.body.note ?? null,
         source: 'api-runtime',
         attendanceRecordIds,
+        sessionNoteIds,
         proofSource: 'attendance-record',
+        proofSources: sessionNoteIds.length
+          ? ['attendance-record', 'session-note']
+          : ['attendance-record'],
       },
       requestId: params.requestId,
       occurredAt: completedAt,
@@ -2038,6 +2130,65 @@ class DbBookingRepository implements BookingRepository {
           });
           attendanceRecordIds.push(attendanceRecord.id);
         }
+        const sessionNoteIds: string[] = [];
+        const completionNoteText = params.body.note?.trim();
+        const focusAreas = booking.objectives.map((objective) => objective.objective);
+        if (completionNoteText) {
+          for (const [index, participant] of booking.participants.entries()) {
+            const attendanceRecordId = attendanceRecordIds[index] ?? null;
+            const metadataJson = {
+              source: 'booking-completion',
+              proofSource: 'attendance-record',
+              attendanceRecordId,
+              attendanceRecordIds: attendanceRecordId ? [attendanceRecordId] : [],
+              focus: focusAreas,
+              completedAt: completedAt.toISOString(),
+            };
+            const existingSessionNote = await tx.sessionNote.findFirst({
+              where: {
+                bookingId: params.bookingId,
+                athleteId: participant.athleteId,
+                createdByUserId: params.authUserId,
+                deletedAt: null,
+              },
+            });
+            if (existingSessionNote) {
+              const updatedSessionNote = await tx.sessionNote.update({
+                where: { id: existingSessionNote.id },
+                data: {
+                  groupSessionId: booking.groupSessionId ?? null,
+                  coachUserId: params.authUserId,
+                  visibility: 'PUBLIC',
+                  noteText: completionNoteText,
+                  metadataJson: metadataJson as never,
+                  updatedByUserId: params.authUserId,
+                  version: {
+                    increment: 1,
+                  },
+                },
+              });
+              sessionNoteIds.push(updatedSessionNote.id);
+              continue;
+            }
+
+            const sessionNote = await tx.sessionNote.create({
+              data: {
+                id: newId('snt'),
+                bookingId: params.bookingId,
+                groupSessionId: booking.groupSessionId ?? null,
+                athleteId: participant.athleteId,
+                coachUserId: params.authUserId,
+                visibility: 'PUBLIC',
+                noteText: completionNoteText,
+                privateNotesEncrypted: null,
+                metadataJson: metadataJson as never,
+                createdByUserId: params.authUserId,
+                updatedByUserId: params.authUserId,
+              },
+            });
+            sessionNoteIds.push(sessionNote.id);
+          }
+        }
 
         await tx.bookingStatusEvent.create({
           data: {
@@ -2051,7 +2202,11 @@ class DbBookingRepository implements BookingRepository {
               note: params.body.note ?? null,
               source: 'api-db-runtime',
               attendanceRecordIds,
+              sessionNoteIds,
               proofSource: 'attendance-record',
+              proofSources: sessionNoteIds.length
+                ? ['attendance-record', 'session-note']
+                : ['attendance-record'],
             } as never,
             requestId: params.requestId,
             occurredAt: completedAt,
