@@ -21,7 +21,6 @@ import {
   conflict,
   forbidden,
   notFound,
-  serviceUnavailable,
 } from '../../lib/http-errors.js';
 import {
   resolveCreateBookingIdempotency,
@@ -41,7 +40,8 @@ import { recordAuditEvent } from '../../lib/audit-runtime.js';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
-import { shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
+import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
+import { normalizeForJson } from '../../repositories/p0/normalize.js';
 import {
   generateInvoiceForBooking,
   getBookingInvoiceContext,
@@ -53,6 +53,12 @@ import {
 } from '../coach-club/availability.js';
 
 type SeedRow = Record<string, unknown>;
+type InviteRuntimeBackend = 'seed' | 'db-fixture' | 'db';
+type InviteRuntimeStore = {
+  version: string | null;
+  tables: SeedTables;
+  backend: InviteRuntimeBackend;
+};
 
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined =>
@@ -110,18 +116,300 @@ async function generateRegistrationInvoiceIfBillable(params: {
   return generated.invoice;
 }
 
-function getInviteRuntimeStore(): { version: string | null; tables: SeedTables } {
+function toSeedRows<T>(values: T[]): SeedRow[] {
+  return normalizeForJson(values) as unknown as SeedRow[];
+}
+
+function mergeInviteRuntimeTables(target: SeedTables, source: SeedTables): void {
+  for (const [key, rows] of Object.entries(source)) {
+    if (key === 'invites' || key === 'inviteTargets' || key === 'idempotencyKeys') {
+      continue;
+    }
+    target[key] = rows;
+  }
+}
+
+function toOptionalDate(value: unknown): Date | null {
+  const stringValue = asString(value);
+  if (!stringValue) {
+    return null;
+  }
+  const time = Date.parse(stringValue);
+  return Number.isFinite(time) ? new Date(time) : null;
+}
+
+function toInviteStatus(value: unknown): 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'REVOKED' {
+  const normalized = asString(value)?.toUpperCase();
+  if (
+    normalized === 'ACCEPTED' ||
+    normalized === 'DECLINED' ||
+    normalized === 'EXPIRED' ||
+    normalized === 'REVOKED'
+  ) {
+    return normalized;
+  }
+  return 'PENDING';
+}
+
+async function getInviteRuntimeStore(params?: {
+  athleteIds?: string[];
+  authUserId?: string;
+  coachUserId?: string;
+  existingSessionId?: string;
+  inviteId?: string;
+  parentUserId?: string;
+}): Promise<InviteRuntimeStore> {
   if (getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()) {
-    return getDbFixtureStore();
+    const store = getDbFixtureStore();
+    return {
+      version: store.version,
+      tables: store.tables,
+      backend: 'db-fixture',
+    };
   }
   if (getApiDataBackend() === 'db') {
-    throw serviceUnavailable('Invite repository is not yet db-backed', {
-      context: 'session_invites',
-      apiDataBackend: getApiDataBackend(),
-      action: 'Implement the db invite repository before enabling /v1/invites in db mode.',
+    const prisma = getPrismaClientOrThrow();
+    const invites = await prisma.invite.findMany({
+      where: {
+        inviteType: 'session_invite',
+        ...(params?.inviteId ? { id: params.inviteId } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
     });
+    const inviteIds = invites.map((invite) => invite.id);
+    const inviteTargets =
+      inviteIds.length > 0
+        ? await prisma.inviteTarget.findMany({
+            where: {
+              inviteId: {
+                in: inviteIds,
+              },
+            },
+          })
+        : [];
+    const groupSessionIds = Array.from(
+      new Set(
+        [
+          params?.existingSessionId,
+          ...invites.map((invite) => invite.groupSessionId).filter(Boolean),
+        ].filter((id): id is string => typeof id === 'string' && id.length > 0),
+      ),
+    );
+    const clubIds = Array.from(
+      new Set(invites.map((invite) => invite.clubId).filter((id): id is string => Boolean(id))),
+    );
+    const userIds = Array.from(
+      new Set(
+        [
+          params?.authUserId,
+          params?.coachUserId,
+          params?.parentUserId,
+          ...invites.map((invite) => invite.senderUserId),
+          ...inviteTargets.map((target) => target.targetUserId).filter(Boolean),
+        ].filter((id): id is string => typeof id === 'string' && id.length > 0),
+      ),
+    );
+    const athleteIds = Array.from(
+      new Set(
+        [
+          ...(params?.athleteIds ?? []),
+          ...inviteTargets.map((target) => target.targetAthleteId).filter(Boolean),
+        ].filter((id): id is string => typeof id === 'string' && id.length > 0),
+      ),
+    );
+
+    const [users, guardianChildLinks, groupSessions, clubs, idempotencyKeys] = await Promise.all([
+      userIds.length > 0
+        ? prisma.user.findMany({
+            where: {
+              id: {
+                in: userIds,
+              },
+            },
+          })
+        : Promise.resolve([]),
+      athleteIds.length > 0 || params?.parentUserId
+        ? prisma.guardianChildLink.findMany({
+            where: {
+              ...(athleteIds.length > 0
+                ? {
+                    athleteId: {
+                      in: athleteIds,
+                    },
+                  }
+                : {}),
+              ...(params?.parentUserId ? { guardianUserId: params.parentUserId } : {}),
+              deletedAt: null,
+            },
+          })
+        : Promise.resolve([]),
+      groupSessionIds.length > 0
+        ? prisma.groupSession.findMany({
+            where: {
+              id: {
+                in: groupSessionIds,
+              },
+              deletedAt: null,
+            },
+          })
+        : Promise.resolve([]),
+      clubIds.length > 0
+        ? prisma.club.findMany({
+            where: {
+              id: {
+                in: clubIds,
+              },
+              deletedAt: null,
+            },
+          })
+        : Promise.resolve([]),
+      params?.authUserId || params?.coachUserId || params?.parentUserId
+        ? prisma.idempotencyKey.findMany({
+            where: {
+              endpointKey: INVITE_CREATE_ENDPOINT_KEY,
+              userId: {
+                in: [params.authUserId, params.coachUserId, params.parentUserId].filter(
+                  (id): id is string => typeof id === 'string' && id.length > 0,
+                ),
+              },
+            },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    return {
+      version: null,
+      backend: 'db',
+      tables: {
+        users: toSeedRows(users),
+        guardianChildLinks: toSeedRows(guardianChildLinks),
+        groupSessions: toSeedRows(groupSessions),
+        clubs: toSeedRows(clubs),
+        invites: toSeedRows(invites),
+        inviteTargets: toSeedRows(inviteTargets),
+        idempotencyKeys: toSeedRows(idempotencyKeys),
+      },
+    };
   }
-  return getMarketplaceSeedStore();
+  const store = getMarketplaceSeedStore();
+  return {
+    version: store.version,
+    tables: store.tables,
+    backend: 'seed',
+  };
+}
+
+async function commitInviteRuntimeStore(store: InviteRuntimeStore): Promise<void> {
+  if (store.backend !== 'db') {
+    return;
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  const invites = asRows(store.tables.invites);
+  const targets = asRows(store.tables.inviteTargets);
+  const idempotencyKeys = asRows(store.tables.idempotencyKeys);
+
+  await prisma.$transaction(async (tx) => {
+    for (const invite of invites) {
+      const inviteId = asString(invite.id);
+      const senderUserId = asString(invite.senderUserId);
+      if (!inviteId || !senderUserId || asString(invite.inviteType) !== 'session_invite') {
+        continue;
+      }
+
+      const data = {
+        inviteType: 'session_invite',
+        senderUserId,
+        clubId: asString(invite.clubId) ?? null,
+        groupSessionId: asString(invite.groupSessionId) ?? null,
+        bookingId: asString(invite.bookingId) ?? null,
+        eventId: asString(invite.eventId) ?? null,
+        status: toInviteStatus(invite.status),
+        message: asString(invite.message) ?? null,
+        expiresAt: toOptionalDate(invite.expiresAt),
+        metadataJson: (asObject(invite.metadataJson) ?? {}) as never,
+        revokedAt: toOptionalDate(invite.revokedAt),
+        createdAt: toOptionalDate(invite.createdAt) ?? new Date(),
+        updatedAt: toOptionalDate(invite.updatedAt) ?? new Date(),
+      };
+
+      await tx.invite.upsert({
+        where: { id: inviteId },
+        create: {
+          id: inviteId,
+          ...data,
+        },
+        update: data,
+      });
+    }
+
+    for (const target of targets) {
+      const targetId = asString(target.id);
+      const inviteId = asString(target.inviteId);
+      if (!targetId || !inviteId) {
+        continue;
+      }
+
+      const data = {
+        inviteId,
+        targetUserId: asString(target.targetUserId) ?? null,
+        targetAthleteId: asString(target.targetAthleteId) ?? null,
+        targetFamilyId: asString(target.targetFamilyId) ?? null,
+        status: toInviteStatus(target.status),
+        respondedAt: toOptionalDate(target.respondedAt),
+        responsePayloadJson: (asObject(target.responsePayloadJson) ?? null) as never,
+        createdAt: toOptionalDate(target.createdAt) ?? new Date(),
+        updatedAt: toOptionalDate(target.updatedAt) ?? new Date(),
+      };
+
+      await tx.inviteTarget.upsert({
+        where: { id: targetId },
+        create: {
+          id: targetId,
+          ...data,
+        },
+        update: data,
+      });
+    }
+
+    for (const entry of idempotencyKeys) {
+      const userId = asString(entry.userId);
+      const endpointKey = asString(entry.endpointKey);
+      const idempotencyKey = asString(entry.idempotencyKey);
+      const requestHash = asString(entry.requestHash);
+      if (!userId || !endpointKey || !idempotencyKey || !requestHash) {
+        continue;
+      }
+
+      const data = {
+        id: asString(entry.id) ?? newId('idk'),
+        userId,
+        endpointKey,
+        idempotencyKey,
+        requestHash,
+        responseStatus: asNumber(entry.responseStatus) ?? 201,
+        responseBodyJson: (asObject(entry.responseBodyJson) ?? {}) as never,
+        expiresAt: toOptionalDate(entry.expiresAt) ?? new Date(Date.now() + INVITE_IDEMPOTENCY_TTL_MS),
+      };
+
+      await tx.idempotencyKey.upsert({
+        where: {
+          userId_endpointKey_idempotencyKey: {
+            userId,
+            endpointKey,
+            idempotencyKey,
+          },
+        },
+        create: data,
+        update: {
+          requestHash: data.requestHash,
+          responseStatus: data.responseStatus,
+          responseBodyJson: data.responseBodyJson,
+          expiresAt: data.expiresAt,
+        },
+      });
+    }
+  });
 }
 
 const eventRsvpRequestSchema = z.object({
@@ -1389,7 +1677,10 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
-    const store = getInviteRuntimeStore();
+    const store = await getInviteRuntimeStore({
+      coachUserId: requestedCoachUserId,
+      parentUserId: requestedParentUserId,
+    });
     const invites = asRows(store.tables.invites);
     const targets = asRows(store.tables.inviteTargets);
 
@@ -1577,7 +1868,13 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('coachUserId must match authenticated user');
     }
 
-    const store = getInviteRuntimeStore();
+    const store = await getInviteRuntimeStore({
+      athleteIds: body.athleteIds,
+      authUserId,
+      coachUserId: body.coachUserId,
+      existingSessionId: body.existingSessionId,
+      parentUserId: body.parentUserId,
+    });
     const idempotentResponse = findSeedCreateInviteIdempotency({
       tables: store.tables,
       authUserId,
@@ -1642,6 +1939,8 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
 
     if (!linkedGroupSession) {
+      const availability = await resolveCoachAvailabilityTables(body.coachUserId);
+      mergeInviteRuntimeTables(store.tables, availability.tables);
       for (const slot of body.proposedSlots) {
         const durationMinutes = calculateSlotDurationMinutes(slot) ?? body.durationMinutes ?? 60;
         assertCoachAvailabilitySlotOpen({
@@ -1734,6 +2033,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       inviteId,
       now,
     });
+    await commitInviteRuntimeStore(store);
 
     return reply.status(201).send({
       invite: buildSessionInviteView({
@@ -1757,7 +2057,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       throw notFound('Invite id is required');
     }
 
-    const store = getInviteRuntimeStore();
+    const store = await getInviteRuntimeStore({ inviteId });
     const invites = asRows(store.tables.invites);
     const targets = asRows(store.tables.inviteTargets);
     const invite = invites.find((row) => asString(row.id) === inviteId);
@@ -1794,7 +2094,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       throw notFound('Invite id is required');
     }
 
-    const store = getInviteRuntimeStore();
+    const store = await getInviteRuntimeStore({ inviteId });
     const invites = asRows(store.tables.invites);
     const targets = asRows(store.tables.inviteTargets);
     const invite = invites.find((row) => asString(row.id) === inviteId);
@@ -1848,6 +2148,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         targetUserIds: inviteTargets.map((target) => asString(target.targetUserId)).filter(Boolean),
       },
     });
+    await commitInviteRuntimeStore(store);
 
     return reply.status(204).send();
   });
@@ -1863,7 +2164,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       throw notFound('Invite id is required');
     }
 
-    const store = getInviteRuntimeStore();
+    const store = await getInviteRuntimeStore({ inviteId });
     const invites = asRows(store.tables.invites);
     const invite = invites.find((row) => asString(row.id) === inviteId);
     if (!invite) {
@@ -1910,6 +2211,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         lastRemindedAt: now,
       },
     });
+    await commitInviteRuntimeStore(store);
 
     return reply.status(204).send();
   });
@@ -1925,7 +2227,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       throw notFound('Invite id is required');
     }
 
-    const store = getInviteRuntimeStore();
+    const store = await getInviteRuntimeStore({ inviteId });
     const invite = asRows(store.tables.invites).find((row) => asString(row.id) === inviteId);
     if (!invite) {
       throw notFound('Invite not found', { inviteId });
@@ -1970,6 +2272,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         targetIds: visibleTargets.map((target) => asString(target.id)).filter(Boolean),
       },
     });
+    await commitInviteRuntimeStore(store);
 
     return reply.status(204).send();
   });
@@ -1986,7 +2289,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
     const body = inviteResponseRequestSchema.parse(request.body);
 
-    const store = getInviteRuntimeStore();
+    const store = await getInviteRuntimeStore({ inviteId, parentUserId: authUserId });
     const invites = asRows(store.tables.invites);
     const targets = asRows(store.tables.inviteTargets);
     const invite = invites.find((row) => asString(row.id) === inviteId);
@@ -2147,9 +2450,12 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
 
         const durationMinutes =
           calculateSlotDurationMinutes(selectedSlot) ?? asNumber(metadata?.durationMinutes) ?? 60;
+        const coachUserId = asString(invite.senderUserId) ?? '';
+        const availability = await resolveCoachAvailabilityTables(coachUserId);
+        mergeInviteRuntimeTables(store.tables, availability.tables);
         assertCoachAvailabilitySlotOpen({
           tables: store.tables,
-          coachUserId: asString(invite.senderUserId) ?? '',
+          coachUserId,
           scheduledAt: slotToScheduledAt(selectedSlot),
           durationMinutes,
           applySchedulingRules: true,
@@ -2213,6 +2519,7 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         targetIds: visibleTargets.map((target) => asString(target.id)).filter(Boolean),
       },
     });
+    await commitInviteRuntimeStore(store);
 
     return reply.send({
       invite: buildSessionInviteView({

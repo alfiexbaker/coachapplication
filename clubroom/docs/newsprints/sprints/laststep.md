@@ -4,13 +4,21 @@ Date: 2026-05-27
 
 ## Latest Update
 
+1. Continued `PROD-API-02` with the real-db session invite persistence slice.
+2. `/v1/invites*` now loads real `db` mode session invites from Prisma `Invite`/`InviteTarget` rows instead of returning `503` or falling back to marketplace seed rows.
+3. Session-invite create/cancel/remind/dismiss/respond now commits invite, target, and create-idempotency mutations through the Prisma-backed route adapter; direct invite acceptance still creates bookings through the backend booking repository.
+4. Recurring invite partial acceptance and invite RSVP state remain fail-closed outside mock mode until their backend authority is implemented.
+5. Verification: `npm --prefix apps/api run typecheck`, focused `LOG_LEVEL=fatal npx tsx --test src/modules/p0-core/routes.test.ts` passed (`24/24`), and `npm run verify:slice:api` passed with API tests `118/118` and `0` new API-boundary findings.
+
+## Previous Update
+
 1. Continued `PROD-API-01` / `PROD-API-02` with the real-db invite scaffold hard-wall slice.
 2. `/v1/invites*` no longer falls back to marketplace seed rows when `API_DATA_BACKEND=db` and a real `DATABASE_URL` is configured; outside the API test db-fixture fallback, the scaffold returns `503` until a Prisma invite repository exists.
 3. Added API proof that real db-mode invite reads return `SERVICE_UNAVAILABLE` instead of pretending seed invite authority is production truth.
 4. Route inventory and runtime-truth docs now mark `/v1/invites*` as seed/db-fixture only until repository extraction.
 5. Verification: `npm --prefix apps/api run typecheck`, focused `LOG_LEVEL=fatal npx tsx --test src/modules/p0-core/routes.test.ts` passed (`24/24`), and `npm run verify:slice:api` passed with API tests `118/118` and `0` new API-boundary findings.
 
-## Previous Update
+## Earlier Update
 
 1. Continued `PROD-API-02` with the remaining invite local-authority hard-wall slice.
 2. `sessionInviteService.respondToRecurringInvite` now fails closed in API mode instead of accepting weekly invite choices through local `SESSION_INVITES`, local booking-series creation, local notifications, and local hold release.

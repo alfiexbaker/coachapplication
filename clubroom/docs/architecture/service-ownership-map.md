@@ -60,8 +60,8 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - Runtime rule: session invites no longer support counter-proposal negotiation; the product surface is accept or decline
 - Runtime rule: non-mock session invite create uses `/v1/invites` with deterministic create idempotency; response writes use `/v1/invites/:inviteId/respond`, replay the same terminal response, and reject accept/decline flips after the target has responded
 - Runtime rule: recurring invite partial acceptance and invite RSVP state are mock-only until backend authority exists; in API mode they fail closed instead of writing local `SESSION_INVITES` or `INVITE_RSVPS`
-- Runtime rule: real `db` mode does not fall back to marketplace seed rows for `/v1/invites*`; the current scaffold returns `503` outside the API test db-fixture fallback until the invite repository is Prisma-backed
-- Validation note: the broader session-invite repository model is still transitional and not fully aligned to production Prisma authority for every write
+- Runtime rule: real `db` mode does not fall back to marketplace seed rows for `/v1/invites*`; session-invite list/detail/create/cancel/remind/dismiss/respond now load and persist `Invite`, `InviteTarget`, and create-idempotency state through a Prisma-backed route adapter
+- Validation note: the broader session-invite repository model is still transitional; the route adapter should still be extracted into a dedicated repository and tightened around cross-resource transaction boundaries
 - Validation note: top-level `services/invite-service.ts` is not present in the current repo
 
 ### Clubs and club join flows

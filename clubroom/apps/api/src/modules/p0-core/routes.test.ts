@@ -2696,20 +2696,21 @@ describe('p0 core routes', () => {
     assert.equal(forbiddenDetail.statusCode, 403);
   });
 
-  it('rejects real db-mode session invites until the invite repository is db-backed', async () => {
+  it('serves session invites through the db fixture repository seam in db mode', async () => {
     const previousBackend = env.API_DATA_BACKEND;
     const previousDatabaseUrl = env.DATABASE_URL;
 
     try {
-      const tables = loadTables();
+      env.API_DATA_BACKEND = 'db';
+      env.DATABASE_URL = undefined;
+
+      const tables = getDbFixtureStore().tables;
       const pendingTarget = asRows(tables.inviteTargets).find(
         (row) => asString(row.status) === 'PENDING',
       );
       assert.ok(pendingTarget, 'expected seeded invite target');
+      const inviteId = asString(pendingTarget.inviteId) as string;
       const parentUserId = asString(pendingTarget.targetUserId) as string;
-
-      env.API_DATA_BACKEND = 'db';
-      env.DATABASE_URL = 'postgresql://clubroom:clubroom@localhost:5432/clubroom';
 
       const res = await app.inject({
         method: 'GET',
@@ -2717,15 +2718,13 @@ describe('p0 core routes', () => {
         headers: authHeaders(tables, parentUserId, 'parent'),
       });
 
-      assert.equal(res.statusCode, 503);
+      assert.equal(res.statusCode, 200);
       const payload = res.json() as {
-        code: string;
-        detail: string;
-        details?: { context?: string };
+        invites: Array<{ id: string; parentId: string }>;
+        seedVersion: string | null;
       };
-      assert.equal(payload.code, 'SERVICE_UNAVAILABLE');
-      assert.match(payload.detail, /Invite repository is not yet db-backed/);
-      assert.equal(payload.details?.context, 'session_invites');
+      assert.equal(payload.seedVersion, getDbFixtureStore().version);
+      assert.ok(payload.invites.some((invite) => invite.id === inviteId));
     } finally {
       env.API_DATA_BACKEND = previousBackend;
       env.DATABASE_URL = previousDatabaseUrl;
