@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-12T14:52:57.203Z",
+  "updatedAt": "2026-05-27T13:11:03.799Z",
   "note": "Legacy anti-slop findings allowed for now. New findings fail scripts/api-boundary-audit.js.",
   "allowedFindings": [
     {
@@ -677,12 +677,6 @@
     },
     {
       "rule": "trust-sensitive-local-storage",
-      "file": "app/review/[bookingId].tsx",
-      "snippet": "apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),",
-      "fingerprint": "trust-sensitive-local-storage|app/review/[bookingId].tsx|apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),"
-    },
-    {
-      "rule": "trust-sensitive-local-storage",
       "file": "app/sessions/create.tsx",
       "snippet": "apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),",
       "fingerprint": "trust-sensitive-local-storage|app/sessions/create.tsx|apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),"
@@ -1038,14 +1032,14 @@
     {
       "rule": "trust-sensitive-local-storage",
       "file": "services/multi-week-booking-service.ts",
-      "snippet": "await apiClient.set(STORAGE_KEYS.BOOKING_SERIES, series);",
-      "fingerprint": "trust-sensitive-local-storage|services/multi-week-booking-service.ts|await apiClient.set(STORAGE_KEYS.BOOKING_SERIES, series);"
+      "snippet": "return await apiClient.get<BookingSeries[]>(STORAGE_KEYS.BOOKING_SERIES, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/multi-week-booking-service.ts|return await apiClient.get<BookingSeries[]>(STORAGE_KEYS.BOOKING_SERIES, []);"
     },
     {
       "rule": "trust-sensitive-local-storage",
       "file": "services/multi-week-booking-service.ts",
-      "snippet": "return await apiClient.get<BookingSeries[]>(STORAGE_KEYS.BOOKING_SERIES, []);",
-      "fingerprint": "trust-sensitive-local-storage|services/multi-week-booking-service.ts|return await apiClient.get<BookingSeries[]>(STORAGE_KEYS.BOOKING_SERIES, []);"
+      "snippet": "await apiClient.set(STORAGE_KEYS.BOOKING_SERIES, series);",
+      "fingerprint": "trust-sensitive-local-storage|services/multi-week-booking-service.ts|await apiClient.set(STORAGE_KEYS.BOOKING_SERIES, series);"
     },
     {
       "rule": "trust-sensitive-local-storage",
@@ -1308,14 +1302,14 @@
     {
       "rule": "trust-sensitive-local-storage",
       "file": "services/recurring-booking-service.ts",
-      "snippet": "await apiClient.set(STORAGE_KEYS.BOOKINGS, updatedBookings);",
-      "fingerprint": "trust-sensitive-local-storage|services/recurring-booking-service.ts|await apiClient.set(STORAGE_KEYS.BOOKINGS, updatedBookings);"
+      "snippet": "const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/recurring-booking-service.ts|const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);"
     },
     {
       "rule": "trust-sensitive-local-storage",
       "file": "services/recurring-booking-service.ts",
-      "snippet": "const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);",
-      "fingerprint": "trust-sensitive-local-storage|services/recurring-booking-service.ts|const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);"
+      "snippet": "await apiClient.set(STORAGE_KEYS.BOOKINGS, updatedBookings);",
+      "fingerprint": "trust-sensitive-local-storage|services/recurring-booking-service.ts|await apiClient.set(STORAGE_KEYS.BOOKINGS, updatedBookings);"
     },
     {
       "rule": "trust-sensitive-local-storage",

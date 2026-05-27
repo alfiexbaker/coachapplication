@@ -11,7 +11,6 @@ import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useRequiredParam } from '@/hooks/use-required-param';
 
-import { apiClient } from '@/services/api-client';
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/useTheme';
 import { useScreen } from '@/hooks/use-screen';
@@ -27,11 +26,11 @@ import {
 } from '@/components/review/review-screen-sections';
 import { ErrorState, EmptyState, SectionSkeleton } from '@/components/ui/screen-states';
 import { useToast } from '@/components/ui/toast';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { bookingService } from '@/services/booking-service';
 import {
-  appendCoachReview,
   getStoredCoachReviews,
   isReviewForBookingByUser,
+  submitBookingReview,
   type StoredCoachReview,
 } from '@/services/review-sync-service';
 import { uiFeedback } from '@/services/ui-feedback';
@@ -81,11 +80,10 @@ export default function ReviewScreen() {
     }
 
     try {
-      const [bookings, reviews] = await Promise.all([
-        apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
+      const [found, reviews] = await Promise.all([
+        bookingService.getBooking(bookingId),
         getStoredCoachReviews(),
       ]);
-      const found = bookings.find((entry) => entry.id === bookingId);
       if (!found) {
         return ok<BookingInfo | null>(null);
       }
@@ -170,47 +168,25 @@ export default function ReviewScreen() {
         }
 
         const persistedReview = await withReviewSubmitLock(async () => {
-          const reviews = await getStoredCoachReviews();
-          const alreadyReviewed = reviews.find((review) =>
-            isReviewForBookingByUser(review, bookingId, currentUser?.id),
-          );
-
-          if (alreadyReviewed) {
-            return { review: alreadyReviewed, alreadyExisted: true as const };
-          }
-
-          const reviewerName =
-            currentUser?.fullName || currentUser?.name || currentUser?.username || 'Anonymous';
-
-          const newReview: StoredCoachReview = {
-            id: `review_${Date.now()}`,
-            bookingId,
-            coachId: booking.coachId,
-            coachName: booking.coachName,
-            athleteId: booking.athleteId,
-            athleteName: booking.athleteName,
-            parentName: reviewerName,
-            userName: reviewerName,
-            userId: currentUser?.id,
-            parentId: currentUser?.id,
+          return submitBookingReview({
+            booking,
             rating: payload.rating,
             text: payload.text,
-            content: payload.text,
             categories: payload.categories,
-            sessionType: booking.service,
-            createdAt: new Date().toISOString(),
-            sessionDate: booking.scheduledAt ?? new Date().toISOString(),
-          };
-
-          await appendCoachReview(newReview);
-          return { review: newReview, alreadyExisted: false as const };
+            currentUser,
+          });
         });
 
-        if (persistedReview.alreadyExisted) {
+        if (!persistedReview.success) {
+          uiFeedback.showToast(persistedReview.error.message, 'error');
+          return;
+        }
+
+        if (persistedReview.data.reused) {
           setSubmitted(true);
           setSubmittedReview({
-            rating: persistedReview.review.rating,
-            text: persistedReview.review.text || persistedReview.review.content || '',
+            rating: persistedReview.data.review.rating,
+            text: persistedReview.data.review.text || persistedReview.data.review.content || '',
           });
           uiFeedback.showToast('You already reviewed this session.');
           return;
@@ -223,8 +199,8 @@ export default function ReviewScreen() {
         });
 
         setSubmittedReview({
-          rating: persistedReview.review.rating,
-          text: persistedReview.review.text || persistedReview.review.content || '',
+          rating: persistedReview.data.review.rating,
+          text: persistedReview.data.review.text || persistedReview.data.review.content || '',
         });
         setSubmitted(true);
         showToast('Review submitted', { tone: 'success', duration: 1600 });

@@ -136,7 +136,8 @@ Feed is a centrepiece when it is operational: staff top-level posts only, parent
   - post-event follow-through is currently handled as a club-update handoff, not a separate event-recap entity
 - Coach storefront reviews now carry proof from real session history.
   - booking-linked review submission now has a backend authority path at `POST /v1/bookings/:bookingId/reviews`; only the booked guardian/athlete can review, the booking must be `COMPLETED`, duplicate submits replay the existing verified review, and denied/successful writes are audited
-  - the legacy shared review sync path still feeds some coach profile/UI read models until the review screen and coach profile tabs finish their `/v1` linkup
+  - the booking review screen now uses authoritative booking detail plus `POST /v1/bookings/:bookingId/reviews` in non-mock mode, then best-effort mirrors the backend review into legacy review read models
+  - the legacy shared review sync path still feeds some coach profile/UI read models until coach profile review tabs finish their `/v1` read linkup
   - coach review tabs now surface verified-booking markers and proof summary blocks instead of showing reviews as plain star comments
 - The generic `/rate-coach` chooser is no longer a launch route; users reach review creation from a booking/session context.
 - The user-facing `Updates` tab is the shared read surface for:
