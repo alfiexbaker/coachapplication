@@ -15,12 +15,13 @@ import {
   resumeBookingSeriesRequestSchema,
   updateBookingSeriesRequestSchema,
 } from '@clubroom/shared-contracts';
-import { badRequest, forbidden, notFound } from '../../lib/http-errors.js';
+import { ApiProblemError, badRequest, forbidden, notFound } from '../../lib/http-errors.js';
 import {
   resolveCreateBookingIdempotency,
   resolveBookingRepository,
   type SeedTables,
 } from '../../repositories/p0/booking-repository.js';
+import { resolveBookingReviewRepository } from '../../repositories/p0/booking-review-repository.js';
 import {
   assertBookingSeriesCreateAccess,
   assertBookingSeriesOccurrencesValid,
@@ -152,6 +153,12 @@ const createGroupSessionRequestSchema = z.object({
   waitlistEnabled: z.boolean().optional(),
   inviteType: inviteAudienceTypeSchema.optional(),
   registrationDeadline: z.string().datetime().optional(),
+});
+
+const bookingReviewRequestSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().trim().max(2000).nullable().optional(),
+  categories: z.record(z.number().min(1).max(5)).optional(),
 });
 
 const markGroupSessionAttendanceRequestSchema = z.object({
@@ -795,6 +802,64 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     });
 
     return reply.send(response);
+  });
+
+  app.post('/bookings/:bookingId/reviews', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const bookingId = bookingIdSchema.parse(
+      (request.params as { bookingId?: string } | undefined)?.bookingId,
+    );
+    const body = bookingReviewRequestSchema.parse(request.body ?? {});
+    const repository = resolveBookingReviewRepository();
+
+    try {
+      const result = await repository.createBookingReview({
+        authUserId,
+        bookingId,
+        input: body,
+      });
+
+      await recordAuditEvent({
+        request,
+        action: 'booking_review.create',
+        resourceType: 'booking',
+        resourceId: bookingId,
+        subjectUserId: authUserId,
+        result: 'SUCCESS',
+        metadata: {
+          reviewId: result.review.id,
+          reused: result.reused,
+          rating: result.review.rating,
+          verifiedBooking: result.review.isVerifiedBooking,
+        },
+      });
+
+      reply.code(result.reused ? 200 : 201);
+      return reply.send({
+        review: result.review,
+        reused: result.reused,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'booking_review.create',
+        resourceType: 'booking',
+        resourceId: bookingId,
+        subjectUserId: authUserId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
   });
 
   app.get('/group-sessions', async (request, reply) => {

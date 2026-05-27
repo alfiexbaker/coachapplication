@@ -1961,6 +1961,132 @@ describe('p0 core routes', () => {
         1,
       );
 
+      const deniedFutureReview = await app.inject({
+        method: 'POST',
+        url: `/v1/bookings/${asString(futureBooking.id)}/reviews`,
+        headers,
+        payload: {
+          rating: 5,
+          comment: 'Trying to review before delivery',
+        },
+      });
+      assert.equal(deniedFutureReview.statusCode, 400);
+      assert.match(deniedFutureReview.body, /only completed bookings/i);
+
+      const deniedCoachReview = await app.inject({
+        method: 'POST',
+        url: `/v1/bookings/${asString(bookingToComplete.id)}/reviews`,
+        headers: authHeaders(tables, coachUserId, 'coach'),
+        payload: {
+          rating: 5,
+          comment: 'Coach cannot review their own delivery',
+        },
+      });
+      assert.equal(deniedCoachReview.statusCode, 403);
+
+      const deniedUnrelatedParentReview = await app.inject({
+        method: 'POST',
+        url: `/v1/bookings/${asString(bookingToComplete.id)}/reviews`,
+        headers: authHeaders(tables, unrelatedParentId, 'parent'),
+        payload: {
+          rating: 5,
+          comment: 'Unrelated family cannot review',
+        },
+      });
+      assert.equal(deniedUnrelatedParentReview.statusCode, 403);
+
+      const submittedReview = await app.inject({
+        method: 'POST',
+        url: `/v1/bookings/${asString(bookingToComplete.id)}/reviews`,
+        headers,
+        payload: {
+          rating: 5,
+          comment: 'Clear feedback and useful next steps.',
+          categories: {
+            communication: 5,
+            punctuality: 4,
+          },
+        },
+      });
+      assert.equal(submittedReview.statusCode, 201);
+      const reviewPayload = submittedReview.json() as {
+        review: {
+          id: string;
+          bookingId: string;
+          coachUserId: string;
+          reviewerUserId: string;
+          athleteId: string;
+          rating: number;
+          comment: string;
+          categories: Record<string, number>;
+          isVerifiedBooking: boolean;
+        };
+        reused: boolean;
+      };
+      assert.equal(reviewPayload.reused, false);
+      assert.equal(reviewPayload.review.bookingId, asString(bookingToComplete.id));
+      assert.equal(reviewPayload.review.coachUserId, coachUserId);
+      assert.equal(reviewPayload.review.reviewerUserId, bookedByUserId);
+      assert.equal(reviewPayload.review.athleteId, athleteId);
+      assert.equal(reviewPayload.review.rating, 5);
+      assert.equal(reviewPayload.review.comment, 'Clear feedback and useful next steps.');
+      assert.deepEqual(reviewPayload.review.categories, {
+        communication: 5,
+        punctuality: 4,
+      });
+      assert.equal(reviewPayload.review.isVerifiedBooking, true);
+
+      const feedbackRows = asRows(fixtureStore.tables.sessionFeedback).filter(
+        (row) => asString(row.bookingId) === asString(bookingToComplete.id),
+      );
+      assert.equal(feedbackRows.length, 1);
+      assert.equal(asString(feedbackRows[0]?.authorUserId), bookedByUserId);
+      assert.equal(asNumber(feedbackRows[0]?.rating), 5);
+      assert.equal(asString(feedbackRows[0]?.publicComment), 'Clear feedback and useful next steps.');
+      const reviewMetadata = asRecord(feedbackRows[0]?.metadataJson);
+      assert.equal(asString(reviewMetadata?.source), 'booking-review');
+      assert.deepEqual(reviewMetadata?.categories, {
+        communication: 5,
+        punctuality: 4,
+      });
+
+      const reviewReplay = await app.inject({
+        method: 'POST',
+        url: `/v1/bookings/${asString(bookingToComplete.id)}/reviews`,
+        headers,
+        payload: {
+          rating: 1,
+          comment: 'Different content should not create a second review.',
+        },
+      });
+      assert.equal(reviewReplay.statusCode, 200);
+      const reviewReplayPayload = reviewReplay.json() as {
+        review: { id: string; rating: number; comment: string };
+        reused: boolean;
+      };
+      assert.equal(reviewReplayPayload.reused, true);
+      assert.equal(reviewReplayPayload.review.id, reviewPayload.review.id);
+      assert.equal(reviewReplayPayload.review.rating, 5);
+      assert.equal(
+        asRows(fixtureStore.tables.sessionFeedback).filter(
+          (row) => asString(row.bookingId) === asString(bookingToComplete.id),
+        ).length,
+        1,
+      );
+
+      const reviewSuccessAudit = auditEventsFor(fixtureStore.tables, {
+        action: 'booking_review.create',
+        resourceId: asString(bookingToComplete.id),
+        result: 'SUCCESS',
+      });
+      assert.equal(reviewSuccessAudit.length >= 2, true);
+      const reviewDeniedAudits = auditEventsFor(fixtureStore.tables, {
+        action: 'booking_review.create',
+        resourceId: asString(bookingToComplete.id),
+        result: 'DENY',
+      });
+      assert.equal(reviewDeniedAudits.length >= 2, true);
+
       const seriesAfterCompletion = await app.inject({
         method: 'GET',
         url: `/v1/booking-series/${created.series.id}`,

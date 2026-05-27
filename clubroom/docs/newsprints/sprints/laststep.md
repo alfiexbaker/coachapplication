@@ -4,6 +4,16 @@ Date: 2026-05-27
 
 ## Latest Update
 
+1. Continued `PROD-API-02` with the booking-linked review authority slice.
+2. Added `POST /v1/bookings/:bookingId/reviews` as a backend authority path for verified coach reviews.
+3. Review submission now requires the authenticated actor to be the booked guardian/athlete and the booking to be `COMPLETED`.
+4. Duplicate review submissions replay the existing verified review instead of creating local/frontend duplicates.
+5. Added audit events for successful and denied booking-review create attempts.
+6. Added db-fixture API proof for completed-only review submission, coach and unrelated-parent denial, verified review persistence, duplicate replay, and review audit events.
+7. Verification: API typecheck passed; focused p0 core route suite passed.
+
+## Previous Update
+
 1. Continued `PROD-API-02` with the group-session cancel fan-out slice.
 2. `/v1/group-sessions/:sessionId/cancel` now cancels active registrations and linked group-session bookings instead of only flipping the session row.
 3. Session cancellation now applies linked invoice runtime effects: open invoices are voided, active payment attempts are canceled, and paid invoices block until backend refund approval.
@@ -11,7 +21,7 @@ Date: 2026-05-27
 5. Added API proof for denied parent session cancellation, allowed coach cancellation fan-out, post-cancel registration denial, and paid-invoice refund hard-wall denial.
 6. Verification: API typecheck passed; focused booking group-session route suite passed.
 
-## Previous Update
+## Earlier Update
 
 1. Continued `PROD-API-02` with the invite write audit hardening slice.
 2. `/v1/invites` create and `/v1/invites/:inviteId` cancel/remind/dismiss/respond now emit backend audit events for allowed write paths.
@@ -106,14 +116,14 @@ Date: 2026-05-27
 1. The rules are now strong enough to block new obvious slop, but not enough to claim elite production readiness.
 2. Main risk is API/source-of-truth maturity, not static UI quality.
 3. The current API boundary baseline is a ratchet, not a release pass: `102` legacy `/api/*`, `148` trust-sensitive local-storage patterns, `5` route literals, and `2` frontend raw fetches remain.
-4. Booking create/list/detail/cancel/reopen/complete are improved with db-fixture parent/coach/deny proof, and completion now creates backend attendance plus progress-visible session-note proof records; multi-week package plus initial recurring-plan creation/list/detail/cancel/pause/resume/update now use backend series authority, recurring reschedule/cancel syncs or voids mutable linked invoices while blocking settled invoices, invoice money transitions now require authoritative booking linkage, legacy earnings payment/refund writes fail closed outside mock, direct invite acceptance creates db-mode bookings through booking repository authority, invite writes now emit allowed/denied audit events, billable group-session registration and waitlist promotion link booking/invoice/payment proof, group registration and session cancellation now apply invoice/refund hard walls, group session cancellation fans out to registrations/bookings/attendance, cancelled sessions reject new registration, and group attendance writes now emit audit events. Media scan enforcement, guardian sharing, health/injury linkup, club admin operations, community writes, and review/rebook proof remain the highest-risk gaps.
+4. Booking create/list/detail/cancel/reopen/complete are improved with db-fixture parent/coach/deny proof, and completion now creates backend attendance plus progress-visible session-note proof records; booking-linked review submission now requires completed-booking authority and audits success/deny paths; multi-week package plus initial recurring-plan creation/list/detail/cancel/pause/resume/update now use backend series authority, recurring reschedule/cancel syncs or voids mutable linked invoices while blocking settled invoices, invoice money transitions now require authoritative booking linkage, legacy earnings payment/refund writes fail closed outside mock, direct invite acceptance creates db-mode bookings through booking repository authority, invite writes now emit allowed/denied audit events, billable group-session registration and waitlist promotion link booking/invoice/payment proof, group registration and session cancellation now apply invoice/refund hard walls, group session cancellation fans out to registrations/bookings/attendance, cancelled sessions reject new registration, and group attendance writes now emit audit events. Media scan enforcement, guardian sharing, health/injury linkup, club admin operations, community writes, review UI/profile read linkup, and rebook proof remain the highest-risk gaps.
 5. Production rehearsal must wait until P0 journeys have API authority plus UI linkup packets complete.
 
 ## Next Exact Action
 
 1. Keep `OBS-RUNTIME-01` green: Sentry is clean, API-mode Expo must continue to start only with `apps/api` reachable.
 2. Continue `PROD-API-02`.
-3. Continue `PROD-API-02` by moving the next backend-authoritative delivery slice: review/rebook proof authority, full invite repository extraction/idempotency, or media upload finalization/scan enforcement.
+3. Continue `PROD-API-02` by moving the next backend-authoritative delivery slice: review UI/profile read linkup, rebook context authority, full invite repository extraction/idempotency, or media upload finalization/scan enforcement.
 4. Keep `/v1/meta/seed-health` and `/v1/drills` marked as cleanup candidates: auth-gate, disable, or delete before production.
 5. Keep `node ./scripts/api-boundary-audit.js` green on every slice.
 6. Do not run production rehearsal until booking, child readiness, payment/refund, attendance, proof, club operations, and compliance evidence have backend-authoritative launch paths.
