@@ -178,9 +178,36 @@ describe('wave2+ routes', () => {
   });
 
   it('returns seed-health coverage counters for live verification', async () => {
+    const tables = loadTables();
+    const adminUserId = asRows(tables.users)
+      .map((row) => asString(row.id))
+      .find((userId): userId is string => {
+        if (!userId) {
+          return false;
+        }
+        const roles = rolesForUser(tables, userId);
+        return roles.includes('security_admin') || roles.includes('admin') || roles.includes('club_admin');
+      });
+    assert.ok(adminUserId, 'expected privileged admin user');
+    const coachUserId = asString(asRows(tables.coachProfiles)[0]?.userId) as string;
+
+    const unauthenticated = await app.inject({
+      method: 'GET',
+      url: '/v1/meta/seed-health',
+    });
+    assert.equal(unauthenticated.statusCode, 403);
+
+    const deniedCoach = await app.inject({
+      method: 'GET',
+      url: '/v1/meta/seed-health',
+      headers: authHeaders(tables, coachUserId, 'coach'),
+    });
+    assert.equal(deniedCoach.statusCode, 403);
+
     const res = await app.inject({
       method: 'GET',
       url: '/v1/meta/seed-health',
+      headers: authHeaders(tables, adminUserId),
     });
     assert.equal(res.statusCode, 200);
 
@@ -234,9 +261,21 @@ describe('wave2+ routes', () => {
     env.API_DATA_BACKEND = 'db';
 
     try {
+      const tables = loadTables();
+      const adminUserId = asRows(tables.users)
+        .map((row) => asString(row.id))
+        .find((userId): userId is string => {
+          if (!userId) {
+            return false;
+          }
+          const roles = rolesForUser(tables, userId);
+          return roles.includes('security_admin') || roles.includes('admin') || roles.includes('club_admin');
+        });
+      assert.ok(adminUserId, 'expected privileged admin user');
       const res = await app.inject({
         method: 'GET',
         url: '/v1/meta/seed-health',
+        headers: authHeaders(tables, adminUserId),
       });
       assert.equal(res.statusCode, 503);
 
@@ -1374,6 +1413,20 @@ describe('wave2+ routes', () => {
       const tables = loadTables();
 
       const drillAuthorId = asString(asRows(tables.drills)[0]?.authorUserId) as string;
+      const deniedDrills = await app.inject({
+        method: 'GET',
+        url: `/v1/drills?coachUserId=${drillAuthorId}`,
+      });
+      assert.equal(deniedDrills.statusCode, 403);
+
+      const outsiderUserId = findUnprivilegedUserId(tables, new Set([drillAuthorId]));
+      const deniedOtherCoachDrills = await app.inject({
+        method: 'GET',
+        url: `/v1/drills?coachUserId=${drillAuthorId}`,
+        headers: authHeaders(tables, outsiderUserId),
+      });
+      assert.equal(deniedOtherCoachDrills.statusCode, 403);
+
       const drills = await app.inject({
         method: 'GET',
         url: `/v1/drills?coachUserId=${drillAuthorId}`,

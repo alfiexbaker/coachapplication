@@ -1103,6 +1103,11 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
   });
 
   app.get('/drills', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
     const store = getMarketplaceSeedStore();
     const drills = asRows(store.tables.drills);
     const assignments = asRows(store.tables.drillAssignments);
@@ -1110,6 +1115,13 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     const coachUserId = asString(
       (request.query as { coachUserId?: string } | undefined)?.coachUserId,
     );
+    const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
+    if (!coachUserId && !isPrivilegedAdmin) {
+      throw forbidden('coachUserId is required for non-admin drill reads');
+    }
+    if (coachUserId && coachUserId !== authUserId && !isPrivilegedAdmin) {
+      throw forbidden('coachUserId must match authenticated user');
+    }
 
     const filtered = coachUserId
       ? drills.filter((row) => asString(row.authorUserId) === coachUserId)

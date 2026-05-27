@@ -4,13 +4,21 @@ Date: 2026-05-27
 
 ## Latest Update
 
+1. Continued `PROD-API-01` with the seed-only route cleanup slice.
+2. `/v1/meta/seed-health` now requires an authenticated privileged admin before exposing internal seed coverage counters.
+3. `/v1/drills` now requires authentication and only allows coach self-read unless the actor is a privileged admin.
+4. `OBS-RUNTIME-01` check: `npm run smoke:api-mode` passes when Fastify is running; `npm run smoke:api-mode:strict` still fails on Supabase `DATABASE_UNAVAILABLE` because the configured Postgres tenant/user is not found. Sentry MCP showed no unresolved `staging` issues for `tubton/react-native` and no unresolved issues for `tubton/clubroom-api`.
+5. Verification: `npm --prefix apps/api run typecheck`, focused `LOG_LEVEL=fatal npx tsx --test src/modules/wave2plus/routes.test.ts` passed (`27/27`), and `npm run verify:slice:full` passed with API tests `106/106` and `0` new API-boundary findings.
+
+## Previous Update
+
 1. Continued `PROD-API-02` with the session invite write hardening slice.
 2. `POST /v1/invites` now honors same-key idempotency replay/conflict before slot validation can convert a retry into a false pending-hold failure.
 3. `sessionInviteAuthorityService.createInvite` now sends a deterministic idempotency key in non-mock mode.
 4. `POST /v1/invites/:inviteId/respond` now treats `ACCEPTED` and `DECLINED` as terminal for the invite target: same response replays safely, while accept-after-decline and decline-after-accept are denied and audited.
 5. Verification: `npm --prefix apps/api run typecheck`, `npm run typecheck`, focused `LOG_LEVEL=fatal npx tsx --test src/modules/p0-core/routes.test.ts` passed (`23/23`), and `npm run verify:slice:full` passed with API tests `106/106` and `0` new API-boundary findings.
 
-## Previous Update
+## Earlier Update
 
 1. Continued `PROD-API-03` with the guardian invite acceptance/decline completion slice.
 2. Added self-scoped guardian invite inbox and response routes: `GET /v1/me/guardian-invites`, `POST /v1/guardian-invites/:inviteId/accept`, and `POST /v1/guardian-invites/:inviteId/decline`.
@@ -217,7 +225,7 @@ Date: 2026-05-27
 1. Clear the Supabase staging database readiness issue that makes `npm run smoke:api-mode:strict` fail with `DATABASE_UNAVAILABLE`.
 2. Keep `OBS-RUNTIME-01` green: Sentry is clean, API-mode Expo must continue to start only with `apps/api` reachable.
 3. Continue backend-authoritative delivery burn-down with the next high-risk slice: full invite repository extraction, club admin operations, community writes, broader profile/storefront proof cleanup, or guardian permission/versioning.
-4. Keep `/v1/meta/seed-health` and `/v1/drills` marked as cleanup candidates: auth-gate, disable, or delete before production.
+4. Keep remaining seed-only/scaffolded route cleanup moving; `/v1/meta/seed-health` and `/v1/drills` are now auth-gated but still not launch product surfaces.
 5. Keep `node ./scripts/api-boundary-audit.js` green on every slice.
 6. Do not run production rehearsal until booking, child readiness, payment/refund, attendance, proof, club operations, and compliance evidence have backend-authoritative launch paths.
 

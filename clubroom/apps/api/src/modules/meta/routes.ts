@@ -1,6 +1,8 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { env } from '@clubroom/config';
 import { getApiDataBackend } from '../../lib/data-backend.js';
+import { isPrivilegedAdminAuth } from '../../lib/authz.js';
+import { forbidden } from '../../lib/http-errors.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 
 type SeedRow = Record<string, unknown>;
@@ -18,7 +20,14 @@ const metaRoutes: FastifyPluginAsync = async (app) => {
     marketplaceSeedEnabled: env.API_MARKETPLACE_SEED_ENABLED,
   }));
 
-  app.get('/meta/seed-health', async () => {
+  app.get('/meta/seed-health', async (request) => {
+    if (!request.auth?.userId) {
+      throw forbidden('Authenticated user is required');
+    }
+    if (!isPrivilegedAdminAuth(request.auth)) {
+      throw forbidden('Seed health is restricted to privileged administrators');
+    }
+
     const store = getMarketplaceSeedStore();
     const tables = store.tables;
     const entries = Object.entries(tables);
