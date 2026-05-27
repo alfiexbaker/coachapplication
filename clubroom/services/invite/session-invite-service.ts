@@ -51,7 +51,9 @@ import { sessionInviteAuthorityService } from './session-invite-authority-servic
 
 const logger = createLogger('SessionInviteService');
 
-const USE_MOCK = api.useMock;
+function isMockMode(): boolean {
+  return api.useMock;
+}
 
 function isServiceError(value: unknown): value is ServiceError {
   return Boolean(
@@ -520,7 +522,7 @@ export const sessionInviteService = {
       }
     }
 
-    if (USE_MOCK) {
+    if (isMockMode()) {
       invitesCache = await loadFromStorage();
       invitesCache.push(newInvite);
       await saveToStorage(invitesCache);
@@ -591,7 +593,7 @@ export const sessionInviteService = {
    * - DECLINED: Notifies coach
    */
   async respondToInvite(input: RespondToInviteInput): Promise<Result<SessionInvite, ServiceError>> {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       invitesCache = await loadFromStorage();
       const index = invitesCache.findIndex((inv) => inv.id === input.inviteId);
 
@@ -747,7 +749,7 @@ export const sessionInviteService = {
    * Cancel an invite (coach action)
    */
   async cancelInvite(inviteId: string): Promise<void> {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       invitesCache = await loadFromStorage();
       const index = invitesCache.findIndex((inv) => inv.id === inviteId);
       if (index !== -1) {
@@ -773,7 +775,7 @@ export const sessionInviteService = {
    * Send a reminder to the parent for a pending invite.
    */
   async sendInviteReminder(inviteId: string): Promise<Result<void, ServiceError>> {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       invitesCache = await loadFromStorage();
       const invite = invitesCache.find((inv) => inv.id === inviteId);
 
@@ -828,7 +830,7 @@ export const sessionInviteService = {
    * This doesn't delete the invite, just hides it from the parent's list
    */
   async dismissInvite(inviteId: string): Promise<void> {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       invitesCache = await loadFromStorage();
       const index = invitesCache.findIndex((inv) => inv.id === inviteId);
       if (index !== -1) {
@@ -857,7 +859,7 @@ export const sessionInviteService = {
    * Get all invites for a coach (sent invites)
    */
   async getCoachInvites(coachId: string): Promise<SessionInvite[]> {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       invitesCache = await loadFromStorage();
       return invitesCache.filter((inv) => accountIdsMatch(inv.coachId, coachId));
     }
@@ -879,7 +881,7 @@ export const sessionInviteService = {
    * Filters out dismissed invites
    */
   async getParentInvites(parentId: string): Promise<SessionInvite[]> {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       invitesCache = await loadFromStorage();
       return invitesCache.filter(
         (inv) => accountIdsMatch(inv.parentId, parentId) && !inv.dismissed,
@@ -920,7 +922,7 @@ export const sessionInviteService = {
    * Get invite history - all invites
    */
   async getInviteHistory(): Promise<SessionInvite[]> {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       invitesCache = await loadFromStorage();
       return invitesCache;
     }
@@ -940,7 +942,7 @@ export const sessionInviteService = {
    * Get a single invite by ID
    */
   async getInvite(inviteId: string): Promise<SessionInvite | null> {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       invitesCache = await loadFromStorage();
       return invitesCache.find((inv) => inv.id === inviteId) || null;
     }
@@ -972,7 +974,7 @@ export const sessionInviteService = {
    * Get open invites visible to any parent browsing sessions
    */
   async getOpenInvites(): Promise<SessionInvite[]> {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       invitesCache = await loadFromStorage();
       return invitesCache.filter(
         (inv) =>
@@ -998,7 +1000,7 @@ export const sessionInviteService = {
    * Get closed invites for a specific parent (invite-only sessions)
    */
   async getClosedInvitesForParent(parentId: string): Promise<SessionInvite[]> {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       invitesCache = await loadFromStorage();
       return invitesCache.filter(
         (inv) =>
@@ -1025,7 +1027,7 @@ export const sessionInviteService = {
     parentId: string,
     memberSquadIds: string[],
   ): Promise<SessionInvite[]> {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       invitesCache = await loadFromStorage();
       return invitesCache.filter((inv) => {
         if (inv.inviteType !== 'SQUAD_ONLY') return false;
@@ -1063,7 +1065,7 @@ export const sessionInviteService = {
     parentId: string,
     memberSquadIds: string[] = [],
   ): Promise<SessionInvite[]> {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       invitesCache = await loadFromStorage();
       return invitesCache.filter((inv) => {
         if (inv.dismissed) return false;
@@ -1148,6 +1150,15 @@ export const sessionInviteService = {
     inviteId: string,
     weekAcceptances: WeekAcceptance[],
   ): Promise<Result<SessionInvite, ServiceError>> {
+    if (!isMockMode()) {
+      return err(
+        serviceError(
+          'CONFLICT',
+          'Recurring invite partial acceptance requires backend invite authority in API mode.',
+        ),
+      );
+    }
+
     invitesCache = await loadFromStorage();
     const index = invitesCache.findIndex((inv) => inv.id === inviteId);
 

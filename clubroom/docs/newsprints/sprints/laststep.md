@@ -4,13 +4,21 @@ Date: 2026-05-27
 
 ## Latest Update
 
+1. Continued `PROD-API-02` with the remaining invite local-authority hard-wall slice.
+2. `sessionInviteService.respondToRecurringInvite` now fails closed in API mode instead of accepting weekly invite choices through local `SESSION_INVITES`, local booking-series creation, local notifications, and local hold release.
+3. `inviteRsvpService` now fails closed in API mode for RSVP response, counts, respondent lists, and status updates instead of writing local `INVITE_RSVPS` or syncing local invite counters.
+4. Added service tests proving API-mode recurring invite response and invite RSVP writes deny without mutating local storage.
+5. Verification: `npm run typecheck`, `npm run test:compile`, focused compiled invite service tests passed (`21/21`), and `npm run verify:slice:app` passed with `0` new API-boundary findings.
+
+## Previous Update
+
 1. Continued `OBS-RUNTIME-01` with the API-mode startup reachability slice.
 2. Added `npm --prefix apps/api run dev:staging` plus root `npm run api:dev:staging`; the staging dev command loads `.env.staging.local`, binds Fastify with `API_HOST=0.0.0.0`, and exposes the configured LAN API origin used by the app and smoke runner.
 3. `scripts/api-mode-runtime-smoke.js` now reports the loaded server host/port, probes loopback when a non-loopback API origin fails, and tells agents to restart with `dev:staging` instead of the plain loopback-only dev command.
 4. Runtime docs and sprint runbooks now point API-mode staging startup at `dev:staging`.
 5. Verification: `npm run smoke:api-mode` passed against `http://192.168.1.127:4000` with Fastify running; `npm run smoke:api-mode:strict` still fails on Supabase `DATABASE_UNAVAILABLE` because the configured Postgres tenant/user `postgres.oucxazyrimujqmakxfiv` is not found.
 
-## Previous Update
+## Earlier Update
 
 1. Continued `PROD-API-02` / `PROD-API-08` with the direct/thread message send and delete authority slice.
 2. Added backend-owned `POST /v1/message-threads/:threadId/messages` and `DELETE /v1/messages/:messageId`.

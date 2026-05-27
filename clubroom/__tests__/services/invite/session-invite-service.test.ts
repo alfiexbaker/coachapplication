@@ -2,12 +2,13 @@ import { beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { apiClient } from '@/services/api-client';
+import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { sessionInviteService } from '@/services/invite/session-invite-service';
 import { POC_ACCOUNT_IDS } from '@/constants/poc-accounts';
 import type { Result, ServiceError } from '@/types/result';
 import type { Booking } from '@/constants/app-types';
-import type { GroupSession, SessionOffering } from '@/constants/types';
+import type { GroupSession, SessionInvite, SessionOffering, WeekAcceptance } from '@/constants/types';
 
 function expectOk<T>(result: Result<T, ServiceError>): T {
   assert.equal(result.success, true);
@@ -21,8 +22,16 @@ function nextId(prefix: string): string {
   return `${prefix}_${seq}`;
 }
 
+function setApiMockMode(value: boolean): void {
+  Object.defineProperty(api, 'useMock', {
+    value,
+    configurable: true,
+  });
+}
+
 describe('sessionInviteService', () => {
   beforeEach(async () => {
+    setApiMockMode(true);
     seq = 0;
     await apiClient.set(STORAGE_KEYS.SESSION_INVITES, []);
     await apiClient.set(STORAGE_KEYS.INVITE_SLOT_HOLDS, []);
@@ -252,5 +261,56 @@ describe('sessionInviteService', () => {
     assert.equal(created?.assigneeCoachId, linkedGroupSession.assigneeCoachId);
     assert.equal(created?.createdByUserId, linkedGroupSession.createdByUserId);
     assert.equal(created?.createdByRole, linkedGroupSession.createdByRole);
+  });
+
+  it('fails closed instead of locally accepting recurring invites in API mode', async () => {
+    const invite: SessionInvite = {
+      id: 'inv_recurring_api_mode',
+      coachId: 'coach_recurring_api',
+      athleteIds: ['athlete_recurring_api'],
+      parentId: 'parent_recurring_api',
+      proposedSlots: [
+        {
+          date: '2030-02-01',
+          startTime: '10:00',
+          endTime: '11:00',
+          location: 'Main Pitch',
+        },
+      ],
+      sessionType: '1:1 Coaching',
+      focus: 'First touch',
+      status: 'PENDING',
+      expiresAt: '2030-02-10T23:59:59.000Z',
+      createdAt: '2030-01-20T09:00:00.000Z',
+      isRecurring: true,
+      recurrenceWeeks: 2,
+    };
+    const weekAcceptances: WeekAcceptance[] = [
+      {
+        weekDate: '2030-02-01',
+        startTime: '10:00',
+        endTime: '11:00',
+        location: 'Main Pitch',
+        accepted: true,
+      },
+    ];
+
+    await apiClient.set(STORAGE_KEYS.SESSION_INVITES, [invite]);
+    setApiMockMode(false);
+
+    const result = await sessionInviteService.respondToRecurringInvite(
+      invite.id,
+      weekAcceptances,
+    );
+
+    assert.equal(result.success, false);
+    if (!result.success) {
+      assert.equal(result.error.code, 'CONFLICT');
+      assert.match(result.error.message, /backend invite authority/i);
+    }
+
+    const stored = await apiClient.get<SessionInvite[]>(STORAGE_KEYS.SESSION_INVITES, []);
+    assert.equal(stored[0]?.status, 'PENDING');
+    assert.equal(stored[0]?.bookingId, undefined);
   });
 });

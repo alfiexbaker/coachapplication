@@ -59,6 +59,7 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - Exposes `inviteService` plus session, squad, bulk, match, event, RSVP, and sharing invite surfaces
 - Runtime rule: session invites no longer support counter-proposal negotiation; the product surface is accept or decline
 - Runtime rule: non-mock session invite create uses `/v1/invites` with deterministic create idempotency; response writes use `/v1/invites/:inviteId/respond`, replay the same terminal response, and reject accept/decline flips after the target has responded
+- Runtime rule: recurring invite partial acceptance and invite RSVP state are mock-only until backend authority exists; in API mode they fail closed instead of writing local `SESSION_INVITES` or `INVITE_RSVPS`
 - Validation note: the broader session-invite repository model is still transitional and not fully aligned to production Prisma authority for every write
 - Validation note: top-level `services/invite-service.ts` is not present in the current repo
 

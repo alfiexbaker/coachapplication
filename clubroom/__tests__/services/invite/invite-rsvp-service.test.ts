@@ -3,11 +3,20 @@ import assert from 'node:assert/strict';
 
 import { inviteRsvpService } from '@/services/invite/invite-rsvp-service';
 import { apiClient } from '@/services/api-client';
+import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 
+function setApiMockMode(value: boolean): void {
+  Object.defineProperty(api, 'useMock', {
+    value,
+    configurable: true,
+  });
+}
+
 describe('InviteRsvpService', () => {
   beforeEach(async () => {
+    setApiMockMode(true);
     await apiClient.remove(STORAGE_KEYS.INVITE_RSVPS);
     await apiClient.remove(STORAGE_KEYS.SESSION_INVITES);
   });
@@ -82,6 +91,26 @@ describe('InviteRsvpService', () => {
       assert.equal(events[0].status, 'going');
 
       unsub();
+    });
+
+    it('should fail closed without writing local RSVP state in API mode', async () => {
+      setApiMockMode(false);
+
+      const result = await inviteRsvpService.respondToInvite(
+        'invite_api_mode',
+        'parent_api_mode',
+        'API Parent',
+        'going',
+      );
+
+      assert.equal(result.success, false);
+      if (!result.success) {
+        assert.equal(result.error.code, 'CONFLICT');
+        assert.match(result.error.message, /backend authority/i);
+      }
+
+      const stored = await apiClient.get<unknown[]>(STORAGE_KEYS.INVITE_RSVPS, []);
+      assert.equal(stored.length, 0);
     });
   });
 

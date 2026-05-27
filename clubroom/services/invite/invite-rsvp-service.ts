@@ -6,6 +6,7 @@
  */
 
 import { apiClient } from '../api-client';
+import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
@@ -55,6 +56,17 @@ const MOCK_INVITE_RSVPS: InviteRsvpResponse[] = [
     respondedAt: '2026-02-10T14:25:00Z',
   },
 ];
+
+function isMockMode(): boolean {
+  return api.useMock;
+}
+
+function apiModeUnsupported(): ServiceError {
+  return serviceError(
+    'CONFLICT',
+    'Invite RSVP state requires backend authority in API mode.',
+  );
+}
 
 async function loadResponses(): Promise<InviteRsvpResponse[]> {
   const stored = await apiClient.get<InviteRsvpResponse[] | null>(STORAGE_KEYS.INVITE_RSVPS, null);
@@ -107,6 +119,10 @@ export const inviteRsvpService = {
     childName?: string,
     userPhotoUrl?: string,
   ): Promise<Result<InviteRsvpResponse, ServiceError>> {
+    if (!isMockMode()) {
+      return err(apiModeUnsupported());
+    }
+
     try {
       const allResponses = await loadResponses();
 
@@ -161,6 +177,10 @@ export const inviteRsvpService = {
    * Get all RSVP responses for an invite.
    */
   async getResponses(inviteId: string): Promise<Result<InviteRsvpResponse[], ServiceError>> {
+    if (!isMockMode()) {
+      return err(apiModeUnsupported());
+    }
+
     try {
       const allResponses = await loadResponses();
       const filtered = allResponses.filter((r) => r.inviteId === inviteId);
@@ -175,6 +195,10 @@ export const inviteRsvpService = {
    * Get RSVP counts for an invite.
    */
   async getCounts(inviteId: string): Promise<Result<RsvpCounts, ServiceError>> {
+    if (!isMockMode()) {
+      return err(apiModeUnsupported());
+    }
+
     try {
       const allResponses = await loadResponses();
       const inviteResponses = allResponses.filter((r) => r.inviteId === inviteId);
@@ -199,6 +223,10 @@ export const inviteRsvpService = {
     inviteId: string,
     status: RsvpStatus,
   ): Promise<Result<InviteRsvpResponse[], ServiceError>> {
+    if (!isMockMode()) {
+      return err(apiModeUnsupported());
+    }
+
     try {
       const allResponses = await loadResponses();
       const filtered = allResponses.filter((r) => r.inviteId === inviteId && r.status === status);
@@ -216,6 +244,10 @@ export const inviteRsvpService = {
     responseId: string,
     newStatus: RsvpStatus,
   ): Promise<Result<InviteRsvpResponse, ServiceError>> {
+    if (!isMockMode()) {
+      return err(apiModeUnsupported());
+    }
+
     try {
       const allResponses = await loadResponses();
       const index = allResponses.findIndex((r) => r.id === responseId);
