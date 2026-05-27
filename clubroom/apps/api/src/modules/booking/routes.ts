@@ -15,7 +15,14 @@ import {
   resumeBookingSeriesRequestSchema,
   updateBookingSeriesRequestSchema,
 } from '@clubroom/shared-contracts';
-import { ApiProblemError, badRequest, conflict, forbidden, notFound } from '../../lib/http-errors.js';
+import {
+  ApiProblemError,
+  badRequest,
+  conflict,
+  forbidden,
+  notFound,
+  serviceUnavailable,
+} from '../../lib/http-errors.js';
 import {
   resolveCreateBookingIdempotency,
   resolveBookingRepository,
@@ -106,6 +113,13 @@ async function generateRegistrationInvoiceIfBillable(params: {
 function getInviteRuntimeStore(): { version: string | null; tables: SeedTables } {
   if (getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()) {
     return getDbFixtureStore();
+  }
+  if (getApiDataBackend() === 'db') {
+    throw serviceUnavailable('Invite repository is not yet db-backed', {
+      context: 'session_invites',
+      apiDataBackend: getApiDataBackend(),
+      action: 'Implement the db invite repository before enabling /v1/invites in db mode.',
+    });
   }
   return getMarketplaceSeedStore();
 }

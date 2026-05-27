@@ -4,13 +4,21 @@ Date: 2026-05-27
 
 ## Latest Update
 
+1. Continued `PROD-API-01` / `PROD-API-02` with the real-db invite scaffold hard-wall slice.
+2. `/v1/invites*` no longer falls back to marketplace seed rows when `API_DATA_BACKEND=db` and a real `DATABASE_URL` is configured; outside the API test db-fixture fallback, the scaffold returns `503` until a Prisma invite repository exists.
+3. Added API proof that real db-mode invite reads return `SERVICE_UNAVAILABLE` instead of pretending seed invite authority is production truth.
+4. Route inventory and runtime-truth docs now mark `/v1/invites*` as seed/db-fixture only until repository extraction.
+5. Verification: `npm --prefix apps/api run typecheck`, focused `LOG_LEVEL=fatal npx tsx --test src/modules/p0-core/routes.test.ts` passed (`24/24`), and `npm run verify:slice:api` passed with API tests `118/118` and `0` new API-boundary findings.
+
+## Previous Update
+
 1. Continued `PROD-API-02` with the remaining invite local-authority hard-wall slice.
 2. `sessionInviteService.respondToRecurringInvite` now fails closed in API mode instead of accepting weekly invite choices through local `SESSION_INVITES`, local booking-series creation, local notifications, and local hold release.
 3. `inviteRsvpService` now fails closed in API mode for RSVP response, counts, respondent lists, and status updates instead of writing local `INVITE_RSVPS` or syncing local invite counters.
 4. Added service tests proving API-mode recurring invite response and invite RSVP writes deny without mutating local storage.
 5. Verification: `npm run typecheck`, `npm run test:compile`, focused compiled invite service tests passed (`21/21`), and `npm run verify:slice:app` passed with `0` new API-boundary findings.
 
-## Previous Update
+## Earlier Update
 
 1. Continued `OBS-RUNTIME-01` with the API-mode startup reachability slice.
 2. Added `npm --prefix apps/api run dev:staging` plus root `npm run api:dev:staging`; the staging dev command loads `.env.staging.local`, binds Fastify with `API_HOST=0.0.0.0`, and exposes the configured LAN API origin used by the app and smoke runner.

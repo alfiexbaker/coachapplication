@@ -2696,6 +2696,42 @@ describe('p0 core routes', () => {
     assert.equal(forbiddenDetail.statusCode, 403);
   });
 
+  it('rejects real db-mode session invites until the invite repository is db-backed', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    const previousDatabaseUrl = env.DATABASE_URL;
+
+    try {
+      const tables = loadTables();
+      const pendingTarget = asRows(tables.inviteTargets).find(
+        (row) => asString(row.status) === 'PENDING',
+      );
+      assert.ok(pendingTarget, 'expected seeded invite target');
+      const parentUserId = asString(pendingTarget.targetUserId) as string;
+
+      env.API_DATA_BACKEND = 'db';
+      env.DATABASE_URL = 'postgresql://clubroom:clubroom@localhost:5432/clubroom';
+
+      const res = await app.inject({
+        method: 'GET',
+        url: `/v1/invites?parentUserId=${encodeURIComponent(parentUserId)}`,
+        headers: authHeaders(tables, parentUserId, 'parent'),
+      });
+
+      assert.equal(res.statusCode, 503);
+      const payload = res.json() as {
+        code: string;
+        detail: string;
+        details?: { context?: string };
+      };
+      assert.equal(payload.code, 'SERVICE_UNAVAILABLE');
+      assert.match(payload.detail, /Invite repository is not yet db-backed/);
+      assert.equal(payload.details?.context, 'session_invites');
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      env.DATABASE_URL = previousDatabaseUrl;
+    }
+  });
+
   it('creates and manages direct session invites through /v1/invites writes', async () => {
     const tables = loadTables();
     const coachProfile = asRows(tables.coachProfiles)[0];
