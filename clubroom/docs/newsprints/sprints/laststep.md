@@ -4,13 +4,21 @@ Date: 2026-05-27
 
 ## Latest Update
 
+1. Continued `PROD-API-02` with the session invite write hardening slice.
+2. `POST /v1/invites` now honors same-key idempotency replay/conflict before slot validation can convert a retry into a false pending-hold failure.
+3. `sessionInviteAuthorityService.createInvite` now sends a deterministic idempotency key in non-mock mode.
+4. `POST /v1/invites/:inviteId/respond` now treats `ACCEPTED` and `DECLINED` as terminal for the invite target: same response replays safely, while accept-after-decline and decline-after-accept are denied and audited.
+5. Verification: `npm --prefix apps/api run typecheck`, `npm run typecheck`, focused `LOG_LEVEL=fatal npx tsx --test src/modules/p0-core/routes.test.ts` passed (`23/23`), and `npm run verify:slice:full` passed with API tests `106/106` and `0` new API-boundary findings.
+
+## Previous Update
+
 1. Continued `PROD-API-03` with the guardian invite acceptance/decline completion slice.
 2. Added self-scoped guardian invite inbox and response routes: `GET /v1/me/guardian-invites`, `POST /v1/guardian-invites/:inviteId/accept`, and `POST /v1/guardian-invites/:inviteId/decline`.
 3. Accepting a guardian invite now requires the authenticated user's email to match the invitee email, then creates backend family membership plus guardian-child links; declining leaves family access ungranted.
 4. `familyRelationshipService.getPendingInvitesForUser`, `acceptInvite`, and `declineInvite` now use those `/v1` routes in non-mock mode instead of failing closed or using local invite state.
 5. Verification: `npm --prefix apps/api run typecheck`, `npm run typecheck`, focused `LOG_LEVEL=fatal npx tsx --test src/modules/family-athlete/routes.test.ts` passed (`15/15`), `npm run test:family` passed (`53/53`), and `npm run verify:slice:full` passed with API tests `106/106` and `0` new API-boundary findings.
 
-## Previous Update
+## Earlier Update
 
 1. Continued `PROD-API-03` with the guardian sharing authority slice.
 2. Added backend-owned family guardian invite/cancel/remove routes: `POST /v1/families/:familyId/guardians`, `DELETE /v1/families/:familyId/guardian-invites/:inviteId`, and `DELETE /v1/families/:familyId/guardians/:guardianId`.
@@ -201,14 +209,14 @@ Date: 2026-05-27
 1. The rules are now strong enough to block new obvious slop, but not enough to claim elite production readiness.
 2. Main risk is API/source-of-truth maturity, not static UI quality.
 3. The current API boundary baseline is a ratchet, not a release pass: `102` legacy `/api/*`, `148` trust-sensitive local-storage patterns, `5` route literals, and `2` frontend raw fetches remain.
-4. Booking create/list/detail/cancel/reopen/complete are improved with db-fixture parent/coach/deny proof, completion now creates backend attendance plus progress-visible session-note proof records, repeat booking context now resolves through backend-visible booking truth, saved coaches now use self-scoped backend favourite relationships, and booking review status/submission now run through completed-booking backend authority without API-mode local review mirrors; coach profile review reads now use verified backend proof; multi-week package plus initial recurring-plan creation/list/detail/cancel/pause/resume/update now use backend series authority, recurring reschedule/cancel syncs or voids mutable linked invoices while blocking settled invoices, invoice money transitions now require authoritative booking linkage, legacy earnings payment/refund writes fail closed outside mock, direct invite acceptance creates db-mode bookings through booking repository authority, invite writes now emit allowed/denied audit events, guardian sharing invite/list/accept/decline/cancel/remove now uses backend family authority, billable group-session registration and waitlist promotion link booking/invoice/payment proof, group registration and session cancellation now apply invoice/refund hard walls, group session cancellation fans out to registrations/bookings/attendance, cancelled sessions reject new registration, group attendance writes now emit audit events, media/video creation now requires backend upload finalization plus clean scan proof, and injury frontend linkup now uses `/v1` without local fallback outside mock. Club admin operations, community writes, full invite repository extraction/idempotency, broader profile/storefront proof cleanup, and real malware scanning/storage verification remain the highest-risk gaps.
+4. Booking create/list/detail/cancel/reopen/complete are improved with db-fixture parent/coach/deny proof, completion now creates backend attendance plus progress-visible session-note proof records, repeat booking context now resolves through backend-visible booking truth, saved coaches now use self-scoped backend favourite relationships, and booking review status/submission now run through completed-booking backend authority without API-mode local review mirrors; coach profile review reads now use verified backend proof; multi-week package plus initial recurring-plan creation/list/detail/cancel/pause/resume/update now use backend series authority, recurring reschedule/cancel syncs or voids mutable linked invoices while blocking settled invoices, invoice money transitions now require authoritative booking linkage, legacy earnings payment/refund writes fail closed outside mock, direct invite create/respond has backend idempotency/replay hardening, direct invite acceptance creates db-mode bookings through booking repository authority, invite writes now emit allowed/denied audit events, guardian sharing invite/list/accept/decline/cancel/remove now uses backend family authority, billable group-session registration and waitlist promotion link booking/invoice/payment proof, group registration and session cancellation now apply invoice/refund hard walls, group session cancellation fans out to registrations/bookings/attendance, cancelled sessions reject new registration, group attendance writes now emit audit events, media/video creation now requires backend upload finalization plus clean scan proof, and injury frontend linkup now uses `/v1` without local fallback outside mock. Club admin operations, community writes, full invite repository extraction, broader profile/storefront proof cleanup, and real malware scanning/storage verification remain the highest-risk gaps.
 5. Production rehearsal must wait until P0 journeys have API authority plus UI linkup packets complete.
 
 ## Next Exact Action
 
 1. Clear the Supabase staging database readiness issue that makes `npm run smoke:api-mode:strict` fail with `DATABASE_UNAVAILABLE`.
 2. Keep `OBS-RUNTIME-01` green: Sentry is clean, API-mode Expo must continue to start only with `apps/api` reachable.
-3. Continue backend-authoritative delivery burn-down with the next high-risk slice: full invite repository extraction/idempotency, club admin operations, community writes, broader profile/storefront proof cleanup, or guardian permission/versioning.
+3. Continue backend-authoritative delivery burn-down with the next high-risk slice: full invite repository extraction, club admin operations, community writes, broader profile/storefront proof cleanup, or guardian permission/versioning.
 4. Keep `/v1/meta/seed-health` and `/v1/drills` marked as cleanup candidates: auth-gate, disable, or delete before production.
 5. Keep `node ./scripts/api-boundary-audit.js` green on every slice.
 6. Do not run production rehearsal until booking, child readiness, payment/refund, attendance, proof, club operations, and compliance evidence have backend-authoritative launch paths.

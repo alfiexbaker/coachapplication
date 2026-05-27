@@ -2714,6 +2714,7 @@ describe('p0 core routes', () => {
       focus: string,
       proposedSlot: { date: string; startTime: string; endTime: string; location?: string },
       groupId?: string,
+      idempotencyKey?: string,
     ) =>
       app.inject({
         method: 'POST',
@@ -2735,6 +2736,7 @@ describe('p0 core routes', () => {
           priceMinor: 3500,
           durationMinutes: 60,
           ...(groupId ? { groupId } : {}),
+          ...(idempotencyKey ? { idempotencyKey } : {}),
         },
       });
 
@@ -2797,6 +2799,43 @@ describe('p0 core routes', () => {
       }).length,
       1,
     );
+
+    const idempotentSlot = await getFirstAvailableSlot({
+      app,
+      tables,
+      authUserId: coachUserId,
+      coachUserId,
+      excludePendingInvites: true,
+    });
+    const inviteCountBeforeIdempotentCreate = asRows(store.tables.invites).length;
+    const idempotentKey = 'session-invite-create-idempotency-test';
+    const idempotentCreate = await createInvite(
+      'Idempotent Create',
+      idempotentSlot,
+      undefined,
+      idempotentKey,
+    );
+    assert.equal(idempotentCreate.statusCode, 201);
+    const idempotentPayload = idempotentCreate.json() as { invite: { id: string } };
+    assert.equal(asRows(store.tables.invites).length, inviteCountBeforeIdempotentCreate + 1);
+
+    const idempotentReplay = await createInvite(
+      'Idempotent Create',
+      idempotentSlot,
+      undefined,
+      idempotentKey,
+    );
+    assert.equal(idempotentReplay.statusCode, 201);
+    assert.equal((idempotentReplay.json() as { invite: { id: string } }).invite.id, idempotentPayload.invite.id);
+    assert.equal(asRows(store.tables.invites).length, inviteCountBeforeIdempotentCreate + 1);
+
+    const idempotentConflict = await createInvite(
+      'Changed Idempotent Create',
+      idempotentSlot,
+      undefined,
+      idempotentKey,
+    );
+    assert.equal(idempotentConflict.statusCode, 409);
 
     const groupList = await app.inject({
       method: 'GET',
@@ -2986,6 +3025,93 @@ describe('p0 core routes', () => {
       },
     });
     assert.equal(createdBooking.statusCode, 200);
+
+    const declineAcceptedInvite = await app.inject({
+      method: 'POST',
+      url: `/v1/invites/${acceptedPayload.invite.id}/respond`,
+      headers: {
+        'x-auth-user-id': parentUserId,
+        'x-auth-roles': rolesForUser(tables, parentUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, parentUserId)[0] ?? 'parent',
+      },
+      payload: {
+        response: 'DECLINED',
+      },
+    });
+    assert.equal(declineAcceptedInvite.statusCode, 409);
+    assert.equal(
+      auditEventsFor(store.tables, {
+        action: 'invite.respond',
+        resourceId: acceptedPayload.invite.id,
+        result: 'DENY',
+      }).some(
+        (event) =>
+          asString(asRecord(event.metadataJson)?.reason) === 'response_already_recorded',
+      ),
+      true,
+    );
+
+    const declinedSlot = await getFirstAvailableSlot({
+      app,
+      tables,
+      authUserId: coachUserId,
+      coachUserId,
+      excludePendingInvites: true,
+    });
+    const declinedCreate = await createInvite('Decision Making', declinedSlot);
+    assert.equal(declinedCreate.statusCode, 201);
+    const declinedPayload = declinedCreate.json() as {
+      invite: { id: string };
+    };
+    const declineInvite = await app.inject({
+      method: 'POST',
+      url: `/v1/invites/${declinedPayload.invite.id}/respond`,
+      headers: {
+        'x-auth-user-id': parentUserId,
+        'x-auth-roles': rolesForUser(tables, parentUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, parentUserId)[0] ?? 'parent',
+      },
+      payload: {
+        response: 'DECLINED',
+      },
+    });
+    assert.equal(declineInvite.statusCode, 200);
+    assert.equal((declineInvite.json() as { invite: { status: string } }).invite.status, 'DECLINED');
+
+    const declineReplay = await app.inject({
+      method: 'POST',
+      url: `/v1/invites/${declinedPayload.invite.id}/respond`,
+      headers: {
+        'x-auth-user-id': parentUserId,
+        'x-auth-roles': rolesForUser(tables, parentUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, parentUserId)[0] ?? 'parent',
+      },
+      payload: {
+        response: 'DECLINED',
+      },
+    });
+    assert.equal(declineReplay.statusCode, 200);
+    const declineReplayAudit = auditEventsFor(store.tables, {
+      action: 'invite.respond',
+      resourceId: declinedPayload.invite.id,
+      result: 'SUCCESS',
+    }).at(-1);
+    assert.equal(asRecord(declineReplayAudit?.metadataJson)?.replay, true);
+
+    const acceptDeclinedInvite = await app.inject({
+      method: 'POST',
+      url: `/v1/invites/${declinedPayload.invite.id}/respond`,
+      headers: {
+        'x-auth-user-id': parentUserId,
+        'x-auth-roles': rolesForUser(tables, parentUserId).join(',') || 'parent',
+        'x-acting-role': rolesForUser(tables, parentUserId)[0] ?? 'parent',
+      },
+      payload: {
+        response: 'ACCEPTED',
+        selectedSlot: declinedSlot,
+      },
+    });
+    assert.equal(acceptDeclinedInvite.statusCode, 409);
 
     const cancelledSlot = await getFirstAvailableSlot({
       app,

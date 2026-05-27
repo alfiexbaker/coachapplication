@@ -93,6 +93,7 @@ export interface CreateInviteInput {
   recurrenceWeeks?: number;
   coverImageUrl?: string;
   locationCoordinates?: { latitude: number; longitude: number };
+  idempotencyKey?: string;
 }
 
 export interface RespondToInviteInput {

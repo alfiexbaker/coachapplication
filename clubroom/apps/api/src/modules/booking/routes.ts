@@ -15,7 +15,7 @@ import {
   resumeBookingSeriesRequestSchema,
   updateBookingSeriesRequestSchema,
 } from '@clubroom/shared-contracts';
-import { ApiProblemError, badRequest, forbidden, notFound } from '../../lib/http-errors.js';
+import { ApiProblemError, badRequest, conflict, forbidden, notFound } from '../../lib/http-errors.js';
 import {
   resolveCreateBookingIdempotency,
   resolveBookingRepository,
@@ -62,6 +62,8 @@ const isoNow = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 const bookingSeriesIdSchema = z.string().regex(/^rec_[A-Za-z0-9-]+$/);
 const coachIdSchema = z.string().trim().min(1);
+const INVITE_CREATE_ENDPOINT_KEY = 'POST:/v1/invites';
+const INVITE_IDEMPOTENCY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 async function recordInviteAudit(params: {
   request: FastifyRequest;
@@ -364,6 +366,10 @@ function isInviteDismissed(target: SeedRow | undefined): boolean {
   return asBoolean(responsePayload?.dismissed) === true;
 }
 
+function isTerminalInviteResponseStatus(status: string | undefined): status is 'ACCEPTED' | 'DECLINED' {
+  return status === 'ACCEPTED' || status === 'DECLINED';
+}
+
 function buildSessionInviteView(params: {
   tables: SeedTables;
   invite: SeedRow;
@@ -509,7 +515,111 @@ const createInviteRequestSchema = z.object({
     })
     .optional(),
   currency: z.string().trim().length(3).optional(),
+  idempotencyKey: z.string().trim().min(8).max(200).optional(),
 });
+
+type CreateInviteRequest = z.infer<typeof createInviteRequestSchema>;
+
+function getMutableRows(tables: SeedTables, key: string): SeedRow[] {
+  if (!Array.isArray(tables[key])) {
+    tables[key] = [];
+  }
+  return tables[key];
+}
+
+function canonicalizeJson(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(canonicalizeJson);
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, entry]) => [key, canonicalizeJson(entry)]),
+    );
+  }
+  return value;
+}
+
+function hashCreateInviteRequest(body: CreateInviteRequest): string {
+  return crypto
+    .createHash('sha256')
+    .update(JSON.stringify(canonicalizeJson(body)))
+    .digest('hex');
+}
+
+function assertMatchingInviteIdempotencyRequest(entry: SeedRow, requestHash: string): void {
+  if (asString(entry.requestHash) !== requestHash) {
+    throw conflict('Idempotency key was already used with a different invite payload');
+  }
+}
+
+function findSeedCreateInviteIdempotency(params: {
+  tables: SeedTables;
+  authUserId: string;
+  body: CreateInviteRequest;
+}): { invite: SeedRow; targets: SeedRow[]; responseStatus: number } | null {
+  if (!params.body.idempotencyKey) {
+    return null;
+  }
+
+  const requestHash = hashCreateInviteRequest(params.body);
+  const entry = asRows(params.tables.idempotencyKeys).find(
+    (row) =>
+      asString(row.userId) === params.authUserId &&
+      asString(row.endpointKey) === INVITE_CREATE_ENDPOINT_KEY &&
+      asString(row.idempotencyKey) === params.body.idempotencyKey,
+  );
+  if (!entry) {
+    return null;
+  }
+
+  assertMatchingInviteIdempotencyRequest(entry, requestHash);
+  const responseBody = asObject(entry.responseBodyJson);
+  const inviteId = asString(responseBody?.inviteId) ?? asString(asObject(responseBody?.invite)?.id);
+  if (!inviteId) {
+    throw conflict('Stored invite idempotency response is no longer valid');
+  }
+
+  const invite = asRows(params.tables.invites).find((row) => asString(row.id) === inviteId);
+  if (!invite) {
+    throw conflict('Stored invite idempotency response is no longer valid');
+  }
+
+  return {
+    invite,
+    targets: asRows(params.tables.inviteTargets).filter(
+      (target) => asString(target.inviteId) === inviteId,
+    ),
+    responseStatus: asNumber(entry.responseStatus) ?? 201,
+  };
+}
+
+function recordSeedCreateInviteIdempotency(params: {
+  tables: SeedTables;
+  authUserId: string;
+  body: CreateInviteRequest;
+  inviteId: string;
+  now: string;
+}): void {
+  if (!params.body.idempotencyKey) {
+    return;
+  }
+
+  getMutableRows(params.tables, 'idempotencyKeys').push({
+    id: newId('idk'),
+    userId: params.authUserId,
+    endpointKey: INVITE_CREATE_ENDPOINT_KEY,
+    idempotencyKey: params.body.idempotencyKey,
+    requestHash: hashCreateInviteRequest(params.body),
+    responseStatus: 201,
+    responseBodyJson: {
+      inviteId: params.inviteId,
+    },
+    createdAt: params.now,
+    expiresAt: new Date(Date.parse(params.now) + INVITE_IDEMPOTENCY_TTL_MS).toISOString(),
+  });
+}
 
 const bookingRoutes: FastifyPluginAsync = async (app) => {
   app.get('/coaches/:coachId/reviews', async (request, reply) => {
@@ -1454,6 +1564,23 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const store = getInviteRuntimeStore();
+    const idempotentResponse = findSeedCreateInviteIdempotency({
+      tables: store.tables,
+      authUserId,
+      body,
+    });
+    if (idempotentResponse) {
+      return reply.status(idempotentResponse.responseStatus).send({
+        invite: buildSessionInviteView({
+          tables: store.tables,
+          invite: idempotentResponse.invite,
+          targets: idempotentResponse.targets,
+        }),
+        seedVersion: store.version,
+        requestId: request.requestId,
+      });
+    }
+
     const groupSessionRepository = resolveGroupSessionRepository();
     const users = asRows(store.tables.users);
     const coachExists = users.some((row) => asString(row.id) === body.coachUserId);
@@ -1585,6 +1712,13 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         existingSessionId: body.existingSessionId ?? null,
         targetIds: createdTargets.map((target) => asString(target.id)).filter(Boolean),
       },
+    });
+    recordSeedCreateInviteIdempotency({
+      tables: store.tables,
+      authUserId,
+      body,
+      inviteId,
+      now,
     });
 
     return reply.status(201).send({
@@ -1869,14 +2003,24 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
 
     const now = isoNow();
     const existingBookingId = asString(invite.bookingId);
-    if (
-      body.response === 'ACCEPTED' &&
-      asString(invite.status) === 'ACCEPTED' &&
-      existingBookingId
-    ) {
-      const existingBooking = await resolveBookingRepository().getVisibleBookingById({
-        authUserId,
-        bookingId: existingBookingId,
+    const visibleTargetStatuses = visibleTargets.map(
+      (target) => asString(target.status)?.toUpperCase() ?? 'PENDING',
+    );
+    const allVisibleTargetsAlreadyMatch =
+      visibleTargetStatuses.length > 0 &&
+      visibleTargetStatuses.every((status) => status === body.response);
+    const hasTerminalVisibleTarget = visibleTargetStatuses.some(isTerminalInviteResponseStatus);
+    if (allVisibleTargetsAlreadyMatch) {
+      const existingBooking = existingBookingId
+        ? await resolveBookingRepository().getVisibleBookingById({
+            authUserId,
+            bookingId: existingBookingId,
+          })
+        : null;
+      const replayInvite = buildSessionInviteView({
+        tables: store.tables,
+        invite,
+        targets: visibleTargets,
       });
       await recordInviteAudit({
         request,
@@ -1887,29 +2031,42 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         metadata: {
           replay: true,
           response: body.response,
-          status: asString(invite.status) ?? 'ACCEPTED',
-          targetStatus: asString(visibleTargets[0]?.status) ?? 'ACCEPTED',
-          bookingId: existingBooking.id,
+          status: asString(invite.status) ?? body.response,
+          targetStatus: asString(visibleTargets[0]?.status) ?? body.response,
+          bookingId: existingBooking?.id ?? existingBookingId ?? null,
         },
       });
       return reply.send({
-        invite: buildSessionInviteView({
-          tables: store.tables,
-          invite,
-          targets: visibleTargets,
-        }),
+        invite: replayInvite,
         inviteId,
-        response: 'ACCEPTED',
-        status: asString(invite.status) ?? 'ACCEPTED',
-        targetStatus: asString(visibleTargets[0]?.status) ?? 'ACCEPTED',
+        response: body.response,
+        status: asString(invite.status) ?? body.response,
+        targetStatus: asString(visibleTargets[0]?.status) ?? body.response,
         respondedAt: asString(visibleTargets[0]?.respondedAt) ?? now,
-        selectedSlot: body.selectedSlot,
-        bookingId: existingBooking.id,
+        selectedSlot: body.selectedSlot ?? replayInvite.selectedSlot,
+        bookingId: existingBooking?.id ?? existingBookingId ?? null,
         registrationId: null,
         registrationStatus: null,
         booking: existingBooking,
         requestId: request.requestId,
       });
+    }
+    if (hasTerminalVisibleTarget) {
+      await recordInviteAudit({
+        request,
+        action: 'invite.respond',
+        resourceId: inviteId,
+        subjectUserId: authUserId,
+        result: 'DENY',
+        metadata: {
+          reason: 'response_already_recorded',
+          requestedResponse: body.response,
+          status: asString(invite.status) ?? null,
+          targetStatuses: visibleTargetStatuses,
+          bookingId: existingBookingId ?? null,
+        },
+      });
+      throw conflict('Invite response has already been recorded');
     }
 
     let registrationId: string | null = null;

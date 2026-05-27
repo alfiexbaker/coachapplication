@@ -70,6 +70,7 @@ interface CreateSessionInviteAuthorityInput {
   recurrenceWeeks?: number;
   coverImageUrl?: string;
   locationCoordinates?: { latitude: number; longitude: number };
+  idempotencyKey?: string;
 }
 
 async function resolveInviteAccessHeaders(): Promise<Result<Record<string, string>, ServiceError>> {
@@ -108,6 +109,47 @@ function buildInviteListPath(params: {
 
   const query = search.toString();
   return query.length > 0 ? `/v1/invites?${query}` : '/v1/invites';
+}
+
+function hashStableString(value: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function buildSessionInviteIdempotencyKey(input: CreateSessionInviteAuthorityInput): string {
+  const payload = JSON.stringify({
+    coachUserId: toApiUserId(input.coachId),
+    clubName: input.clubName ?? null,
+    inviteType: input.inviteType ?? 'OPEN',
+    squadIds: [...(input.squadIds ?? [])].sort(),
+    athleteIds: input.athleteIds.map((athleteId) => toApiAthleteId(athleteId)).sort(),
+    parentUserId: toApiUserId(input.parentId),
+    proposedSlots: input.proposedSlots.map((slot) => ({
+      date: slot.date,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      location: slot.location ?? null,
+    })),
+    sessionType: input.sessionType,
+    sessionTemplateId: input.sessionTemplateId ?? null,
+    focus: input.focus,
+    notes: input.notes ?? null,
+    priceMinor:
+      typeof input.price === 'number' ? Math.max(0, Math.round(input.price * 100)) : null,
+    durationMinutes: typeof input.duration === 'number' ? input.duration : null,
+    expiresInDays: typeof input.expiresInDays === 'number' ? input.expiresInDays : null,
+    groupId: input.groupId ?? null,
+    existingSessionId: input.existingSessionId ?? null,
+    isRecurring: input.isRecurring ?? false,
+    recurrenceWeeks: typeof input.recurrenceWeeks === 'number' ? input.recurrenceWeeks : null,
+    coverImageUrl: input.coverImageUrl ?? null,
+    locationCoordinates: input.locationCoordinates ?? null,
+  });
+  return `session_invite_${hashStableString(payload)}`;
 }
 
 class SessionInviteAuthorityService {
@@ -174,6 +216,7 @@ class SessionInviteAuthorityService {
           : {}),
         ...(input.coverImageUrl ? { coverImageUrl: input.coverImageUrl } : {}),
         ...(input.locationCoordinates ? { locationCoordinates: input.locationCoordinates } : {}),
+        idempotencyKey: input.idempotencyKey ?? buildSessionInviteIdempotencyKey(input),
       }),
     });
     if (!result.success) {
