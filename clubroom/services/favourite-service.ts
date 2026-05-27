@@ -10,15 +10,20 @@
  * - Check favourite status for UI state
  * - Toggle favourite with optimistic UI support
  *
- * Storage: AsyncStorage (mock data for development)
- * API Integration Notes:
- * - POST /api/favourites - Create favourite
- * - DELETE /api/favourites/:id - Remove favourite
- * - GET /api/favourites?userId=X - Get user's favourites
- * - GET /api/favourites/check?userId=X&coachId=Y - Check if favourited
+ * Mock storage: AsyncStorage
+ * API authority:
+ * - GET /v1/me/favourite-coaches
+ * - GET /v1/me/favourite-coaches/:coachId
+ * - POST /v1/me/favourite-coaches/:coachId
+ * - DELETE /v1/me/favourite-coaches/:coachId
  */
 
-import { apiClient } from './api-client';
+import { apiClient, apiFetch } from './api-client';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+} from '@/services/api-auth-context';
 import type { FavouriteCoach, SportCategory } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
@@ -120,8 +125,50 @@ export interface AddFavouriteInput {
   note?: string;
 }
 
+interface ApiFavouriteResponse {
+  favourite: FavouriteCoach;
+  isFavourite: boolean;
+  requestId: string;
+}
+
+interface ApiFavouriteStatusResponse {
+  coachId: string;
+  isFavourite: boolean;
+  favourite: FavouriteCoach | null;
+  requestId: string;
+}
+
+interface ApiFavouriteListResponse {
+  favourites: FavouriteCoach[];
+  total: number;
+  seedVersion?: string | null;
+  requestId: string;
+}
+
+async function resolveFavouriteHeaders(): Promise<Result<Record<string, string>, ServiceError>> {
+  const currentUserResult = await resolveSignedInApiUser('Sign in to manage saved coaches.');
+  if (!currentUserResult.success) {
+    return currentUserResult;
+  }
+
+  return ok(
+    buildApiAuthHeaders({
+      actingRole: deriveApiActingRole(currentUserResult.data, 'parent'),
+    }),
+  );
+}
+
+function normalizeApiFavourite(favourite: FavouriteCoach): FavouriteCoach {
+  return {
+    ...favourite,
+    isFavourite: favourite.isFavourite !== false,
+  };
+}
+
 export const favouriteService = {
   async isUsingDemoSeed(userId: string): Promise<boolean> {
+    if (!apiClient.isMockMode) return false;
+
     const stored = await apiClient.get<FavouriteCoach[] | null>(STORAGE_KEYS.FAVOURITES, null);
     if (stored && stored.length > 0) return false;
     const favourites = await loadFavourites();
@@ -132,6 +179,37 @@ export const favouriteService = {
    * Returns the new favourite if created, or existing favourite if already exists
    */
   async addFavourite(input: AddFavouriteInput): Promise<Result<FavouriteCoach, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const headersResult = await resolveFavouriteHeaders();
+      if (!headersResult.success) return headersResult;
+
+      const result = await apiFetch<ApiFavouriteResponse>(
+        `/v1/me/favourite-coaches/${encodeURIComponent(input.coachId)}`,
+        {
+          method: 'POST',
+          headers: {
+            ...headersResult.data,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...(input.note ? { note: input.note } : {}),
+          }),
+        },
+      );
+      if (!result.success) {
+        logger.error('Failed to add favourite via API', { input, error: result.error });
+        return err(result.error);
+      }
+
+      const favourite = normalizeApiFavourite(result.data.favourite);
+      emitTyped(ServiceEvents.FAVOURITE_ADDED, {
+        userId: favourite.userId,
+        coachId: favourite.coachId,
+        favouriteId: favourite.id,
+      });
+      return ok(favourite);
+    }
+
     try {
       favouritesCache = await loadFavourites();
 
@@ -195,6 +273,31 @@ export const favouriteService = {
    * Remove a coach from user's favourites (soft delete)
    */
   async removeFavourite(userId: string, coachId: string): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const headersResult = await resolveFavouriteHeaders();
+      if (!headersResult.success) return headersResult;
+
+      const result = await apiFetch<ApiFavouriteResponse>(
+        `/v1/me/favourite-coaches/${encodeURIComponent(coachId)}`,
+        {
+          method: 'DELETE',
+          headers: headersResult.data,
+        },
+      );
+      if (!result.success) {
+        logger.error('Failed to remove favourite via API', { userId, coachId, error: result.error });
+        return err(result.error);
+      }
+
+      const favourite = normalizeApiFavourite(result.data.favourite);
+      emitTyped(ServiceEvents.FAVOURITE_REMOVED, {
+        userId: favourite.userId,
+        coachId: favourite.coachId,
+        favouriteId: favourite.id,
+      });
+      return ok(undefined);
+    }
+
     try {
       favouritesCache = await loadFavourites();
 
@@ -228,6 +331,26 @@ export const favouriteService = {
    * Get all favourited coaches for a user
    */
   async getFavourites(userId: string): Promise<Result<FavouriteCoach[], ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const headersResult = await resolveFavouriteHeaders();
+      if (!headersResult.success) return headersResult;
+
+      const result = await apiFetch<ApiFavouriteListResponse>('/v1/me/favourite-coaches', {
+        method: 'GET',
+        headers: headersResult.data,
+      });
+      if (!result.success) {
+        logger.error('Failed to get favourites via API', { userId, error: result.error });
+        return err(result.error);
+      }
+
+      return ok(
+        result.data.favourites
+          .map(normalizeApiFavourite)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+      );
+    }
+
     try {
       favouritesCache = await loadFavourites();
       return ok(
@@ -245,6 +368,25 @@ export const favouriteService = {
    * Check if a user has favourited a specific coach
    */
   async isFavourite(userId: string, coachId: string): Promise<Result<boolean, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const headersResult = await resolveFavouriteHeaders();
+      if (!headersResult.success) return headersResult;
+
+      const result = await apiFetch<ApiFavouriteStatusResponse>(
+        `/v1/me/favourite-coaches/${encodeURIComponent(coachId)}`,
+        {
+          method: 'GET',
+          headers: headersResult.data,
+        },
+      );
+      if (!result.success) {
+        logger.error('Failed to check favourite status via API', { userId, coachId, error: result.error });
+        return err(result.error);
+      }
+
+      return ok(result.data.isFavourite);
+    }
+
     try {
       favouritesCache = await loadFavourites();
       return ok(
@@ -300,6 +442,14 @@ export const favouriteService = {
   async getFavouriteById(
     favouriteId: string,
   ): Promise<Result<FavouriteCoach | null, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const favouritesResult = await this.getFavourites('');
+      if (!favouritesResult.success) {
+        return favouritesResult;
+      }
+      return ok(favouritesResult.data.find((f) => f.id === favouriteId) ?? null);
+    }
+
     try {
       favouritesCache = await loadFavourites();
       return ok(favouritesCache.find((f) => f.id === favouriteId && f.isFavourite) || null);
@@ -317,6 +467,36 @@ export const favouriteService = {
     coachId: string,
     note: string,
   ): Promise<Result<FavouriteCoach | null, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const headersResult = await resolveFavouriteHeaders();
+      if (!headersResult.success) return headersResult;
+
+      const result = await apiFetch<ApiFavouriteResponse>(
+        `/v1/me/favourite-coaches/${encodeURIComponent(coachId)}`,
+        {
+          method: 'POST',
+          headers: {
+            ...headersResult.data,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ note }),
+        },
+      );
+      if (!result.success) {
+        if (result.error.code === 'NOT_FOUND') {
+          return ok(null);
+        }
+        logger.error('Failed to update favourite note via API', {
+          userId,
+          coachId,
+          error: result.error,
+        });
+        return err(result.error);
+      }
+
+      return ok(normalizeApiFavourite(result.data.favourite));
+    }
+
     try {
       favouritesCache = await loadFavourites();
 
@@ -355,6 +535,10 @@ export const favouriteService = {
    * Reset to mock data (for testing)
    */
   async resetToMockData(): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return err(storageError('Favourite mock reset is only available in mock mode'));
+    }
+
     try {
       favouritesCache = [...MOCK_FAVOURITES];
       await saveFavourites(favouritesCache);
@@ -369,6 +553,10 @@ export const favouriteService = {
    * Clear all favourites (for testing)
    */
   async clearAll(): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return err(storageError('Favourite mock clearing is only available in mock mode'));
+    }
+
     try {
       favouritesCache = [];
       await saveFavourites(favouritesCache);
@@ -380,6 +568,10 @@ export const favouriteService = {
   },
 
   async dismissDemoFavourites(): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return ok(undefined);
+    }
+
     try {
       favouritesCache = [];
       await apiClient.set(STORAGE_KEYS.FAVOURITES, []);

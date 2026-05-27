@@ -1,12 +1,15 @@
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
+import { z } from 'zod';
 import { getClubGovernanceSnapshot, parseOrganizationRole } from '@clubroom/shared-contracts';
+import { recordAuditEvent } from '../../lib/audit-runtime.js';
 import { canUseStaffInviteLinks, isPrivilegedAdminAuth } from '../../lib/authz.js';
-import { forbidden, notFound } from '../../lib/http-errors.js';
+import { ApiProblemError, forbidden, notFound } from '../../lib/http-errors.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import {
   resetClubAuthorityRepositoryForTests,
   resolveClubAuthorityRepository,
 } from '../../repositories/p0/club-authority-repository.js';
+import { resolveCoachFavouriteRepository } from '../../repositories/p0/coach-favourite-repository.js';
 import { resolveCoachSelfRepository } from '../../repositories/p0/coach-self-repository.js';
 import {
   parseAvailabilitySlotQuery,
@@ -40,6 +43,15 @@ interface SchedulingRulesPatchBody {
   allowSameDayBookings?: boolean;
   cancellationPolicy?: CancellationPolicyPayload | null;
 }
+
+const favouriteCoachParamsSchema = z.object({
+  coachId: z.string().min(1),
+});
+
+const favouriteCoachBodySchema = z.object({
+  note: z.string().max(500).nullable().optional(),
+  userId: z.string().optional(),
+}).passthrough();
 
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined =>
@@ -78,6 +90,24 @@ function requireAuthUserId(authUserId: string | undefined): string {
     throw forbidden('Authenticated user is required');
   }
   return authUserId;
+}
+
+async function recordCoachFavouriteAudit(params: {
+  request: FastifyRequest;
+  action: string;
+  coachId: string;
+  result: 'SUCCESS' | 'DENY' | 'ERROR';
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  await recordAuditEvent({
+    request: params.request,
+    action: params.action,
+    resourceType: 'coach_favourite',
+    resourceId: params.coachId,
+    subjectUserId: params.request.auth?.userId ?? null,
+    result: params.result,
+    metadata: params.metadata,
+  });
 }
 
 function toDateOnly(value: string | undefined): string {
@@ -252,6 +282,112 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
+  });
+
+  app.get('/me/favourite-coaches', async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const repository = resolveCoachFavouriteRepository();
+    const result = await repository.listForUser(authUserId);
+
+    return reply.send({
+      favourites: result.favourites,
+      total: result.favourites.length,
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
+  app.get('/me/favourite-coaches/:coachId', async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const { coachId } = favouriteCoachParamsSchema.parse(request.params);
+    const repository = resolveCoachFavouriteRepository();
+    const result = await repository.getStatus(authUserId, coachId);
+
+    return reply.send({
+      coachId,
+      isFavourite: result.isFavourite,
+      favourite: result.favourite,
+      requestId: request.requestId,
+    });
+  });
+
+  app.post('/me/favourite-coaches/:coachId', async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const { coachId } = favouriteCoachParamsSchema.parse(request.params);
+    const body = favouriteCoachBodySchema.parse(request.body ?? {});
+    const repository = resolveCoachFavouriteRepository();
+
+    try {
+      if (coachId === authUserId) {
+        throw forbidden('You cannot save your own coach profile');
+      }
+
+      const favourite = await repository.saveForUser({
+        userId: authUserId,
+        coachUserId: coachId,
+        note: body.note,
+      });
+      await recordCoachFavouriteAudit({
+        request,
+        action: 'coach_favourite.save',
+        coachId,
+        result: 'SUCCESS',
+        metadata: {
+          ignoredBodyUserId: body.userId ?? null,
+        },
+      });
+
+      return reply.code(201).send({
+        favourite,
+        isFavourite: true,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordCoachFavouriteAudit({
+        request,
+        action: 'coach_favourite.save',
+        coachId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          ignoredBodyUserId: body.userId ?? null,
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+        },
+      });
+      throw error;
+    }
+  });
+
+  app.delete('/me/favourite-coaches/:coachId', async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const { coachId } = favouriteCoachParamsSchema.parse(request.params);
+    const repository = resolveCoachFavouriteRepository();
+
+    try {
+      const favourite = await repository.removeForUser(authUserId, coachId);
+      await recordCoachFavouriteAudit({
+        request,
+        action: 'coach_favourite.remove',
+        coachId,
+        result: 'SUCCESS',
+      });
+
+      return reply.send({
+        favourite,
+        isFavourite: false,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordCoachFavouriteAudit({
+        request,
+        action: 'coach_favourite.remove',
+        coachId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+        },
+      });
+      throw error;
+    }
   });
 
   app.get('/coaches/me/availability/templates', async (request, reply) => {

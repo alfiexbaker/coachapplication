@@ -682,11 +682,18 @@ export interface FavouriteCoach {
   /** ID of the favourited coach */
   coachId: string;
   /** Display name of the coach (denormalized for quick display) */
+  coachName?: string;
   /** Coach's avatar URL (denormalized for quick display) */
+  coachAvatar?: string;
   /** Coach's primary sport */
+  coachSport?: SportCategory;
   /** Coach's rating (denormalized snapshot) */
+  coachRating?: number;
   /** Coach's price range (denormalized snapshot) */
+  coachPriceMin?: number;
+  coachPriceMax?: number;
   /** Coach's location */
+  coachCity?: string;
   /** Whether this favourite is currently active */
   isFavourite: boolean;
   /** When the coach was favourited */

@@ -261,6 +261,7 @@ model User {
   notificationPreference NotificationPreference?
   mutedSources         MutedSource[]
   quietHours           QuietHours?
+  coachFavourites      CoachFavourite[] @relation("UserCoachFavourites")
 
   grantedAccess        AccessGrant[]      @relation("AccessGrantGrantor")
   receivedAccess       AccessGrant[]      @relation("AccessGrantGrantee")
@@ -622,6 +623,29 @@ model CoachProfile {
   schedulingRule     SchedulingRule?
   cancellationPolicies CancellationPolicyRule[]
   verifications      CoachVerification[]
+  favouritedBy       CoachFavourite[] @relation("CoachFavouritedBy")
+}
+
+model CoachFavourite {
+  id                 String   @id
+  userId             String
+  coachUserId        String
+  isFavourite        Boolean  @default(true)
+  note               String?
+  createdByUserId    String
+  updatedByUserId    String
+  version            BigInt   @default(1)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  deletedAt          DateTime?
+  deletedByUserId    String?
+
+  user               User         @relation("UserCoachFavourites", fields: [userId], references: [id], onDelete: Restrict)
+  coach              CoachProfile @relation("CoachFavouritedBy", fields: [coachUserId], references: [userId], onDelete: Restrict)
+
+  @@unique([userId, coachUserId])
+  @@index([userId, isFavourite, deletedAt])
+  @@index([coachUserId, isFavourite, deletedAt])
 }
 
 model CoachLocation {

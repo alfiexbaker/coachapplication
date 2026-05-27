@@ -113,6 +113,7 @@ async function main() {
     await tx.clubMembership.deleteMany();
     await tx.club.deleteMany();
     await tx.passwordCredential.deleteMany();
+    await tx.coachFavourite.deleteMany();
     await tx.cancellationPolicyRule.deleteMany();
     await tx.schedulingRule.deleteMany();
     await tx.availabilityOverride.deleteMany();
@@ -369,6 +370,24 @@ async function main() {
     }));
     if (coachingOfferings.length > 0) {
       await tx.coachingOffering.createMany({ data: coachingOfferings });
+    }
+
+    const coachFavourites = asRows(tables.coachFavourites).map((row) => ({
+      id: row.id,
+      userId: row.userId,
+      coachUserId: row.coachUserId ?? row.coachId,
+      isFavourite: asBoolean(row.isFavourite, true),
+      note: asString(row.note) ?? null,
+      createdByUserId: asString(row.createdByUserId) ?? asString(row.userId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.userId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (coachFavourites.length > 0) {
+      await tx.coachFavourite.createMany({ data: coachFavourites });
     }
 
     const availabilityTemplates = asRows(tables.availabilityTemplates).map((row) => ({

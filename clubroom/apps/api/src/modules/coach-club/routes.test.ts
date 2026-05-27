@@ -14,6 +14,20 @@ type SeedTables = Record<string, SeedRow[]>;
 
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
+const asRecord = (value: unknown): SeedRow | undefined =>
+  value && typeof value === 'object' && !Array.isArray(value) ? (value as SeedRow) : undefined;
+
+function auditEventsFor(
+  tables: SeedTables,
+  params: { action: string; resourceId?: string; result?: string },
+): SeedRow[] {
+  return asRows(tables.auditEvents).filter(
+    (row) =>
+      asString(row.action) === params.action &&
+      (params.resourceId === undefined || asString(row.resourceId) === params.resourceId) &&
+      (params.result === undefined || asString(row.result) === params.result),
+  );
+}
 
 function addDaysIso(days: number): string {
   const date = new Date();
@@ -474,6 +488,153 @@ describe('coach-club routes', () => {
       assert.equal(Number(storedTemplate?.bufferMinutes), 20);
       assert.equal(asString(storedOverride?.repeatGroupId), 'grp_fixture_override');
       assert.equal(Number(storedRules?.minimumAdvanceBookingHours), 48);
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetMarketplaceSeedStoreForTests();
+      resetDbFixtureStoreForTests();
+      resetCoachClubRouteStateForTests();
+    }
+  });
+
+  it('keeps favourite coaches self-scoped and backend-authoritative in db fixture mode', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const tables = loadTables();
+      const coachUserId = getSeededCoachUserId(tables);
+      const parentUserId = asString(asRows(tables.guardianChildLinks)[0]?.guardianUserId);
+      assert.ok(parentUserId, 'expected seeded guardian user');
+      const maliciousUserId = asString(
+        asRows(tables.users).find((row) => asString(row.id) !== parentUserId)?.id,
+      );
+      assert.ok(maliciousUserId, 'expected another user id for forged body proof');
+
+      const unauthenticated = await app.inject({
+        method: 'GET',
+        url: '/v1/me/favourite-coaches',
+      });
+      assert.equal(unauthenticated.statusCode, 403);
+
+      const saved = await app.inject({
+        method: 'POST',
+        url: `/v1/me/favourite-coaches/${coachUserId}`,
+        headers: authHeaders(tables, parentUserId, 'parent'),
+        payload: {
+          userId: maliciousUserId,
+          note: 'Preferred for repeat technical sessions',
+        },
+      });
+      assert.equal(saved.statusCode, 201);
+      const savedPayload = saved.json() as {
+        isFavourite: boolean;
+        favourite: { id: string; userId: string; coachId: string; coachName?: string; note?: string };
+      };
+      assert.equal(savedPayload.isFavourite, true);
+      assert.equal(savedPayload.favourite.userId, parentUserId);
+      assert.equal(savedPayload.favourite.coachId, coachUserId);
+      assert.equal(typeof savedPayload.favourite.coachName, 'string');
+      assert.equal(savedPayload.favourite.note, 'Preferred for repeat technical sessions');
+
+      const store = getDbFixtureStore();
+      const storedFavourite = asRows(store.tables.coachFavourites).find(
+        (row) => asString(row.id) === savedPayload.favourite.id,
+      );
+      assert.ok(storedFavourite, 'expected favourite persisted in db fixture store');
+      assert.equal(asString(storedFavourite.userId), parentUserId);
+      assert.equal(asString(storedFavourite.userId) === maliciousUserId, false);
+      assert.equal(asString(storedFavourite.coachUserId), coachUserId);
+
+      const list = await app.inject({
+        method: 'GET',
+        url: '/v1/me/favourite-coaches',
+        headers: authHeaders(tables, parentUserId, 'parent'),
+      });
+      assert.equal(list.statusCode, 200);
+      const listPayload = list.json() as { total: number; favourites: Array<{ id: string }> };
+      assert.equal(listPayload.total, 1);
+      assert.equal(listPayload.favourites[0]?.id, savedPayload.favourite.id);
+
+      const status = await app.inject({
+        method: 'GET',
+        url: `/v1/me/favourite-coaches/${coachUserId}`,
+        headers: authHeaders(tables, parentUserId, 'parent'),
+      });
+      assert.equal(status.statusCode, 200);
+      assert.equal((status.json() as { isFavourite: boolean }).isFavourite, true);
+
+      const deniedSelfSave = await app.inject({
+        method: 'POST',
+        url: `/v1/me/favourite-coaches/${coachUserId}`,
+        headers: authHeaders(tables, coachUserId, 'coach'),
+      });
+      assert.equal(deniedSelfSave.statusCode, 403);
+      assert.equal(
+        asRows(store.tables.coachFavourites).some(
+          (row) =>
+            asString(row.userId) === coachUserId &&
+            asString(row.coachUserId) === coachUserId &&
+            row.isFavourite === true,
+        ),
+        false,
+      );
+
+      const removed = await app.inject({
+        method: 'DELETE',
+        url: `/v1/me/favourite-coaches/${coachUserId}`,
+        headers: authHeaders(tables, parentUserId, 'parent'),
+      });
+      assert.equal(removed.statusCode, 200);
+      assert.equal((removed.json() as { isFavourite: boolean }).isFavourite, false);
+      assert.equal(asString(storedFavourite.deletedByUserId), parentUserId);
+      assert.equal(storedFavourite.isFavourite, false);
+
+      const removedStatus = await app.inject({
+        method: 'GET',
+        url: `/v1/me/favourite-coaches/${coachUserId}`,
+        headers: authHeaders(tables, parentUserId, 'parent'),
+      });
+      assert.equal(removedStatus.statusCode, 200);
+      assert.equal((removedStatus.json() as { isFavourite: boolean }).isFavourite, false);
+
+      const deniedRepeatRemove = await app.inject({
+        method: 'DELETE',
+        url: `/v1/me/favourite-coaches/${coachUserId}`,
+        headers: authHeaders(tables, parentUserId, 'parent'),
+      });
+      assert.equal(deniedRepeatRemove.statusCode, 404);
+
+      const saveAudit = auditEventsFor(store.tables, {
+        action: 'coach_favourite.save',
+        resourceId: coachUserId,
+        result: 'SUCCESS',
+      }).at(-1);
+      assert.equal(asString(saveAudit?.actorUserId), parentUserId);
+      assert.equal(asString(asRecord(saveAudit?.metadataJson)?.ignoredBodyUserId), maliciousUserId);
+      assert.equal(
+        auditEventsFor(store.tables, {
+          action: 'coach_favourite.save',
+          resourceId: coachUserId,
+          result: 'DENY',
+        }).some((row) => asString(row.actorUserId) === coachUserId),
+        true,
+      );
+      assert.equal(
+        auditEventsFor(store.tables, {
+          action: 'coach_favourite.remove',
+          resourceId: coachUserId,
+          result: 'SUCCESS',
+        }).some((row) => asString(row.actorUserId) === parentUserId),
+        true,
+      );
+      assert.equal(
+        auditEventsFor(store.tables, {
+          action: 'coach_favourite.remove',
+          resourceId: coachUserId,
+          result: 'DENY',
+        }).some((row) => asString(row.actorUserId) === parentUserId),
+        true,
+      );
     } finally {
       env.API_DATA_BACKEND = previousBackend;
       resetMarketplaceSeedStoreForTests();

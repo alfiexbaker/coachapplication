@@ -47,7 +47,7 @@ export const FavouriteCoachCard = memo(function FavouriteCoachCard({
 }: FavouriteCoachCardProps) {
   const router = useRouter();
   const { colors } = useTheme();
-  const coachName = favourite.note?.trim() || favourite.coachId;
+  const coachName = favourite.coachName?.trim() || favourite.note?.trim() || favourite.coachId;
   const coachInitials = coachName
     .split(' ')
     .map((part) => part[0])

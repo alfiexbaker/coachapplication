@@ -220,7 +220,7 @@ export const Endpoints = {
   social: {
     follows: () => `/api/social/follows`,
     followRequests: () => `/api/social/follow-requests`,
-    favourites: () => `/api/social/favourites`,
+    favourites: () => `/v1/me/favourite-coaches`,
     comments: () => `/api/social/comments`,
     commentDetail: (id: string) => `/api/social/comments/${id}`,
   },
