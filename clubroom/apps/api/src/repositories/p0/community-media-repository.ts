@@ -19,6 +19,7 @@ const nowIso = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 const IDEMPOTENCY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const GROUP_MESSAGE_CREATE_ENDPOINT_KEY = 'community.group-message.create';
+const THREAD_MESSAGE_CREATE_ENDPOINT_KEY = 'community.thread-message.create';
 const POST_COMMENT_CREATE_ENDPOINT_KEY = 'community.post-comment.create';
 const POST_CREATE_ENDPOINT_KEY = 'community.post.create';
 const STAFF_POST_ROLES = new Set(['ADMIN', 'CLUB_ADMIN', 'COACH', 'HEAD_COACH', 'OWNER', 'STAFF']);
@@ -69,6 +70,16 @@ export interface GroupMessageCreateParams extends CommunityMediaAccessParams {
   communityGroupId: string;
   body: string;
   idempotencyKey?: string;
+}
+
+export interface ThreadMessageCreateParams extends CommunityMediaAccessParams {
+  messageThreadId: string;
+  body: string;
+  idempotencyKey?: string;
+}
+
+export interface MessageDeleteParams extends CommunityMediaAccessParams {
+  messageId: string;
 }
 
 export interface GroupMessageReadParams extends CommunityMediaAccessParams {
@@ -158,6 +169,12 @@ export interface GroupMessageCreateResult {
   dataVersion: string | null;
 }
 
+export interface MessageMutationResult {
+  message: SeedRow;
+  thread: SeedRow;
+  dataVersion: string | null;
+}
+
 export interface GroupMessageReadResult {
   thread: SeedRow | null;
   dataVersion: string | null;
@@ -179,6 +196,8 @@ export interface CommunityMediaRepository {
   dismissAllNotifications(params: CommunityMediaAccessParams): Promise<NotificationBulkMutationResult>;
   updateNotificationPreferences(params: NotificationPreferenceUpdateParams): Promise<NotificationPreferenceMutationResult>;
   createGroupMessage(params: GroupMessageCreateParams): Promise<GroupMessageCreateResult>;
+  createThreadMessage(params: ThreadMessageCreateParams): Promise<MessageMutationResult>;
+  deleteMessage(params: MessageDeleteParams): Promise<MessageMutationResult>;
   markGroupMessagesRead(params: GroupMessageReadParams): Promise<GroupMessageReadResult>;
 }
 
@@ -224,6 +243,18 @@ function hashGroupMessageCreateRequest(params: GroupMessageCreateParams): string
     .update(
       JSON.stringify({
         communityGroupId: params.communityGroupId,
+        body: params.body,
+      }),
+    )
+    .digest('hex');
+}
+
+function hashThreadMessageCreateRequest(params: ThreadMessageCreateParams): string {
+  return crypto
+    .createHash('sha256')
+    .update(
+      JSON.stringify({
+        messageThreadId: params.messageThreadId,
         body: params.body,
       }),
     )
@@ -495,6 +526,26 @@ function hydrateStoreThread(tables: SeedTables, thread: SeedRow): SeedRow {
   };
 }
 
+function refreshStoreThreadLastMessage(
+  tables: SeedTables,
+  thread: SeedRow,
+  authUserId: string,
+  now: string,
+): void {
+  const threadId = asString(thread.id);
+  const latestMessage = activeRows(asRows(tables.messages))
+    .filter((row) => asString(row.messageThreadId) === threadId)
+    .sort(
+      (left, right) =>
+        Date.parse(asString(right.createdAt) ?? '') - Date.parse(asString(left.createdAt) ?? ''),
+    )[0];
+
+  thread.lastMessageAt = asString(latestMessage?.createdAt) ?? null;
+  thread.updatedAt = now;
+  thread.updatedByUserId = authUserId;
+  thread.version = Number(thread.version ?? 1) + 1;
+}
+
 function isVisibleNotification(row: SeedRow): boolean {
   return asString(row.dismissedAt) == null && String(row.status ?? '').toUpperCase() !== 'DISMISSED';
 }
@@ -609,6 +660,79 @@ function assertCanWriteStoreGroupMessages(
   return group;
 }
 
+function activeStoreThreadParticipant(
+  tables: SeedTables,
+  messageThreadId: string,
+  authUserId: string,
+): SeedRow | undefined {
+  return asRows(tables.messageParticipants).find(
+    (row) =>
+      asString(row.messageThreadId) === messageThreadId &&
+      asString(row.userId) === authUserId &&
+      asString(row.leftAt) == null,
+  );
+}
+
+function assertCanWriteStoreThreadMessages(
+  tables: SeedTables,
+  messageThreadId: string,
+  authUserId: string,
+): SeedRow {
+  const thread = activeRows(asRows(tables.messageThreads)).find(
+    (row) => asString(row.id) === messageThreadId,
+  );
+  if (!thread) {
+    throw notFound('Message thread not found', { messageThreadId });
+  }
+
+  if (!activeStoreThreadParticipant(tables, messageThreadId, authUserId)) {
+    throw forbidden('Message thread does not belong to authenticated user', {
+      messageThreadId,
+    });
+  }
+
+  return thread;
+}
+
+function assertCanDeleteStoreMessage(
+  tables: SeedTables,
+  messageId: string,
+  authUserId: string,
+  isPrivilegedAdmin: boolean,
+): { message: SeedRow; thread: SeedRow } {
+  const message = asRows(tables.messages).find((row) => asString(row.id) === messageId);
+  if (!message) {
+    throw notFound('Message not found', { messageId });
+  }
+  if (asString(message.deletedAt) != null) {
+    throw conflict('Message is already deleted', { messageId });
+  }
+
+  const messageThreadId = asString(message.messageThreadId);
+  const thread = activeRows(asRows(tables.messageThreads)).find(
+    (row) => asString(row.id) === messageThreadId,
+  );
+  if (!thread || !messageThreadId) {
+    throw notFound('Message thread not found', { messageId });
+  }
+
+  if (isPrivilegedAdmin) {
+    return { message, thread };
+  }
+  if (!activeStoreThreadParticipant(tables, messageThreadId, authUserId)) {
+    throw forbidden('Message thread does not belong to authenticated user', {
+      messageThreadId,
+    });
+  }
+  if (asString(message.senderUserId) !== authUserId) {
+    throw forbidden('Only the message sender or privileged admin can delete this message', {
+      messageId,
+    });
+  }
+
+  return { message, thread };
+}
+
 function ensureStoreGroupThread(
   tables: SeedTables,
   group: SeedRow,
@@ -709,6 +833,58 @@ function recordSeedGroupMessageCreateIdempotency(params: {
     endpointKey: GROUP_MESSAGE_CREATE_ENDPOINT_KEY,
     idempotencyKey: params.body.idempotencyKey,
     requestHash: hashGroupMessageCreateRequest(params.body),
+    responseStatus: 201,
+    responseBodyJson: params.response,
+    createdAt: params.now,
+    expiresAt: new Date(Date.parse(params.now) + IDEMPOTENCY_TTL_MS).toISOString(),
+  });
+}
+
+function findSeedThreadMessageCreateIdempotency(params: {
+  tables: SeedTables;
+  authUserId: string;
+  body: ThreadMessageCreateParams;
+}): MessageMutationResult | null {
+  if (!params.body.idempotencyKey) {
+    return null;
+  }
+
+  const requestHash = hashThreadMessageCreateRequest(params.body);
+  const entry = asRows(params.tables.idempotencyKeys).find(
+    (row) =>
+      asString(row.userId) === params.authUserId &&
+      asString(row.endpointKey) === THREAD_MESSAGE_CREATE_ENDPOINT_KEY &&
+      asString(row.idempotencyKey) === params.body.idempotencyKey,
+  );
+  if (!entry) {
+    return null;
+  }
+
+  assertMatchingIdempotencyRequest(
+    entry,
+    requestHash,
+    'Idempotency key was already used with a different direct message payload',
+  );
+  return normalizeAs<MessageMutationResult>(entry.responseBodyJson);
+}
+
+function recordSeedThreadMessageCreateIdempotency(params: {
+  tables: SeedTables;
+  authUserId: string;
+  body: ThreadMessageCreateParams;
+  response: MessageMutationResult;
+  now: string;
+}): void {
+  if (!params.body.idempotencyKey) {
+    return;
+  }
+
+  ensureRows(params.tables, 'idempotencyKeys').push({
+    id: newId('idk'),
+    userId: params.authUserId,
+    endpointKey: THREAD_MESSAGE_CREATE_ENDPOINT_KEY,
+    idempotencyKey: params.body.idempotencyKey,
+    requestHash: hashThreadMessageCreateRequest(params.body),
     responseStatus: 201,
     responseBodyJson: params.response,
     createdAt: params.now,
@@ -1372,6 +1548,109 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     return response;
   }
 
+  async createThreadMessage(params: ThreadMessageCreateParams): Promise<MessageMutationResult> {
+    const store = this.storeProvider();
+    const replay = findSeedThreadMessageCreateIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      body: params,
+    });
+    if (replay) {
+      return replay;
+    }
+
+    const body = params.body.trim();
+    if (!body) {
+      throw badRequest('Message body cannot be empty');
+    }
+    if (body.length > 4000) {
+      throw badRequest('Message body must be 4000 characters or fewer');
+    }
+
+    const now = nowIso();
+    const thread = assertCanWriteStoreThreadMessages(
+      store.tables,
+      params.messageThreadId,
+      params.authUserId,
+    );
+    const threadId = asString(thread.id) as string;
+    const message: SeedRow = {
+      id: newId('msg'),
+      messageThreadId: threadId,
+      senderUserId: params.authUserId,
+      content: body,
+      attachmentsJson: [],
+      editedAt: null,
+      deletedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    ensureRows(store.tables, 'messages').push(message);
+
+    const receipts = ensureRows(store.tables, 'messageReceipts');
+    for (const participant of asRows(store.tables.messageParticipants).filter(
+      (row) => asString(row.messageThreadId) === threadId && asString(row.leftAt) == null,
+    )) {
+      const userId = asString(participant.userId);
+      if (!userId) {
+        continue;
+      }
+      receipts.push({
+        id: newId('mrc'),
+        messageId: asString(message.id),
+        userId,
+        deliveredAt: now,
+        readAt: userId === params.authUserId ? now : null,
+        createdAt: now,
+        updatedAt: now,
+      });
+      if (userId === params.authUserId) {
+        participant.lastReadAt = now;
+      }
+    }
+
+    thread.lastMessageAt = now;
+    thread.updatedAt = now;
+    thread.updatedByUserId = params.authUserId;
+    thread.version = Number(thread.version ?? 1) + 1;
+
+    const response: MessageMutationResult = {
+      message: hydrateStoreMessage(store.tables, message),
+      thread: hydrateStoreThread(store.tables, thread),
+      dataVersion: store.version,
+    };
+    recordSeedThreadMessageCreateIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      body: params,
+      response,
+      now,
+    });
+    return response;
+  }
+
+  async deleteMessage(params: MessageDeleteParams): Promise<MessageMutationResult> {
+    const store = this.storeProvider();
+    const { message, thread } = assertCanDeleteStoreMessage(
+      store.tables,
+      params.messageId,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+
+    const now = nowIso();
+    message.content = '[deleted]';
+    message.deletedAt = now;
+    message.updatedAt = now;
+    refreshStoreThreadLastMessage(store.tables, thread, params.authUserId, now);
+
+    return {
+      message: hydrateStoreMessage(store.tables, message),
+      thread: hydrateStoreThread(store.tables, thread),
+      dataVersion: store.version,
+    };
+  }
+
   async markGroupMessagesRead(params: GroupMessageReadParams): Promise<GroupMessageReadResult> {
     const store = this.storeProvider();
     assertCanWriteStoreGroupMessages(store.tables, params.communityGroupId, params.authUserId);
@@ -1719,6 +1998,37 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     if (!membership) {
       throw forbidden('Community group does not belong to authenticated user', {
         communityGroupId,
+      });
+    }
+  }
+
+  private async assertCanWriteThreadMessages(
+    messageThreadId: string,
+    authUserId: string,
+  ): Promise<void> {
+    const prisma = getPrismaClientOrThrow();
+    const thread = await prisma.messageThread.findFirst({
+      where: {
+        id: messageThreadId,
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+    if (!thread) {
+      throw notFound('Message thread not found', { messageThreadId });
+    }
+
+    const participant = await prisma.messageParticipant.findFirst({
+      where: {
+        messageThreadId,
+        userId: authUserId,
+        leftAt: null,
+      },
+      select: { id: true },
+    });
+    if (!participant) {
+      throw forbidden('Message thread does not belong to authenticated user', {
+        messageThreadId,
       });
     }
   }
@@ -2711,6 +3021,230 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       throw notFound('Message was not created');
     }
     return response;
+  }
+
+  async createThreadMessage(params: ThreadMessageCreateParams): Promise<MessageMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.createThreadMessage(params);
+    }
+
+    await this.assertCanWriteThreadMessages(params.messageThreadId, params.authUserId);
+
+    const body = params.body.trim();
+    if (!body) {
+      throw badRequest('Message body cannot be empty');
+    }
+    if (body.length > 4000) {
+      throw badRequest('Message body must be 4000 characters or fewer');
+    }
+
+    const requestHash = hashThreadMessageCreateRequest(params);
+    const prisma = getPrismaClientOrThrow();
+    if (params.idempotencyKey) {
+      const existing = await prisma.idempotencyKey.findUnique({
+        where: {
+          userId_endpointKey_idempotencyKey: {
+            userId: params.authUserId,
+            endpointKey: THREAD_MESSAGE_CREATE_ENDPOINT_KEY,
+            idempotencyKey: params.idempotencyKey,
+          },
+        },
+      });
+      if (existing) {
+        assertMatchingIdempotencyRequest(
+          normalizeAs<SeedRow>(existing),
+          requestHash,
+          'Idempotency key was already used with a different direct message payload',
+        );
+        return normalizeAs<MessageMutationResult>(existing.responseBodyJson);
+      }
+    }
+
+    const now = new Date();
+    let response: MessageMutationResult | null = null;
+    await prisma.$transaction(async (tx) => {
+      const participants = await tx.messageParticipant.findMany({
+        where: {
+          messageThreadId: params.messageThreadId,
+          leftAt: null,
+        },
+      });
+      if (!participants.some((row) => row.userId === params.authUserId)) {
+        throw forbidden('Message thread does not belong to authenticated user', {
+          messageThreadId: params.messageThreadId,
+        });
+      }
+
+      const message = await tx.message.create({
+        data: {
+          id: newId('msg'),
+          messageThreadId: params.messageThreadId,
+          senderUserId: params.authUserId,
+          content: body,
+          attachmentsJson: [],
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+
+      await tx.messageReceipt.createMany({
+        data: participants.map((participant) => ({
+          id: newId('mrc'),
+          messageId: message.id,
+          userId: participant.userId,
+          deliveredAt: now,
+          readAt: participant.userId === params.authUserId ? now : null,
+          createdAt: now,
+          updatedAt: now,
+        })),
+        skipDuplicates: true,
+      });
+
+      await tx.messageParticipant.updateMany({
+        where: {
+          messageThreadId: params.messageThreadId,
+          userId: params.authUserId,
+          leftAt: null,
+        },
+        data: { lastReadAt: now },
+      });
+
+      await tx.messageThread.update({
+        where: { id: params.messageThreadId },
+        data: {
+          lastMessageAt: now,
+          updatedByUserId: params.authUserId,
+          version: { increment: 1 },
+        },
+      });
+
+      const hydratedThread = await tx.messageThread.findUnique({
+        where: { id: params.messageThreadId },
+        include: {
+          participants: {
+            where: { leftAt: null },
+          },
+          messages: {
+            where: { deletedAt: null },
+            include: { receipts: true },
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+      });
+      if (!hydratedThread) {
+        throw notFound('Message thread not found', { threadId: params.messageThreadId });
+      }
+      const hydratedMessage = hydratedThread.messages.find((row) => row.id === message.id);
+      if (!hydratedMessage) {
+        throw notFound('Message not found', { messageId: message.id });
+      }
+
+      response = {
+        message: normalizeAs<SeedRow>(hydratedMessage),
+        thread: normalizeAs<SeedRow>(hydratedThread),
+        dataVersion: null,
+      };
+
+      if (params.idempotencyKey) {
+        await tx.idempotencyKey.create({
+          data: {
+            id: newId('idk'),
+            userId: params.authUserId,
+            endpointKey: THREAD_MESSAGE_CREATE_ENDPOINT_KEY,
+            idempotencyKey: params.idempotencyKey,
+            requestHash,
+            responseStatus: 201,
+            responseBodyJson: response as never,
+            expiresAt: new Date(now.getTime() + IDEMPOTENCY_TTL_MS),
+          },
+        });
+      }
+    });
+
+    if (!response) {
+      throw notFound('Message was not created');
+    }
+    return response;
+  }
+
+  async deleteMessage(params: MessageDeleteParams): Promise<MessageMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.deleteMessage(params);
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const message = await prisma.message.findUnique({
+      where: { id: params.messageId },
+    });
+    if (!message) {
+      throw notFound('Message not found', { messageId: params.messageId });
+    }
+    if (message.deletedAt) {
+      throw conflict('Message is already deleted', { messageId: params.messageId });
+    }
+
+    if (!params.isPrivilegedAdmin) {
+      const participant = await prisma.messageParticipant.findFirst({
+        where: {
+          messageThreadId: message.messageThreadId,
+          userId: params.authUserId,
+          leftAt: null,
+        },
+        select: { id: true },
+      });
+      if (!participant) {
+        throw forbidden('Message thread does not belong to authenticated user', {
+          messageThreadId: message.messageThreadId,
+        });
+      }
+      if (message.senderUserId !== params.authUserId) {
+        throw forbidden('Only the message sender or privileged admin can delete this message', {
+          messageId: params.messageId,
+        });
+      }
+    }
+
+    const now = new Date();
+    let deletedMessage: SeedRow | null = null;
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.message.update({
+        where: { id: params.messageId },
+        data: {
+          content: '[deleted]',
+          deletedAt: now,
+          updatedAt: now,
+        },
+        include: { receipts: true },
+      });
+
+      const latestMessage = await tx.message.findFirst({
+        where: {
+          messageThreadId: message.messageThreadId,
+          deletedAt: null,
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true },
+      });
+      await tx.messageThread.update({
+        where: { id: message.messageThreadId },
+        data: {
+          lastMessageAt: latestMessage?.createdAt ?? null,
+          updatedByUserId: params.authUserId,
+          version: { increment: 1 },
+        },
+      });
+
+      deletedMessage = normalizeAs<SeedRow>(updated);
+    });
+
+    if (!deletedMessage) {
+      throw notFound('Message was not deleted');
+    }
+    return {
+      message: deletedMessage,
+      thread: await this.getHydratedThread(message.messageThreadId),
+      dataVersion: null,
+    };
   }
 
   async markGroupMessagesRead(params: GroupMessageReadParams): Promise<GroupMessageReadResult> {

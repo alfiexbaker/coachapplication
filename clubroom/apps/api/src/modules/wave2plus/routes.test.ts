@@ -174,6 +174,50 @@ function findClubPostActors(tables: SeedTables): {
   throw new Error('expected club with active staff and member actors');
 }
 
+function findDirectMessageThreadActors(tables: SeedTables): {
+  threadId: string;
+  senderUserId: string;
+  otherUserId: string;
+  existingMessageId: string;
+  participantUserIds: Set<string>;
+} {
+  for (const thread of asRows(tables.messageThreads)) {
+    const threadId = asString(thread.id);
+    if (!threadId || asString(thread.threadType) !== 'DIRECT' || asString(thread.deletedAt)) {
+      continue;
+    }
+
+    const participants = asRows(tables.messageParticipants).filter(
+      (row) => asString(row.messageThreadId) === threadId && asString(row.leftAt) == null,
+    );
+    const participantUserIds = participants
+      .map((row) => asString(row.userId))
+      .filter((userId): userId is string => Boolean(userId));
+    if (participantUserIds.length < 2) {
+      continue;
+    }
+
+    const messages = asRows(tables.messages).filter(
+      (row) => asString(row.messageThreadId) === threadId && !asString(row.deletedAt),
+    );
+    const existingMessage = messages.find((row) => asString(row.senderUserId) === participantUserIds[0]);
+    const existingMessageId = asString(existingMessage?.id);
+    if (!existingMessageId) {
+      continue;
+    }
+
+    return {
+      threadId,
+      senderUserId: participantUserIds[0] as string,
+      otherUserId: participantUserIds[1] as string,
+      existingMessageId,
+      participantUserIds: new Set(participantUserIds),
+    };
+  }
+
+  throw new Error('expected direct message thread with participants and messages');
+}
+
 function authHeaders(
   tables: SeedTables,
   userId: string,
@@ -2175,6 +2219,252 @@ describe('wave2+ routes', () => {
           thread.messages.some((message) => message.content === 'DB fixture community write'),
         ),
         true,
+      );
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetDbFixtureStoreForTests();
+    }
+  });
+
+  it('creates and deletes direct thread messages through backend authority', async () => {
+    const tables = loadTables();
+    const { threadId, senderUserId, otherUserId, participantUserIds } =
+      findDirectMessageThreadActors(tables);
+    const outsiderUserId = findUnprivilegedUserId(tables, participantUserIds);
+
+    const unauthenticated = await app.inject({
+      method: 'POST',
+      url: `/v1/message-threads/${threadId}/messages`,
+      payload: {
+        body: 'Unauthenticated direct-message spoof',
+        idempotencyKey: 'direct-message-unauth-test',
+      },
+    });
+    assert.equal(unauthenticated.statusCode, 403);
+
+    const deniedOutsider = await app.inject({
+      method: 'POST',
+      url: `/v1/message-threads/${threadId}/messages`,
+      headers: authHeaders(tables, outsiderUserId),
+      payload: {
+        body: 'Outsider direct-message spoof',
+        idempotencyKey: 'direct-message-outsider-deny',
+      },
+    });
+    assert.equal(deniedOutsider.statusCode, 403);
+
+    const deniedMedia = await app.inject({
+      method: 'POST',
+      url: `/v1/message-threads/${threadId}/messages`,
+      headers: authHeaders(tables, senderUserId),
+      payload: {
+        body: 'Media must be proved before direct send',
+        attachments: [{ mediaObjectId: 'med_unproved' }],
+        idempotencyKey: 'direct-message-media-deny',
+      },
+    });
+    assert.equal(deniedMedia.statusCode, 400);
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/v1/message-threads/${threadId}/messages`,
+      headers: authHeaders(tables, senderUserId),
+      payload: {
+        body: 'Backend-owned direct message',
+        idempotencyKey: 'direct-message-create-test',
+      },
+    });
+    assert.equal(created.statusCode, 201);
+    const createdPayload = created.json() as {
+      message: {
+        id: string;
+        messageThreadId: string;
+        senderUserId: string;
+        content: string;
+        receipts: Array<{ userId: string; readAt: string | null }>;
+      };
+      thread: { id: string; messages: Array<{ id: string; content: string }> };
+    };
+    assert.equal(createdPayload.message.messageThreadId, threadId);
+    assert.equal(createdPayload.message.senderUserId, senderUserId);
+    assert.equal(createdPayload.message.content, 'Backend-owned direct message');
+    assert.equal(
+      createdPayload.message.receipts.some(
+        (receipt) => receipt.userId === senderUserId && Boolean(receipt.readAt),
+      ),
+      true,
+    );
+    assert.equal(
+      createdPayload.message.receipts.some((receipt) => receipt.userId === otherUserId),
+      true,
+    );
+
+    const replayed = await app.inject({
+      method: 'POST',
+      url: `/v1/message-threads/${threadId}/messages`,
+      headers: authHeaders(tables, senderUserId),
+      payload: {
+        body: 'Backend-owned direct message',
+        idempotencyKey: 'direct-message-create-test',
+      },
+    });
+    assert.equal(replayed.statusCode, 201);
+    const replayedPayload = replayed.json() as { message: { id: string } };
+    assert.equal(replayedPayload.message.id, createdPayload.message.id);
+
+    const conflict = await app.inject({
+      method: 'POST',
+      url: `/v1/message-threads/${threadId}/messages`,
+      headers: authHeaders(tables, senderUserId),
+      payload: {
+        body: 'Different body cannot reuse the key',
+        idempotencyKey: 'direct-message-create-test',
+      },
+    });
+    assert.equal(conflict.statusCode, 409);
+
+    const listedForOther = await app.inject({
+      method: 'GET',
+      url: '/v1/message-threads',
+      headers: authHeaders(tables, otherUserId),
+    });
+    assert.equal(listedForOther.statusCode, 200);
+    const listedPayload = listedForOther.json() as {
+      threads: Array<{ id: string; messages: Array<{ id: string; content: string }> }>;
+    };
+    assert.equal(
+      listedPayload.threads.some(
+        (thread) =>
+          thread.id === threadId &&
+          thread.messages.some((message) => message.id === createdPayload.message.id),
+      ),
+      true,
+    );
+
+    const deniedDelete = await app.inject({
+      method: 'DELETE',
+      url: `/v1/messages/${createdPayload.message.id}`,
+      headers: authHeaders(tables, otherUserId),
+    });
+    assert.equal(deniedDelete.statusCode, 403);
+
+    const deleted = await app.inject({
+      method: 'DELETE',
+      url: `/v1/messages/${createdPayload.message.id}`,
+      headers: authHeaders(tables, senderUserId),
+    });
+    assert.equal(deleted.statusCode, 200);
+    const deletedPayload = deleted.json() as {
+      message: { id: string; content: string; deletedAt: string | null };
+      thread: { messages: Array<{ id: string }> };
+    };
+    assert.equal(deletedPayload.message.id, createdPayload.message.id);
+    assert.equal(deletedPayload.message.content, '[deleted]');
+    assert.equal(Boolean(deletedPayload.message.deletedAt), true);
+    assert.equal(
+      deletedPayload.thread.messages.some((message) => message.id === createdPayload.message.id),
+      false,
+    );
+
+    const repeatDelete = await app.inject({
+      method: 'DELETE',
+      url: `/v1/messages/${createdPayload.message.id}`,
+      headers: authHeaders(tables, senderUserId),
+    });
+    assert.equal(repeatDelete.statusCode, 409);
+
+    const liveTables = getMarketplaceSeedStore().tables;
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'community.thread-message.create',
+        resourceId: threadId,
+        result: 'DENY',
+      }).length >= 1,
+      true,
+    );
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'community.thread-message.create',
+        resourceId: createdPayload.message.id,
+        result: 'SUCCESS',
+      }).length >= 1,
+      true,
+    );
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'community.message.delete',
+        resourceId: createdPayload.message.id,
+        result: 'DENY',
+      }).length >= 1,
+      true,
+    );
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'community.message.delete',
+        resourceId: createdPayload.message.id,
+        result: 'SUCCESS',
+      }).length >= 1,
+      true,
+    );
+  });
+
+  it('uses the db fixture repository seam for direct message writes and deletes in db mode', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const tables = getDbFixtureStore().tables;
+      const { threadId, senderUserId, otherUserId } = findDirectMessageThreadActors(tables);
+
+      const created = await app.inject({
+        method: 'POST',
+        url: `/v1/message-threads/${threadId}/messages`,
+        headers: authHeaders(tables, senderUserId),
+        payload: {
+          body: 'DB fixture direct message',
+          idempotencyKey: 'direct-message-db-fixture-test',
+        },
+      });
+      assert.equal(created.statusCode, 201);
+      const createdPayload = created.json() as {
+        message: { id: string; messageThreadId: string; senderUserId: string; content: string };
+      };
+      assert.equal(createdPayload.message.messageThreadId, threadId);
+      assert.equal(createdPayload.message.senderUserId, senderUserId);
+
+      const listed = await app.inject({
+        method: 'GET',
+        url: '/v1/message-threads',
+        headers: authHeaders(tables, otherUserId),
+      });
+      assert.equal(listed.statusCode, 200);
+      const listedPayload = listed.json() as {
+        threads: Array<{ id: string; messages: Array<{ id: string; content: string }> }>;
+      };
+      assert.equal(
+        listedPayload.threads.some(
+          (thread) =>
+            thread.id === threadId &&
+            thread.messages.some((message) => message.id === createdPayload.message.id),
+        ),
+        true,
+      );
+
+      const deleted = await app.inject({
+        method: 'DELETE',
+        url: `/v1/messages/${createdPayload.message.id}`,
+        headers: authHeaders(tables, senderUserId),
+      });
+      assert.equal(deleted.statusCode, 200);
+      const deletedPayload = deleted.json() as {
+        message: { deletedAt: string | null; content: string };
+        thread: { messages: Array<{ id: string }> };
+      };
+      assert.equal(Boolean(deletedPayload.message.deletedAt), true);
+      assert.equal(deletedPayload.message.content, '[deleted]');
+      assert.equal(
+        deletedPayload.thread.messages.some((message) => message.id === createdPayload.message.id),
+        false,
       );
     } finally {
       env.API_DATA_BACKEND = previousBackend;

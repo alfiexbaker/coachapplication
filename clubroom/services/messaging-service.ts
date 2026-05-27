@@ -353,6 +353,30 @@ export class MessagingService {
         }
       }
 
+      if (!USE_MOCK) {
+        if (attachments.length > 0) {
+          return err({
+            code: 'VALIDATION' as const,
+            message: 'Message attachments require backend media proof before send',
+          });
+        }
+
+        const sentResult = await communityMediaAuthorityService.sendThreadMessage(threadId, body);
+        if (!sentResult.success) {
+          return sentResult;
+        }
+        await this.syncThreadSummary(threadId);
+        emitTyped(ServiceEvents.MESSAGE_SENT, {
+          threadId,
+          messageId: sentResult.data.id,
+          sender: sentResult.data.sender,
+          senderName,
+          attachmentsCount: 0,
+          createdAt: sentResult.data.createdAt,
+        });
+        return sentResult;
+      }
+
       // Check if users have blocked each other
       if (senderUserId && recipientUserId) {
         const blockedResult = await blockService.getBlockStatus(senderUserId, recipientUserId);
@@ -517,6 +541,19 @@ export class MessagingService {
 
   async deleteMessage(threadId: string, messageId: string): Promise<Result<void, ServiceError>> {
     try {
+      if (!USE_MOCK) {
+        const result = await communityMediaAuthorityService.deleteMessage(messageId);
+        if (!result.success) {
+          return result;
+        }
+        await this.syncThreadSummary(threadId);
+        emitTyped(ServiceEvents.MESSAGE_DELETED, {
+          threadId,
+          messageId,
+        });
+        return ok(undefined);
+      }
+
       const persisted = await this.loadPersistedMessages();
       const current = persisted[threadId] || this.inMemoryMessages[threadId] || [];
       const updated = current.filter((msg) => msg.id !== messageId);

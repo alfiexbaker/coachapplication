@@ -103,6 +103,11 @@ interface ApiGroupMessageWriteResponse {
   thread?: ApiMessageThread | null;
 }
 
+interface ApiThreadMessageWriteResponse {
+  message: ApiMessage;
+  thread?: ApiMessageThread | null;
+}
+
 interface ApiGroupMessageReadResponse {
   thread?: ApiMessageThread | null;
 }
@@ -975,6 +980,76 @@ class CommunityMediaAuthorityService {
     }
 
     return ok(mapGroupMessage(result.data.message, groupId));
+  }
+
+  async sendThreadMessage(
+    threadId: string,
+    body: string,
+  ): Promise<Result<ChatMessage, ServiceError>> {
+    if (USE_MOCK) {
+      return ok({
+        id: generateId('msg'),
+        threadId,
+        sender: 'parent',
+        body,
+        createdAt: new Date().toISOString(),
+        status: 'sent',
+        attachments: [],
+      });
+    }
+
+    const contextResult = await resolveContext('Sign in to send messages.');
+    if (!contextResult.success) {
+      return contextResult;
+    }
+
+    const result = await apiFetch<ApiThreadMessageWriteResponse>(
+      `/v1/message-threads/${encodeURIComponent(threadId)}/messages`,
+      {
+        method: 'POST',
+        headers: contextResult.data.headers,
+        body: JSON.stringify({
+          body,
+          idempotencyKey: generateId('msg-send'),
+        }),
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to send thread message via API', { threadId, error: result.error });
+      return err(result.error);
+    }
+
+    const mapped = mapChatMessages(
+      [result.data.message],
+      contextResult.data.currentUserId,
+      contextResult.data.currentUserAccountType,
+    )[0];
+    return mapped ? ok(mapped) : err(serviceError('UNKNOWN', 'Message was not returned by the API'));
+  }
+
+  async deleteMessage(messageId: string): Promise<Result<void, ServiceError>> {
+    if (USE_MOCK) {
+      return ok(undefined);
+    }
+
+    const contextResult = await resolveContext('Sign in to delete messages.');
+    if (!contextResult.success) {
+      return contextResult;
+    }
+
+    const result = await apiFetch<ApiThreadMessageWriteResponse>(
+      `/v1/messages/${encodeURIComponent(messageId)}`,
+      {
+        method: 'DELETE',
+        headers: contextResult.data.headers,
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to delete message via API', { messageId, error: result.error });
+      return err(result.error);
+    }
+
+    return ok(undefined);
   }
 
   async markGroupMessagesRead(groupId: string): Promise<Result<void, ServiceError>> {

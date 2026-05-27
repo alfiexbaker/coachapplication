@@ -157,6 +157,14 @@ const communityGroupParamsSchema = z.object({
   groupId: z.string().trim().min(1),
 });
 
+const messageThreadParamsSchema = z.object({
+  threadId: z.string().trim().min(1),
+});
+
+const messageParamsSchema = z.object({
+  messageId: z.string().trim().min(1),
+});
+
 const postParamsSchema = z.object({
   postId: z.string().trim().min(1),
 });
@@ -2069,6 +2077,105 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         action: 'community.message.read',
         resourceType: 'community_group',
         resourceId: params.groupId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
+  });
+
+  app.post('/message-threads/:threadId/messages', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    const params = messageThreadParamsSchema.parse(request.params ?? {});
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+    const body = groupMessageCreateRequestSchema.parse(request.body ?? {});
+
+    try {
+      const result = await resolveCommunityMediaRepository().createThreadMessage({
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        messageThreadId: params.threadId,
+        body: body.body,
+        idempotencyKey: body.idempotencyKey,
+      });
+
+      await recordAuditEvent({
+        request,
+        action: 'community.thread-message.create',
+        resourceType: 'message',
+        resourceId: asString(result.message.id),
+        result: 'SUCCESS',
+        metadata: {
+          messageThreadId: params.threadId,
+          idempotencyKey: body.idempotencyKey,
+        },
+      });
+
+      return reply.status(201).send({
+        message: result.message,
+        thread: result.thread,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'community.thread-message.create',
+        resourceType: 'message_thread',
+        resourceId: params.threadId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          idempotencyKey: body.idempotencyKey,
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
+  });
+
+  app.delete('/messages/:messageId', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    const params = messageParamsSchema.parse(request.params ?? {});
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    try {
+      const result = await resolveCommunityMediaRepository().deleteMessage({
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        messageId: params.messageId,
+      });
+
+      await recordAuditEvent({
+        request,
+        action: 'community.message.delete',
+        resourceType: 'message',
+        resourceId: params.messageId,
+        result: 'SUCCESS',
+        metadata: {
+          messageThreadId: asString(result.message.messageThreadId),
+        },
+      });
+
+      return reply.send({
+        message: result.message,
+        thread: result.thread,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'community.message.delete',
+        resourceType: 'message',
+        resourceId: params.messageId,
         result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
         metadata: {
           errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
