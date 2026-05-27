@@ -9,6 +9,7 @@ Date: 2026-05-27
 3. Session-invite create/cancel/remind/dismiss/respond now commits invite, target, and create-idempotency mutations through the Prisma-backed route adapter; direct invite acceptance still creates bookings through the backend booking repository.
 4. Recurring invite partial acceptance and invite RSVP state remain fail-closed outside mock mode until their backend authority is implemented.
 5. Verification: `npm --prefix apps/api run typecheck`, focused `LOG_LEVEL=fatal npx tsx --test src/modules/p0-core/routes.test.ts` passed (`24/24`), and `npm run verify:slice:api` passed with API tests `118/118` and `0` new API-boundary findings.
+6. `OBS-RUNTIME-01` follow-up: Sentry MCP found no unresolved `staging` issues for `tubton/react-native` or `tubton/clubroom-api`; with `npm run api:dev:staging` running, `npm run smoke:api-mode` passed reachability and `npm run smoke:api-mode:strict` still failed because `/v1/ready` reports `DATABASE_UNAVAILABLE` for Supabase pooler user `postgres.oucxazyrimujqmakxfiv`.
 
 ## Previous Update
 
