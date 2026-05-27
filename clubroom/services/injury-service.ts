@@ -6,13 +6,9 @@
  * and share injury status with their coaches.
  *
  * API Integration Notes:
- * - POST /api/injuries - Log injury
- * - GET /api/injuries?userId=X - Get user injuries
- * - GET /api/injuries/:id - Get injury details
- * - PATCH /api/injuries/:id - Update injury
- * - POST /api/injuries/:id/notes - Add recovery note
- * - PATCH /api/injuries/:id/heal - Mark as healed
- * - GET /api/athletes/:id/injuries - Coach view of athlete injuries
+ * - POST /v1/athletes/:athleteId/injuries - Log injury
+ * - GET /v1/athletes/:athleteId/injuries - Get athlete injuries
+ * - PATCH /v1/injuries/:injuryId - Update injury, recovery note, or healed state
  */
 
 import { apiClient } from './api-client';
@@ -174,6 +170,11 @@ function toUiInjury(apiInjury: ApiInjuryRecord): Injury {
 }
 
 const latestApiInjuriesById = new Map<string, Injury>();
+
+function throwApiInjuryError(action: string, error: { message: string }): never {
+  logger.error(action, { error });
+  throw new Error(error.message || 'Injury API request failed');
+}
 
 // Mock data for demonstration
 const MOCK_INJURIES: Injury[] = [
@@ -531,7 +532,7 @@ async function logInjury(
     try {
       const athleteId = toApiAthleteId(userId);
       const headers = await buildApiActorHeaders(userId);
-      const result = await apiFetch<ApiInjuryRecord>(`/athletes/${athleteId}/injuries`, {
+      const result = await apiFetch<ApiInjuryRecord>(`/v1/athletes/${athleteId}/injuries`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -550,12 +551,10 @@ async function logInjury(
         return mapped;
       }
 
-      logger.warn('API injury create failed, falling back to local storage', {
-        userId,
-        error: result.error.message,
-      });
+      throwApiInjuryError('API injury create failed', result.error);
     } catch (error) {
-      logger.warn('API injury create threw, falling back to local storage', { userId, error });
+      logger.error('API injury create threw', { userId, error });
+      throw error;
     }
   }
 
@@ -602,7 +601,7 @@ async function getUserInjuries(userId: string, includeHealed: boolean = true): P
     try {
       const athleteId = toApiAthleteId(userId);
       const headers = await buildApiActorHeaders(userId);
-      const result = await apiFetch<ApiInjuriesResponse>(`/athletes/${athleteId}/injuries`, {
+      const result = await apiFetch<ApiInjuriesResponse>(`/v1/athletes/${athleteId}/injuries`, {
         method: 'GET',
         headers,
       });
@@ -624,12 +623,10 @@ async function getUserInjuries(userId: string, includeHealed: boolean = true): P
         });
       }
 
-      logger.warn('API injury list failed, falling back to local storage', {
-        userId,
-        error: result.error.message,
-      });
+      throwApiInjuryError('API injury list failed', result.error);
     } catch (error) {
-      logger.warn('API injury list threw, falling back to local storage', { userId, error });
+      logger.error('API injury list threw', { userId, error });
+      throw error;
     }
   }
 
@@ -657,10 +654,7 @@ async function getUserInjuries(userId: string, includeHealed: boolean = true): P
  */
 async function getInjuryById(id: string): Promise<Injury | null> {
   if (!apiClient.isMockMode) {
-    const cached = latestApiInjuriesById.get(id);
-    if (cached) {
-      return cached;
-    }
+    return latestApiInjuriesById.get(id) ?? null;
   }
 
   const injuries = await getAllInjuries();
@@ -687,6 +681,10 @@ async function getUserInjuriesForActor(
   subjectUserId: string,
   includeHealed: boolean = true,
 ): Promise<Injury[]> {
+  if (!apiClient.isMockMode) {
+    return getUserInjuries(subjectUserId, includeHealed);
+  }
+
   const canAccess = await canActorAccessSubject(actorUserId, subjectUserId);
   if (!canAccess) {
     logger.warn('injury_access_denied_subject', { actorUserId, subjectUserId });
@@ -697,6 +695,10 @@ async function getUserInjuriesForActor(
 }
 
 async function getInjuryByIdForActor(id: string, actorUserId: string): Promise<Injury | null> {
+  if (!apiClient.isMockMode) {
+    return getInjuryById(id);
+  }
+
   const injury = await getInjuryById(id);
   if (!injury) {
     return null;
@@ -723,7 +725,7 @@ async function updateInjury(id: string, updates: UpdateInjuryInput): Promise<Inj
     if (cached) {
       try {
         const headers = await buildApiActorHeaders(cached.userId);
-        const result = await apiFetch<ApiInjuryRecord>(`/injuries/${id}`, {
+        const result = await apiFetch<ApiInjuryRecord>(`/v1/injuries/${id}`, {
           method: 'PATCH',
           headers,
           body: JSON.stringify({
@@ -753,14 +755,15 @@ async function updateInjury(id: string, updates: UpdateInjuryInput): Promise<Inj
           return mapped;
         }
 
-        logger.warn('API injury update failed, falling back to local storage', {
-          id,
-          error: result.error.message,
-        });
+        throwApiInjuryError('API injury update failed', result.error);
       } catch (error) {
-        logger.warn('API injury update threw, falling back to local storage', { id, error });
+        logger.error('API injury update threw', { id, error });
+        throw error;
       }
     }
+
+    logger.warn('API injury update skipped because detail is not loaded', { injuryId: id });
+    return null;
   }
 
   const injuries = await getAllInjuries();
@@ -800,6 +803,10 @@ async function updateInjuryForActor(
   id: string,
   updates: UpdateInjuryInput,
 ): Promise<Injury | null> {
+  if (!apiClient.isMockMode) {
+    return updateInjury(id, updates);
+  }
+
   const injury = await getInjuryByIdForActor(id, actorUserId);
   if (!injury) {
     return null;
@@ -843,6 +850,8 @@ async function addRecoveryNote(
             : cached.status,
       });
     }
+    logger.warn('API recovery note skipped because injury detail is not loaded', { injuryId });
+    return null;
   }
 
   const injuries = await getAllInjuries();
@@ -901,6 +910,10 @@ async function addRecoveryNoteForActor(
   createdByName?: string,
   recoveryPercent?: number,
 ): Promise<Injury | null> {
+  if (!apiClient.isMockMode) {
+    return addRecoveryNote(injuryId, note, createdBy, createdByName, recoveryPercent);
+  }
+
   const injury = await getInjuryByIdForActor(injuryId, actorUserId);
   if (!injury) {
     return null;
@@ -922,6 +935,10 @@ async function markAsHealed(id: string): Promise<Injury | null> {
 }
 
 async function markAsHealedForActor(actorUserId: string, id: string): Promise<Injury | null> {
+  if (!apiClient.isMockMode) {
+    return markAsHealed(id);
+  }
+
   const injury = await getInjuryByIdForActor(id, actorUserId);
   if (!injury) {
     return null;
@@ -950,7 +967,7 @@ async function getAthleteInjuries(athleteId: string): Promise<Injury[]> {
             coachVerified: actingRole === 'coach' && currentUser.isVerified,
           })
         : {};
-      const result = await apiFetch<ApiInjuriesResponse>(`/athletes/${apiAthleteId}/injuries`, {
+      const result = await apiFetch<ApiInjuriesResponse>(`/v1/athletes/${apiAthleteId}/injuries`, {
         method: 'GET',
         headers,
       });
@@ -961,15 +978,13 @@ async function getAthleteInjuries(athleteId: string): Promise<Injury[]> {
         }
         return injuries.filter((i) => i.sharedWithCoach);
       }
-      logger.warn('API athlete injuries read failed, falling back to local storage', {
-        athleteId,
-        error: result.error.message,
-      });
+      throwApiInjuryError('API athlete injuries read failed', result.error);
     } catch (error) {
-      logger.warn('API athlete injuries read threw, falling back to local storage', {
+      logger.error('API athlete injuries read threw', {
         athleteId,
         error,
       });
+      throw error;
     }
   }
 

@@ -128,7 +128,7 @@ Elite API bar:
 6. Invoice manual transitions now run through the db-aware invoice runtime and require authoritative booking linkage; legacy earnings payment/refund writes fail closed outside mock; backend refunds now have the simulated verification-code hard wall and still need production SMS/2FA provider integration before launch.
 7. Club schedule, events/RSVP, coach verification documents, and club admin operations still need backend authority or launch demotion.
 8. Guardian sharing has no production backend authority and must be implemented or hidden from launch.
-9. Health/injury services are miswired to non-`/v1` paths and local fallback despite existing `/v1` routes.
+9. Health/injury frontend linkup now uses `/v1/athletes/:athleteId/injuries` and `/v1/injuries/:injuryId` in non-mock mode and fails closed instead of writing local injury records when the backend denies or fails; remaining family-readiness risk is guardian sharing and broader sensitive-read coverage.
 10. Community/messaging/notification writes are still local overlays and must be backend-owned or explicitly deferred.
 11. Audit/security coverage is not broad enough for bookings, clubs, videos, group sessions, messages, refunds, and sensitive reads.
 12. The API boundary baseline is lower but not production-clean; it is a ratchet, not a green release signal.

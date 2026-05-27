@@ -4,6 +4,14 @@ Date: 2026-05-27
 
 ## Latest Update
 
+1. Continued `PROD-API-03` with the health/injury frontend linkup cleanup slice.
+2. `services/injury-service.ts` now calls `/v1/athletes/:athleteId/injuries` and `/v1/injuries/:injuryId` in non-mock mode instead of unprefixed paths.
+3. Non-mock injury create/list/update/coach-read paths no longer fall back to local `STORAGE_KEYS.INJURIES`; backend denial or failure now fails closed instead of inventing local health state.
+4. Non-mock actor-specific injury reads now defer to backend health authz instead of local `AUTH_USER` child lists, while mock mode keeps the local access behavior for tests/demo.
+5. Verification: `npm run typecheck` passed; `npm run test:compile && node --require ./scripts/test-register.js --test .tmp-tests/__tests__/health/injury-service.test.js` passed (`37/37`); `npm run verify:slice:app` passed with `0` new API-boundary findings and `git diff --check`; `rg` found no remaining injury-service local-fallback or legacy injury `/api` path references.
+
+## Previous Update
+
 1. Continued `PROD-API-02` / `PROD-API-07` with the media upload finalization and scan hard-wall slice.
 2. Added `POST /v1/uploads/:uploadSessionId/complete` so upload completion is a backend-owned transition that records clean malware-scan proof before media becomes `AVAILABLE`.
 3. `/v1/videos` creation now rejects pending, unscanned, quarantined, infected, or outsider-owned media instead of marking media available from video creation.
@@ -11,7 +19,7 @@ Date: 2026-05-27
 5. Added API proof for denied pending-media video creation, allowed creation after finalization, denied outsider upload completion, quarantined/infected media denial, and upload init/complete/video deny audit events.
 6. Verification: `npm --prefix apps/api run typecheck` passed; focused `LOG_LEVEL=fatal npx tsx --test src/modules/wave2plus/routes.test.ts` passed (`27/27`); `npm run verify:slice:full` passed, including app typecheck, app test compile, API typecheck, full API tests (`101/101`), API-boundary audit, UI static gates, and `git diff --check`.
 
-## Previous Update
+## Earlier Update
 
 1. Continued `OBS-RUNTIME-01` with the API-mode runtime smoke guardrail slice.
 2. `scripts/db-staging-preflight.js` now loads `.env.staging.local` by default, masks `SENTRY_DSN`, and reports the local staging env as ready instead of falsely missing every env var.
@@ -177,14 +185,14 @@ Date: 2026-05-27
 1. The rules are now strong enough to block new obvious slop, but not enough to claim elite production readiness.
 2. Main risk is API/source-of-truth maturity, not static UI quality.
 3. The current API boundary baseline is a ratchet, not a release pass: `102` legacy `/api/*`, `148` trust-sensitive local-storage patterns, `5` route literals, and `2` frontend raw fetches remain.
-4. Booking create/list/detail/cancel/reopen/complete are improved with db-fixture parent/coach/deny proof, completion now creates backend attendance plus progress-visible session-note proof records, repeat booking context now resolves through backend-visible booking truth, saved coaches now use self-scoped backend favourite relationships, and booking review status/submission now run through completed-booking backend authority without API-mode local review mirrors; coach profile review reads now use verified backend review proof; multi-week package plus initial recurring-plan creation/list/detail/cancel/pause/resume/update now use backend series authority, recurring reschedule/cancel syncs or voids mutable linked invoices while blocking settled invoices, invoice money transitions now require authoritative booking linkage, legacy earnings payment/refund writes fail closed outside mock, direct invite acceptance creates db-mode bookings through booking repository authority, invite writes now emit allowed/denied audit events, billable group-session registration and waitlist promotion link booking/invoice/payment proof, group registration and session cancellation now apply invoice/refund hard walls, group session cancellation fans out to registrations/bookings/attendance, cancelled sessions reject new registration, group attendance writes now emit audit events, and media/video creation now requires backend upload finalization plus clean scan proof. Guardian sharing, health/injury linkup, club admin operations, community writes, and real malware scanning/storage verification remain the highest-risk gaps.
+4. Booking create/list/detail/cancel/reopen/complete are improved with db-fixture parent/coach/deny proof, completion now creates backend attendance plus progress-visible session-note proof records, repeat booking context now resolves through backend-visible booking truth, saved coaches now use self-scoped backend favourite relationships, and booking review status/submission now run through completed-booking backend authority without API-mode local review mirrors; coach profile review reads now use verified backend review proof; multi-week package plus initial recurring-plan creation/list/detail/cancel/pause/resume/update now use backend series authority, recurring reschedule/cancel syncs or voids mutable linked invoices while blocking settled invoices, invoice money transitions now require authoritative booking linkage, legacy earnings payment/refund writes fail closed outside mock, direct invite acceptance creates db-mode bookings through booking repository authority, invite writes now emit allowed/denied audit events, billable group-session registration and waitlist promotion link booking/invoice/payment proof, group registration and session cancellation now apply invoice/refund hard walls, group session cancellation fans out to registrations/bookings/attendance, cancelled sessions reject new registration, group attendance writes now emit audit events, media/video creation now requires backend upload finalization plus clean scan proof, and injury frontend linkup now uses `/v1` without local fallback outside mock. Guardian sharing, club admin operations, community writes, and real malware scanning/storage verification remain the highest-risk gaps.
 5. Production rehearsal must wait until P0 journeys have API authority plus UI linkup packets complete.
 
 ## Next Exact Action
 
 1. Clear the Supabase staging database readiness issue that makes `npm run smoke:api-mode:strict` fail with `DATABASE_UNAVAILABLE`.
 2. Keep `OBS-RUNTIME-01` green: Sentry is clean, API-mode Expo must continue to start only with `apps/api` reachable.
-3. Continue backend-authoritative delivery burn-down with the next high-risk slice: full invite repository extraction/idempotency, guardian sharing authority, health/injury linkup cleanup, club admin operations, community writes, or broader profile/storefront proof cleanup.
+3. Continue backend-authoritative delivery burn-down with the next high-risk slice: full invite repository extraction/idempotency, guardian sharing authority, club admin operations, community writes, or broader profile/storefront proof cleanup.
 4. Keep `/v1/meta/seed-health` and `/v1/drills` marked as cleanup candidates: auth-gate, disable, or delete before production.
 5. Keep `node ./scripts/api-boundary-audit.js` green on every slice.
 6. Do not run production rehearsal until booking, child readiness, payment/refund, attendance, proof, club operations, and compliance evidence have backend-authoritative launch paths.

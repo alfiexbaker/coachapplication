@@ -31,7 +31,7 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 
 - `services/video-service.ts`
 - Covers videos and annotations in one service surface
-- Non-mock video runtime now uses `/v1/uploads/init` plus `/v1/videos*` for list/detail/create/share/delete and annotation flows
+- Non-mock video runtime now uses `/v1/uploads/init`, `/v1/uploads/:uploadSessionId/complete`, and `/v1/videos*` for list/detail/create/share/delete and annotation flows
 - Playback URLs are signed server-side and short-lived; guardian access is explicit-share only
 - Mock mode still uses the local video store for development-only behavior
 
@@ -41,6 +41,7 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - Exposes `familyService`, `familyMemberService`, `familyHealthService`, `familyRelationshipService`, `familyPermissionService`
 - `familyHealthService` is the canonical path for athlete medical, emergency contacts, and consent records
 - `services/safety-service.ts` is the read/write runtime facade that routes those trust-sensitive records to `familyHealthService` in non-mock mode and to the mock emergency store in mock mode
+- `services/injury-service.ts` is the canonical health/injury bridge for `/v1/athletes/:athleteId/injuries` and `/v1/injuries/:injuryId` in non-mock mode; it fails closed instead of writing local injury records when the backend denies or fails
 - `services/child-service.ts` is now the canonical child-profile bridge for non-mock `/v1/families/:familyId` and `/v1/athletes*` reads/writes; it no longer owns child profile, injury, medical, emergency-contact, or consent persistence outside mock mode
 - `services/family/family-member-service.ts` no longer treats local family member/calendar/spending storage as authoritative outside mock mode; it derives those family dashboard views from `childService` plus authoritative booking reads
 - Validation note: top-level `services/family-service.ts` is not present in the current repo
