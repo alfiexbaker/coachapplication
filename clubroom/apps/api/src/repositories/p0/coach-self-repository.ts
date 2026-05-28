@@ -80,6 +80,7 @@ export interface CoachSchedulingRowsResult {
 export interface CoachSelfRepository {
   getProfileBundle(authUserId: string): Promise<CoachProfileBundleResult>;
   listOfferings(authUserId: string): Promise<CoachOfferingsResult>;
+  listPublicOfferings(coachUserId: string): Promise<CoachOfferingsResult>;
   listAvailabilityTemplateRows(authUserId: string): Promise<CoachTemplateRowsResult>;
   createAvailabilityTemplate(authUserId: string, body: {
     id?: string;
@@ -178,6 +179,23 @@ class StoreCoachSelfRepository implements CoachSelfRepository {
     return {
       offerings: asRows(store.tables.coachingOfferings).filter(
         (row) => asString(row.coachUserId) === authUserId,
+      ),
+      dataVersion: store.version,
+    };
+  }
+
+  async listPublicOfferings(coachUserId: string): Promise<CoachOfferingsResult> {
+    const store = this.storeProvider();
+    const profile = asRows(store.tables.coachProfiles).find(
+      (row) => asString(row.userId) === coachUserId && !asString(row.deletedAt),
+    );
+    if (!profile) {
+      throw notFound('Coach profile not found', { coachUserId });
+    }
+
+    return {
+      offerings: getActiveRows(asRows(store.tables.coachingOfferings)).filter(
+        (row) => asString(row.coachUserId) === coachUserId,
       ),
       dataVersion: store.version,
     };
@@ -577,6 +595,35 @@ class PrismaCoachSelfRepository implements CoachSelfRepository {
     const prisma = getPrismaClientOrThrow();
     const offerings = await prisma.coachingOffering.findMany({
       where: { coachUserId: authUserId },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return {
+      offerings: toSeedRows(offerings),
+      dataVersion: null,
+    };
+  }
+
+  async listPublicOfferings(coachUserId: string): Promise<CoachOfferingsResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.listPublicOfferings(coachUserId);
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const profile = await prisma.coachProfile.findFirst({
+      where: { userId: coachUserId, deletedAt: null },
+      select: { userId: true },
+    });
+    if (!profile) {
+      throw notFound('Coach profile not found', { coachUserId });
+    }
+
+    const offerings = await prisma.coachingOffering.findMany({
+      where: {
+        coachUserId,
+        active: true,
+        deletedAt: null,
+      },
       orderBy: { createdAt: 'asc' },
     });
 

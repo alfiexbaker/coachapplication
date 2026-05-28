@@ -79,6 +79,19 @@ function getSeededCoachUserId(tables: SeedTables): string {
   return coachUserId;
 }
 
+function getSeededNonCoachUserId(tables: SeedTables, excludedUserId: string): string {
+  const userId = asRows(tables.users)
+    .map((row) => asString(row.id))
+    .find((candidateUserId): candidateUserId is string => {
+      if (!candidateUserId || candidateUserId === excludedUserId) {
+        return false;
+      }
+      return !rolesForUser(tables, candidateUserId).includes('coach');
+    });
+  assert.ok(userId, 'expected seeded non-coach user id');
+  return userId;
+}
+
 function getSeededClubMembership(tables: SeedTables): { clubId: string; userId: string } {
   const membership = asRows(tables.clubMemberships).find((row) => row.active !== false);
   assert.ok(membership, 'expected seeded club membership');
@@ -395,6 +408,36 @@ describe('coach-club routes', () => {
       });
       assert.equal(offerings.statusCode, 200);
       assert.equal((offerings.json() as { total: number }).total >= 1, true);
+
+      const viewerUserId = getSeededNonCoachUserId(tables, coachUserId);
+      const publicOfferings = await app.inject({
+        method: 'GET',
+        url: `/v1/coaches/${coachUserId}/offerings`,
+        headers: authHeaders(tables, viewerUserId),
+      });
+      assert.equal(publicOfferings.statusCode, 200);
+      const publicOfferingsPayload = publicOfferings.json() as {
+        coachId: string;
+        total: number;
+        offerings: Array<{ coachUserId: string; active: boolean; deletedAt?: string | null }>;
+      };
+      assert.equal(publicOfferingsPayload.coachId, coachUserId);
+      assert.equal(publicOfferingsPayload.total >= 1, true);
+      assert.equal(
+        publicOfferingsPayload.offerings.every(
+          (offering) =>
+            offering.coachUserId === coachUserId &&
+            offering.active !== false &&
+            !offering.deletedAt,
+        ),
+        true,
+      );
+
+      const unauthenticatedOfferings = await app.inject({
+        method: 'GET',
+        url: `/v1/coaches/${coachUserId}/offerings`,
+      });
+      assert.equal(unauthenticatedOfferings.statusCode, 403);
 
       const templateCreate = await app.inject({
         method: 'POST',

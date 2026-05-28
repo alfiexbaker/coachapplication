@@ -24,6 +24,7 @@ import { useScreen } from '@/hooks/use-screen';
 import { Routes } from '@/navigation/routes';
 import { apiClient } from '@/services/api-client';
 import { bookingStepAnalyticsService } from '@/services/booking/booking-step-analytics-service';
+import { listPublicCoachOfferingsFromApi } from '@/services/coach-offering-api';
 import {
   buildBookingDraftPatchFromOffering,
   type BookingPrefillChild,
@@ -188,6 +189,14 @@ export default function SessionTypeScreen() {
     }
 
     try {
+      if (!apiClient.isMockMode) {
+        const result = await listPublicCoachOfferingsFromApi(coachId, new Date().toISOString());
+        if (!result.success) {
+          return err(result.error);
+        }
+        return ok(sortSessionOfferingsForBooking(result.data));
+      }
+
       const now = Date.now();
       const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
       const coachOfferings = offerings.filter((offering) => {

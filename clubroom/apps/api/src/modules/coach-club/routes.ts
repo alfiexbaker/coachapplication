@@ -284,6 +284,21 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
+  app.get('/coaches/:coachId/offerings', async (request, reply) => {
+    requireAuthUserId(request.auth?.userId);
+    const { coachId } = favouriteCoachParamsSchema.parse(request.params);
+    const repository = resolveCoachSelfRepository();
+    const result = await repository.listPublicOfferings(coachId);
+
+    return reply.send({
+      coachId,
+      offerings: result.offerings,
+      total: result.offerings.length,
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+
   app.get('/me/favourite-coaches', async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const repository = resolveCoachFavouriteRepository();
