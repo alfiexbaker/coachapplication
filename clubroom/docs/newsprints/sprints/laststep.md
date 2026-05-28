@@ -4,13 +4,21 @@ Date: 2026-05-28
 
 ## Latest Update
 
+1. Continued `PROD-API-01` / `PDOS-05` with the club staffing assignment hard-wall slice.
+2. `services/org-staffing-service.ts` now fails closed outside mock mode for both the staffing console read model and club work reassignment instead of reading or mutating local `SESSION_OFFERINGS` / booking mirrors as staff assignment truth.
+3. Added service tests proving API-mode staffing console reads deny and API-mode assignment attempts do not mutate stored offering or booking assignment state.
+4. Source-of-truth, service ownership, and production readiness docs now mark org staffing assignment as mock-only until backend assignment authority exists.
+5. Verification: `npm run test:compile`, focused compiled `org-staffing-service` tests passed (`6/6`), and `npm run verify:slice:app` passed with `0` new API-boundary findings.
+
+## Previous Update
+
 1. Continued `OBS-RUNTIME-01` by fixing the staging API startup ergonomics after strict Supabase readiness turned green.
 2. `npm --prefix apps/api run dev:staging` is now the stable non-watch staging server: it loads `.env.staging.local`, starts `src/server.ts`, binds the configured API host/port, and avoids the local `EMFILE: too many open files, watch` failure mode.
 3. Added `npm --prefix apps/api run dev:staging:watch` as the explicit opt-in reload command for active API editing when the local OS watcher limit can support it.
 4. Runtime-mode docs, sprint backlog, and the production readiness matrix now treat non-watch `dev:staging` as the canonical smoke/rehearsal command.
 5. Verification: `npm run api:dev:staging` started Fastify without watch-mode `EMFILE`; `npm run smoke:api-mode`, `npm run smoke:api-mode:strict`, direct `curl http://127.0.0.1:4000/v1/ready`, and `npm run verify:slice` passed.
 
-## Previous Update
+## Earlier Update
 
 1. Finished the current `OBS-RUNTIME-01` Supabase/runtime readiness slice after the Supabase project was unpaused.
 2. `npm run audit:db:stage` and `npm run audit:db:stage:strict` now report the staging env as `ready` with `0` blockers, `0` warnings, and `7` migrations.
@@ -356,7 +364,7 @@ Date: 2026-05-28
 ## Next Exact Action
 
 1. Keep `OBS-RUNTIME-01` green: strict API-mode readiness is passing after Supabase was unpaused, Sentry is clean, and `api:dev:staging` now starts the stable non-watch Fastify staging server.
-2. Continue backend-authoritative delivery burn-down with the next high-risk slice: full invite repository extraction, club admin operations, richer message moderation/versioning, broader profile/storefront proof cleanup, remaining `SESSION_OFFERINGS` hot paths, or guardian permission/versioning.
+2. Continue backend-authoritative delivery burn-down with the next high-risk slice: backend club staffing assignment authority, full invite repository extraction, richer message moderation/versioning, broader profile/storefront proof cleanup, remaining `SESSION_OFFERINGS` hot paths, or guardian permission/versioning.
 3. Re-run Sentry MCP and `npm run smoke:api-mode:strict` before treating any later db-backed rehearsal as release-ready.
 4. Keep remaining seed-only/scaffolded route cleanup moving; `/v1/meta/seed-health` and `/v1/drills` are now auth-gated but still not launch product surfaces.
 5. Keep `node ./scripts/api-boundary-audit.js` green on every slice.

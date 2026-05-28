@@ -70,6 +70,7 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - Canonical `/v1` bridge for non-mock club listing, join-link resolution, join-by-code, pending club invite review, and invite-code management
 - Runtime rule: member invite codes join directly; staff invite codes create a pending invite for the target coach to review and accept
 - Compatibility rule: older club UIs may still read local club state, but that state should be mirrored from `clubAuthorityService` instead of being treated as the source of truth
+- Runtime rule: `services/org-staffing-service.ts` is mock-only for staffing console and club work assignment until a backend assignment route exists; non-mock mode fails closed instead of reading or mutating local `SESSION_OFFERINGS` / booking mirrors for assignment truth
 - `services/club-invite-link-service.ts` is the canonical helper for parsing and building club join links
 
 ### Coach availability

@@ -50,6 +50,24 @@ function makeBooking(id: string, overrides: Partial<Booking> = {}): Booking {
   };
 }
 
+async function withApiMode<T>(run: () => Promise<T>): Promise<T> {
+  const originalDescriptor = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+  Object.defineProperty(apiClient, 'isMockMode', {
+    configurable: true,
+    get: () => false,
+  });
+
+  try {
+    return await run();
+  } finally {
+    if (originalDescriptor) {
+      Object.defineProperty(apiClient, 'isMockMode', originalDescriptor);
+    } else {
+      delete (apiClient as unknown as { isMockMode?: boolean }).isMockMode;
+    }
+  }
+}
+
 describe('orgStaffingService', () => {
   beforeEach(async () => {
     await apiClient.remove(STORAGE_KEYS.SESSION_OFFERINGS);
@@ -134,6 +152,26 @@ describe('orgStaffingService', () => {
     assert.ok(result.data.staff.some((member) => member.userId === 'coach2'));
   });
 
+  it('fails closed in API mode instead of reading local staffing authority', async () => {
+    await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, [
+      makeOffering('offering_api_console', {
+        title: 'API Console Session',
+        assigneeCoachId: undefined,
+        ownerCoachId: 'coach1',
+      }),
+    ]);
+
+    await withApiMode(async () => {
+      const result = await orgStaffingService.getConsoleData('club_lions', 'coach1');
+
+      assert.equal(result.success, false);
+      if (result.success) return;
+
+      assert.equal(result.error.code, 'VALIDATION');
+      assert.match(result.error.message, /backend assignment authority/i);
+    });
+  });
+
   it('reassigns org-owned work and propagates new delivery truth into linked bookings', async () => {
     const users: User[] = [
       {
@@ -196,6 +234,66 @@ describe('orgStaffingService', () => {
     assert.equal(updatedBooking?.coachId, 'coach2');
     assert.equal(updatedBooking?.coachName, 'Jess Okafor');
     assert.equal(updatedBooking?.assigneeCoachId, 'coach2');
+  });
+
+  it('fails closed in API mode instead of mutating local club assignment state', async () => {
+    await apiClient.set(STORAGE_KEYS.USERS, [
+      {
+        id: 'coach2',
+        name: 'Jess Okafor',
+        email: 'jess@example.com',
+        postcode: '',
+        dateOfBirth: '1986-01-01',
+        role: 'COACH',
+      },
+    ] satisfies User[]);
+    await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, [
+      makeOffering('offering_api_assignment', {
+        title: 'API Assignment Session',
+        coachId: 'coach1',
+        ownerCoachId: 'coach1',
+        assigneeCoachId: 'coach1',
+      }),
+    ]);
+    await apiClient.set(STORAGE_KEYS.BOOKINGS, [
+      makeBooking('booking_api_assignment', {
+        sessionSourceEntityId: 'offering_api_assignment',
+        coachId: 'coach1',
+        coachName: 'Director Kelly',
+        ownerCoachId: 'coach1',
+        assigneeCoachId: 'coach1',
+      }),
+    ]);
+
+    await withApiMode(async () => {
+      const result = await orgStaffingService.assignOffering({
+        clubId: 'club_lions',
+        offeringId: 'offering_api_assignment',
+        assigneeCoachId: 'coach2',
+        actorUserId: 'coach1',
+        actorRole: 'COACH',
+      });
+
+      assert.equal(result.success, false);
+      if (result.success) return;
+
+      assert.equal(result.error.code, 'VALIDATION');
+      assert.match(result.error.message, /backend assignment authority/i);
+    });
+
+    const storedOfferings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
+    const storedBookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
+    const unchangedOffering = storedOfferings.find(
+      (offering) => offering.id === 'offering_api_assignment',
+    );
+    const unchangedBooking = storedBookings.find(
+      (booking) => booking.id === 'booking_api_assignment',
+    );
+
+    assert.equal(unchangedOffering?.coachId, 'coach1');
+    assert.equal(unchangedOffering?.assigneeCoachId, 'coach1');
+    assert.equal(unchangedBooking?.coachId, 'coach1');
+    assert.equal(unchangedBooking?.assigneeCoachId, 'coach1');
   });
 
   it('blocks reassignment when the actor does not have club assignment authority', async () => {

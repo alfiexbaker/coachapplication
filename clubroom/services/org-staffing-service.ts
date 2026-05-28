@@ -148,6 +148,14 @@ class OrgStaffingService {
     viewerUserId: string,
   ): Promise<Result<OrgStaffingConsoleData, ServiceError>> {
     try {
+      if (!apiClient.isMockMode) {
+        return err(
+          validationError(
+            'Club staffing console requires backend assignment authority in API mode.',
+          ),
+        );
+      }
+
       const [club, memberships, offerings, bookings] = await Promise.all([
         socialFeedService.getClub(clubId),
         socialFeedService.getClubMemberships(clubId),
@@ -273,6 +281,14 @@ class OrgStaffingService {
     actorRole?: UserRole;
   }): Promise<Result<{ offering: SessionOffering; updatedBookingIds: string[] }, ServiceError>> {
     try {
+      if (!apiClient.isMockMode) {
+        return err(
+          validationError(
+            'Club work assignment requires backend assignment authority in API mode.',
+          ),
+        );
+      }
+
       const [memberships, offerings, bookings, assigneeResult, actorResult] = await Promise.all([
         socialFeedService.getClubMemberships(params.clubId),
         apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
