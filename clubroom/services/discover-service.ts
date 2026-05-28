@@ -23,6 +23,7 @@ import type {
 import type { SessionOffering } from '@/constants/session-types';
 import type { CoachDirectoryEntry } from '@/constants/relational-demo-seeds';
 import { apiClient } from './api-client';
+import { listPublicCoachOfferingIndexFromApi } from '@/services/coach-offering-api';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { api, preApiLive } from '@/constants/config';
 import { ensureRelationalDemoSeeded } from '@/services/relational-demo-seed-service';
@@ -561,9 +562,21 @@ class DiscoverService {
         await ensureRelationalDemoSeeded();
       }
 
-      const [directory, offerings, travelSettings] = await Promise.all([
+      let offerings: SessionOffering[] = [];
+      if (apiClient.isMockMode) {
+        [offerings] = await Promise.all([
+          apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
+        ]);
+      } else {
+        const offeringsResult = await listPublicCoachOfferingIndexFromApi(new Date().toISOString());
+        if (!offeringsResult.success) {
+          throw offeringsResult.error;
+        }
+        offerings = offeringsResult.data;
+      }
+
+      const [directory, travelSettings] = await Promise.all([
         apiClient.get<CoachDirectoryEntry[]>(COACH_DIRECTORY_KEY, []),
-        apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
         apiClient.get<
           Array<{
             coachId: string;

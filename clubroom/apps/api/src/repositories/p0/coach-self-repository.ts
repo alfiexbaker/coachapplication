@@ -80,6 +80,7 @@ export interface CoachSchedulingRowsResult {
 export interface CoachSelfRepository {
   getProfileBundle(authUserId: string): Promise<CoachProfileBundleResult>;
   listOfferings(authUserId: string): Promise<CoachOfferingsResult>;
+  listPublicOfferingIndex(): Promise<CoachOfferingsResult>;
   listPublicOfferings(coachUserId: string): Promise<CoachOfferingsResult>;
   listAvailabilityTemplateRows(authUserId: string): Promise<CoachTemplateRowsResult>;
   createAvailabilityTemplate(authUserId: string, body: {
@@ -180,6 +181,23 @@ class StoreCoachSelfRepository implements CoachSelfRepository {
       offerings: asRows(store.tables.coachingOfferings).filter(
         (row) => asString(row.coachUserId) === authUserId,
       ),
+      dataVersion: store.version,
+    };
+  }
+
+  async listPublicOfferingIndex(): Promise<CoachOfferingsResult> {
+    const store = this.storeProvider();
+    const activeCoachUserIds = new Set(
+      getActiveRows(asRows(store.tables.coachProfiles))
+        .map((row) => asString(row.userId))
+        .filter((userId): userId is string => Boolean(userId)),
+    );
+
+    return {
+      offerings: getActiveRows(asRows(store.tables.coachingOfferings)).filter((row) => {
+        const coachUserId = asString(row.coachUserId);
+        return Boolean(coachUserId && activeCoachUserIds.has(coachUserId));
+      }),
       dataVersion: store.version,
     };
   }
@@ -596,6 +614,29 @@ class PrismaCoachSelfRepository implements CoachSelfRepository {
     const offerings = await prisma.coachingOffering.findMany({
       where: { coachUserId: authUserId },
       orderBy: { createdAt: 'asc' },
+    });
+
+    return {
+      offerings: toSeedRows(offerings),
+      dataVersion: null,
+    };
+  }
+
+  async listPublicOfferingIndex(): Promise<CoachOfferingsResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.listPublicOfferingIndex();
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const offerings = await prisma.coachingOffering.findMany({
+      where: {
+        active: true,
+        deletedAt: null,
+        coach: {
+          deletedAt: null,
+        },
+      },
+      orderBy: [{ coachUserId: 'asc' }, { createdAt: 'asc' }],
     });
 
     return {

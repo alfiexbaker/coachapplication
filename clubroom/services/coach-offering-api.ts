@@ -82,3 +82,22 @@ export async function listPublicCoachOfferingsFromApi(
     scheduledAt,
   );
 }
+
+export async function listPublicCoachOfferingIndexFromApi(
+  scheduledAt: string,
+): Promise<Result<SessionOffering[], ServiceError>> {
+  const result = await apiFetch<ApiCoachOfferingsResponse>('/v1/coaches/offerings', {
+    method: 'GET',
+  });
+  if (!result.success) {
+    return err(result.error);
+  }
+
+  return ok(
+    result.data.offerings
+      .filter((offering) => offering.active !== false)
+      .map((offering) =>
+        mapApiCoachOfferingToSessionOffering(offering, offering.coachUserId, scheduledAt),
+      ),
+  );
+}

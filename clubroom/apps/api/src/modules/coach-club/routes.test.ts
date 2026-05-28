@@ -410,6 +410,30 @@ describe('coach-club routes', () => {
       assert.equal((offerings.json() as { total: number }).total >= 1, true);
 
       const viewerUserId = getSeededNonCoachUserId(tables, coachUserId);
+      const publicOfferingIndex = await app.inject({
+        method: 'GET',
+        url: '/v1/coaches/offerings',
+        headers: authHeaders(tables, viewerUserId),
+      });
+      assert.equal(publicOfferingIndex.statusCode, 200);
+      const publicOfferingIndexPayload = publicOfferingIndex.json() as {
+        total: number;
+        offerings: Array<{ coachUserId: string; active: boolean; deletedAt?: string | null }>;
+      };
+      assert.equal(publicOfferingIndexPayload.total >= 1, true);
+      assert.equal(
+        publicOfferingIndexPayload.offerings.every(
+          (offering) => offering.active !== false && !offering.deletedAt,
+        ),
+        true,
+      );
+
+      const unauthenticatedOfferingIndex = await app.inject({
+        method: 'GET',
+        url: '/v1/coaches/offerings',
+      });
+      assert.equal(unauthenticatedOfferingIndex.statusCode, 403);
+
       const publicOfferings = await app.inject({
         method: 'GET',
         url: `/v1/coaches/${coachUserId}/offerings`,

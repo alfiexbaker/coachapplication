@@ -4,13 +4,21 @@ Date: 2026-05-28
 
 ## Latest Update
 
+1. Continued `PROD-API-02` / `PROD-API-04` with the Discover Map offering-index authority slice.
+2. Added authenticated backend `GET /v1/coaches/offerings` so API mode can read active, non-deleted offerings across active coach profiles without touching local `SESSION_OFFERINGS`.
+3. `services/coach-offering-api.ts` now exposes the offering index mapper, and `services/discover-service.ts` uses it outside mock mode for Discover Map coach-card pricing/bookability summaries.
+4. Route inventory, source-of-truth docs, and the production readiness matrix now record `/v1/coaches/offerings`; broader session-listing/org surfaces still have remaining offering debt.
+5. Verification: `npm --prefix apps/api run typecheck`, `npm run typecheck`, focused `LOG_LEVEL=fatal npx tsx --test src/modules/coach-club/routes.test.ts` passed (`15/15`), and `npm run verify:slice:full` passed with API tests `118/118` and `0` new API-boundary findings.
+
+## Previous Update
+
 1. Continued `PROD-API-02` / `PROD-API-04` by retiring more API-mode `SESSION_OFFERINGS` hot-path authority.
 2. `app/book/[coachId]/schedule.tsx` now verifies a selected offering through `/v1/coaches/:coachId/offerings` outside mock mode before locking the schedule, and fails closed if the selected offering is gone.
 3. `app/discover/map.tsx`, `hooks/use-coach-detail.ts`, and `hooks/use-public-profile.ts` now use `services/coach-offering-api.ts` in API mode; their local `SESSION_OFFERINGS` reads remain mock-only.
 4. Source-of-truth docs, route inventory, and the production readiness matrix now record that booking session-type/schedule, Discover Map fast-track, and public coach profile offering sections use the backend offering route in non-mock mode; broader discover/session-listing/org surfaces still have remaining offering debt.
 5. Verification: `npm run typecheck` passed, `node ./scripts/api-boundary-audit.js --update-baseline` ratcheted the boundary baseline from `256` to `254`, and `npm run verify:slice:full` passed with API tests `118/118` and `0` new API-boundary findings.
 
-## Previous Update
+## Earlier Update
 
 1. Continued `PROD-API-02` / `PROD-API-04` with the public coach offering read/linkup slice.
 2. Added backend `GET /v1/coaches/:coachId/offerings` so authenticated booking consumers can read the target coach's active, non-deleted offerings without relying on local `SESSION_OFFERINGS`.
