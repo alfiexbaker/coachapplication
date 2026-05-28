@@ -83,7 +83,8 @@
     "seed:marketplace:generate": "API_MARKETPLACE_SEED_ENABLED=1 node ./scripts/marketplace-seed-kit.mjs generate",
     "seed:marketplace:validate": "API_MARKETPLACE_SEED_ENABLED=1 node ./scripts/marketplace-seed-kit.mjs validate",
     "seed:marketplace:write-back": "API_MARKETPLACE_SEED_ENABLED=1 node ./scripts/marketplace-seed-kit.mjs write-back",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
