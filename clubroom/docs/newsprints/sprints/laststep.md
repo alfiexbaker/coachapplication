@@ -4,13 +4,23 @@ Date: 2026-05-28
 
 ## Latest Update
 
+1. Finished the current `OBS-RUNTIME-01` Supabase/runtime readiness slice after the Supabase project was unpaused.
+2. `npm run audit:db:stage` and `npm run audit:db:stage:strict` now report the staging env as `ready` with `0` blockers, `0` warnings, and `7` migrations.
+3. The watcher-based `npm run api:dev:staging` hit a local `EMFILE: too many open files, watch` limit, so this run used the equivalent non-watch staging start: `node --env-file=../../.env.staging.local --import tsx src/server.ts` from `apps/api`.
+4. With Fastify running on `127.0.0.1:4000`, `npm run smoke:api-mode` and `npm run smoke:api-mode:strict` both passed against the configured LAN API URL.
+5. Direct `/v1/ready` now returns `{"status":"ready","checks":{"api":"ok","config":"ok","database":"ok","objectStorage":"ok"},"issues":[]}`, so the prior Supabase `DATABASE_UNAVAILABLE` blocker is cleared.
+6. Sentry MCP found no unresolved `staging` issues for `tubton/react-native` or `tubton/clubroom-api`.
+7. Verification for this OBS slice: `npm run audit:db:stage`, `npm run audit:db:stage:strict`, `npm run smoke:api-mode`, `npm run smoke:api-mode:strict`, direct `curl http://127.0.0.1:4000/v1/ready`, and Sentry unresolved-issue checks all passed.
+
+## Previous Update
+
 1. Continued `PROD-API-02` / `PROD-API-04` with the Discover Map offering-index authority slice.
 2. Added authenticated backend `GET /v1/coaches/offerings` so API mode can read active, non-deleted offerings across active coach profiles without touching local `SESSION_OFFERINGS`.
 3. `services/coach-offering-api.ts` now exposes the offering index mapper, and `services/discover-service.ts` uses it outside mock mode for Discover Map coach-card pricing/bookability summaries.
 4. Route inventory, source-of-truth docs, and the production readiness matrix now record `/v1/coaches/offerings`; broader session-listing/org surfaces still have remaining offering debt.
 5. Verification: `npm --prefix apps/api run typecheck`, `npm run typecheck`, focused `LOG_LEVEL=fatal npx tsx --test src/modules/coach-club/routes.test.ts` passed (`15/15`), and `npm run verify:slice:full` passed with API tests `118/118` and `0` new API-boundary findings.
 
-## Previous Update
+## Earlier Update
 
 1. Continued `PROD-API-02` / `PROD-API-04` by retiring more API-mode `SESSION_OFFERINGS` hot-path authority.
 2. `app/book/[coachId]/schedule.tsx` now verifies a selected offering through `/v1/coaches/:coachId/offerings` outside mock mode before locking the schedule, and fails closed if the selected offering is gone.
@@ -337,8 +347,8 @@ Date: 2026-05-28
 
 ## Next Exact Action
 
-1. Clear the Supabase staging database readiness issue that makes `npm run smoke:api-mode:strict` fail with `DATABASE_UNAVAILABLE`.
-2. Keep `OBS-RUNTIME-01` green: Sentry is clean, API-mode Expo must continue to start only with `apps/api` reachable.
+1. Keep `OBS-RUNTIME-01` green: strict API-mode readiness is now passing after Supabase was unpaused, Sentry is clean, and API-mode Expo must continue to start only with `apps/api` reachable.
+2. Fix or document the local `api:dev:staging` watcher `EMFILE` limit so agents can use the canonical staging command instead of the equivalent non-watch server when the OS watcher limit is exhausted.
 3. Continue backend-authoritative delivery burn-down with the next high-risk slice: full invite repository extraction, club admin operations, richer message moderation/versioning, broader profile/storefront proof cleanup, remaining `SESSION_OFFERINGS` hot paths, or guardian permission/versioning.
 4. Keep remaining seed-only/scaffolded route cleanup moving; `/v1/meta/seed-health` and `/v1/drills` are now auth-gated but still not launch product surfaces.
 5. Keep `node ./scripts/api-boundary-audit.js` green on every slice.
