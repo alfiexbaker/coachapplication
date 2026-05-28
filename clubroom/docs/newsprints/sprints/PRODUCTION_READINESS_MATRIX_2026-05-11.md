@@ -10,8 +10,8 @@ Latest local evidence:
 - Sentry app project `tubton/react-native` is receiving events in `staging`.
 - 2026-05-28 Sentry MCP review found no unresolved `staging` issues for `tubton/react-native` and no unresolved issues for `tubton/clubroom-api`.
 - `npm run audit:db:stage` and `npm run audit:db:stage:strict` now load `.env.staging.local` and report `ready` locally: `0` blockers, `0` warnings, `7` migrations.
-- `npm run api:dev:staging` / `npm --prefix apps/api run dev:staging` starts Fastify with `.env.staging.local`, so the API binds `API_HOST=0.0.0.0` and exposes the same LAN URL configured for the API-mode app.
-- On the 2026-05-28 local run, the watcher-based staging command hit `EMFILE: too many open files, watch`; the equivalent non-watch staging server (`node --env-file=../../.env.staging.local --import tsx src/server.ts` from `apps/api`) started Fastify on port `4000` for the readiness proof.
+- `npm run api:dev:staging` / `npm --prefix apps/api run dev:staging` starts Fastify with `.env.staging.local` without file watch mode, so the API binds `API_HOST=0.0.0.0` and exposes the same LAN URL configured for the API-mode app without depending on local watcher limits.
+- `npm --prefix apps/api run dev:staging:watch` remains available as an opt-in reload command for active API editing when the local OS watcher limit can support it.
 - `npm run smoke:api-mode` passes when the staging Fastify server is running, proving API-mode startup has a reachable configured `/v1/ready` endpoint before Expo starts.
 - `npm run smoke:api-mode:strict` now passes after the Supabase project was unpaused; `/v1/ready` reports `ready` with `api`, `config`, `database`, and `objectStorage` all `ok`.
 - 2026-05-12 Sentry issue triage:
@@ -28,7 +28,7 @@ Latest local evidence:
 Current blockers and active risks:
 
 - API-mode app startup must use `dev:staging` or an equivalent `API_HOST=0.0.0.0` server when `EXPO_PUBLIC_API_URL` is a LAN origin; otherwise launch-critical club reads immediately produce Sentry noise and app-facing API errors.
-- The local watcher-based staging command can hit `EMFILE`; the non-watch equivalent proves runtime readiness, but the canonical dev command needs the OS watcher limit handled for agent ergonomics.
+- The old watcher-based staging startup could hit `EMFILE`; the canonical staging command is now non-watch, with watch mode kept as an explicit opt-in for active API editing.
 - API Sentry env is present in `.env.staging.local`, unresolved Sentry issue review is clean as of 2026-05-28, and DB staging preflight plus strict API readiness are green locally after the Supabase project was unpaused.
 - API boundary debt still exists behind the baseline: `102` legacy `/api/*` paths, `145` trust-sensitive local-storage authority patterns, `5` route literals, `2` frontend raw fetches.
 - Several launch-critical API routes are still `scaffolded` or `planned` in `docs/backend-api/ROUTE_INVENTORY_V1.md`.

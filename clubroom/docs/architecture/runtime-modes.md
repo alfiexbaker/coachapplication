@@ -110,6 +110,8 @@ Use `node ./scripts/db-staging-preflight.js --strict` as the hard gate once the 
 Use `node ./scripts/db-staging-preflight.js --write` to write transient outputs under `reviews/`.
 
 For API-mode staging startup, start Fastify with the same staging env the app and smoke runner use: `npm --prefix apps/api run dev:staging` or `npm run api:dev:staging`.
+The canonical staging command is intentionally non-watch so readiness smoke does not depend on local file-watcher limits.
+Use `npm --prefix apps/api run dev:staging:watch` only when active API editing needs reload behavior and the local OS watcher limit can support it.
 Use `npm run smoke:api-mode` before starting Expo in API mode. It loads `.env.staging.local`, confirms `EXPO_PUBLIC_USE_MOCK=false`, and verifies the configured Fastify API responds at `/v1/ready`.
 If the configured API URL is a LAN address, the API must bind to `API_HOST=0.0.0.0`; otherwise loopback can respond while the app-configured origin still fails.
 Use `npm run smoke:api-mode:strict` before release-ready staging rehearsal; strict mode requires `/v1/ready` to report `ready`, not merely reachable.

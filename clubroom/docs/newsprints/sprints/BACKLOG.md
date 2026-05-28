@@ -72,7 +72,7 @@ Decision:
 - `docs/templates/AI_TASK_PACKET.md` is the standard planning packet for non-trivial AI implementation slices.
 - `node ./scripts/agentic-readiness-pipeline.js` is the broad local runner for DB staging readiness, PDOS route authority, and static UI-quality checks.
 - `node ./scripts/db-staging-preflight.js` checks whether a real staging DB/API/object-storage rehearsal can start without pretending missing env is product progress.
-- `npm --prefix apps/api run dev:staging` or `npm run api:dev:staging` starts Fastify with `.env.staging.local`, including LAN-safe `API_HOST=0.0.0.0` when the app API URL is a LAN address.
+- `npm --prefix apps/api run dev:staging` or `npm run api:dev:staging` starts Fastify with `.env.staging.local`, including LAN-safe `API_HOST=0.0.0.0` when the app API URL is a LAN address. The canonical staging command is non-watch for stable smoke/rehearsal startup; use `npm --prefix apps/api run dev:staging:watch` only when active API editing needs reload behavior.
 - `npm run smoke:api-mode` checks that API-mode Expo has a reachable Fastify `/v1/ready` endpoint before startup; use `npm run smoke:api-mode:strict` when the rehearsal must require full readiness, not just reachability.
 - `node ./scripts/pdos-route-authority-audit.js` gives agents the current route-to-sprint/persona/verdict matrix plus route risks such as direct fetches, local storage authority, native alerts, money hard walls, and sensitive reads.
 - Add `--write` to these commands when a review artifact is needed under `reviews/`; do not commit generated review output unless the sprint explicitly asks for a frozen snapshot.
@@ -143,7 +143,7 @@ Decision:
 - Acceptance:
   - `npx expo install --check` stays clean.
   - `npm run typecheck` stays clean.
-  - `curl http://127.0.0.1:4000/v1/ready` responds after starting `npm --prefix apps/api run dev:staging`.
+  - `curl http://127.0.0.1:4000/v1/ready` responds after starting `npm --prefix apps/api run dev:staging` without relying on file watch mode.
   - `npm run smoke:api-mode` passes before starting Expo in API mode.
   - `npm run smoke:api-mode:strict` passes before treating the staging runtime as release-ready.
   - API-mode Expo startup is tested with the API already running.
