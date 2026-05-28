@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-27T13:11:03.799Z",
+  "updatedAt": "2026-05-28T09:37:52.204Z",
   "note": "Legacy anti-slop findings allowed for now. New findings fail scripts/api-boundary-audit.js.",
   "allowedFindings": [
     {
@@ -719,12 +719,6 @@
     },
     {
       "rule": "trust-sensitive-local-storage",
-      "file": "hooks/use-coach-detail.ts",
-      "snippet": "apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),",
-      "fingerprint": "trust-sensitive-local-storage|hooks/use-coach-detail.ts|apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),"
-    },
-    {
-      "rule": "trust-sensitive-local-storage",
       "file": "hooks/use-create-session.ts",
       "snippet": "const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);",
       "fingerprint": "trust-sensitive-local-storage|hooks/use-create-session.ts|const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);"
@@ -746,12 +740,6 @@
       "file": "hooks/use-my-progress.ts",
       "snippet": "apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),",
       "fingerprint": "trust-sensitive-local-storage|hooks/use-my-progress.ts|apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),"
-    },
-    {
-      "rule": "trust-sensitive-local-storage",
-      "file": "hooks/use-public-profile.ts",
-      "snippet": "apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),",
-      "fingerprint": "trust-sensitive-local-storage|hooks/use-public-profile.ts|apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),"
     },
     {
       "rule": "trust-sensitive-local-storage",
@@ -978,14 +966,14 @@
     {
       "rule": "trust-sensitive-local-storage",
       "file": "services/invite/invite-rsvp-service.ts",
-      "snippet": "const invites = await apiClient.get<SessionInvite[]>(STORAGE_KEYS.SESSION_INVITES, []);",
-      "fingerprint": "trust-sensitive-local-storage|services/invite/invite-rsvp-service.ts|const invites = await apiClient.get<SessionInvite[]>(STORAGE_KEYS.SESSION_INVITES, []);"
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_INVITES, invites);",
+      "fingerprint": "trust-sensitive-local-storage|services/invite/invite-rsvp-service.ts|await apiClient.set(STORAGE_KEYS.SESSION_INVITES, invites);"
     },
     {
       "rule": "trust-sensitive-local-storage",
       "file": "services/invite/invite-rsvp-service.ts",
-      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_INVITES, invites);",
-      "fingerprint": "trust-sensitive-local-storage|services/invite/invite-rsvp-service.ts|await apiClient.set(STORAGE_KEYS.SESSION_INVITES, invites);"
+      "snippet": "const invites = await apiClient.get<SessionInvite[]>(STORAGE_KEYS.SESSION_INVITES, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/invite/invite-rsvp-service.ts|const invites = await apiClient.get<SessionInvite[]>(STORAGE_KEYS.SESSION_INVITES, []);"
     },
     {
       "rule": "trust-sensitive-local-storage",

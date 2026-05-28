@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { coachService, type Coach, type PublicReview } from '@/services/coach-service';
 import { apiClient } from '@/services/api-client';
+import { listPublicCoachOfferingsFromApi } from '@/services/coach-offering-api';
 import { followService } from '@/services/follow-service';
 import { blockService } from '@/services/block-service';
 import { createLogger } from '@/utils/logger';
@@ -107,10 +108,18 @@ export function useCoachDetail(coachId: string | undefined) {
     }
 
     try {
-      const [coachResult, reviewsResult, storedOfferings] = await Promise.all([
+      const offeringsResultPromise = apiClient.isMockMode
+        ? apiClient
+            .get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, [])
+            .then((offerings) => ok(getCoachProfileOfferings(offerings, coachId)))
+        : listPublicCoachOfferingsFromApi(coachId, new Date().toISOString()).then((result) =>
+            result.success ? ok(getCoachProfileOfferings(result.data, coachId)) : result,
+          );
+
+      const [coachResult, reviewsResult, offeringsResult] = await Promise.all([
         coachService.getCoach(coachId),
         coachService.getCoachReviews(coachId),
-        apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
+        offeringsResultPromise,
       ]);
 
       if (!coachResult.success && coachResult.error.code === 'NOT_FOUND') {
@@ -121,17 +130,17 @@ export function useCoachDetail(coachId: string | undefined) {
         });
       }
 
-      const combined = combineResults([coachResult, reviewsResult] as const);
+      const combined = combineResults([coachResult, reviewsResult, offeringsResult] as const);
       if (!combined.success) {
         logger.error('Failed to load coach detail', combined.error);
         return err(combined.error);
       }
 
-      const [coach, reviews] = combined.data;
+      const [coach, reviews, sessionOfferings] = combined.data;
       return ok<CoachDetailData>({
         coach,
         reviews,
-        sessionOfferings: getCoachProfileOfferings(storedOfferings, coachId),
+        sessionOfferings,
       });
     } catch (loadError) {
       logger.error('Failed to load coach detail', loadError);

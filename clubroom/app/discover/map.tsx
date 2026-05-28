@@ -20,6 +20,7 @@ import { useScreen } from '@/hooks/use-screen';
 import { useTheme } from '@/hooks/useTheme';
 import { Routes } from '@/navigation/routes';
 import { apiClient } from '@/services/api-client';
+import { listPublicCoachOfferingsFromApi } from '@/services/coach-offering-api';
 import { discoverService } from '@/services/discover-service';
 import { accountIdsMatch } from '@/utils/account-id';
 import { createLogger } from '@/utils/logger';
@@ -147,8 +148,23 @@ export default function MapScreen() {
       void (async () => {
         let offeringId: string | undefined;
         try {
-          const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
-          offeringId = selectPreferredOffering(offerings, coachId)?.id;
+          if (apiClient.isMockMode) {
+            const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
+            offeringId = selectPreferredOffering(offerings, coachId)?.id;
+          } else {
+            const offeringsResult = await listPublicCoachOfferingsFromApi(
+              coachId,
+              new Date().toISOString(),
+            );
+            if (!offeringsResult.success) {
+              logger.warn('Discover map offering fast-track unavailable', {
+                coachId,
+                error: offeringsResult.error,
+              });
+            }
+            const offerings = offeringsResult.success ? offeringsResult.data : [];
+            offeringId = selectPreferredOffering(offerings, coachId)?.id;
+          }
         } catch {
           offeringId = undefined;
         }

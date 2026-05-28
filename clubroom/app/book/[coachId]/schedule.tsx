@@ -26,6 +26,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { availabilityService } from '@/services/availability-service';
 import { bookingStepAnalyticsService } from '@/services/booking/booking-step-analytics-service';
+import { listPublicCoachOfferingsFromApi } from '@/services/coach-offering-api';
 import type { AvailabilitySlot } from '@/constants/types';
 import { useRequiredParam } from '@/hooks/use-required-param';
 import { BOOKING_LOCATION_OPTIONS } from '@/constants/booking-flow';
@@ -52,15 +53,45 @@ export default function ScheduleScreen() {
   const {
     data: selectedOffering,
     status: selectedOfferingStatus,
+    error: selectedOfferingError,
+    retry: retrySelectedOffering,
   } = useScreen<SessionOffering | null>({
     load: async () => {
       if (!draft.sessionOfferingId) {
         return ok<SessionOffering | null>(null);
       }
+      if (!apiClient.isMockMode) {
+        const result = await listPublicCoachOfferingsFromApi(coachId, new Date().toISOString());
+        if (!result.success) {
+          return err(result.error);
+        }
+        const offering = result.data.find((candidate) => candidate.id === draft.sessionOfferingId);
+        if (!offering) {
+          return err(
+            serviceError(
+              'NOT_FOUND',
+              'Selected session type is no longer available. Please choose another option.',
+              { coachId, offeringId: draft.sessionOfferingId },
+            ),
+          );
+        }
+        return ok(offering);
+      }
+
       const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
-      return ok(offerings.find((offering) => offering.id === draft.sessionOfferingId) ?? null);
+      const offering = offerings.find((candidate) => candidate.id === draft.sessionOfferingId);
+      if (!offering) {
+        return err(
+          serviceError(
+            'NOT_FOUND',
+            'Selected session type is no longer available. Please choose another option.',
+            { coachId, offeringId: draft.sessionOfferingId },
+          ),
+        );
+      }
+      return ok(offering);
     },
-    deps: [draft.sessionOfferingId],
+    deps: [coachId, draft.sessionOfferingId],
     isEmpty: () => false,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
@@ -90,6 +121,16 @@ export default function ScheduleScreen() {
     if (draft.sessionOfferingId && selectedOfferingStatus === 'loading') {
       return ok([]);
     }
+    if (draft.sessionOfferingId && selectedOfferingStatus === 'error') {
+      return err(
+        serviceError(
+          'UNKNOWN',
+          selectedOfferingError?.message ??
+            'Unable to verify the selected session type. Please try again.',
+          selectedOfferingError,
+        ),
+      );
+    }
     if (scheduleLocked) {
       return ok([]);
     }
@@ -116,6 +157,7 @@ export default function ScheduleScreen() {
     draft.duration,
     draft.sessionOfferingId,
     scheduleLocked,
+    selectedOfferingError,
     selectedOfferingStatus,
   ]);
 
@@ -284,6 +326,21 @@ export default function ScheduleScreen() {
         <ErrorState
           message="Coach not found"
           onRetry={() => router.back()}
+        />
+      ),
+    });
+  }
+
+  if (draft.sessionOfferingId && selectedOfferingStatus === 'error') {
+    return renderWizardState({
+      subtitle: 'Unable to verify session type',
+      content: (
+        <ErrorState
+          message={
+            selectedOfferingError?.message ??
+            'Unable to verify the selected session type. Please choose again.'
+          }
+          onRetry={retrySelectedOffering}
         />
       ),
     });
