@@ -1,7 +1,3 @@
-/**
- * SessionInviteCard — Sub-components for full card variant.
- */
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +16,7 @@ import { getExpiryCountdown } from './session-invite-helpers';
 interface InvitationBannerProps {
   message: string;
 }
-export const InvitationBanner = memo(function InvitationBanner({ message }: InvitationBannerProps) {
+export const InvitationBanner = function InvitationBanner({ message }: InvitationBannerProps) {
   const { colors: palette } = useTheme();
   return (
     <Row
@@ -34,7 +30,7 @@ export const InvitationBanner = memo(function InvitationBanner({ message }: Invi
       </ThemedText>
     </Row>
   );
-});
+};
 
 /* ─── Session Meta Row ─── */
 interface SessionMetaProps {
@@ -42,7 +38,7 @@ interface SessionMetaProps {
   duration?: number;
   price?: number;
 }
-export const SessionMetaRow = memo(function SessionMetaRow({
+export const SessionMetaRow = function SessionMetaRow({
   sessionType,
   duration,
   price,
@@ -74,7 +70,7 @@ export const SessionMetaRow = memo(function SessionMetaRow({
       )}
     </Row>
   );
-});
+};
 
 /* ─── Slot Selector (multiple slots) ─── */
 interface SlotSelectorProps {
@@ -82,7 +78,7 @@ interface SlotSelectorProps {
   selectedIndex: number | null;
   onSelect: (i: number) => void;
 }
-export const SlotSelector = memo(function SlotSelector({
+export const SlotSelector = function SlotSelector({
   slots,
   selectedIndex,
   onSelect,
@@ -96,7 +92,10 @@ export const SlotSelector = memo(function SlotSelector({
       {slots.map((slot, index) => {
         const isSelected = selectedIndex === index;
         return (
-          <Clickable key={index} onPress={() => onSelect(index)}>
+          <Clickable
+            key={slot.id ?? `${slot.date}:${slot.startTime}:${slot.endTime}`}
+            onPress={() => onSelect(index)}
+          >
             <Row
               align="center"
               justify="space-between"
@@ -140,18 +139,22 @@ export const SlotSelector = memo(function SlotSelector({
       })}
     </View>
   );
-});
+};
 
 /* ─── Slot Display (single/read-only) ─── */
 interface SlotDisplayProps {
   slots: TimeSlot[];
 }
-export const SlotDisplay = memo(function SlotDisplay({ slots }: SlotDisplayProps) {
+export const SlotDisplay = function SlotDisplay({ slots }: SlotDisplayProps) {
   const { colors: palette } = useTheme();
   return (
     <View style={styles.details}>
       {slots.map((slot, index) => (
-        <Row key={index} align="center" gap="xs">
+        <Row
+          key={slot.id ?? `${slot.date}:${slot.startTime}:${slot.endTime}`}
+          align="center"
+          gap="xs"
+        >
           <Ionicons name="calendar-outline" size={16} color={palette.muted} />
           <ThemedText style={styles.detailText}>
             {new Date(slot.date + 'T00:00:00').toLocaleDateString('en-GB', {
@@ -166,7 +169,7 @@ export const SlotDisplay = memo(function SlotDisplay({ slots }: SlotDisplayProps
       ))}
     </View>
   );
-});
+};
 
 /* ─── Invite Actions ─── */
 interface InviteActionsProps {
@@ -175,7 +178,7 @@ interface InviteActionsProps {
   acceptDisabled: boolean;
   acceptLoading: boolean;
 }
-export const InviteActions = memo(function InviteActions({
+export const InviteActions = function InviteActions({
   onAccept,
   onDecline,
   acceptDisabled,
@@ -215,13 +218,13 @@ export const InviteActions = memo(function InviteActions({
       </Clickable>
     </Row>
   );
-});
+};
 
 /* ─── Expiry Warning ─── */
 interface ExpiryWarningProps {
   expiresAt: string;
 }
-export const ExpiryWarning = memo(function ExpiryWarning({ expiresAt }: ExpiryWarningProps) {
+export const ExpiryWarning = function ExpiryWarning({ expiresAt }: ExpiryWarningProps) {
   const { colors: palette } = useTheme();
   return (
     <Row align="center" justify="center" gap="xs" style={styles.expiryRow}>
@@ -231,13 +234,13 @@ export const ExpiryWarning = memo(function ExpiryWarning({ expiresAt }: ExpiryWa
       </ThemedText>
     </Row>
   );
-});
+};
 
 /* ─── Slot Taken Error ─── */
 interface SlotTakenBannerProps {
   message: string;
 }
-export const SlotTakenBanner = memo(function SlotTakenBanner({ message }: SlotTakenBannerProps) {
+export const SlotTakenBanner = function SlotTakenBanner({ message }: SlotTakenBannerProps) {
   const { colors: palette } = useTheme();
   return (
     <Row
@@ -249,7 +252,7 @@ export const SlotTakenBanner = memo(function SlotTakenBanner({ message }: SlotTa
       <ThemedText style={[styles.slotTakenText, { color: palette.error }]}>{message}</ThemedText>
     </Row>
   );
-});
+};
 
 /* Re-export for convenience */
 export { CoverImageHero, AvatarStack, RsvpButtonGroup };

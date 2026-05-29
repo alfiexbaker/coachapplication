@@ -18,7 +18,7 @@
  */
 
 import { useFocusEffect } from 'expo-router';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 import { Colors, type ThemeName } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
@@ -41,8 +41,23 @@ import { onTyped } from '@/services/event-bus';
 import type { EventPayloads } from '@/services/event-bus';
 import type { Result, ServiceError } from '@/types/result';
 
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
+
 export type ScreenStatus = CoreScreenStatus;
 type TruthfulScreenStatus = Extract<ScreenStatus, 'empty' | 'success'>;
+
+const EMPTY_DEPS: ReadonlyArray<unknown> = [];
+const EMPTY_EVENTS: ReadonlyArray<keyof EventPayloads> = [];
+
+function markUnmounted(ref: { current: boolean }) {
+  ref.current = false;
+}
+
+function areDependencyListsEqual(current: ReadonlyArray<unknown>, next: ReadonlyArray<unknown>) {
+  return (
+    current.length === next.length && current.every((value, index) => Object.is(value, next[index]))
+  );
+}
 
 interface ScreenSnapshot<T> {
   data: T;
@@ -95,8 +110,8 @@ export interface UseScreenResult<T> {
 export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
   const {
     load,
-    deps = [],
-    events = [],
+    deps = EMPTY_DEPS,
+    events = EMPTY_EVENTS,
     isEmpty,
     refetchOnFocus = false,
     loadTimeoutMs = 10_000,
@@ -109,7 +124,7 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
   const [error, setError] = useState<ServiceError | null>(null);
   const [silentError, setSilentError] = useState<ServiceError | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [pendingState, setPendingState] = useState<ScreenPendingState>(
+  const [pendingState, setPendingState] = useState<ScreenPendingState>(() =>
     createIdlePendingState(loadingStrategy),
   );
   const [hasResolvedOnce, setHasResolvedOnce] = useState(false);
@@ -125,6 +140,22 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
   const statusRef = useRef<ScreenStatus>('loading');
   const resolvedDataKeyRef = useRef<string | null>(null);
   const snapshotCacheRef = useRef<Map<string, ScreenSnapshot<T>>>(new Map());
+  const loadRef = useRef(load);
+  const isEmptyRef = useRef(isEmpty);
+  const depsRef = useRef(deps);
+  const [depsVersion, setDepsVersion] = useState(0);
+
+  useEffect(() => {
+    loadRef.current = load;
+    isEmptyRef.current = isEmpty;
+  });
+
+  useEffect(() => {
+    if (areDependencyListsEqual(depsRef.current, deps)) return;
+    depsRef.current = deps;
+    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change -- useScreen increments an internal reload version when caller dependencies change.
+    setDepsVersion((version) => version + 1);
+  }, [deps]);
 
   useEffect(() => {
     statusRef.current = status;
@@ -136,16 +167,17 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
 
   useEffect(() => {
     return () => {
-      mountedRef.current = false;
+      markUnmounted(mountedRef);
     };
   }, []);
 
-  const fetchData = useCallback(async (mode: ScreenLoadMode = 'initial') => {
+  const fetchData = async (mode: ScreenLoadMode = 'initial') => {
     const currentStatus = statusRef.current;
     const requestedDataKey = dataKey ?? null;
     const cachedSnapshot =
-      requestedDataKey !== null ? snapshotCacheRef.current.get(requestedDataKey) ?? null : null;
-    const hasVisibleTruthfulFrame = isTruthfulScreenStatus(currentStatus) || cachedSnapshot !== null;
+      requestedDataKey !== null ? (snapshotCacheRef.current.get(requestedDataKey) ?? null) : null;
+    const hasVisibleTruthfulFrame =
+      isTruthfulScreenStatus(currentStatus) || cachedSnapshot !== null;
     const hasRequestedTruthfulFrame =
       requestedDataKey === null ||
       resolvedDataKeyRef.current === requestedDataKey ||
@@ -186,13 +218,75 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
       setSilentError(null);
     }
 
-    try {
-      const timeoutResult = await withTimeout(load(), loadTimeoutMs);
+    return await runAsyncTryCatchFinally(
+      async () => {
+        const timeoutResult = await withTimeout(loadRef.current(), loadTimeoutMs);
 
-      if (!mountedRef.current) return;
+        if (mountedRef.current) {
+          // Timeout expired — treat as a network error
+          if (!timeoutResult.success) {
+            if (
+              shouldSurfaceBackgroundFailure({
+                hasTruthfulFrame: hasVisibleTruthfulFrame,
+                hasRequestedTruthfulFrame,
+                mode,
+                strategy: loadingStrategy,
+                pendingState: nextPendingState,
+              })
+            ) {
+              setSilentError(timeoutResult.error);
+            } else {
+              setError(timeoutResult.error);
+              setStatus('error');
+            }
+            return;
+          }
 
-      // Timeout expired — treat as a network error
-      if (!timeoutResult.success) {
+          const result = timeoutResult.data;
+
+          if (!result.success) {
+            if (
+              shouldSurfaceBackgroundFailure({
+                hasTruthfulFrame: hasVisibleTruthfulFrame,
+                hasRequestedTruthfulFrame,
+                mode,
+                strategy: loadingStrategy,
+                pendingState: nextPendingState,
+              })
+            ) {
+              // Silent refetch failed — show silentError, keep existing data visible
+              setSilentError(result.error);
+            } else {
+              setError(result.error);
+              setStatus('error');
+            }
+            return;
+          }
+
+          const resultData = result.data;
+          const nextStatus = deriveScreenStatus(resultData, isEmptyRef.current);
+          setData(resultData);
+          setStatus(nextStatus);
+          setError(null);
+          setSilentError(null);
+          if (requestedDataKey !== null) {
+            snapshotCacheRef.current.set(requestedDataKey, {
+              data: resultData,
+              status: nextStatus,
+            });
+            if (resolvedDataKeyRef.current !== requestedDataKey) {
+              resolvedDataKeyRef.current = requestedDataKey;
+              setResolvedDataKey(requestedDataKey);
+            }
+          } else if (resolvedDataKeyRef.current !== null) {
+            resolvedDataKeyRef.current = null;
+            setResolvedDataKey(null);
+          }
+        }
+      },
+      async (loadError) => {
+        if (!mountedRef.current) return;
+        const normalizedError = normalizeUnknownError(loadError);
         if (
           shouldSurfaceBackgroundFailure({
             hasTruthfulFrame: hasVisibleTruthfulFrame,
@@ -202,99 +296,43 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
             pendingState: nextPendingState,
           })
         ) {
-          setSilentError(timeoutResult.error);
+          setSilentError(normalizedError);
         } else {
-          setError(timeoutResult.error);
+          setError(normalizedError);
           setStatus('error');
         }
-        return;
-      }
-
-      const result = timeoutResult.data;
-
-      if (!result.success) {
-        if (
-          shouldSurfaceBackgroundFailure({
-            hasTruthfulFrame: hasVisibleTruthfulFrame,
-            hasRequestedTruthfulFrame,
-            mode,
-            strategy: loadingStrategy,
-            pendingState: nextPendingState,
-          })
-        ) {
-          // Silent refetch failed — show silentError, keep existing data visible
-          setSilentError(result.error);
-        } else {
-          setError(result.error);
-          setStatus('error');
+      },
+      () => {
+        if (mode === 'refresh' && mountedRef.current) {
+          setRefreshing(false);
         }
-        return;
-      }
-
-      const resultData = result.data;
-      const nextStatus = deriveScreenStatus(resultData, isEmpty);
-      setData(resultData);
-      setStatus(nextStatus);
-      setError(null);
-      setSilentError(null);
-      if (requestedDataKey !== null) {
-        snapshotCacheRef.current.set(requestedDataKey, {
-          data: resultData,
-          status: nextStatus,
-        });
-        if (resolvedDataKeyRef.current !== requestedDataKey) {
-          resolvedDataKeyRef.current = requestedDataKey;
-          setResolvedDataKey(requestedDataKey);
+        if (mountedRef.current) {
+          setPendingState(createIdlePendingState(loadingStrategy));
+          setHasResolvedOnce(true);
         }
-      } else if (resolvedDataKeyRef.current !== null) {
-        resolvedDataKeyRef.current = null;
-        setResolvedDataKey(null);
-      }
-    } catch (loadError) {
-      if (!mountedRef.current) return;
-      const normalizedError = normalizeUnknownError(loadError);
-      if (
-        shouldSurfaceBackgroundFailure({
-          hasTruthfulFrame: hasVisibleTruthfulFrame,
-          hasRequestedTruthfulFrame,
-          mode,
-          strategy: loadingStrategy,
-          pendingState: nextPendingState,
-        })
-      ) {
-        setSilentError(normalizedError);
-      } else {
-        setError(normalizedError);
-        setStatus('error');
-      }
-    } finally {
-      if (mode === 'refresh' && mountedRef.current) {
-        setRefreshing(false);
-      }
-      if (mountedRef.current) {
-        setPendingState(createIdlePendingState(loadingStrategy));
-        setHasResolvedOnce(true);
-      }
-      hasLoadedOnceRef.current = true;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, dataKey, loadTimeoutMs, loadingStrategy]);
+        hasLoadedOnceRef.current = true;
+      },
+    );
+  };
+  const fetchDataRef = useRef(fetchData);
+
+  useEffect(() => {
+    fetchDataRef.current = fetchData;
+  });
 
   // Initial load + deps change
   useEffect(() => {
-    void fetchData(hasLoadedOnceRef.current ? 'dependency-change' : 'initial');
-  }, [fetchData]);
+    void fetchDataRef.current(hasLoadedOnceRef.current ? 'dependency-change' : 'initial');
+  }, [depsVersion]);
 
   // Optional focus-triggered silent refetch (no loading spinner/status reset).
-  useFocusEffect(
-    useCallback(() => {
-      runFocusRefetch({
-        refetchOnFocus,
-        hasLoadedOnce: hasLoadedOnceRef.current,
-        fetchData,
-      });
-    }, [fetchData, refetchOnFocus]),
-  );
+  useFocusEffect(() => {
+    runFocusRefetch({
+      refetchOnFocus,
+      hasLoadedOnce: hasLoadedOnceRef.current,
+      fetchData: fetchDataRef.current,
+    });
+  });
 
   // Event bus subscriptions — re-fetch on relevant events
   useEffect(() => {
@@ -302,22 +340,22 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
 
     const unsubscribers = events.map((event) =>
       onTyped(event, () => {
-        void fetchData('silent');
+        void fetchDataRef.current('silent');
       }),
     );
 
     return () => {
       unsubscribers.forEach((unsub) => unsub());
     };
-  }, [events, fetchData]);
+  }, [events]);
 
-  const onRefresh = useCallback(() => {
-    void fetchData('refresh');
-  }, [fetchData]);
+  const onRefresh = () => {
+    void fetchDataRef.current('refresh');
+  };
 
-  const retry = useCallback(() => {
-    void fetchData('retry');
-  }, [fetchData]);
+  const retry = () => {
+    void fetchDataRef.current('retry');
+  };
 
   const hasTruthfulFrame = isTruthfulScreenStatus(status);
   const requestedDataKey = dataKey ?? null;

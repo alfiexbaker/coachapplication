@@ -1,7 +1,7 @@
 /**
  * useMatchDetail — All state, data loading, and handlers for the Match Detail screen.
  */
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
@@ -11,6 +11,8 @@ import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { Match } from '@/constants/types';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('MatchDetailScreen');
 
@@ -54,7 +56,7 @@ export function useMatchDetail() {
 
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
-  const loadMatch = useCallback(async () => {
+  const loadMatch = async () => {
     try {
       if (!id) {
         return ok<MatchDetailData>({ match: null });
@@ -67,7 +69,7 @@ export function useMatchDetail() {
         serviceError('UNKNOWN', 'Failed to load match details. Pull down to refresh.', loadError),
       );
     }
-  }, [id]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<MatchDetailData>({
     load: loadMatch,
@@ -84,65 +86,61 @@ export function useMatchDetail() {
     (p) => p.parentId === currentUser?.id || p.parentId === 'parent_1',
   );
 
-  const handleSetLineup = useCallback(
-    async (
-      lineup: {
-        athleteId: string;
-        position?: string;
-        jerseyNumber?: number;
-        isReserve?: boolean;
-      }[],
-    ) => {
-      if (!match) return;
-      setIsSubmitting(true);
-      try {
-        const result = await matchService.setLineup({ matchId: match.id, lineup });
-        if (!result.success) {
-          logger.error('Failed to set lineup:', result.error);
-          uiFeedback.showToast('Failed to set lineup. Please try again.', 'error');
-          return;
-        }
-        onRefresh();
-        setShowLineupSelector(false);
-        uiFeedback.showToast('The lineup has been confirmed and players notified.');
-      } catch (error) {
-        logger.error('Failed to set lineup:', error);
+  const handleSetLineup = async (
+    lineup: {
+      athleteId: string;
+      position?: string;
+      jerseyNumber?: number;
+      isReserve?: boolean;
+    }[],
+  ) => {
+    if (!match) return;
+    setIsSubmitting(true);
+
+    return await runAsyncTryCatchFinally(async () => {
+      const result = await matchService.setLineup({ matchId: match.id, lineup });
+      if (!result.success) {
+        logger.error('Failed to set lineup:', result.error);
         uiFeedback.showToast('Failed to set lineup. Please try again.', 'error');
-      } finally {
-        setIsSubmitting(false);
+        return;
       }
-    },
-    [match, onRefresh],
-  );
+      onRefresh();
+      setShowLineupSelector(false);
+      uiFeedback.showToast('The lineup has been confirmed and players notified.');
+    }, async error => {
+      logger.error('Failed to set lineup:', error);
+      uiFeedback.showToast('Failed to set lineup. Please try again.', 'error');
+    }, () => {
+      setIsSubmitting(false);
+    });
+  };
 
-  const handlePlayerResponse = useCallback(
-    async (status: 'AVAILABLE' | 'UNAVAILABLE', note?: string) => {
-      if (!match || !currentPlayerInfo) return;
-      setIsSubmitting(true);
-      try {
-        const result = await matchService.respondToMatch({
-          matchId: match.id,
-          athleteId: currentPlayerInfo.athleteId,
-          parentId: currentPlayerInfo.parentId,
-          status,
-          note,
-        });
-        if (!result.success) {
-          logger.error('Failed to respond:', result.error);
-          throw new Error(result.error.message);
-        }
-        onRefresh();
-      } catch (error) {
-        logger.error('Failed to respond:', error);
-        throw error;
-      } finally {
-        setIsSubmitting(false);
+  const handlePlayerResponse = async (status: 'AVAILABLE' | 'UNAVAILABLE', note?: string) => {
+    if (!match || !currentPlayerInfo) return;
+    setIsSubmitting(true);
+
+    await runAsyncTryCatchFinally(async () => {
+      const result = await matchService.respondToMatch({
+        matchId: match.id,
+        athleteId: currentPlayerInfo.athleteId,
+        parentId: currentPlayerInfo.parentId,
+        status,
+        note,
+      });
+      if (!result.success) {
+        logger.error('Failed to respond:', result.error);
+        throw new Error(result.error.message);
       }
-    },
-    [match, currentPlayerInfo, onRefresh],
-  );
+      onRefresh();
+    }, async error => {
+      logger.error('Failed to respond:', error);
+      throw error;
+    }, () => {
+      setIsSubmitting(false);
+    });
+  };
 
-  const handleRecordResult = useCallback(() => {
+  const handleRecordResult = () => {
     uiFeedback.prompt(
       'Record Result',
       'Enter the final score (home-away, e.g., 3-1)',
@@ -173,9 +171,9 @@ export function useMatchDetail() {
       ],
       'plain-text',
     );
-  }, [match, onRefresh]);
+  };
 
-  const handleCancelMatch = useCallback(() => {
+  const handleCancelMatch = () => {
     uiFeedback.alert(
       'Cancel Match',
       'Are you sure you want to cancel this match? All players will be notified.',
@@ -200,7 +198,7 @@ export function useMatchDetail() {
         },
       ],
     );
-  }, [match, onRefresh]);
+  };
 
   const isUpcoming = match?.status === 'SCHEDULED' || match?.status === 'LINEUP_SET';
   const isComplete = match?.status === 'COMPLETED';

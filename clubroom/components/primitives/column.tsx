@@ -12,7 +12,7 @@
  *   </Column>
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { View, type ViewStyle, type StyleProp } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
@@ -37,7 +37,7 @@ function resolveSpacing(value: SpacingKey | number | undefined): number | undefi
   return Spacing[value];
 }
 
-export const Column = memo(function Column({
+export const Column = function Column({
   gap,
   align,
   justify,
@@ -59,4 +59,4 @@ export const Column = memo(function Column({
   };
 
   return <View style={[computed, style]}>{children}</View>;
-});
+};

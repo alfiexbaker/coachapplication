@@ -5,11 +5,9 @@
  * Screen component only handles rendering.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-
+import { useState, useEffect, startTransition } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
-
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { rosterService } from '@/services/roster-service';
@@ -24,9 +22,7 @@ import {
   deriveLocationLabel,
   parseStoredLocationPresets,
 } from '@/utils/location-presets';
-import {
-  getDisplayLocationLabel,
-} from '@/utils/location-display';
+import { getDisplayLocationLabel } from '@/utils/location-display';
 import { recurringBookingService } from '@/services/recurring-booking-service';
 import { groupSessionService } from '@/services/group-session-service';
 import { academyService } from '@/services/academy-service';
@@ -50,33 +46,47 @@ import {
   SESSION_TYPES,
 } from '@/components/session/create-session-types';
 import { uiFeedback } from '@/services/ui-feedback';
-
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 const logger = createLogger('CreateSession');
-
 const ALLOWED_RECURRENCE_BY_TYPE: Record<SessionType, RecurrenceType[]> = {
   '1on1': ['once', 'weekly', 'biweekly'],
   small_group: ['once', 'weekly', 'biweekly', 'monthly'],
   group: ['once', 'weekly', 'biweekly', 'monthly'],
   camp: ['once'],
 };
-
 const ALLOWED_INVITES_BY_TYPE: Record<SessionType, SessionInviteType[]> = {
   '1on1': ['CLOSED'],
   small_group: ['OPEN', 'CLOSED'],
   group: ['OPEN', 'CLOSED', 'SQUAD_ONLY'],
   camp: ['OPEN', 'CLOSED', 'SQUAD_ONLY'],
 };
-
 const PARTICIPANT_RULES: Record<
   SessionType,
-  { defaultValue: number; min: number; max?: number }
+  {
+    defaultValue: number;
+    min: number;
+    max?: number;
+  }
 > = {
-  '1on1': { defaultValue: 1, min: 1, max: 1 },
-  small_group: { defaultValue: 4, min: 2, max: 4 },
-  group: { defaultValue: 12, min: 5 },
-  camp: { defaultValue: 20, min: 6 },
+  '1on1': {
+    defaultValue: 1,
+    min: 1,
+    max: 1,
+  },
+  small_group: {
+    defaultValue: 4,
+    min: 2,
+    max: 4,
+  },
+  group: {
+    defaultValue: 12,
+    min: 5,
+  },
+  camp: {
+    defaultValue: 20,
+    min: 6,
+  },
 };
-
 const MIN_DURATION_MINUTES = 30;
 const MAX_DURATION_MINUTES = 480;
 const MAX_CAMP_DAYS = 14;
@@ -89,22 +99,18 @@ const ASSIGNEE_ROLE_ORDER: Record<AcademyMembership['role'], number> = {
   ASSISTANT: 4,
   MEMBER: 5,
 };
-
 function canCreateAsClub(membership: AcademyMembership): boolean {
   return membership.permissions.includes('CREATE_SESSIONS');
 }
-
 function canPostAsClub(membership: AcademyMembership): boolean {
   return membership.permissions.includes('POST_AS_ACADEMY');
 }
-
 function formatLocalDate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
-
 function parseTimeToMinutes(time: string): number | null {
   const [hoursRaw, minutesRaw] = time.split(':');
   const hours = parseInt(hoursRaw, 10);
@@ -117,23 +123,19 @@ function parseTimeToMinutes(time: string): number | null {
   }
   return hours * 60 + minutes;
 }
-
 function durationBetweenTimes(startTime: string, endTime: string): number {
   const start = parseTimeToMinutes(startTime);
   const end = parseTimeToMinutes(endTime);
   if (start === null || end === null) return 0;
   return end - start;
 }
-
 function isValidTimeWindow(startTime: string, endTime: string): boolean {
   const duration = durationBetweenTimes(startTime, endTime);
   return duration >= MIN_DURATION_MINUTES && duration <= MAX_DURATION_MINUTES;
 }
-
 function buildCampDates(startDate: string, endDate?: string): string[] | null {
   if (!startDate) return [];
   if (!endDate || endDate < startDate) return [startDate];
-
   const dates: string[] = [];
   const cursor = new Date(`${startDate}T00:00:00`);
   const finalDate = new Date(`${endDate}T00:00:00`);
@@ -144,34 +146,28 @@ function buildCampDates(startDate: string, endDate?: string): string[] | null {
     dates.push(formatLocalDate(cursor));
     cursor.setDate(cursor.getDate() + 1);
   }
-
   if (cursor <= finalDate) {
     return null;
   }
-
   return dates;
 }
-
 function getMaxScheduleDate(): Date {
   const max = new Date();
   max.setHours(23, 59, 59, 999);
   max.setDate(max.getDate() + MAX_SCHEDULE_AHEAD_DAYS);
   return max;
 }
-
 function isWithinScheduleWindow(dateStr: string): boolean {
   if (!dateStr) return false;
   const date = new Date(`${dateStr}T00:00:00`);
   if (Number.isNaN(date.getTime())) return false;
   return date <= getMaxScheduleDate();
 }
-
 function parseSessionPrice(priceInput: string): number | undefined {
   if (!priceInput.trim()) return undefined;
   const parsed = Number.parseInt(priceInput, 10);
   return Number.isNaN(parsed) ? undefined : parsed;
 }
-
 function validateSessionPrice(priceInput: string): string | null {
   if (!priceInput.trim()) return null;
   if (!/^\d+$/.test(priceInput)) return 'Price must be between £10 and £200 (whole pounds only)';
@@ -180,23 +176,18 @@ function validateSessionPrice(priceInput: string): string | null {
   if (parsed < 10 || parsed > 200) return 'Price must be between £10 and £200 (whole pounds only)';
   return null;
 }
-
 function normalizeParticipantsForType(sessionType: SessionType, rawValue: string): number {
   const rules = PARTICIPANT_RULES[sessionType];
   const parsed = rawValue ? parseInt(rawValue, 10) : NaN;
-
   if (!Number.isFinite(parsed)) {
     return rules.defaultValue;
   }
-
   if (parsed < rules.min) {
     return rules.defaultValue;
   }
-
   if (typeof rules.max === 'number' && parsed > rules.max) {
     return rules.max;
   }
-
   return parsed;
 }
 
@@ -210,33 +201,30 @@ export interface PastAthlete {
   parentId: string;
   parentName: string;
 }
-
 export interface ClubOwnerOption {
   id: string;
   name: string;
   commercialMode?: OrganizationCommercialMode;
   membership: AcademyMembership;
 }
-
 export interface SessionAssigneeOption {
   id: string;
   label: string;
   role: AcademyMembership['role'];
 }
-
 export interface CampDailyTime {
   startTime: string;
   endTime: string;
 }
-
-type LocationCoordinates = { latitude: number; longitude: number };
-
+type LocationCoordinates = {
+  latitude: number;
+  longitude: number;
+};
 interface SaveLocationPresetPayload {
   label: string;
   address: string;
   coordinates: LocationCoordinates;
 }
-
 export interface CreateSessionState {
   // Wizard
   step: WizardStep;
@@ -279,7 +267,6 @@ export interface CreateSessionState {
   selectedAthletes: string[];
   pastAthletes: PastAthlete[];
 }
-
 export interface CreateSessionActions {
   setSessionType: (v: SessionType) => void;
   setTitle: (v: string) => void;
@@ -367,100 +354,71 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
   const [inviteType, setInviteTypeState] = useState<SessionInviteType>('CLOSED');
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([]);
   const [pastAthletes, setPastAthletes] = useState<PastAthlete[]>([]);
-  const clearValidationMessage = useCallback(() => {
+  const clearValidationMessage = () => {
     setValidationMessage(null);
-  }, []);
-
+  };
   const currentStepIndex = WIZARD_STEPS.indexOf(step);
   const allowedRecurrenceOptions = ALLOWED_RECURRENCE_BY_TYPE[sessionType];
   const allowedInviteTypes = ALLOWED_INVITES_BY_TYPE[sessionType];
   const campRangeEnd = campLength === 'multi_day' ? campEndDate : selectedDate;
-  const campDateRange = useMemo(
-    () => buildCampDates(selectedDate, campRangeEnd),
-    [selectedDate, campRangeEnd],
-  );
+  const campDateRange = buildCampDates(selectedDate, campRangeEnd);
   const campDatesPreview = campDateRange ?? [];
+  const campDatesPreviewKey = campDatesPreview.join('|');
   const campRangeTooLong = campDateRange === null;
-  const priceError = useMemo(() => validateSessionPrice(price), [price]);
-  const datesWithinLimit = useMemo(() => {
+  const priceError = validateSessionPrice(price);
+  const datesWithinLimit = (() => {
     if (!selectedDate || !isWithinScheduleWindow(selectedDate)) return false;
     if (sessionType === 'camp' && campLength === 'multi_day' && campEndDate) {
       return isWithinScheduleWindow(campEndDate);
     }
     return true;
-  }, [selectedDate, sessionType, campLength, campEndDate]);
-  const selectedClubOption = useMemo(
-    () => clubOptions.find((club) => club.id === selectedClubId) ?? null,
-    [clubOptions, selectedClubId],
-  );
-  const selectedCommercialMode = useMemo<OrganizationCommercialMode | undefined>(
-    () =>
-      postingAs === 'club'
-        ? (selectedClubOption?.commercialMode ?? 'COACH_OWNED')
-        : undefined,
-    [postingAs, selectedClubOption?.commercialMode],
-  );
-
-  const setRecurrence = useCallback(
-    (next: RecurrenceType) => {
-      if (allowedRecurrenceOptions.includes(next)) {
-        setRecurrenceState(next);
-      }
-    },
-    [allowedRecurrenceOptions],
-  );
-
-  const setInviteType = useCallback(
-    (next: SessionInviteType) => {
-      if (allowedInviteTypes.includes(next)) {
-        setInviteTypeState(next);
-      }
-    },
-    [allowedInviteTypes],
-  );
-
-  const setCampDailyTime = useCallback(
-    (date: string, field: keyof CampDailyTime, value: string) => {
-      setCampDailyTimes((previous) => ({
-        ...previous,
-        [date]: {
-          ...(previous[date] ?? { startTime: selectedTime, endTime: selectedEndTime }),
-          [field]: value,
-        },
-      }));
-    },
-    [selectedTime, selectedEndTime],
-  );
-
-  const setPrice = useCallback((value: string) => {
+  })();
+  const selectedClubOption = clubOptions.find((club) => club.id === selectedClubId) ?? null;
+  const selectedCommercialMode =
+    postingAs === 'club' ? (selectedClubOption?.commercialMode ?? 'COACH_OWNED') : undefined;
+  const setRecurrence = (next: RecurrenceType) => {
+    if (allowedRecurrenceOptions.includes(next)) {
+      setRecurrenceState(next);
+    }
+  };
+  const setInviteType = (next: SessionInviteType) => {
+    if (allowedInviteTypes.includes(next)) {
+      setInviteTypeState(next);
+    }
+  };
+  const setCampDailyTime = (date: string, field: keyof CampDailyTime, value: string) => {
+    setCampDailyTimes((previous) => ({
+      ...previous,
+      [date]: {
+        ...(previous[date] ?? {
+          startTime: selectedTime,
+          endTime: selectedEndTime,
+        }),
+        [field]: value,
+      },
+    }));
+  };
+  const setPrice = (value: string) => {
     setPriceState(value.replace(/[^0-9]/g, ''));
-  }, []);
-
-  const setPostingAs = useCallback(
-    (next: 'self' | 'club') => {
-      if (next === 'club') {
-        if (clubOptions.length === 0) return;
-        setPostingAsState('club');
-        setSelectedClubIdState((previous) => previous ?? clubOptions[0]?.id ?? null);
-        return;
-      }
-      setPostingAsState('self');
-      setSelectedAssigneeIdState(currentUser?.id ?? null);
-    },
-    [clubOptions, currentUser?.id],
-  );
-
-  const setSelectedClubId = useCallback((next: string | null) => {
+  };
+  const setPostingAs = (next: 'self' | 'club') => {
+    if (next === 'club') {
+      if (clubOptions.length === 0) return;
+      setPostingAsState('club');
+      setSelectedClubIdState((previous) => previous ?? clubOptions[0]?.id ?? null);
+      return;
+    }
+    setPostingAsState('self');
+    setSelectedAssigneeIdState(currentUser?.id ?? null);
+  };
+  const setSelectedClubId = (next: string | null) => {
     setSelectedClubIdState(next);
-  }, []);
-
-  const setSelectedAssigneeId = useCallback((next: string | null) => {
+  };
+  const setSelectedAssigneeId = (next: string | null) => {
     setSelectedAssigneeIdState(next);
-  }, []);
-
-  const setSessionType = useCallback((next: SessionType) => {
+  };
+  const setSessionType = (next: SessionType) => {
     setSessionTypeState(next);
-
     if (next === 'camp') {
       setMaxParticipants((previous) => String(normalizeParticipantsForType(next, previous)));
       setCampLength('single_day');
@@ -486,17 +444,15 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
       setUseCampDailyTimes(false);
       setCampDailyTimes({});
     }
-
     const allowedRecurrence = ALLOWED_RECURRENCE_BY_TYPE[next];
     setRecurrenceState((previous) =>
       allowedRecurrence.includes(previous) ? previous : allowedRecurrence[0],
     );
-
     const allowedInvites = ALLOWED_INVITES_BY_TYPE[next];
     setInviteTypeState((previous) =>
       allowedInvites.includes(previous) ? previous : allowedInvites[0],
     );
-  }, []);
+  };
 
   // --------------------------------------------------------------------------
   // DATA LOADING
@@ -511,9 +467,10 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         logger.error('Failed to load saved locations', error);
       }
     };
-    loadSavedLocations();
+    startTransition(() => {
+      loadSavedLocations();
+    });
   }, []);
-
   useEffect(() => {
     const loadPastAthletes = async () => {
       if (!currentUser?.id) return;
@@ -530,12 +487,12 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         logger.error('Failed to load athletes', error);
       }
     };
-    loadPastAthletes();
+    startTransition(() => {
+      loadPastAthletes();
+    });
   }, [currentUser]);
-
   useEffect(() => {
     let active = true;
-
     const loadClubOptions = async () => {
       setClubOptionsLoaded(false);
       if (!currentUser?.id) {
@@ -544,7 +501,6 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         setClubOptionsLoaded(true);
         return;
       }
-
       const academyResult = await academyService.getUserAcademies(currentUser.id);
       if (!active) return;
       if (!academyResult.success) {
@@ -553,16 +509,18 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         setClubOptionsLoaded(true);
         return;
       }
-
-      const nextOptions = academyResult.data
-        .filter((club) => canCreateAsClub(club.membership))
-        .map((club) => ({
-          id: club.id,
-          name: club.name,
-          commercialMode: club.commercialMode,
-          membership: club.membership,
-        }));
-
+      const nextOptions = academyResult.data.flatMap((club) =>
+        canCreateAsClub(club.membership)
+          ? [
+              {
+                id: club.id,
+                name: club.name,
+                commercialMode: club.commercialMode,
+                membership: club.membership,
+              },
+            ]
+          : [],
+      );
       setClubOptions(nextOptions);
       setSelectedClubIdState((previous) => {
         if (previous && nextOptions.some((option) => option.id === previous)) {
@@ -572,30 +530,27 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
       });
       setClubOptionsLoaded(true);
     };
-
-    void loadClubOptions();
+    startTransition(() => {
+      void loadClubOptions();
+    });
     return () => {
       active = false;
     };
   }, [currentUser?.id]);
-
   useEffect(() => {
     let active = true;
-
     const loadAssignees = async () => {
       if (!selectedClubId) {
         setAssigneeOptions([]);
         setSelectedAssigneeIdState(currentUser?.id ?? null);
         return;
       }
-
       const staffResult = await academyService.getStaff(selectedClubId);
       if (!active) return;
       if (!staffResult.success) {
         setAssigneeOptions([]);
         return;
       }
-
       const staff = staffResult.data.filter((member) => member.status === 'ACTIVE');
       const usersResult = await userService.getUsersByIds(staff.map((member) => member.userId));
       const labelById = new Map<string, string>();
@@ -604,7 +559,6 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
           labelById.set(user.id, user.name || user.id);
         });
       }
-
       const mapped = staff
         .map((member) => ({
           id: member.userId,
@@ -612,7 +566,6 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
           label: labelById.get(member.userId) ?? member.userId,
         }))
         .sort((a, b) => ASSIGNEE_ROLE_ORDER[a.role] - ASSIGNEE_ROLE_ORDER[b.role]);
-
       setAssigneeOptions(mapped);
       setSelectedAssigneeIdState((previous) => {
         if (previous && mapped.some((entry) => entry.id === previous)) return previous;
@@ -622,51 +575,73 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         return mapped[0]?.id ?? null;
       });
     };
-
-    void loadAssignees();
+    startTransition(() => {
+      void loadAssignees();
+    });
     return () => {
       active = false;
     };
   }, [currentUser?.id, selectedClubId]);
-
   useEffect(() => {
     const presetAthleteIds = params.athleteIds
-      ? params.athleteIds
-          .split(',')
-          .map((id) => id.trim())
-          .filter((id) => id.length > 0)
+      ? params.athleteIds.split(',').flatMap((id) => {
+          const mapped = id.trim();
+          return mapped.length > 0 ? [mapped] : [];
+        })
       : [];
-
     if (presetAthleteIds.length > 0) {
-      setSelectedAthletes((prev) => {
-        const merged = new Set([...prev, ...presetAthleteIds]);
-        return Array.from(merged);
+      startTransition(() => {
+        setSelectedAthletes((prev) => {
+          const merged = new Set([...prev, ...presetAthleteIds]);
+          return Array.from(merged);
+        });
       });
     }
-
-    if (params.inviteType) {
-      setInviteTypeState(params.inviteType);
+    const inviteType = params.inviteType;
+    if (inviteType) {
+      startTransition(() => {
+        setInviteTypeState(inviteType);
+      });
     } else if (presetAthleteIds.length > 0) {
-      setInviteTypeState('CLOSED');
+      startTransition(() => {
+        setInviteTypeState('CLOSED');
+      });
     }
-
     if (params.preset === '1on1') {
-      setSessionType('1on1');
-      setMaxParticipants('1');
+      startTransition(() => {
+        setSessionType('1on1');
+      });
+      startTransition(() => {
+        setMaxParticipants('1');
+      });
     } else if (params.preset === 'group') {
-      setSessionType('small_group');
-      setMaxParticipants('4');
+      startTransition(() => {
+        setSessionType('small_group');
+      });
+      startTransition(() => {
+        setMaxParticipants('4');
+      });
     }
-    if (params.clubId) {
-      setSelectedClubIdState(params.clubId);
+    const clubId = params.clubId;
+    if (clubId) {
+      startTransition(() => {
+        setSelectedClubIdState(clubId);
+      });
     }
-    if (params.assigneeCoachId) {
-      setSelectedAssigneeIdState(params.assigneeCoachId);
+    const assigneeCoachId = params.assigneeCoachId;
+    if (assigneeCoachId) {
+      startTransition(() => {
+        setSelectedAssigneeIdState(assigneeCoachId);
+      });
     }
     if (params.actingAs === 'club') {
-      setPostingAsState('club');
+      startTransition(() => {
+        setPostingAsState('club');
+      });
     } else if (params.actingAs === 'self') {
-      setPostingAsState('self');
+      startTransition(() => {
+        setPostingAsState('self');
+      });
     }
   }, [
     params.actingAs,
@@ -676,35 +651,44 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     params.inviteType,
     params.preset,
   ]);
-
   useEffect(() => {
     if (!allowedInviteTypes.includes(inviteType)) {
-      setInviteTypeState(allowedInviteTypes[0]);
+      startTransition(() => {
+        setInviteTypeState(allowedInviteTypes[0]);
+      });
     }
   }, [allowedInviteTypes, inviteType]);
-
   useEffect(() => {
     if (!allowedRecurrenceOptions.includes(recurrence)) {
-      setRecurrenceState(allowedRecurrenceOptions[0]);
+      startTransition(() => {
+        setRecurrenceState(allowedRecurrenceOptions[0]);
+      });
     }
   }, [allowedRecurrenceOptions, recurrence]);
-
   useEffect(() => {
     if (postingAs !== 'club') {
-      setSelectedAssigneeIdState(currentUser?.id ?? null);
+      startTransition(() => {
+        setSelectedAssigneeIdState(currentUser?.id ?? null);
+      });
       return;
     }
     if (!clubOptionsLoaded) {
       return;
     }
     if (!selectedClubOption || !canPostAsClub(selectedClubOption.membership)) {
-      setPostingAsState('self');
-      setSelectedAssigneeIdState(currentUser?.id ?? null);
+      startTransition(() => {
+        setPostingAsState('self');
+      });
+      startTransition(() => {
+        setSelectedAssigneeIdState(currentUser?.id ?? null);
+      });
       return;
     }
     if (selectedAssigneeId) return;
     const defaultAssignee = assigneeOptions.find((entry) => entry.id === currentUser?.id);
-    setSelectedAssigneeIdState(defaultAssignee?.id ?? assigneeOptions[0]?.id ?? null);
+    startTransition(() => {
+      setSelectedAssigneeIdState(defaultAssignee?.id ?? assigneeOptions[0]?.id ?? null);
+    });
   }, [
     assigneeOptions,
     clubOptionsLoaded,
@@ -713,30 +697,35 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     selectedAssigneeId,
     selectedClubOption,
   ]);
-
   useEffect(() => {
     if (sessionType !== 'camp' || campLength !== 'multi_day') {
-      setUseCampDailyTimes(false);
+      startTransition(() => {
+        setUseCampDailyTimes(false);
+      });
     }
   }, [sessionType, campLength]);
-
   useEffect(() => {
     if (sessionType !== 'camp' || campLength !== 'multi_day' || !useCampDailyTimes) {
       return;
     }
-
-    setCampDailyTimes((previous) => {
-      const next: Record<string, CampDailyTime> = {};
-      campDatesPreview.forEach((date) => {
-        next[date] = previous[date] ?? { startTime: selectedTime, endTime: selectedEndTime };
+    startTransition(() => {
+      setCampDailyTimes((previous) => {
+        const next: Record<string, CampDailyTime> = {};
+        const campDates = campDatesPreviewKey ? campDatesPreviewKey.split('|') : [];
+        campDates.forEach((date) => {
+          next[date] = previous[date] ?? {
+            startTime: selectedTime,
+            endTime: selectedEndTime,
+          };
+        });
+        return next;
       });
-      return next;
     });
   }, [
     sessionType,
     campLength,
     useCampDailyTimes,
-    campDatesPreview,
+    campDatesPreviewKey,
     selectedTime,
     selectedEndTime,
   ]);
@@ -745,55 +734,47 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
   // HELPERS
   // --------------------------------------------------------------------------
 
-  const getDefaultMaxParticipants = useCallback(() => {
+  const getDefaultMaxParticipants = () => {
     const typeConfig = SESSION_TYPES.find((t) => t.key === sessionType);
     return typeConfig?.maxParticipants || 1;
-  }, [sessionType]);
-
-  const saveLocation = useCallback(
-    async (input: {
-      address: string;
-      coordinates: LocationCoordinates | null;
-      label?: string;
-    }) => {
-      const preset = createLocationPreset({
-        label: input.label,
-        address: input.address,
-        coordinates: input.coordinates,
-      });
-      if (!preset) return;
-
-      const updated = dedupeLocationPresets([preset, ...savedLocations]).slice(0, 8);
-      setSavedLocations(updated);
-      try {
-        await apiClient.set(STORAGE_KEYS.SAVED_LOCATIONS, updated);
-      } catch (error) {
-        logger.error('Failed to save location', error);
-      }
-    },
-    [savedLocations],
-  );
-  const selectSavedLocation = useCallback((preset: CoachLocationPreset) => {
+  };
+  const saveLocation = async (input: {
+    address: string;
+    coordinates: LocationCoordinates | null;
+    label?: string;
+  }) => {
+    const preset = createLocationPreset({
+      label: input.label,
+      address: input.address,
+      coordinates: input.coordinates,
+    });
+    if (!preset) return;
+    const updated = dedupeLocationPresets([preset, ...savedLocations]).slice(0, 8);
+    setSavedLocations(updated);
+    try {
+      await apiClient.set(STORAGE_KEYS.SAVED_LOCATIONS, updated);
+    } catch (error) {
+      logger.error('Failed to save location', error);
+    }
+  };
+  const selectSavedLocation = (preset: CoachLocationPreset) => {
     setLocation(preset.address);
     setLocationCoordinates(preset.coordinates ?? null);
     setVenueName((previous) => previous || preset.label);
-  }, []);
-  const saveLocationPreset = useCallback(
-    (payload: SaveLocationPresetPayload) => {
-      void saveLocation({
-        label: payload.label,
-        address: payload.address.trim(),
-        coordinates: payload.coordinates,
-      });
-    },
-    [saveLocation],
-  );
+  };
+  const saveLocationPreset = (payload: SaveLocationPresetPayload) => {
+    void saveLocation({
+      label: payload.label,
+      address: payload.address.trim(),
+      coordinates: payload.coordinates,
+    });
+  };
 
   // --------------------------------------------------------------------------
   // NAVIGATION
   // --------------------------------------------------------------------------
 
-  const canProceed = useCallback(() => {
+  const canProceed = () => {
     switch (step) {
       case 'details': {
         const ownershipReady =
@@ -836,531 +817,480 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
       default:
         return false;
     }
-  }, [
-    step,
-    title,
-    postingAs,
-    selectedAssigneeId,
-    selectedClubOption,
-    selectedDate,
-    location,
-    locationCoordinates,
-    selectedTime,
-    selectedEndTime,
-    sessionType,
-    campLength,
-    campEndDate,
-    campRangeTooLong,
-    useCampDailyTimes,
-    campDatesPreview,
-    campDailyTimes,
-    datesWithinLimit,
-    priceError,
-  ]);
-
-  const goNext = useCallback(() => {
+  };
+  const goNext = () => {
     const nextIndex = currentStepIndex + 1;
     if (nextIndex < WIZARD_STEPS.length) {
       clearValidationMessage();
       setStep(WIZARD_STEPS[nextIndex]);
     }
-  }, [clearValidationMessage, currentStepIndex]);
-
-  const goBack = useCallback(() => {
+  };
+  const goBack = () => {
     clearValidationMessage();
     if (currentStepIndex > 0) {
       setStep(WIZARD_STEPS[currentStepIndex - 1]);
     } else {
       router.back();
     }
-  }, [clearValidationMessage, currentStepIndex]);
+  };
 
   // --------------------------------------------------------------------------
   // FORM ACTIONS
   // --------------------------------------------------------------------------
 
-  const toggleFocusArea = useCallback((area: FootballObjective) => {
+  const toggleFocusArea = (area: FootballObjective) => {
     setFocusAreas((prev) =>
       prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area],
     );
-  }, []);
-
-  const toggleAthleteSelection = useCallback((athleteId: string) => {
+  };
+  const toggleAthleteSelection = (athleteId: string) => {
     setSelectedAthletes((prev) =>
       prev.includes(athleteId) ? prev.filter((id) => id !== athleteId) : [...prev, athleteId],
     );
-  }, []);
+  };
 
   // --------------------------------------------------------------------------
   // SUBMIT
   // --------------------------------------------------------------------------
 
-  const handleCreate = useCallback(async () => {
+  const handleCreate = async () => {
     if (!currentUser) return;
-
     setLoading(true);
     clearValidationMessage();
-    try {
-      const resolvedLocation = getDisplayLocationLabel(location, locationCoordinates);
-      const normalizedVenueName = venueName.trim() || undefined;
-
-      await saveLocation({
-        address: resolvedLocation,
-        coordinates: locationCoordinates,
-        label: normalizedVenueName || deriveLocationLabel(resolvedLocation),
-      });
-
-      const participants = normalizeParticipantsForType(sessionType, maxParticipants);
-      const parsedPrice = parseSessionPrice(price);
-
-      if (!isWithinScheduleWindow(selectedDate) || (campRangeEnd && !isWithinScheduleWindow(campRangeEnd))) {
-        setValidationMessage('Date must be within 1 year.');
-        setLoading(false);
-        return;
-      }
-      if (priceError) {
-        setValidationMessage(priceError);
-        setLoading(false);
-        return;
-      }
-      const selectedAthleteRecords = pastAthletes.filter((athlete) =>
-        selectedAthletes.includes(athlete.id),
-      );
-
-      const primaryDuration = durationBetweenTimes(selectedTime, selectedEndTime);
-      if (!isValidTimeWindow(selectedTime, selectedEndTime)) {
-        setValidationMessage('End time must be after start time (30 min to 8 hours).');
-        setLoading(false);
-        return;
-      }
-
-      const scheduledAt = `${selectedDate}T${selectedTime}:00`;
-      const isRecurring = recurrence !== 'once';
-      const resolvedActingAs = postingAs === 'club' ? 'club' : 'self';
-      const selectedAssignee = assigneeOptions.find((entry) => entry.id === selectedAssigneeId) ?? null;
-      const ownerCoachId = resolvedActingAs === 'club' ? selectedAssigneeId : currentUser.id;
-      const ownerCoachName =
-        resolvedActingAs === 'club'
-          ? selectedAssignee?.label ||
-            currentUser.name ||
-            currentUser.fullName ||
-            'Coach'
-          : currentUser.name || currentUser.fullName || 'Coach';
-      const ownerClubId = resolvedActingAs === 'club' ? selectedClubId ?? undefined : undefined;
-      const creatorRole = (currentUser.role as UserRole | undefined) ?? 'COACH';
-      const creatorDisplayName = currentUser.name || currentUser.fullName || 'Coach';
-      const nowIso = new Date().toISOString();
-
-      if (resolvedActingAs === 'club') {
-        if (!selectedClubOption || !canPostAsClub(selectedClubOption.membership)) {
-          setValidationMessage('Choose a club where you can post sessions.');
+    return await runAsyncTryCatchFinally(
+      async () => {
+        const resolvedLocation = getDisplayLocationLabel(location, locationCoordinates);
+        const normalizedVenueName = venueName.trim() || undefined;
+        await saveLocation({
+          address: resolvedLocation,
+          coordinates: locationCoordinates,
+          label: normalizedVenueName || deriveLocationLabel(resolvedLocation),
+        });
+        const participants = normalizeParticipantsForType(sessionType, maxParticipants);
+        const parsedPrice = parseSessionPrice(price);
+        if (
+          !isWithinScheduleWindow(selectedDate) ||
+          (campRangeEnd && !isWithinScheduleWindow(campRangeEnd))
+        ) {
+          setValidationMessage('Date must be within 1 year.');
           setLoading(false);
           return;
+        }
+        if (priceError) {
+          setValidationMessage(priceError);
+          setLoading(false);
+          return;
+        }
+        const selectedAthleteRecords = pastAthletes.filter((athlete) =>
+          selectedAthletes.includes(athlete.id),
+        );
+        const primaryDuration = durationBetweenTimes(selectedTime, selectedEndTime);
+        if (!isValidTimeWindow(selectedTime, selectedEndTime)) {
+          setValidationMessage('End time must be after start time (30 min to 8 hours).');
+          setLoading(false);
+          return;
+        }
+        const scheduledAt = `${selectedDate}T${selectedTime}:00`;
+        const isRecurring = recurrence !== 'once';
+        const resolvedActingAs = postingAs === 'club' ? 'club' : 'self';
+        const selectedAssignee =
+          assigneeOptions.find((entry) => entry.id === selectedAssigneeId) ?? null;
+        const ownerCoachId = resolvedActingAs === 'club' ? selectedAssigneeId : currentUser.id;
+        const ownerCoachName =
+          resolvedActingAs === 'club'
+            ? selectedAssignee?.label || currentUser.name || currentUser.fullName || 'Coach'
+            : currentUser.name || currentUser.fullName || 'Coach';
+        const ownerClubId = resolvedActingAs === 'club' ? (selectedClubId ?? undefined) : undefined;
+        const creatorRole = (currentUser.role as UserRole | undefined) ?? 'COACH';
+        const creatorDisplayName = currentUser.name || currentUser.fullName || 'Coach';
+        const nowIso = new Date().toISOString();
+        if (resolvedActingAs === 'club') {
+          if (!selectedClubOption || !canPostAsClub(selectedClubOption.membership)) {
+            setValidationMessage('Choose a club where you can post sessions.');
+            setLoading(false);
+            return;
+          }
+          if (!ownerCoachId) {
+            setValidationMessage('Choose a coach to own this session.');
+            setLoading(false);
+            return;
+          }
         }
         if (!ownerCoachId) {
-          setValidationMessage('Choose a coach to own this session.');
+          setValidationMessage('Unable to resolve session owner.');
           setLoading(false);
           return;
         }
-      }
-
-      if (!ownerCoachId) {
-        setValidationMessage('Unable to resolve session owner.');
-        setLoading(false);
-        return;
-      }
-
-      const sendSelectedAthleteInvites = async (options: {
-        proposedSlots: TimeSlot[];
-        sessionTypeLabel: string;
-        focusLabel: string;
-        notesLabel?: string;
-        existingSessionId?: string;
-        locationCoordinates?: LocationCoordinates | null;
-      }) => {
-        if (selectedAthletes.length === 0) {
-          return { invitesSent: 0, inviteFailures: 0 };
-        }
-
-        const athletesByParent = selectedAthleteRecords.reduce<Record<string, PastAthlete[]>>(
-          (acc, athlete) => {
-            const key = athlete.parentId || 'unknown_parent';
-            if (!acc[key]) acc[key] = [];
-            acc[key].push(athlete);
-            return acc;
-          },
-          {},
-        );
-
-        let invitesSent = 0;
-        let inviteFailures = 0;
-
-        for (const [parentId, athletesForParent] of Object.entries(athletesByParent)) {
-          if (parentId === 'unknown_parent' || athletesForParent.length === 0) {
-            inviteFailures += athletesForParent.length;
-            continue;
+        const sendSelectedAthleteInvites = async (options: {
+          proposedSlots: TimeSlot[];
+          sessionTypeLabel: string;
+          focusLabel: string;
+          notesLabel?: string;
+          existingSessionId?: string;
+          locationCoordinates?: LocationCoordinates | null;
+        }) => {
+          if (selectedAthletes.length === 0) {
+            return {
+              invitesSent: 0,
+              inviteFailures: 0,
+            };
           }
-
-          const inviteResult = await sessionInviteService.createInvite(
-            athletesForParent.map((athlete) => athlete.id),
-            {
-              coachId: ownerCoachId,
-              coachName: ownerCoachName,
-              clubName: ownerClubId ? selectedClubOption?.name : undefined,
-              inviteType,
-              athleteNames: athletesForParent.map((athlete) => athlete.name),
-              parentId,
-              parentName: athletesForParent[0]?.parentName || 'Parent',
-              proposedSlots: options.proposedSlots,
-              sessionType: options.sessionTypeLabel,
-              focus: options.focusLabel,
-              notes: options.notesLabel,
-              price: parsedPrice,
-              expiresInDays: 7,
-              existingSessionId: options.existingSessionId,
-              locationCoordinates: options.locationCoordinates ?? undefined,
+          const athletesByParent = selectedAthleteRecords.reduce<Record<string, PastAthlete[]>>(
+            (acc, athlete) => {
+              const key = athlete.parentId || 'unknown_parent';
+              if (!acc[key]) acc[key] = [];
+              acc[key].push(athlete);
+              return acc;
             },
+            {},
           );
-
-          if (inviteResult.success) {
-            invitesSent += athletesForParent.length;
-          } else {
-            inviteFailures += athletesForParent.length;
-            logger.error('Failed to send athlete pre-invites', {
-              parentId,
-              error: inviteResult.error,
-            });
+          let invitesSent = 0;
+          let inviteFailures = 0;
+          const inviteResults = await Promise.all(
+            Object.entries(athletesByParent).map(async ([parentId, athletesForParent]) => {
+              if (parentId === 'unknown_parent' || athletesForParent.length === 0) {
+                return { sent: 0, failed: athletesForParent.length };
+              }
+              const inviteResult = await sessionInviteService.createInvite(
+                athletesForParent.map((athlete) => athlete.id),
+                {
+                  coachId: ownerCoachId,
+                  coachName: ownerCoachName,
+                  clubName: ownerClubId ? selectedClubOption?.name : undefined,
+                  inviteType,
+                  athleteNames: athletesForParent.map((athlete) => athlete.name),
+                  parentId,
+                  parentName: athletesForParent[0]?.parentName || 'Parent',
+                  proposedSlots: options.proposedSlots,
+                  sessionType: options.sessionTypeLabel,
+                  focus: options.focusLabel,
+                  notes: options.notesLabel,
+                  price: parsedPrice,
+                  expiresInDays: 7,
+                  existingSessionId: options.existingSessionId,
+                  locationCoordinates: options.locationCoordinates ?? undefined,
+                },
+              );
+              if (inviteResult.success) {
+                return { sent: athletesForParent.length, failed: 0 };
+              }
+              logger.error('Failed to send athlete pre-invites', {
+                parentId,
+                error: inviteResult.error,
+              });
+              return { sent: 0, failed: athletesForParent.length };
+            }),
+          );
+          for (const inviteResult of inviteResults) {
+            invitesSent += inviteResult.sent;
+            inviteFailures += inviteResult.failed;
           }
-        }
-
-        return { invitesSent, inviteFailures };
-      };
-
-      // ---- CAMP PATH ----
-      if (sessionType === 'camp') {
-        if (!selectedDate || !campRangeEnd) {
-          setValidationMessage('Select a camp start date and end date.');
-          setLoading(false);
-          return;
-        }
-        if (campRangeEnd < selectedDate) {
-          setValidationMessage('Camp end date must be on or after start date.');
-          setLoading(false);
-          return;
-        }
-
-        const campDates = buildCampDates(selectedDate, campRangeEnd);
-        if (!campDates) {
-          setValidationMessage('Camp range cannot exceed 14 days.');
-          setLoading(false);
-          return;
-        }
-        if (campDates.length === 0) {
-          setValidationMessage('Unable to build camp schedule. Check your dates.');
-          setLoading(false);
-          return;
-        }
-
-        const slots: TimeSlot[] = campDates.map((date) => {
-          const slotTimes =
-            campLength === 'multi_day' && useCampDailyTimes
-              ? campDailyTimes[date] ?? { startTime: selectedTime, endTime: selectedEndTime }
-              : { startTime: selectedTime, endTime: selectedEndTime };
-
           return {
-            date,
-            startTime: slotTimes.startTime,
-            endTime: slotTimes.endTime,
+            invitesSent,
+            inviteFailures,
+          };
+        };
+
+        // ---- CAMP PATH ----
+        if (sessionType === 'camp') {
+          if (!selectedDate || !campRangeEnd) {
+            setValidationMessage('Select a camp start date and end date.');
+            setLoading(false);
+            return;
+          }
+          if (campRangeEnd < selectedDate) {
+            setValidationMessage('Camp end date must be on or after start date.');
+            setLoading(false);
+            return;
+          }
+          const campDates = buildCampDates(selectedDate, campRangeEnd);
+          if (!campDates) {
+            setValidationMessage('Camp range cannot exceed 14 days.');
+            setLoading(false);
+            return;
+          }
+          if (campDates.length === 0) {
+            setValidationMessage('Unable to build camp schedule. Check your dates.');
+            setLoading(false);
+            return;
+          }
+          const slots: TimeSlot[] = campDates.map((date) => {
+            const slotTimes =
+              campLength === 'multi_day' && useCampDailyTimes
+                ? (campDailyTimes[date] ?? {
+                    startTime: selectedTime,
+                    endTime: selectedEndTime,
+                  })
+                : {
+                    startTime: selectedTime,
+                    endTime: selectedEndTime,
+                  };
+            return {
+              date,
+              startTime: slotTimes.startTime,
+              endTime: slotTimes.endTime,
+              location: resolvedLocation,
+              venueName: normalizedVenueName,
+              locationCoordinates: locationCoordinates ?? undefined,
+            };
+          });
+          const invalidSlot = slots.find(
+            (slot) => !isValidTimeWindow(slot.startTime, slot.endTime),
+          );
+          if (invalidSlot) {
+            setValidationMessage(
+              `Check time range for ${invalidSlot.date}. End time must be after start time.`,
+            );
+            setLoading(false);
+            return;
+          }
+          const campSession = await groupSessionService.createSession({
+            coachId: ownerCoachId,
+            coachName: ownerCoachName,
+            clubId: ownerClubId,
+            actingAs: resolvedActingAs,
+            commercialMode: selectedCommercialMode,
+            ownerCoachId,
+            assigneeCoachId: resolvedActingAs === 'club' ? ownerCoachId : undefined,
+            createdByUserId: currentUser.id,
+            createdByRole: creatorRole,
+            createdByName: currentUser.name || currentUser.fullName || 'Coach',
+            title,
+            description: description || 'Football camp session',
+            sessionType: 'CAMP',
+            schedule: slots.map((slot) => ({
+              date: slot.date,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+            })),
+            maxParticipants: participants,
+            pricePerParticipant: parsedPrice ?? 0,
+            currency: 'GBP',
             location: resolvedLocation,
             venueName: normalizedVenueName,
             locationCoordinates: locationCoordinates ?? undefined,
-          };
-        });
-
-        const invalidSlot = slots.find((slot) => !isValidTimeWindow(slot.startTime, slot.endTime));
-        if (invalidSlot) {
-          setValidationMessage(
-            `Check time range for ${invalidSlot.date}. End time must be after start time.`,
-          );
-          setLoading(false);
-          return;
-        }
-
-        const campSession = await groupSessionService.createSession({
-          coachId: ownerCoachId,
-          coachName: ownerCoachName,
-          clubId: ownerClubId,
-          actingAs: resolvedActingAs,
-          commercialMode: selectedCommercialMode,
-          ownerCoachId,
-          assigneeCoachId: resolvedActingAs === 'club' ? ownerCoachId : undefined,
-          createdByUserId: currentUser.id,
-          createdByRole: creatorRole,
-          createdByName: currentUser.name || currentUser.fullName || 'Coach',
-          title,
-          description: description || 'Football camp session',
-          sessionType: 'CAMP',
-          schedule: slots.map((slot) => ({
-            date: slot.date,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-          })),
-          maxParticipants: participants,
-          pricePerParticipant: parsedPrice ?? 0,
-          currency: 'GBP',
-          location: resolvedLocation,
-          venueName: normalizedVenueName,
-          locationCoordinates: locationCoordinates ?? undefined,
-          focus: focusAreas,
-          waitlistEnabled: true,
-          isFree: (parsedPrice ?? 0) === 0,
-          inviteType,
-        });
-
-        const publishResult = await groupSessionService.publishSession(campSession.id);
-        if (!publishResult.success) {
-          logger.warn('Camp created but not published', {
-            sessionId: campSession.id,
-            error: publishResult.error,
+            focus: focusAreas,
+            waitlistEnabled: true,
+            isFree: (parsedPrice ?? 0) === 0,
+            inviteType,
           });
-        }
-
-        const { invitesSent, inviteFailures } = await sendSelectedAthleteInvites({
-          proposedSlots: slots,
-          sessionTypeLabel: 'Camp',
-          focusLabel: focusAreas[0] || 'General',
-          notesLabel: description || undefined,
-          existingSessionId: campSession.id,
-          locationCoordinates,
-        });
-
-        const inviteSummary =
-          invitesSent > 0 || inviteFailures > 0
-            ? ` ${invitesSent} invite${invitesSent === 1 ? '' : 's'} sent${inviteFailures > 0 ? `, ${inviteFailures} failed.` : '.'}`
-            : '';
-
-        uiFeedback.showToast(
-          `"${title}" scheduled across ${campDates.length} day${campDates.length === 1 ? '' : 's'}.${inviteSummary}`,
-          'success',
-        );
-        router.replace(Routes.SCHEDULE);
-
-        setLoading(false);
-        return;
-      }
-
-      // ---- RECURRING PATH ----
-      if (isRecurring) {
-        const toFrequency = (r: RecurrenceType): 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' => {
-          switch (r) {
-            case 'weekly': return 'WEEKLY';
-            case 'biweekly': return 'BIWEEKLY';
-            case 'monthly': return 'MONTHLY';
-            case 'once': return 'WEEKLY'; // unreachable — guarded by isRecurring check above
-            default: {
-              const _exhaustive: never = r;
-              void _exhaustive;
-              return 'WEEKLY';
-            }
+          const publishResult = await groupSessionService.publishSession(campSession.id);
+          if (!publishResult.success) {
+            logger.warn('Camp created but not published', {
+              sessionId: campSession.id,
+              error: publishResult.error,
+            });
           }
-        };
-
-        const result = await recurringBookingService.createRecurring({
-          userId: currentUser.id,
-          coachId: ownerCoachId,
-          athleteId: undefined,
-          dayOfWeek: new Date(scheduledAt).getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6,
-          time: selectedTime,
-          duration: primaryDuration,
-          location: resolvedLocation,
-          sessionType: title || (sessionType === '1on1' ? '1-on-1 Training' : 'Group Training'),
-          frequency: toFrequency(recurrence),
-          startDate: new Date(scheduledAt).toISOString(),
-          pricePerSession: parsedPrice,
-          notes: description || undefined,
-          actingAs: resolvedActingAs,
-          commercialMode: selectedCommercialMode,
-          ownerCoachId,
-          assigneeCoachId: resolvedActingAs === 'club' ? ownerCoachId : undefined,
-          createdByUserId: currentUser.id,
-          createdByRole: creatorRole,
-          clubId: ownerClubId,
-        });
-
-        if (result.success) {
-          // Generate first batch of upcoming bookings
-          await recurringBookingService.generateUpcomingBookings(result.data.id, 4);
-
           const { invitesSent, inviteFailures } = await sendSelectedAthleteInvites({
-            proposedSlots: [
-              {
-                date: selectedDate,
-                startTime: selectedTime,
-                endTime: selectedEndTime,
-                location: resolvedLocation,
-                venueName: normalizedVenueName,
-                locationCoordinates: locationCoordinates ?? undefined,
-              },
-            ],
-            sessionTypeLabel:
-              sessionType === '1on1' ? 'Recurring 1-on-1' : 'Recurring Session',
+            proposedSlots: slots,
+            sessionTypeLabel: 'Camp',
             focusLabel: focusAreas[0] || 'General',
             notesLabel: description || undefined,
+            existingSessionId: campSession.id,
             locationCoordinates,
           });
-
           const inviteSummary =
             invitesSent > 0 || inviteFailures > 0
               ? ` ${invitesSent} invite${invitesSent === 1 ? '' : 's'} sent${inviteFailures > 0 ? `, ${inviteFailures} failed.` : '.'}`
               : '';
-
-          uiFeedback.showToast(`Your next 4 sessions are on your schedule.${inviteSummary}`, 'success');
-router.replace(Routes.SCHEDULE);
-        } else {
-          uiFeedback.showToast(result.error.message || 'Failed to create recurring session.', 'error');
+          uiFeedback.showToast(
+            `"${title}" scheduled across ${campDates.length} day${campDates.length === 1 ? '' : 's'}.${inviteSummary}`,
+            'success',
+          );
+          router.replace(Routes.SCHEDULE);
+          setLoading(false);
+          return;
         }
 
-        setLoading(false);
-        return;
-      }
-
-      // ---- ONE-OFF PATH (unchanged) ----
-      const ownershipAuditTrail: SessionOwnershipAuditEvent[] = [
-        {
-          id: `ownership_${Date.now()}_created`,
-          action: 'CREATED',
-          timestamp: nowIso,
-          actorUserId: currentUser.id,
-          actorName: creatorDisplayName,
-          actorRole: creatorRole,
-          toCoachId: ownerCoachId,
-          note:
-            resolvedActingAs === 'club'
-              ? `Created on behalf of ${selectedClubOption?.name ?? 'club'}`
-              : 'Created as self',
-        },
-      ];
-      if (resolvedActingAs === 'club') {
-        ownershipAuditTrail.push({
-          id: `ownership_${Date.now()}_assigned`,
-          action: 'ASSIGNED',
-          timestamp: nowIso,
-          actorUserId: currentUser.id,
-          actorName: creatorDisplayName,
-          actorRole: creatorRole,
-          toCoachId: ownerCoachId,
-          note: `Assigned to ${ownerCoachName}`,
-        });
-      }
-
-      const newOfferingId = `session_${Date.now()}`;
-      const newOffering: SessionOffering = {
-        id: newOfferingId,
-        source: 'direct',
-        sourceEntityId: newOfferingId,
-        coachId: ownerCoachId,
-        clubId: ownerClubId,
-        actingAs: resolvedActingAs,
-        commercialMode: selectedCommercialMode,
-        ownerCoachId,
-        assigneeCoachId: resolvedActingAs === 'club' ? ownerCoachId : undefined,
-        createdByUserId: currentUser.id,
-        createdByRole: creatorRole,
-        createdByName: creatorDisplayName,
-        title,
-        description: description || undefined,
-        sessionType: sessionType === '1on1' ? '1on1' : 'group',
-        inviteType,
-        maxParticipants: participants,
-        location: resolvedLocation,
-        venueName: normalizedVenueName,
-        locationCoordinates: locationCoordinates ?? undefined,
-        scheduledAt,
-        isRecurring: false,
-        recurrenceType: 'none',
-        status: 'active',
-        registrations: [],
-        createdAt: nowIso,
-        updatedAt: nowIso,
-        updatedByUserId: currentUser.id,
-        updatedByRole: creatorRole,
-        ownershipAuditTrail,
-        duration: primaryDuration,
-        price: parsedPrice,
-        footballSkill: focusAreas[0] || undefined,
-        invitedAthleteIds: inviteType === 'CLOSED' ? selectedAthletes : undefined,
-        invitedAthleteNames:
-          inviteType === 'CLOSED' ? selectedAthleteRecords.map((athlete) => athlete.name) : undefined,
-      };
-
-      const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
-      offerings.push(newOffering);
-      await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, offerings);
-
-      const { invitesSent, inviteFailures } = await sendSelectedAthleteInvites({
-        proposedSlots: [
-          {
-            date: selectedDate,
-            startTime: selectedTime,
-            endTime: selectedEndTime,
+        // ---- RECURRING PATH ----
+        if (isRecurring) {
+          const toFrequency = (r: RecurrenceType): 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' => {
+            switch (r) {
+              case 'weekly':
+                return 'WEEKLY';
+              case 'biweekly':
+                return 'BIWEEKLY';
+              case 'monthly':
+                return 'MONTHLY';
+              case 'once':
+                return 'WEEKLY';
+              // unreachable — guarded by isRecurring check above
+              default: {
+                const _exhaustive: never = r;
+                void _exhaustive;
+                return 'WEEKLY';
+              }
+            }
+          };
+          const result = await recurringBookingService.createRecurring({
+            userId: currentUser.id,
+            coachId: ownerCoachId,
+            athleteId: undefined,
+            dayOfWeek: new Date(scheduledAt).getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6,
+            time: selectedTime,
+            duration: primaryDuration,
             location: resolvedLocation,
-            venueName: normalizedVenueName,
-            locationCoordinates: locationCoordinates ?? undefined,
+            sessionType: title || (sessionType === '1on1' ? '1-on-1 Training' : 'Group Training'),
+            frequency: toFrequency(recurrence),
+            startDate: new Date(scheduledAt).toISOString(),
+            pricePerSession: parsedPrice,
+            notes: description || undefined,
+            actingAs: resolvedActingAs,
+            commercialMode: selectedCommercialMode,
+            ownerCoachId,
+            assigneeCoachId: resolvedActingAs === 'club' ? ownerCoachId : undefined,
+            createdByUserId: currentUser.id,
+            createdByRole: creatorRole,
+            clubId: ownerClubId,
+          });
+          if (result.success) {
+            // Generate first batch of upcoming bookings
+            await recurringBookingService.generateUpcomingBookings(result.data.id, 4);
+            const { invitesSent, inviteFailures } = await sendSelectedAthleteInvites({
+              proposedSlots: [
+                {
+                  date: selectedDate,
+                  startTime: selectedTime,
+                  endTime: selectedEndTime,
+                  location: resolvedLocation,
+                  venueName: normalizedVenueName,
+                  locationCoordinates: locationCoordinates ?? undefined,
+                },
+              ],
+              sessionTypeLabel: sessionType === '1on1' ? 'Recurring 1-on-1' : 'Recurring Session',
+              focusLabel: focusAreas[0] || 'General',
+              notesLabel: description || undefined,
+              locationCoordinates,
+            });
+            const inviteSummary =
+              invitesSent > 0 || inviteFailures > 0
+                ? ` ${invitesSent} invite${invitesSent === 1 ? '' : 's'} sent${inviteFailures > 0 ? `, ${inviteFailures} failed.` : '.'}`
+                : '';
+            uiFeedback.showToast(
+              `Your next 4 sessions are on your schedule.${inviteSummary}`,
+              'success',
+            );
+            router.replace(Routes.SCHEDULE);
+          } else {
+            uiFeedback.showToast(
+              result.error.message || 'Failed to create recurring session.',
+              'error',
+            );
+          }
+          setLoading(false);
+          return;
+        }
+
+        // ---- ONE-OFF PATH (unchanged) ----
+        const ownershipAuditTrail: SessionOwnershipAuditEvent[] = [
+          {
+            id: `ownership_${Date.now()}_created`,
+            action: 'CREATED',
+            timestamp: nowIso,
+            actorUserId: currentUser.id,
+            actorName: creatorDisplayName,
+            actorRole: creatorRole,
+            toCoachId: ownerCoachId,
+            note:
+              resolvedActingAs === 'club'
+                ? `Created on behalf of ${selectedClubOption?.name ?? 'club'}`
+                : 'Created as self',
           },
-        ],
-        sessionTypeLabel: sessionType === '1on1' ? '1-on-1' : 'Group',
-        focusLabel: focusAreas[0] || 'General',
-        notesLabel: description || undefined,
-        locationCoordinates,
-      });
-
-      const inviteSummary =
-        selectedAthletes.length > 0
-          ? ` ${invitesSent} invite${invitesSent === 1 ? '' : 's'} sent${inviteFailures > 0 ? `, ${inviteFailures} failed.` : '.'}`
-          : '';
-
-      uiFeedback.showToast(`"${title}" has been created successfully.${inviteSummary}`, 'success');
-      router.replace(Routes.SCHEDULE);
-    } catch (error) {
-      logger.error('Failed to create session:', error);
-      uiFeedback.showToast('Failed to create session. Please try again.', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [
-    clearValidationMessage,
-    currentUser,
-    location,
-    postingAs,
-    assigneeOptions,
-    selectedAssigneeId,
-    selectedClubId,
-    selectedClubOption,
-    selectedCommercialMode,
-    maxParticipants,
-    selectedDate,
-    selectedTime,
-    selectedEndTime,
-    title,
-    description,
-    sessionType,
-    campLength,
-    campRangeEnd,
-    campEndDate,
-    useCampDailyTimes,
-    campDailyTimes,
-    inviteType,
-    recurrence,
-    price,
-    priceError,
-    venueName,
-    locationCoordinates,
-    focusAreas,
-    selectedAthletes,
-    pastAthletes,
-    saveLocation,
-  ]);
-
+        ];
+        if (resolvedActingAs === 'club') {
+          ownershipAuditTrail.push({
+            id: `ownership_${Date.now()}_assigned`,
+            action: 'ASSIGNED',
+            timestamp: nowIso,
+            actorUserId: currentUser.id,
+            actorName: creatorDisplayName,
+            actorRole: creatorRole,
+            toCoachId: ownerCoachId,
+            note: `Assigned to ${ownerCoachName}`,
+          });
+        }
+        const newOfferingId = `session_${Date.now()}`;
+        const newOffering: SessionOffering = {
+          id: newOfferingId,
+          source: 'direct',
+          sourceEntityId: newOfferingId,
+          coachId: ownerCoachId,
+          clubId: ownerClubId,
+          actingAs: resolvedActingAs,
+          commercialMode: selectedCommercialMode,
+          ownerCoachId,
+          assigneeCoachId: resolvedActingAs === 'club' ? ownerCoachId : undefined,
+          createdByUserId: currentUser.id,
+          createdByRole: creatorRole,
+          createdByName: creatorDisplayName,
+          title,
+          description: description || undefined,
+          sessionType: sessionType === '1on1' ? '1on1' : 'group',
+          inviteType,
+          maxParticipants: participants,
+          location: resolvedLocation,
+          venueName: normalizedVenueName,
+          locationCoordinates: locationCoordinates ?? undefined,
+          scheduledAt,
+          isRecurring: false,
+          recurrenceType: 'none',
+          status: 'active',
+          registrations: [],
+          createdAt: nowIso,
+          updatedAt: nowIso,
+          updatedByUserId: currentUser.id,
+          updatedByRole: creatorRole,
+          ownershipAuditTrail,
+          duration: primaryDuration,
+          price: parsedPrice,
+          footballSkill: focusAreas[0] || undefined,
+          invitedAthleteIds: inviteType === 'CLOSED' ? selectedAthletes : undefined,
+          invitedAthleteNames:
+            inviteType === 'CLOSED'
+              ? selectedAthleteRecords.map((athlete) => athlete.name)
+              : undefined,
+        };
+        const offerings = await apiClient.get<SessionOffering[]>(
+          STORAGE_KEYS.SESSION_OFFERINGS,
+          [],
+        );
+        offerings.push(newOffering);
+        await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, offerings);
+        const { invitesSent, inviteFailures } = await sendSelectedAthleteInvites({
+          proposedSlots: [
+            {
+              date: selectedDate,
+              startTime: selectedTime,
+              endTime: selectedEndTime,
+              location: resolvedLocation,
+              venueName: normalizedVenueName,
+              locationCoordinates: locationCoordinates ?? undefined,
+            },
+          ],
+          sessionTypeLabel: sessionType === '1on1' ? '1-on-1' : 'Group',
+          focusLabel: focusAreas[0] || 'General',
+          notesLabel: description || undefined,
+          locationCoordinates,
+        });
+        const inviteSummary =
+          selectedAthletes.length > 0
+            ? ` ${invitesSent} invite${invitesSent === 1 ? '' : 's'} sent${inviteFailures > 0 ? `, ${inviteFailures} failed.` : '.'}`
+            : '';
+        uiFeedback.showToast(
+          `"${title}" has been created successfully.${inviteSummary}`,
+          'success',
+        );
+        router.replace(Routes.SCHEDULE);
+      },
+      async (error) => {
+        logger.error('Failed to create session:', error);
+        uiFeedback.showToast('Failed to create session. Please try again.', 'error');
+      },
+      () => {
+        setLoading(false);
+      },
+    );
+  };
   return {
     // State
     step,
@@ -1396,7 +1326,6 @@ router.replace(Routes.SCHEDULE);
     allowedInviteTypes,
     selectedAthletes,
     pastAthletes,
-
     // Actions
     setSessionType,
     setTitle,

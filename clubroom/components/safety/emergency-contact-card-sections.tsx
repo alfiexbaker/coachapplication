@@ -1,10 +1,3 @@
-/**
- * EmergencyContactCard — Extracted sections
- *
- * Inline contact row variant for list use.
- */
-
-import { memo, useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Column } from '@/components/primitives/column';
@@ -29,7 +22,7 @@ export interface EmergencyContactInlineProps {
   onViewDetails?: () => void;
 }
 
-export const EmergencyContactInline = memo(function EmergencyContactInline({
+export const EmergencyContactInline = function EmergencyContactInline({
   contact,
   onCall,
   isActiveSession = false,
@@ -37,7 +30,7 @@ export const EmergencyContactInline = memo(function EmergencyContactInline({
 }: EmergencyContactInlineProps) {
   const { colors: palette } = useTheme();
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     if (!isActiveSession) {
       // Outside active session — show details, don't call
       if (onViewDetails) {
@@ -57,7 +50,7 @@ export const EmergencyContactInline = memo(function EmergencyContactInline({
         { text: 'Call Now', style: 'destructive', onPress: onCall },
       ],
     );
-  }, [contact, isActiveSession, onCall, onViewDetails]);
+  };
 
   return (
     <Clickable onPress={handlePress} style={styles.inlineContainer}>
@@ -77,7 +70,7 @@ export const EmergencyContactInline = memo(function EmergencyContactInline({
       </Row>
     </Clickable>
   );
-});
+};
 
 const styles = StyleSheet.create({
   inlineContainer: {

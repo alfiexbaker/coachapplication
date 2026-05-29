@@ -1,11 +1,3 @@
-/**
- * Multi-Week Confirmation
- *
- * Summary view of selected weeks with total cost and a confirm CTA.
- * Displayed as a bottom sheet / overlay before final booking.
- */
-
-import { memo, useCallback } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -45,7 +37,7 @@ function formatTimeDisplay(time: string): string {
   return m === 0 ? `${hour12}${suffix}` : `${hour12}:${m.toString().padStart(2, '0')}${suffix}`;
 }
 
-const WeekSummaryRow = memo(function WeekSummaryRow({
+const WeekSummaryRow = function WeekSummaryRow({
   week,
   currency,
   palette,
@@ -70,7 +62,7 @@ const WeekSummaryRow = memo(function WeekSummaryRow({
       </ThemedText>
     </Row>
   );
-});
+};
 
 export function MultiWeekConfirmation({
   selectedWeeks,
@@ -86,12 +78,12 @@ export function MultiWeekConfirmation({
 
   const totalCost = selectedWeeks.reduce((sum, w) => sum + w.price, 0);
 
-  const handleConfirm = useCallback(() => {
+  const handleConfirm = () => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     onConfirm();
-  }, [onConfirm]);
+  };
 
   return (
     <SurfaceCard style={styles.card} tactile={false}>
@@ -135,19 +127,18 @@ export function MultiWeekConfirmation({
 
       {/* Actions */}
       <Row style={styles.actions}>
-        <Button variant="outline" onPress={onCancel} style={styles.cancelButton}>
-          Back
-        </Button>
+        <Button variant="outline" onPress={onCancel} style={styles.cancelButton} label="Back" />
         <Button
           variant="primary"
           onPress={handleConfirm}
           disabled={loading || selectedWeeks.length === 0}
           style={styles.confirmButton}
-        >
-          {loading
-            ? 'Booking...'
-            : `Confirm ${selectedWeeks.length} Week${selectedWeeks.length !== 1 ? 's' : ''}`}
-        </Button>
+          label={
+            loading
+              ? 'Booking...'
+              : `Confirm ${selectedWeeks.length} Week${selectedWeeks.length !== 1 ? 's' : ''}`
+          }
+        />
       </Row>
     </SurfaceCard>
   );

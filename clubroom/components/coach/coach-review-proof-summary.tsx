@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -10,7 +9,7 @@ import { useTheme } from '@/hooks/useTheme';
 import type { PublicReview } from '@/services/coach-service';
 import { buildCoachReviewProofSummary } from '@/utils/coach-review-proof';
 
-export const CoachReviewProofSummary = memo(function CoachReviewProofSummary({
+export const CoachReviewProofSummary = function CoachReviewProofSummary({
   reviews,
 }: {
   reviews: PublicReview[];
@@ -94,7 +93,7 @@ export const CoachReviewProofSummary = memo(function CoachReviewProofSummary({
       </Column>
     </SurfaceCard>
   );
-});
+};
 
 function ProofStat({ label, value, tone }: { label: string; value: string; tone: string }) {
   return (

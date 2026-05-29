@@ -2,7 +2,7 @@
  * InviteFilterBar — View mode toggle + status filter chips for invites list.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 
 import { Chip } from '@/components/primitives/chip';
@@ -23,7 +23,7 @@ interface InviteStatusFilterProps {
   onChangeFilter: (filter: FilterMode) => void;
 }
 
-export const InviteModeToggle = memo(function InviteModeToggle({
+export const InviteModeToggle = function InviteModeToggle({
   mode,
   onChangeMode,
 }: InviteModeToggleProps) {
@@ -37,9 +37,9 @@ export const InviteModeToggle = memo(function InviteModeToggle({
       />
     </Row>
   );
-});
+};
 
-export const InviteStatusFilter = memo(function InviteStatusFilter({
+export const InviteStatusFilter = function InviteStatusFilter({
   filter,
   pendingCount,
   onChangeFilter,
@@ -59,7 +59,7 @@ export const InviteStatusFilter = memo(function InviteStatusFilter({
       />
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   row: {

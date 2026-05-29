@@ -1,4 +1,4 @@
-import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,7 +17,8 @@ import { LoadingState, EmptyState, ErrorState } from '@/components/ui/screen-sta
 import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useClubDetail, CLUB_FEED_FILTERS } from '@/hooks/use-club-detail';
+import type { ThemeColors } from '@/hooks/useTheme';
+import { useClubDetail, CLUB_FEED_FILTERS, type FeedFilter } from '@/hooks/use-club-detail';
 import { useRequiredParam } from '@/hooks/use-required-param';
 import type { ClubFeedPost } from '@/constants/types';
 import type { MemberRemovalReason } from '@/services/club-service';
@@ -93,6 +94,7 @@ export default function ClubDetailScreen() {
   );
   const activeFilterLabel =
     CLUB_FEED_FILTERS.find((filter) => filter.key === feedFilter)?.label.toLowerCase() ?? 'updates';
+  const feedFilterItems = getClubFeedFilterItems(feedFilter, filterCounts, colors, setFeedFilter);
   const renderFeedPost = ({ item }: { item: ClubFeedPost }) => (
     <View style={styles.feedPostItem}>
       <FeedPost
@@ -164,52 +166,15 @@ export default function ClubDetailScreen() {
         </ThemedText>
       </View>
 
-      <ScrollView
+      <FlatList
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.filterScroll}
         contentContainerStyle={styles.filterScrollContent}
-      >
-        {CLUB_FEED_FILTERS.map((filter) => (
-          <Clickable
-            key={filter.key}
-            style={[
-              styles.filterTab,
-              { borderColor: feedFilter === filter.key ? colors.tint : colors.border },
-              feedFilter === filter.key && { backgroundColor: withAlpha(colors.tint, 0.09) },
-            ]}
-            onPress={() => setFeedFilter(filter.key)}
-          >
-            <Row align="center" gap="xs">
-              <Ionicons
-                name={filter.icon as keyof typeof Ionicons.glyphMap}
-                size={16}
-                color={feedFilter === filter.key ? colors.tint : colors.muted}
-              />
-              <ThemedText
-                style={[
-                  Typography.smallSemiBold,
-                  { color: feedFilter === filter.key ? colors.tint : colors.muted },
-                ]}
-              >
-                {filter.label}
-              </ThemedText>
-              {(filterCounts[filter.key] ?? 0) > 0 && (
-                <View
-                  style={[
-                    styles.filterCount,
-                    { backgroundColor: feedFilter === filter.key ? colors.tint : colors.muted },
-                  ]}
-                >
-                  <ThemedText style={[Typography.caption, { color: colors.onPrimary }]}>
-                    {filterCounts[filter.key]}
-                  </ThemedText>
-                </View>
-              )}
-            </Row>
-          </Clickable>
-        ))}
-      </ScrollView>
+        data={feedFilterItems}
+        keyExtractor={keyClubFeedFilterItem}
+        renderItem={renderClubFeedFilterItem}
+      />
     </>
   );
   const renderFeedFooter = () => (
@@ -243,7 +208,10 @@ export default function ClubDetailScreen() {
   );
 
   if (!idParam.valid) {
-    return renderShell('Club', <ErrorState message="Invalid club link." onRetry={handleBackPress} />);
+    return renderShell(
+      'Club',
+      <ErrorState message="Invalid club link." onRetry={handleBackPress} />,
+    );
   }
 
   if (loading) {
@@ -310,6 +278,78 @@ export default function ClubDetailScreen() {
         isLoading={isRemovingMember}
       />
     </>
+  );
+}
+
+interface ClubFeedFilterItem {
+  key: FeedFilter;
+  label: string;
+  icon: string;
+  count: number;
+  isActive: boolean;
+  colors: ThemeColors;
+  onPress: () => void;
+}
+
+function getClubFeedFilterItems(
+  selectedFilter: FeedFilter,
+  filterCounts: Partial<Record<FeedFilter, number>>,
+  colors: ThemeColors,
+  onSelectFilter: (filter: FeedFilter) => void,
+): ClubFeedFilterItem[] {
+  return CLUB_FEED_FILTERS.map((filter) => ({
+    key: filter.key,
+    label: filter.label,
+    icon: filter.icon,
+    count: filterCounts[filter.key] ?? 0,
+    isActive: selectedFilter === filter.key,
+    colors,
+    onPress: () => onSelectFilter(filter.key),
+  }));
+}
+
+function keyClubFeedFilterItem(item: ClubFeedFilterItem): string {
+  return item.key;
+}
+
+function renderClubFeedFilterItem({ item }: ListRenderItemInfo<ClubFeedFilterItem>) {
+  return (
+    <Clickable
+      style={[
+        styles.filterTab,
+        { borderColor: item.isActive ? item.colors.tint : item.colors.border },
+        item.isActive && { backgroundColor: withAlpha(item.colors.tint, 0.09) },
+      ]}
+      onPress={item.onPress}
+    >
+      <Row align="center" gap="xs">
+        <Ionicons
+          name={item.icon as keyof typeof Ionicons.glyphMap}
+          size={16}
+          color={item.isActive ? item.colors.tint : item.colors.muted}
+        />
+        <ThemedText
+          style={[
+            Typography.smallSemiBold,
+            { color: item.isActive ? item.colors.tint : item.colors.muted },
+          ]}
+        >
+          {item.label}
+        </ThemedText>
+        {item.count > 0 ? (
+          <View
+            style={[
+              styles.filterCount,
+              { backgroundColor: item.isActive ? item.colors.tint : item.colors.muted },
+            ]}
+          >
+            <ThemedText style={[Typography.caption, { color: item.colors.onPrimary }]}>
+              {item.count}
+            </ThemedText>
+          </View>
+        ) : null}
+      </Row>
+    </Clickable>
   );
 }
 

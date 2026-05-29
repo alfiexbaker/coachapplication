@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { StyleProp, TextStyle } from 'react-native';
 import Animated, {
   runOnJS,
@@ -21,7 +21,7 @@ interface AnimatedCounterProps {
  * Numbers that count up from 0 with spring easing.
  * Used by: MomentHero meters, ParentValueSummary stats, GoalsCompact progress.
  */
-export const AnimatedCounter = memo(function AnimatedCounter({
+export const AnimatedCounter = function AnimatedCounter({
   value,
   suffix = '',
   prefix = '',
@@ -34,11 +34,11 @@ export const AnimatedCounter = memo(function AnimatedCounter({
   );
 
   useEffect(() => {
-    animatedValue.value = withSpring(value, {
+    animatedValue.set(withSpring(value, {
       damping: 20,
       stiffness: 90,
       mass: 1,
-    });
+    }));
   }, [animatedValue, value]);
 
   useAnimatedReaction(
@@ -57,4 +57,4 @@ export const AnimatedCounter = memo(function AnimatedCounter({
       {prefix}{displayValue}{suffix}
     </ThemedText>
   );
-});
+};

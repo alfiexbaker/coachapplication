@@ -25,12 +25,10 @@ import {
 import type { BookingSeries } from '@/constants/session-types';
 import type { Booking } from '@/constants/app-types';
 import { bookingCrudService } from './booking/booking-crud-service';
-
 const logger = createLogger('MultiWeekBookingService');
 
 /** Maximum age (ms) before cache is considered stale. */
 const CACHE_MAX_AGE = 30_000;
-
 interface ApiSeriesLike {
   id: string;
   bookingIds: string[];
@@ -47,7 +45,6 @@ interface ApiSeriesLike {
   createdAt: string;
   status: BookingSeries['status'];
 }
-
 export interface CreateSeriesParams {
   createdById: string;
   createdByName: string;
@@ -77,7 +74,6 @@ export interface CreateSeriesParams {
   createdByRole?: Booking['createdByRole'];
   notes?: string;
 }
-
 function mapApiSeriesToBookingSeries(
   apiSeries: ApiSeriesLike,
   fallback: Partial<BookingSeries> = {},
@@ -90,7 +86,6 @@ function mapApiSeriesToBookingSeries(
     typeof apiSeries.priceMinor === 'number'
       ? apiSeries.priceMinor / 100
       : fallback.pricePerSession;
-
   return {
     id: apiSeries.id,
     bookingIds: apiSeries.bookingIds,
@@ -118,7 +113,6 @@ function mapApiSeriesToBookingSeries(
     status: apiSeries.status,
   };
 }
-
 class MultiWeekBookingService {
   // ---------------------------------------------------------------------------
   // In-memory cache (mirrors BaseService pattern)
@@ -126,7 +120,6 @@ class MultiWeekBookingService {
 
   private _cache: Map<string, BookingSeries> | null = null;
   private _cacheTimestamp = 0;
-
   private async getCache(): Promise<Map<string, BookingSeries>> {
     const now = Date.now();
     if (this._cache === null || now - this._cacheTimestamp > CACHE_MAX_AGE) {
@@ -136,12 +129,10 @@ class MultiWeekBookingService {
     }
     return this._cache;
   }
-
   private invalidateCache(): void {
     this._cache = null;
     this._cacheTimestamp = 0;
   }
-
   private async loadFromStorage(): Promise<BookingSeries[]> {
     try {
       return await apiClient.get<BookingSeries[]>(STORAGE_KEYS.BOOKING_SERIES, []);
@@ -150,7 +141,6 @@ class MultiWeekBookingService {
       return [];
     }
   }
-
   private async saveToStorage(series: BookingSeries[]): Promise<void> {
     await apiClient.set(STORAGE_KEYS.BOOKING_SERIES, series);
     this.invalidateCache();
@@ -202,7 +192,6 @@ class MultiWeekBookingService {
     if (athleteIds.length === 0) {
       return err(validationError('At least one athlete must be specified'));
     }
-
     if (!apiClient.isMockMode) {
       const apiResult = await bookingAuthorityService.createBookingSeries({
         coachId,
@@ -218,11 +207,9 @@ class MultiWeekBookingService {
         pricePerSession,
         patternLabel,
       });
-
       if (!apiResult.success) {
         return err(apiResult.error);
       }
-
       const series = mapApiSeriesToBookingSeries(apiResult.data.series, {
         createdById,
         createdByName,
@@ -238,7 +225,6 @@ class MultiWeekBookingService {
         location,
         sessionInviteId,
       });
-
       emitTyped(ServiceEvents.SERIES_CREATED, {
         seriesId: series.id,
         coachId,
@@ -249,25 +235,19 @@ class MultiWeekBookingService {
         totalCost: series.totalCost,
         location,
       });
-
       logger.info('Series created via API authority', {
         seriesId: series.id,
         weekCount: series.bookingIds.length,
         totalCost: series.totalCost,
       });
-
       return ok(series);
     }
-
     const seriesId = apiClient.generateId('series');
     const totalCost = (pricePerSession ?? 0) * selectedWeeks.length;
-    const bookingIds: string[] = [];
 
     // Create individual bookings for each week
-    for (let i = 0; i < selectedWeeks.length; i++) {
-      const weekDate = selectedWeeks[i];
+    const bookingsToCreate = selectedWeeks.map((weekDate, i) => {
       const scheduledAt = `${weekDate}T${startTime}:00`;
-
       const booking: Booking = {
         id: apiClient.generateId('booking'),
         coachId,
@@ -281,14 +261,46 @@ class MultiWeekBookingService {
         location,
         service: sessionType,
         serviceType: sessionType,
-        ...(sessionSource ? { sessionSource } : {}),
-        ...(sessionSourceEntityId ? { sessionSourceEntityId } : {}),
-        ...(clubId ? { clubId } : {}),
-        ...(actingAs ? { actingAs } : {}),
-        ...(ownerCoachId ? { ownerCoachId } : {}),
-        ...(assigneeCoachId ? { assigneeCoachId } : {}),
-        ...(createdByUserId ? { createdByUserId } : {}),
-        ...(createdByRole ? { createdByRole } : {}),
+        ...(sessionSource
+          ? {
+              sessionSource,
+            }
+          : {}),
+        ...(sessionSourceEntityId
+          ? {
+              sessionSourceEntityId,
+            }
+          : {}),
+        ...(clubId
+          ? {
+              clubId,
+            }
+          : {}),
+        ...(actingAs
+          ? {
+              actingAs,
+            }
+          : {}),
+        ...(ownerCoachId
+          ? {
+              ownerCoachId,
+            }
+          : {}),
+        ...(assigneeCoachId
+          ? {
+              assigneeCoachId,
+            }
+          : {}),
+        ...(createdByUserId
+          ? {
+              createdByUserId,
+            }
+          : {}),
+        ...(createdByRole
+          ? {
+              createdByRole,
+            }
+          : {}),
         objectives: focus ? [focus] : [],
         price: pricePerSession ?? 0,
         notes: notes ?? '',
@@ -298,15 +310,24 @@ class MultiWeekBookingService {
         seriesId,
         seriesIndex: i,
       };
-
-      const saveResult = await bookingCrudService.saveBookingDirect(booking);
-      if (!saveResult.success) {
-        logger.error(`Failed to create booking ${i + 1}/${selectedWeeks.length}`, saveResult.error);
-        return err(storageError(`Failed to create booking for week ${weekDate}`));
+      return { booking, weekDate, weekNumber: i + 1 };
+    });
+    const saveResults = await Promise.all(
+      bookingsToCreate.map(({ booking }) => bookingCrudService.saveBookingDirect(booking)),
+    );
+    const failedSaveIndex = saveResults.findIndex((result) => !result.success);
+    if (failedSaveIndex >= 0) {
+      const failedSave = saveResults[failedSaveIndex];
+      const failedBooking = bookingsToCreate[failedSaveIndex];
+      if (!failedSave.success) {
+        logger.error(
+          `Failed to create booking ${failedBooking.weekNumber}/${selectedWeeks.length}`,
+          failedSave.error,
+        );
+        return err(storageError(`Failed to create booking for week ${failedBooking.weekDate}`));
       }
-
-      bookingIds.push(booking.id);
     }
+    const bookingIds = bookingsToCreate.map(({ booking }) => booking.id);
 
     // Create the series record
     const series: BookingSeries = {
@@ -329,7 +350,6 @@ class MultiWeekBookingService {
       createdAt: new Date().toISOString(),
       status: 'ACTIVE',
     };
-
     try {
       const allSeries = await this.loadFromStorage();
       allSeries.push(series);
@@ -346,13 +366,11 @@ class MultiWeekBookingService {
         totalCost,
         location,
       });
-
       logger.info('Series created', {
         seriesId: series.id,
         weekCount: selectedWeeks.length,
         totalCost,
       });
-
       return ok(series);
     } catch (error) {
       logger.error('Failed to save booking series', error);
@@ -399,9 +417,9 @@ class MultiWeekBookingService {
           return err(apiResult.error);
         }
         return ok(
-          apiResult.data
-            .filter((series) => series.bookedByUserId === userId)
-            .map((series) => mapApiSeriesToBookingSeries(series)),
+          apiResult.data.flatMap((series) =>
+            series.bookedByUserId === userId ? [mapApiSeriesToBookingSeries(series)] : [],
+          ),
         );
       }
       const cache = await this.getCache();
@@ -424,9 +442,9 @@ class MultiWeekBookingService {
           return err(apiResult.error);
         }
         return ok(
-          apiResult.data
-            .filter((series) => series.coachUserId === coachId)
-            .map((series) => mapApiSeriesToBookingSeries(series)),
+          apiResult.data.flatMap((series) =>
+            series.coachUserId === coachId ? [mapApiSeriesToBookingSeries(series)] : [],
+          ),
         );
       }
       const cache = await this.getCache();
@@ -460,36 +478,43 @@ class MultiWeekBookingService {
       emitTyped(ServiceEvents.SERIES_UPDATED, {
         seriesId,
         status: series.status,
-        changes: { reason },
+        changes: {
+          reason,
+        },
       });
       return ok(series);
     }
-
     const allSeries = await this.loadFromStorage();
     const index = allSeries.findIndex((s) => s.id === seriesId);
-
     if (index === -1) {
       return err(notFound('BookingSeries', seriesId));
     }
-
     const series = allSeries[index];
 
     // Cancel each individual booking
-    for (const bookingId of series.bookingIds) {
-      const cancelledBooking = await bookingCrudService.cancel(
+    const cancellationResults = await Promise.all(
+      series.bookingIds.map(async (bookingId) => ({
         bookingId,
-        reason ?? 'Series cancelled',
-        'parent',
-        { allowPastBooking: true },
-      );
-      if (!cancelledBooking) {
-        logger.error('Failed to cancel booking in series', {
+        booking: await bookingCrudService.cancel(
           bookingId,
-          seriesId,
-          reason,
-        });
-        return err(storageError(`Failed to cancel booking ${bookingId} in series`));
-      }
+          reason ?? 'Series cancelled',
+          'parent',
+          {
+            allowPastBooking: true,
+          },
+        ),
+      })),
+    );
+    const failedCancellation = cancellationResults.find((result) => !result.booking);
+    if (failedCancellation) {
+      logger.error('Failed to cancel booking in series', {
+        bookingId: failedCancellation.bookingId,
+        seriesId,
+        reason,
+      });
+      return err(
+        storageError(`Failed to cancel booking ${failedCancellation.bookingId} in series`),
+      );
     }
 
     // Update series status
@@ -504,11 +529,14 @@ class MultiWeekBookingService {
     emitTyped(ServiceEvents.SERIES_UPDATED, {
       seriesId,
       status: 'CANCELLED',
-      changes: { reason },
+      changes: {
+        reason,
+      },
     });
-
-    logger.info('Series cancelled', { seriesId, reason });
-
+    logger.info('Series cancelled', {
+      seriesId,
+      reason,
+    });
     return ok(updatedSeries);
   }
 
@@ -519,29 +547,21 @@ class MultiWeekBookingService {
     if (!apiClient.isMockMode) {
       return this.getSeriesById(seriesId);
     }
-
     const allSeries = await this.loadFromStorage();
     const index = allSeries.findIndex((s) => s.id === seriesId);
-
     if (index === -1) {
       return err(notFound('BookingSeries', seriesId));
     }
-
     const series = allSeries[index];
 
     // Check status of all bookings in the series
-    let completedCount = 0;
-    let cancelledCount = 0;
-
-    for (const bookingId of series.bookingIds) {
-      const booking = await bookingCrudService.getBooking(bookingId);
-      if (booking?.status === 'COMPLETED') completedCount++;
-      if (booking?.status === 'CANCELLED') cancelledCount++;
-    }
-
+    const bookings = await Promise.all(
+      series.bookingIds.map((bookingId) => bookingCrudService.getBooking(bookingId)),
+    );
+    const completedCount = bookings.filter((booking) => booking?.status === 'COMPLETED').length;
+    const cancelledCount = bookings.filter((booking) => booking?.status === 'CANCELLED').length;
     const totalBookings = series.bookingIds.length;
     let newStatus: BookingSeries['status'] = series.status;
-
     if (cancelledCount === totalBookings) {
       newStatus = 'CANCELLED';
     } else if (completedCount === totalBookings) {
@@ -549,23 +569,24 @@ class MultiWeekBookingService {
     } else if (completedCount > 0 || cancelledCount > 0) {
       newStatus = 'PARTIAL';
     }
-
     if (newStatus !== series.status) {
-      const updatedSeries: BookingSeries = { ...series, status: newStatus };
+      const updatedSeries: BookingSeries = {
+        ...series,
+        status: newStatus,
+      };
       allSeries[index] = updatedSeries;
       await this.saveToStorage(allSeries);
-
       emitTyped(ServiceEvents.SERIES_UPDATED, {
         seriesId,
         status: newStatus,
-        changes: { completedCount, cancelledCount },
+        changes: {
+          completedCount,
+          cancelledCount,
+        },
       });
-
       return ok(updatedSeries);
     }
-
     return ok(series);
   }
 }
-
 export const multiWeekBookingService = new MultiWeekBookingService();

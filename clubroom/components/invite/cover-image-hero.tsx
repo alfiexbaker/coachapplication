@@ -1,11 +1,3 @@
-/**
- * Cover Image Hero
- *
- * Displays a cover image for a session invite, or a gradient placeholder
- * with a session-type icon when no image is available.
- */
-
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -54,7 +46,7 @@ function CoverImageHeroComponent({ imageUrl, sessionType, height = 180 }: CoverI
   );
 }
 
-export const CoverImageHero = memo(CoverImageHeroComponent);
+export const CoverImageHero = CoverImageHeroComponent;
 
 const styles = StyleSheet.create({
   container: {

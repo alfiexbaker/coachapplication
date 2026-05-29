@@ -2,7 +2,7 @@
  * EditPricingSection — Session pricing fields for coach profiles.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -20,7 +20,7 @@ interface EditPricingSectionProps {
   priceError?: string | null;
 }
 
-export const EditPricingSection = memo(function EditPricingSection({
+export const EditPricingSection = function EditPricingSection({
   colors,
   priceMin,
   onChangeMin,
@@ -75,7 +75,7 @@ export const EditPricingSection = memo(function EditPricingSection({
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.md },

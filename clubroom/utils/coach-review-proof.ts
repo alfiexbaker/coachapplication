@@ -22,7 +22,7 @@ export function formatReviewContext(review: Pick<PublicReview, 'athleteName' | '
 export function buildCoachReviewProofSummary(reviews: PublicReview[]): CoachReviewProofSummary {
   const verified = reviews.filter((review) => review.isVerifiedBooking);
   const source = verified.length > 0 ? verified : reviews;
-  const athleteCount = unique(source.map((review) => review.athleteId).filter(Boolean) as string[])
+  const athleteCount = unique(source.flatMap((review) => (review.athleteId ? [review.athleteId] : [])))
     .length;
   const averageRating =
     source.length > 0

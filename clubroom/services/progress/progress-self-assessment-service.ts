@@ -66,18 +66,23 @@ function clampRatingOneToFive(value: number): number {
 }
 
 function resolveAthletePairs(booking: Booking): Array<{ athleteId: string; athleteName: string }> {
-  const ids = booking.athleteIds && booking.athleteIds.length > 0
-    ? booking.athleteIds
-    : booking.athleteId
-      ? [booking.athleteId]
-      : [];
+  const ids =
+    booking.athleteIds && booking.athleteIds.length > 0
+      ? booking.athleteIds
+      : booking.athleteId
+        ? [booking.athleteId]
+        : [];
 
-  return ids
-    .map((athleteId, index) => ({
-      athleteId,
-      athleteName: booking.athleteNames?.[index] ?? 'Athlete',
-    }))
-    .filter((value) => value.athleteId.trim().length > 0);
+  return ids.flatMap((athleteId, index) =>
+    athleteId.trim().length > 0
+      ? [
+          {
+            athleteId,
+            athleteName: booking.athleteNames?.[index] ?? 'Athlete',
+          },
+        ]
+      : [],
+  );
 }
 
 function resolveDueAt(booking: Booking): string {
@@ -142,10 +147,7 @@ async function schedulePromptsForCompletedBooking(
       return ok([]);
     }
 
-    await savePrompts([...
-      prompts,
-      ...newPrompts,
-    ]);
+    await savePrompts([...prompts, ...newPrompts]);
     logger.info('self_assessment_prompts_scheduled', {
       bookingId: booking.id,
       promptCount: newPrompts.length,
@@ -160,9 +162,7 @@ async function schedulePromptsForCompletedBooking(
   }
 }
 
-async function dispatchDuePrompts(
-  athleteId?: string,
-): Promise<Result<number, ServiceError>> {
+async function dispatchDuePrompts(athleteId?: string): Promise<Result<number, ServiceError>> {
   try {
     const prompts = await getPrompts();
     const nowIso = new Date().toISOString();
@@ -170,26 +170,30 @@ async function dispatchDuePrompts(
     let sentCount = 0;
     let changed = false;
 
-    for (const prompt of prompts) {
+    const duePrompts = prompts.filter((prompt) => {
       if (prompt.status !== 'pending') {
-        continue;
+        return false;
       }
       if (athleteId && prompt.athleteId !== athleteId) {
-        continue;
+        return false;
       }
       if (prompt.notificationSentAt) {
-        continue;
+        return false;
       }
       const dueTimestamp = new Date(prompt.dueAt).getTime();
-      if (Number.isNaN(dueTimestamp) || dueTimestamp > nowTimestamp) {
-        continue;
-      }
+      return !Number.isNaN(dueTimestamp) && dueTimestamp <= nowTimestamp;
+    });
 
-      await notificationTriggers.selfAssessmentPrompt(prompt.athleteName, prompt.athleteId);
+    await Promise.all(
+      duePrompts.map((prompt) =>
+        notificationTriggers.selfAssessmentPrompt(prompt.athleteName, prompt.athleteId),
+      ),
+    );
+    duePrompts.forEach((prompt) => {
       prompt.notificationSentAt = nowIso;
       sentCount += 1;
       changed = true;
-    }
+    });
 
     if (changed) {
       await savePrompts(prompts);
@@ -236,7 +240,9 @@ async function listAssessmentsForAthlete(athleteId: string): Promise<SelfAssessm
   const entries = await getEntries();
   return entries
     .filter((entry) => entry.athleteId === athleteId)
-    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+    .sort(
+      (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+    );
 }
 
 async function submitAssessment(
@@ -297,7 +303,10 @@ async function submitAssessment(
       await savePrompts(prompts);
     }
 
-    const journalEntries = await apiClient.get<JournalEntryRecord[]>(STORAGE_KEYS.SESSION_JOURNAL, []);
+    const journalEntries = await apiClient.get<JournalEntryRecord[]>(
+      STORAGE_KEYS.SESSION_JOURNAL,
+      [],
+    );
     const hasSelfAssessmentJournal = journalEntries.some(
       (entry) =>
         entry.sessionId === input.sessionId &&

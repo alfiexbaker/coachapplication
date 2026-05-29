@@ -4,7 +4,7 @@
  * Shows "Continue" or "Create Session" depending on the current step.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 
 import { Button } from '@/components/ui/primitives';
@@ -29,7 +29,7 @@ interface CreateFooterBarProps {
 // COMPONENT
 // ============================================================================
 
-export const CreateFooterBar = memo(function CreateFooterBar({
+export const CreateFooterBar = function CreateFooterBar({
   colors,
   step,
   loading,
@@ -60,7 +60,7 @@ export const CreateFooterBar = memo(function CreateFooterBar({
       )}
     </View>
   );
-});
+};
 
 // ============================================================================
 // STYLES

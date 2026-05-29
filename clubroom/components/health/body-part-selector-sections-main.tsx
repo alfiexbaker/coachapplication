@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -17,7 +17,7 @@ interface BodyDiagramProps {
   palette: ThemeColors;
 }
 
-export const BodyDiagram = memo(function BodyDiagram({
+export const BodyDiagram = function BodyDiagram({
   selectedPart,
   onSelectPart,
   palette,
@@ -129,4 +129,4 @@ export const BodyDiagram = memo(function BodyDiagram({
       </View>
     </View>
   );
-});
+};

@@ -6,7 +6,7 @@
  * RequirementsList — file size/duration/format requirements.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,21 +19,7 @@ import { ThemedText } from '@/components/themed-text';
 import { withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { styles } from './video-upload-styles';
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-export function formatDuration(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
-
-export function formatFileSize(bytes: number): string {
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`;
-  }
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+import { formatDuration, formatFileSize } from './video-upload-helpers';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -54,7 +40,7 @@ interface VideoPickerCardsProps {
   disabled?: boolean;
 }
 
-export const VideoPickerCards = memo(function VideoPickerCards({
+export const VideoPickerCards = function VideoPickerCards({
   onPickVideo,
   onRecordVideo,
   palette,
@@ -97,22 +83,22 @@ export const VideoPickerCards = memo(function VideoPickerCards({
       </Clickable>
     </Row>
   );
-});
+};
 
 // ─── VideoPreviewCard ───────────────────────────────────────────────────────
 
 interface VideoPreviewCardProps {
   video: SelectedVideo;
   onClear: () => void;
-  onUseVideo: () => void;
+  onSelectVideo: () => void;
   palette: ThemeColors;
   disabled?: boolean;
 }
 
-export const VideoPreviewCard = memo(function VideoPreviewCard({
+const renderVideoPreviewCard = function renderVideoPreviewCard({
   video,
   onClear,
-  onUseVideo,
+  onSelectVideo,
   palette,
   disabled = false,
 }: VideoPreviewCardProps) {
@@ -164,24 +150,23 @@ export const VideoPreviewCard = memo(function VideoPreviewCard({
         </View>
 
         <Clickable
-          onPress={onUseVideo}
+          onPress={onSelectVideo}
           disabled={disabled}
           accessibilityState={{ disabled }}
           style={[
-            styles.useButton,
+            styles.selectButton,
             { backgroundColor: disabled ? palette.border : palette.tint },
           ]}
           accessibilityLabel="Use selected video"
         >
           <Ionicons name="checkmark-circle" size={20} color={palette.onPrimary} />
-          <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
-            Use Video
-          </ThemedText>
+          <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>Use Video</ThemedText>
         </Clickable>
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
+export const VideoPreviewCard = renderVideoPreviewCard;
 
 // ─── RequirementsList ───────────────────────────────────────────────────────
 
@@ -191,7 +176,7 @@ interface RequirementsListProps {
   palette: ThemeColors;
 }
 
-export const RequirementsList = memo(function RequirementsList({
+const renderRequirementsList = function renderRequirementsList({
   maxDurationSeconds,
   maxFileSizeMB,
   palette,
@@ -219,6 +204,7 @@ export const RequirementsList = memo(function RequirementsList({
       </View>
     </View>
   );
-});
+};
+export const RequirementsList = renderRequirementsList;
 
 // style additions live in shared styles file

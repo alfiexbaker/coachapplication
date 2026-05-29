@@ -23,6 +23,8 @@ import {
   SecurityNote,
 } from './payment-modal-sections';
 
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
+
 const logger = createLogger('PaymentModal');
 
 interface PaymentModalProps {
@@ -65,20 +67,20 @@ export function PaymentModal({
     setProcessing(true);
     setPaymentStep('processing');
 
-    try {
+    await runAsyncTryCatchFinally(async () => {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       setPaymentStep('success');
       if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await new Promise((resolve) => setTimeout(resolve, 800));
       await onPaymentComplete();
       setPaymentStep('review');
-    } catch (error) {
+    }, async error => {
       logger.error('Payment failed:', error);
       if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setPaymentStep('review');
-    } finally {
+    }, () => {
       setProcessing(false);
-    }
+    });
   };
 
   const handleClose = () => {

@@ -4,7 +4,7 @@
  * Displays coach notes with loading/error/empty states and a follow-up actions checklist.
  */
 
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { ActivityIndicator, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -33,7 +33,7 @@ interface BookingNotesCardProps {
   onRefresh: () => Promise<void>;
 }
 
-export const BookingNotesCard = memo(function BookingNotesCard({
+export const BookingNotesCard = function BookingNotesCard({
   bookingId,
   sessionNote,
   loading,
@@ -43,9 +43,9 @@ export const BookingNotesCard = memo(function BookingNotesCard({
 }: BookingNotesCardProps) {
   const { colors: palette } = useTheme();
 
-  const handleNavigateToNotes = useCallback(() => {
+  const handleNavigateToNotes = () => {
     router.push(Routes.sessionNotes(bookingId));
-  }, [bookingId]);
+  };
 
   return (
     <SurfaceCard style={styles.card}>
@@ -125,7 +125,7 @@ export const BookingNotesCard = memo(function BookingNotesCard({
       ) : null}
     </SurfaceCard>
   );
-});
+};
 
 // ============================================================================
 // FOLLOW-UPS CARD
@@ -137,7 +137,7 @@ interface BookingFollowUpsCardProps {
   onRefresh: () => Promise<void>;
 }
 
-export const BookingFollowUpsCard = memo(function BookingFollowUpsCard({
+export const BookingFollowUpsCard = function BookingFollowUpsCard({
   sessionNote,
   loading,
   onRefresh,
@@ -183,7 +183,7 @@ export const BookingFollowUpsCard = memo(function BookingFollowUpsCard({
       </Column>
     </SurfaceCard>
   );
-});
+};
 
 // ============================================================================
 // STYLES

@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -17,7 +16,7 @@ interface TrendArrowProps {
  * Inline arrow + percentage. Green up / amber flat / red down.
  * Used next to skill names, corner labels, metric rows.
  */
-export const TrendArrow = memo(function TrendArrow({
+export const TrendArrow = function TrendArrow({
   delta,
   suffix = '',
   compact = false,
@@ -39,7 +38,7 @@ export const TrendArrow = memo(function TrendArrow({
       </ThemedText>
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   text: {

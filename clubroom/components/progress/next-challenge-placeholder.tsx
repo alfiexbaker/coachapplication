@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -13,7 +12,7 @@ interface NextChallengePlaceholderProps {
   totalSessions: number;
 }
 
-export const NextChallengePlaceholder = memo(function NextChallengePlaceholder({
+export const NextChallengePlaceholder = function NextChallengePlaceholder({
   totalSessions,
 }: NextChallengePlaceholderProps) {
   const { colors } = useTheme();
@@ -42,7 +41,7 @@ export const NextChallengePlaceholder = memo(function NextChallengePlaceholder({
       </Column>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

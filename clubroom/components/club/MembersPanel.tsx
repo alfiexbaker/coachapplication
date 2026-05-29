@@ -71,7 +71,7 @@ export function MemberRow({ member, canRemove, onRemove, onPress }: MemberRowPro
             {clubService.formatRole(member.role)}
           </ThemedText>
         </Column>
-        {member.status === 'pending' && <Chip>Pending</Chip>}
+        {member.status === 'pending' && <Chip label="Pending" />}
         <Ionicons name="chevron-forward" size={18} color={palette.muted} />
       </Row>
     </Clickable>

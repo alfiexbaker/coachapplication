@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet, TextInput, Platform } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,7 +18,7 @@ interface ClubPostEventFieldsProps {
   onChangeLocation: (text: string) => void;
 }
 
-export const ClubPostEventFields = memo(function ClubPostEventFields({
+export const ClubPostEventFields = function ClubPostEventFields({
   eventDate,
   eventLocation,
   showDatePicker,
@@ -28,6 +28,7 @@ export const ClubPostEventFields = memo(function ClubPostEventFields({
   onChangeLocation,
 }: ClubPostEventFieldsProps) {
   const { colors: palette, isDark } = useTheme();
+  const [today] = React.useState(() => new Date());
 
   return (
     <View style={[styles.container, { borderColor: palette.border }]}>
@@ -46,12 +47,12 @@ export const ClubPostEventFields = memo(function ClubPostEventFields({
       </Clickable>
       {showDatePicker && (
         <DateTimePicker
-          value={eventDate || new Date()}
+          value={eventDate || today}
           mode="date"
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           textColor={palette.text}
           themeVariant={isDark ? 'dark' : 'light'}
-          minimumDate={new Date()}
+          minimumDate={today}
           onChange={(_, selectedDate) => {
             onCloseDatePicker();
             if (selectedDate) onSetDate(selectedDate);
@@ -72,7 +73,7 @@ export const ClubPostEventFields = memo(function ClubPostEventFields({
       </Row>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: {

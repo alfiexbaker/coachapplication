@@ -145,7 +145,7 @@ function ProfileTabPostsInner({
   );
 }
 
-export const ProfileTabPosts = React.memo(ProfileTabPostsInner);
+export const ProfileTabPosts = ProfileTabPostsInner;
 
 const styles = StyleSheet.create({
   createPostButton: {

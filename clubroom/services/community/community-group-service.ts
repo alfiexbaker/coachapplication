@@ -80,7 +80,7 @@ function isAdminRole(role: GroupMemberRole): boolean {
 }
 
 function sortMembers(members: GroupMember[]): GroupMember[] {
-  return [...members].sort((left, right) =>
+  return Array.from(members).toSorted((left, right) =>
     `${left.parentId}:${left.role}:${left.joinedAt}`.localeCompare(
       `${right.parentId}:${right.role}:${right.joinedAt}`,
     ),
@@ -460,17 +460,19 @@ class CommunityGroupService {
 
       // Notify group admins
       const admins = group.members.filter((m) => isAdminRole(m.role) || m.role === 'OWNER');
-      for (const admin of admins) {
-        await notificationService.create({
-          id: `notif_coach_approval_${Date.now()}`,
-          type: 'community',
-          title: 'Coach Join Request',
-          body: `${approvalRequest.requesterName} (coach) wants to join ${group.name}`,
-          recipientId: admin.parentId,
-          timeLabel: 'Just now',
-          read: false,
-        });
-      }
+      await Promise.all(
+        admins.map((admin) =>
+          notificationService.create({
+            id: `notif_coach_approval_${Date.now()}_${admin.parentId}`,
+            type: 'community',
+            title: 'Coach Join Request',
+            body: `${approvalRequest.requesterName} (coach) wants to join ${group.name}`,
+            recipientId: admin.parentId,
+            timeLabel: 'Just now',
+            read: false,
+          }),
+        ),
+      );
 
       emitTyped(ServiceEvents.GROUP_APPROVAL_REQUESTED, {
         groupId,

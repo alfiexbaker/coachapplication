@@ -5,7 +5,7 @@
  * for both coach and parent profile editing flows.
  */
 
-import { useState, useCallback, useEffect, useMemo, useRef, type SetStateAction } from 'react';
+import { useState, useEffect, useRef, type SetStateAction } from 'react';
 
 import { router } from 'expo-router';
 
@@ -25,6 +25,8 @@ import { discoverService } from '@/services/discover-service';
 import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncTryCatchFinally, runSyncFinally } from '@/utils/async-control';
 
 const logger = createLogger('EditProfile');
 
@@ -295,13 +297,13 @@ export function useEditProfile() {
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({});
   const [formMessage, setFormMessage] = useState<string | null>(null);
 
-  const sanitizePriceInput = useCallback((value: string) => value.replace(/[^0-9]/g, ''), []);
-  const parseOptionalInt = useCallback((value: string) => {
+  const sanitizePriceInput = (value: string) => value.replace(/[^0-9]/g, '');
+  const parseOptionalInt = (value: string) => {
     if (!value.trim()) return null;
     const parsed = Number.parseInt(value, 10);
     return Number.isNaN(parsed) ? null : parsed;
-  }, []);
-  const priceRangeError = useMemo(() => {
+  };
+  const priceRangeError = (() => {
     if (!userIsCoach) return null;
     const min = parseOptionalInt(priceMin);
     const max = parseOptionalInt(priceMax);
@@ -311,21 +313,21 @@ export function useEditProfile() {
     if (max !== null && max > 200) return 'Maximum price must be under £200';
     if (min !== null && max !== null && min > max) return 'Minimum price must be less than maximum';
     return null;
-  }, [userIsCoach, parseOptionalInt, priceMin, priceMax]);
+  })();
 
-  const setPriceMin = useCallback((value: string) => {
+  const setPriceMin = (value: string) => {
     setPriceMinState(sanitizePriceInput(value));
-  }, [sanitizePriceInput]);
-  const setPriceMax = useCallback((value: string) => {
+  };
+  const setPriceMax = (value: string) => {
     setPriceMaxState(sanitizePriceInput(value));
-  }, [sanitizePriceInput]);
+  };
 
   // ── Modal drafts ───────────────────────────────────────────────
-  const [experienceDraft, setExperienceDraftState] = useState<CoachExperience>(createBlankExperience());
+  const [experienceDraft, setExperienceDraftState] = useState<CoachExperience>(() => createBlankExperience());
   const [isExperienceModalVisible, setExperienceModalVisibleState] = useState(false);
-  const [languageDraft, setLanguageDraftState] = useState<CoachLanguage>(createBlankLanguage());
+  const [languageDraft, setLanguageDraftState] = useState<CoachLanguage>(() => createBlankLanguage());
   const [isLanguageModalVisible, setLanguageModalVisibleState] = useState(false);
-  const [certificationDraft, setCertificationDraftState] = useState<CoachCertification>(
+  const [certificationDraft, setCertificationDraftState] = useState<CoachCertification>(() =>
     createBlankCertification(),
   );
   const [isCertificationModalVisible, setCertificationModalVisibleState] = useState(false);
@@ -334,43 +336,43 @@ export function useEditProfile() {
   const [certificationValidationMessage, setCertificationValidationMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const isSavingRef = useRef(false);
-  const clearFormMessage = useCallback(() => {
+  const clearFormMessage = () => {
     setFormMessage(null);
-  }, []);
-  const setExperienceDraft = useCallback((value: SetStateAction<CoachExperience>) => {
+  };
+  const setExperienceDraft = (value: SetStateAction<CoachExperience>) => {
     setExperienceValidationMessage(null);
     setExperienceDraftState(value);
-  }, []);
-  const setLanguageDraft = useCallback((value: SetStateAction<CoachLanguage>) => {
+  };
+  const setLanguageDraft = (value: SetStateAction<CoachLanguage>) => {
     setLanguageValidationMessage(null);
     setLanguageDraftState(value);
-  }, []);
-  const setCertificationDraft = useCallback((value: SetStateAction<CoachCertification>) => {
+  };
+  const setCertificationDraft = (value: SetStateAction<CoachCertification>) => {
     setCertificationValidationMessage(null);
     setCertificationDraftState(value);
-  }, []);
-  const setExperienceModalVisible = useCallback((visible: boolean) => {
+  };
+  const setExperienceModalVisible = (visible: boolean) => {
     if (!visible) {
       setExperienceValidationMessage(null);
     }
     setExperienceModalVisibleState(visible);
-  }, []);
-  const setLanguageModalVisible = useCallback((visible: boolean) => {
+  };
+  const setLanguageModalVisible = (visible: boolean) => {
     if (!visible) {
       setLanguageValidationMessage(null);
     }
     setLanguageModalVisibleState(visible);
-  }, []);
-  const setCertificationModalVisible = useCallback((visible: boolean) => {
+  };
+  const setCertificationModalVisible = (visible: boolean) => {
     if (!visible) {
       setCertificationValidationMessage(null);
     }
     setCertificationModalVisibleState(visible);
-  }, []);
+  };
 
-  const retryLoad = useCallback(() => {
+  const retryLoad = () => {
     setReloadKey((value) => value + 1);
-  }, []);
+  };
 
   useEffect(() => {
     let active = true;
@@ -379,7 +381,7 @@ export function useEditProfile() {
       setLoadError(null);
       setInitializing(true);
 
-      try {
+      return await runAsyncTryCatchFinally(async () => {
         if (!currentUser) {
           setCoach(null);
           setUser(null);
@@ -450,15 +452,15 @@ export function useEditProfile() {
             setPrimaryPosition(childProfile.primaryPosition);
           }
         }
-      } catch (error) {
+      }, async error => {
         if (!active) return;
         logger.error('Failed to initialize edit profile state', error);
         setLoadError('Failed to load profile data. Pull down to retry.');
-      } finally {
+      }, () => {
         if (active) {
           setInitializing(false);
         }
-      }
+      });
     };
 
     void initializeProfile();
@@ -469,20 +471,20 @@ export function useEditProfile() {
   }, [currentUser, availableUsers, reloadKey]);
 
   // ── Focus toggles ──────────────────────────────────────────────
-  const toggleFocus = useCallback((focus: FootballObjective) => {
+  const toggleFocus = (focus: FootballObjective) => {
     setSelectedFocuses((prev) =>
       prev.includes(focus) ? prev.filter((f) => f !== focus) : [...prev, focus],
     );
-  }, []);
+  };
 
   // ── Experience handlers ────────────────────────────────────────
-  const openExperienceModal = useCallback((experience?: CoachExperience) => {
+  const openExperienceModal = (experience?: CoachExperience) => {
     setExperienceValidationMessage(null);
     setExperienceDraftState(experience ? { ...experience } : createBlankExperience());
     setExperienceModalVisible(true);
-  }, [setExperienceModalVisible]);
+  };
 
-  const saveExperience = useCallback(() => {
+  const saveExperience = () => {
     if (!experienceDraft.title || !experienceDraft.organization || !experienceDraft.startDate) {
       setExperienceValidationMessage('Please add a role title, organisation, and start date.');
       return;
@@ -495,20 +497,20 @@ export function useEditProfile() {
         : [experienceDraft, ...prev];
     });
     setExperienceModalVisible(false);
-  }, [experienceDraft, setExperienceModalVisible]);
+  };
 
-  const removeExperience = useCallback((id: string) => {
+  const removeExperience = (id: string) => {
     setExperiences((prev) => prev.filter((exp) => exp.id !== id));
-  }, []);
+  };
 
   // ── Language handlers ──────────────────────────────────────────
-  const openLanguageModal = useCallback((language?: CoachLanguage) => {
+  const openLanguageModal = (language?: CoachLanguage) => {
     setLanguageValidationMessage(null);
     setLanguageDraftState(language ? { ...language } : createBlankLanguage());
     setLanguageModalVisible(true);
-  }, [setLanguageModalVisible]);
+  };
 
-  const saveLanguage = useCallback(() => {
+  const saveLanguage = () => {
     if (!languageDraft.name) {
       setLanguageValidationMessage('Please add a language name to continue.');
       return;
@@ -521,13 +523,13 @@ export function useEditProfile() {
         : [...prev, languageDraft];
     });
     setLanguageModalVisible(false);
-  }, [languageDraft, setLanguageModalVisible]);
+  };
 
-  const removeLanguage = useCallback((id: string) => {
+  const removeLanguage = (id: string) => {
     setLanguages((prev) => prev.filter((lang) => lang.id !== id));
-  }, []);
+  };
 
-  const quickAddLanguage = useCallback((name: string) => {
+  const quickAddLanguage = (name: string) => {
     setLanguages((prev) => [
       ...prev,
       {
@@ -536,16 +538,16 @@ export function useEditProfile() {
         proficiency: 'Fluent',
       },
     ]);
-  }, []);
+  };
 
   // ── Certification handlers ─────────────────────────────────────
-  const openCertificationModal = useCallback((certification?: CoachCertification) => {
+  const openCertificationModal = (certification?: CoachCertification) => {
     setCertificationValidationMessage(null);
     setCertificationDraftState(certification ? { ...certification } : createBlankCertification());
     setCertificationModalVisible(true);
-  }, [setCertificationModalVisible]);
+  };
 
-  const saveCertification = useCallback(() => {
+  const saveCertification = () => {
     if (!certificationDraft.name || !certificationDraft.issuer || !certificationDraft.issueDate) {
       setCertificationValidationMessage(
         'Please add a certification name, issuer, and issue date.',
@@ -560,39 +562,36 @@ export function useEditProfile() {
         : [certificationDraft, ...prev];
     });
     setCertificationModalVisible(false);
-  }, [certificationDraft, setCertificationModalVisible]);
+  };
 
-  const removeCertification = useCallback((id: string) => {
+  const removeCertification = (id: string) => {
     setCertifications((prev) => prev.filter((cert) => cert.id !== id));
-  }, []);
+  };
 
   // ── Children handlers ──────────────────────────────────────────
-  const addChild = useCallback(() => {
+  const addChild = () => {
     setChildren((prev) => [...prev, { name: '', age: 0 }]);
-  }, []);
+  };
 
-  const updateChild = useCallback(
-    (index: number, field: 'name' | 'age', value: string | number) => {
-      setChildren((prev) => {
-        const updated = [...prev];
-        updated[index] = { ...updated[index], [field]: value };
-        return updated;
-      });
-    },
-    [],
-  );
+  const updateChild = (index: number, field: 'name' | 'age', value: string | number) => {
+    setChildren((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
 
-  const removeChild = useCallback((index: number) => {
+  const removeChild = (index: number) => {
     setChildren((prev) => prev.filter((_, i) => i !== index));
-  }, []);
+  };
 
   // ── Save handler ───────────────────────────────────────────────
-  const handleSave = useCallback(() => {
+  const handleSave = () => {
     if (isSavingRef.current) return;
     isSavingRef.current = true;
     setIsSaving(true);
     setFormMessage(null);
-    try {
+    return runSyncFinally(() => {
       if (userIsCoach && priceRangeError) {
         setFormMessage(priceRangeError);
         return;
@@ -639,41 +638,20 @@ export function useEditProfile() {
 
       uiFeedback.showToast('Profile updated successfully', 'success');
       router.back();
-    } finally {
+    }, () => {
       isSavingRef.current = false;
       setIsSaving(false);
-    }
-  }, [
-    userIsCoach,
-    userIsAthlete,
-    coach,
-    user,
-    currentUser?.id,
-    fullName,
-    bio,
-    email,
-    phone,
-    website,
-    priceMin,
-    priceMax,
-    selectedFocuses,
-    experiences,
-    languages,
-    certifications,
-    socialLinks,
-    children,
-    primaryPosition,
-    priceRangeError,
-  ]);
+    });
+  };
 
   // ── Image picker ───────────────────────────────────────────────
-  const pickImage = useCallback((type: 'profile' | 'cover') => {
+  const pickImage = (type: 'profile' | 'cover') => {
     logger.info(`Photo picker requested for ${type}`);
     uiFeedback.showToast(
       `${type === 'profile' ? 'Profile' : 'Cover'} photo picker coming soon.`,
       'default',
     );
-  }, []);
+  };
 
   const canSave = (!userIsCoach || priceRangeError === null) && !isSaving;
 

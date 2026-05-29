@@ -4,7 +4,7 @@
  * Allows coaches to configure trial session offerings.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, StyleSheet, ScrollView, Switch, ActivityIndicator, ViewStyle } from 'react-native';
 
@@ -18,13 +18,13 @@ import { useTheme } from '@/hooks/useTheme';
 import { useToast } from '@/components/ui/toast';
 import { TrialDiscoveryPreview } from './trial-discovery-preview';
 
-import { validateTrialForm, TrialFormFields } from './trial-session-editor-sections';
+import { TrialFormFields } from './trial-session-editor-sections';
+import { validateTrialForm } from './trial-session-editor-helpers';
 import { Row, Column } from '@/components/primitives';
 import { uiFeedback } from '@/services/ui-feedback';
 
-// Re-export extracted components for backward compat
-export { validateTrialForm, TrialFormFields } from './trial-session-editor-sections';
-export type { TrialFormValues, TrialFormFieldsProps } from './trial-session-editor-sections';
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
+
 
 // ---------------------------------------------------------------------------
 // Types
@@ -59,7 +59,7 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
 
   useEffect(() => {
     (async () => {
-      try {
+      await runAsyncTryCatchFinally(async () => {
         const existing = await trialService.getTrialOffering(coachId);
         if (existing) {
           setEnabled(existing.enabled);
@@ -69,15 +69,15 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
           setLimitPerFamily(String(existing.limitPerFamily));
           setDescription(existing.description);
         }
-      } catch {
+      }, async error => {
         // Defaults are fine
-      } finally {
+      }, () => {
         setLoading(false);
-      }
+      });
     })();
   }, [coachId]);
 
-  const handleToggleEnabled = useCallback((newValue: boolean) => {
+  const handleToggleEnabled = (newValue: boolean) => {
     setEnabled(newValue);
     showToast(
       newValue
@@ -85,9 +85,9 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
         : 'Trial session hidden. Save to apply changes.',
       'success',
     );
-  }, [showToast]);
+  };
 
-  const handleSave = useCallback(async () => {
+  const handleSave = async () => {
     if (enabled) {
       const error = validateTrialForm({
         trialPrice,
@@ -103,7 +103,8 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
     }
 
     setSaving(true);
-    try {
+
+    await runAsyncTryCatchFinally(async () => {
       const offering = await trialService.upsertTrialOffering(coachId, {
         enabled,
         trialPrice: parseFloat(trialPrice) || 0,
@@ -117,21 +118,12 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
         enabled ? 'Trial session is now live' : 'Trial sessions disabled',
         'success',
       );
-    } catch {
+    }, async error => {
       showToast('Failed to save trial settings', 'error');
-    } finally {
+    }, () => {
       setSaving(false);
-    }
-  }, [
-    enabled,
-    trialPrice,
-    normalPrice,
-    durationMinutes,
-    limitPerFamily,
-    description,
-    coachId,
-    onSave,
-  ]);
+    });
+  };
 
   if (loading) {
     return (

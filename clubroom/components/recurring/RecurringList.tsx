@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState } from 'react';
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { StyleSheet, View, FlatList, RefreshControl } from 'react-native';
 
@@ -12,10 +12,12 @@ import { useTheme } from '@/hooks/useTheme';
 import {
   RecurringFilterChip,
   RecurringSummaryCard,
+} from './recurring-list-sections';
+import {
   FILTER_DATA,
   type FilterOption,
   type FilterItem,
-} from './recurring-list-sections';
+} from './recurring-list-helpers';
 
 interface RecurringListProps {
   bookings: RecurringBooking[];
@@ -47,24 +49,21 @@ export function RecurringList({
   const { colors: palette } = useTheme();
   const [activeFilter, setActiveFilter] = useState<FilterOption>('ALL');
 
-  const filterCounts = useMemo(
-    () => ({
-      ALL: bookings.length,
-      ACTIVE: bookings.filter((b) => b.status === 'ACTIVE').length,
-      PAUSED: bookings.filter((b) => b.status === 'PAUSED').length,
-      CANCELLED: bookings.filter((b) => b.status === 'CANCELLED').length,
-      EXPIRED: bookings.filter((b) => b.status === 'EXPIRED').length,
-    }),
-    [bookings],
-  );
+  const filterCounts = ({
+    ALL: bookings.length,
+    ACTIVE: bookings.filter((b) => b.status === 'ACTIVE').length,
+    PAUSED: bookings.filter((b) => b.status === 'PAUSED').length,
+    CANCELLED: bookings.filter((b) => b.status === 'CANCELLED').length,
+    EXPIRED: bookings.filter((b) => b.status === 'EXPIRED').length,
+  });
 
-  const filteredBookings = useMemo(() => {
+  const filteredBookings = (() => {
     if (activeFilter === 'ALL') return bookings;
     return bookings.filter((b) => b.status === activeFilter);
-  }, [bookings, activeFilter]);
+  })();
 
-  const sortedBookings = useMemo(() => {
-    return [...filteredBookings].sort((a, b) => {
+  const sortedBookings = (() => {
+    return Array.from(filteredBookings).toSorted((a, b) => {
       const statusPriority: Record<RecurringBookingStatus, number> = {
         ACTIVE: 0,
         PAUSED: 1,
@@ -75,22 +74,19 @@ export function RecurringList({
       if (statusDiff !== 0) return statusDiff;
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-  }, [filteredBookings]);
+  })();
 
-  const renderItem = useCallback(
-    ({ item }: { item: RecurringBooking }) => (
-      <RecurringCard
-        recurring={item}
-        onPause={onPause}
-        onResume={onResume}
-        onCancel={onCancel}
-        loading={loading}
-      />
-    ),
-    [onPause, onResume, onCancel, loading],
+  const renderItem = ({ item }: { item: RecurringBooking }) => (
+    <RecurringCard
+      recurring={item}
+      onPause={onPause}
+      onResume={onResume}
+      onCancel={onCancel}
+      loading={loading}
+    />
   );
 
-  const renderEmpty = useCallback(() => {
+  const renderEmpty = () => {
     if (loading) return null;
 
     if (bookings.length > 0 && filteredBookings.length === 0) {
@@ -114,31 +110,20 @@ export function RecurringList({
         onPressAction={onCreatePress}
       />
     );
-  }, [
-    loading,
-    bookings.length,
-    filteredBookings.length,
-    activeFilter,
-    emptyTitle,
-    emptyMessage,
-    onCreatePress,
-  ]);
+  };
 
-  const renderFilterChip = useCallback(
-    ({ item }: { item: FilterItem }) => (
-      <RecurringFilterChip
-        label={item.label}
-        isActive={activeFilter === item.key}
-        onPress={() => setActiveFilter(item.key)}
-        count={filterCounts[item.key]}
-        palette={palette}
-      />
-    ),
-    [activeFilter, filterCounts, palette],
+  const renderFilterChip = ({ item }: { item: FilterItem }) => (
+    <RecurringFilterChip
+      label={item.label}
+      isActive={activeFilter === item.key}
+      onPress={() => setActiveFilter(item.key)}
+      count={filterCounts[item.key]}
+      palette={palette}
+    />
   );
 
-  const filterKeyExtractor = useCallback((item: FilterItem) => item.key, []);
-  const bookingKeyExtractor = useCallback((item: RecurringBooking) => item.id, []);
+  const filterKeyExtractor = (item: FilterItem) => item.key;
+  const bookingKeyExtractor = (item: RecurringBooking) => item.id;
 
   return (
     <ThemedView style={styles.container}>

@@ -2,7 +2,7 @@
  * BlockDateModal — Composition root.
  * Coach blocks time off: single day, date range, or holiday presets.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef, startTransition } from 'react';
 import { View, StyleSheet, Modal, ScrollView, Platform, Keyboard } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
@@ -23,6 +23,8 @@ import {
 } from './block-date-sections';
 import { Row } from '@/components/primitives';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('BlockDateModal');
 
@@ -47,7 +49,7 @@ export function BlockDateModal({
   const [reason, setReason] = useState<string>('holiday');
   const [saving, setSaving] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
-  const [initialState, setInitialState] = useState<{
+  const initialStateRef = useRef<{
     mode: 'single' | 'range' | 'holiday';
     startDate: string;
     endDate: string;
@@ -60,108 +62,126 @@ export function BlockDateModal({
       const nextStart = preselectedDate ? new Date(preselectedDate) : new Date();
       const nextEnd = preselectedDate ? new Date(preselectedDate) : new Date();
       if (preselectedDate) {
-        setStartDate(nextStart);
-        setEndDate(nextEnd);
-        setMode('single');
+        startTransition(() => {
+          setStartDate(nextStart);
+        });
+        startTransition(() => {
+          setEndDate(nextEnd);
+        });
+        startTransition(() => {
+          setMode('single');
+        });
       } else {
-        setStartDate(nextStart);
-        setEndDate(nextEnd);
-        setMode('single');
+        startTransition(() => {
+          setStartDate(nextStart);
+        });
+        startTransition(() => {
+          setEndDate(nextEnd);
+        });
+        startTransition(() => {
+          setMode('single');
+        });
       }
-      setReason('holiday');
-      setSelectedPreset(null);
-      setInitialState({
-        mode: 'single',
-        startDate: toDateStr(nextStart),
-        endDate: toDateStr(nextEnd),
-        reason: 'holiday',
-        selectedPreset: null,
+      startTransition(() => {
+        setReason('holiday');
+      });
+      startTransition(() => {
+        setSelectedPreset(null);
+      });
+      startTransition(() => {
+        initialStateRef.current = {
+          mode: 'single',
+          startDate: toDateStr(nextStart),
+          endDate: toDateStr(nextEnd),
+          reason: 'holiday',
+          selectedPreset: null,
+        };
       });
     } else {
-      setInitialState(null);
+      startTransition(() => {
+        initialStateRef.current = null;
+      });
     }
   }, [visible, preselectedDate]);
 
-  const handleQuickDate = useCallback((date: Date) => {
+  const handleQuickDate = (date: Date) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setStartDate(date);
     setEndDate(date);
     setSelectedPreset(null);
-  }, []);
+  };
 
-  const handleHolidayPreset = useCallback(
-    (presetId: string, dateRange: { start: Date; end: Date }) => {
-      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      setSelectedPreset(presetId);
-      setStartDate(dateRange.start);
-      setEndDate(dateRange.end);
-      setMode('holiday');
-      setReason('holiday');
-    },
-    [],
-  );
+  const handleHolidayPreset = (presetId: string, dateRange: { start: Date; end: Date }) => {
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setSelectedPreset(presetId);
+    setStartDate(dateRange.start);
+    setEndDate(dateRange.end);
+    setMode('holiday');
+    setReason('holiday');
+  };
 
-  const adjustDate = useCallback(
-    (target: 'start' | 'end', days: number) => {
-      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      if (target === 'start') {
-        setStartDate((prev) => {
-          const d = new Date(prev);
-          d.setDate(d.getDate() + days);
-          if (d > endDate) setEndDate(d);
-          return d;
-        });
-      } else {
-        setEndDate((prev) => {
-          const d = new Date(prev);
-          d.setDate(d.getDate() + days);
-          return d >= startDate ? d : prev;
-        });
-      }
-      setSelectedPreset(null);
-    },
-    [startDate, endDate],
-  );
-
-  const handleModeChange = useCallback(
-    (m: 'single' | 'range' | 'holiday') => {
-      setMode(m);
-      if (m === 'single') {
-        setEndDate(startDate);
-        setSelectedPreset(null);
-      }
-    },
-    [startDate],
-  );
-
-  const performBlock = useCallback(async () => {
-    setSaving(true);
-    try {
-      const dates: string[] = [];
-      const current = new Date(startDate);
-      const end = new Date(endDate);
-      while (current <= end) {
-        dates.push(toDateStr(current));
-        current.setDate(current.getDate() + 1);
-      }
-      const reasonLabel = BLOCK_REASONS.find((r) => r.id === reason)?.label || reason;
-      await onBlock(dates, reasonLabel);
-      if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Keyboard.dismiss();
-      onClose();
-    } catch (error) {
-      logger.error('Failed to block dates:', error);
-      uiFeedback.showToast('Failed to block dates. Please try again.', 'error');
-    } finally {
-      setSaving(false);
+  const adjustDate = (target: 'start' | 'end', days: number) => {
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (target === 'start') {
+      setStartDate((prev) => {
+        const d = new Date(prev);
+        d.setDate(d.getDate() + days);
+        if (d > endDate) setEndDate(d);
+        return d;
+      });
+    } else {
+      setEndDate((prev) => {
+        const d = new Date(prev);
+        d.setDate(d.getDate() + days);
+        return d >= startDate ? d : prev;
+      });
     }
-  }, [startDate, endDate, reason, onBlock, onClose]);
+    setSelectedPreset(null);
+  };
 
-  const handleSave = useCallback(() => {
+  const handleModeChange = (m: 'single' | 'range' | 'holiday') => {
+    setMode(m);
+    if (m === 'single') {
+      setEndDate(startDate);
+      setSelectedPreset(null);
+    }
+  };
+
+  const performBlock = async () => {
+    setSaving(true);
+
+    await runAsyncTryCatchFinally(
+      async () => {
+        const dates: string[] = [];
+        const current = new Date(startDate);
+        const end = new Date(endDate);
+        while (current <= end) {
+          dates.push(toDateStr(current));
+          current.setDate(current.getDate() + 1);
+        }
+        const reasonLabel = BLOCK_REASONS.find((r) => r.id === reason)?.label || reason;
+        await onBlock(dates, reasonLabel);
+        if (Platform.OS !== 'web')
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Keyboard.dismiss();
+        onClose();
+      },
+      async (error) => {
+        logger.error('Failed to block dates:', error);
+        uiFeedback.showToast('Failed to block dates. Please try again.', 'error');
+      },
+      () => {
+        setSaving(false);
+      },
+    );
+  };
+
+  const handleSave = () => {
     const dayCount = getDaysBetween(startDate, endDate);
-    const dateLabel = dayCount === 1
-      ? startDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })
-      : `${dayCount} days`;
+    const dateLabel =
+      dayCount === 1
+        ? startDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })
+        : `${dayCount} days`;
 
     uiFeedback.alert(
       'Block Time Off',
@@ -175,27 +195,30 @@ export function BlockDateModal({
         },
       ],
     );
-  }, [startDate, endDate, performBlock]);
+  };
 
   const dayCount = getDaysBetween(startDate, endDate);
   const isSameDay = toDateStr(startDate) === toDateStr(endDate);
-  const hasUnsavedChanges = Boolean(
-    initialState &&
+  const getHasUnsavedChanges = () => {
+    const initialState = initialStateRef.current;
+    return Boolean(
+      initialState &&
       (mode !== initialState.mode ||
         toDateStr(startDate) !== initialState.startDate ||
         toDateStr(endDate) !== initialState.endDate ||
         reason !== initialState.reason ||
         selectedPreset !== initialState.selectedPreset),
-  );
+    );
+  };
 
-  const closeNow = useCallback(() => {
+  const closeNow = () => {
     Keyboard.dismiss();
     onClose();
-  }, [onClose]);
+  };
 
-  const handleClose = useCallback(() => {
+  const handleClose = () => {
     if (saving) return;
-    if (!hasUnsavedChanges) {
+    if (!getHasUnsavedChanges()) {
       closeNow();
       return;
     }
@@ -207,7 +230,7 @@ export function BlockDateModal({
         { text: 'Discard', style: 'destructive', onPress: closeNow },
       ],
     );
-  }, [saving, hasUnsavedChanges, closeNow]);
+  };
 
   return (
     <Modal

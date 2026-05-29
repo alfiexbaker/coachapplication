@@ -5,7 +5,7 @@
  * Shows squad name, member count, age group, and allows multi-select.
  */
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 import { View, StyleSheet, ScrollView, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -19,6 +19,8 @@ import { squadService } from '@/services/squad-service';
 import { useTheme } from '@/hooks/useTheme';
 
 import { SquadPickerItem, QuickActionBar, SelectedBanner } from './squad-picker-sections';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 // Re-export InlineSquadSelector for backward compat
 export { InlineSquadSelector } from './inline-squad-selector';
@@ -36,85 +38,75 @@ interface SquadPickerProps {
   excludeStaffSquad?: boolean;
 }
 
+const EMPTY_SELECTED_SQUAD_IDS: string[] = [];
+
 export function SquadPicker({
   visible,
   onClose,
   onSelect,
   clubId,
   multiSelect = false,
-  selectedSquadIds = [],
+  selectedSquadIds = EMPTY_SELECTED_SQUAD_IDS,
   title = 'Select Squad',
   excludeStaffSquad = true,
 }: SquadPickerProps) {
   const { colors: palette } = useTheme();
 
   const [squads, setSquads] = useState<ClubSquad[]>([]);
-  const [selectedIds, setSelectedIds] = useState<string[]>(selectedSquadIds);
+  const [selectedIds, setSelectedIds] = useState<string[]>(() => selectedSquadIds);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadSquads = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      let data = await squadService.getSquads(clubId);
-      if (excludeStaffSquad) {
-        data = data.filter((s) => !s.name.toLowerCase().includes('staff'));
-      }
-      setSquads(data);
-    } catch (err) {
-      logger.error('Failed to load squads', err);
-      setError('Failed to load squads. Tap to retry.');
-    } finally {
-      setLoading(false);
-    }
+  const retryLoadSquads = () => {
+    void loadPickerSquads(clubId, excludeStaffSquad, setSquads, setLoading, setError);
+  };
+
+  useEffect(() => {
+    startTransition(() => {
+      void loadPickerSquads(clubId, excludeStaffSquad, setSquads, setLoading, setError);
+    });
   }, [clubId, excludeStaffSquad]);
 
   useEffect(() => {
-    loadSquads();
-  }, [loadSquads]);
-
-  useEffect(() => {
-    setSelectedIds(selectedSquadIds);
+    startTransition(() => {
+      setSelectedIds(selectedSquadIds);
+    });
   }, [selectedSquadIds, visible]);
 
-  const toggleSquad = useCallback(
-    (squadId: string) => {
-      if (multiSelect) {
-        setSelectedIds((prev) =>
-          prev.includes(squadId) ? prev.filter((id) => id !== squadId) : [...prev, squadId],
-        );
-      } else {
-        setSelectedIds([squadId]);
-      }
-    },
-    [multiSelect],
-  );
+  const toggleSquad = (squadId: string) => {
+    if (multiSelect) {
+      setSelectedIds((prev) =>
+        prev.includes(squadId) ? prev.filter((id) => id !== squadId) : [...prev, squadId],
+      );
+    } else {
+      setSelectedIds([squadId]);
+    }
+  };
 
-  const handleConfirm = useCallback(() => {
+  const handleConfirm = () => {
     const selectedSquads = squads.filter((s) => selectedIds.includes(s.id));
     onSelect(selectedSquads);
     onClose();
-  }, [squads, selectedIds, onSelect, onClose]);
+  };
 
-  const handleClose = useCallback(() => {
+  const handleClose = () => {
     setSelectedIds(selectedSquadIds);
     onClose();
-  }, [selectedSquadIds, onClose]);
+  };
 
-  const handleSelectAll = useCallback(() => {
+  const handleSelectAll = () => {
     setSelectedIds(squads.map((s) => s.id));
-  }, [squads]);
+  };
 
-  const handleClear = useCallback(() => {
+  const handleClear = () => {
     setSelectedIds([]);
-  }, []);
+  };
 
-  const totalMembers = useMemo(() => {
+  const totalMembers = (() => {
     return squads
       .filter((s) => selectedIds.includes(s.id))
       .reduce((sum, s) => sum + s.memberCount, 0);
-  }, [squads, selectedIds]);
+  })();
 
   return (
     <Modal
@@ -156,10 +148,10 @@ export function SquadPicker({
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ThemedText style={{ color: palette.muted }}>Loading squads...</ThemedText>
+              <ThemedText style={{ color: palette.muted }}>Loading squads…</ThemedText>
             </View>
           ) : error ? (
-            <Clickable onPress={loadSquads} style={styles.errorContainer}>
+            <Clickable onPress={retryLoadSquads} style={styles.errorContainer}>
               <Ionicons name="alert-circle" size={24} color={palette.error} />
               <ThemedText style={{ color: palette.error, textAlign: 'center' }}>{error}</ThemedText>
             </Clickable>
@@ -183,6 +175,34 @@ export function SquadPicker({
         </ScrollView>
       </View>
     </Modal>
+  );
+}
+
+async function loadPickerSquads(
+  clubId: string,
+  excludeStaffSquad: boolean,
+  setSquads: (squads: ClubSquad[]) => void,
+  setLoading: (loading: boolean) => void,
+  setError: (error: string | null) => void,
+) {
+  setLoading(true);
+  setError(null);
+
+  await runAsyncTryCatchFinally(
+    async () => {
+      let data = await squadService.getSquads(clubId);
+      if (excludeStaffSquad) {
+        data = data.filter((squad) => !squad.name.toLowerCase().includes('staff'));
+      }
+      setSquads(data);
+    },
+    async (err) => {
+      logger.error('Failed to load squads', err);
+      setError('Failed to load squads. Tap to retry.');
+    },
+    () => {
+      setLoading(false);
+    },
   );
 }
 

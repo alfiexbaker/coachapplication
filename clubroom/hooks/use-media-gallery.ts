@@ -1,5 +1,3 @@
-import { useCallback, useMemo } from 'react';
-
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
@@ -56,7 +54,7 @@ function groupByMonth(items: MediaGalleryItem[]): MediaGalleryGroup[] {
       return {
         key,
         label,
-        items: [...monthItems].sort(
+        items: Array.from(monthItems).toSorted(
           (leftItem, rightItem) =>
             new Date(rightItem.capturedAt).getTime() - new Date(leftItem.capturedAt).getTime(),
         ),
@@ -68,7 +66,7 @@ export function useMediaGallery(athleteIdParam?: string | null) {
   const { currentUser } = useAuth();
   const { children, activeChildId } = useChildContext();
 
-  const resolvedAthleteId = useMemo(() => {
+  const resolvedAthleteId = (() => {
     if (athleteIdParam) {
       return athleteIdParam;
     }
@@ -79,9 +77,9 @@ export function useMediaGallery(athleteIdParam?: string | null) {
       return null;
     }
     return currentUser?.id ?? null;
-  }, [activeChildId, athleteIdParam, children, currentUser?.id, currentUser?.role]);
+  })();
 
-  const load = useCallback(async () => {
+  const load = async () => {
     if (!currentUser?.id) {
       return err(serviceError('VALIDATION', 'Missing user context.'));
     }
@@ -129,7 +127,7 @@ export function useMediaGallery(athleteIdParam?: string | null) {
     );
 
     return ok<MediaGalleryData>({ items });
-  }, [currentUser?.id, resolvedAthleteId]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<MediaGalleryData>({
     load,
@@ -142,8 +140,8 @@ export function useMediaGallery(athleteIdParam?: string | null) {
       : `media-gallery:${currentUser?.id ?? 'missing'}:none`,
   });
 
-  const items = useMemo(() => data?.items ?? [], [data?.items]);
-  const groups = useMemo(() => groupByMonth(items), [items]);
+  const items = data?.items ?? [];
+  const groups = groupByMonth(items);
 
   return {
     status,

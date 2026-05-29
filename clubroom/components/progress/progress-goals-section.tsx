@@ -1,7 +1,3 @@
-/**
- * GoalsSection — Active goals list for progress dashboard.
- */
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -77,7 +73,7 @@ function GoalsSectionInner({
   );
 }
 
-export const GoalsSection = memo(GoalsSectionInner);
+export const GoalsSection = GoalsSectionInner;
 
 const styles = StyleSheet.create({
   container: { gap: Spacing.sm },

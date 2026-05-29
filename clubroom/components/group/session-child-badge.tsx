@@ -1,12 +1,3 @@
-/**
- * SessionChildBadge — compact pill showing which children are registered for a session.
- *
- * Multi-child: "Tommy + Emma going" or "Tommy going · Emma waitlisted"
- * Single-child: "Registered" or "Waitlisted" (no name shown)
- * No registrations: renders null
- */
-
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
@@ -58,7 +49,7 @@ function renderPill(
   return null;
 }
 
-export const SessionChildBadge = memo(function SessionChildBadge({
+export const SessionChildBadge = function SessionChildBadge({
   data,
   isSingleChild,
 }: SessionChildBadgeProps) {
@@ -125,7 +116,7 @@ export const SessionChildBadge = memo(function SessionChildBadge({
       )}
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   pill: {

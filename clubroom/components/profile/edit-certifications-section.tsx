@@ -2,7 +2,7 @@
  * EditCertificationsSection — Certifications list + add/edit modal for coach profiles.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { Modal, ScrollView, StyleSheet, TextInput, View, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -29,7 +29,7 @@ interface EditCertificationsSectionProps {
   modalError?: string | null;
 }
 
-export const EditCertificationsSection = memo(function EditCertificationsSection({
+export const EditCertificationsSection = function EditCertificationsSection({
   colors,
   certifications,
   onOpenModal,
@@ -41,6 +41,7 @@ export const EditCertificationsSection = memo(function EditCertificationsSection
   onCloseModal,
   modalError,
 }: EditCertificationsSectionProps) {
+  const [today] = React.useState(() => new Date());
   const inputStyle = [
     styles.input,
     { borderColor: colors.border, backgroundColor: colors.card, color: colors.foreground },
@@ -82,7 +83,7 @@ export const EditCertificationsSection = memo(function EditCertificationsSection
                     year: 'numeric',
                   })
                 : null;
-              const isExpired = cert.expiryDate && new Date(cert.expiryDate) < new Date();
+              const isExpired = cert.expiryDate && new Date(cert.expiryDate) < today;
 
               return (
                 <View key={cert.id} style={[styles.card, { borderColor: colors.border }]}>
@@ -265,7 +266,7 @@ export const EditCertificationsSection = memo(function EditCertificationsSection
       </Modal>
     </>
   );
-});
+};
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.md },

@@ -5,7 +5,7 @@
  * open sessions, and trials. Coach can create new sessions.
  */
 
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, StyleSheet, FlatList, RefreshControl, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -21,12 +21,28 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { GroupSessionCard } from '@/components/group/group-session-card';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useGroupSessions, SESSION_FILTERS } from '@/hooks/use-group-sessions';
+import type { ThemeColors } from '@/hooks/useTheme';
+import { useGroupSessions, SESSION_FILTERS, type FilterType } from '@/hooks/use-group-sessions';
+import type { GroupSession } from '@/constants/types';
+import type { SessionBadgeData } from '@/types/session-child-status';
 
 export default function GroupSessionsScreen() {
   const { colors } = useTheme();
-  const { sessions, status, error, refreshing, onRefresh, retry, filter, setFilter, isCoach, badgeMap, isSingleChild } =
-    useGroupSessions();
+  const {
+    sessions,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    filter,
+    setFilter,
+    isCoach,
+    badgeMap,
+    isSingleChild,
+  } = useGroupSessions();
+  const filterItems = getSessionFilterItems(filter, colors, setFilter);
+  const sessionItems = getGroupSessionItems(sessions, badgeMap, isSingleChild);
   const header = (
     <Row gap="md" align="center" style={styles.header}>
       <Clickable onPress={() => router.back()} hitSlop={8}>
@@ -50,32 +66,15 @@ export default function GroupSessionsScreen() {
     </Row>
   );
   const filters = (
-    <ScrollView
+    <FlatList
       horizontal
       showsHorizontalScrollIndicator={false}
+      data={filterItems}
+      keyExtractor={keySessionFilterItem}
+      renderItem={renderSessionFilterItem}
       contentContainerStyle={styles.filtersContainer}
       style={styles.filtersScroll}
-    >
-      {SESSION_FILTERS.map((f) => (
-        <Clickable
-          key={f.key}
-          onPress={() => setFilter(f.key)}
-          style={[
-            styles.filterChip,
-            { backgroundColor: filter === f.key ? colors.tint : colors.surface },
-          ]}
-        >
-          <ThemedText
-            style={[
-              Typography.smallSemiBold,
-              { color: filter === f.key ? colors.onPrimary : colors.text },
-            ]}
-          >
-            {f.label}
-          </ThemedText>
-        </Clickable>
-      ))}
-    </ScrollView>
+    />
   );
   const renderShell = (content: ReactNode) => (
     <SafeAreaView
@@ -99,38 +98,112 @@ export default function GroupSessionsScreen() {
   }
 
   return renderShell(
-    <>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    <FlatList
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+      data={sessionItems}
+      keyExtractor={keyGroupSessionItem}
+      renderItem={renderGroupSessionItem}
+      ListEmptyComponent={
+        <EmptyState
+          icon="calendar-outline"
+          title="No sessions found"
+          message={
+            filter !== 'ALL'
+              ? `No ${SESSION_FILTERS.find((f) => f.key === filter)?.label.toLowerCase()} available`
+              : 'Check back later for upcoming group sessions'
+          }
+        />
+      }
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    />,
+  );
+}
+
+interface SessionFilterItem {
+  key: FilterType;
+  label: string;
+  isActive: boolean;
+  colors: ThemeColors;
+  onPress: () => void;
+}
+
+function getSessionFilterItems(
+  selectedFilter: FilterType,
+  colors: ThemeColors,
+  onSelectFilter: (filter: FilterType) => void,
+): SessionFilterItem[] {
+  return SESSION_FILTERS.map((filter) => ({
+    key: filter.key,
+    label: filter.label,
+    isActive: selectedFilter === filter.key,
+    colors,
+    onPress: () => onSelectFilter(filter.key),
+  }));
+}
+
+function keySessionFilterItem(item: SessionFilterItem): string {
+  return item.key;
+}
+
+function renderSessionFilterItem({ item }: ListRenderItemInfo<SessionFilterItem>) {
+  return (
+    <Clickable
+      onPress={item.onPress}
+      style={[
+        styles.filterChip,
+        { backgroundColor: item.isActive ? item.colors.tint : item.colors.surface },
+      ]}
+    >
+      <ThemedText
+        style={[
+          Typography.smallSemiBold,
+          { color: item.isActive ? item.colors.onPrimary : item.colors.text },
+        ]}
       >
-        {sessions.length === 0 ? (
-          <EmptyState
-            icon="calendar-outline"
-            title="No sessions found"
-            message={
-              filter !== 'ALL'
-                ? `No ${SESSION_FILTERS.find((f) => f.key === filter)?.label.toLowerCase()} available`
-                : 'Check back later for upcoming group sessions'
-            }
-          />
-        ) : (
-          <View style={{ gap: Spacing.md }}>
-            {sessions.map((session, index) => (
-              <GroupSessionCard
-                key={session.id}
-                session={session}
-                index={index}
-                onPress={() => router.push(Routes.groupSession(session.id))}
-                childBadge={badgeMap.get(session.id) ?? null}
-                isSingleChild={isSingleChild}
-              />
-            ))}
-          </View>
-        )}
-      </ScrollView>
-    </>,
+        {item.label}
+      </ThemedText>
+    </Clickable>
+  );
+}
+
+interface GroupSessionItem {
+  key: string;
+  session: GroupSession;
+  index: number;
+  childBadge: SessionBadgeData | null;
+  isSingleChild: boolean;
+  onPress: () => void;
+}
+
+function getGroupSessionItems(
+  sessions: GroupSession[],
+  badgeMap: Map<string, SessionBadgeData>,
+  isSingleChild: boolean,
+): GroupSessionItem[] {
+  return sessions.map((session, index) => ({
+    key: session.id,
+    session,
+    index,
+    childBadge: badgeMap.get(session.id) ?? null,
+    isSingleChild,
+    onPress: () => router.push(Routes.groupSession(session.id)),
+  }));
+}
+
+function keyGroupSessionItem(item: GroupSessionItem): string {
+  return item.key;
+}
+
+function renderGroupSessionItem({ item }: ListRenderItemInfo<GroupSessionItem>) {
+  return (
+    <GroupSessionCard
+      session={item.session}
+      index={item.index}
+      onPress={item.onPress}
+      childBadge={item.childBadge}
+      isSingleChild={item.isSingleChild}
+    />
   );
 }
 
@@ -151,5 +224,5 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: Radii.full,
   },
-  content: { padding: Spacing.lg, paddingTop: 0 },
+  content: { padding: Spacing.lg, paddingTop: 0, gap: Spacing.md },
 });

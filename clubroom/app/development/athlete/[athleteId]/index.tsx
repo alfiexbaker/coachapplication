@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import { StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 
@@ -25,6 +25,8 @@ import { childService } from '@/services/child-service';
 import type { PositionRole } from '@/types/progress-types';
 import { useRequiredParam } from '@/hooks/use-required-param';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncFinally } from '@/utils/async-control';
 
 export default function AthleteDetailScreen() {
   const athleteIdParam = useRequiredParam('athleteId');
@@ -60,10 +62,12 @@ export default function AthleteDetailScreen() {
   );
 
   useEffect(() => {
-    setPositionDraft(childProfile?.primaryPosition ?? null);
+    startTransition(() => {
+      setPositionDraft(childProfile?.primaryPosition ?? null);
+    });
   }, [childProfile?.primaryPosition]);
 
-  const positionLabel = useMemo(() => {
+  const positionLabel = (() => {
     if (positionDraft === null) {
       return 'Rotates';
     }
@@ -71,26 +75,27 @@ export default function AthleteDetailScreen() {
       return POSITION_LABELS[positionDraft];
     }
     return 'Not set';
-  }, [positionDraft]);
+  })();
 
-  const handleToggleEditing = useCallback(() => {
+  const handleToggleEditing = () => {
     setEditingPosition((prev) => !prev);
-  }, []);
+  };
 
-  const handleClearPosition = useCallback(() => {
+  const handleClearPosition = () => {
     setPositionDraft(null);
-  }, []);
+  };
 
-  const handleSpecialNeedsPress = useCallback(() => {
+  const handleSpecialNeedsPress = () => {
     router.push(Routes.developmentAthleteSpecialNeeds(resolvedAthleteId!));
-  }, [resolvedAthleteId]);
+  };
 
-  const handleSavePrimaryPosition = useCallback(async () => {
+  const handleSavePrimaryPosition = async () => {
     if (!childProfile) {
       return;
     }
     setSavingPosition(true);
-    try {
+
+    return await runAsyncFinally(async () => {
       const result = await childService.updateChild(childProfile.id, {
         primaryPosition: positionDraft ?? null,
       });
@@ -100,10 +105,10 @@ export default function AthleteDetailScreen() {
       }
       setEditingPosition(false);
       onRefresh();
-    } finally {
+    }, () => {
       setSavingPosition(false);
-    }
-  }, [childProfile, onRefresh, positionDraft]);
+    });
+  };
 
   if (!athleteIdParam.valid) {
     return (

@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -26,7 +25,7 @@ export interface ChecklistItemRowProps {
   palette: ThemeColors;
 }
 
-export const ChecklistItemRow = memo(function ChecklistItemRow({
+export const ChecklistItemRow = function ChecklistItemRow({
   item,
   onNavigate,
   palette,
@@ -61,7 +60,7 @@ export const ChecklistItemRow = memo(function ChecklistItemRow({
       {!item.isComplete && <Ionicons name="chevron-forward" size={16} color={palette.muted} />}
     </Clickable>
   );
-});
+};
 
 // ─── ProgressTrack ──────────────────────────────────────────────
 
@@ -70,7 +69,7 @@ export interface ProgressTrackProps {
   palette: ThemeColors;
 }
 
-export const ProgressTrack = memo(function ProgressTrack({
+export const ProgressTrack = function ProgressTrack({
   progress,
   palette,
 }: ProgressTrackProps) {
@@ -84,7 +83,7 @@ export const ProgressTrack = memo(function ProgressTrack({
       />
     </View>
   );
-});
+};
 
 // ─── Styles ─────────────────────────────────────────────────────
 

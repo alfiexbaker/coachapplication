@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState, startTransition } from 'react';
 import { StyleSheet, View } from 'react-native';
 import BottomSheet, { BottomSheetTextInput, BottomSheetView } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
@@ -76,7 +76,7 @@ interface TaskDetailSheetProps {
   onOpenHistory: (task: PracticeTask) => void;
 }
 
-export const TaskDetailSheet = memo(function TaskDetailSheet({
+export const TaskDetailSheet = function TaskDetailSheet({
   task,
   nowTs,
   isBusy,
@@ -91,7 +91,7 @@ export const TaskDetailSheet = memo(function TaskDetailSheet({
   const { colors, scheme } = useTheme();
   const { showToast } = useToast();
   const sheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['50%', '86%'], []);
+  const snapPoints = ['50%', '86%'];
   const [completionNote, setCompletionNote] = useState('');
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [rescheduleTime, setRescheduleTime] = useState('');
@@ -102,20 +102,23 @@ export const TaskDetailSheet = memo(function TaskDetailSheet({
       return;
     }
 
-    setCompletionNote(task.completionNote ?? '');
-    setRescheduleDate(toDateValue(task.dueAt));
-    setRescheduleTime(toTimeValue(task.dueAt));
+    startTransition(() => {
+      setCompletionNote(task.completionNote ?? '');
+    });
+    startTransition(() => {
+      setRescheduleDate(toDateValue(task.dueAt));
+    });
+    startTransition(() => {
+      setRescheduleTime(toTimeValue(task.dueAt));
+    });
     sheetRef.current?.snapToIndex(0);
   }, [task]);
 
-  const handleSheetChange = useCallback(
-    (index: number) => {
-      if (index < 0) {
-        onClose();
-      }
-    },
-    [onClose],
-  );
+  const handleSheetChange = (index: number) => {
+    if (index < 0) {
+      onClose();
+    }
+  };
 
   const timing = task ? deriveTaskTiming(task, nowTs) : 'upcoming';
   const badgeColor =
@@ -127,7 +130,7 @@ export const TaskDetailSheet = memo(function TaskDetailSheet({
           ? colors.success
           : colors.tint;
 
-  const handleReschedule = useCallback(async () => {
+  const handleReschedule = async () => {
     if (!task || isBusy) {
       return;
     }
@@ -139,15 +142,15 @@ export const TaskDetailSheet = memo(function TaskDetailSheet({
     }
 
     await onRescheduleTask(task, dueAtIso);
-  }, [isBusy, onRescheduleTask, rescheduleDate, rescheduleTime, task]);
+  };
 
-  const handleToggleCompletion = useCallback(async () => {
+  const handleToggleCompletion = async () => {
     if (!task || isBusy) {
       return;
     }
 
     await onToggleTask(task, completionNote.trim() || undefined);
-  }, [completionNote, isBusy, onToggleTask, task]);
+  };
 
   return (
     <BottomSheet
@@ -324,7 +327,7 @@ export const TaskDetailSheet = memo(function TaskDetailSheet({
       )}
     </BottomSheet>
   );
-});
+};
 
 const styles = StyleSheet.create({
   sheetBackground: {

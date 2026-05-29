@@ -180,21 +180,17 @@ export default function CreateEventScreen() {
                 onPress={() => handleCreate(false)}
                 disabled={loading}
                 style={styles.reviewButton}
-              >
-                Save Draft
-              </Button>
+                label="Save Draft"
+              />
               <Button
                 onPress={() => handleCreate(true)}
                 disabled={loading}
                 style={styles.reviewButton}
-              >
-                {loading ? 'Creating...' : 'Publish'}
-              </Button>
+                label={loading ? 'Creating...' : 'Publish'}
+              />
             </Row>
           ) : (
-            <Button onPress={goNext} disabled={!canProceed()}>
-              Continue
-            </Button>
+            <Button onPress={goNext} disabled={!canProceed()} label="Continue" />
           )}
         </View>
     </KeyboardAvoidingView>,

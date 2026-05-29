@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, startTransition } from 'react';
 import {
   FlatList,
   Modal,
@@ -31,7 +31,7 @@ interface PhotoViewerProps {
   onClose: () => void;
 }
 
-export const PhotoViewer = memo(function PhotoViewer({
+export const PhotoViewer = function PhotoViewer({
   visible,
   photos,
   initialIndex = 0,
@@ -47,7 +47,9 @@ export const PhotoViewer = memo(function PhotoViewer({
       return;
     }
     const safeIndex = Math.max(0, Math.min(photos.length - 1, initialIndex));
-    setActiveIndex(safeIndex);
+    startTransition(() => {
+      setActiveIndex(safeIndex);
+    });
 
     const timeout = setTimeout(() => {
       listRef.current?.scrollToIndex({ index: safeIndex, animated: false });
@@ -56,39 +58,33 @@ export const PhotoViewer = memo(function PhotoViewer({
     return () => clearTimeout(timeout);
   }, [initialIndex, photos.length, visible]);
 
-  const handleMomentumEnd = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const next = Math.round(event.nativeEvent.contentOffset.x / Math.max(width, 1));
-      setActiveIndex(Math.max(0, Math.min(photos.length - 1, next)));
-    },
-    [photos.length, width],
-  );
+  const handleMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const next = Math.round(event.nativeEvent.contentOffset.x / Math.max(width, 1));
+    setActiveIndex(Math.max(0, Math.min(photos.length - 1, next)));
+  };
 
-  const handleShare = useCallback(async () => {
+  const handleShare = async () => {
     const current = photos[activeIndex];
     if (!current) {
       return;
     }
     await mediaService.shareMedia(current.uri, 'photo');
-  }, [activeIndex, photos]);
+  };
 
-  const renderItem = useCallback(
-    ({ item }: { item: PhotoViewerItem }) => (
-      <ScrollView
-        style={{ width, height }}
-        contentContainerStyle={styles.zoomContent}
-        maximumZoomScale={3}
-        minimumZoomScale={1}
-        centerContent
-      >
-        <ExpoImage
-          source={{ uri: item.uri }}
-          style={{ width, height: height * 0.8 }}
-          contentFit="contain"
-        />
-      </ScrollView>
-    ),
-    [height, width],
+  const renderItem = ({ item }: { item: PhotoViewerItem }) => (
+    <ScrollView
+      style={{ width, height }}
+      contentContainerStyle={styles.zoomContent}
+      maximumZoomScale={3}
+      minimumZoomScale={1}
+      centerContent
+    >
+      <ExpoImage
+        source={{ uri: item.uri }}
+        style={{ width, height: height * 0.8 }}
+        contentFit="contain"
+      />
+    </ScrollView>
   );
 
   if (!visible) {
@@ -147,7 +143,7 @@ export const PhotoViewer = memo(function PhotoViewer({
       </Row>
     </Modal>
   );
-});
+};
 
 const styles = StyleSheet.create({
   overlay: {

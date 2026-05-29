@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,7 +29,7 @@ function formatRole(role?: ClubRole): string {
   return formatOrganizationRoleLabel(role);
 }
 
-export const SettingsCommercialSection = memo(function SettingsCommercialSection({
+export const SettingsCommercialSection = function SettingsCommercialSection({
   colors,
   commercialMode,
   canEditCommercialMode,
@@ -151,7 +151,7 @@ export const SettingsCommercialSection = memo(function SettingsCommercialSection
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

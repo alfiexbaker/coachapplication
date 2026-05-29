@@ -1,7 +1,7 @@
 /**
  * useRecurringTemplateForm — Form state, validation, and handlers for RecurringTemplateModal.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 import { Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
@@ -9,6 +9,8 @@ import { createLogger } from '@/utils/logger';
 import type { AvailabilityTemplate } from '@/constants/types';
 import type { SessionTemplate } from '@/constants/session-types';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('RecurringTemplateModal');
 
@@ -68,39 +70,77 @@ export function useRecurringTemplateForm({
   useEffect(() => {
     if (!visible) return;
     if (editingTemplate) {
-      setSelectedDays([editingTemplate.dayOfWeek]);
-      setStartTime(editingTemplate.startTime);
-      setEndTime(editingTemplate.endTime);
-      setLocation(editingTemplate.location || '');
-      setMaxConcurrent(editingTemplate.maxConcurrent);
-      setBufferMinutes(editingTemplate.bufferMinutes);
-      setSessionTemplateId(editingTemplate.sessionTemplateId);
-      setShowLocationInput(
-        !!editingTemplate.location && !COMMON_LOCATIONS.includes(editingTemplate.location),
-      );
+      startTransition(() => {
+        setSelectedDays([editingTemplate.dayOfWeek]);
+      });
+      startTransition(() => {
+        setStartTime(editingTemplate.startTime);
+      });
+      startTransition(() => {
+        setEndTime(editingTemplate.endTime);
+      });
+      startTransition(() => {
+        setLocation(editingTemplate.location || '');
+      });
+      startTransition(() => {
+        setMaxConcurrent(editingTemplate.maxConcurrent);
+      });
+      startTransition(() => {
+        setBufferMinutes(editingTemplate.bufferMinutes);
+      });
+      startTransition(() => {
+        setSessionTemplateId(editingTemplate.sessionTemplateId);
+      });
+      startTransition(() => {
+        setShowLocationInput(
+          !!editingTemplate.location && !COMMON_LOCATIONS.includes(editingTemplate.location),
+        );
+      });
     } else {
       if (preselectedDay !== undefined) {
-        setSelectedDays([preselectedDay]);
+        startTransition(() => {
+          setSelectedDays([preselectedDay]);
+        });
       } else {
-        setSelectedDays([1]);
+        startTransition(() => {
+          setSelectedDays([1]);
+        });
       }
       if (preselectedHour !== undefined) {
-        setStartTime(`${preselectedHour.toString().padStart(2, '0')}:00`);
+        startTransition(() => {
+          setStartTime(`${preselectedHour.toString().padStart(2, '0')}:00`);
+        });
         const endHour = Math.min(preselectedHour + 2, 20);
-        setEndTime(`${endHour.toString().padStart(2, '0')}:00`);
+        startTransition(() => {
+          setEndTime(`${endHour.toString().padStart(2, '0')}:00`);
+        });
       } else {
-        setStartTime('09:00');
-        setEndTime('17:00');
+        startTransition(() => {
+          setStartTime('09:00');
+        });
+        startTransition(() => {
+          setEndTime('17:00');
+        });
       }
-      setLocation('');
-      setMaxConcurrent(1);
-      setBufferMinutes(15);
-      setSessionTemplateId(undefined);
-      setShowLocationInput(false);
+      startTransition(() => {
+        setLocation('');
+      });
+      startTransition(() => {
+        setMaxConcurrent(1);
+      });
+      startTransition(() => {
+        setBufferMinutes(15);
+      });
+      startTransition(() => {
+        setSessionTemplateId(undefined);
+      });
+      startTransition(() => {
+        setShowLocationInput(false);
+      });
     }
   }, [editingTemplate, preselectedDay, preselectedHour, visible]);
 
-  const toggleDay = useCallback((dayIndex: number) => {
+  const toggleDay = (dayIndex: number) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedDays((prev) => {
       if (prev.includes(dayIndex)) {
@@ -109,14 +149,14 @@ export function useRecurringTemplateForm({
       }
       return [...prev, dayIndex].sort((a, b) => a - b);
     });
-  }, []);
+  };
 
-  const applyPreset = useCallback((days: number[]) => {
+  const applyPreset = (days: number[]) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSelectedDays(days);
-  }, []);
+  };
 
-  const calculateDuration = useCallback(() => {
+  const calculateDuration = () => {
     const [startH, startM] = startTime.split(':').map(Number);
     const [endH, endM] = endTime.split(':').map(Number);
     const durationMinutes = endH * 60 + endM - (startH * 60 + startM);
@@ -125,62 +165,56 @@ export function useRecurringTemplateForm({
     const mins = durationMinutes % 60;
     if (mins === 0) return `${hours} hour${hours !== 1 ? 's' : ''}`;
     return `${hours}h ${mins}m`;
-  }, [startTime, endTime]);
+  };
 
-  const handleStartTimeChange = useCallback(
-    (newTime: string) => {
-      setStartTime(newTime);
-      const [newStartH, newStartM] = newTime.split(':').map(Number);
-      const [currentEndH, currentEndM] = endTime.split(':').map(Number);
-      const newStartMins = newStartH * 60 + newStartM;
-      const currentEndMins = currentEndH * 60 + currentEndM;
-      if (currentEndMins <= newStartMins) {
-        const newEndMins = Math.min(newStartMins + 120, 20 * 60);
-        const endH = Math.floor(newEndMins / 60);
-        const endM = newEndMins % 60;
-        setEndTime(`${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`);
-      }
-    },
-    [endTime],
-  );
-
-  const doSaveAll = useCallback(async () => {
-    setSaving(true);
-    try {
-      for (const dayOfWeek of selectedDays) {
-        await onSave({
-          dayOfWeek: dayOfWeek as 0 | 1 | 2 | 3 | 4 | 5 | 6,
-          startTime,
-          endTime,
-          isRecurring: true,
-          maxConcurrent,
-          bufferMinutes,
-          location: location || undefined,
-          sessionTemplateId,
-        });
-      }
-      if (Platform.OS !== 'web')
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      onClose();
-    } catch (error) {
-      logger.error('Failed to save template:', error);
-      uiFeedback.showToast('Failed to save availability. Please try again.', 'error');
-    } finally {
-      setSaving(false);
+  const handleStartTimeChange = (newTime: string) => {
+    setStartTime(newTime);
+    const [newStartH, newStartM] = newTime.split(':').map(Number);
+    const [currentEndH, currentEndM] = endTime.split(':').map(Number);
+    const newStartMins = newStartH * 60 + newStartM;
+    const currentEndMins = currentEndH * 60 + currentEndM;
+    if (currentEndMins <= newStartMins) {
+      const newEndMins = Math.min(newStartMins + 120, 20 * 60);
+      const endH = Math.floor(newEndMins / 60);
+      const endM = newEndMins % 60;
+      setEndTime(`${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`);
     }
-  }, [
-    selectedDays,
-    startTime,
-    endTime,
-    maxConcurrent,
-    bufferMinutes,
-    location,
-    sessionTemplateId,
-    onSave,
-    onClose,
-  ]);
+  };
 
-  const handleSave = useCallback(async () => {
+  const doSaveAll = async () => {
+    setSaving(true);
+
+    await runAsyncTryCatchFinally(
+      async () => {
+        await Promise.all(
+          selectedDays.map((dayOfWeek) =>
+            onSave({
+              dayOfWeek: dayOfWeek as 0 | 1 | 2 | 3 | 4 | 5 | 6,
+              startTime,
+              endTime,
+              isRecurring: true,
+              maxConcurrent,
+              bufferMinutes,
+              location: location || undefined,
+              sessionTemplateId,
+            }),
+          ),
+        );
+        if (Platform.OS !== 'web')
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        onClose();
+      },
+      async (error) => {
+        logger.error('Failed to save template:', error);
+        uiFeedback.showToast('Failed to save availability. Please try again.', 'error');
+      },
+      () => {
+        setSaving(false);
+      },
+    );
+  };
+
+  const handleSave = async () => {
     if (selectedDays.length === 0) {
       uiFeedback.showToast('Please select at least one day');
       return;
@@ -228,19 +262,9 @@ export function useRecurringTemplateForm({
       }
     }
     await doSaveAll();
-  }, [
-    selectedDays,
-    startTime,
-    endTime,
-    location,
-    isEditing,
-    editingTemplate,
-    onCheckLocationDrift,
-    onUpdateBookingLocations,
-    doSaveAll,
-  ]);
+  };
 
-  const handleDelete = useCallback(async () => {
+  const handleDelete = async () => {
     if (!editingTemplate || !onDelete) return;
     uiFeedback.alert('Delete Slot', 'Are you sure you want to delete this availability slot?', [
       { text: 'Cancel', style: 'cancel' },
@@ -249,46 +273,51 @@ export function useRecurringTemplateForm({
         style: 'destructive',
         onPress: async () => {
           setSaving(true);
-          try {
-            await onDelete(editingTemplate.id);
-            if (Platform.OS !== 'web')
-              void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            onClose();
-          } catch (error) {
-            logger.error('Failed to delete template:', error);
-          } finally {
-            setSaving(false);
-          }
+
+          await runAsyncTryCatchFinally(
+            async () => {
+              await onDelete(editingTemplate.id);
+              if (Platform.OS !== 'web')
+                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+              onClose();
+            },
+            async (error) => {
+              logger.error('Failed to delete template:', error);
+            },
+            () => {
+              setSaving(false);
+            },
+          );
         },
       },
     ]);
-  }, [editingTemplate, onDelete, onClose]);
+  };
 
-  const selectLocation = useCallback((loc: string) => {
+  const selectLocation = (loc: string) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLocation((prev) => (prev === loc ? '' : loc));
     setShowLocationInput(false);
-  }, []);
+  };
 
-  const openCustomLocation = useCallback(() => {
+  const openCustomLocation = () => {
     setShowLocationInput(true);
     setLocation('');
-  }, []);
+  };
 
-  const selectSessionTemplate = useCallback((id: string | undefined) => {
+  const selectSessionTemplate = (id: string | undefined) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSessionTemplateId(id);
-  }, []);
+  };
 
-  const selectMaxConcurrent = useCallback((value: number) => {
+  const selectMaxConcurrent = (value: number) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setMaxConcurrent(value);
-  }, []);
+  };
 
-  const selectBufferMinutes = useCallback((mins: number) => {
+  const selectBufferMinutes = (mins: number) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setBufferMinutes(mins);
-  }, []);
+  };
 
   return {
     selectedDays,

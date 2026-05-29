@@ -134,12 +134,10 @@ class PreApiLiveModeService {
 
     this.bootstrapInFlight = (async () => {
       try {
-        const previousBootstrapUser = await apiClient.get<string>(
-          STORAGE_KEYS.PRE_API_LIVE_LAST_BOOTSTRAP_USER,
-          '',
-        );
-
-        await ensureRelationalDemoSeeded();
+        const [previousBootstrapUser] = await Promise.all([
+          apiClient.get<string>(STORAGE_KEYS.PRE_API_LIVE_LAST_BOOTSTRAP_USER, ''),
+          ensureRelationalDemoSeeded(),
+        ]);
         const currentSeedVersion = await apiClient.get<string>(
           STORAGE_KEYS.RELATIONAL_DEMO_SEED_VERSION,
           '',
@@ -150,9 +148,11 @@ class PreApiLiveModeService {
         }
 
         await ensureCoachSessionsSeeded();
-        await this.ensureSectionCoverage(context);
-        await this.ensureWarmNotifications(context);
-        await apiClient.set(STORAGE_KEYS.PRE_API_LIVE_LAST_BOOTSTRAP_USER, context.userId);
+        await Promise.all([
+          this.ensureSectionCoverage(context),
+          this.ensureWarmNotifications(context),
+          apiClient.set(STORAGE_KEYS.PRE_API_LIVE_LAST_BOOTSTRAP_USER, context.userId),
+        ]);
         this.bootstrappedUsers.add(context.userId);
 
         logger.info('pre_api_live_bootstrap_complete', { userId: context.userId });
@@ -372,7 +372,10 @@ class PreApiLiveModeService {
     });
 
     if (!result.success) {
-      logger.warn('pre_api_live_recurring_seed_failed', { userId: context.userId, bookingId: booking.id });
+      logger.warn('pre_api_live_recurring_seed_failed', {
+        userId: context.userId,
+        bookingId: booking.id,
+      });
     }
   }
 
@@ -405,7 +408,8 @@ class PreApiLiveModeService {
       userId: context.userId,
       bookingId: linkedBooking?.id || `booking_pre_live_${context.userId}`,
       coachId: linkedBooking?.coachId || 'coach1',
-      athleteId: linkedBooking?.athleteId || (context.role === 'COACH' ? undefined : context.userId),
+      athleteId:
+        linkedBooking?.athleteId || (context.role === 'COACH' ? undefined : context.userId),
       sessionDate: linkedBooking?.scheduledAt || now.toISOString(),
       sessionType: linkedBooking?.serviceType || linkedBooking?.service || '1-on-1 Training',
       sessionLocation: linkedBooking?.location || 'Community Sports Ground',
@@ -467,17 +471,26 @@ class PreApiLiveModeService {
       }
     }
 
-    for (const athleteId of athleteTargets) {
-      if (athleteId === 'user1') continue;
-      const athleteName = usersById.get(athleteId)?.name || athleteNameHints.get(athleteId);
-      const result = await ensureProgressDemoSeeded(athleteId, athleteName);
+    const seedResults = await Promise.all(
+      athleteTargets.flatMap((athleteId) => {
+        if (athleteId === 'user1') return [];
+        const athleteName = usersById.get(athleteId)?.name || athleteNameHints.get(athleteId);
+        return [
+          ensureProgressDemoSeeded(athleteId, athleteName).then((result) => ({
+            athleteId,
+            result,
+          })),
+        ];
+      }),
+    );
+    seedResults.forEach(({ athleteId, result }) => {
       if (!result.success) {
         logger.warn('pre_api_live_progress_seed_failed', {
           userId: context.userId,
           athleteId,
         });
       }
-    }
+    });
   }
 
   private isBookingLinkedToContext(context: LiveModeUserContext, booking: Booking): boolean {

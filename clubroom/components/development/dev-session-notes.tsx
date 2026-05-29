@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
@@ -20,7 +20,7 @@ export interface DevSessionNotesProps {
   colors: ThemeColors;
 }
 
-export const DevSessionNotes = memo(function DevSessionNotes({
+export const DevSessionNotes = function DevSessionNotes({
   publicNotes,
   privateNotes,
   improvements,
@@ -146,7 +146,7 @@ export const DevSessionNotes = memo(function DevSessionNotes({
       </Column>
     </Column>
   );
-});
+};
 
 const styles = StyleSheet.create({
   badge: {

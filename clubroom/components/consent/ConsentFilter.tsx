@@ -1,4 +1,4 @@
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, FlatList, type ListRenderItemInfo } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -80,6 +80,7 @@ export function ConsentFilter({ filters, onFilterChange }: ConsentFilterProps) {
   };
 
   const hasActiveFilters = filters.type || filters.status;
+  const consentTypeItems = getConsentTypeFilterItems(consentTypes, filters.type, handleTypeSelect);
 
   return (
     <View style={[styles.container, { backgroundColor: palette.surface }]}>
@@ -88,21 +89,14 @@ export function ConsentFilter({ filters, onFilterChange }: ConsentFilterProps) {
         <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
           Consent Type
         </ThemedText>
-        <ScrollView
+        <FlatList
           horizontal
+          data={consentTypeItems}
+          keyExtractor={keyConsentTypeFilterItem}
+          renderItem={renderConsentTypeFilterItem}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipRow}
-        >
-          {consentTypes.map((type) => (
-            <FilterChip
-              key={type}
-              label={consentService.getConsentLabel(type)}
-              icon={consentService.getConsentIcon(type)}
-              isActive={filters.type === type}
-              onPress={() => handleTypeSelect(type)}
-            />
-          ))}
-        </ScrollView>
+        />
       </View>
 
       {/* Status Filters */}
@@ -142,6 +136,43 @@ export function ConsentFilter({ filters, onFilterChange }: ConsentFilterProps) {
         </Clickable>
       )}
     </View>
+  );
+}
+
+interface ConsentTypeFilterItem {
+  key: ConsentType;
+  label: string;
+  icon: string;
+  isActive: boolean;
+  onPress: () => void;
+}
+
+function getConsentTypeFilterItems(
+  consentTypes: ConsentType[],
+  selectedType: ConsentType | undefined,
+  onSelect: (type: ConsentType) => void,
+): ConsentTypeFilterItem[] {
+  return consentTypes.map((type) => ({
+    key: type,
+    label: consentService.getConsentLabel(type),
+    icon: consentService.getConsentIcon(type),
+    isActive: selectedType === type,
+    onPress: () => onSelect(type),
+  }));
+}
+
+function keyConsentTypeFilterItem(item: ConsentTypeFilterItem) {
+  return item.key;
+}
+
+function renderConsentTypeFilterItem({ item }: ListRenderItemInfo<ConsentTypeFilterItem>) {
+  return (
+    <FilterChip
+      label={item.label}
+      icon={item.icon}
+      isActive={item.isActive}
+      onPress={item.onPress}
+    />
   );
 }
 

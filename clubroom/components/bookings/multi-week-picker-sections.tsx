@@ -1,4 +1,3 @@
-import { memo, useCallback } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -9,17 +8,9 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { useTheme } from '@/hooks/useTheme';
 import type { WeekRow } from './multi-week-picker';
 import { Row } from '@/components/primitives';
+import { formatTimeDisplay } from './multi-week-picker-helpers';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
-
-// ─── Helpers ────────────────────────────────────────────────────
-
-export function formatTimeDisplay(time: string): string {
-  const [h, m] = time.split(':').map(Number);
-  const suffix = h >= 12 ? 'pm' : 'am';
-  const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return m === 0 ? `${hour12}${suffix}` : `${hour12}:${m.toString().padStart(2, '0')}${suffix}`;
-}
 
 export const WeekSeparator = () => <View style={{ height: Spacing.xs }} />;
 
@@ -33,20 +24,20 @@ export interface WeekRowItemProps {
   palette: ThemeColors;
 }
 
-export const WeekRowItem = memo(function WeekRowItem({
+export const WeekRowItem = function WeekRowItem({
   week,
   isSelected,
   onToggle,
   currency,
   palette,
 }: WeekRowItemProps) {
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     if (!week.available) return;
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     onToggle(week.weekDate);
-  }, [week.weekDate, week.available, onToggle]);
+  };
 
   const bgColor = !week.available
     ? withAlpha(palette.muted, 0.04)
@@ -141,7 +132,7 @@ export const WeekRowItem = memo(function WeekRowItem({
       </Row>
     </Chip>
   );
-});
+};
 
 // ─── Styles ─────────────────────────────────────────────────────
 

@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -28,7 +28,7 @@ interface SummaryStatProps {
   label: string;
 }
 
-const SummaryStat = memo(function SummaryStat({ icon, label }: SummaryStatProps) {
+const SummaryStat = function SummaryStat({ icon, label }: SummaryStatProps) {
   const { colors } = useTheme();
 
   return (
@@ -37,9 +37,9 @@ const SummaryStat = memo(function SummaryStat({ icon, label }: SummaryStatProps)
       <ThemedText style={styles.statText}>{label}</ThemedText>
     </Row>
   );
-});
+};
 
-export const CompletionSummary = memo(function CompletionSummary({
+export const CompletionSummary = function CompletionSummary({
   ratedAthletes,
   photosCaptured,
   videosRecorded,
@@ -158,7 +158,7 @@ export const CompletionSummary = memo(function CompletionSummary({
       </Clickable>
     </Column>
   );
-});
+};
 
 const styles = StyleSheet.create({
   summaryCard: {

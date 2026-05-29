@@ -1,8 +1,3 @@
-/**
- * StepAthleteDetails — Athlete-specific details step of onboarding.
- */
-
-import { memo } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
@@ -218,7 +213,7 @@ function StepAthleteDetailsInner({
   );
 }
 
-export const StepAthleteDetails = memo(StepAthleteDetailsInner);
+export const StepAthleteDetails = StepAthleteDetailsInner;
 
 const styles = StyleSheet.create({
   content: {

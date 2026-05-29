@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 
@@ -43,9 +43,9 @@ function CommentPreviewInner({ postId, commentCount, onPress }: CommentPreviewPr
     };
   }, [postId, commentCount]);
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     onPress();
-  }, [onPress]);
+  };
 
   if (commentCount === 0) {
     return null;
@@ -107,5 +107,5 @@ const styles = StyleSheet.create({
 // Export
 // ---------------------------------------------------------------------------
 
-export const CommentPreview = memo(CommentPreviewInner);
+export const CommentPreview = CommentPreviewInner;
 export default CommentPreview;

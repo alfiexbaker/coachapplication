@@ -1,6 +1,5 @@
 import { useRef } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
 
 import { PageHeader } from '@/components/primitives/page-header';
@@ -47,17 +46,16 @@ export default function EditChildProfileModal() {
   };
 
   const renderStateShell = (content: ReactNode) => (
-    <SafeAreaView
+    <View
       ref={modalRef}
       accessible
       accessibilityViewIsModal
       accessibilityRole="none"
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
     >
       <PageHeader title="Edit Child Profile" showBack centerTitle />
       {content}
-    </SafeAreaView>
+    </View>
   );
 
   if (c.loading) {
@@ -77,17 +75,20 @@ export default function EditChildProfileModal() {
   const textAreaStyle = [styles.textArea, { borderColor: palette.border, color: palette.text }];
 
   return (
-    <SafeAreaView
+    <View
       ref={modalRef}
       accessible
       accessibilityViewIsModal
       accessibilityRole="none"
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
     >
       <PageHeader title={`Edit ${c.child.firstName}`} showBack centerTitle />
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
         <SurfaceCard style={styles.section}>
           <ThemedText type="defaultSemiBold">Basic Information</ThemedText>
 
@@ -229,12 +230,16 @@ export default function EditChildProfileModal() {
             Medical records, emergency contacts, and consent choices are managed in the protected
             child health area.
           </ThemedText>
-          <Button onPress={c.openMedicalInfo} variant="secondary">
-            Manage Medical Information
-          </Button>
-          <Button onPress={c.openEmergencyContacts} variant="secondary">
-            Manage Emergency Contacts
-          </Button>
+          <Button
+            onPress={c.openMedicalInfo}
+            variant="secondary"
+            label="Manage Medical Information"
+          />
+          <Button
+            onPress={c.openEmergencyContacts}
+            variant="secondary"
+            label="Manage Emergency Contacts"
+          />
         </SurfaceCard>
 
         <SurfaceCard style={styles.section}>
@@ -263,11 +268,14 @@ export default function EditChildProfileModal() {
       </ScrollView>
 
       <View style={[styles.footer, { borderTopColor: palette.border }]}>
-        <Button onPress={c.handleSave} disabled={c.saving} style={{ flex: 1 }}>
-          {c.saving ? 'Saving...' : 'Save Profile'}
-        </Button>
+        <Button
+          onPress={c.handleSave}
+          disabled={c.saving}
+          style={{ flex: 1 }}
+          label={c.saving ? 'Saving...' : 'Save Profile'}
+        />
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -1,8 +1,3 @@
-/**
- * InviteAthleteModal — Composition root.
- * Multi-select athlete picker with search, filters, and quick select actions.
- */
-import { useCallback } from 'react';
 import { View, StyleSheet, TextInput, Modal, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -20,6 +15,8 @@ import { Row } from '@/components/primitives';
 // Re-export types for backward compatibility
 export type { Athlete, Squad } from '@/hooks/use-invite-athletes';
 
+const EMPTY_SQUADS: Squad[] = [];
+
 interface InviteAthleteModalProps {
   visible: boolean;
   onClose: () => void;
@@ -35,32 +32,29 @@ export function InviteAthleteModal({
   onClose,
   onSelect,
   athletes,
-  squads = [],
+  squads = EMPTY_SQUADS,
   multiSelect = true,
   title = 'Select Athletes',
 }: InviteAthleteModalProps) {
   const { colors: palette } = useTheme();
   const state = useInviteAthletes(athletes, squads);
 
-  const handleConfirm = useCallback(() => {
+  const handleConfirm = () => {
     Keyboard.dismiss();
     onSelect(state.selectedAthletes);
     state.resetAll();
     onClose();
-  }, [onSelect, state, onClose]);
+  };
 
-  const handleClose = useCallback(() => {
+  const handleClose = () => {
     Keyboard.dismiss();
     state.resetAll();
     onClose();
-  }, [state, onClose]);
+  };
 
-  const handleToggle = useCallback(
-    (athlete: Athlete) => {
-      state.toggleAthlete(athlete, multiSelect);
-    },
-    [state, multiSelect],
-  );
+  const handleToggle = (athlete: Athlete) => {
+    state.toggleAthlete(athlete, multiSelect);
+  };
 
   return (
     <Modal

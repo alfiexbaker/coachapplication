@@ -28,7 +28,7 @@ type FormProps = {
   onSubmit: () => void;
 };
 
-export const RaiseConcernForm = React.memo(function RaiseConcernForm({
+export const RaiseConcernForm = function RaiseConcernForm({
   colors,
   type,
   onTypeChange,
@@ -125,13 +125,16 @@ export const RaiseConcernForm = React.memo(function RaiseConcernForm({
       </Animated.View>
 
       <Animated.View entering={FadeInDown.delay(250).springify()}>
-        <Button onPress={onSubmit} disabled={!canSubmit || submitting} variant="primary">
-          {submitting ? 'Submitting...' : 'Record Concern'}
-        </Button>
+        <Button
+          onPress={onSubmit}
+          disabled={!canSubmit || submitting}
+          variant="primary"
+          label={submitting ? 'Submitting...' : 'Record Concern'}
+        />
       </Animated.View>
     </>
   );
-});
+};
 
 const styles = StyleSheet.create({
   textInput: {

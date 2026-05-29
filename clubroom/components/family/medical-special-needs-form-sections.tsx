@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -33,7 +33,7 @@ function TagInput({
 }) {
   const [input, setInput] = useState('');
 
-  const addTag = useCallback(() => {
+  const addTag = () => {
     const trimmed = input.trim();
     if (tags.length >= MAX_TAGS) {
       uiFeedback.showToast(`Maximum ${MAX_TAGS} tags allowed.`);
@@ -49,12 +49,9 @@ function TagInput({
       onChange([...tags, trimmed]);
       setInput('');
     }
-  }, [input, tags, onChange]);
+  };
 
-  const removeTag = useCallback(
-    (tag: string) => onChange(tags.filter((t) => t !== tag)),
-    [tags, onChange],
-  );
+  const removeTag = (tag: string) => onChange(tags.filter((t) => t !== tag));
 
   return (
     <View style={styles.tagInputContainer}>
@@ -118,7 +115,7 @@ export interface DisabilitySelectorProps {
   palette: ThemeColors;
 }
 
-export const DisabilitySelector = React.memo(function DisabilitySelector({
+export const DisabilitySelector = function DisabilitySelector({
   disabilities,
   selectedDisabilityType,
   disabilityDescription,
@@ -257,15 +254,13 @@ export const DisabilitySelector = React.memo(function DisabilitySelector({
             <Clickable onPress={() => onSelectedDisabilityTypeChange(null)}>
               <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
             </Clickable>
-            <Button onPress={onAddDisability} size="small">
-              Add
-            </Button>
+            <Button onPress={onAddDisability} size="small" label="Add" />
           </Row>
         </View>
       )}
     </View>
   );
-});
+};
 
 /* ---------- SpecialNeedEntrySection ---------- */
 
@@ -294,7 +289,7 @@ export interface SpecialNeedEntrySectionProps {
   palette: ThemeColors;
 }
 
-export const SpecialNeedEntrySection = React.memo(function SpecialNeedEntrySection({
+export const SpecialNeedEntrySection = function SpecialNeedEntrySection({
   specialNeeds,
   snCategory,
   snName,
@@ -458,15 +453,14 @@ export const SpecialNeedEntrySection = React.memo(function SpecialNeedEntrySecti
               onPress={onAddSpecialNeed}
               size="small"
               disabled={!snName.trim()}
-            >
-              Add
-            </Button>
+              label="Add"
+            />
           </Row>
         </View>
       )}
     </View>
   );
-});
+};
 
 /* ---------- Styles ---------- */
 

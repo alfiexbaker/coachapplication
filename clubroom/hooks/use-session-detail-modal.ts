@@ -1,9 +1,8 @@
 /**
  * useSessionDetailModal — State, handlers, and computed values for SessionDetailModal.
  */
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import { router } from 'expo-router';
-
 import { apiClient } from '@/services/api-client';
 import { toDateStr } from '@/utils/format';
 import { useAuth } from '@/hooks/use-auth';
@@ -33,9 +32,8 @@ import {
 } from '@/utils/session-offering-capacity';
 import { extractGroupSessionIdFromOfferingId } from '@/utils/session-offering-projections';
 import { uiFeedback } from '@/services/ui-feedback';
-
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 const logger = createLogger('useSessionDetailModal');
-
 const STAFF_ROLE_ORDER: Record<AcademyMembership['role'], number> = {
   OWNER: 0,
   ADMIN: 1,
@@ -44,27 +42,23 @@ const STAFF_ROLE_ORDER: Record<AcademyMembership['role'], number> = {
   ASSISTANT: 4,
   MEMBER: 5,
 };
-
 interface OwnershipAssigneeOption {
   id: string;
   label: string;
   role: AcademyMembership['role'];
 }
-
 interface LinkedBookingMatch {
   id: string;
   scheduledAt: string;
   duration?: number;
   status: Booking['status'];
 }
-
 export interface SessionOwnershipTimelineEntry {
   id: string;
   title: string;
   meta?: string;
   timestampLabel: string;
 }
-
 function formatTimelineTimestamp(iso?: string): string {
   if (!iso) return 'Unknown time';
   const date = new Date(iso);
@@ -81,12 +75,10 @@ function formatTimelineTimestamp(iso?: string): string {
 /** Generate upcoming instances for a recurring session. */
 function getUpcomingInstances(offering: SessionOffering, count: number = 8): Date[] {
   if (!offering.isRecurring || offering.dayOfWeek === undefined) return [];
-
   const instances: Date[] = [];
   const now = new Date();
   const endDate = offering.endDate ? new Date(offering.endDate) : null;
   const cancelledDates = new Set(offering.cancelledInstances || []);
-
   let currentDate = new Date(offering.scheduledAt);
   if (isNaN(currentDate.getTime())) {
     currentDate = new Date(now);
@@ -98,19 +90,15 @@ function getUpcomingInstances(offering: SessionOffering, count: number = 8): Dat
     const daysUntilTarget = (targetDay - currentDay + 7) % 7;
     currentDate.setDate(currentDate.getDate() + (daysUntilTarget === 0 ? 0 : daysUntilTarget));
   }
-
   if (offering.timeOfDay) {
     const [hours, minutes] = offering.timeOfDay.split(':').map(Number);
     currentDate.setHours(hours, minutes, 0, 0);
   }
-
   if (currentDate <= now) {
     const increment = offering.recurrenceType === 'biweekly' ? 14 : 7;
     currentDate.setDate(currentDate.getDate() + increment);
   }
-
   const increment = offering.recurrenceType === 'biweekly' ? 14 : 7;
-
   while (instances.length < count) {
     if (endDate && currentDate > endDate) break;
     const dateStr = toDateStr(currentDate);
@@ -119,23 +107,18 @@ function getUpcomingInstances(offering: SessionOffering, count: number = 8): Dat
     }
     currentDate.setDate(currentDate.getDate() + increment);
   }
-
   return instances;
 }
-
 function getNextBookableSessionStart(offering: SessionOffering): Date | null {
   if (offering.isRecurring) {
     return getUpcomingInstances(offering, 1)[0] ?? null;
   }
-
   const scheduledAt = new Date(offering.scheduledAt);
   if (Number.isNaN(scheduledAt.getTime())) {
     return null;
   }
-
   return scheduledAt;
 }
-
 function getSessionEndFromOffering(offering: SessionOffering | null): Date | null {
   if (!offering) return null;
   const scheduledAt = new Date(offering.scheduledAt);
@@ -143,7 +126,6 @@ function getSessionEndFromOffering(offering: SessionOffering | null): Date | nul
   const durationMinutes = Math.max(1, offering.duration ?? 60);
   return new Date(scheduledAt.getTime() + durationMinutes * 60 * 1000);
 }
-
 function getSessionEndFromBooking(booking: LinkedBookingMatch | null): Date | null {
   if (!booking) return null;
   const scheduledAt = new Date(booking.scheduledAt);
@@ -151,7 +133,6 @@ function getSessionEndFromBooking(booking: LinkedBookingMatch | null): Date | nu
   const durationMinutes = Math.max(1, booking.duration ?? 60);
   return new Date(scheduledAt.getTime() + durationMinutes * 60 * 1000);
 }
-
 export function useSessionDetailModal(
   visible: boolean,
   offering: SessionOffering | null,
@@ -175,10 +156,9 @@ export function useSessionDetailModal(
   const [draftOffPlatformParticipants, setDraftOffPlatformParticipants] = useState(0);
   const [savingOffPlatform, setSavingOffPlatform] = useState(false);
   const [clubNameById, setClubNameById] = useState<Record<string, string>>({});
-
+  const [nowMs] = useState(() => Date.now());
   useEffect(() => {
     if (!visible || !offering) return;
-
     let cancelled = false;
     logger.debug('Session detail modal open cycle start', {
       offeringId: offering.id,
@@ -191,16 +171,21 @@ export function useSessionDetailModal(
       childCount: contextChildren.length,
       childIds: contextChildren.map((child) => child.id),
       childReferenceIds: contextChildren.map((child) => child.referenceId),
-      childProfileIds: contextChildren.map((child) => child.profileId).filter(Boolean),
+      childProfileIds: contextChildren.flatMap((child) =>
+        child.profileId ? [child.profileId] : [],
+      ),
     });
-    setShowInstanceManagement(false);
-    setSelectedChildIds([]);
+    startTransition(() => {
+      setShowInstanceManagement(false);
+    });
+    startTransition(() => {
+      setSelectedChildIds([]);
+    });
     logger.debug('Reset modal transient state', {
       offeringId: offering.id,
       selectedChildIds: [],
       showInstanceManagement: false,
     });
-
     badgeService.listAwardsForSession(offering.id).then((awards) => {
       if (!cancelled) {
         setSessionAwards(awards);
@@ -210,13 +195,15 @@ export function useSessionDetailModal(
         });
       }
     });
-
     apiClient
       .get<User[]>(STORAGE_KEYS.USERS, [])
       .then((users) => {
         if (cancelled) return;
         const nextMap = users.reduce<Record<string, string>>((acc, user) => {
-          const candidate = user as User & { fullName?: string; username?: string };
+          const candidate = user as User & {
+            fullName?: string;
+            username?: string;
+          };
           const resolvedName = candidate.fullName || candidate.name || candidate.username;
           if (resolvedName) {
             acc[user.id] = resolvedName;
@@ -232,38 +219,52 @@ export function useSessionDetailModal(
       .catch(() => {
         if (!cancelled) setUserNameMap({});
       });
-
     return () => {
       cancelled = true;
-      logger.debug('Session detail modal open cycle cleanup', { offeringId: offering.id });
+      logger.debug('Session detail modal open cycle cleanup', {
+        offeringId: offering.id,
+      });
     };
   }, [contextChildren, currentUser?.id, currentUser?.role, offering, visible]);
-
   useEffect(() => {
     if (!visible || !offering) {
-      setDraftOffPlatformParticipants(0);
+      startTransition(() => {
+        setDraftOffPlatformParticipants(0);
+      });
       return;
     }
-    setDraftOffPlatformParticipants(getSessionOfferingOffPlatformCount(offering));
+    startTransition(() => {
+      setDraftOffPlatformParticipants(getSessionOfferingOffPlatformCount(offering));
+    });
   }, [offering, visible]);
-
   useEffect(() => {
     if (!visible || !offering || !currentUser?.id) {
-      setAssigneeOptions([]);
-      setSelectedAssigneeId(null);
-      setCanManageClubOwnership(false);
+      startTransition(() => {
+        setAssigneeOptions([]);
+      });
+      startTransition(() => {
+        setSelectedAssigneeId(null);
+      });
+      startTransition(() => {
+        setCanManageClubOwnership(false);
+      });
       return;
     }
-
     if (offering.actingAs !== 'club' || !offering.clubId) {
-      setAssigneeOptions([]);
-      setSelectedAssigneeId(offering.assigneeCoachId || offering.ownerCoachId || offering.coachId);
-      setCanManageClubOwnership(false);
+      startTransition(() => {
+        setAssigneeOptions([]);
+      });
+      startTransition(() => {
+        setSelectedAssigneeId(
+          offering.assigneeCoachId || offering.ownerCoachId || offering.coachId,
+        );
+      });
+      startTransition(() => {
+        setCanManageClubOwnership(false);
+      });
       return;
     }
-
     let cancelled = false;
-
     const loadOwnershipContext = async () => {
       try {
         const [academiesResult, staffResult, users] = await Promise.all([
@@ -272,51 +273,53 @@ export function useSessionDetailModal(
           apiClient.get<User[]>(STORAGE_KEYS.USERS, []),
         ]);
         if (cancelled) return;
-
         const nameById = new Map<string, string>();
         users.forEach((user) => {
           const resolved = user.name?.trim() || user.id;
           nameById.set(user.id, resolved);
         });
-
         if (academiesResult.success) {
           const names = academiesResult.data.reduce<Record<string, string>>((acc, academy) => {
             acc[academy.id] = academy.name;
             return acc;
           }, {});
           setClubNameById(names);
-
-          const membership = academiesResult.data.find((academy) => academy.id === offering.clubId)?.membership;
+          const membership = academiesResult.data.find(
+            (academy) => academy.id === offering.clubId,
+          )?.membership;
           const canManageByPermission = Boolean(
             membership?.permissions.includes('CREATE_SESSIONS') ||
-              membership?.permissions.includes('POST_AS_ACADEMY'),
+            membership?.permissions.includes('POST_AS_ACADEMY'),
           );
           setCanManageClubOwnership(canManageByPermission);
         } else {
           setCanManageClubOwnership(false);
           setClubNameById({});
         }
-
         if (!staffResult.success) {
           setAssigneeOptions([]);
           return;
         }
-
         const options = staffResult.data
-          .filter((member) => member.status === 'ACTIVE')
-          .map((member) => ({
-            id: member.userId,
-            label: nameById.get(member.userId) || member.userId,
-            role: member.role,
-          }))
+          .flatMap((member) =>
+            member.status === 'ACTIVE'
+              ? [
+                  {
+                    id: member.userId,
+                    label: nameById.get(member.userId) || member.userId,
+                    role: member.role,
+                  },
+                ]
+              : [],
+          )
           .sort((a, b) => STAFF_ROLE_ORDER[a.role] - STAFF_ROLE_ORDER[b.role]);
-
         setAssigneeOptions(options);
         setSelectedAssigneeId((previous) => {
           if (previous && options.some((option) => option.id === previous)) {
             return previous;
           }
-          const existingOwner = offering.assigneeCoachId || offering.ownerCoachId || offering.coachId;
+          const existingOwner =
+            offering.assigneeCoachId || offering.ownerCoachId || offering.coachId;
           if (existingOwner && options.some((option) => option.id === existingOwner)) {
             return existingOwner;
           }
@@ -324,48 +327,43 @@ export function useSessionDetailModal(
         });
       } catch (error) {
         if (cancelled) return;
-        logger.warn('Failed to load session ownership context', { offeringId: offering.id, error });
+        logger.warn('Failed to load session ownership context', {
+          offeringId: offering.id,
+          error,
+        });
         setAssigneeOptions([]);
         setCanManageClubOwnership(false);
       }
     };
-
     void loadOwnershipContext();
-
     return () => {
       cancelled = true;
     };
-  }, [
-    currentUser?.id,
-    offering,
-    visible,
-  ]);
-
-  const upcomingInstances = useMemo(() => {
+  }, [currentUser?.id, offering, visible]);
+  const upcomingInstances = (() => {
     if (!offering) return [];
     return getUpcomingInstances(offering, 8);
-  }, [offering]);
-  const offeringSessionEnd = useMemo(() => getSessionEndFromOffering(offering), [offering]);
-  const nextBookableSessionStart = useMemo(() => {
+  })();
+  const offeringSessionEnd = getSessionEndFromOffering(offering);
+  const nextBookableSessionStart = (() => {
     if (!offering) return null;
     return getNextBookableSessionStart(offering);
-  }, [offering]);
-
+  })();
   const isCoach = currentUser?.role === 'COACH';
   const isMyOffering = offering?.coachId === currentUser?.id;
   const canManageOffering = Boolean(
     offering &&
-      currentUser &&
-      (offering.coachId === currentUser.id ||
-        (offering.actingAs === 'club' &&
-          (canManageClubOwnership || offering.createdByUserId === currentUser.id))),
+    currentUser &&
+    (offering.coachId === currentUser.id ||
+      (offering.actingAs === 'club' &&
+        (canManageClubOwnership || offering.createdByUserId === currentUser.id))),
   );
   const canReassignOwnership = Boolean(
     offering &&
-      offering.actingAs === 'club' &&
-      offering.clubId &&
-      assigneeOptions.length > 0 &&
-      (canManageClubOwnership || offering.createdByUserId === currentUser?.id),
+    offering.actingAs === 'club' &&
+    offering.clubId &&
+    assigneeOptions.length > 0 &&
+    (canManageClubOwnership || offering.createdByUserId === currentUser?.id),
   );
   const ownerCoachId = offering?.assigneeCoachId || offering?.ownerCoachId || offering?.coachId;
   const ownerCoachName = ownerCoachId ? userNameMap[ownerCoachId] || ownerCoachId : 'Unassigned';
@@ -374,19 +372,14 @@ export function useSessionDetailModal(
   const offPlatformParticipants = offering ? getSessionOfferingOffPlatformCount(offering) : 0;
   const totalParticipants = offering ? getSessionOfferingHeadcount(offering) : 0;
   const isFull = offering ? isSessionOfferingFull(offering) : false;
-
-  const children = useMemo(
-    () =>
-      contextChildren.map((child) => ({
-        id: child.id,
-        name: child.name,
-        fullName: child.fullName,
-        referenceId: child.referenceId,
-        profileId: child.profileId,
-      })),
-    [contextChildren],
-  );
-  const actorIdSet = useMemo(() => {
+  const children = contextChildren.map((child) => ({
+    id: child.id,
+    name: child.name,
+    fullName: child.fullName,
+    referenceId: child.referenceId,
+    profileId: child.profileId,
+  }));
+  const actorIdSet = (() => {
     const ids = new Set<string>();
     if (currentUser?.id) {
       ids.add(currentUser.id);
@@ -401,7 +394,7 @@ export function useSessionDetailModal(
       }
     }
     return ids;
-  }, [children, currentUser?.id]);
+  })();
   useEffect(() => {
     if (!visible || !offering) return;
     logger.debug('Resolved actor identity scope for session modal', {
@@ -412,18 +405,20 @@ export function useSessionDetailModal(
   }, [actorIdSet, children.length, offering, visible]);
   useEffect(() => {
     if (!visible || !offering) {
-      setLinkedBookingAthleteIds([]);
-      setLinkedBookings([]);
+      startTransition(() => {
+        setLinkedBookingAthleteIds([]);
+      });
+      startTransition(() => {
+        setLinkedBookings([]);
+      });
       return;
     }
-
     let cancelled = false;
     const directEntityIds = new Set<string>();
     directEntityIds.add(offering.id);
     if (offering.sourceEntityId) {
       directEntityIds.add(offering.sourceEntityId);
     }
-
     const groupSessionIds = new Set<string>();
     const inferredGroupSessionId = extractGroupSessionIdFromOfferingId(offering.id);
     if (inferredGroupSessionId) {
@@ -432,12 +427,10 @@ export function useSessionDetailModal(
     if (offering.source === 'group' && offering.sourceEntityId) {
       groupSessionIds.add(offering.sourceEntityId);
     }
-
     const loadLinkedBookings = async () => {
       try {
         const bookings = await bookingService.list();
         if (cancelled) return;
-
         const matchedAthleteIds = new Set<string>();
         const matchedBookings: LinkedBookingMatch[] = [];
         const matchedBookingDetails: {
@@ -456,7 +449,6 @@ export function useSessionDetailModal(
         let skippedNotActorCount = 0;
         for (const booking of bookings) {
           if (booking.status === 'CANCELLED') continue;
-
           const linkedToOffering =
             (booking.sessionSourceEntityId
               ? directEntityIds.has(booking.sessionSourceEntityId)
@@ -470,7 +462,6 @@ export function useSessionDetailModal(
             continue;
           }
           linkedBookingCount += 1;
-
           const bookingAthleteIds = new Set<string>();
           if (booking.athleteId) {
             bookingAthleteIds.add(booking.athleteId);
@@ -478,14 +469,12 @@ export function useSessionDetailModal(
           for (const athleteId of booking.athleteIds ?? []) {
             bookingAthleteIds.add(athleteId);
           }
-
           const hasActorAthlete = Array.from(bookingAthleteIds).some((id) => actorIdSet.has(id));
           const bookedByActor = booking.bookedById ? actorIdSet.has(booking.bookedById) : false;
           if (!hasActorAthlete && !bookedByActor) {
             skippedNotActorCount += 1;
             continue;
           }
-
           if (bookingAthleteIds.size === 0) {
             if (booking.bookedById) {
               matchedAthleteIds.add(booking.bookedById);
@@ -509,7 +498,6 @@ export function useSessionDetailModal(
             });
             continue;
           }
-
           for (const athleteId of bookingAthleteIds) {
             matchedAthleteIds.add(athleteId);
           }
@@ -531,7 +519,6 @@ export function useSessionDetailModal(
             reason: hasActorAthlete ? 'actor_athlete' : 'booked_by_actor',
           });
         }
-
         setLinkedBookingAthleteIds(Array.from(matchedAthleteIds));
         setLinkedBookings(
           matchedBookings.sort((left, right) => {
@@ -568,37 +555,28 @@ export function useSessionDetailModal(
         });
       }
     };
-
     void loadLinkedBookings();
-
     return () => {
       cancelled = true;
     };
   }, [actorIdSet, offering, visible]);
-
-  const linkedBookingAthleteIdSet = useMemo(
-    () => new Set(linkedBookingAthleteIds),
-    [linkedBookingAthleteIds],
-  );
+  const linkedBookingAthleteIdSet = new Set(linkedBookingAthleteIds);
   const primaryLinkedBooking = linkedBookings[0] ?? null;
   const primaryLinkedBookingId = primaryLinkedBooking?.id ?? null;
-  const linkedBookingSessionEnd = useMemo(
-    () => getSessionEndFromBooking(primaryLinkedBooking),
-    [primaryLinkedBooking],
-  );
+  const linkedBookingSessionEnd = getSessionEndFromBooking(primaryLinkedBooking);
   const canLeaveReview = primaryLinkedBooking?.status === 'COMPLETED';
   const canOpenBookingDetail = Boolean(primaryLinkedBookingId);
-  const isSessionInPast = useMemo(() => {
+  const isSessionInPast = (() => {
     const effectiveSessionEnd = linkedBookingSessionEnd ?? offeringSessionEnd;
     if (effectiveSessionEnd) {
-      return effectiveSessionEnd.getTime() <= Date.now();
+      return effectiveSessionEnd.getTime() <= nowMs;
     }
     if (!nextBookableSessionStart) {
       return true;
     }
-    return nextBookableSessionStart.getTime() <= Date.now();
-  }, [linkedBookingSessionEnd, nextBookableSessionStart, offeringSessionEnd]);
-  const postSessionMessage = useMemo(() => {
+    return nextBookableSessionStart.getTime() <= nowMs;
+  })();
+  const postSessionMessage = (() => {
     if (!isSessionInPast) return null;
     if (canLeaveReview) {
       return 'This booking is complete. You can leave a review below.';
@@ -607,35 +585,34 @@ export function useSessionDetailModal(
       return 'This session has finished. Reviews unlock once the coach marks the booking as completed.';
     }
     return 'This session has already started or finished, so family changes are closed.';
-  }, [canLeaveReview, isSessionInPast, primaryLinkedBookingId]);
-  const confirmedActorRegistrations = useMemo(
-    () =>
-      offering?.registrations.filter(
-        (registration) => registration.status === 'confirmed' && actorIdSet.has(registration.userId),
-      ) ?? [],
-    [actorIdSet, offering?.registrations],
-  );
-  const registeredChildIdSet = useMemo(() => {
+  })();
+  const confirmedActorRegistrations =
+    offering?.registrations.filter(
+      (registration) => registration.status === 'confirmed' && actorIdSet.has(registration.userId),
+    ) ?? [];
+  const registeredChildIdSet = (() => {
     const childIds = new Set<string>();
     for (const child of children) {
-      const isRegisteredForChild = confirmedActorRegistrations.some(
-        (registration) =>
-          registration.userId === child.id ||
-          registration.userId === child.referenceId ||
-          registration.userId === child.profileId,
-      ) || linkedBookingAthleteIdSet.has(child.id) ||
-      linkedBookingAthleteIdSet.has(child.referenceId) ||
-      (child.profileId ? linkedBookingAthleteIdSet.has(child.profileId) : false);
+      const isRegisteredForChild =
+        confirmedActorRegistrations.some(
+          (registration) =>
+            registration.userId === child.id ||
+            registration.userId === child.referenceId ||
+            registration.userId === child.profileId,
+        ) ||
+        linkedBookingAthleteIdSet.has(child.id) ||
+        linkedBookingAthleteIdSet.has(child.referenceId) ||
+        (child.profileId ? linkedBookingAthleteIdSet.has(child.profileId) : false);
       if (isRegisteredForChild) {
         childIds.add(child.id);
       }
     }
     return childIds;
-  }, [children, confirmedActorRegistrations, linkedBookingAthleteIdSet]);
+  })();
   const isRegistered =
     confirmedActorRegistrations.length > 0 ||
     linkedBookingAthleteIds.some((athleteId) => actorIdSet.has(athleteId));
-  const bookableChildren = useMemo(() => {
+  const bookableChildren = (() => {
     if (children.length === 0) {
       return [];
     }
@@ -643,12 +620,15 @@ export function useSessionDetailModal(
       return children;
     }
     return children.filter((child) => !registeredChildIdSet.has(child.id));
-  }, [children, isRegistered, registeredChildIdSet]);
+  })();
   const canAddAnotherChild =
     isRegistered && bookableChildren.length > 0 && !isFull && !isSessionInPast;
   const hasMultipleKids = children.length > 1;
   useEffect(() => {
     if (!visible || !offering) return;
+    const confirmedRegistrationsForLog = offering.registrations.filter(
+      (registration) => registration.status === 'confirmed' && actorIdSet.has(registration.userId),
+    );
     logger.debug('Booking CTA decision snapshot', {
       offeringId: offering.id,
       offeringStatus: offering.status,
@@ -663,8 +643,10 @@ export function useSessionDetailModal(
       childCount: children.length,
       bookableChildIds: bookableChildren.map((child) => child.id),
       selectedChildIds,
-      confirmedRegistrationCount: confirmedActorRegistrations.length,
-      confirmedRegistrationUserIds: confirmedActorRegistrations.map((registration) => registration.userId),
+      confirmedRegistrationCount: confirmedRegistrationsForLog.length,
+      confirmedRegistrationUserIds: confirmedRegistrationsForLog.map(
+        (registration) => registration.userId,
+      ),
       linkedBookingAthleteIds,
       registeredChildIds: Array.from(registeredChildIdSet),
       actorIds: Array.from(actorIdSet),
@@ -674,7 +656,6 @@ export function useSessionDetailModal(
     bookableChildren,
     canAddAnotherChild,
     children.length,
-    confirmedActorRegistrations,
     hasMultipleKids,
     isFull,
     isSessionInPast,
@@ -688,60 +669,56 @@ export function useSessionDetailModal(
     selectedChildIds,
     visible,
   ]);
-
   useEffect(() => {
     if (!visible || !offering) {
-      setSelectedChildIds([]);
+      startTransition(() => {
+        setSelectedChildIds([]);
+      });
       return;
     }
-    setSelectedChildIds((previous) => {
-      const normalized = previous.filter((childId) =>
-        bookableChildren.some((child) => child.id === childId),
-      );
-      if (normalized.length > 0) {
-        return normalized;
-      }
-      if (bookableChildren.length === 1) {
-        return [bookableChildren[0].id];
-      }
-      return [];
+    startTransition(() => {
+      setSelectedChildIds((previous) => {
+        const normalized = previous.filter((childId) =>
+          bookableChildren.some((child) => child.id === childId),
+        );
+        if (normalized.length > 0) {
+          return normalized;
+        }
+        if (bookableChildren.length === 1) {
+          return [bookableChildren[0].id];
+        }
+        return [];
+      });
     });
   }, [bookableChildren, offering, visible]);
-
-  const toggleSelectedChildId = useCallback(
-    (childId: string) => {
-      logger.debug('Toggle child selection in session modal', {
-        offeringId: offering?.id,
-        childId,
-        beforeSelectedChildIds: selectedChildIds,
-        hasMultipleKids,
-      });
-      setSelectedChildIds((previous) => {
-        if (!hasMultipleKids) {
-          return [childId];
-        }
-        if (previous.includes(childId)) {
-          return previous.filter((id) => id !== childId);
-        }
-        return [...previous, childId];
-      });
-    },
-    [hasMultipleKids, offering?.id, selectedChildIds],
-  );
-
-  const ownershipTimeline = useMemo<SessionOwnershipTimelineEntry[]>(() => {
+  const toggleSelectedChildId = (childId: string) => {
+    logger.debug('Toggle child selection in session modal', {
+      offeringId: offering?.id,
+      childId,
+      beforeSelectedChildIds: selectedChildIds,
+      hasMultipleKids,
+    });
+    setSelectedChildIds((previous) => {
+      if (!hasMultipleKids) {
+        return [childId];
+      }
+      if (previous.includes(childId)) {
+        return previous.filter((id) => id !== childId);
+      }
+      return [...previous, childId];
+    });
+  };
+  const ownershipTimeline = (() => {
     if (!offering) return [];
-
-    const events = [...(offering.ownershipAuditTrail ?? [])]
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-
+    const events = Array.from(offering.ownershipAuditTrail ?? []).toSorted(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    );
     const formatAction = (event: SessionOwnershipAuditEvent): SessionOwnershipTimelineEntry => {
       const actorLabel =
         event.actorName ||
         (event.actorUserId ? userNameMap[event.actorUserId] || event.actorUserId : 'Unknown');
       const roleLabel = event.actorRole ? event.actorRole.replace('_', ' ') : undefined;
       const toCoach = event.toCoachId ? userNameMap[event.toCoachId] || event.toCoachId : undefined;
-
       if (event.action === 'CREATED') {
         return {
           id: event.id,
@@ -765,11 +742,9 @@ export function useSessionDetailModal(
         timestampLabel: formatTimelineTimestamp(event.timestamp),
       };
     };
-
     if (events.length > 0) {
       return events.map(formatAction);
     }
-
     const fallback: SessionOwnershipTimelineEntry[] = [
       {
         id: `fallback_created_${offering.id}`,
@@ -778,7 +753,6 @@ export function useSessionDetailModal(
         timestampLabel: formatTimelineTimestamp(offering.createdAt),
       },
     ];
-
     if (ownerCoachId) {
       fallback.push({
         id: `fallback_assigned_${offering.id}`,
@@ -787,102 +761,99 @@ export function useSessionDetailModal(
         timestampLabel: formatTimelineTimestamp(offering.createdAt),
       });
     }
-
     if (offering.updatedAt) {
       fallback.push({
         id: `fallback_updated_${offering.id}`,
-        title: `Edited by ${
-          offering.updatedByUserId
-            ? userNameMap[offering.updatedByUserId] || offering.updatedByUserId
-            : 'System'
-        }`,
+        title: `Edited by ${offering.updatedByUserId ? userNameMap[offering.updatedByUserId] || offering.updatedByUserId : 'System'}`,
         meta: offering.updatedByRole ? offering.updatedByRole.replace('_', ' ') : 'Last update',
         timestampLabel: formatTimelineTimestamp(offering.updatedAt),
       });
     }
-
     return fallback;
-  }, [offering, ownerCoachId, userNameMap]);
-
-  const handleCancelInstance = useCallback(
-    async (instanceDate: Date) => {
-      if (!offering) return;
-      const dateStr = toDateStr(instanceDate);
-      const formattedDate = instanceDate.toLocaleDateString('en-GB', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-      });
-
-      uiFeedback.alert(
-        'Cancel Session',
-        `Cancel the session on ${formattedDate}? Athletes will be notified.`,
-        [
-          { text: 'Keep Session', style: 'cancel' },
-          {
-            text: 'Cancel Session',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-                const updatedOfferings = offerings.map((o) => {
-                  if (o.id === offering.id) {
-                    return { ...o, cancelledInstances: [...(o.cancelledInstances || []), dateStr] };
-                  }
-                  return o;
-                });
-                await apiClient.set('session_offerings', updatedOfferings);
-                const registeredParticipants = offering.registrations.filter(
-                  (registration) => registration.status === 'confirmed',
-                );
-
-                const notificationResults = await Promise.allSettled(
-                  registeredParticipants.map((registration) =>
-                    notificationService.create({
-                      id: `notif_session_instance_cancel_${offering.id}_${registration.userId}_${Date.now()}`,
-                      type: 'booking',
-                      title: 'Session Cancelled',
-                      body: `${offering.title} on ${formattedDate} has been cancelled by the coach.`,
-                      recipientId: registration.userId,
-                      timeLabel: 'Just now',
-                      read: false,
-                    }),
-                  ),
-                );
-                const failedNotifications = notificationResults.filter(
-                  (result) =>
-                    result.status === 'rejected' ||
-                    (result.status === 'fulfilled' && !result.value.success),
-                ).length;
-
-                if (failedNotifications > 0) {
-                  logger.warn('Partial notification failure for recurring instance cancel', {
-                    offeringId: offering.id,
-                    date: dateStr,
-                    failedNotifications,
-                    totalParticipants: registeredParticipants.length,
-                  });
+  })();
+  const handleCancelInstance = async (instanceDate: Date) => {
+    if (!offering) return;
+    const dateStr = toDateStr(instanceDate);
+    const formattedDate = instanceDate.toLocaleDateString('en-GB', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
+    uiFeedback.alert(
+      'Cancel Session',
+      `Cancel the session on ${formattedDate}? Athletes will be notified.`,
+      [
+        {
+          text: 'Keep Session',
+          style: 'cancel',
+        },
+        {
+          text: 'Cancel Session',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
+              const updatedOfferings = offerings.map((o) => {
+                if (o.id === offering.id) {
+                  return {
+                    ...o,
+                    cancelledInstances: [...(o.cancelledInstances || []), dateStr],
+                  };
                 }
-
-                const notifiedCount = Math.max(0, registeredParticipants.length - failedNotifications);
-                uiFeedback.showToast(registeredParticipants.length > 0
-                    ? failedNotifications > 0
-                      ? `Session on ${formattedDate} has been cancelled. ${notifiedCount} of ${registeredParticipants.length} athletes were notified.`
-                      : `Session on ${formattedDate} has been cancelled. All ${registeredParticipants.length} athletes were notified.`
-                    : `Session on ${formattedDate} has been cancelled.`, 'success');
-                onUpdate?.();
-              } catch {
-                uiFeedback.showToast('Failed to cancel session. Please try again.', 'error');
+                return o;
+              });
+              await apiClient.set('session_offerings', updatedOfferings);
+              const registeredParticipants = offering.registrations.filter(
+                (registration) => registration.status === 'confirmed',
+              );
+              const notificationResults = await Promise.allSettled(
+                registeredParticipants.map((registration) =>
+                  notificationService.create({
+                    id: `notif_session_instance_cancel_${offering.id}_${registration.userId}_${Date.now()}`,
+                    type: 'booking',
+                    title: 'Session Cancelled',
+                    body: `${offering.title} on ${formattedDate} has been cancelled by the coach.`,
+                    recipientId: registration.userId,
+                    timeLabel: 'Just now',
+                    read: false,
+                  }),
+                ),
+              );
+              const failedNotifications = notificationResults.filter(
+                (result) =>
+                  result.status === 'rejected' ||
+                  (result.status === 'fulfilled' && !result.value.success),
+              ).length;
+              if (failedNotifications > 0) {
+                logger.warn('Partial notification failure for recurring instance cancel', {
+                  offeringId: offering.id,
+                  date: dateStr,
+                  failedNotifications,
+                  totalParticipants: registeredParticipants.length,
+                });
               }
-            },
+              const notifiedCount = Math.max(
+                0,
+                registeredParticipants.length - failedNotifications,
+              );
+              uiFeedback.showToast(
+                registeredParticipants.length > 0
+                  ? failedNotifications > 0
+                    ? `Session on ${formattedDate} has been cancelled. ${notifiedCount} of ${registeredParticipants.length} athletes were notified.`
+                    : `Session on ${formattedDate} has been cancelled. All ${registeredParticipants.length} athletes were notified.`
+                  : `Session on ${formattedDate} has been cancelled.`,
+                'success',
+              );
+              onUpdate?.();
+            } catch {
+              uiFeedback.showToast('Failed to cancel session. Please try again.', 'error');
+            }
           },
-        ],
-      );
-    },
-    [offering, onUpdate],
-  );
-
-  const handleCancelBooking = useCallback(async () => {
+        },
+      ],
+    );
+  };
+  const handleCancelBooking = async () => {
     logger.action('CancelBookingAttempt', {
       offeringId: offering?.id,
       currentUserId: currentUser?.id,
@@ -900,10 +871,11 @@ export function useSessionDetailModal(
         offeringId: offering.id,
         scheduledAt: offering.scheduledAt,
       });
-      uiFeedback.showToast('Only upcoming bookings can be cancelled. This session has already started or finished.');
+      uiFeedback.showToast(
+        'Only upcoming bookings can be cancelled. This session has already started or finished.',
+      );
       return;
     }
-
     if (confirmedActorRegistrations.length === 0) {
       logger.debug('Cancel booking blocked - no confirmed registrations for actor scope', {
         offeringId: offering.id,
@@ -912,7 +884,6 @@ export function useSessionDetailModal(
       uiFeedback.showToast('We could not find a confirmed booking to cancel.');
       return;
     }
-
     const selectedChildId = selectedChildIds[0];
     const selectedChild = selectedChildId
       ? children.find((child) => child.id === selectedChildId)
@@ -926,14 +897,13 @@ export function useSessionDetailModal(
               registration.userId === selectedChild?.profileId,
           )
         : undefined) ?? confirmedActorRegistrations[0];
-
     try {
       const bookings = await bookingService.list();
       const linkedBooking = bookings.find((booking) => {
         if (booking.status === 'CANCELLED') return false;
         if (booking.groupSessionId !== offering.id) return false;
-        if (booking.groupRegistrationId && booking.groupRegistrationId === myRegistration.id) return true;
-
+        if (booking.groupRegistrationId && booking.groupRegistrationId === myRegistration.id)
+          return true;
         const athleteIds = new Set<string>();
         if (booking.athleteId) athleteIds.add(booking.athleteId);
         for (const athleteId of booking.athleteIds ?? []) {
@@ -941,7 +911,6 @@ export function useSessionDetailModal(
         }
         return athleteIds.has(myRegistration.userId);
       });
-
       if (linkedBooking) {
         logger.debug('Cancel booking routed to booking cancel flow', {
           offeringId: offering.id,
@@ -965,12 +934,14 @@ export function useSessionDetailModal(
       });
       // Fall through to registration-level cancellation when booking lookup is unavailable.
     }
-
     uiFeedback.alert(
       'Cancel Booking',
       `Are you sure you want to cancel your booking for "${offering.title}"? The coach will be notified.`,
       [
-        { text: 'Keep Booking', style: 'cancel' },
+        {
+          text: 'Keep Booking',
+          style: 'cancel',
+        },
         {
           text: 'Cancel Booking',
           style: 'destructive',
@@ -980,18 +951,25 @@ export function useSessionDetailModal(
               const updatedOfferings = offerings.map((o) => {
                 if (o.id === offering.id) {
                   const updatedRegistrations = o.registrations.map((reg) =>
-                    reg.id === myRegistration.id ? { ...reg, status: 'cancelled' as const } : reg,
+                    reg.id === myRegistration.id
+                      ? {
+                          ...reg,
+                          status: 'cancelled' as const,
+                        }
+                      : reg,
                   );
-                  const nextRegisteredCount =
-                    updatedRegistrations.filter((reg) => reg.status === 'confirmed').length;
-                  const nextHeadcount =
-                    nextRegisteredCount + getSessionOfferingOffPlatformCount(o);
+                  const nextRegisteredCount = updatedRegistrations.filter(
+                    (reg) => reg.status === 'confirmed',
+                  ).length;
+                  const nextHeadcount = nextRegisteredCount + getSessionOfferingOffPlatformCount(o);
                   return {
                     ...o,
                     registrations: updatedRegistrations,
                     status:
                       o.status === 'full'
-                        ? (nextHeadcount >= o.maxParticipants ? 'full' : 'active')
+                        ? nextHeadcount >= o.maxParticipants
+                          ? 'full'
+                          : 'active'
                         : o.status,
                   };
                 }
@@ -1003,7 +981,10 @@ export function useSessionDetailModal(
                 registrationId: myRegistration.id,
                 registrationUserId: myRegistration.userId,
               });
-              uiFeedback.showToast('Your booking has been cancelled. The coach has been notified.', 'success');
+              uiFeedback.showToast(
+                'Your booking has been cancelled. The coach has been notified.',
+                'success',
+              );
               onUpdate?.();
               onClose();
             } catch {
@@ -1013,15 +994,17 @@ export function useSessionDetailModal(
         },
       ],
     );
-  }, [actorIdSet, children, confirmedActorRegistrations, currentUser, offering, onClose, onUpdate, selectedChildIds]);
-
-  const handleEndSeries = useCallback(async () => {
+  };
+  const handleEndSeries = async () => {
     if (!offering) return;
     uiFeedback.alert(
       'End Recurring Series',
       'This will cancel all future sessions. Athletes will be notified. Are you sure?',
       [
-        { text: 'Keep Sessions', style: 'cancel' },
+        {
+          text: 'Keep Sessions',
+          style: 'cancel',
+        },
         {
           text: 'End Series',
           style: 'destructive',
@@ -1030,7 +1013,11 @@ export function useSessionDetailModal(
               const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
               const updatedOfferings = offerings.map((o) => {
                 if (o.id === offering.id) {
-                  return { ...o, endDate: toDateStr(new Date()), status: 'cancelled' as const };
+                  return {
+                    ...o,
+                    endDate: toDateStr(new Date()),
+                    status: 'cancelled' as const,
+                  };
                 }
                 return o;
               });
@@ -1045,85 +1032,81 @@ export function useSessionDetailModal(
         },
       ],
     );
-  }, [offering, onUpdate, onClose]);
-
-  const handleReassignOwnership = useCallback(async () => {
+  };
+  const handleReassignOwnership = async () => {
     if (!offering || !currentUser || !selectedAssigneeId) return;
     if (!canReassignOwnership) return;
-
     const previousOwnerId = offering.assigneeCoachId || offering.ownerCoachId || offering.coachId;
     if (previousOwnerId === selectedAssigneeId) {
       uiFeedback.showToast('This session is already assigned to that coach.');
       return;
     }
-
     setReassigningOwnership(true);
-    try {
-      const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
-      const nowIso = new Date().toISOString();
-      const actorName = currentUser.fullName || currentUser.name || currentUser.id;
-      const selectedAssigneeLabel =
-        assigneeOptions.find((option) => option.id === selectedAssigneeId)?.label || selectedAssigneeId;
-
-      const updated = offerings.map((entry) => {
-        if (entry.id !== offering.id) return entry;
-
-        const nextAuditTrail: SessionOwnershipAuditEvent[] = [
-          ...(entry.ownershipAuditTrail ?? []),
-          {
-            id: `ownership_${Date.now()}_${selectedAssigneeId}`,
-            action: previousOwnerId ? 'REASSIGNED' : 'ASSIGNED',
-            timestamp: nowIso,
-            actorUserId: currentUser.id,
-            actorName,
-            actorRole: currentUser.role,
-            fromCoachId: previousOwnerId,
-            toCoachId: selectedAssigneeId,
-            note: `Session owner changed to ${selectedAssigneeLabel}`,
-          },
-          {
-            id: `ownership_${Date.now()}_updated`,
-            action: 'UPDATED',
-            timestamp: nowIso,
-            actorUserId: currentUser.id,
-            actorName,
-            actorRole: currentUser.role,
-            toCoachId: selectedAssigneeId,
-            note: 'Ownership edited in session detail',
-          },
-        ];
-
-        return {
-          ...entry,
-          coachId: selectedAssigneeId,
-          ownerCoachId: selectedAssigneeId,
-          assigneeCoachId: selectedAssigneeId,
-          updatedAt: nowIso,
-          updatedByUserId: currentUser.id,
-          updatedByRole: currentUser.role,
-          ownershipAuditTrail: nextAuditTrail,
-        };
-      });
-
-      await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updated);
-      uiFeedback.showToast(`Session reassigned to ${selectedAssigneeLabel}.`, 'success');
-      onUpdate?.();
-    } catch (error) {
-      logger.error('Failed to reassign session owner', { offeringId: offering.id, error });
-      uiFeedback.showToast('Failed to reassign session owner. Please try again.', 'error');
-    } finally {
-      setReassigningOwnership(false);
-    }
-  }, [
-    assigneeOptions,
-    canReassignOwnership,
-    currentUser,
-    offering,
-    onUpdate,
-    selectedAssigneeId,
-  ]);
-
-  const handleAdjustOffPlatform = useCallback((delta: number) => {
+    await runAsyncTryCatchFinally(
+      async () => {
+        const offerings = await apiClient.get<SessionOffering[]>(
+          STORAGE_KEYS.SESSION_OFFERINGS,
+          [],
+        );
+        const nowIso = new Date().toISOString();
+        const actorName = currentUser.fullName || currentUser.name || currentUser.id;
+        const selectedAssigneeLabel =
+          assigneeOptions.find((option) => option.id === selectedAssigneeId)?.label ||
+          selectedAssigneeId;
+        const updated = offerings.map((entry) => {
+          if (entry.id !== offering.id) return entry;
+          const nextAuditTrail: SessionOwnershipAuditEvent[] = [
+            ...(entry.ownershipAuditTrail ?? []),
+            {
+              id: `ownership_${Date.now()}_${selectedAssigneeId}`,
+              action: previousOwnerId ? 'REASSIGNED' : 'ASSIGNED',
+              timestamp: nowIso,
+              actorUserId: currentUser.id,
+              actorName,
+              actorRole: currentUser.role,
+              fromCoachId: previousOwnerId,
+              toCoachId: selectedAssigneeId,
+              note: `Session owner changed to ${selectedAssigneeLabel}`,
+            },
+            {
+              id: `ownership_${Date.now()}_updated`,
+              action: 'UPDATED',
+              timestamp: nowIso,
+              actorUserId: currentUser.id,
+              actorName,
+              actorRole: currentUser.role,
+              toCoachId: selectedAssigneeId,
+              note: 'Ownership edited in session detail',
+            },
+          ];
+          return {
+            ...entry,
+            coachId: selectedAssigneeId,
+            ownerCoachId: selectedAssigneeId,
+            assigneeCoachId: selectedAssigneeId,
+            updatedAt: nowIso,
+            updatedByUserId: currentUser.id,
+            updatedByRole: currentUser.role,
+            ownershipAuditTrail: nextAuditTrail,
+          };
+        });
+        await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updated);
+        uiFeedback.showToast(`Session reassigned to ${selectedAssigneeLabel}.`, 'success');
+        onUpdate?.();
+      },
+      async (error) => {
+        logger.error('Failed to reassign session owner', {
+          offeringId: offering.id,
+          error,
+        });
+        uiFeedback.showToast('Failed to reassign session owner. Please try again.', 'error');
+      },
+      () => {
+        setReassigningOwnership(false);
+      },
+    );
+  };
+  const handleAdjustOffPlatform = (delta: number) => {
     setDraftOffPlatformParticipants((previous) => {
       const next = Math.max(0, previous + delta);
       logger.debug('Adjusted off-platform draft participant count', {
@@ -1134,9 +1117,8 @@ export function useSessionDetailModal(
       });
       return next;
     });
-  }, [offering?.id]);
-
-  const handleSaveOffPlatformParticipants = useCallback(async () => {
+  };
+  const handleSaveOffPlatformParticipants = async () => {
     logger.action('SaveOffPlatformParticipantsAttempt', {
       offeringId: offering?.id,
       currentUserId: currentUser?.id,
@@ -1150,49 +1132,56 @@ export function useSessionDetailModal(
     const normalizedCount = Math.max(0, Math.floor(draftOffPlatformParticipants || 0));
     const currentCount = getSessionOfferingOffPlatformCount(offering);
     if (normalizedCount === currentCount) return;
-
     setSavingOffPlatform(true);
-    try {
-      const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
-      const nowIso = new Date().toISOString();
-      const updatedOfferings = offerings.map((entry) => {
-        if (entry.id !== offering.id) return entry;
-
-        const nextHeadcount = getSessionOfferingRegisteredCount(entry) + normalizedCount;
-        const shouldTrackCapacityStatus = entry.status === 'active' || entry.status === 'full';
-        return {
-          ...entry,
-          offPlatformParticipants: normalizedCount,
-          status: shouldTrackCapacityStatus
-            ? (nextHeadcount >= entry.maxParticipants ? 'full' : 'active')
-            : entry.status,
-          updatedAt: nowIso,
-          updatedByUserId: currentUser.id,
-          updatedByRole: currentUser.role,
-        };
-      });
-
-      await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updatedOfferings);
-      setDraftOffPlatformParticipants(normalizedCount);
-      logger.debug('Saved off-platform participants', {
-        offeringId: offering.id,
-        previousCount: currentCount,
-        nextCount: normalizedCount,
-      });
-      emitTyped(ServiceEvents.SESSION_UPDATED, {
-        sessionId: offering.id,
-        changes: { offPlatformParticipants: normalizedCount },
-      });
-      onUpdate?.();
-      uiFeedback.showToast('Off-platform attendees updated.', 'success');
-    } catch {
-      uiFeedback.showToast('Failed to update off-platform attendees. Please try again.', 'error');
-    } finally {
-      setSavingOffPlatform(false);
-    }
-  }, [canManageOffering, currentUser, draftOffPlatformParticipants, offering, onUpdate]);
-
-  const handleBook = useCallback(async () => {
+    await runAsyncTryCatchFinally(
+      async () => {
+        const offerings = await apiClient.get<SessionOffering[]>(
+          STORAGE_KEYS.SESSION_OFFERINGS,
+          [],
+        );
+        const nowIso = new Date().toISOString();
+        const updatedOfferings = offerings.map((entry) => {
+          if (entry.id !== offering.id) return entry;
+          const nextHeadcount = getSessionOfferingRegisteredCount(entry) + normalizedCount;
+          const shouldTrackCapacityStatus = entry.status === 'active' || entry.status === 'full';
+          return {
+            ...entry,
+            offPlatformParticipants: normalizedCount,
+            status: shouldTrackCapacityStatus
+              ? nextHeadcount >= entry.maxParticipants
+                ? 'full'
+                : 'active'
+              : entry.status,
+            updatedAt: nowIso,
+            updatedByUserId: currentUser.id,
+            updatedByRole: currentUser.role,
+          };
+        });
+        await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updatedOfferings);
+        setDraftOffPlatformParticipants(normalizedCount);
+        logger.debug('Saved off-platform participants', {
+          offeringId: offering.id,
+          previousCount: currentCount,
+          nextCount: normalizedCount,
+        });
+        emitTyped(ServiceEvents.SESSION_UPDATED, {
+          sessionId: offering.id,
+          changes: {
+            offPlatformParticipants: normalizedCount,
+          },
+        });
+        onUpdate?.();
+        uiFeedback.showToast('Off-platform attendees updated.', 'success');
+      },
+      async (error) => {
+        uiFeedback.showToast('Failed to update off-platform attendees. Please try again.', 'error');
+      },
+      () => {
+        setSavingOffPlatform(false);
+      },
+    );
+  };
+  const handleBook = async () => {
     logger.action('SessionDetailContinueBookingPressed', {
       offeringId: offering?.id,
       currentUserId: currentUser?.id,
@@ -1213,11 +1202,15 @@ export function useSessionDetailModal(
         nextBookableSessionStart: nextBookableSessionStart?.toISOString() ?? null,
         linkedBookingSessionEnd: linkedBookingSessionEnd?.toISOString() ?? null,
       });
-      uiFeedback.showToast('This session has already started or finished, so family changes are closed.');
+      uiFeedback.showToast(
+        'This session has already started or finished, so family changes are closed.',
+      );
       return;
     }
     if (isFull) {
-      logger.debug('Handle book blocked - session is full', { offeringId: offering.id });
+      logger.debug('Handle book blocked - session is full', {
+        offeringId: offering.id,
+      });
       uiFeedback.showToast('This session is currently full.');
       return;
     }
@@ -1226,20 +1219,16 @@ export function useSessionDetailModal(
         offeringId: offering.id,
         bookableChildIds: bookableChildren.map((child) => child.id),
       });
-      uiFeedback.showToast(isRegistered
+      uiFeedback.showToast(
+        isRegistered
           ? 'Select at least one additional child to book.'
-          : 'Please select at least one child to book for.');
+          : 'Please select at least one child to book for.',
+      );
       return;
     }
-
     const selectedIds = (
-      bookableChildren.length > 0
-        ? selectedChildIds
-        : currentUser?.id
-          ? [currentUser.id]
-          : []
+      bookableChildren.length > 0 ? selectedChildIds : currentUser?.id ? [currentUser.id] : []
     ).filter((id, index, source) => source.indexOf(id) === index);
-
     const prefillChildren = selectedIds
       .map((childId) => {
         if (currentUser?.id && childId === currentUser.id) {
@@ -1249,10 +1238,21 @@ export function useSessionDetailModal(
           };
         }
         const matchedChild = children.find((child) => child.id === childId);
-        return matchedChild ? { id: matchedChild.id, name: matchedChild.name } : null;
+        return matchedChild
+          ? {
+              id: matchedChild.id,
+              name: matchedChild.name,
+            }
+          : null;
       })
-      .filter((child): child is { id: string; name: string } => child !== null);
-
+      .filter(
+        (
+          child,
+        ): child is {
+          id: string;
+          name: string;
+        } => child !== null,
+      );
     const prefillChild = prefillChildren[0]
       ? (() => {
           return prefillChildren[0];
@@ -1263,21 +1263,18 @@ export function useSessionDetailModal(
             name: currentUser.name || currentUser.fullName || 'Athlete',
           }
         : null;
-
-    updateDraft(
-      {
-        ...buildBookingDraftPatchFromOffering({
-          coachId: offering.coachId,
-          offering,
-          child: prefillChild,
-          entrySource: 'session_detail_modal',
-        }),
-        childId: prefillChild?.id,
-        childIds: prefillChildren.length > 0 ? prefillChildren.map((child) => child.id) : undefined,
-        athleteName:
-          prefillChildren.length > 1 ? `${prefillChildren.length} athletes` : prefillChild?.name,
-      },
-    );
+    updateDraft({
+      ...buildBookingDraftPatchFromOffering({
+        coachId: offering.coachId,
+        offering,
+        child: prefillChild,
+        entrySource: 'session_detail_modal',
+      }),
+      childId: prefillChild?.id,
+      childIds: prefillChildren.length > 0 ? prefillChildren.map((child) => child.id) : undefined,
+      athleteName:
+        prefillChildren.length > 1 ? `${prefillChildren.length} athletes` : prefillChild?.name,
+    });
     logger.debug('Booking draft updated from session detail modal', {
       offeringId: offering.id,
       coachId: offering.coachId,
@@ -1286,7 +1283,6 @@ export function useSessionDetailModal(
       prefillChildIds: prefillChildren.map((child) => child.id),
       weeksToBook: offering.isRecurring ? weeksToBook : undefined,
     });
-
     onClose();
     logger.debug('Navigating to booking flow from session detail modal', {
       offeringId: offering.id,
@@ -1302,63 +1298,55 @@ export function useSessionDetailModal(
         weeks: offering.isRecurring ? String(weeksToBook) : undefined,
       }),
     );
-  }, [
-    bookableChildren,
-    children,
-    currentUser,
-    actorIdSet,
-    canAddAnotherChild,
-    hasMultipleKids,
-    isRegistered,
-    isFull,
-    isSessionInPast,
-    linkedBookingAthleteIds,
-    nextBookableSessionStart,
-    linkedBookingSessionEnd,
-    offering,
-    onClose,
-    selectedChildIds,
-    updateDraft,
-    weeksToBook,
-  ]);
-
-  const handleOpenReview = useCallback(() => {
+  };
+  const handleOpenReview = () => {
     if (!primaryLinkedBookingId) {
       uiFeedback.showToast('We could not find the completed booking for this session.', 'warning');
       return;
     }
     onClose();
     router.push(Routes.review(primaryLinkedBookingId));
-  }, [onClose, primaryLinkedBookingId]);
-
-  const handleOpenBookingDetail = useCallback(() => {
+  };
+  const handleOpenBookingDetail = () => {
     if (!primaryLinkedBookingId) {
       uiFeedback.showToast('We could not find the booking for this session.', 'warning');
       return;
     }
     onClose();
-    router.push(Routes.booking(primaryLinkedBookingId, { returnTo: Routes.BOOKINGS as string }));
-  }, [onClose, primaryLinkedBookingId]);
-
-  const handleMessageCoach = useCallback(() => {
+    router.push(
+      Routes.booking(primaryLinkedBookingId, {
+        returnTo: Routes.BOOKINGS as string,
+      }),
+    );
+  };
+  const handleMessageCoach = () => {
     if (!offering?.coachId) {
       uiFeedback.showToast('We could not find the coach for this session.', 'warning');
       return;
     }
     onClose();
-    router.push(Routes.messagesWith({ coachId: offering.coachId }));
-  }, [offering?.coachId, onClose]);
-
-  const handleReportProblem = useCallback(() => {
+    router.push(
+      Routes.messagesWith({
+        coachId: offering.coachId,
+      }),
+    );
+  };
+  const handleReportProblem = () => {
     if (!primaryLinkedBookingId) {
-      uiFeedback.showToast('Open the booking first once it is linked, then report the issue there.', 'warning');
+      uiFeedback.showToast(
+        'Open the booking first once it is linked, then report the issue there.',
+        'warning',
+      );
       return;
     }
     onClose();
-    router.push(Routes.bookingsReportProblem({ bookingId: primaryLinkedBookingId }));
-  }, [onClose, primaryLinkedBookingId]);
-
-  const handleBookAgain = useCallback(() => {
+    router.push(
+      Routes.bookingsReportProblem({
+        bookingId: primaryLinkedBookingId,
+      }),
+    );
+  };
+  const handleBookAgain = () => {
     if (!offering?.coachId) return;
     onClose();
     router.push(
@@ -1367,9 +1355,8 @@ export function useSessionDetailModal(
         offeringId: offering.isRecurring ? offering.id : undefined,
       }),
     );
-  }, [offering, onClose]);
-
-  const formatSchedule = useCallback(() => {
+  };
+  const formatSchedule = () => {
     if (!offering) return '';
     if (offering.isRecurring && offering.dayOfWeek !== undefined && offering.timeOfDay) {
       const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -1384,8 +1371,7 @@ export function useSessionDetailModal(
       hour: 'numeric',
       minute: '2-digit',
     });
-  }, [offering]);
-
+  };
   return {
     currentUser,
     clubLabel,

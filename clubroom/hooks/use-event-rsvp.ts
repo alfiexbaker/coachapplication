@@ -5,7 +5,7 @@
  * Used by app/events/[id]/rsvp.tsx
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState } from 'react';
 
 import { router } from 'expo-router';
 
@@ -17,11 +17,19 @@ import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
 
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
+
 const logger = createLogger('useEventRSVP');
 
 interface EventRSVPData {
   event: ClubEvent | null;
   currentRSVP: EventRSVP | null;
+}
+
+interface RSVPFormDraft {
+  eventId: string | null;
+  selectedStatus: RSVPStatus | null | undefined;
+  note: string | undefined;
 }
 
 export interface UseEventRSVPResult {
@@ -54,11 +62,13 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
   const [submitting, setSubmitting] = useState(false);
   const [reminderSending, setReminderSending] = useState(false);
 
-  // Form state
-  const [selectedStatus, setSelectedStatus] = useState<RSVPStatus | null>(null);
-  const [note, setNote] = useState('');
+  const [formDraft, setFormDraft] = useState<RSVPFormDraft>({
+    eventId: null,
+    selectedStatus: undefined,
+    note: undefined,
+  });
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     if (!id || !currentUser) {
       return ok<EventRSVPData>({ event: null, currentRSVP: null });
     }
@@ -79,7 +89,7 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
         serviceError('UNKNOWN', 'Failed to load RSVP data. Pull down to refresh.', loadError),
       );
     }
-  }, [id, currentUser]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<EventRSVPData>({
     load: loadData,
@@ -91,23 +101,38 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
   const event = data?.event ?? null;
   const currentRSVP = data?.currentRSVP ?? null;
   const loading = status === 'loading';
+  const activeEventId = event?.id ?? id ?? null;
+  const draftMatchesEvent = formDraft.eventId === activeEventId;
+  const selectedStatus =
+    draftMatchesEvent && formDraft.selectedStatus !== undefined
+      ? formDraft.selectedStatus
+      : (currentRSVP?.status ?? null);
+  const note =
+    draftMatchesEvent && formDraft.note !== undefined ? formDraft.note : (currentRSVP?.note ?? '');
 
-  useEffect(() => {
-    if (currentRSVP) {
-      setSelectedStatus(currentRSVP.status);
-      setNote(currentRSVP.note || '');
-      return;
-    }
+  const updateFormDraft = (patch: Partial<Pick<RSVPFormDraft, 'selectedStatus' | 'note'>>) => {
+    setFormDraft((previous) => ({
+      ...(previous.eventId === activeEventId
+        ? previous
+        : {
+            eventId: activeEventId,
+            selectedStatus: undefined,
+            note: undefined,
+          }),
+      ...patch,
+      eventId: activeEventId,
+    }));
+  };
 
-    setSelectedStatus(null);
-    setNote('');
-  }, [currentRSVP]);
+  const handleStatusSelect = (status: RSVPStatus) => {
+    updateFormDraft({ selectedStatus: status });
+  };
 
-  const handleStatusSelect = useCallback((status: RSVPStatus) => {
-    setSelectedStatus(status);
-  }, []);
+  const handleNoteChange = (value: string) => {
+    updateFormDraft({ note: value });
+  };
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = async () => {
     if (!event || !currentUser || !selectedStatus) return;
 
     if (selectedStatus === 'GOING' && event.maxAttendees) {
@@ -122,52 +147,68 @@ export function useEventRSVP(id: string | undefined): UseEventRSVPResult {
     }
 
     setSubmitting(true);
-    try {
-      await eventService.submitRSVP({
-        eventId: event.id,
-        userId: currentUser.id,
-        userRole: isCoach ? 'COACH' : 'PARENT',
-        status: selectedStatus,
-        guestCount: 0,
-        note: note.trim() || undefined,
-      });
 
-      uiFeedback.showToast(`Your response has been saved: ${eventService.formatRSVPStatus(selectedStatus)}`, 'success');
-router.back();
-    } catch (error) {
-      logger.error('Failed to submit RSVP:', error);
-      const message =
-        error instanceof Error && /maximum capacity|event has reached maximum capacity/i.test(error.message)
-          ? 'This event is full. Please update your RSVP without selecting Going.'
-          : 'Failed to save your response. Please try again.';
-      uiFeedback.showToast(message, 'error');
-    } finally {
-      setSubmitting(false);
-    }
-  }, [event, currentUser, selectedStatus, note, isCoach, currentRSVP]);
+    await runAsyncTryCatchFinally(
+      async () => {
+        await eventService.submitRSVP({
+          eventId: event.id,
+          userId: currentUser.id,
+          userRole: isCoach ? 'COACH' : 'PARENT',
+          status: selectedStatus,
+          guestCount: 0,
+          note: note.trim() || undefined,
+        });
 
-  const handleSendReminder = useCallback(async () => {
+        uiFeedback.showToast(
+          `Your response has been saved: ${eventService.formatRSVPStatus(selectedStatus)}`,
+          'success',
+        );
+        router.back();
+      },
+      async (error) => {
+        logger.error('Failed to submit RSVP:', error);
+        const message =
+          error instanceof Error &&
+          /maximum capacity|event has reached maximum capacity/i.test(error.message)
+            ? 'This event is full. Please update your RSVP without selecting Going.'
+            : 'Failed to save your response. Please try again.';
+        uiFeedback.showToast(message, 'error');
+      },
+      () => {
+        setSubmitting(false);
+      },
+    );
+  };
+
+  const handleSendReminder = async () => {
     if (!event || !isCoach) return;
 
     setReminderSending(true);
-    try {
-      const result = await eventService.sendReminderToMaybes(event.id);
-      if (!result.success) {
-        uiFeedback.showToast(result.error.message, 'error');
-        return;
-      }
 
-      const sentCount = result.data;
-      uiFeedback.showToast(sentCount > 0
-          ? `Reminder sent to ${sentCount} attendee${sentCount === 1 ? '' : 's'} marked as maybe.`
-          : 'There are no maybe responses to remind right now.');
-    } catch (sendError) {
-      logger.error('Failed to send RSVP reminders:', sendError);
-      uiFeedback.showToast('Could not send reminders. Please try again.', 'error');
-    } finally {
-      setReminderSending(false);
-    }
-  }, [event, isCoach]);
+    return await runAsyncTryCatchFinally(
+      async () => {
+        const result = await eventService.sendReminderToMaybes(event.id);
+        if (!result.success) {
+          uiFeedback.showToast(result.error.message, 'error');
+          return;
+        }
+
+        const sentCount = result.data;
+        uiFeedback.showToast(
+          sentCount > 0
+            ? `Reminder sent to ${sentCount} attendee${sentCount === 1 ? '' : 's'} marked as maybe.`
+            : 'There are no maybe responses to remind right now.',
+        );
+      },
+      async (sendError) => {
+        logger.error('Failed to send RSVP reminders:', sendError);
+        uiFeedback.showToast('Could not send reminders. Please try again.', 'error');
+      },
+      () => {
+        setReminderSending(false);
+      },
+    );
+  };
 
   const attendeeCounts = event
     ? eventService.getAttendeeCounts(event.attendees)
@@ -192,7 +233,7 @@ router.back();
     rsvpClosed,
     reminderSending,
     attendeeCounts,
-    setNote,
+    setNote: handleNoteChange,
     handleStatusSelect,
     handleSubmit,
     handleSendReminder,

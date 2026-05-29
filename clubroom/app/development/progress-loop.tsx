@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState, startTransition } from 'react';
 import { FlatList, type ListRenderItemInfo, Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -127,7 +127,8 @@ export default function ResultsProgramScreen() {
   const { colors } = useTheme();
   const motion = useResultsProgramMotion();
   const { showToast, showUndoToast } = useToast();
-  const openedAtRef = useRef(Date.now());
+  const [initialOpenedAt] = useState(() => Date.now());
+  const openedAtRef = useRef(initialOpenedAt);
   const openedKeyRef = useRef<string | null>(null);
   const firstActionTrackedRef = useRef(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -187,25 +188,26 @@ export default function ResultsProgramScreen() {
     isSeedingBoundaryData,
   } = useProgressLoop(athleteIdParam);
 
-  const eventRole = useMemo<ResultsProgramRole>(
-    () => toResultsProgramRole(currentUser?.role),
-    [currentUser?.role],
-  );
+  const eventRole = toResultsProgramRole(currentUser?.role);
 
-  const pullTimeToFirstActionMs = useCallback(() => {
+  const pullTimeToFirstActionMs = () => {
     if (firstActionTrackedRef.current) {
       return undefined;
     }
     firstActionTrackedRef.current = true;
     return Math.max(0, Date.now() - openedAtRef.current);
-  }, []);
+  };
 
   useEffect(() => {
     if (filter === 'done') {
-      setCompletedCollapsed(false);
+      startTransition(() => {
+        setCompletedCollapsed(false);
+      });
       return;
     }
-    setCompletedCollapsed(true);
+    startTransition(() => {
+      setCompletedCollapsed(true);
+    });
   }, [filter]);
 
   useEffect(() => {
@@ -216,8 +218,10 @@ export default function ResultsProgramScreen() {
     if (selectedLane && selectedLane.count > 0) {
       return;
     }
-    const fallbackLane = coachQueueLanes.find((lane) => lane.count > 0)?.key ?? 'intervene_now';
-    setCoachLane(fallbackLane);
+    const fallbackLane: CoachQueueLaneKey = coachQueueLanes.find((lane) => lane.count > 0)?.key ?? 'intervene_now';
+    startTransition(() => {
+      setCoachLane(fallbackLane);
+    });
   }, [coachLane, coachQueueLanes, isCoachView]);
 
   useEffect(() => {
@@ -225,7 +229,9 @@ export default function ResultsProgramScreen() {
       return;
     }
     const athleteIdSet = new Set(coachQueue.map((row) => row.athleteId));
-    setSelectedCoachAthleteIds((previous) => previous.filter((id) => athleteIdSet.has(id)));
+    startTransition(() => {
+      setSelectedCoachAthleteIds((previous) => previous.filter((id) => athleteIdSet.has(id)));
+    });
   }, [coachQueue, isCoachView]);
 
   useEffect(() => {
@@ -271,136 +277,87 @@ export default function ResultsProgramScreen() {
     status,
   ]);
 
-  const selectedTask = useMemo(
-    () => (selectedTaskId ? tasks.find((task) => task.id === selectedTaskId) ?? null : null),
-    [selectedTaskId, tasks],
-  );
+  const selectedTask = (selectedTaskId ? tasks.find((task) => task.id === selectedTaskId) ?? null : null);
 
-  const selectedPlaybookRow = useMemo(
-    () =>
-      selectedPlaybookAthleteId
-        ? coachQueue.find((row) => row.athleteId === selectedPlaybookAthleteId) ?? null
-        : null,
-    [coachQueue, selectedPlaybookAthleteId],
-  );
+  const selectedPlaybookRow = selectedPlaybookAthleteId
+    ? coachQueue.find((row) => row.athleteId === selectedPlaybookAthleteId) ?? null
+    : null;
 
-  const filterOptions = useMemo(
-    () =>
-      FILTER_OPTIONS.map((option) => ({
-        ...option,
-        count:
-          option.id === 'pending'
-            ? pendingCount
-            : option.id === 'overdue'
-              ? overdueCount
-              : option.id === 'done'
-                ? completedCount
-                : tasks.length,
-      })),
-    [completedCount, overdueCount, pendingCount, tasks.length],
-  );
+  const filterOptions = FILTER_OPTIONS.map((option) => ({
+    ...option,
+    count:
+      option.id === 'pending'
+        ? pendingCount
+        : option.id === 'overdue'
+          ? overdueCount
+          : option.id === 'done'
+            ? completedCount
+            : tasks.length,
+  }));
 
-  const handleSelectFilter = useCallback(
-    (nextFilter: ProgressLoopFilter) => {
-      if (nextFilter === filter) {
-        return;
-      }
-      setFilter(nextFilter);
-      if (!currentUser?.id || isCoachView) {
-        return;
-      }
+  const handleSelectFilter = (nextFilter: ProgressLoopFilter) => {
+    if (nextFilter === filter) {
+      return;
+    }
+    setFilter(nextFilter);
+    if (!currentUser?.id || isCoachView) {
+      return;
+    }
 
-      const countForFilter =
-        nextFilter === 'pending'
-          ? pendingCount
-          : nextFilter === 'overdue'
-            ? overdueCount
-            : nextFilter === 'done'
-              ? completedCount
-              : tasks.length;
-      emitTyped(ServiceEvents.RESULTS_PROGRAM_FILTER_CHANGED, {
-        userId: currentUser.id,
-        role: eventRole,
-        athleteId: selectedAthleteId ?? null,
-        filter: nextFilter,
-        count: countForFilter,
-        pendingCount,
-        overdueCount,
-        completedCount,
-      });
-    },
-    [
-      completedCount,
-      currentUser?.id,
-      eventRole,
-      filter,
-      isCoachView,
-      overdueCount,
+    const countForFilter =
+      nextFilter === 'pending'
+        ? pendingCount
+        : nextFilter === 'overdue'
+          ? overdueCount
+          : nextFilter === 'done'
+            ? completedCount
+            : tasks.length;
+    emitTyped(ServiceEvents.RESULTS_PROGRAM_FILTER_CHANGED, {
+      userId: currentUser.id,
+      role: eventRole,
+      athleteId: selectedAthleteId ?? null,
+      filter: nextFilter,
+      count: countForFilter,
       pendingCount,
-      selectedAthleteId,
-      setFilter,
-      tasks.length,
-    ],
-  );
+      overdueCount,
+      completedCount,
+    });
+  };
 
-  const coachInterventionScore = useMemo(() => {
+  const coachInterventionScore = (() => {
     const pressure = queueTotals.overdue * 20 + queueTotals.high * 14 + queueTotals.watch * 8;
     return Math.max(0, Math.min(100, 100 - pressure));
-  }, [queueTotals.high, queueTotals.overdue, queueTotals.watch]);
+  })();
 
-  const coachMetrics = useMemo<ResultsProgramHeroMetric[]>(
-    () => [
-      { label: 'At risk', value: queueTotals.atRisk, tone: queueTotals.atRisk > 0 ? 'alert' : 'default' },
-      { label: 'Overdue', value: queueTotals.overdue, tone: queueTotals.overdue > 0 ? 'alert' : 'default' },
-      { label: 'Due soon', value: queueTotals.dueSoon, tone: queueTotals.dueSoon > 0 ? 'alert' : 'default' },
-    ],
-    [queueTotals.atRisk, queueTotals.dueSoon, queueTotals.overdue],
-  );
+  const coachMetrics: ResultsProgramHeroMetric[] = [
+    { label: 'At risk', value: queueTotals.atRisk, tone: queueTotals.atRisk > 0 ? 'alert' : 'default' },
+    { label: 'Overdue', value: queueTotals.overdue, tone: queueTotals.overdue > 0 ? 'alert' : 'default' },
+    { label: 'Due soon', value: queueTotals.dueSoon, tone: queueTotals.dueSoon > 0 ? 'alert' : 'default' },
+  ];
 
-  const athleteMetrics = useMemo<ResultsProgramHeroMetric[]>(
-    () => [
-      { label: 'Pending now', value: pendingCount },
-      { label: 'Overdue', value: overdueCount, tone: 'alert' },
-      {
-        label: 'Practice days',
-        value: practiceDaysThisWeek,
-        tone: practiceDaysThisWeek > 0 ? 'success' : 'default',
-      },
-    ],
-    [overdueCount, pendingCount, practiceDaysThisWeek],
-  );
+  const athleteMetrics: ResultsProgramHeroMetric[] = [
+    { label: 'Pending now', value: pendingCount },
+    { label: 'Overdue', value: overdueCount, tone: 'alert' },
+    {
+      label: 'Practice days',
+      value: practiceDaysThisWeek,
+      tone: practiceDaysThisWeek > 0 ? 'success' : 'default',
+    },
+  ];
 
-  const orderedPendingTasks = useMemo(
-    () =>
-      tasks
-        .filter((task) => task.status === 'pending')
-        .sort((left, right) => sortTasksByUrgency(left, right, nowTs)),
-    [nowTs, tasks],
-  );
+  const orderedPendingTasks = tasks
+    .filter((task) => task.status === 'pending')
+    .sort((left, right) => sortTasksByUrgency(left, right, nowTs));
 
-  const dueSoonCount = useMemo(
-    () =>
-      orderedPendingTasks.filter((task) => deriveTaskTiming(task, nowTs) === 'due_soon').length,
-    [nowTs, orderedPendingTasks],
-  );
+  const dueSoonCount = orderedPendingTasks.filter((task) => deriveTaskTiming(task, nowTs) === 'due_soon').length;
 
-  const upcomingCount = useMemo(
-    () =>
-      orderedPendingTasks.filter((task) => deriveTaskTiming(task, nowTs) === 'upcoming').length,
-    [nowTs, orderedPendingTasks],
-  );
+  const upcomingCount = orderedPendingTasks.filter((task) => deriveTaskTiming(task, nowTs) === 'upcoming').length;
 
-  const topPriorityTask = useMemo(
-    () => orderedPendingTasks[0] ?? null,
-    [orderedPendingTasks],
-  );
+  const topPriorityTask = orderedPendingTasks[0] ?? null;
 
-  const topPriorityTiming = useMemo(
-    () => (topPriorityTask ? deriveTaskTiming(topPriorityTask, nowTs) : null),
-    [nowTs, topPriorityTask],
-  );
+  const topPriorityTiming = (topPriorityTask ? deriveTaskTiming(topPriorityTask, nowTs) : null);
 
-  const topPriorityColor = useMemo(() => {
+  const topPriorityColor = (() => {
     if (topPriorityTiming === 'overdue') {
       return colors.error;
     }
@@ -408,9 +365,9 @@ export default function ResultsProgramScreen() {
       return colors.warning;
     }
     return colors.tint;
-  }, [colors.error, colors.tint, colors.warning, topPriorityTiming]);
+  })();
 
-  const executionQueueSubtitle = useMemo(() => {
+  const executionQueueSubtitle = (() => {
     if (overdueCount > 0) {
       return `${overdueCount} overdue needs action now.`;
     }
@@ -421,93 +378,71 @@ export default function ResultsProgramScreen() {
       return `${orderedPendingTasks.length} queued to keep momentum.`;
     }
     return 'No pending actions right now.';
-  }, [dueSoonCount, orderedPendingTasks.length, overdueCount]);
+  })();
 
-  const coachLaneOptions = useMemo(
-    () =>
-      coachQueueLanes.map((lane) => ({
-        id: lane.key,
-        label: lane.title,
-        count: lane.count,
-      })),
-    [coachQueueLanes],
-  );
+  const coachLaneOptions: Array<{ id: CoachQueueLaneKey; label: string; count: number }> = coachQueueLanes.map((lane) => ({
+    id: lane.key,
+    label: lane.title,
+    count: lane.count,
+  }));
 
-  const selectedLaneRows = useMemo(
-    () => coachQueueLanes.find((lane) => lane.key === coachLane)?.rows ?? [],
-    [coachLane, coachQueueLanes],
-  );
+  const selectedLaneRows = coachQueueLanes.find((lane) => lane.key === coachLane)?.rows ?? [];
 
-  const coachListData = useMemo<CoachListItem[]>(
-    () => [{ type: 'lane_selector' }, ...selectedLaneRows.map((row) => ({ type: 'athlete' as const, row }))],
-    [selectedLaneRows],
-  );
+  const coachListData: CoachListItem[] = [
+    { type: 'lane_selector' },
+    ...selectedLaneRows.map((row) => ({ type: 'athlete' as const, row })),
+  ];
 
-  const selectedCoachAthleteIdSet = useMemo(
-    () => new Set(selectedCoachAthleteIds),
-    [selectedCoachAthleteIds],
-  );
+  const selectedCoachAthleteIdSet = new Set(selectedCoachAthleteIds);
 
-  const selectedCoachTaskIds = useMemo(() => {
+  const selectedCoachTaskIds = (() => {
     const rows = coachQueue.filter((row) => selectedCoachAthleteIdSet.has(row.athleteId));
     return collectTaskIds(rows);
-  }, [coachQueue, selectedCoachAthleteIdSet]);
+  })();
 
-  const overdueLaneTaskIds = useMemo(
-    () => collectTaskIds(selectedLaneRows.filter((row) => row.overdueCount > 0)),
-    [selectedLaneRows],
-  );
-  const dueSoonLaneTaskIds = useMemo(
-    () => collectTaskIds(selectedLaneRows.filter((row) => row.dueSoonCount > 0)),
-    [selectedLaneRows],
-  );
+  const overdueLaneTaskIds = collectTaskIds(selectedLaneRows.filter((row) => row.overdueCount > 0));
+  const dueSoonLaneTaskIds = collectTaskIds(selectedLaneRows.filter((row) => row.dueSoonCount > 0));
 
-  const runCoachActionWithSummary = useCallback(
-    async (
-      actionLabel: string,
-      runner: () => Promise<{ success: true; data: CoachBulkActionResult } | { success: false; error: { message: string } }>,
-      afterSuccess?: () => void,
-    ): Promise<CoachBulkActionResult | null> => {
-      const result = await runner();
-      if (!result.success) {
-        showToast(result.error.message, 'error');
-        return null;
-      }
-      const summary = formatBulkSummary(actionLabel, result.data);
-      showToast(summary.message, summary.tone);
-      afterSuccess?.();
-      return result.data;
-    },
-    [showToast],
-  );
+  const runCoachActionWithSummary = async (
+    actionLabel: string,
+    runner: () => Promise<{ success: true; data: CoachBulkActionResult } | { success: false; error: { message: string } }>,
+    afterSuccess?: () => void,
+  ): Promise<CoachBulkActionResult | null> => {
+    const result = await runner();
+    if (!result.success) {
+      showToast(result.error.message, 'error');
+      return null;
+    }
+    const summary = formatBulkSummary(actionLabel, result.data);
+    showToast(summary.message, summary.tone);
+    afterSuccess?.();
+    return result.data;
+  };
 
-  const emitPlaybookAction = useCallback(
-    (row: CoachFollowUpItem, action: 'message' | 'recovery_checkpoint' | 'history') => {
-      if (!currentUser?.id) {
-        return;
-      }
-      emitTyped(ServiceEvents.RESULTS_PLAYBOOK_ACTION_TAPPED, {
-        coachId: currentUser.id,
-        athleteId: row.athleteId,
-        risk: row.risk,
-        overdueCount: row.overdueCount,
-        dueSoonCount: row.dueSoonCount,
-        taskCount: row.taskIds.length,
-        action,
-      });
-    },
-    [currentUser?.id],
-  );
+  const emitPlaybookAction = (row: CoachFollowUpItem, action: 'message' | 'recovery_checkpoint' | 'history') => {
+    if (!currentUser?.id) {
+      return;
+    }
+    emitTyped(ServiceEvents.RESULTS_PLAYBOOK_ACTION_TAPPED, {
+      coachId: currentUser.id,
+      athleteId: row.athleteId,
+      risk: row.risk,
+      overdueCount: row.overdueCount,
+      dueSoonCount: row.dueSoonCount,
+      taskCount: row.taskIds.length,
+      action,
+    });
+  };
 
-  const handleOpenTask = useCallback((task: PracticeTask) => {
+  const handleOpenTask = (task: PracticeTask) => {
     setSelectedTaskId(task.id);
-  }, []);
+  };
 
-  const handleCloseTaskSheet = useCallback(() => {
+  const handleCloseTaskSheet = () => {
     setSelectedTaskId(null);
-  }, []);
+  };
 
-  const handleSeedBoundaryData = useCallback(async () => {
+  const handleSeedBoundaryData = async () => {
     const result = await seedBoundaryTestData();
     if (!result.success) {
       showToast(result.error.message, 'error');
@@ -520,248 +455,202 @@ export default function ResultsProgramScreen() {
     }
 
     showToast('Test scenarios already loaded and refreshed.', 'warning');
-  }, [seedBoundaryTestData, showToast]);
+  };
 
-  const handleToggleTask = useCallback(
-    async (task: PracticeTask, completionNote?: string) => {
-      const nextCompleted = task.status !== 'completed';
-      const result = await runResultsProgramTaskAction(
-        {
-          type: 'toggle_completion',
-          task,
-          completionNote,
-        },
-        {
-          setTaskCompletion,
-          updateTaskDueAt,
-          snoozeTask,
-        },
-      );
-      if (!result.success) {
-        showToast(result.error.message, 'error');
-        return;
+  const handleToggleTask = async (task: PracticeTask, completionNote?: string) => {
+    const nextCompleted = task.status !== 'completed';
+    const result = await runResultsProgramTaskAction(
+      {
+        type: 'toggle_completion',
+        task,
+        completionNote,
+      },
+      {
+        setTaskCompletion,
+        updateTaskDueAt,
+        snoozeTask,
+      },
+    );
+    if (!result.success) {
+      showToast(result.error.message, 'error');
+      return;
+    }
+
+    if (currentUser?.id) {
+      const dueTs = new Date(task.dueAt).getTime();
+      const now = Date.now();
+      const wasOverdue = deriveTaskTiming(task, nowTs) === 'overdue';
+      emitTyped(ServiceEvents.RESULTS_PROGRAM_TASK_COMPLETED, {
+        userId: currentUser.id,
+        role: eventRole,
+        athleteId: task.athleteId || selectedAthleteId || null,
+        taskId: task.id,
+        coachId: task.coachId || null,
+        status: nextCompleted ? 'completed' : 'reopened',
+        dueAt: task.dueAt,
+        completedAt: new Date().toISOString(),
+        wasOverdue,
+        resolvedWithin48h:
+          nextCompleted && wasOverdue && !Number.isNaN(dueTs)
+            ? now - dueTs <= OVERDUE_RESOLUTION_WINDOW_MS
+            : undefined,
+        timeToFirstActionMs: pullTimeToFirstActionMs(),
+      });
+    }
+
+    if (nextCompleted) {
+      if (Platform.OS !== 'web') {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
       }
-
-      if (currentUser?.id) {
-        const dueTs = new Date(task.dueAt).getTime();
-        const now = Date.now();
-        const wasOverdue = deriveTaskTiming(task, nowTs) === 'overdue';
-        emitTyped(ServiceEvents.RESULTS_PROGRAM_TASK_COMPLETED, {
-          userId: currentUser.id,
-          role: eventRole,
-          athleteId: task.athleteId || selectedAthleteId || null,
-          taskId: task.id,
-          coachId: task.coachId || null,
-          status: nextCompleted ? 'completed' : 'reopened',
-          dueAt: task.dueAt,
-          completedAt: new Date().toISOString(),
-          wasOverdue,
-          resolvedWithin48h:
-            nextCompleted && wasOverdue && !Number.isNaN(dueTs)
-              ? now - dueTs <= OVERDUE_RESOLUTION_WINDOW_MS
-              : undefined,
-          timeToFirstActionMs: pullTimeToFirstActionMs(),
-        });
-      }
-
-      if (nextCompleted) {
-        if (Platform.OS !== 'web') {
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+      showUndoToast('Task marked done', async () => {
+        const undoResult = await setTaskCompletion(task.id, false);
+        if (!undoResult.success) {
+          showToast(undoResult.error.message, 'error');
+          return;
         }
-        showUndoToast('Task marked done', async () => {
-          const undoResult = await setTaskCompletion(task.id, false);
-          if (!undoResult.success) {
-            showToast(undoResult.error.message, 'error');
-            return;
-          }
-          showToast('Task restored', 'success');
-        });
-      } else {
-        showToast('Task marked as not done', 'success');
-      }
+        showToast('Task restored', 'success');
+      });
+    } else {
+      showToast('Task marked as not done', 'success');
+    }
 
-      if (isTaskSyncing(task.id)) {
-        showToast('Saved locally. Syncing changes now.', 'warning');
-      }
+    if (isTaskSyncing(task.id)) {
+      showToast('Saved locally. Syncing changes now.', 'warning');
+    }
 
-      setSelectedTaskId(null);
-    },
-    [
-      currentUser?.id,
-      eventRole,
-      isTaskSyncing,
-      nowTs,
-      pullTimeToFirstActionMs,
-      selectedAthleteId,
-      setTaskCompletion,
-      snoozeTask,
-      showToast,
-      showUndoToast,
-      updateTaskDueAt,
-    ],
-  );
+    setSelectedTaskId(null);
+  };
 
-  const handleSnoozeTask = useCallback(
-    async (task: PracticeTask, hours: number) => {
-      const previousDueAt = task.dueAt;
-      const previousDueTs = new Date(previousDueAt).getTime();
-      const baseDueTs = Number.isNaN(previousDueTs) ? Date.now() : Math.max(Date.now(), previousDueTs);
-      const nextDueAt = new Date(baseDueTs + hours * 60 * 60 * 1000).toISOString();
-      const result = await runResultsProgramTaskAction(
-        {
-          type: 'snooze',
-          task,
-          hours,
-        },
-        {
-          setTaskCompletion,
-          updateTaskDueAt,
-          snoozeTask,
-        },
-      );
-      if (!result.success) {
-        showToast(result.error.message, 'error');
-        return;
-      }
+  const handleSnoozeTask = async (task: PracticeTask, hours: number) => {
+    const previousDueAt = task.dueAt;
+    const previousDueTs = new Date(previousDueAt).getTime();
+    const baseDueTs = Number.isNaN(previousDueTs) ? Date.now() : Math.max(Date.now(), previousDueTs);
+    const nextDueAt = new Date(baseDueTs + hours * 60 * 60 * 1000).toISOString();
+    const result = await runResultsProgramTaskAction(
+      {
+        type: 'snooze',
+        task,
+        hours,
+      },
+      {
+        setTaskCompletion,
+        updateTaskDueAt,
+        snoozeTask,
+      },
+    );
+    if (!result.success) {
+      showToast(result.error.message, 'error');
+      return;
+    }
 
-      if (currentUser?.id) {
-        emitTyped(ServiceEvents.RESULTS_PROGRAM_TASK_RESCHEDULED, {
-          userId: currentUser.id,
-          role: eventRole,
-          athleteId: task.athleteId || selectedAthleteId || null,
-          taskId: task.id,
-          coachId: task.coachId || null,
-          previousDueAt,
-          nextDueAt,
-          action: 'snooze',
-          snoozeHours: hours,
-          wasOverdue: deriveTaskTiming(task, nowTs) === 'overdue',
-          timeToFirstActionMs: pullTimeToFirstActionMs(),
-        });
-      }
+    if (currentUser?.id) {
+      emitTyped(ServiceEvents.RESULTS_PROGRAM_TASK_RESCHEDULED, {
+        userId: currentUser.id,
+        role: eventRole,
+        athleteId: task.athleteId || selectedAthleteId || null,
+        taskId: task.id,
+        coachId: task.coachId || null,
+        previousDueAt,
+        nextDueAt,
+        action: 'snooze',
+        snoozeHours: hours,
+        wasOverdue: deriveTaskTiming(task, nowTs) === 'overdue',
+        timeToFirstActionMs: pullTimeToFirstActionMs(),
+      });
+    }
 
-      showToast(
-        isTaskSyncing(task.id) ? `Snoozed by ${hours}h. Syncing now.` : `Task snoozed by ${hours}h`,
-        isTaskSyncing(task.id) ? 'warning' : 'success',
-      );
-      setSelectedTaskId(null);
-    },
-    [
-      currentUser?.id,
-      eventRole,
-      isTaskSyncing,
-      nowTs,
-      pullTimeToFirstActionMs,
-      selectedAthleteId,
-      setTaskCompletion,
-      showToast,
-      snoozeTask,
-      updateTaskDueAt,
-    ],
-  );
+    showToast(
+      isTaskSyncing(task.id) ? `Snoozed by ${hours}h. Syncing now.` : `Task snoozed by ${hours}h`,
+      isTaskSyncing(task.id) ? 'warning' : 'success',
+    );
+    setSelectedTaskId(null);
+  };
 
-  const handleRescheduleTask = useCallback(
-    async (task: PracticeTask, dueAtIso: string) => {
-      const previousDueAt = task.dueAt;
-      const result = await runResultsProgramTaskAction(
-        {
-          type: 'reschedule',
-          task,
-          dueAtIso,
-        },
-        {
-          setTaskCompletion,
-          updateTaskDueAt,
-          snoozeTask,
-        },
-      );
-      if (!result.success) {
-        showToast(result.error.message, 'error');
-        return;
-      }
+  const handleRescheduleTask = async (task: PracticeTask, dueAtIso: string) => {
+    const previousDueAt = task.dueAt;
+    const result = await runResultsProgramTaskAction(
+      {
+        type: 'reschedule',
+        task,
+        dueAtIso,
+      },
+      {
+        setTaskCompletion,
+        updateTaskDueAt,
+        snoozeTask,
+      },
+    );
+    if (!result.success) {
+      showToast(result.error.message, 'error');
+      return;
+    }
 
-      if (currentUser?.id) {
-        emitTyped(ServiceEvents.RESULTS_PROGRAM_TASK_RESCHEDULED, {
-          userId: currentUser.id,
-          role: eventRole,
-          athleteId: task.athleteId || selectedAthleteId || null,
-          taskId: task.id,
-          coachId: task.coachId || null,
-          previousDueAt,
-          nextDueAt: dueAtIso,
-          action: 'reschedule',
-          snoozeHours: undefined,
-          wasOverdue: deriveTaskTiming(task, nowTs) === 'overdue',
-          timeToFirstActionMs: pullTimeToFirstActionMs(),
-        });
-      }
+    if (currentUser?.id) {
+      emitTyped(ServiceEvents.RESULTS_PROGRAM_TASK_RESCHEDULED, {
+        userId: currentUser.id,
+        role: eventRole,
+        athleteId: task.athleteId || selectedAthleteId || null,
+        taskId: task.id,
+        coachId: task.coachId || null,
+        previousDueAt,
+        nextDueAt: dueAtIso,
+        action: 'reschedule',
+        snoozeHours: undefined,
+        wasOverdue: deriveTaskTiming(task, nowTs) === 'overdue',
+        timeToFirstActionMs: pullTimeToFirstActionMs(),
+      });
+    }
 
-      showToast(isTaskSyncing(task.id) ? 'Rescheduled. Syncing changes now.' : 'Task rescheduled', isTaskSyncing(task.id) ? 'warning' : 'success');
-      setSelectedTaskId(null);
-    },
-    [
-      currentUser?.id,
-      eventRole,
-      isTaskSyncing,
-      nowTs,
-      pullTimeToFirstActionMs,
-      selectedAthleteId,
-      setTaskCompletion,
-      showToast,
-      snoozeTask,
-      updateTaskDueAt,
-    ],
-  );
+    showToast(isTaskSyncing(task.id) ? 'Rescheduled. Syncing changes now.' : 'Task rescheduled', isTaskSyncing(task.id) ? 'warning' : 'success');
+    setSelectedTaskId(null);
+  };
 
-  const handleMessageTask = useCallback(
-    (task: PracticeTask) => {
-      if (!task.coachId) {
-        showToast('Coach conversation unavailable', 'error');
-        return;
-      }
+  const handleMessageTask = (task: PracticeTask) => {
+    if (!task.coachId) {
+      showToast('Coach conversation unavailable', 'error');
+      return;
+    }
 
-      router.push(
-        Routes.messagesWith({
-          coachId: task.coachId,
-          athleteId: task.athleteId || selectedAthleteId || undefined,
-        }),
-      );
-      if (currentUser?.id) {
-        emitTyped(ServiceEvents.RESULTS_PROGRAM_MESSAGE_FROM_TASK, {
-          userId: currentUser.id,
-          role: eventRole,
-          athleteId: task.athleteId || selectedAthleteId || null,
-          taskId: task.id,
-          coachId: task.coachId,
-          source: 'task_sheet',
-          timeToFirstActionMs: pullTimeToFirstActionMs(),
-        });
-      }
-      setSelectedTaskId(null);
-    },
-    [currentUser?.id, eventRole, pullTimeToFirstActionMs, selectedAthleteId, showToast],
-  );
+    router.push(
+      Routes.messagesWith({
+        coachId: task.coachId,
+        athleteId: task.athleteId || selectedAthleteId || undefined,
+      }),
+    );
+    if (currentUser?.id) {
+      emitTyped(ServiceEvents.RESULTS_PROGRAM_MESSAGE_FROM_TASK, {
+        userId: currentUser.id,
+        role: eventRole,
+        athleteId: task.athleteId || selectedAthleteId || null,
+        taskId: task.id,
+        coachId: task.coachId,
+        source: 'task_sheet',
+        timeToFirstActionMs: pullTimeToFirstActionMs(),
+      });
+    }
+    setSelectedTaskId(null);
+  };
 
-  const handleOpenHistory = useCallback((task: PracticeTask) => {
+  const handleOpenHistory = (task: PracticeTask) => {
     router.push(
       Routes.developmentSessionHistory({
         athleteId: task.athleteId,
       }),
     );
     setSelectedTaskId(null);
-  }, []);
+  };
 
-  const handleClosePlaybook = useCallback(() => {
+  const handleClosePlaybook = () => {
     setSelectedPlaybookAthleteId(null);
-  }, []);
+  };
 
-  const handleSelectLane = useCallback((value: CoachQueueLaneKey) => {
+  const handleSelectLane = (value: CoachQueueLaneKey) => {
     setCoachLane(value);
     setCoachSelectionMode(false);
     setSelectedCoachAthleteIds([]);
-  }, []);
+  };
 
-  const handleToggleCoachSelectionMode = useCallback(() => {
+  const handleToggleCoachSelectionMode = () => {
     setCoachSelectionMode((previous) => {
       const next = !previous;
       if (!next) {
@@ -769,19 +658,19 @@ export default function ResultsProgramScreen() {
       }
       return next;
     });
-  }, []);
+  };
 
-  const handleToggleCoachSelected = useCallback((athleteId: string) => {
+  const handleToggleCoachSelected = (athleteId: string) => {
     setSelectedCoachAthleteIds((previous) =>
       previous.includes(athleteId) ? previous.filter((value) => value !== athleteId) : [...previous, athleteId],
     );
-  }, []);
+  };
 
-  const handleOpenPlaybook = useCallback((row: CoachFollowUpItem) => {
+  const handleOpenPlaybook = (row: CoachFollowUpItem) => {
     setSelectedPlaybookAthleteId(row.athleteId);
-  }, []);
+  };
 
-  const handleOpenCoachMessage = useCallback((row: CoachFollowUpItem) => {
+  const handleOpenCoachMessage = (row: CoachFollowUpItem) => {
     void runCoachActionWithSummary(
       'Follow-up logged',
       () => recordCoachFollowUp(row.taskIds, 'message'),
@@ -800,71 +689,62 @@ export default function ResultsProgramScreen() {
         router.push(Routes.chatWithAthlete(row.athleteId));
       },
     );
-  }, [currentUser?.id, pullTimeToFirstActionMs, recordCoachFollowUp, runCoachActionWithSummary]);
+  };
 
-  const handleOpenCoachHistory = useCallback((row: CoachFollowUpItem) => {
+  const handleOpenCoachHistory = (row: CoachFollowUpItem) => {
     router.push(
       Routes.developmentSessionHistory({
         athleteId: row.athleteId,
       }),
     );
-  }, []);
+  };
 
-  const handlePlaybookMessage = useCallback(
-    async (row: CoachFollowUpItem) => {
-      emitPlaybookAction(row, 'message');
-      const followUpResult = await recordCoachFollowUp(row.taskIds, 'message');
-      if (!followUpResult.success) {
-        showToast(followUpResult.error.message, 'error');
-        return;
-      }
-      if (currentUser?.id) {
-        emitTyped(ServiceEvents.RESULTS_PROGRAM_MESSAGE_FROM_TASK, {
-          userId: currentUser.id,
-          role: 'coach',
-          athleteId: row.athleteId,
-          taskId: row.taskIds[0] ?? `athlete_${row.athleteId}`,
-          coachId: row.coachId,
-          source: 'coach_playbook',
-          timeToFirstActionMs: pullTimeToFirstActionMs(),
-        });
-      }
-      showToast('Follow-up logged', 'success');
-      router.push(Routes.chatWithAthlete(row.athleteId));
-      setSelectedPlaybookAthleteId(null);
-    },
-    [currentUser?.id, emitPlaybookAction, pullTimeToFirstActionMs, recordCoachFollowUp, showToast],
-  );
+  const handlePlaybookMessage = async (row: CoachFollowUpItem) => {
+    emitPlaybookAction(row, 'message');
+    const followUpResult = await recordCoachFollowUp(row.taskIds, 'message');
+    if (!followUpResult.success) {
+      showToast(followUpResult.error.message, 'error');
+      return;
+    }
+    if (currentUser?.id) {
+      emitTyped(ServiceEvents.RESULTS_PROGRAM_MESSAGE_FROM_TASK, {
+        userId: currentUser.id,
+        role: 'coach',
+        athleteId: row.athleteId,
+        taskId: row.taskIds[0] ?? `athlete_${row.athleteId}`,
+        coachId: row.coachId,
+        source: 'coach_playbook',
+        timeToFirstActionMs: pullTimeToFirstActionMs(),
+      });
+    }
+    showToast('Follow-up logged', 'success');
+    router.push(Routes.chatWithAthlete(row.athleteId));
+    setSelectedPlaybookAthleteId(null);
+  };
 
-  const handlePlaybookRecoveryCheckpoint = useCallback(
-    async (row: CoachFollowUpItem) => {
-      emitPlaybookAction(row, 'recovery_checkpoint');
-      const result = await setCoachRecoveryCheckpoint(row.taskIds, 48);
-      if (!result.success) {
-        showToast(result.error.message, 'error');
-        return;
-      }
-      const summary = formatBulkSummary('Recovery checkpoint', result.data);
-      showToast(summary.message, summary.tone);
-      setSelectedPlaybookAthleteId(null);
-    },
-    [emitPlaybookAction, setCoachRecoveryCheckpoint, showToast],
-  );
+  const handlePlaybookRecoveryCheckpoint = async (row: CoachFollowUpItem) => {
+    emitPlaybookAction(row, 'recovery_checkpoint');
+    const result = await setCoachRecoveryCheckpoint(row.taskIds, 48);
+    if (!result.success) {
+      showToast(result.error.message, 'error');
+      return;
+    }
+    const summary = formatBulkSummary('Recovery checkpoint', result.data);
+    showToast(summary.message, summary.tone);
+    setSelectedPlaybookAthleteId(null);
+  };
 
-  const handlePlaybookHistory = useCallback(
-    async (row: CoachFollowUpItem) => {
-      emitPlaybookAction(row, 'history');
-      router.push(
-        Routes.developmentSessionHistory({
-          athleteId: row.athleteId,
-        }),
-      );
-      setSelectedPlaybookAthleteId(null);
-    },
-    [emitPlaybookAction],
-  );
+  const handlePlaybookHistory = async (row: CoachFollowUpItem) => {
+    emitPlaybookAction(row, 'history');
+    router.push(
+      Routes.developmentSessionHistory({
+        athleteId: row.athleteId,
+      }),
+    );
+    setSelectedPlaybookAthleteId(null);
+  };
 
-  const runBulkWithConfirm = useCallback((title: string, message: string, run: () => Promise<void>) => {
+  const runBulkWithConfirm = (title: string, message: string, run: () => Promise<void>) => {
     uiFeedback.alert(title, message, [
       {
         text: 'Cancel',
@@ -877,9 +757,9 @@ export default function ResultsProgramScreen() {
         },
       },
     ]);
-  }, []);
+  };
 
-  const handleBulkNudgeOverdue = useCallback(() => {
+  const handleBulkNudgeOverdue = () => {
     const athleteCount = selectedLaneRows.filter((row) => row.overdueCount > 0).length;
     if (athleteCount === 0) {
       showToast('No overdue athletes in this lane.', 'warning');
@@ -906,19 +786,9 @@ export default function ResultsProgramScreen() {
         });
       },
     );
-  }, [
-    coachLane,
-    currentUser?.id,
-    overdueLaneTaskIds,
-    pullTimeToFirstActionMs,
-    recordCoachFollowUp,
-    runBulkWithConfirm,
-    runCoachActionWithSummary,
-    selectedLaneRows,
-    showToast,
-  ]);
+  };
 
-  const handleBulkNudgeDueSoon = useCallback(() => {
+  const handleBulkNudgeDueSoon = () => {
     const athleteCount = selectedLaneRows.filter((row) => row.dueSoonCount > 0).length;
     if (athleteCount === 0) {
       showToast('No due-soon athletes in this lane.', 'warning');
@@ -945,19 +815,9 @@ export default function ResultsProgramScreen() {
         });
       },
     );
-  }, [
-    coachLane,
-    currentUser?.id,
-    dueSoonLaneTaskIds,
-    pullTimeToFirstActionMs,
-    recordCoachFollowUp,
-    runBulkWithConfirm,
-    runCoachActionWithSummary,
-    selectedLaneRows,
-    showToast,
-  ]);
+  };
 
-  const handleBulkMarkReviewed = useCallback(() => {
+  const handleBulkMarkReviewed = () => {
     if (selectedCoachTaskIds.length === 0) {
       showToast('Select athletes first.', 'warning');
       return;
@@ -976,14 +836,7 @@ export default function ResultsProgramScreen() {
         );
       },
     );
-  }, [
-    markCoachTasksReviewed,
-    runBulkWithConfirm,
-    runCoachActionWithSummary,
-    selectedCoachAthleteIds.length,
-    selectedCoachTaskIds,
-    showToast,
-  ]);
+  };
 
   const emptyActionLabel = isCoachView
     ? 'Review session history'
@@ -993,7 +846,7 @@ export default function ResultsProgramScreen() {
       ? 'View session history'
       : 'Find coach';
 
-  const handleEmptyAction = useCallback(() => {
+  const handleEmptyAction = () => {
     if (isParentView && switcherChildren.length === 0) {
       router.push(Routes.CHILDREN);
       return;
@@ -1013,122 +866,95 @@ export default function ResultsProgramScreen() {
     }
 
     router.push(Routes.DISCOVER_MAP);
-  }, [isCoachView, isParentView, selectedAthleteId, switcherChildren.length]);
+  };
 
-  const renderCoachQueueItem = useCallback(
-    ({ item }: ListRenderItemInfo<CoachListItem>) => {
-      if (item.type === 'lane_selector') {
-        return (
-          <View style={[styles.coachStickyWrap, { backgroundColor: colors.background }]}>
-            <CoachLaneSegment
-              options={coachLaneOptions}
-              selectedId={coachLane}
-              onSelect={handleSelectLane}
-              reduceMotion={motion.reduceMotion}
-            />
+  const renderCoachQueueItem = ({ item }: ListRenderItemInfo<CoachListItem>) => {
+    if (item.type === 'lane_selector') {
+      return (
+        <View style={[styles.coachStickyWrap, { backgroundColor: colors.background }]}>
+          <CoachLaneSegment
+            options={coachLaneOptions}
+            selectedId={coachLane}
+            onSelect={handleSelectLane}
+            reduceMotion={motion.reduceMotion}
+          />
 
-            <Row gap="xs" style={styles.bulkActionRow}>
+          <Row gap="xs" style={styles.bulkActionRow}>
+            <Clickable
+              style={[styles.bulkActionButton, { borderColor: colors.border }]}
+              onPress={handleToggleCoachSelectionMode}
+              disabled={isCoachActionUpdating()}
+              accessibilityLabel={coachSelectionMode ? 'Exit athlete selection mode' : 'Enter athlete selection mode'}
+              accessibilityRole="button"
+            >
+              <ThemedText style={[styles.bulkActionText, { color: colors.text }]}>
+                {coachSelectionMode ? 'Done' : 'Select'}
+              </ThemedText>
+            </Clickable>
+
+            <Clickable
+              style={[styles.bulkActionButton, { borderColor: colors.border }]}
+              onPress={handleBulkNudgeOverdue}
+              disabled={isCoachActionUpdating()}
+              accessibilityLabel="Send nudge to overdue athletes in this lane"
+              accessibilityRole="button"
+            >
+              <ThemedText style={[styles.bulkActionText, { color: colors.text }]}>Nudge overdue</ThemedText>
+            </Clickable>
+
+            <Clickable
+              style={[styles.bulkActionButton, { borderColor: colors.border }]}
+              onPress={handleBulkNudgeDueSoon}
+              disabled={isCoachActionUpdating()}
+              accessibilityLabel="Send nudge to due soon athletes in this lane"
+              accessibilityRole="button"
+            >
+              <ThemedText style={[styles.bulkActionText, { color: colors.text }]}>Nudge due soon</ThemedText>
+            </Clickable>
+          </Row>
+
+          {coachSelectionMode ? (
+            <Row align="center" justify="between" gap="sm" style={styles.selectionSummaryRow}>
+              <ThemedText style={[styles.selectionSummaryText, { color: colors.muted }]}>
+                {selectedCoachAthleteIds.length} selected
+              </ThemedText>
               <Clickable
-                style={[styles.bulkActionButton, { borderColor: colors.border }]}
-                onPress={handleToggleCoachSelectionMode}
+                style={[styles.selectionActionButton, { backgroundColor: colors.tint }]}
+                onPress={handleBulkMarkReviewed}
                 disabled={isCoachActionUpdating()}
-                accessibilityLabel={coachSelectionMode ? 'Exit athlete selection mode' : 'Enter athlete selection mode'}
+                accessibilityLabel="Mark selected tasks reviewed"
                 accessibilityRole="button"
               >
-                <ThemedText style={[styles.bulkActionText, { color: colors.text }]}>
-                  {coachSelectionMode ? 'Done' : 'Select'}
-                </ThemedText>
-              </Clickable>
-
-              <Clickable
-                style={[styles.bulkActionButton, { borderColor: colors.border }]}
-                onPress={handleBulkNudgeOverdue}
-                disabled={isCoachActionUpdating()}
-                accessibilityLabel="Send nudge to overdue athletes in this lane"
-                accessibilityRole="button"
-              >
-                <ThemedText style={[styles.bulkActionText, { color: colors.text }]}>Nudge overdue</ThemedText>
-              </Clickable>
-
-              <Clickable
-                style={[styles.bulkActionButton, { borderColor: colors.border }]}
-                onPress={handleBulkNudgeDueSoon}
-                disabled={isCoachActionUpdating()}
-                accessibilityLabel="Send nudge to due soon athletes in this lane"
-                accessibilityRole="button"
-              >
-                <ThemedText style={[styles.bulkActionText, { color: colors.text }]}>Nudge due soon</ThemedText>
+                <ThemedText style={[styles.selectionActionText, { color: colors.onPrimary }]}>Mark reviewed</ThemedText>
               </Clickable>
             </Row>
-
-            {coachSelectionMode ? (
-              <Row align="center" justify="between" gap="sm" style={styles.selectionSummaryRow}>
-                <ThemedText style={[styles.selectionSummaryText, { color: colors.muted }]}>
-                  {selectedCoachAthleteIds.length} selected
-                </ThemedText>
-                <Clickable
-                  style={[styles.selectionActionButton, { backgroundColor: colors.tint }]}
-                  onPress={handleBulkMarkReviewed}
-                  disabled={isCoachActionUpdating()}
-                  accessibilityLabel="Mark selected tasks reviewed"
-                  accessibilityRole="button"
-                >
-                  <ThemedText style={[styles.selectionActionText, { color: colors.onPrimary }]}>Mark reviewed</ThemedText>
-                </Clickable>
-              </Row>
-            ) : null}
-          </View>
-        );
-      }
-
-      return (
-        <View style={styles.coachRowWrap}>
-          <CoachQueueCard
-            row={item.row}
-            nowTs={nowTs}
-            selectionMode={coachSelectionMode}
-            selected={selectedCoachAthleteIdSet.has(item.row.athleteId)}
-            onToggleSelect={handleToggleCoachSelected}
-            onOpenPlaybook={handleOpenPlaybook}
-            onPressMessage={handleOpenCoachMessage}
-            onPressHistory={handleOpenCoachHistory}
-          />
+          ) : null}
         </View>
       );
-    },
-    [
-      coachLane,
-      coachLaneOptions,
-      coachSelectionMode,
-      colors.background,
-      colors.border,
-      colors.muted,
-      colors.onPrimary,
-      colors.text,
-      colors.tint,
-      handleBulkMarkReviewed,
-      handleBulkNudgeDueSoon,
-      handleBulkNudgeOverdue,
-      handleOpenCoachHistory,
-      handleOpenCoachMessage,
-      handleOpenPlaybook,
-      handleSelectLane,
-      handleToggleCoachSelected,
-      handleToggleCoachSelectionMode,
-      isCoachActionUpdating,
-      motion.reduceMotion,
-      nowTs,
-      selectedCoachAthleteIdSet,
-      selectedCoachAthleteIds.length,
-    ],
-  );
+    }
 
-  const coachKeyExtractor = useCallback((item: CoachListItem) => {
+    return (
+      <View style={styles.coachRowWrap}>
+        <CoachQueueCard
+          row={item.row}
+          nowTs={nowTs}
+          selectionMode={coachSelectionMode}
+          selected={selectedCoachAthleteIdSet.has(item.row.athleteId)}
+          onToggleSelect={handleToggleCoachSelected}
+          onOpenPlaybook={handleOpenPlaybook}
+          onPressMessage={handleOpenCoachMessage}
+          onPressHistory={handleOpenCoachHistory}
+        />
+      </View>
+    );
+  };
+
+  const coachKeyExtractor = (item: CoachListItem) => {
     if (item.type === 'lane_selector') {
       return 'lane_selector';
     }
     return item.row.athleteId;
-  }, []);
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>

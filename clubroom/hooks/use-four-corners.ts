@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useState } from 'react';
 
 import { CORNER_COLORS } from '@/constants/four-corner-mapping';
 import { mapSkillToCorner } from '@/constants/position-skills';
@@ -70,7 +70,9 @@ export function useFourCorners(
   skills: SkillLevel[],
   feedback: SessionFeedback[] = [],
 ): FourCornerData {
-  return useMemo(() => {
+  const [comparisonTargetTimestamp] = useState(() => Date.now() - 28 * 24 * 60 * 60 * 1000);
+
+  return (() => {
     const skillsByCorner: Record<FourCornerKey, SkillLevel[]> = {
       technical: [],
       physical: [],
@@ -100,7 +102,6 @@ export function useFourCorners(
       .sort(sortNewest);
 
     const newestFeedbackWithCorners = feedbackWithCorners[0];
-    const comparisonTargetTimestamp = Date.now() - 28 * 24 * 60 * 60 * 1000;
     const comparisonFeedback = feedbackWithCorners.find(
       (entry) => new Date(entry.createdAt).getTime() <= comparisonTargetTimestamp,
     );
@@ -171,5 +172,5 @@ export function useFourCorners(
       comparisonLabel,
       sessionSnapshots,
     };
-  }, [feedback, skills]);
+  })();
 }

@@ -3,62 +3,92 @@
  * Manages offerings data, search/filters, and routes selections into booking flow.
  */
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import { router } from 'expo-router';
-import { Routes } from '@/navigation/routes';
-import { apiClient } from '@/services/api-client';
-import { bookingService } from '@/services/booking';
-import { inviteService } from '@/services/invite';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { useAuth } from '@/hooks/use-auth';
-import { useChildContext } from '@/hooks/use-child-context';
-import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
-import { useBookingFlow } from '@/context/booking-flow-context';
+import { useState, useEffect } from "react";
+import { router } from "expo-router";
+import { Routes } from "@/navigation/routes";
+import { apiClient } from "@/services/api-client";
+import { bookingService } from "@/services/booking";
+import { inviteService } from "@/services/invite";
+import { STORAGE_KEYS } from "@/constants/storage-keys";
+import { useAuth } from "@/hooks/use-auth";
+import { useChildContext } from "@/hooks/use-child-context";
+import { useScreen, type ScreenStatus } from "@/hooks/use-screen";
+import { useBookingFlow } from "@/context/booking-flow-context";
 import type {
   SessionOffering,
   FootballObjective,
   GroupSession,
   GroupRegistration,
   SessionInvite,
-} from '@/constants/types';
-import { createLogger } from '@/utils/logger';
-import { getSessionOfferingCoachName } from '@/utils/session-display';
-import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
-import { getSessionInviteCoachName } from '@/utils/session-invite-display';
+} from "@/constants/types";
+import { createLogger } from "@/utils/logger";
+import { getSessionOfferingCoachName } from "@/utils/session-display";
+import { getSessionOfferingHeadcount } from "@/utils/session-offering-capacity";
+import { getSessionInviteCoachName } from "@/utils/session-invite-display";
 import {
   extractGroupSessionIdFromOfferingId,
   normalizeSessionOfferingSource,
   mapGroupSessionToOffering,
-} from '@/utils/session-offering-projections';
-import { buildBookingDraftPatchFromOffering } from '@/utils/booking-draft-prefill';
-import { err, ok, serviceError, type ServiceError } from '@/types/result';
-import { uiFeedback } from '@/services/ui-feedback';
-
-const logger = createLogger('DiscoverSessions');
-
-export const SKILL_FILTERS: { value: FootballObjective | ''; label: string }[] = [
-  { value: '', label: 'All Skills' },
-  { value: 'Dribbling', label: 'Dribbling' },
-  { value: 'Passing', label: 'Passing' },
-  { value: 'Defending', label: 'Defending' },
-  { value: 'Finishing', label: 'Finishing' },
-  { value: 'Goalkeeping', label: 'Goalkeeping' },
-  { value: 'Conditioning', label: 'Conditioning' },
+} from "@/utils/session-offering-projections";
+import { buildBookingDraftPatchFromOffering } from "@/utils/booking-draft-prefill";
+import { err, ok, serviceError, type ServiceError } from "@/types/result";
+import { uiFeedback } from "@/services/ui-feedback";
+const logger = createLogger("DiscoverSessions");
+export const SKILL_FILTERS: {
+  value: FootballObjective | "";
+  label: string;
+}[] = [
+  {
+    value: "",
+    label: "All Skills",
+  },
+  {
+    value: "Dribbling",
+    label: "Dribbling",
+  },
+  {
+    value: "Passing",
+    label: "Passing",
+  },
+  {
+    value: "Defending",
+    label: "Defending",
+  },
+  {
+    value: "Finishing",
+    label: "Finishing",
+  },
+  {
+    value: "Goalkeeping",
+    label: "Goalkeeping",
+  },
+  {
+    value: "Conditioning",
+    label: "Conditioning",
+  },
 ];
-
-export const TYPE_FILTERS = [
-  { value: '', label: 'All Types' },
-  { value: '1on1', label: '1:1' },
-  { value: 'group', label: 'Group' },
+export const TYPE_FILTERS: {
+  value: "1on1" | "group" | "";
+  label: string;
+}[] = [
+  {
+    value: "",
+    label: "All Types",
+  },
+  {
+    value: "1on1",
+    label: "1:1",
+  },
+  {
+    value: "group",
+    label: "Group",
+  },
 ];
-
 interface DiscoverSessionsData {
   offerings: SessionOffering[];
   pendingInvites: SessionInvite[];
 }
-
 let lastDiscoverSessionsSnapshot: DiscoverSessionsData | null = null;
-
 export interface UseDiscoverSessionsResult {
   loading: boolean;
   status: ScreenStatus;
@@ -67,32 +97,29 @@ export interface UseDiscoverSessionsResult {
   onRefresh: () => void;
   retry: () => void;
   searchQuery: string;
-  skillFilter: FootballObjective | '';
-  typeFilter: '1on1' | 'group' | '';
+  skillFilter: FootballObjective | "";
+  typeFilter: "1on1" | "group" | "";
   filteredOfferings: SessionOffering[];
   pendingInvites: SessionInvite[];
   setSearchQuery: (value: string) => void;
-  setSkillFilter: (value: FootballObjective | '') => void;
-  setTypeFilter: (value: '1on1' | 'group' | '') => void;
+  setSkillFilter: (value: FootballObjective | "") => void;
+  setTypeFilter: (value: "1on1" | "group" | "") => void;
   clearSearch: () => void;
   handleOfferingPress: (offering: SessionOffering) => void;
   handleAcceptInvite: (
     invite: SessionInvite,
-    selectedSlot?: SessionInvite['proposedSlots'][0],
+    selectedSlot?: SessionInvite["proposedSlots"][0],
   ) => Promise<void>;
   handleDeclineInvite: (invite: SessionInvite) => void;
 }
-
 export function useDiscoverSessions() {
   const { currentUser } = useAuth();
   const { updateDraft } = useBookingFlow();
   const { children: contextChildren, activeChildId } = useChildContext();
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [skillFilter, setSkillFilter] = useState<FootballObjective | ''>('');
-  const [typeFilter, setTypeFilter] = useState<'1on1' | 'group' | ''>('');
-
-  const loadOfferings = useCallback(async () => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [skillFilter, setSkillFilter] = useState<FootballObjective | "">("");
+  const [typeFilter, setTypeFilter] = useState<"1on1" | "group" | "">("");
+  const loadOfferings = async () => {
     try {
       const viewerIds = new Set<string>();
       if (currentUser?.id) {
@@ -105,35 +132,48 @@ export function useDiscoverSessions() {
           viewerIds.add(child.profileId);
         }
       }
-
-      const [storedOfferings, groupSessions, groupRegistrations, allBookings, pendingInvites] =
-        await Promise.all([
-          apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
-          apiClient.get<GroupSession[]>(STORAGE_KEYS.GROUP_SESSIONS, []),
-          apiClient.get<GroupRegistration[]>(STORAGE_KEYS.GROUP_REGISTRATIONS, []),
-          bookingService.list(),
-          currentUser && currentUser.role !== 'COACH'
-            ? inviteService.getPendingInvites(currentUser.id)
-            : Promise.resolve([]),
-        ]);
-      const normalizedStoredOfferings = storedOfferings.map(normalizeSessionOfferingSource);
-      const groupRegistrationsBySessionId = new Map<string, GroupRegistration[]>();
+      const [
+        storedOfferings,
+        groupSessions,
+        groupRegistrations,
+        allBookings,
+        pendingInvites,
+      ] = await Promise.all([
+        apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
+        apiClient.get<GroupSession[]>(STORAGE_KEYS.GROUP_SESSIONS, []),
+        apiClient.get<GroupRegistration[]>(
+          STORAGE_KEYS.GROUP_REGISTRATIONS,
+          [],
+        ),
+        bookingService.list(),
+        currentUser && currentUser.role !== "COACH"
+          ? inviteService.getPendingInvites(currentUser.id)
+          : Promise.resolve([]),
+      ]);
+      const normalizedStoredOfferings = storedOfferings.map(
+        normalizeSessionOfferingSource,
+      );
+      const groupRegistrationsBySessionId = new Map<
+        string,
+        GroupRegistration[]
+      >();
       for (const registration of groupRegistrations) {
         if (!groupRegistrationsBySessionId.has(registration.sessionId)) {
           groupRegistrationsBySessionId.set(registration.sessionId, []);
         }
-        groupRegistrationsBySessionId.get(registration.sessionId)!.push(registration);
+        groupRegistrationsBySessionId
+          .get(registration.sessionId)!
+          .push(registration);
       }
-      const projectedGroupOfferings = groupSessions
-        .filter((session) => session.status !== 'DRAFT')
-        .map((session) =>
-          mapGroupSessionToOffering(
-            session,
-            groupRegistrationsBySessionId.get(session.id) ?? [],
-            new Date(),
-          ),
-        )
-        .filter((offering): offering is SessionOffering => offering !== null);
+      const projectedGroupOfferings = groupSessions.flatMap((session) => {
+        if (!(session.status !== "DRAFT")) return [];
+        const mapped = mapGroupSessionToOffering(
+          session,
+          groupRegistrationsBySessionId.get(session.id) ?? [],
+          new Date(),
+        );
+        return mapped !== null ? [mapped] : [];
+      });
       const offeringsById = new Map<string, SessionOffering>();
       for (const offering of normalizedStoredOfferings) {
         offeringsById.set(offering.id, offering);
@@ -142,14 +182,13 @@ export function useDiscoverSessions() {
         offeringsById.set(offering.id, offering);
       }
       const allOfferingsMerged = Array.from(offeringsById.values());
-
       const familiarCoachIds = new Set<string>();
       const familiarClubIds = new Set<string>();
-
       for (const offering of allOfferingsMerged) {
         const hasLinkedRegistration = offering.registrations.some(
           (registration) =>
-            registration.status === 'confirmed' && viewerIds.has(registration.userId),
+            registration.status === "confirmed" &&
+            viewerIds.has(registration.userId),
         );
         if (!hasLinkedRegistration) continue;
         familiarCoachIds.add(offering.coachId);
@@ -157,7 +196,6 @@ export function useDiscoverSessions() {
           familiarClubIds.add(offering.clubId);
         }
       }
-
       for (const booking of allBookings) {
         const linkedAthleteIds = new Set<string>();
         if (booking.athleteId) linkedAthleteIds.add(booking.athleteId);
@@ -171,66 +209,67 @@ export function useDiscoverSessions() {
           familiarCoachIds.add(booking.coachId);
         }
       }
-
       for (const invite of pendingInvites) {
         familiarCoachIds.add(invite.coachId);
       }
-
       const now = new Date();
       const available = allOfferingsMerged.filter((offering) => {
-        if (offering.status !== 'active') return false;
+        if (offering.status !== "active") return false;
         if (offering.coachId === currentUser?.id) return false;
-
         const isFutureOrRecurring =
-          offering.isRecurring || new Date(offering.scheduledAt).getTime() > now.getTime();
+          offering.isRecurring ||
+          new Date(offering.scheduledAt).getTime() > now.getTime();
         if (!isFutureOrRecurring) return false;
-
         const headcount = getSessionOfferingHeadcount(offering);
         if (headcount >= offering.maxParticipants) return false;
-
-        const isInvited = offering.invitedAthleteIds?.some((id) => viewerIds.has(id)) ?? false;
-        const isOpenSession = offering.inviteType !== 'CLOSED';
+        const isInvited =
+          offering.invitedAthleteIds?.some((id) => viewerIds.has(id)) ?? false;
+        const isOpenSession = offering.inviteType !== "CLOSED";
         if (!isOpenSession && !isInvited) return false;
-
         const coachLinked = familiarCoachIds.has(offering.coachId);
-        const clubLinked = offering.clubId ? familiarClubIds.has(offering.clubId) : false;
+        const clubLinked = offering.clubId
+          ? familiarClubIds.has(offering.clubId)
+          : false;
         return coachLinked || clubLinked || isInvited;
       });
-
-      logger.debug('Loaded offerings', { count: available.length, pendingInvites: pendingInvites.length });
-      return ok<DiscoverSessionsData>({ offerings: available, pendingInvites });
+      logger.debug("Loaded offerings", {
+        count: available.length,
+        pendingInvites: pendingInvites.length,
+      });
+      return ok<DiscoverSessionsData>({
+        offerings: available,
+        pendingInvites,
+      });
     } catch (loadError) {
-      logger.error('Failed to load offerings', loadError);
+      logger.error("Failed to load offerings", loadError);
       return err(
         serviceError(
-          'UNKNOWN',
-          'Failed to load discover sessions. Pull down to refresh.',
+          "UNKNOWN",
+          "Failed to load discover sessions. Pull down to refresh.",
           loadError,
         ),
       );
     }
-  }, [contextChildren, currentUser]);
-
-  const { data, status, error, refreshing, onRefresh, retry } = useScreen<DiscoverSessionsData>({
-    load: loadOfferings,
-    deps: [currentUser?.id],
-    isEmpty: (value) => value.offerings.length === 0 && value.pendingInvites.length === 0,
-    refetchOnFocus: true,
-    loadingStrategy: 'warm-first',
-  });
-
+  };
+  const { data, status, error, refreshing, onRefresh, retry } =
+    useScreen<DiscoverSessionsData>({
+      load: loadOfferings,
+      deps: [currentUser?.id],
+      isEmpty: (value) =>
+        value.offerings.length === 0 && value.pendingInvites.length === 0,
+      refetchOnFocus: true,
+      loadingStrategy: "warm-first",
+    });
   useEffect(() => {
     if (data) {
       lastDiscoverSessionsSnapshot = data;
     }
   }, [data]);
-
   const resolvedData = data ?? lastDiscoverSessionsSnapshot;
   const offerings = resolvedData?.offerings;
   const pendingInvites = resolvedData?.pendingInvites ?? [];
-  const loading = status === 'loading' && !resolvedData;
-
-  const filteredOfferings = useMemo(() => {
+  const loading = status === "loading" && !resolvedData;
+  const filteredOfferings = (() => {
     let filtered = offerings ?? [];
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -242,21 +281,23 @@ export function useDiscoverSessions() {
           o.description?.toLowerCase().includes(query),
       );
     }
-    if (skillFilter) filtered = filtered.filter((o) => o.footballSkill === skillFilter);
-    if (typeFilter) filtered = filtered.filter((o) => o.sessionType === typeFilter);
+    if (skillFilter)
+      filtered = filtered.filter((o) => o.footballSkill === skillFilter);
+    if (typeFilter)
+      filtered = filtered.filter((o) => o.sessionType === typeFilter);
     return filtered.sort(
-      (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
+      (a, b) =>
+        new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
     );
-  }, [offerings, searchQuery, skillFilter, typeFilter]);
-
-  const handleOfferingPress = useCallback((offering: SessionOffering) => {
+  })();
+  const handleOfferingPress = (offering: SessionOffering) => {
     const normalizedOffering = normalizeSessionOfferingSource(offering);
-    logger.press('DiscoverSessionsOffering', {
+    logger.press("DiscoverSessionsOffering", {
       offeringId: normalizedOffering.id,
       coachId: normalizedOffering.coachId,
       source: normalizedOffering.source,
     });
-    if (normalizedOffering.source === 'group') {
+    if (normalizedOffering.source === "group") {
       const groupSessionId =
         normalizedOffering.sourceEntityId ??
         extractGroupSessionIdFromOfferingId(normalizedOffering.id);
@@ -267,18 +308,26 @@ export function useDiscoverSessions() {
     }
     const prefillChild = (() => {
       if (activeChildId) {
-        const activeChild = contextChildren.find((child) => child.id === activeChildId);
+        const activeChild = contextChildren.find(
+          (child) => child.id === activeChildId,
+        );
         if (activeChild) {
-          return { id: activeChild.id, name: activeChild.name };
+          return {
+            id: activeChild.id,
+            name: activeChild.name,
+          };
         }
       }
       if (contextChildren.length === 1) {
-        return { id: contextChildren[0].id, name: contextChildren[0].name };
+        return {
+          id: contextChildren[0].id,
+          name: contextChildren[0].name,
+        };
       }
       if (contextChildren.length === 0 && currentUser?.id) {
         return {
           id: currentUser.id,
-          name: currentUser.name || currentUser.fullName || 'Athlete',
+          name: currentUser.name || currentUser.fullName || "Athlete",
         };
       }
       return null;
@@ -288,62 +337,63 @@ export function useDiscoverSessions() {
         coachId: normalizedOffering.coachId,
         offering: normalizedOffering,
         child: prefillChild,
-        entrySource: 'discover_sessions',
+        entrySource: "discover_sessions",
       }),
     );
     router.push(
       Routes.bookCoach(normalizedOffering.coachId, {
         offeringId: normalizedOffering.id,
-        source: 'discover_sessions',
+        source: "discover_sessions",
         childId: activeChildId || undefined,
       }),
     );
-  }, [activeChildId, contextChildren, currentUser?.fullName, currentUser?.id, currentUser?.name, updateDraft]);
-
-  const handleAcceptInvite = useCallback(
-    async (invite: SessionInvite, selectedSlot?: SessionInvite['proposedSlots'][0]) => {
-      const slot = selectedSlot ?? invite.proposedSlots[0];
-      if (!slot) {
-        return;
-      }
-      const result = await inviteService.respondToInvite({
-        inviteId: invite.id,
-        response: 'ACCEPTED',
-        selectedSlot: slot,
-      });
-      if (result.success) {
-        onRefresh();
-      }
-    },
-    [onRefresh],
-  );
-
-  const handleDeclineInvite = useCallback(
-    (invite: SessionInvite) => {
-      const coachName = getSessionInviteCoachName(invite);
-      uiFeedback.alert('Decline Invite?', `Decline the session invite from ${coachName}?`, [
-        { text: 'Cancel', style: 'cancel' },
+  };
+  const handleAcceptInvite = async (
+    invite: SessionInvite,
+    selectedSlot?: SessionInvite["proposedSlots"][0],
+  ) => {
+    const slot = selectedSlot ?? invite.proposedSlots[0];
+    if (!slot) {
+      return;
+    }
+    const result = await inviteService.respondToInvite({
+      inviteId: invite.id,
+      response: "ACCEPTED",
+      selectedSlot: slot,
+    });
+    if (result.success) {
+      onRefresh();
+    }
+  };
+  const handleDeclineInvite = (invite: SessionInvite) => {
+    const coachName = getSessionInviteCoachName(invite);
+    uiFeedback.alert(
+      "Decline Invite?",
+      `Decline the session invite from ${coachName}?`,
+      [
         {
-          text: 'Decline',
-          style: 'destructive',
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Decline",
+          style: "destructive",
           onPress: async () => {
             const result = await inviteService.respondToInvite({
               inviteId: invite.id,
-              response: 'DECLINED',
+              response: "DECLINED",
             });
             if (result.success) {
               onRefresh();
             }
           },
         },
-      ]);
-    },
-    [onRefresh],
-  );
-  const clearSearch = useCallback(() => {
-    setSearchQuery('');
-  }, []);
-
+      ],
+    );
+  };
+  const clearSearch = () => {
+    setSearchQuery("");
+  };
   return {
     loading,
     status,
@@ -365,18 +415,17 @@ export function useDiscoverSessions() {
     handleDeclineInvite,
   } satisfies UseDiscoverSessionsResult;
 }
-
 export function formatNextSession(offering: SessionOffering): string {
   if (offering.isRecurring && offering.dayOfWeek !== undefined) {
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     return `Every ${days[offering.dayOfWeek]} at ${offering.timeOfDay}`;
   }
   const date = new Date(offering.scheduledAt);
-  return date.toLocaleDateString('en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
+  return date.toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }

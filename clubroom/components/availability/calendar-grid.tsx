@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -17,7 +16,7 @@ interface CalendarGridProps {
   onSelectDate: (date: Date) => void;
 }
 
-export const CalendarGrid = memo(function CalendarGrid({
+export const CalendarGrid = function CalendarGrid({
   calendarDays,
   selectedDate,
   onSelectDate,
@@ -34,11 +33,11 @@ export const CalendarGrid = memo(function CalendarGrid({
         ))}
       </Row>
       <Row style={styles.daysGrid}>
-        {calendarDays.map((day, index) => {
+        {calendarDays.map((day) => {
           const isSelected = selectedDate?.toDateString() === day.date.toDateString();
           return (
             <Clickable
-              key={index}
+              key={day.date.toISOString()}
               onPress={() => onSelectDate(day.date)}
               style={[
                 styles.dayCell,
@@ -76,7 +75,7 @@ export const CalendarGrid = memo(function CalendarGrid({
       </Row>
     </SurfaceCard>
   );
-});
+};
 
 interface DayDetailProps {
   selectedDate: Date;
@@ -86,7 +85,7 @@ interface DayDetailProps {
   onAddTemplate: () => void;
 }
 
-export const CalendarDayDetail = memo(function CalendarDayDetail({
+export const CalendarDayDetail = function CalendarDayDetail({
   selectedDate,
   selectedSlots,
   formatTime,
@@ -134,9 +133,9 @@ export const CalendarDayDetail = memo(function CalendarDayDetail({
         </View>
       ) : (
         <View style={styles.slotsList}>
-          {selectedSlots.map((slot, index) => (
+          {selectedSlots.map((slot) => (
             <View
-              key={index}
+              key={`${slot.date}:${slot.startTime}:${slot.endTime}`}
               style={[
                 styles.slotItem,
                 { borderLeftColor: slot.isAvailable ? palette.success : palette.tint },
@@ -180,7 +179,7 @@ export const CalendarDayDetail = memo(function CalendarDayDetail({
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   calendar: { padding: Spacing.sm },

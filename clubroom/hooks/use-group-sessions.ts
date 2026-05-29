@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useState } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
@@ -59,7 +59,7 @@ export function useGroupSessions() {
 
   const isCoach = currentUser?.role === 'COACH';
 
-  const loadSessions = useCallback(async () => {
+  const loadSessions = async () => {
     try {
       const [sessionsData, familyRegs] = await Promise.all([
         groupSessionService.discoverSessions(),
@@ -74,7 +74,7 @@ export function useGroupSessions() {
         serviceError('UNKNOWN', 'Failed to load group sessions. Pull down to refresh.', loadError),
       );
     }
-  }, [isParent, familyAthleteIds]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<GroupSessionsData>({
     load: loadSessions,
@@ -88,10 +88,7 @@ export function useGroupSessions() {
   const familyRegistrations = data?.familyRegistrations ?? [];
   const loading = status === 'loading';
 
-  const filteredSessions = useMemo(
-    () => (filter === 'ALL' ? sessions : sessions.filter((s) => s.sessionType === filter)),
-    [sessions, filter],
-  );
+  const filteredSessions = (filter === 'ALL' ? sessions : sessions.filter((s) => s.sessionType === filter));
 
   const badgeMap = useSessionRegistrationBadges(filteredSessions, children, familyRegistrations);
 

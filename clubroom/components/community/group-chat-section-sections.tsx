@@ -1,13 +1,12 @@
 /**
  * Extracted sub-components for GroupChatSection.
  *
- * formatTime, formatDateHeader, shouldShowDateHeader — date helpers.
  * ChatEmptyState — empty messages placeholder.
  * MessageBubble — single message with sender, bubble, time, status.
  * ChatInputBar — text input + send button.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -18,32 +17,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { GroupMessage } from '@/constants/types';
 import { styles } from './group-chat-section-styles';
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-export function formatTime(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-export function formatDateHeader(dateString: string): string {
-  const date = new Date(dateString);
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  if (date.toDateString() === today.toDateString()) return 'Today';
-  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
-  return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
-}
-
-export function shouldShowDateHeader(
-  current: GroupMessage,
-  prev: GroupMessage | undefined,
-): boolean {
-  if (!prev) return true;
-  return new Date(current.createdAt).toDateString() !== new Date(prev.createdAt).toDateString();
-}
+import { formatDateHeader, formatTime } from './group-chat-section-helpers';
 
 // ─── ChatEmptyState ──────────────────────────────────────────────────────────
 
@@ -51,7 +25,7 @@ interface ChatEmptyStateProps {
   palette: ThemeColors;
 }
 
-export const ChatEmptyState = memo(function ChatEmptyState({ palette }: ChatEmptyStateProps) {
+export const ChatEmptyState = function ChatEmptyState({ palette }: ChatEmptyStateProps) {
   return (
     <View style={styles.emptyMessages}>
       <Ionicons name="chatbubbles-outline" size={48} color={palette.muted} />
@@ -60,7 +34,7 @@ export const ChatEmptyState = memo(function ChatEmptyState({ palette }: ChatEmpt
       </ThemedText>
     </View>
   );
-});
+};
 
 // ─── MessageBubble ───────────────────────────────────────────────────────────
 
@@ -71,7 +45,7 @@ interface MessageBubbleProps {
   palette: ThemeColors;
 }
 
-export const MessageBubble = memo(function MessageBubble({
+const renderMessageBubble = function renderMessageBubble({
   message,
   isOwnMessage,
   showDate,
@@ -133,7 +107,8 @@ export const MessageBubble = memo(function MessageBubble({
       </Animated.View>
     </View>
   );
-});
+};
+export const MessageBubble = renderMessageBubble;
 
 // ─── ChatInputBar ────────────────────────────────────────────────────────────
 
@@ -145,7 +120,7 @@ interface ChatInputBarProps {
   palette: ThemeColors;
 }
 
-export const ChatInputBar = memo(function ChatInputBar({
+const renderChatInputBar = function renderChatInputBar({
   inputValue,
   sending,
   onInputChange,
@@ -196,6 +171,5 @@ export const ChatInputBar = memo(function ChatInputBar({
       </View>
     </View>
   );
-});
-
-export { styles };
+};
+export const ChatInputBar = renderChatInputBar;

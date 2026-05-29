@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
@@ -34,13 +34,26 @@ export function SessionNotesForm({
   const [attendance, setAttendance] = useState(initialValues?.attendance ?? 'Present');
   const [effort, setEffort] = useState<number | null>(initialValues?.effort ?? null);
 
+  // react-doctor-disable-next-line react-doctor/no-reset-all-state-on-prop-change -- editable note fields intentionally reload when a different initialValues record is supplied.
   useEffect(() => {
-    setSummary(initialValues?.summary ?? '');
-    setFocus(initialValues?.focus ?? []);
-    setImprovements(initialValues?.improvements ?? '');
-    setHomework(initialValues?.homework ?? '');
-    setAttendance(initialValues?.attendance ?? 'Present');
-    setEffort(initialValues?.effort ?? null);
+    startTransition(() => {
+      setSummary(initialValues?.summary ?? '');
+    });
+    startTransition(() => {
+      setFocus(initialValues?.focus ?? []);
+    });
+    startTransition(() => {
+      setImprovements(initialValues?.improvements ?? '');
+    });
+    startTransition(() => {
+      setHomework(initialValues?.homework ?? '');
+    });
+    startTransition(() => {
+      setAttendance(initialValues?.attendance ?? 'Present');
+    });
+    startTransition(() => {
+      setEffort(initialValues?.effort ?? null);
+    });
   }, [initialValues]);
 
   const toggleFocus = (item: string) => {

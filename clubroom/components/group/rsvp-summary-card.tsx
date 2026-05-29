@@ -1,11 +1,3 @@
-/**
- * RsvpSummaryCard — Coach view of RSVP attendance breakdown.
- *
- * Shows "5 Going / 2 Maybe / 1 Can't / 3 Pending" as stat boxes
- * with optional "Remind" button for non-responders.
- */
-
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -64,7 +56,7 @@ function RsvpSummaryCardComponent({ counts, onSendReminder }: RsvpSummaryCardPro
   );
 }
 
-export const RsvpSummaryCard = memo(RsvpSummaryCardComponent);
+export const RsvpSummaryCard = RsvpSummaryCardComponent;
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.md },

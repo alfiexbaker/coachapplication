@@ -1,5 +1,5 @@
-import React, { memo } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import React from 'react';
+import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,7 +13,7 @@ import { Row } from '@/components/primitives';
 import type { CoachOfferingSummary } from '@/utils/coach-profile-offerings';
 import { formatCoachAvailabilityLabel } from '@/utils/coach-profile-offerings';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const STAR_SLOT_KEYS = ['star-1', 'star-2', 'star-3', 'star-4', 'star-5'] as const;
 
 interface PublicProfileHeroProps {
   coach: Coach;
@@ -24,7 +24,7 @@ interface PublicProfileHeroProps {
   isBlocked?: boolean;
 }
 
-export const PublicProfileHero = memo(function PublicProfileHero({
+export const PublicProfileHero = function PublicProfileHero({
   coach,
   onShare,
   onBook,
@@ -33,6 +33,7 @@ export const PublicProfileHero = memo(function PublicProfileHero({
   isBlocked = false,
 }: PublicProfileHeroProps) {
   const { colors: palette } = useTheme();
+  const { width } = useWindowDimensions();
   const stars = renderStars(coach.rating, palette.rating);
   const availabilityLabel = formatCoachAvailabilityLabel(
     offeringSummary.nextOffering?.scheduledAt ?? coach.nextAvailable,
@@ -58,9 +59,9 @@ export const PublicProfileHero = memo(function PublicProfileHero({
       {/* Cover */}
       <View style={styles.coverContainer}>
         {coach.coverPhotoUrl ? (
-          <Image source={{ uri: coach.coverPhotoUrl }} style={styles.coverImage} />
+          <Image source={{ uri: coach.coverPhotoUrl }} style={[styles.coverImage, { width }]} />
         ) : (
-          <View style={[styles.coverPlaceholder, { backgroundColor: palette.tint }]}>
+          <View style={[styles.coverPlaceholder, { backgroundColor: palette.tint, width }]}>
             <Ionicons
               name="image-outline"
               size={Components.icon.xl}
@@ -126,8 +127,8 @@ export const PublicProfileHero = memo(function PublicProfileHero({
         </Row>
         <Row style={styles.ratingRow}>
           <Row style={styles.starsRow}>
-            {stars.map((s, i) => (
-              <Ionicons key={i} name={s.name} size={14} color={s.color} />
+            {stars.map((s, starSlot) => (
+              <Ionicons key={STAR_SLOT_KEYS[starSlot]} name={s.name} size={14} color={s.color} />
             ))}
           </Row>
           <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
@@ -148,9 +149,9 @@ export const PublicProfileHero = memo(function PublicProfileHero({
         ) : null}
         {coach.badges && coach.badges.length > 0 ? (
           <Row style={styles.badgesRow}>
-            {coach.badges.map((badge, i) => (
+            {coach.badges.map((badge) => (
               <Row
-                key={i}
+                key={badge}
                 style={[styles.badgePill, { backgroundColor: withAlpha(palette.success, 0.09) }]}
               >
                 <Ionicons name="checkmark-circle" size={12} color={palette.success} />
@@ -162,15 +163,13 @@ export const PublicProfileHero = memo(function PublicProfileHero({
           </Row>
         ) : null}
         <Row style={styles.signalRow}>
-          <View
-            style={[styles.signalCard, { backgroundColor: withAlpha(palette.tint, 0.08) }]}
-          >
-            <ThemedText style={[styles.signalLabel, { color: palette.muted }]}>Next slot</ThemedText>
+          <View style={[styles.signalCard, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
+            <ThemedText style={[styles.signalLabel, { color: palette.muted }]}>
+              Next slot
+            </ThemedText>
             <ThemedText style={styles.signalValue}>{availabilityLabel}</ThemedText>
           </View>
-          <View
-            style={[styles.signalCard, { backgroundColor: withAlpha(palette.info, 0.08) }]}
-          >
+          <View style={[styles.signalCard, { backgroundColor: withAlpha(palette.info, 0.08) }]}>
             <ThemedText style={[styles.signalLabel, { color: palette.muted }]}>Access</ThemedText>
             <ThemedText style={styles.signalValue}>{accessLabel}</ThemedText>
           </View>
@@ -201,13 +200,12 @@ export const PublicProfileHero = memo(function PublicProfileHero({
       </View>
     </>
   );
-});
+};
 
 const styles = StyleSheet.create({
   coverContainer: { height: COVER_HEIGHT + AVATAR_SIZE / 2, position: 'relative' },
-  coverImage: { width: SCREEN_WIDTH, height: COVER_HEIGHT },
+  coverImage: { height: COVER_HEIGHT },
   coverPlaceholder: {
-    width: SCREEN_WIDTH,
     height: COVER_HEIGHT,
     opacity: 0.85,
     alignItems: 'center',

@@ -2,7 +2,7 @@
  * RecurringCard — Composition root.
  * Displays a recurring booking subscription with pause/resume/cancel actions.
  */
-import { useState, useCallback, memo } from 'react';
+import { useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -23,6 +23,8 @@ import {
 } from '@/utils/recurring-display';
 import { uiFeedback } from '@/services/ui-feedback';
 
+import { runAsyncFinally } from '@/utils/async-control';
+
 interface RecurringCardProps {
   recurring: RecurringBooking;
   onPause?: (id: string, reason?: string) => Promise<void>;
@@ -31,7 +33,7 @@ interface RecurringCardProps {
   loading?: boolean;
 }
 
-export const RecurringCard = memo(function RecurringCard({
+export const RecurringCard = function RecurringCard({
   recurring,
   onPause,
   onResume,
@@ -50,31 +52,33 @@ export const RecurringCard = memo(function RecurringCard({
   const [cancelReason, setCancelReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
-  const handlePauseConfirm = useCallback(async () => {
+  const handlePauseConfirm = async () => {
     if (!onPause) return;
     setActionLoading(true);
-    try {
+
+    await runAsyncFinally(async () => {
       await onPause(recurring.id, pauseReason || undefined);
       setShowPauseModal(false);
       setPauseReason('');
-    } finally {
+    }, () => {
       setActionLoading(false);
-    }
-  }, [onPause, recurring.id, pauseReason]);
+    });
+  };
 
-  const handleCancelConfirm = useCallback(async () => {
+  const handleCancelConfirm = async () => {
     if (!onCancel) return;
     setActionLoading(true);
-    try {
+
+    await runAsyncFinally(async () => {
       await onCancel(recurring.id, cancelReason || undefined);
       setShowCancelModal(false);
       setCancelReason('');
-    } finally {
+    }, () => {
       setActionLoading(false);
-    }
-  }, [onCancel, recurring.id, cancelReason]);
+    });
+  };
 
-  const handleResume = useCallback(() => {
+  const handleResume = () => {
     if (!onResume) return;
     uiFeedback.showToast(
       `Resuming your ${getFrequencyLabel(recurring.frequency).toLowerCase()} sessions with ${coachName}.`,
@@ -82,13 +86,14 @@ export const RecurringCard = memo(function RecurringCard({
     );
     void (async () => {
       setActionLoading(true);
-      try {
+
+      await runAsyncFinally(async () => {
         await onResume(recurring.id);
-      } finally {
+      }, () => {
         setActionLoading(false);
-      }
+      });
     })();
-  }, [onResume, recurring, coachName]);
+  };
 
   const startDateLabel = new Date(recurring.startDate).toLocaleDateString(undefined, {
     month: 'short',
@@ -185,7 +190,7 @@ export const RecurringCard = memo(function RecurringCard({
       />
     </>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { marginBottom: Spacing.sm, gap: Spacing.sm },

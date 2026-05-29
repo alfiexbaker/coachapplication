@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -27,7 +27,7 @@ interface SettingsInvitesSectionProps {
   onDelete: (code: string) => void;
 }
 
-export const SettingsInvitesSection = memo(function SettingsInvitesSection({
+export const SettingsInvitesSection = function SettingsInvitesSection({
   inviteCodes,
   colors,
   viewerRole,
@@ -128,7 +128,7 @@ export const SettingsInvitesSection = memo(function SettingsInvitesSection({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.md },

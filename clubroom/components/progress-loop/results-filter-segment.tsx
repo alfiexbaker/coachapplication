@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
@@ -22,7 +22,7 @@ interface ResultsFilterSegmentProps {
   reduceMotion?: boolean;
 }
 
-export const ResultsFilterSegment = memo(function ResultsFilterSegment({
+export const ResultsFilterSegment = function ResultsFilterSegment({
   options,
   selectedId,
   onSelect,
@@ -32,19 +32,16 @@ export const ResultsFilterSegment = memo(function ResultsFilterSegment({
   const [containerWidth, setContainerWidth] = useState(0);
   const indicatorX = useSharedValue(0);
 
-  const selectedIndex = useMemo(
-    () => Math.max(0, options.findIndex((option) => option.id === selectedId)),
-    [options, selectedId],
-  );
+  const selectedIndex = Math.max(0, options.findIndex((option) => option.id === selectedId));
 
   const segmentWidth =
     containerWidth > 0 ? (containerWidth - Spacing.micro * 2) / Math.max(1, options.length) : 0;
 
   useEffect(() => {
-    indicatorX.value = withTiming(segmentWidth * selectedIndex + Spacing.micro, {
+    indicatorX.set(withTiming(segmentWidth * selectedIndex + Spacing.micro, {
       duration: reduceMotion ? 0 : 220,
       easing: Easing.out(Easing.cubic),
-    });
+    }));
   }, [indicatorX, reduceMotion, segmentWidth, selectedIndex]);
 
   const indicatorStyle = useAnimatedStyle(() => ({
@@ -124,7 +121,7 @@ export const ResultsFilterSegment = memo(function ResultsFilterSegment({
       </Row>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   outer: {

@@ -154,5 +154,5 @@ const styles = StyleSheet.create({
 
 // ─── Exports ────────────────────────────────────────────────────
 
-export const SessionAnnouncementCard = React.memo(SessionAnnouncementCardInner);
+export const SessionAnnouncementCard = SessionAnnouncementCardInner;
 export default SessionAnnouncementCard;

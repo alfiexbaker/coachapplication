@@ -162,7 +162,7 @@ function pickGroupSchedule(
     return null;
   }
 
-  const sorted = [...session.schedule].sort((left, right) => {
+  const sorted = Array.from(session.schedule).toSorted((left, right) => {
     const leftIso = parseIso(left.date, left.startTime);
     const rightIso = parseIso(right.date, right.startTime);
     return new Date(leftIso).getTime() - new Date(rightIso).getTime();

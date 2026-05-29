@@ -23,7 +23,8 @@ type ContractStatus = 'open' | 'in_review' | 'closed';
 type StoreStatus = 'OPEN' | 'IN_REVIEW' | 'CLOSED';
 
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
-const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
+const asString = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
 const isoNow = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 
@@ -114,7 +115,9 @@ function toStoreSeverity(value: string): string {
   return value.toUpperCase();
 }
 
-function toContractActionType(value: string | undefined): CreateSafeguardingActionRequest['actionType'] {
+function toContractActionType(
+  value: string | undefined,
+): CreateSafeguardingActionRequest['actionType'] {
   switch ((value ?? '').toUpperCase()) {
     case 'ESCALATED':
       return 'escalated';
@@ -154,7 +157,9 @@ function toStoreActionType(value: CreateSafeguardingActionRequest['actionType'])
 function mapAction(row: SeedRow): SafeguardingActionResponse {
   return safeguardingActionResponseSchema.parse({
     id: normalizeActionId(asString(row.id) ?? ''),
-    incidentId: normalizeIncidentId(asString(row.safeguardingIncidentId) ?? asString(row.incidentId) ?? ''),
+    incidentId: normalizeIncidentId(
+      asString(row.safeguardingIncidentId) ?? asString(row.incidentId) ?? '',
+    ),
     actionType: toContractActionType(asString(row.actionType)),
     notes: asString(row.note) ?? asString(row.notes) ?? '',
     performedByUserId: asString(row.actorUserId) ?? asString(row.performedByUserId) ?? '',
@@ -262,7 +267,10 @@ class SeedSafeguardingRepository implements SafeguardingRepository {
     };
     actions.push(actionRow);
 
-    const nextStatus = fromActionTypeToStatus(body.actionType, toContractStatus(asString(incident.status)));
+    const nextStatus = fromActionTypeToStatus(
+      body.actionType,
+      toContractStatus(asString(incident.status)),
+    );
     incident.status = toStoreStatus(nextStatus);
     incident.updatedAt = now;
     incident.closedAt = nextStatus === 'closed' ? now : null;
@@ -365,31 +373,33 @@ class DbSafeguardingRepository implements SafeguardingRepository {
     const nextStatus = fromActionTypeToStatus(body.actionType, toContractStatus(current.status));
 
     const result = await prisma.$transaction(async (tx) => {
-      const action = await tx.safeguardingIncidentAction.create({
-        data: {
-          id: newId('sact'),
-          safeguardingIncidentId: current.id,
-          actorUserId: performedByUserId,
-          actionType: toStoreActionType(body.actionType),
-          note: body.notes,
-          metadataJson: {},
-          occurredAt: now,
-        },
-      });
-      const updated = await tx.safeguardingIncident.update({
-        where: { id: current.id },
-        data: {
-          status: toStoreStatus(nextStatus),
-          closedAt: nextStatus === 'closed' ? now : null,
-        },
-        include: {
-          actions: {
-            orderBy: {
-              occurredAt: 'desc',
+      const [action, updated] = await Promise.all([
+        tx.safeguardingIncidentAction.create({
+          data: {
+            id: newId('sact'),
+            safeguardingIncidentId: current.id,
+            actorUserId: performedByUserId,
+            actionType: toStoreActionType(body.actionType),
+            note: body.notes,
+            metadataJson: {},
+            occurredAt: now,
+          },
+        }),
+        tx.safeguardingIncident.update({
+          where: { id: current.id },
+          data: {
+            status: toStoreStatus(nextStatus),
+            closedAt: nextStatus === 'closed' ? now : null,
+          },
+          include: {
+            actions: {
+              orderBy: {
+                occurredAt: 'desc',
+              },
             },
           },
-        },
-      });
+        }),
+      ]);
       return { action, updated };
     });
 

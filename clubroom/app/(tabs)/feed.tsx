@@ -5,7 +5,7 @@
  * Sub-components: FeedPostCard, FeedFilters, ClubHubCard, EmptyFeedState.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState, startTransition } from 'react';
 import { FlatList, RefreshControl, Share, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -45,6 +45,10 @@ interface FeedData {
   clubs: Club[];
 }
 
+const EMPTY_FEED: AggregatedFeedPost[] = [];
+const EMPTY_CLUBS: Club[] = [];
+const UPDATES_HEADER = <ScreenHeader title="Updates" />;
+
 export default function FeedScreen() {
   const { currentUser } = useAuth();
   const listRef = useRef<FlatList<AggregatedFeedPost>>(null);
@@ -55,68 +59,58 @@ export default function FeedScreen() {
 
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-    colors,
-    showLoadingState,
-    isPending,
-  } = useScreen<FeedData>({
-    load: async (): Promise<Result<FeedData, ServiceError>> => {
-      try {
-        if (!currentUser?.id) {
-          return ok({ feed: [], clubs: [] });
+  const { data, status, error, refreshing, onRefresh, retry, colors, showLoadingState, isPending } =
+    useScreen<FeedData>({
+      load: async (): Promise<Result<FeedData, ServiceError>> => {
+        try {
+          if (!currentUser?.id) {
+            return ok({ feed: [], clubs: [] });
+          }
+          const baseFeed = isCoach
+            ? socialFeedService.getAggregatedFeed(currentUser.id, feedFilter)
+            : socialFeedService.getCombinedFeedForParent(currentUser.id, feedFilter);
+          const followingIds = await followService.getFollowingIds(currentUser.id);
+          const followingFeed = socialFeedService.getFollowingFeed(followingIds, feedFilter);
+          const feed = mergeUpdatesFeed(baseFeed, followingFeed);
+          const clubs = socialFeedService.getUserClubs(currentUser.id);
+          return ok({ feed, clubs });
+        } catch {
+          return err({ code: 'UNKNOWN' as const, message: 'Failed to load updates' });
         }
-        const baseFeed = isCoach
-          ? socialFeedService.getAggregatedFeed(currentUser.id, feedFilter)
-          : socialFeedService.getCombinedFeedForParent(currentUser.id, feedFilter);
-        const followingIds = await followService.getFollowingIds(currentUser.id);
-        const followingFeed = socialFeedService.getFollowingFeed(followingIds, feedFilter);
-        const feed = mergeUpdatesFeed(baseFeed, followingFeed);
-        const clubs = socialFeedService.getUserClubs(currentUser.id);
-        return ok({ feed, clubs });
-      } catch {
-        return err({ code: 'UNKNOWN' as const, message: 'Failed to load updates' });
-      }
-    },
-    deps: [currentUser?.id, feedFilter, isCoach],
-    events: [ServiceEvents.CLUB_POST_CREATED, ServiceEvents.COACH_POST_CREATED],
-    isEmpty: (d) => d.feed.length === 0 && d.clubs.length === 0,
-    refetchOnFocus: true,
-    loadingStrategy: 'warm-first',
-  });
+      },
+      deps: [currentUser?.id, feedFilter, isCoach],
+      events: [ServiceEvents.CLUB_POST_CREATED, ServiceEvents.COACH_POST_CREATED],
+      isEmpty: (d) => d.feed.length === 0 && d.clubs.length === 0,
+      refetchOnFocus: true,
+      loadingStrategy: 'warm-first',
+    });
 
-  const feed = useMemo(() => data?.feed ?? [], [data?.feed]);
-  const clubs = useMemo(() => data?.clubs ?? [], [data?.clubs]);
-  const visibleFeed = useMemo(() => feed.slice(0, visibleCount), [feed, visibleCount]);
+  const feed = data?.feed ?? EMPTY_FEED;
+  const clubs = data?.clubs ?? EMPTY_CLUBS;
+  const visibleFeed = feed.slice(0, visibleCount);
   const hasMoreFeed = visibleCount < feed.length;
 
   useEffect(() => {
-    setVisibleCount(20);
+    startTransition(() => {
+      setVisibleCount(20);
+    });
   }, [feedFilter, feed.length]);
 
   useEffect(() => {
     feedByIdRef.current = new Map(feed.map((post) => [post.id, post]));
   }, [feed]);
 
-  const handleLikePost = useCallback(
-    (postId: string) => {
-      if (!currentUser?.id) return;
-      socialFeedService.toggleReaction(postId, currentUser.id);
-      void onRefresh();
-    },
-    [currentUser?.id, onRefresh],
-  );
+  const handleLikePost = (postId: string) => {
+    if (!currentUser?.id) return;
+    socialFeedService.toggleReaction(postId, currentUser.id);
+    void onRefresh();
+  };
 
-  const handleCommentPost = useCallback((postId: string) => {
+  const handleCommentPost = (postId: string) => {
     router.push(Routes.modalPostDetail(postId));
-  }, []);
+  };
 
-  const handleSharePost = useCallback(async (postId: string) => {
+  const handleSharePost = async (postId: string) => {
     const post = feedByIdRef.current.get(postId);
     if (!post) return;
 
@@ -128,66 +122,58 @@ export default function FeedScreen() {
     } catch {
       uiFeedback.showToast('Try again in a moment.', 'error');
     }
-  }, []);
+  };
 
-  const handleLoadMore = useCallback(() => {
+  const handleLoadMore = () => {
     if (!hasMoreFeed) return;
     setVisibleCount((count) => Math.min(count + 20, feed.length));
-  }, [feed.length, hasMoreFeed]);
+  };
 
-  const renderPost = useCallback(
-    ({ item }: { item: AggregatedFeedPost }) => (
-      <View style={styles.feedCardRow}>
-        <FeedPostCard
-          post={item}
-          onLike={handleLikePost}
-          onComment={handleCommentPost}
-          onShare={handleSharePost}
+  const renderPost = ({ item }: { item: AggregatedFeedPost }) => (
+    <View style={styles.feedCardRow}>
+      <FeedPostCard
+        post={item}
+        onLike={handleLikePost}
+        onComment={handleCommentPost}
+        onShare={handleSharePost}
+      />
+    </View>
+  );
+
+  const keyExtractor = (item: AggregatedFeedPost) => item.id;
+
+  const renderFeedHeader = () => (
+    <View style={styles.feedHeader}>
+      {clubs.length > 0 && (
+        <View style={styles.clubsSection}>
+          <ThemedText type="defaultSemiBold" style={styles.clubsHeading}>
+            Clubs
+          </ThemedText>
+          <ClubHubCard clubs={clubs} />
+        </View>
+      )}
+      {(feed.length > 0 || clubs.length > 0) && (
+        <FeedFilters activeFilter={feedFilter} onFilterChange={setFeedFilter} />
+      )}
+      {isPending ? (
+        <SubmitProgressState
+          label={feedFilter === 'all' ? 'Refreshing updates' : 'Updating results'}
+          style={styles.pendingState}
         />
-      </View>
-    ),
-    [handleCommentPost, handleLikePost, handleSharePost],
+      ) : null}
+    </View>
   );
 
-  const keyExtractor = useCallback((item: AggregatedFeedPost) => item.id, []);
-
-  const renderFeedHeader = useCallback(
-    () => (
-      <View style={styles.feedHeader}>
-        {clubs.length > 0 && (
-          <View style={styles.clubsSection}>
-            <ThemedText type="defaultSemiBold" style={styles.clubsHeading}>
-              Clubs
-            </ThemedText>
-            <ClubHubCard clubs={clubs} />
-          </View>
-        )}
-        {(feed.length > 0 || clubs.length > 0) && (
-          <FeedFilters activeFilter={feedFilter} onFilterChange={setFeedFilter} />
-        )}
-        {isPending ? (
-          <SubmitProgressState
-            label={feedFilter === 'all' ? 'Refreshing updates' : 'Updating results'}
-            style={styles.pendingState}
-          />
-        ) : null}
-      </View>
-    ),
-    [clubs, feed.length, feedFilter, isPending],
+  const renderFeedEmpty = () => (
+    <EmptyFeedState hasClubs={clubs.length > 0} filter={feedFilter} isCoach={isCoach} />
   );
 
-  const renderFeedEmpty = useCallback(
-    () => <EmptyFeedState hasClubs={clubs.length > 0} filter={feedFilter} isCoach={isCoach} />,
-    [clubs.length, feedFilter, isCoach],
-  );
-
-  const renderSeparator = useCallback(() => <View style={styles.feedItemSeparator} />, []);
-  const header = <ScreenHeader title="Updates" />;
+  const renderSeparator = () => <View style={styles.feedItemSeparator} />;
 
   // ─── Loading ───────────────────────────────────────────────────
   if (showLoadingState) {
     return (
-      <PageContainer header={header} scrollable={false} gap={0} horizontalSpacing={0}>
+      <PageContainer header={UPDATES_HEADER} scrollable={false} gap={0} horizontalSpacing={0}>
         <LoadingState variant="feed" />
       </PageContainer>
     );
@@ -196,7 +182,7 @@ export default function FeedScreen() {
   // ─── Error ─────────────────────────────────────────────────────
   if (status === 'error') {
     return (
-      <PageContainer header={header} scrollable={false} gap={0} horizontalSpacing={0}>
+      <PageContainer header={UPDATES_HEADER} scrollable={false} gap={0} horizontalSpacing={0}>
         <ErrorState message={error?.message ?? 'Failed to load updates'} onRetry={retry} />
       </PageContainer>
     );
@@ -205,7 +191,7 @@ export default function FeedScreen() {
   // ─── Empty ─────────────────────────────────────────────────────
   if (status === 'empty') {
     return (
-      <PageContainer header={header} scrollable={false} gap={0} horizontalSpacing={0}>
+      <PageContainer header={UPDATES_HEADER} scrollable={false} gap={0} horizontalSpacing={0}>
         <>
           {isPending ? (
             <SubmitProgressState label="Refreshing updates" style={styles.pendingState} />
@@ -222,7 +208,7 @@ export default function FeedScreen() {
 
   // ─── Success ───────────────────────────────────────────────────
   return (
-    <PageContainer header={header} scrollable={false} gap={0} horizontalSpacing={0}>
+    <PageContainer header={UPDATES_HEADER} scrollable={false} gap={0} horizontalSpacing={0}>
       <FlatList
         ref={listRef}
         CellRendererComponent={AccessibleListCell}

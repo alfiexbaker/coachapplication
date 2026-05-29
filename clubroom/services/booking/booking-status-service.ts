@@ -109,27 +109,29 @@ export const bookingStatusService = {
       return sessionTime > now && sessionTime <= oneHourFromNow;
     });
 
-    for (const session of upcomingSessions) {
+    await Promise.all(
+      upcomingSessions.map(async (session) => {
       const athleteName = await resolveAthleteName(session);
 
       // Notify coach if we have a valid coachId
-      if (session.coachId) {
-        await notificationService.notifyCoachSessionReminder({
-          coachId: session.coachId,
-          athleteName,
-          bookingId: session.id,
-        });
-      }
-
-      // Notify parent if we have a valid bookedById
-      if (session.bookedById) {
-        await notificationService.notifyParentSessionReminder({
-          parentId: session.bookedById,
-          childName: athleteName,
-          coachName: session.coachName || 'Coach',
-          bookingId: session.id,
-        });
-      }
-    }
+        await Promise.all([
+          session.coachId
+            ? notificationService.notifyCoachSessionReminder({
+                coachId: session.coachId,
+                athleteName,
+                bookingId: session.id,
+              })
+            : Promise.resolve(),
+          session.bookedById
+            ? notificationService.notifyParentSessionReminder({
+                parentId: session.bookedById,
+                childName: athleteName,
+                coachName: session.coachName || 'Coach',
+                bookingId: session.id,
+              })
+            : Promise.resolve(),
+        ]);
+      }),
+    );
   },
 };

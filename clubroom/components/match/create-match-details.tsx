@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,7 +25,7 @@ interface CreateMatchDetailsProps {
   onAddressChange: (text: string) => void;
 }
 
-export const CreateMatchDetails = memo(function CreateMatchDetails({
+export const CreateMatchDetails = function CreateMatchDetails({
   matchType,
   opponent,
   isHome,
@@ -163,7 +163,7 @@ export const CreateMatchDetails = memo(function CreateMatchDetails({
       </View>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   stepContent: { gap: Spacing.md },

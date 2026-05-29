@@ -1,5 +1,4 @@
 import { View, StyleSheet, ScrollView, TextInput } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -8,7 +7,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { VideoUpload } from '@/components/video/video-upload';
-import { formatDuration, formatFileSize } from '@/components/video/video-upload-sections';
+import { formatDuration, formatFileSize } from '@/components/video/video-upload-helpers';
 import { SubmitProgressState } from '@/components/ui/screen-states';
 import { StatusBanner } from '@/components/ui/primitives/StatusBanner';
 import { Spacing, Radii, Typography } from '@/constants/theme';
@@ -34,10 +33,7 @@ export default function VideoUploadScreen() {
   } = useVideoUpload();
 
   return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
-    >
+    <View style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <Row
         justify="space-between"
         align="center"
@@ -63,7 +59,11 @@ export default function VideoUploadScreen() {
         </Clickable>
       </Row>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         {uploadStatusMessage ? (
           <StatusBanner
             variant={uploadStage === 'failed' ? 'error' : 'info'}
@@ -145,7 +145,7 @@ export default function VideoUploadScreen() {
           </ThemedText>
         </SurfaceCard>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

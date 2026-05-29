@@ -1,4 +1,4 @@
-import { memo, type ComponentProps } from 'react';
+import { type ComponentProps } from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -17,7 +17,7 @@ interface CornerDotsCompactProps {
   positionPlayed?: PositionRole;
 }
 
-export const CornerDotsCompact = memo(function CornerDotsCompact({
+export const CornerDotsCompact = function CornerDotsCompact({
   corners,
   effort,
   positionPlayed,
@@ -102,7 +102,7 @@ export const CornerDotsCompact = memo(function CornerDotsCompact({
       </Row>
     </Column>
   );
-});
+};
 
 const styles = StyleSheet.create({
   badge: {

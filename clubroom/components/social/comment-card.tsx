@@ -1,4 +1,3 @@
-import { memo, useCallback } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
@@ -9,11 +8,11 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThreadedComment } from '@/constants/comment-types';
 import { useTheme } from '@/hooks/useTheme';
 
-import { formatTimeAgo, CommentActions } from './comment-card-sections';
+import { CommentActions } from './comment-card-sections';
+import { formatTimeAgo } from './comment-card-helpers';
 
 // Re-export extracted components for backward compat
-export { formatTimeAgo, CommentActions } from './comment-card-sections';
-export type { CommentActionsProps } from './comment-card-sections';
+export { CommentActions } from './comment-card-sections';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -48,13 +47,13 @@ function CommentCardInner({
   const isDeleted = comment.isDeleted;
   const initials = comment.authorAvatar ?? comment.authorName?.slice(0, 2).toUpperCase() ?? '??';
 
-  const handleLongPress = useCallback(() => {
+  const handleLongPress = () => {
     if (!isOwnComment || isDeleted) return;
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
     onDelete(comment.id);
-  }, [isOwnComment, isDeleted, onDelete, comment.id]);
+  };
 
   return (
     <Clickable
@@ -132,5 +131,5 @@ const styles = StyleSheet.create({
   content: { ...Typography.bodySmall },
 });
 
-export const CommentCard = memo(CommentCardInner);
+export const CommentCard = CommentCardInner;
 export default CommentCard;

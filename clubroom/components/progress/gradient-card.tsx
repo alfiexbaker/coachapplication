@@ -1,8 +1,8 @@
-import { memo, useMemo, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 
-import { Radii, Shadows, Spacing, withAlpha } from '@/constants/theme';
+import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { buildLinearGradientUri } from '@/components/primitives/surface-card-utils';
 
@@ -18,19 +18,16 @@ interface GradientCardProps {
  * Premium card wrapper with gradient background + inner glow + subtle border.
  * Replaces SurfaceCard on key "wow" components.
  */
-export const GradientCard = memo(function GradientCard({
+export const GradientCard = function GradientCard({
   gradient,
   children,
   style,
   borderColor,
   glowColor,
 }: GradientCardProps) {
-  const { colors, scheme } = useTheme();
+  const { colors } = useTheme();
 
-  const gradientUri = useMemo(
-    () => buildLinearGradientUri(gradient, Radii.card),
-    [gradient],
-  );
+  const gradientUri = buildLinearGradientUri(gradient, Radii.card);
 
   const resolvedBorder = borderColor ?? withAlpha(colors.border, 0.3);
   const resolvedGlow = glowColor ?? withAlpha(gradient[1], 0.08);
@@ -40,11 +37,7 @@ export const GradientCard = memo(function GradientCard({
       style={[
         styles.outer,
         {
-          shadowColor: Shadows[scheme].card.shadowColor,
-          shadowOpacity: Shadows[scheme].card.shadowOpacity * 1.3,
-          shadowRadius: Shadows[scheme].card.shadowRadius + 4,
-          shadowOffset: Shadows[scheme].card.shadowOffset,
-          elevation: (Shadows[scheme].card.elevation ?? 0) + 2,
+          boxShadow: `0px 8px 22px ${resolvedGlow}`,
         },
         style,
       ]}
@@ -66,7 +59,7 @@ export const GradientCard = memo(function GradientCard({
       </View>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   outer: {

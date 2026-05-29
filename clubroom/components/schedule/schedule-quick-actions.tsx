@@ -3,7 +3,7 @@
  * Sits above the day detail for quick access.
  */
 
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 
@@ -15,15 +15,12 @@ import { Routes } from '@/navigation/routes';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
-export const ScheduleQuickActions = memo(function ScheduleQuickActions() {
+export const ScheduleQuickActions = function ScheduleQuickActions() {
   const { colors } = useTheme();
 
-  const goCreate = useCallback(
-    () => router.push(Routes.sessionsCreateIntent({ intent: 'new', source: 'schedule' })),
-    [],
-  );
-  const goBookings = useCallback(() => router.push(Routes.BOOKINGS), []);
-  const goStaffing = useCallback(() => router.push(Routes.MANAGE_BOOKINGS), []);
+  const goCreate = () => router.push(Routes.sessionsCreateIntent({ intent: 'new', source: 'schedule' }));
+  const goBookings = () => router.push(Routes.BOOKINGS);
+  const goStaffing = () => router.push(Routes.MANAGE_BOOKINGS);
 
   return (
     <Row gap="xs" style={styles.container}>
@@ -52,7 +49,7 @@ export const ScheduleQuickActions = memo(function ScheduleQuickActions() {
       </Clickable>
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: {

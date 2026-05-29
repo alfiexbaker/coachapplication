@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -15,7 +14,7 @@ interface InviteRoleSelectorProps {
   onSelectRole: (role: ClubRole) => void;
 }
 
-export const InviteRoleSelector = memo(function InviteRoleSelector({
+export const InviteRoleSelector = function InviteRoleSelector({
   selectedRole,
   onSelectRole,
 }: InviteRoleSelectorProps) {
@@ -59,7 +58,7 @@ export const InviteRoleSelector = memo(function InviteRoleSelector({
       </View>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },

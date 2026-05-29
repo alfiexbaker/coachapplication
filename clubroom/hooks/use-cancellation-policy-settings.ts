@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
@@ -14,14 +14,14 @@ export function useCancellationPolicySettings() {
   const [policy, setPolicy] = useState<CancellationPolicy | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = async () => {
     if (!coachId) {
       return err(serviceError('UNAUTHORIZED', 'Coach account required.'));
     }
     const result = await schedulingRulesService.getCancellationPolicy(coachId);
     if (!result.success) return err(result.error);
     return ok(result.data ?? schedulingRulesService.getDefaultCancellationPolicy());
-  }, [coachId]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<CancellationPolicy>({
     load,
@@ -33,21 +33,20 @@ export function useCancellationPolicySettings() {
   });
 
   useEffect(() => {
-    if (data) setPolicy(data);
+    if (data) startTransition(() => {
+      setPolicy(data);
+    });
   }, [data]);
 
-  const applyTemplate = useCallback(
-    async (templateKey: TemplateKey) => {
-      if (!coachId) return;
-      setSaving(true);
-      const result = await schedulingRulesService.setCancellationPolicy(coachId, templateKey);
-      if (result.success) {
-        setPolicy(result.data);
-      }
-      setSaving(false);
-    },
-    [coachId],
-  );
+  const applyTemplate = async (templateKey: TemplateKey) => {
+    if (!coachId) return;
+    setSaving(true);
+    const result = await schedulingRulesService.setCancellationPolicy(coachId, templateKey);
+    if (result.success) {
+      setPolicy(result.data);
+    }
+    setSaving(false);
+  };
 
   return {
     policy,

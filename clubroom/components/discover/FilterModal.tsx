@@ -5,9 +5,8 @@
  * Includes price range, rating, distance, focuses, formats, languages.
  */
 
-import { useCallback, useState, useEffect } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 import { Modal, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Chip } from '@/components/primitives/chip';
 import { Divider } from '@/components/ui/primitives/Divider';
@@ -21,13 +20,8 @@ import type {
   FootballObjective,
   TrainingFormat,
 } from '@/constants/types';
-import {
-  DISTANCE_OPTIONS,
-  GENDER_OPTIONS,
-  FilterModalHeader,
-  ChipGridSection,
-  FilterModalFooter,
-} from './filter-modal-sections';
+import { FilterModalHeader, ChipGridSection, FilterModalFooter } from './filter-modal-sections';
+import { DISTANCE_OPTIONS, GENDER_OPTIONS } from './filter-modal-helpers';
 
 interface FilterModalProps {
   visible: boolean;
@@ -48,50 +42,47 @@ export function FilterModal({
 }: FilterModalProps) {
   const { colors: palette } = useTheme();
 
-  const [draftFilters, setDraftFilters] = useState<CoachSearchFilters>(filters);
+  const [draftFilters, setDraftFilters] = useState<CoachSearchFilters>(() => filters);
 
+  // react-doctor-disable-next-line react-doctor/no-reset-all-state-on-prop-change -- modal draft filters intentionally reset from applied filters when opened.
   useEffect(() => {
     if (visible) {
-      setDraftFilters(filters);
+      startTransition(() => {
+        setDraftFilters(filters);
+      });
     }
   }, [visible, filters]);
 
-  const updateFilter = useCallback(
-    <K extends keyof CoachSearchFilters>(key: K, value: CoachSearchFilters[K]) => {
-      setDraftFilters((prev) => ({ ...prev, [key]: value }));
-    },
-    [],
-  );
+  const updateFilter = <K extends keyof CoachSearchFilters>(
+    key: K,
+    value: CoachSearchFilters[K],
+  ) => {
+    setDraftFilters((prev) => ({ ...prev, [key]: value }));
+  };
 
-  const handlePriceChange = useCallback(
-    (min: number, max: number) => {
-      setDraftFilters((prev) => ({
-        ...prev,
-        priceMin: min === filterOptions.priceRange.min ? undefined : min,
-        priceMax: max === filterOptions.priceRange.max ? undefined : max,
-      }));
-    },
-    [filterOptions.priceRange],
-  );
+  const handlePriceChange = (min: number, max: number) => {
+    setDraftFilters((prev) => ({
+      ...prev,
+      priceMin: min === filterOptions.priceRange.min ? undefined : min,
+      priceMax: max === filterOptions.priceRange.max ? undefined : max,
+    }));
+  };
 
-  const toggleArrayFilter = useCallback(
-    <T extends string>(key: keyof CoachSearchFilters, value: T) => {
-      setDraftFilters((prev) => {
-        const current = (prev[key] as T[] | undefined) ?? [];
-        const has = current.includes(value);
-        const next = has ? current.filter((v) => v !== value) : [...current, value];
-        return { ...prev, [key]: next.length > 0 ? next : undefined };
-      });
-    },
-    [],
-  );
+  const toggleArrayFilter = <T extends string>(key: keyof CoachSearchFilters, value: T) => {
+    setDraftFilters((prev) => {
+      const current = (prev[key] as T[] | undefined) ?? [];
+      const has = current.includes(value);
+      const next = has ? current.filter((v) => v !== value) : [...current, value];
+      return { ...prev, [key]: next.length > 0 ? next : undefined };
+    });
+  };
 
-  const handleClearAll = useCallback(() => setDraftFilters({}), []);
+  const handleClearAll = () => setDraftFilters({});
 
-  const handleApply = useCallback(() => {
+  const handleApply = () => {
     onApply(draftFilters);
     onClose();
-  }, [draftFilters, onApply, onClose]);
+  };
 
   const hasActiveFilters = Object.values(draftFilters).some(
     (v) => v !== undefined && (!Array.isArray(v) || v.length > 0),
@@ -104,10 +95,7 @@ export function FilterModal({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
         <FilterModalHeader
           onClose={onClose}
           onClear={handleClearAll}
@@ -116,6 +104,7 @@ export function FilterModal({
         />
 
         <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
           style={styles.content}
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
@@ -168,9 +157,8 @@ export function FilterModal({
                 key={focus.value}
                 active={draftFilters.focuses?.includes(focus.value as FootballObjective)}
                 onPress={() => toggleArrayFilter('focuses', focus.value as FootballObjective)}
-              >
-                {focus.label} ({focus.count})
-              </Chip>
+                label={`${focus.label} (${focus.count})`}
+              />
             ))}
           </ChipGridSection>
 
@@ -183,9 +171,8 @@ export function FilterModal({
                 key={format.value}
                 active={draftFilters.formats?.includes(format.value as TrainingFormat)}
                 onPress={() => toggleArrayFilter('formats', format.value as TrainingFormat)}
-              >
-                {format.label} ({format.count})
-              </Chip>
+                label={`${format.label} (${format.count})`}
+              />
             ))}
           </ChipGridSection>
 
@@ -198,9 +185,8 @@ export function FilterModal({
                 key={lang.value}
                 active={draftFilters.languages?.includes(lang.value)}
                 onPress={() => toggleArrayFilter('languages', lang.value)}
-              >
-                {lang.label} ({lang.count})
-              </Chip>
+                label={`${lang.label} (${lang.count})`}
+              />
             ))}
           </ChipGridSection>
 
@@ -228,7 +214,7 @@ export function FilterModal({
         </ScrollView>
 
         <FilterModalFooter onApply={handleApply} resultCount={resultCount} palette={palette} />
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }

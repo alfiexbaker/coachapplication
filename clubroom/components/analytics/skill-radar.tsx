@@ -1,7 +1,7 @@
 /**
  * SkillRadar — Composition root with radar/list toggle view.
  */
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -17,6 +17,8 @@ import { SkillRadarChart } from './skill-radar-chart';
 import { SkillRadarList } from './skill-radar-list';
 import { Row } from '@/components/primitives';
 
+const EMPTY_COMPARISON_VALUES: number[] = [];
+
 interface SkillRadarProps {
   skills: SkillProgress[];
   title?: string;
@@ -30,7 +32,7 @@ export function SkillRadar({
   skills,
   title = 'Skills Overview',
   showComparison = false,
-  comparisonValues = [],
+  comparisonValues = EMPTY_COMPARISON_VALUES,
   comparisonLabel = 'Average',
   showDetailedList = true,
 }: SkillRadarProps) {
@@ -38,7 +40,7 @@ export function SkillRadar({
   const [selectedSkill, setSelectedSkill] = useState<SkillProgress | null>(null);
   const [viewMode, setViewMode] = useState<'radar' | 'list'>('radar');
 
-  const skillsByCategory = useMemo(() => {
+  const skillsByCategory = (() => {
     const grouped: Record<string, SkillProgress[]> = {};
     skills.forEach((skill) => {
       const cat = skill.category || 'General';
@@ -46,7 +48,7 @@ export function SkillRadar({
       grouped[cat].push(skill);
     });
     return grouped;
-  }, [skills]);
+  })();
 
   if (skills.length === 0) {
     return (

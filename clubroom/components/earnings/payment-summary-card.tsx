@@ -1,8 +1,3 @@
-/**
- * PaymentSummaryCard — Income summary: owed vs collected split, optional written-off line.
- */
-
-import { memo, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -46,13 +41,13 @@ function PaymentSummaryCardInner({
 
   const formatGBP = (amount: number) => `\u00A3${amount.toFixed(2)}`;
 
-  const handleWriteOffInfo = useCallback(() => {
+  const handleWriteOffInfo = () => {
     uiFeedback.showToast('Written-off sessions are payments you\'ve decided not to chase. Common reasons:\n\n' +
         '\u2022 Athlete cancelled last minute\n' +
         '\u2022 Payment was waived as a favour\n' +
         '\u2022 Unable to collect after multiple reminders\n\n' +
         'You can restore a written-off session back to "owed" at any time.');
-  }, []);
+  };
 
   const totalBilled = totalOwed + totalCollected + totalWrittenOff;
   const collectionRate = totalBilled > 0
@@ -141,7 +136,7 @@ function PaymentSummaryCardInner({
   );
 }
 
-export const PaymentSummaryCard = memo(PaymentSummaryCardInner);
+export const PaymentSummaryCard = PaymentSummaryCardInner;
 
 const styles = StyleSheet.create({
   header: {

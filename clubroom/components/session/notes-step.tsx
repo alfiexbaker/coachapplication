@@ -5,7 +5,7 @@
  * and homework/practice focus for athletes.
  */
 
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SESSION_NOTE_FOCUSES } from '@/constants/football-registry';
@@ -45,7 +45,7 @@ const SKILL_OPTIONS = SESSION_NOTE_FOCUSES;
 // NOTES STEP
 // ============================================================================
 
-export const NotesStep = memo(function NotesStep({
+export const NotesStep = function NotesStep({
   colors,
   sessionSummary,
   onSessionSummaryChange,
@@ -58,15 +58,12 @@ export const NotesStep = memo(function NotesStep({
   improvements,
   onImprovementsChange,
 }: NotesStepProps) {
-  const handleToggleSkill = useCallback(
-    (skill: string) => {
-      const isSelected = skillsFocused.includes(skill);
-      onSkillsFocusedChange(
-        isSelected ? skillsFocused.filter((s) => s !== skill) : [...skillsFocused, skill],
-      );
-    },
-    [skillsFocused, onSkillsFocusedChange],
-  );
+  const handleToggleSkill = (skill: string) => {
+    const isSelected = skillsFocused.includes(skill);
+    onSkillsFocusedChange(
+      isSelected ? skillsFocused.filter((s) => s !== skill) : [...skillsFocused, skill],
+    );
+  };
 
   return (
     <>
@@ -204,7 +201,7 @@ export const NotesStep = memo(function NotesStep({
       </SurfaceCard>
     </>
   );
-});
+};
 
 // ============================================================================
 // STYLES

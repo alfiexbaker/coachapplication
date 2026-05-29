@@ -30,7 +30,7 @@ export function pickOwnerDashboardClubId(
     return preferredMembership?.clubId ?? null;
   }
 
-  const bestMembership = [...eligibleMemberships].sort(
+  const bestMembership = Array.from(eligibleMemberships).toSorted(
     (left, right) =>
       OWNER_DASHBOARD_ROLE_PRIORITY[left.role] - OWNER_DASHBOARD_ROLE_PRIORITY[right.role],
   )[0];

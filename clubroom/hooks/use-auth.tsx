@@ -1,15 +1,6 @@
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
-import {
-  createContext,
-  useContext,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { createContext, useEffect, useRef, useState, type ReactNode, use } from 'react';
 import type { CoachSignupData } from '@/components/auth/coach-signup-screen';
 import type { User } from '@/constants/app-types';
 import type { ChildReference, StaffMember } from '@/constants/types';
@@ -23,6 +14,8 @@ import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
 import { api as apiConfig } from '@/constants/config';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
+
+import { runAsyncTryCatchFinally, runAsyncFinally } from '@/utils/async-control';
 
 const logger = createLogger('useAuth');
 
@@ -763,6 +756,7 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const MOCK_API_MODE = apiConfig.useMock;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<DemoUser | null>(null);
@@ -770,10 +764,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const isAuthenticatingRef = useRef(false);
   const [registeredUsers, setRegisteredUsers] = useState<DemoUser[]>(DEMO_USERS);
-  const activeUsers = apiConfig.useMock ? registeredUsers : API_DEV_USERS;
+  const activeUsers = MOCK_API_MODE ? registeredUsers : API_DEV_USERS;
 
   useEffect(() => {
-    if (!apiConfig.useMock) {
+    if (!MOCK_API_MODE) {
       return;
     }
 
@@ -810,10 +804,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true;
 
     const checkPersistedAuth = async () => {
-      try {
+      await runAsyncTryCatchFinally(async () => {
         const authState = await authService.checkAuth();
         if (mounted && authState.isAuthenticated && authState.user) {
-          const restoredUser = apiConfig.useMock
+          const restoredUser = MOCK_API_MODE
             ? registeredUsers.find((u) => u.email?.toLowerCase() === authState.user!.email.toLowerCase())
             : mapAuthProfileToDemoUser(authState.user);
           if (restoredUser) {
@@ -822,13 +816,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             logger.success('Session restored from storage', { userId: restoredUser.id });
           }
         }
-      } catch (err) {
+      }, async err => {
         logger.error('Failed to restore auth state', err);
-      } finally {
+      }, () => {
         if (mounted) {
           setIsLoading(false);
         }
-      }
+      });
     };
 
     checkPersistedAuth();
@@ -853,242 +847,234 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const login = useCallback(
-    async (username: string, password: string) => {
-      if (isAuthenticatingRef.current) return false;
-      isAuthenticatingRef.current = true;
-      try {
-        const normalizedUsername = username.trim().toLowerCase();
-        logger.info('Login attempt', { username: normalizedUsername, mode: apiConfig.useMock ? 'mock' : 'api' });
+  const login = async (username: string, password: string) => {
+    if (isAuthenticatingRef.current) return false;
+    isAuthenticatingRef.current = true;
 
-        if (!apiConfig.useMock) {
-          const email = resolveApiLoginEmail(normalizedUsername);
-          const result = await authService.login(email, password.trim());
-          if (!result.success) {
-            logger.warn('API login failed', { email, error: result.error.message });
-            setError(result.error.message);
-            return false;
-          }
+    return await runAsyncFinally(async () => {
+      const normalizedUsername = username.trim().toLowerCase();
+      logger.info('Login attempt', { username: normalizedUsername, mode: MOCK_API_MODE ? 'mock' : 'api' });
 
-          const mappedUser = mapAuthProfileToDemoUser(result.data.user, password.trim());
-          setCurrentUser(mappedUser);
-          setError(null);
-          await ensureCoachSessionsSeeded();
-          logger.success('API login successful', {
-            email,
-            role: mappedUser.role,
-            userId: mappedUser.id,
-          });
-          return true;
+      if (!MOCK_API_MODE) {
+        const email = resolveApiLoginEmail(normalizedUsername);
+        const result = await authService.login(email, password.trim());
+        if (!result.success) {
+          logger.warn('API login failed', { email, error: result.error.message });
+          setError(result.error.message);
+          return false;
         }
 
-        const match = registeredUsers.find(
-          (user) =>
-            user.username.toLowerCase() === normalizedUsername && user.password === password.trim(),
-        );
-
-        if (match) {
-          logger.success('Login successful', {
-            username: match.username,
-            role: match.role,
-            userId: match.id,
-          });
-          setCurrentUser(match);
-          setError(null);
-          void ensureCoachSessionsSeeded().catch((seedError) => {
-            logger.error('Failed to seed coach sessions after login', seedError);
-          });
-
-          const now = Date.now();
-          const sessionUser = {
-            id: match.id,
-            fullName: match.fullName || match.name || match.username,
-            email: match.email || `${match.username}@demo.clubroom.app`,
-            role: match.role,
-            joinedDate: new Date().toISOString(),
-          };
-          const sessionTokens = {
-            accessToken: `demo_access_${match.id}_${now}`,
-            refreshToken: `demo_refresh_${match.id}_${now}`,
-            expiresAt: now + 7 * 24 * 60 * 60 * 1000,
-          };
-
-          void Promise.all([
-            apiClient.set(STORAGE_KEYS.AUTH_USER, sessionUser),
-            apiClient.set(STORAGE_KEYS.AUTH_TOKENS, sessionTokens),
-            apiClient.set(STORAGE_KEYS.AUTH_TOKEN, sessionTokens.accessToken),
-          ]).catch((persistError) => {
-            logger.error('Failed to persist demo auth session', persistError);
-          });
-
-          return true;
-        }
-
-        logger.warn('Login failed: Invalid credentials', { username: normalizedUsername });
-        setError('Invalid username or password.');
-        return false;
-      } finally {
-        isAuthenticatingRef.current = false;
-      }
-    },
-    [registeredUsers],
-  );
-
-  const registerCoach = useCallback(
-    async (data: CoachSignupData) => {
-      // Generate username from email
-      const username = data.email.split('@')[0].toLowerCase();
-      logger.info('Coach registration attempt', { username, email: data.email });
-
-      if (!apiConfig.useMock) {
-        const result = await authService.register({
-          email: data.email,
-          password: data.password,
-          phone: data.phone,
-          accountType: 'COACH',
-          firstName: data.fullName.trim().split(/\s+/)[0] || data.fullName,
-          lastName: data.fullName.trim().split(/\s+/).slice(1).join(' ') || 'Coach',
-          inviteCode: data.inviteCode,
-          isOrganization: false,
+        const mappedUser = mapAuthProfileToDemoUser(result.data.user, password.trim());
+        setCurrentUser(mappedUser);
+        setError(null);
+        await ensureCoachSessionsSeeded();
+        logger.success('API login successful', {
+          email,
+          role: mappedUser.role,
+          userId: mappedUser.id,
         });
-        if (!result.success) {
-          setError(result.error.message);
-          return false;
-        }
-
-        const mappedUser = mapAuthProfileToDemoUser(result.data.user, data.password);
-        setCurrentUser(mappedUser);
-        setError(null);
-        if (mappedUser.role === 'COACH') {
-          await ensureCoachSessionsSeeded();
-        }
         return true;
       }
 
-      // Check if username already exists
-      if (registeredUsers.find((user) => user.username === username)) {
-        logger.warn('Registration failed: Account already exists', { username });
-        setError('An account with this email already exists.');
-        return false;
-      }
+      const match = registeredUsers.find(
+        (user) =>
+          user.username.toLowerCase() === normalizedUsername && user.password === password.trim(),
+      );
 
-      const newUser: DemoUser = {
-        id: username,
-        username,
-        password: data.password,
-        role: 'COACH',
-        fullName: data.fullName,
-        email: data.email,
-        schoolId: data.schoolId,
-        schoolName: data.schoolName,
-        name: data.fullName,
-        postcode: 'SW1A 1AA',
-        dateOfBirth: '1990-01-01',
-      };
-
-      logger.success('Coach registered successfully', {
-        username,
-        schoolName: data.schoolName,
-        role: newUser.role,
-      });
-      setRegisteredUsers((prev) => [...prev, newUser]);
-      setCurrentUser(newUser);
-      setError(null);
-      if (newUser.role === 'COACH') {
-        await ensureCoachSessionsSeeded();
-      }
-      return true;
-    },
-    [registeredUsers],
-  );
-
-  const registerFromOnboarding = useCallback(
-    async (data: OnboardingData) => {
-      // Generate username from email
-      const username = data.email.split('@')[0].toLowerCase();
-      logger.info('Onboarding registration attempt', {
-        username,
-        email: data.email,
-        accountType: data.accountType,
-      });
-
-      if (!apiConfig.useMock) {
-        const result = await authService.completeOnboarding(data);
-        if (!result.success) {
-          setError(result.error.message);
-          return false;
-        }
-
-        const mappedUser = mapAuthProfileToDemoUser(result.data.user, data.password);
-        setCurrentUser(mappedUser);
+      if (match) {
+        logger.success('Login successful', {
+          username: match.username,
+          role: match.role,
+          userId: match.id,
+        });
+        setCurrentUser(match);
         setError(null);
-        if (mappedUser.role === 'COACH') {
-          await ensureCoachSessionsSeeded();
-        }
+        void ensureCoachSessionsSeeded().catch((seedError) => {
+          logger.error('Failed to seed coach sessions after login', seedError);
+        });
+
+        const now = Date.now();
+        const sessionUser = {
+          id: match.id,
+          fullName: match.fullName || match.name || match.username,
+          email: match.email || `${match.username}@demo.clubroom.app`,
+          role: match.role,
+          joinedDate: new Date().toISOString(),
+        };
+        const sessionTokens = {
+          accessToken: `demo_access_${match.id}_${now}`,
+          refreshToken: `demo_refresh_${match.id}_${now}`,
+          expiresAt: now + 7 * 24 * 60 * 60 * 1000,
+        };
+
+        void Promise.all([
+          apiClient.set(STORAGE_KEYS.AUTH_USER, sessionUser),
+          apiClient.set(STORAGE_KEYS.AUTH_TOKENS, sessionTokens),
+          apiClient.set(STORAGE_KEYS.AUTH_TOKEN, sessionTokens.accessToken),
+        ]).catch((persistError) => {
+          logger.error('Failed to persist demo auth session', persistError);
+        });
+
         return true;
       }
 
-      // Check if email already exists
-      if (registeredUsers.find((user) => user.email?.toLowerCase() === data.email.toLowerCase())) {
-        logger.warn('Registration failed: Account already exists', { email: data.email });
-        setError('An account with this email already exists.');
+      logger.warn('Login failed: Invalid credentials', { username: normalizedUsername });
+      setError('Invalid username or password.');
+      return false;
+    }, () => {
+      isAuthenticatingRef.current = false;
+    });
+  };
+
+  const registerCoach = async (data: CoachSignupData) => {
+    // Generate username from email
+    const username = data.email.split('@')[0].toLowerCase();
+    logger.info('Coach registration attempt', { username, email: data.email });
+
+    if (!MOCK_API_MODE) {
+      const result = await authService.register({
+        email: data.email,
+        password: data.password,
+        phone: data.phone,
+        accountType: 'COACH',
+        firstName: data.fullName.trim().split(/\s+/)[0] || data.fullName,
+        lastName: data.fullName.trim().split(/\s+/).slice(1).join(' ') || 'Coach',
+        inviteCode: data.inviteCode,
+        isOrganization: false,
+      });
+      if (!result.success) {
+        setError(result.error.message);
         return false;
       }
 
-      // Map AccountType to UserRole
-      const roleMap: Record<AccountType, UserRole> = {
-        COACH: 'COACH',
-        PARENT: 'USER',
-        ATHLETE: 'USER',
-      };
-
-      const userId = generateId('user');
-      const fullName = `${data.firstName} ${data.lastName}`;
-
-      const newUser: DemoUser = {
-        id: userId,
-        username,
-        password: data.password,
-        role: roleMap[data.accountType],
-        type: data.accountType === 'COACH' ? 'COACH' : 'USER',
-        fullName,
-        name: fullName,
-        email: data.email,
-        addressLine: data.addressLine,
-        postcode: data.postcode || 'SW1A 1AA',
-        dateOfBirth: data.dateOfBirth || '1990-01-01',
-        // Athlete fields
-        skillLevel: data.skillLevel,
-        position: data.position,
-        hasChildren: data.accountType === 'PARENT' ? true : data.hasChildren,
-        childrenCount: data.accountType === 'PARENT' ? data.childrenCount : undefined,
-        // Coach fields
-        isOrganization: data.isOrganization,
-        organizationName: data.organizationName,
-        isLive: data.accountType === 'COACH' ? false : undefined,
-        // Parents start with no child profiles; they add them after signup.
-        children: data.accountType === 'PARENT' ? [] : data.hasChildren ? [] : undefined,
-      };
-
-      logger.success('User registered via onboarding', {
-        userId,
-        username,
-        accountType: data.accountType,
-        role: newUser.role,
-      });
-
-      setRegisteredUsers((prev) => [...prev, newUser]);
-      setCurrentUser(newUser);
+      const mappedUser = mapAuthProfileToDemoUser(result.data.user, data.password);
+      setCurrentUser(mappedUser);
       setError(null);
-      if (newUser.role === 'COACH') {
+      if (mappedUser.role === 'COACH') {
         await ensureCoachSessionsSeeded();
       }
       return true;
-    },
-    [registeredUsers],
-  );
+    }
 
-  const logout = useCallback(async () => {
+    // Check if username already exists
+    if (registeredUsers.find((user) => user.username === username)) {
+      logger.warn('Registration failed: Account already exists', { username });
+      setError('An account with this email already exists.');
+      return false;
+    }
+
+    const newUser: DemoUser = {
+      id: username,
+      username,
+      password: data.password,
+      role: 'COACH',
+      fullName: data.fullName,
+      email: data.email,
+      schoolId: data.schoolId,
+      schoolName: data.schoolName,
+      name: data.fullName,
+      postcode: 'SW1A 1AA',
+      dateOfBirth: '1990-01-01',
+    };
+
+    logger.success('Coach registered successfully', {
+      username,
+      schoolName: data.schoolName,
+      role: newUser.role,
+    });
+    setRegisteredUsers((prev) => [...prev, newUser]);
+    setCurrentUser(newUser);
+    setError(null);
+    if (newUser.role === 'COACH') {
+      await ensureCoachSessionsSeeded();
+    }
+    return true;
+  };
+
+  const registerFromOnboarding = async (data: OnboardingData) => {
+    // Generate username from email
+    const username = data.email.split('@')[0].toLowerCase();
+    logger.info('Onboarding registration attempt', {
+      username,
+      email: data.email,
+      accountType: data.accountType,
+    });
+
+    if (!MOCK_API_MODE) {
+      const result = await authService.completeOnboarding(data);
+      if (!result.success) {
+        setError(result.error.message);
+        return false;
+      }
+
+      const mappedUser = mapAuthProfileToDemoUser(result.data.user, data.password);
+      setCurrentUser(mappedUser);
+      setError(null);
+      if (mappedUser.role === 'COACH') {
+        await ensureCoachSessionsSeeded();
+      }
+      return true;
+    }
+
+    // Check if email already exists
+    if (registeredUsers.find((user) => user.email?.toLowerCase() === data.email.toLowerCase())) {
+      logger.warn('Registration failed: Account already exists', { email: data.email });
+      setError('An account with this email already exists.');
+      return false;
+    }
+
+    // Map AccountType to UserRole
+    const roleMap: Record<AccountType, UserRole> = {
+      COACH: 'COACH',
+      PARENT: 'USER',
+      ATHLETE: 'USER',
+    };
+
+    const userId = generateId('user');
+    const fullName = `${data.firstName} ${data.lastName}`;
+
+    const newUser: DemoUser = {
+      id: userId,
+      username,
+      password: data.password,
+      role: roleMap[data.accountType],
+      type: data.accountType === 'COACH' ? 'COACH' : 'USER',
+      fullName,
+      name: fullName,
+      email: data.email,
+      addressLine: data.addressLine,
+      postcode: data.postcode || 'SW1A 1AA',
+      dateOfBirth: data.dateOfBirth || '1990-01-01',
+      // Athlete fields
+      skillLevel: data.skillLevel,
+      position: data.position,
+      hasChildren: data.accountType === 'PARENT' ? true : data.hasChildren,
+      childrenCount: data.accountType === 'PARENT' ? data.childrenCount : undefined,
+      // Coach fields
+      isOrganization: data.isOrganization,
+      organizationName: data.organizationName,
+      isLive: data.accountType === 'COACH' ? false : undefined,
+      // Parents start with no child profiles; they add them after signup.
+      children: data.accountType === 'PARENT' ? [] : data.hasChildren ? [] : undefined,
+    };
+
+    logger.success('User registered via onboarding', {
+      userId,
+      username,
+      accountType: data.accountType,
+      role: newUser.role,
+    });
+
+    setRegisteredUsers((prev) => [...prev, newUser]);
+    setCurrentUser(newUser);
+    setError(null);
+    if (newUser.role === 'COACH') {
+      await ensureCoachSessionsSeeded();
+    }
+    return true;
+  };
+
+  const logout = async () => {
     if (currentUser) {
       logger.info('User logged out', {
         username: currentUser.username,
@@ -1119,44 +1105,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Reset navigation back to the login screen
     router.replace(Routes.ROOT);
-  }, [currentUser]);
+  };
 
-  const forgotPassword = useCallback(async (email: string) => {
+  const forgotPassword = async (email: string) => {
     logger.info('Forgot password requested', { email });
     await authService.forgotPassword(email);
-  }, []);
+  };
 
-  const value = useMemo(
-    () => ({
-      currentUser,
-      isAuthenticated: currentUser != null,
-      isLoading,
-      login,
-      logout,
-      registerCoach,
-      registerFromOnboarding,
-      forgotPassword,
-      error,
-      availableUsers: activeUsers,
-    }),
-    [
-      activeUsers,
-      currentUser,
-      error,
-      isLoading,
-      login,
-      logout,
-      registerCoach,
-      registerFromOnboarding,
-      forgotPassword,
-    ],
-  );
+  const value = ({
+    currentUser,
+    isAuthenticated: currentUser != null,
+    isLoading,
+    login,
+    logout,
+    registerCoach,
+    registerFromOnboarding,
+    forgotPassword,
+    error,
+    availableUsers: activeUsers,
+  });
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
+  const context = use(AuthContext);
 
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');

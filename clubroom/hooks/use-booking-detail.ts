@@ -5,7 +5,7 @@
  * Provides all action handlers (message, cancel, reopen, refund, report).
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
@@ -142,7 +142,7 @@ export function useBookingDetail(id: string): BookingDetailResult {
 
   const [deliveryFeedback, setDeliveryFeedback] = useState<SessionFeedback | null>(null);
 
-  const loadBooking = useCallback(async () => {
+  const loadBooking = async () => {
     logger.debug('Loading booking', { id });
 
     try {
@@ -179,7 +179,7 @@ export function useBookingDetail(id: string): BookingDetailResult {
       setDeliveryFeedback(null);
       return err(serviceError('UNKNOWN', 'Failed to load booking details.', loadError));
     }
-  }, [currentUser?.id, id, isCoach]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<BookingSummary | null>({
     load: loadBooking,
@@ -196,8 +196,9 @@ export function useBookingDetail(id: string): BookingDetailResult {
   }, [data, id]);
 
   const booking = data ?? bookingDetailSnapshots.get(id) ?? undefined;
+  const [nowMs] = useState(() => Date.now());
   const bookingStartMs = booking ? new Date(booking.start).getTime() : Number.NaN;
-  const isFutureBooking = Number.isFinite(bookingStartMs) ? bookingStartMs > Date.now() : false;
+  const isFutureBooking = Number.isFinite(bookingStartMs) ? bookingStartMs > nowMs : false;
   const canCancelBooking =
     !!booking &&
     isFutureBooking &&
@@ -212,29 +213,29 @@ export function useBookingDetail(id: string): BookingDetailResult {
       start: booking?.start,
     });
 
-  const handleMessageCoach = useCallback(() => {
+  const handleMessageCoach = () => {
     if (!booking) return;
     router.push(Routes.messagesWith({ coachId: booking.coachId }));
-  }, [booking]);
+  };
 
-  const handleCancelBooking = useCallback(() => {
+  const handleCancelBooking = () => {
     if (!booking) return;
     if (!canCancelBooking) {
       uiFeedback.showToast('Only upcoming bookings can be cancelled. Past or completed sessions cannot be cancelled.');
       return;
     }
     router.push(Routes.bookingCancel(booking.id, isCoach ? 'coach' : 'parent'));
-  }, [booking, canCancelBooking, isCoach]);
+  };
 
-  const handleRefund = useCallback(() => {
+  const handleRefund = () => {
     uiFeedback.alert(
       'Handle Billing Issue',
       'Clubroom does not process refunds in-app. Resolve any refund or payment adjustment directly with the family and update your reconciler once it is settled.',
       [{ text: 'OK' }],
     );
-  }, []);
+  };
 
-  const handleReopenBooking = useCallback(async () => {
+  const handleReopenBooking = async () => {
     if (!booking) return;
     if (!canReopenBooking) {
       uiFeedback.showToast('Only upcoming cancelled bookings can be reopened.', 'warning');
@@ -266,17 +267,17 @@ export function useBookingDetail(id: string): BookingDetailResult {
       'success',
     );
     onRefresh();
-  }, [booking, canReopenBooking, isCoach, onRefresh]);
+  };
 
-  const handleReportProblem = useCallback(() => {
+  const handleReportProblem = () => {
     if (booking?.id) {
       router.push(Routes.bookingsReportProblem({ bookingId: booking.id }));
       return;
     }
     router.push(Routes.BOOKINGS_REPORT_PROBLEM);
-  }, [booking?.id]);
+  };
 
-  const handleRebook = useCallback(async () => {
+  const handleRebook = async () => {
     if (!booking?.id) return;
     const draftResult = await bookingService.getRebookDraftContext(booking.id);
     if (!draftResult.success) {
@@ -296,17 +297,17 @@ export function useBookingDetail(id: string): BookingDetailResult {
       athleteName: draftResult.data.athleteName ?? booking.client?.name,
     });
     router.push(Routes.bookSchedule(targetCoachId));
-  }, [booking, resetBookingDraft, updateDraft]);
+  };
 
-  const handleManageRecurring = useCallback(() => {
+  const handleManageRecurring = () => {
     if (!booking?.recurringBookingId) return;
     router.push(Routes.familyRecurring({ recurringId: booking.recurringBookingId }));
-  }, [booking?.recurringBookingId]);
+  };
 
-  const handleCompleteSession = useCallback(() => {
+  const handleCompleteSession = () => {
     if (!booking?.id || !canCompleteSession) return;
     router.push(Routes.sessionComplete(booking.id));
-  }, [booking?.id, canCompleteSession]);
+  };
 
   // Pre-format date values for rendering
   const formatted = booking

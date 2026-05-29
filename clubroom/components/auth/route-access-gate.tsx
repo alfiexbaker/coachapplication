@@ -1,10 +1,9 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Redirect, type Href } from 'expo-router';
 
 interface RouteAccessGateProps {
   allowed: boolean;
   redirectHref: Href;
-  onBlocked?: () => void;
   children: React.ReactNode;
 }
 
@@ -13,22 +12,10 @@ interface RouteAccessGateProps {
  * immediately. This avoids "flash of unauthorized content" before effect-based
  * guards can run.
  */
-export function RouteAccessGate({
-  allowed,
-  redirectHref,
-  onBlocked,
-  children,
-}: RouteAccessGateProps) {
-  useEffect(() => {
-    if (!allowed) {
-      onBlocked?.();
-    }
-  }, [allowed, onBlocked]);
-
+export function RouteAccessGate({ allowed, redirectHref, children }: RouteAccessGateProps) {
   if (!allowed) {
     return <Redirect href={redirectHref} />;
   }
 
   return <>{children}</>;
 }
-

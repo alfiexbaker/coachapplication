@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -17,7 +17,7 @@ interface VideoDetailActionsProps {
   onToggleVisibility: () => void;
 }
 
-export const VideoDetailActions = memo(function VideoDetailActions({
+export const VideoDetailActions = function VideoDetailActions({
   colors,
   visibility,
   canToggleVisibility = true,
@@ -53,7 +53,7 @@ export const VideoDetailActions = memo(function VideoDetailActions({
       </Row>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

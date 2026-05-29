@@ -2,7 +2,7 @@
  * AthleteQuickActions — Row of action buttons: Book, Message, Concern, More.
  */
 
-import React, { useCallback } from 'react';
+import React from 'react';
 import { StyleSheet, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -38,18 +38,18 @@ function AthleteQuickActionsInner({
   const athleteName = getRosterAthleteName(athlete);
   const parentEmail: string | undefined = undefined;
 
-  const handleBook = useCallback(() => {
+  const handleBook = () => {
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     router.push(Routes.rosterAthleteAddToSession(athlete.athleteId, athleteName));
-  }, [athlete.athleteId, athleteName]);
+  };
 
-  const handleMessage = useCallback(() => {
+  const handleMessage = () => {
     openMessage(athlete.athleteId);
-  }, [athlete.athleteId]);
+  };
 
-  const handleMore = useCallback(() => {
+  const handleMore = () => {
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -91,7 +91,7 @@ function AthleteQuickActionsInner({
         onRemove();
       }
     })();
-  }, [athlete.athleteId, athleteName, onBlockFamily, onOpenHealth, onRaiseConcern, onRemove, parentEmail]);
+  };
 
   const actions = [
     { icon: 'add-circle-outline' as const, label: 'Book', onPress: handleBook, primary: true },
@@ -136,7 +136,7 @@ function AthleteQuickActionsInner({
   );
 }
 
-export const AthleteQuickActions = React.memo(AthleteQuickActionsInner);
+export const AthleteQuickActions = AthleteQuickActionsInner;
 
 const styles = StyleSheet.create({
   container: {

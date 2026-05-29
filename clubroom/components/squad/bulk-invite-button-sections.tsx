@@ -1,10 +1,3 @@
-/**
- * Bulk Invite Button — Extracted sections
- *
- * Compact variant of the bulk invite button.
- */
-
-import { memo } from 'react';
 import { StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -25,7 +18,7 @@ export interface CompactBulkInviteButtonProps {
   disabled?: boolean;
 }
 
-export const CompactBulkInviteButton = memo(function CompactBulkInviteButton({
+export const CompactBulkInviteButton = function CompactBulkInviteButton({
   selectedCount,
   onPress,
   loading = false,
@@ -60,7 +53,7 @@ export const CompactBulkInviteButton = memo(function CompactBulkInviteButton({
       </Row>
     </Clickable>
   );
-});
+};
 
 const styles = StyleSheet.create({
   compactButton: {

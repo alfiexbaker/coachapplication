@@ -195,9 +195,9 @@ export function SkillLevelCard({
             Recent history
           </ThemedText>
           <Row align="flex-end" gap="xxs" style={styles.historyDots}>
-            {skill.history.slice(-5).map((entry, index) => (
+            {skill.history.slice(-5).map((entry) => (
               <View
-                key={index}
+                key={`${entry.date}:${entry.coachId}:${entry.level}`}
                 style={[
                   styles.historyDot,
                   {

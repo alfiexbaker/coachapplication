@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -54,7 +54,7 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
   const { currentUser } = useAuth();
   const isCoach = currentUser?.role === 'COACH';
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     if (!id || !currentUser) {
       return ok<EventAttendeesData>({
         event: null,
@@ -87,7 +87,7 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
         serviceError('UNKNOWN', 'Failed to load attendees. Pull down to refresh.', loadError),
       );
     }
-  }, [id, currentUser]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<EventAttendeesData>({
     load: loadData,
@@ -103,20 +103,17 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
   const currentAttendance = data?.currentAttendance ?? null;
   const loading = status === 'loading';
 
-  const handleCheckIn = useCallback(
-    async (input: CheckInInput) => {
-      try {
-        await eventService.checkIn(input);
-        onRefresh();
-      } catch (checkInError) {
-        logger.error('Failed to check in attendee', checkInError);
-        uiFeedback.showToast('Could not complete check-in. Please try again.', 'error');
-      }
-    },
-    [onRefresh],
-  );
+  const handleCheckIn = async (input: CheckInInput) => {
+    try {
+      await eventService.checkIn(input);
+      onRefresh();
+    } catch (checkInError) {
+      logger.error('Failed to check in attendee', checkInError);
+      uiFeedback.showToast('Could not complete check-in. Please try again.', 'error');
+    }
+  };
 
-  const handleUndoCheckIn = useCallback(async () => {
+  const handleUndoCheckIn = async () => {
     if (!id || !currentUser) return;
     try {
       await eventService.removeCheckIn(id, currentUser.id);
@@ -125,20 +122,20 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
       logger.error('Failed to undo check-in', undoError);
       uiFeedback.showToast('Could not undo check-in. Please try again.', 'error');
     }
-  }, [id, currentUser, onRefresh]);
+  };
 
-  const handleAttendeePress = useCallback((userId: string) => {
+  const handleAttendeePress = (userId: string) => {
     logger.press('AttendeeRow', { userId });
     router.push(Routes.profile(userId));
-  }, []);
+  };
 
-  const handleExport = useCallback(() => {
+  const handleExport = () => {
     logger.press('ExportAttendees', { eventId: id });
     const names = attendance.map((a) => a.userId).join('\n');
     uiFeedback.showToast(`${attendance.length} checked in:\n\n${names || 'No attendees yet'}`);
-  }, [id, attendance]);
+  };
 
-  const handleSendReminder = useCallback(() => {
+  const handleSendReminder = () => {
     logger.press('SendReminder', { eventId: id });
     const nonResponders = rsvps.filter((r) => r.status === 'MAYBE').length;
     if (nonResponders === 0) {
@@ -149,7 +146,7 @@ export function useEventAttendees(id: string | undefined): UseEventAttendeesResu
       `Reminder sent to ${nonResponders} attendee${nonResponders === 1 ? '' : 's'}.`,
       'success',
     );
-  }, [id, rsvps]);
+  };
 
   const isEventToday = event ? eventService.isEventToday(event) : false;
   const checkInAvailable = event ? eventService.isCheckInAvailable(event) : false;

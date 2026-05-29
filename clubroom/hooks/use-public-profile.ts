@@ -3,7 +3,7 @@
  * Manages coach data loading, reviews, tab state, and navigation handlers.
  */
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { coachService, type Coach, type PublicReview } from '@/services/coach-service';
@@ -109,7 +109,7 @@ export function usePublicProfile(coachId: string) {
   const [activeTab, setActiveTab] = useState<ProfileTabId>('about');
   const [showShareSheet, setShowShareSheet] = useState(false);
 
-  const loadProfile = useCallback(async () => {
+  const loadProfile = async () => {
     if (!coachId) {
       return ok<PublicProfileData>({
         coach: null,
@@ -157,7 +157,7 @@ export function usePublicProfile(coachId: string) {
       logger.error('Failed to load public profile', loadError);
       return err(serviceError('UNKNOWN', 'Failed to load public profile.', loadError));
     }
-  }, [coachId]);
+  };
 
   const {
     data,
@@ -196,39 +196,36 @@ export function usePublicProfile(coachId: string) {
   });
   const isBlocked = blockedStatus.data ?? false;
 
-  const handleBook = useCallback(() => {
+  const handleBook = () => {
     if (isBlocked) {
       uiFeedback.showToast('Booking is unavailable while this coach is blocked.', 'error');
       return;
     }
     router.push(Routes.bookCoach(coachId));
-  }, [coachId, isBlocked]);
-  const handleOfferingPress = useCallback(
-    (offering: SessionOffering) => {
-      if (isBlocked) {
-        uiFeedback.showToast('Booking is unavailable while this coach is blocked.', 'error');
-        return;
-      }
-      router.push(
-        Routes.bookCoach(coachId, {
-          offeringId: offering.id,
-          source: offering.source === 'event' ? 'event_profile' : 'coach_profile',
-        }),
-      );
-    },
-    [coachId, isBlocked],
-  );
+  };
+  const handleOfferingPress = (offering: SessionOffering) => {
+    if (isBlocked) {
+      uiFeedback.showToast('Booking is unavailable while this coach is blocked.', 'error');
+      return;
+    }
+    router.push(
+      Routes.bookCoach(coachId, {
+        offeringId: offering.id,
+        source: offering.source === 'event' ? 'event_profile' : 'coach_profile',
+      }),
+    );
+  };
 
-  const handleMessage = useCallback(() => {
+  const handleMessage = () => {
     if (isBlocked) {
       uiFeedback.showToast('Contact is unavailable while this coach is blocked.', 'error');
       return;
     }
     router.push(Routes.chat(`coach-${coachId}`));
-  }, [coachId, isBlocked]);
+  };
 
-  const openShareSheet = useCallback(() => setShowShareSheet(true), []);
-  const closeShareSheet = useCallback(() => setShowShareSheet(false), []);
+  const openShareSheet = () => setShowShareSheet(true);
+  const closeShareSheet = () => setShowShareSheet(false);
 
   const profileUrl = `https://clubroom.app/coach/${coachId}`;
 

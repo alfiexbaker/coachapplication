@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -6,31 +5,10 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { scaleFont } from '@/utils/scale';
-import type { GroupMember, GroupMemberRole } from '@/constants/types';
+import type { GroupMember } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
-
-// ─── Role Helpers ───────────────────────────────────────────────
-
-export const ROLE_LABELS: Record<GroupMemberRole, string> = {
-  OWNER: 'Owner',
-  ADMIN: 'Admin',
-  MODERATOR: 'Moderator',
-  MEMBER: 'Member',
-};
-
-export function getRoleBadgeColor(role: GroupMemberRole, palette: ThemeColors) {
-  switch (role) {
-    case 'OWNER':
-      return { bg: withAlpha(palette.warning, 0.12), text: palette.warning };
-    case 'ADMIN':
-      return { bg: withAlpha(palette.info, 0.12), text: palette.info };
-    case 'MODERATOR':
-      return { bg: withAlpha(palette.success, 0.12), text: palette.success };
-    default:
-      return { bg: withAlpha(palette.muted, 0.09), text: palette.muted };
-  }
-}
+import { getRoleBadgeColor, ROLE_LABELS } from './group-members-modal-helpers';
 
 // ─── MemberRowItem ──────────────────────────────────────────────
 
@@ -42,7 +20,7 @@ export interface MemberRowItemProps {
   palette: ThemeColors;
 }
 
-export const MemberRowItem = memo(function MemberRowItem({
+export const MemberRowItem = function MemberRowItem({
   item,
   parentId,
   canManage,
@@ -88,7 +66,7 @@ export const MemberRowItem = memo(function MemberRowItem({
       )}
     </Row>
   );
-});
+};
 
 // ─── Styles ─────────────────────────────────────────────────────
 

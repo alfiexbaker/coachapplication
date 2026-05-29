@@ -1,4 +1,3 @@
-import { memo, useCallback } from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -17,13 +16,13 @@ interface SharingPendingInvitesProps {
   onCancel: (inviteId: string, email: string) => void;
 }
 
-export const SharingPendingInvites = memo(function SharingPendingInvites({
+export const SharingPendingInvites = function SharingPendingInvites({
   invites,
   onCancel,
 }: SharingPendingInvitesProps) {
   const { colors } = useTheme();
 
-  const handleCancel = useCallback((inviteId: string, email: string) => {
+  const handleCancel = (inviteId: string, email: string) => {
     uiFeedback.alert(
       'Cancel Invite',
       `Cancel the pending invite to ${email}? They will no longer be able to accept.`,
@@ -36,7 +35,7 @@ export const SharingPendingInvites = memo(function SharingPendingInvites({
         },
       ],
     );
-  }, [onCancel]);
+  };
 
   if (invites.length === 0) return null;
 
@@ -73,7 +72,7 @@ export const SharingPendingInvites = memo(function SharingPendingInvites({
       ))}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   section: { padding: Spacing.md, gap: Spacing.md },

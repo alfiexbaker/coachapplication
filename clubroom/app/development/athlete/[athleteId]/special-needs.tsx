@@ -26,6 +26,8 @@ import { useSpecialNeeds } from '@/hooks/use-special-needs';
 import { useCoachObservations } from '@/hooks/use-coach-observations';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 
+const SPECIAL_NEEDS_HEADER = <PageHeader title="Special Needs" showBack centerTitle />;
+
 export default function SpecialNeedsScreen() {
   const { athleteId } = useLocalSearchParams<{ athleteId: string }>();
   const { colors } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
@@ -45,11 +47,10 @@ export default function SpecialNeedsScreen() {
   const obsHook = useCoachObservations(athleteId ?? '');
 
   const handleEditObs = (obs: Parameters<typeof obsHook.showModal>[0]) => obsHook.showModal(obs);
-  const header = <PageHeader title="Special Needs" showBack centerTitle />;
 
   if (loading) {
     return (
-      <PageContainer edges={['top', 'bottom']} gap={Spacing.md} header={header}>
+      <PageContainer edges={['top', 'bottom']} gap={Spacing.md} header={SPECIAL_NEEDS_HEADER}>
         <LoadingState variant="hero" />
       </PageContainer>
     );
@@ -57,7 +58,7 @@ export default function SpecialNeedsScreen() {
 
   if (status === 'error') {
     return (
-      <PageContainer edges={['top', 'bottom']} gap={Spacing.md} header={header}>
+      <PageContainer edges={['top', 'bottom']} gap={Spacing.md} header={SPECIAL_NEEDS_HEADER}>
         <ErrorState
           message={error?.message ?? 'Failed to load special needs profile.'}
           onRetry={retry}
@@ -68,7 +69,7 @@ export default function SpecialNeedsScreen() {
 
   if (!athlete) {
     return (
-      <PageContainer edges={['top', 'bottom']} gap={Spacing.md} header={header}>
+      <PageContainer edges={['top', 'bottom']} gap={Spacing.md} header={SPECIAL_NEEDS_HEADER}>
         <EmptyState
           icon="accessibility-outline"
           title="Special needs unavailable"
@@ -82,7 +83,7 @@ export default function SpecialNeedsScreen() {
     <PageContainer
       edges={['top', 'bottom']}
       gap={Spacing.md}
-      header={header}
+      header={SPECIAL_NEEDS_HEADER}
     >
       <SpecialNeedsHero
         name={athlete.name}

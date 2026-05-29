@@ -540,11 +540,11 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
    * Format revenue for display
    */
   formatRevenue(amount: number, currency: string = 'GBP'): string {
-    return new Intl.NumberFormat('en-GB', {
+    return amount.toLocaleString('en-GB', {
       style: 'currency',
       currency,
       minimumFractionDigits: 0,
-    }).format(amount);
+    });
   }
 
   /**

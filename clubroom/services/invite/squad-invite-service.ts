@@ -165,20 +165,28 @@ export const squadInviteService = {
     squadId: string,
     excludeMemberIds: string[] = [],
   ): Promise<SquadInvitePreview> {
-    const squad = await squadService.getSquad(squadId);
-    const members = await squadService.getSquadMembers(squadId);
+    const [squad, members] = await Promise.all([
+      squadService.getSquad(squadId),
+      squadService.getSquadMembers(squadId),
+    ]);
 
     const eligibleMembers = members.filter((m) => !excludeMemberIds.includes(m.athleteId));
 
     const uniqueParents = new Set(eligibleMembers.map((m) => m.parentId));
 
     const previewMembers = await Promise.all(
-      eligibleMembers.map(async (member, index) => ({
-        athleteId: member.athleteId,
-        athleteName: await resolveUserName(member.athleteId, `Athlete ${index + 1}`),
-        parentId: member.parentId,
-        parentName: await resolveUserName(member.parentId, 'Parent'),
-      })),
+      eligibleMembers.map(async (member, index) => {
+        const [athleteName, parentName] = await Promise.all([
+          resolveUserName(member.athleteId, `Athlete ${index + 1}`),
+          resolveUserName(member.parentId, 'Parent'),
+        ]);
+        return {
+          athleteId: member.athleteId,
+          athleteName,
+          parentId: member.parentId,
+          parentName,
+        };
+      }),
     );
 
     return {
@@ -302,22 +310,31 @@ export const squadInviteService = {
       { parent: { id: string; name: string; email?: string }; athletes: SquadMember[] }
     >();
 
+    const parentProfiles = new Map(
+      await Promise.all(
+        Array.from(new Set(members.map((member) => member.parentId))).map(async (parentId) => {
+          const [name, email] = await Promise.all([
+            resolveUserName(parentId, 'Parent'),
+            resolveUserEmail(parentId),
+          ]);
+          return [parentId, { id: parentId, name, email }] as const;
+        }),
+      ),
+    );
+
     for (const member of members) {
       const existing = parentMap.get(member.parentId);
       if (existing) {
         existing.athletes.push(member);
       } else {
-        const [parentName, parentEmail] = await Promise.all([
-          resolveUserName(member.parentId, 'Parent'),
-          resolveUserEmail(member.parentId),
-        ]);
+        const parent = parentProfiles.get(member.parentId) ?? {
+          id: member.parentId,
+          name: 'Parent',
+          email: undefined,
+        };
 
         parentMap.set(member.parentId, {
-          parent: {
-            id: member.parentId,
-            name: parentName,
-            email: parentEmail,
-          },
+          parent,
           athletes: [member],
         });
       }
@@ -472,8 +489,10 @@ export const squadInviteService = {
     squadInvitesCache = [];
     squadSessionInvitesCache = [];
     inviteHistoryCache = [];
-    await apiClient.remove(STORAGE_KEYS.SQUAD_INVITES);
-    await apiClient.remove(STORAGE_KEYS.SQUAD_SESSION_INVITES);
-    await apiClient.remove(STORAGE_KEYS.SQUAD_INVITE_HISTORY);
+    await Promise.all([
+      apiClient.remove(STORAGE_KEYS.SQUAD_INVITES),
+      apiClient.remove(STORAGE_KEYS.SQUAD_SESSION_INVITES),
+      apiClient.remove(STORAGE_KEYS.SQUAD_INVITE_HISTORY),
+    ]);
   },
 };

@@ -119,14 +119,14 @@ export function PageHeader({
   containerStyle,
 }: PageHeaderProps) {
   const { colors: palette } = useTheme();
-  const router = useRouter();
+  const { back } = useRouter();
 
   const handleBackPress = () => {
     const backHandler = onBackPress ?? onBack;
     if (backHandler) {
       backHandler();
     } else {
-      router.back();
+      back();
     }
   };
 

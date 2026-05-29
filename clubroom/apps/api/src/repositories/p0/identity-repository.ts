@@ -1,16 +1,18 @@
-import { forbidden } from '../../lib/http-errors.js';
-import { getApiDataBackend } from '../../lib/data-backend.js';
-import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
-import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
-import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
-import { normalizeForJson } from './normalize.js';
-
+import { forbidden } from "../../lib/http-errors.js";
+import { getApiDataBackend } from "../../lib/data-backend.js";
+import { getMarketplaceSeedStore } from "../../lib/marketplace-seed-store.js";
+import { getDbFixtureStore } from "../../lib/db-fixture-store.js";
+import {
+  getPrismaClientOrThrow,
+  shouldUseDbFixtureFallback,
+} from "../../lib/prisma-runtime.js";
+import { normalizeForJson } from "./normalize.js";
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
-
-const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
-const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
-
+const asRows = (value: unknown): SeedRow[] =>
+  Array.isArray(value) ? (value as SeedRow[]) : [];
+const asString = (value: unknown): string | undefined =>
+  typeof value === "string" ? value : undefined;
 export interface IdentityMeAggregate {
   user: {
     id?: string;
@@ -36,11 +38,9 @@ export interface IdentityMeAggregate {
   }>;
   dataVersion: string | null;
 }
-
 export interface IdentityRepository {
   getMe(authUserId: string): Promise<IdentityMeAggregate>;
 }
-
 function fromTables(
   tables: SeedTables,
   authUserId: string,
@@ -52,40 +52,44 @@ function fromTables(
   const familyMemberships = asRows(tables.familyMemberships);
   const families = asRows(tables.families);
   const athletes = asRows(tables.athletes);
-
   const user = users.find((row) => asString(row.id) === authUserId);
   if (!user) {
     throw forbidden(`Authenticated user ${authUserId} does not exist`);
   }
-
-  const profile = profiles.find((row) => asString(row.userId) === authUserId) ?? null;
-  const roles = roleMemberships
-    .filter((row) => asString(row.userId) === authUserId)
-    .map((row) => asString(row.role))
-    .filter((role): role is string => Boolean(role));
-
-  const linkedFamilies = familyMemberships
-    .filter((row) => asString(row.userId) === authUserId)
-    .map((row) => {
-      const familyId = asString(row.familyId);
-      const family = families.find((item) => asString(item.id) === familyId);
-      return {
+  const profile =
+    profiles.find((row) => asString(row.userId) === authUserId) ?? null;
+  const roles = roleMemberships.flatMap((row) => {
+    if (!(asString(row.userId) === authUserId)) return [];
+    const mapped = asString(row.role);
+    return Boolean(mapped) ? [mapped] : [];
+  });
+  const linkedFamilies = familyMemberships.flatMap((row) => {
+    if (!(asString(row.userId) === authUserId)) return [];
+    const familyId = asString(row.familyId);
+    const family = families.find((item) => asString(item.id) === familyId);
+    return [
+      {
         familyId,
         familyName: asString(family?.name) ?? null,
         role: asString(row.role) ?? null,
         relationshipLabel: asString(row.relationshipLabel) ?? null,
-        childAccessAthleteIds: Array.isArray(row.childAccessAthleteIds) ? row.childAccessAthleteIds : [],
-      };
-    });
-
-  const linkedAthletes = athletes
-    .filter((row) => asString(row.userId) === authUserId)
-    .map((row) => ({
-      athleteId: asString(row.id) ?? null,
-      displayName: asString(row.displayName) ?? null,
-      status: asString(row.status) ?? null,
-    }));
-
+        childAccessAthleteIds: Array.isArray(row.childAccessAthleteIds)
+          ? row.childAccessAthleteIds
+          : [],
+      },
+    ];
+  });
+  const linkedAthletes = athletes.flatMap((row) =>
+    asString(row.userId) === authUserId
+      ? [
+          {
+            athleteId: asString(row.id) ?? null,
+            displayName: asString(row.displayName) ?? null,
+            status: asString(row.status) ?? null,
+          },
+        ]
+      : [],
+  );
   return {
     user: {
       id: asString(user.id),
@@ -102,45 +106,53 @@ function fromTables(
     dataVersion,
   };
 }
-
 class SeedIdentityRepository implements IdentityRepository {
   async getMe(authUserId: string): Promise<IdentityMeAggregate> {
     const store = getMarketplaceSeedStore();
     return fromTables(store.tables, authUserId, store.version);
   }
 }
-
 class DbIdentityRepository implements IdentityRepository {
   async getMe(authUserId: string): Promise<IdentityMeAggregate> {
     if (shouldUseDbFixtureFallback()) {
       const store = getDbFixtureStore();
       return fromTables(store.tables, authUserId, null);
     }
-
     const prisma = getPrismaClientOrThrow();
     const user = await prisma.user.findUnique({
-      where: { id: authUserId },
+      where: {
+        id: authUserId,
+      },
     });
     if (!user) {
       throw forbidden(`Authenticated user ${authUserId} does not exist`);
     }
-
-    const [profile, roleMemberships, familyMemberships, linkedAthletes] = await Promise.all([
-      prisma.userProfile.findUnique({
-        where: { userId: authUserId },
-      }),
-      prisma.userRoleMembership.findMany({
-        where: { userId: authUserId },
-      }),
-      prisma.familyMembership.findMany({
-        where: { userId: authUserId },
-        include: { family: true },
-      }),
-      prisma.athlete.findMany({
-        where: { userId: authUserId },
-      }),
-    ]);
-
+    const [profile, roleMemberships, familyMemberships, linkedAthletes] =
+      await Promise.all([
+        prisma.userProfile.findUnique({
+          where: {
+            userId: authUserId,
+          },
+        }),
+        prisma.userRoleMembership.findMany({
+          where: {
+            userId: authUserId,
+          },
+        }),
+        prisma.familyMembership.findMany({
+          where: {
+            userId: authUserId,
+          },
+          include: {
+            family: true,
+          },
+        }),
+        prisma.athlete.findMany({
+          where: {
+            userId: authUserId,
+          },
+        }),
+      ]);
     const payload: IdentityMeAggregate = {
       user: {
         id: user.id,
@@ -150,7 +162,9 @@ class DbIdentityRepository implements IdentityRepository {
         locale: user.locale ?? null,
         timeZone: user.timeZone ?? null,
       },
-      profile: profile ? normalizeForJson(profile as Record<string, unknown>) : null,
+      profile: profile
+        ? normalizeForJson(profile as Record<string, unknown>)
+        : null,
       roles: roleMemberships.map((row) => row.role),
       linkedFamilies: familyMemberships.map((row) => ({
         familyId: row.familyId,
@@ -169,10 +183,10 @@ class DbIdentityRepository implements IdentityRepository {
     return normalizeForJson(payload);
   }
 }
-
 const seedIdentityRepository = new SeedIdentityRepository();
 const dbIdentityRepository = new DbIdentityRepository();
-
 export function resolveIdentityRepository(): IdentityRepository {
-  return getApiDataBackend() === 'db' ? dbIdentityRepository : seedIdentityRepository;
+  return getApiDataBackend() === "db"
+    ? dbIdentityRepository
+    : seedIdentityRepository;
 }

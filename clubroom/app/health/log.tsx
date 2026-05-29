@@ -5,7 +5,7 @@
  * Guides user through body part selection, severity, and details.
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState } from 'react';
 import { StyleSheet, KeyboardAvoidingView, Platform, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -35,6 +35,8 @@ import { scaleFont } from '@/utils/scale';
 import { createLogger } from '@/utils/logger';
 import { ok } from '@/types/result';
 
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
+
 const logger = createLogger('LogInjuryScreen');
 
 /**
@@ -49,88 +51,72 @@ export default function LogInjuryScreen() {
 
   const [loading, setLoading] = useState(false);
 
-  const requestedChildId = useMemo(
-    () => (Array.isArray(childIdParam) ? childIdParam[0] : childIdParam),
-    [childIdParam],
-  );
+  const requestedChildId = (Array.isArray(childIdParam) ? childIdParam[0] : childIdParam);
 
-  const subjectOptions = useMemo(
-    () =>
-      buildProfileSubjectOptions({
-        currentUser,
-        children,
-        includeSelf: children.length === 0 || canSelectSelfProfile,
-      }),
-    [canSelectSelfProfile, children, currentUser],
-  );
+  const subjectOptions = buildProfileSubjectOptions({
+    currentUser,
+    children,
+    includeSelf: children.length === 0 || canSelectSelfProfile,
+  });
 
-  const selectedSubjectId = useMemo(
-    () =>
-      resolveProfileSubjectId({
-        explicitSubjectId: requestedChildId,
-        currentUserId: currentUser?.id,
-        profileMode,
-        profileSubjectId,
-        subjectOptions,
-      }),
-    [currentUser?.id, profileMode, profileSubjectId, requestedChildId, subjectOptions],
-  );
+  const selectedSubjectId = resolveProfileSubjectId({
+    explicitSubjectId: requestedChildId,
+    currentUserId: currentUser?.id,
+    profileMode,
+    profileSubjectId,
+    subjectOptions,
+  });
 
-  const selectedSubject = useMemo(
-    () => findProfileSubject(selectedSubjectId, subjectOptions),
-    [selectedSubjectId, subjectOptions],
-  );
+  const selectedSubject = findProfileSubject(selectedSubjectId, subjectOptions);
   const selectedChildId = selectedSubject?.kind === 'child' ? selectedSubject.id : null;
   const selectedSubjectKind: 'self' | 'child' = selectedSubject?.kind ?? 'self';
   const selectedSubjectName =
     selectedSubject?.name ?? currentUser?.fullName ?? currentUser?.name ?? 'User';
-  const nextSubjectLabel = useMemo(() => {
+  const nextSubjectLabel = (() => {
     const nextSubject = getNextProfileSubject(selectedSubjectId, subjectOptions);
     return nextSubject?.name ?? null;
-  }, [selectedSubjectId, subjectOptions]);
+  })();
   const userId = selectedSubjectId;
   const userName = selectedSubjectName;
-  const handleEditSelectedSubject = useCallback(() => {
+  const handleEditSelectedSubject = () => {
     if (!selectedSubject) return;
     if (selectedSubject.kind === 'child') {
       router.push(Routes.modalEditChildProfile(selectedSubject.id));
       return;
     }
     router.push(Routes.EDIT_PROFILE);
-  }, [selectedSubject]);
-  const handleSelectNextSubject = useCallback(() => {
+  };
+  const handleSelectNextSubject = () => {
     const nextSubject = getNextProfileSubject(selectedSubjectId, subjectOptions);
     if (!nextSubject) {
       return;
     }
     void setProfileScope(buildProfileScopePayload(nextSubject));
-  }, [selectedSubjectId, setProfileScope, subjectOptions]);
+  };
 
-  const handleSubmit = useCallback(
-    async (data: LogInjuryInput) => {
-      if (!userId) {
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        return;
-      }
-      setLoading(true);
-      try {
-        await injuryService.logInjury(userId, data, userName);
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        router.back();
-      } catch (error) {
-        logger.error('Failed to log injury:', error);
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [userId, userName],
-  );
+  const handleSubmit = async (data: LogInjuryInput) => {
+    if (!userId) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
+    }
+    setLoading(true);
 
-  const handleCancel = useCallback(() => {
+    await runAsyncTryCatchFinally(async () => {
+      await injuryService.logInjury(userId, data, userName);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      router.back();
+    }, async error => {
+      logger.error('Failed to log injury:', error);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }, () => {
+      setLoading(false);
+    });
+  };
+
+  const handleCancel = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.back();
-  }, []);
+  };
 
   return (
     <SafeAreaView

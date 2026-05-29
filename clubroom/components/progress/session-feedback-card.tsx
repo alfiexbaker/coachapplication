@@ -11,13 +11,12 @@ import type { SessionFeedback } from '@/services/progress-service';
 import { useTheme } from '@/hooks/useTheme';
 import { getParentSkill } from '@/constants/position-skills';
 import {
-  formatDate,
-  getPerformanceLabel,
   RatingStars,
   CompactFeedbackCard,
   SkillRatingsGrid,
   FeedbackCardDetails,
 } from './session-feedback-sections';
+import { formatDate, getPerformanceLabel } from './session-feedback-helpers';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -100,19 +99,19 @@ export function SessionFeedbackCard({
             Skills covered
           </ThemedText>
           <Row gap="xxs" wrap>
-            {feedback.skillsWorkedOn.map((skill, index) => {
+            {feedback.skillsWorkedOn.map((skill) => {
               const isSubSkill = getParentSkill(skill) !== null;
-              return (
-                <Chip key={index} dense muted={isSubSkill}>
-                  {skill}
-                </Chip>
-              );
+              return <Chip key={skill} dense muted={isSubSkill} label={skill} />;
             })}
           </Row>
         </View>
       )}
 
-      <SkillRatingsGrid ratings={feedback.skillRatings} skillsWorkedOn={feedback.skillsWorkedOn} subSkillRatings={feedback.subSkillRatings} />
+      <SkillRatingsGrid
+        ratings={feedback.skillRatings}
+        skillsWorkedOn={feedback.skillsWorkedOn}
+        subSkillRatings={feedback.subSkillRatings}
+      />
       <FeedbackCardDetails feedback={feedback} />
 
       {onPress && (

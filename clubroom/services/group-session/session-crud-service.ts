@@ -809,7 +809,7 @@ export const sessionCrudService = {
 
       // Notify only parents who already have RSVPs for this session.
       const rsvps = await rsvpService.getForSession(sessionId);
-      const recipientIds = [...new Set(rsvps.map((rsvp) => rsvp.userId).filter(Boolean))];
+      const recipientIds = [...new Set(rsvps.flatMap((rsvp) => (rsvp.userId ? [rsvp.userId] : [])))];
       await Promise.all(
         recipientIds.map((recipientId) =>
           notificationTriggers.groupSessionCancelled(session.title, recipientId),

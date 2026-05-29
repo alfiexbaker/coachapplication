@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
@@ -14,6 +14,7 @@ import { BADGE_REASONS } from '@/components/badges/badge-award-modal';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useDevBadges');
+const EMPTY_SESSIONS: Session[] = [];
 
 function formatDate(date: Date | string): string {
   const parsed = typeof date === 'string' ? new Date(date) : date;
@@ -110,7 +111,7 @@ export function useDevBadges() {
     sessionLabel?: string;
   } | null>(null);
 
-  const loadSessions = useCallback(async () => {
+  const loadSessions = async () => {
     if (!currentUser?.id) {
       return ok<DevBadgesData>({ sessions: [], coachAwards: [], athleteNameById: {} });
     }
@@ -130,8 +131,8 @@ export function useDevBadges() {
 
       const athleteIds = Array.from(
         new Set([
-          ...coachSessions.map((session) => session.athleteId).filter(Boolean),
-          ...coachAwards.map((award) => award.athleteId).filter(Boolean),
+          ...coachSessions.flatMap((session) => (session.athleteId ? [session.athleteId] : [])),
+          ...coachAwards.flatMap((award) => (award.athleteId ? [award.athleteId] : [])),
         ]),
       );
       const athleteNameById: Record<string, string> = {};
@@ -160,7 +161,7 @@ export function useDevBadges() {
       logger.error('Failed to load coach sessions for badges', { coachId: currentUser.id, error });
       return err(serviceError('UNKNOWN', 'Failed to load badge sessions.', error));
     }
-  }, [currentUser?.id]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<DevBadgesData>({
     load: loadSessions,
@@ -171,22 +172,20 @@ export function useDevBadges() {
     dataKey: currentUser?.id ? `dev-badges:${currentUser.id}` : 'dev-badges:missing',
   });
 
-  const sessions = data?.sessions ?? [];
+  const sessions = data?.sessions ?? EMPTY_SESSIONS;
   const coachAwards = data?.coachAwards ?? [];
   const athleteNameById = data?.athleteNameById ?? {};
-  const awardsBySession = useMemo(() => {
+  const awardsBySession = (() => {
     const counts = new Map<string, number>();
     coachAwards.forEach((award) => {
       if (!award.sessionId) return;
       counts.set(award.sessionId, (counts.get(award.sessionId) ?? 0) + 1);
     });
     return counts;
-  }, [coachAwards]);
+  })();
 
-  const getAthleteName = useCallback(
-    (athleteId: string) => athleteNameById[athleteId] ?? fallbackAthleteName(athleteId),
-    [athleteNameById],
-  );
+  const getAthleteName = (athleteId: string) =>
+    athleteNameById[athleteId] ?? fallbackAthleteName(athleteId);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -195,7 +194,7 @@ export function useDevBadges() {
     return () => clearTimeout(timeoutId);
   }, [sessionQuery]);
 
-  const filteredSessions = useMemo(() => {
+  const filteredSessions = (() => {
     const q = debouncedSessionQuery.toLowerCase().trim();
     return sessions
       .filter((session) => {
@@ -208,29 +207,25 @@ export function useDevBadges() {
         );
       })
       .slice(0, 8);
-  }, [sessions, debouncedSessionQuery, getAthleteName]);
+  })();
 
   useEffect(() => {
     if (selectedSessionId || sessions.length === 0) return;
-    setSelectedSessionId(sessions[0].id);
+    startTransition(() => {
+      setSelectedSessionId(sessions[0].id);
+    });
   }, [selectedSessionId, sessions]);
 
-  const selectedSession = useMemo(
-    () => sessions.find((session) => session.id === selectedSessionId) ?? null,
-    [sessions, selectedSessionId],
-  );
+  const selectedSession = sessions.find((session) => session.id === selectedSessionId) ?? null;
 
   const linkedAthlete = selectedSession ? getAthleteName(selectedSession.athleteId) : 'Session';
 
-  const sessionLabelFn = useCallback(
-    (session: Session | null) => {
-      if (!session) return undefined;
-      return `${getSessionLabel(session)} · ${formatDate(session.completedAt)}`;
-    },
-    [],
-  );
+  const sessionLabelFn = (session: Session | null) => {
+    if (!session) return undefined;
+    return `${getSessionLabel(session)} · ${formatDate(session.completedAt)}`;
+  };
 
-  const badges = useMemo<BadgeItem[]>(() => {
+  const badges = (() => {
     const toAwardItems: BadgeItem[] = sessions
       .filter((session) => (awardsBySession.get(session.id) ?? 0) === 0)
       .slice(0, 10)
@@ -273,72 +268,69 @@ export function useDevBadges() {
       }));
 
     return [...toAwardItems, ...recentItems, ...sharedItems];
-  }, [sessions, awardsBySession, coachAwards, getAthleteName, sessionLabelFn]);
+  })();
 
-  const visibleBadges = useMemo(() => badges.filter((badge) => badge.category === activeTab), [badges, activeTab]);
+  const visibleBadges = badges.filter((badge) => badge.category === activeTab);
 
-  const openAwardModal = useCallback(
-    (badge: BadgeItem) => {
-      const athleteId = badge.athleteId;
-      if (!athleteId || !currentUser) return;
+  const openAwardModal = (badge: BadgeItem) => {
+    const athleteId = badge.athleteId;
+    if (!athleteId || !currentUser) return;
 
-      let session: Session | null = null;
-      if (selectedSession && selectedSession.athleteId === athleteId) {
-        session = selectedSession;
-      } else {
-        session = sessions.find((entry) => entry.athleteId === athleteId) ?? null;
-      }
+    let session: Session | null = null;
+    if (selectedSession && selectedSession.athleteId === athleteId) {
+      session = selectedSession;
+    } else {
+      session = sessions.find((entry) => entry.athleteId === athleteId) ?? null;
+    }
 
-      const matchFromTitle = BADGE_REASONS.find((reason) =>
-        badge.title.toLowerCase().includes(reason.toLowerCase()),
+    const matchFromTitle = BADGE_REASONS.find((reason) =>
+      badge.title.toLowerCase().includes(reason.toLowerCase()),
+    );
+    const reason =
+      matchFromTitle ??
+      BADGE_REASONS.find((candidate) =>
+        badge.detail.toLowerCase().includes(candidate.toLowerCase()),
       );
-      const reason =
-        matchFromTitle ??
-        BADGE_REASONS.find((candidate) =>
-          badge.detail.toLowerCase().includes(candidate.toLowerCase()),
-        );
 
-      setAwardContext({
-        athleteId,
-        athleteName: badge.athlete,
-        sessionId: session?.id,
-        sessionLabel: sessionLabelFn(session),
-        reason,
-      });
-      setShowAwardModal(true);
-    },
-    [currentUser, selectedSession, sessions, sessionLabelFn],
-  );
+    setAwardContext({
+      athleteId,
+      athleteName: badge.athlete,
+      sessionId: session?.id,
+      sessionLabel: sessionLabelFn(session),
+      reason,
+    });
+    setShowAwardModal(true);
+  };
 
-  const closeAwardModal = useCallback(() => {
+  const closeAwardModal = () => {
     setShowAwardModal(false);
     setAwardContext(null);
-  }, []);
+  };
 
-  const openQuickRecognition = useCallback(
-    (athleteId: string, athleteName: string) => {
-      const session = sessions.find((entry) => entry.athleteId === athleteId) ?? selectedSession;
-      setQuickRecognitionContext({
-        athleteId,
-        athleteName,
-        sessionId: session?.id,
-        sessionLabel: session ? sessionLabelFn(session) : undefined,
-      });
-      setShowQuickRecognition(true);
-    },
-    [sessions, selectedSession, sessionLabelFn],
-  );
+  const openQuickRecognition = (athleteId: string, athleteName: string) => {
+    const session = sessions.find((entry) => entry.athleteId === athleteId) ?? selectedSession;
+    setQuickRecognitionContext({
+      athleteId,
+      athleteName,
+      sessionId: session?.id,
+      sessionLabel: session ? sessionLabelFn(session) : undefined,
+    });
+    setShowQuickRecognition(true);
+  };
 
-  const closeQuickRecognition = useCallback(() => {
+  const closeQuickRecognition = () => {
     setShowQuickRecognition(false);
     setQuickRecognitionContext(null);
-  }, []);
+  };
 
   useEffect(() => {
     if (!sessionIdParam || sessions.length === 0) return;
     const paramId = Array.isArray(sessionIdParam) ? sessionIdParam[0] : sessionIdParam;
     const match = sessions.find((session) => session.id === paramId);
-    if (match) setSelectedSessionId(paramId);
+    if (match)
+      startTransition(() => {
+        setSelectedSessionId(paramId);
+      });
   }, [sessionIdParam, sessions]);
 
   return {

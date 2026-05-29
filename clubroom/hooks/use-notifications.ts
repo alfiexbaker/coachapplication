@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { notificationService, ExtendedNotificationItem } from '@/services/notification-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
@@ -58,6 +58,19 @@ interface NotificationScreenData {
   unreadCount: number;
 }
 
+async function fetchNotificationBadgeStateInto(
+  currentUserId: string | undefined,
+  setBadgeState: (value: NotificationBadgeState) => void,
+) {
+  const listResult = await notificationService.list();
+  if (!listResult.success) {
+    logger.error('Failed to fetch notification badge state', { error: listResult.error });
+    return;
+  }
+
+  setBadgeState(buildNotificationBadgeState(listResult.data, currentUserId));
+}
+
 /**
  * Hook for accessing and managing notifications
  * Provides unread count for badge display on tab bar
@@ -70,7 +83,7 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
   const [actionError, setActionError] = useState<Error | null>(null);
   const { showToast } = useToast();
 
-  const fetchNotifications = useCallback(async () => {
+  const fetchNotifications = async () => {
     try {
       const allNotificationsResult = await notificationService.list();
       if (!allNotificationsResult.success) {
@@ -100,7 +113,7 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       logger.error('Failed to fetch notifications', { error: loadError, currentFilter });
       return err(serviceError('UNKNOWN', 'Failed to fetch notifications', loadError));
     }
-  }, [currentFilter, currentUser?.id]);
+  };
 
   const {
     data,
@@ -142,27 +155,24 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
     return unsubscribe;
   }, [onRefresh]);
 
-  const refresh = useCallback(async () => {
+  const refresh = async () => {
     onRefresh();
-  }, [onRefresh]);
+  };
 
-  const markAsRead = useCallback(
-    async (id: string) => {
-      const result = await notificationService.markAsRead(id);
-      if (!result.success) {
-        const markError = new Error(result.error.message);
-        setActionError(markError);
-        logger.error('Failed to mark notification as read', { id, error: result.error });
-        return;
-      }
+  const markAsRead = async (id: string) => {
+    const result = await notificationService.markAsRead(id);
+    if (!result.success) {
+      const markError = new Error(result.error.message);
+      setActionError(markError);
+      logger.error('Failed to mark notification as read', { id, error: result.error });
+      return;
+    }
 
-      setActionError(null);
-      await refresh();
-    },
-    [refresh],
-  );
+    setActionError(null);
+    await refresh();
+  };
 
-  const markAllAsRead = useCallback(async () => {
+  const markAllAsRead = async () => {
     const result = await notificationService.markAllAsRead();
     if (!result.success) {
       const markError = new Error(result.error.message);
@@ -173,9 +183,9 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
 
     setActionError(null);
     await refresh();
-  }, [refresh]);
+  };
 
-  const clearAll = useCallback(async () => {
+  const clearAll = async () => {
     const result = await notificationService.clearAll();
     if (!result.success) {
       const clearError = new Error(result.error.message);
@@ -186,49 +196,43 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
 
     setActionError(null);
     await refresh();
-  }, [refresh]);
+  };
 
-  const dismissNotification = useCallback(
-    async (id: string) => {
-      const result = await notificationService.dismiss(id);
-      if (!result.success) {
-        const dismissError = new Error(result.error.message);
-        setActionError(dismissError);
-        logger.error('Failed to dismiss notification', { id, error: result.error });
+  const dismissNotification = async (id: string) => {
+    const result = await notificationService.dismiss(id);
+    if (!result.success) {
+      const dismissError = new Error(result.error.message);
+      setActionError(dismissError);
+      logger.error('Failed to dismiss notification', { id, error: result.error });
+      return;
+    }
+
+    setActionError(null);
+    await refresh();
+  };
+
+  const muteNotificationType = async (item: ExtendedNotificationItem) => {
+    if (item.recipientId && item.notificationType) {
+      const muteResult = await notificationService.toggleNotificationType(
+        item.recipientId,
+        item.notificationType as NotificationType,
+        false,
+      );
+      if (!muteResult.success) {
+        const muteError = new Error(muteResult.error.message);
+        setActionError(muteError);
+        logger.error('Failed to mute notification type', {
+          notificationId: item.id,
+          type: item.notificationType,
+          error: muteResult.error,
+        });
         return;
       }
+    }
 
-      setActionError(null);
-      await refresh();
-    },
-    [refresh],
-  );
-
-  const muteNotificationType = useCallback(
-    async (item: ExtendedNotificationItem) => {
-      if (item.recipientId && item.notificationType) {
-        const muteResult = await notificationService.toggleNotificationType(
-          item.recipientId,
-          item.notificationType as NotificationType,
-          false,
-        );
-        if (!muteResult.success) {
-          const muteError = new Error(muteResult.error.message);
-          setActionError(muteError);
-          logger.error('Failed to mute notification type', {
-            notificationId: item.id,
-            type: item.notificationType,
-            error: muteResult.error,
-          });
-          return;
-        }
-      }
-
-      await dismissNotification(item.id);
-      showToast('Notification type muted. Change it in Notification Preferences.', 'success');
-    },
-    [dismissNotification, showToast],
-  );
+    await dismissNotification(item.id);
+    showToast('Notification type muted. Change it in Notification Preferences.', 'success');
+  };
 
   return {
     notifications,
@@ -256,31 +260,21 @@ export function useNotificationBadgeState(): NotificationBadgeState {
   const [badgeState, setBadgeState] = useState<NotificationBadgeState>(EMPTY_BADGE_STATE);
   const { currentUser } = useAuth();
 
-  const fetchBadgeState = useCallback(async () => {
-    const listResult = await notificationService.list();
-    if (!listResult.success) {
-      logger.error('Failed to fetch notification badge state', { error: listResult.error });
-      return;
-    }
-
-    setBadgeState(buildNotificationBadgeState(listResult.data, currentUser?.id));
-  }, [currentUser?.id]);
-
   useEffect(() => {
-    void fetchBadgeState();
+    void fetchNotificationBadgeStateInto(currentUser?.id, setBadgeState);
 
     const unsubscribe = notificationService.subscribe(() => {
-      void fetchBadgeState();
+      void fetchNotificationBadgeStateInto(currentUser?.id, setBadgeState);
     });
     const unsubscribeRead = onTyped(ServiceEvents.NOTIFICATION_READ, () => {
-      void fetchBadgeState();
+      void fetchNotificationBadgeStateInto(currentUser?.id, setBadgeState);
     });
     const unsubscribeDismissed = onTyped(ServiceEvents.NOTIFICATION_DISMISSED, () => {
-      void fetchBadgeState();
+      void fetchNotificationBadgeStateInto(currentUser?.id, setBadgeState);
     });
 
     const interval = setInterval(() => {
-      void fetchBadgeState();
+      void fetchNotificationBadgeStateInto(currentUser?.id, setBadgeState);
     }, 30000);
 
     return () => {
@@ -289,7 +283,7 @@ export function useNotificationBadgeState(): NotificationBadgeState {
       unsubscribeDismissed();
       clearInterval(interval);
     };
-  }, [fetchBadgeState]);
+  }, [currentUser?.id]);
 
   return badgeState;
 }

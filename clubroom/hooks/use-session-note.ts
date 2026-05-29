@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { progressService } from '@/services/progress-service';
 import type { SessionNoteFields, SessionNoteRecord } from '@/services/progress-service';
 import { createLogger } from '@/utils/logger';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 interface UseSessionNoteResult {
   note: SessionNoteRecord | null;
@@ -18,9 +20,9 @@ export function useSessionNote(bookingId?: string): UseSessionNoteResult {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const logger = useMemo(() => createLogger('useSessionNote', { bookingId }), [bookingId]);
+  const logger = createLogger('useSessionNote', { bookingId });
 
-  const refresh = useCallback(async () => {
+  const refresh = async () => {
     if (!bookingId) {
       logger.warn('Refresh requested without booking id');
       return;
@@ -28,45 +30,42 @@ export function useSessionNote(bookingId?: string): UseSessionNoteResult {
     setLoading(true);
     setError(null);
 
-    try {
+    await runAsyncTryCatchFinally(async () => {
       const record = await progressService.getSessionNote(bookingId);
       setNote(record);
       logger.debug('Session note loaded', { bookingId, hasNote: Boolean(record) });
-    } catch (err) {
+    }, async err => {
       logger.error('Failed to load session note', err);
       setError('Unable to load coach notes right now. Pull to refresh in a moment.');
-    } finally {
+    }, () => {
       setLoading(false);
+    });
+  };
+
+  const persist = async (fields: SessionNoteFields) => {
+    if (!bookingId) {
+      logger.warn('Persist requested without booking id');
+      throw new Error('Missing booking id for session notes');
     }
-  }, [bookingId, logger]);
+    setLoading(true);
+    setSaving(true);
+    setError(null);
 
-  const persist = useCallback(
-    async (fields: SessionNoteFields) => {
-      if (!bookingId) {
-        logger.warn('Persist requested without booking id');
-        throw new Error('Missing booking id for session notes');
-      }
-      setLoading(true);
-      setSaving(true);
-      setError(null);
-
-      try {
-        logger.info('Saving session note', { bookingId, focusCount: fields.focus?.length ?? 0 });
-        const record = await progressService.saveSessionNote(bookingId, fields);
-        setNote(record);
-        logger.success('Session note saved', { bookingId, updatedAt: record.updatedAt });
-        return record;
-      } catch (err) {
-        logger.error('Failed to save session note', err);
-        setError('Saving notes failed. Please retry.');
-        throw err;
-      } finally {
-        setLoading(false);
-        setSaving(false);
-      }
-    },
-    [bookingId, logger],
-  );
+    return await runAsyncTryCatchFinally(async () => {
+      logger.info('Saving session note', { bookingId, focusCount: fields.focus?.length ?? 0 });
+      const record = await progressService.saveSessionNote(bookingId, fields);
+      setNote(record);
+      logger.success('Session note saved', { bookingId, updatedAt: record.updatedAt });
+      return record;
+    }, async err => {
+      logger.error('Failed to save session note', err);
+      setError('Saving notes failed. Please retry.');
+      throw err;
+    }, () => {
+      setLoading(false);
+      setSaving(false);
+    });
+  };
 
   useEffect(() => {
     let active = true;
@@ -80,15 +79,16 @@ export function useSessionNote(bookingId?: string): UseSessionNoteResult {
       setLoading(true);
       setError(null);
       logger.debug('Loading session note on mount', { bookingId });
-      try {
+
+      await runAsyncTryCatchFinally(async () => {
         const record = await progressService.getSessionNote(bookingId);
         if (active) setNote(record);
-      } catch (err) {
+      }, async err => {
         logger.error('Failed to load session note', err);
         if (active) setError('Unable to load coach notes right now. Pull to refresh in a moment.');
-      } finally {
+      }, () => {
         if (active) setLoading(false);
-      }
+      });
     })();
 
     return () => {

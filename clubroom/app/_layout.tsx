@@ -51,14 +51,17 @@ if (Platform.OS !== 'web') {
 
 const logger = createLogger('RootLayout');
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
-
-function RootNavigation() {
+export function RootNavigation() {
   const { scheme: colorScheme } = useTheme();
   const { isAuthenticated, isLoading, currentUser } = useAuth();
   const notificationResponseSubscription = useRef<{ remove: () => void } | null>(null);
+  const currentUserId = currentUser?.id;
+  const currentUserRole = currentUser?.role;
+  const currentUserEmail = currentUser?.email;
+  const currentUsername = currentUser?.username;
+  const currentUserName = currentUser?.name;
+  const currentUserFullName = currentUser?.fullName;
+  const currentUserDisplayName = currentUserFullName || currentUserName || currentUsername;
   useTokenExpiryAlert();
 
   logger.debug('RootNavigation rendered', {
@@ -92,28 +95,21 @@ function RootNavigation() {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated || !currentUser) {
+    if (!isAuthenticated || !currentUserId || !currentUserRole || !currentUserDisplayName) {
       preApiLiveModeService.stop();
       return;
     }
 
     void preApiLiveModeService.start({
-      userId: currentUser.id,
-      role: currentUser.role,
-      displayName: currentUser.fullName || currentUser.name || currentUser.username,
+      userId: currentUserId,
+      role: currentUserRole,
+      displayName: currentUserDisplayName,
     });
 
     return () => {
       preApiLiveModeService.stop();
     };
-  }, [
-    isAuthenticated,
-    currentUser?.id,
-    currentUser?.role,
-    currentUser?.fullName,
-    currentUser?.name,
-    currentUser?.username,
-  ]);
+  }, [isAuthenticated, currentUserDisplayName, currentUserId, currentUserRole]);
 
   useEffect(() => {
     if (isLoading) {
@@ -124,25 +120,24 @@ function RootNavigation() {
   }, [isLoading]);
 
   useEffect(() => {
-    if (!isAuthenticated || !currentUser) {
+    if (!isAuthenticated || !currentUserId || !currentUserRole || !currentUsername) {
       setSentryUser(null);
       return;
     }
 
     setSentryUser({
-      id: currentUser.id,
-      email: currentUser.email,
-      username: currentUser.username,
-      name: currentUser.fullName || currentUser.name || currentUser.username,
-      role: currentUser.role,
+      id: currentUserId,
+      email: currentUserEmail,
+      username: currentUsername,
+      name: currentUserDisplayName,
+      role: currentUserRole,
     });
   }, [
-    currentUser?.email,
-    currentUser?.fullName,
-    currentUser?.id,
-    currentUser?.name,
-    currentUser?.role,
-    currentUser?.username,
+    currentUserDisplayName,
+    currentUserEmail,
+    currentUserId,
+    currentUserRole,
+    currentUsername,
     isAuthenticated,
   ]);
 
@@ -205,7 +200,7 @@ function RootNavigation() {
               <AppPromptProvider>
                 <BookingFlowProvider>
                   <NotificationToastProvider>
-                    <Stack screenOptions={{ headerShown: false }} />
+                    <Stack initialRouteName="(tabs)" screenOptions={{ headerShown: false }} />
                     <OfflineBanner />
                     <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
                   </NotificationToastProvider>
@@ -224,7 +219,7 @@ function RootNavigation() {
   );
 }
 
-function RootLayout() {
+export function RootLayout() {
   logger.info('App initializing');
 
   return (
@@ -242,4 +237,6 @@ function RootLayout() {
   );
 }
 
-export default wrapRootWithSentry(RootLayout);
+const SentryRootLayout = wrapRootWithSentry(RootLayout);
+
+export default SentryRootLayout;

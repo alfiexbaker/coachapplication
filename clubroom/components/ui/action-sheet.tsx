@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useEffect, useRef, useState, use } from 'react';
 import { Modal, StyleSheet, View } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -32,44 +32,51 @@ type AppActionSheetContextValue = {
 
 const AppActionSheetContext = createContext<AppActionSheetContextValue | undefined>(undefined);
 
+function enqueueActionSheet(
+  options: ChooseOptions,
+  idCounter: React.MutableRefObject<number>,
+  setQueue: React.Dispatch<React.SetStateAction<QueuedActionSheet[]>>,
+) {
+  return new Promise<string | null>((resolve) => {
+    idCounter.current += 1;
+    setQueue((previous) => [...previous, { ...options, id: idCounter.current, resolve }]);
+  });
+}
+
 export function AppActionSheetProvider({ children }: { children: React.ReactNode }) {
   const [queue, setQueue] = useState<QueuedActionSheet[]>([]);
   const idCounter = useRef(0);
 
-  const choose = useCallback((options: ChooseOptions) => {
-    return new Promise<string | null>((resolve) => {
-      idCounter.current += 1;
-      setQueue((previous) => [...previous, { ...options, id: idCounter.current, resolve }]);
-    });
-  }, []);
+  const choose = (options: ChooseOptions) => enqueueActionSheet(options, idCounter, setQueue);
 
-  const dismissCurrent = useCallback((selection: string | null) => {
+  const dismissCurrent = (selection: string | null) => {
     setQueue((previous) => {
       if (previous.length === 0) return previous;
       const [current, ...rest] = previous;
       current.resolve(selection);
       return rest;
     });
-  }, []);
+  };
 
   useEffect(() => {
     return registerActionSheetPresenter({
       choose: (options) =>
-        choose({
-          title: options.title,
-          message: options.message,
-          options: options.options,
-          cancelText: options.cancelText,
-        }),
+        enqueueActionSheet(
+          {
+            title: options.title,
+            message: options.message,
+            options: options.options,
+            cancelText: options.cancelText,
+          },
+          idCounter,
+          setQueue,
+        ),
     });
-  }, [choose]);
+  }, []);
 
-  const value = useMemo<AppActionSheetContextValue>(
-    () => ({
-      choose,
-    }),
-    [choose],
-  );
+  const value = {
+    choose,
+  };
 
   const current = queue[0] ?? null;
 
@@ -92,7 +99,7 @@ export function AppActionSheetProvider({ children }: { children: React.ReactNode
 }
 
 export function useAppActionSheet() {
-  const context = useContext(AppActionSheetContext);
+  const context = use(AppActionSheetContext);
   if (!context) {
     throw new Error('useAppActionSheet must be used within an AppActionSheetProvider');
   }
@@ -226,4 +233,3 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
   },
 });
-

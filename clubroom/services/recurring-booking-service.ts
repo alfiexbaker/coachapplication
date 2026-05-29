@@ -52,9 +52,7 @@ interface ApiSeriesLike {
   updatedAt: string;
 }
 
-function mapSeriesStatusToRecurringStatus(
-  status: ApiSeriesLike['status'],
-): RecurringBookingStatus {
+function mapSeriesStatusToRecurringStatus(status: ApiSeriesLike['status']): RecurringBookingStatus {
   if (status === 'CANCELLED') return 'CANCELLED';
   if (status === 'PAUSED') return 'PAUSED';
   if (status === 'COMPLETED') return 'EXPIRED';
@@ -798,6 +796,13 @@ class RecurringBookingService {
         currentDate = this.getNextOccurrence(currentDate, recurring.frequency);
       }
 
+      const [coachName, athleteName, bookedByName] = await Promise.all([
+        resolveUserName(recurring.coachId, 'Coach'),
+        resolveUserName(recurring.athleteId || recurring.userId, 'Athlete'),
+        resolveUserName(recurring.userId, 'Parent'),
+      ]);
+      const bookingsToSave: Booking[] = [];
+
       for (let i = 0; i < count; i++) {
         // Check if we've passed the end date
         if (recurring.endDate && currentDate > new Date(recurring.endDate)) {
@@ -808,12 +813,6 @@ class RecurringBookingService {
         scheduledAt.setHours(hours, minutes, 0, 0);
 
         const bookingId = generateId('booking_gen');
-        const [coachName, athleteName, bookedByName] = await Promise.all([
-          resolveUserName(recurring.coachId, 'Coach'),
-          resolveUserName(recurring.athleteId || recurring.userId, 'Athlete'),
-          resolveUserName(recurring.userId, 'Parent'),
-        ]);
-
         const booking = {
           id: bookingId,
           recurringBookingId: recurringId,
@@ -841,10 +840,9 @@ class RecurringBookingService {
           price: recurring.pricePerSession,
           createdAt: new Date().toISOString(),
           isRecurringGenerated: true,
-        };
+        } as Booking;
 
-        // Store the generated booking through bookingService (centralized storage)
-        await bookingService.saveBookingDirect(booking as Booking);
+        bookingsToSave.push(booking);
 
         generatedBookings.push({
           bookingId,
@@ -856,6 +854,12 @@ class RecurringBookingService {
         // Move to next occurrence
         currentDate = this.getNextOccurrence(currentDate, recurring.frequency);
       }
+
+      await bookingsToSave.reduce(
+        (chain, booking) =>
+          chain.then(() => bookingService.saveBookingDirect(booking).then(() => undefined)),
+        Promise.resolve(),
+      );
 
       // Update the recurring booking with generated booking IDs
       if (generatedBookings.length > 0) {

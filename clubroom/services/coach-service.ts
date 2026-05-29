@@ -517,7 +517,7 @@ export const coachService = {
     logger.info('Getting featured coaches');
     try {
       const coaches = await apiClient.get<Coach[]>(COACHES_KEY, MOCK_COACHES);
-      const featured = [...coaches].sort((a, b) => b.rating - a.rating).slice(0, 5);
+      const featured = Array.from(coaches).toSorted((a, b) => b.rating - a.rating).slice(0, 5);
       return ok(featured);
     } catch (error) {
       logger.error('Failed to get featured coaches', error);

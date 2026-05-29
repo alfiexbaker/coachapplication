@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -42,88 +42,65 @@ export function InvoiceList({
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [dateRange, setDateRange] = useState<{ from?: string; to?: string }>({});
 
-  const handleStatusFilter = useCallback(
-    (status: InvoiceStatus | 'ALL') => {
-      setSelectedStatus(status);
-      onFilterChange?.({
-        status: status === 'ALL' ? undefined : status,
-        dateFrom: dateRange.from,
-        dateTo: dateRange.to,
-      });
-    },
-    [onFilterChange, dateRange],
-  );
+  const handleStatusFilter = (status: InvoiceStatus | 'ALL') => {
+    setSelectedStatus(status);
+    onFilterChange?.({
+      status: status === 'ALL' ? undefined : status,
+      dateFrom: dateRange.from,
+      dateTo: dateRange.to,
+    });
+  };
 
-  const handleDateSelect = useCallback(
-    (from: string, to: string) => {
-      setDateRange({ from, to });
-      setShowDateFilter(false);
-      onFilterChange?.({
-        status: selectedStatus === 'ALL' ? undefined : selectedStatus,
-        dateFrom: from,
-        dateTo: to,
-      });
-    },
-    [onFilterChange, selectedStatus],
-  );
+  const handleDateSelect = (from: string, to: string) => {
+    setDateRange({ from, to });
+    setShowDateFilter(false);
+    onFilterChange?.({
+      status: selectedStatus === 'ALL' ? undefined : selectedStatus,
+      dateFrom: from,
+      dateTo: to,
+    });
+  };
 
-  const handleDateClear = useCallback(() => {
+  const handleDateClear = () => {
     setDateRange({});
     onFilterChange?.({
       status: selectedStatus === 'ALL' ? undefined : selectedStatus,
     });
     setShowDateFilter(false);
-  }, [onFilterChange, selectedStatus]);
+  };
 
   const filteredInvoices =
     selectedStatus === 'ALL' ? invoices : invoices.filter((inv) => inv.status === selectedStatus);
 
-  const renderItem = useCallback(
-    ({ item, index }: { item: Invoice; index: number }) => (
-      <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
-        <InvoiceCard invoice={item} compact={compact} />
-      </Animated.View>
-    ),
-    [compact],
+  const renderItem = ({ item, index }: { item: Invoice; index: number }) => (
+    <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
+      <InvoiceCard invoice={item} compact={compact} />
+    </Animated.View>
   );
 
-  const renderEmpty = useCallback(
-    () => (
-      <InvoiceEmptyState
-        message={emptyMessage}
-        hasFilter={selectedStatus !== 'ALL'}
-        onClearFilter={() => handleStatusFilter('ALL')}
-        palette={palette}
-      />
-    ),
-    [emptyMessage, selectedStatus, handleStatusFilter, palette],
+  const renderEmpty = () => (
+    <InvoiceEmptyState
+      message={emptyMessage}
+      hasFilter={selectedStatus !== 'ALL'}
+      onClearFilter={() => handleStatusFilter('ALL')}
+      palette={palette}
+    />
   );
 
-  const renderHeader = useCallback(
-    () => (
-      <>
-        {ListHeaderComponent}
-        {showFilters && (
-          <StatusFilterBar
-            selectedStatus={selectedStatus}
-            onStatusChange={handleStatusFilter}
-            dateRange={dateRange}
-            onDatePress={() => setShowDateFilter(true)}
-            onDateClear={handleDateClear}
-            palette={palette}
-          />
-        )}
-      </>
-    ),
-    [
-      ListHeaderComponent,
-      showFilters,
-      selectedStatus,
-      handleStatusFilter,
-      dateRange,
-      handleDateClear,
-      palette,
-    ],
+  const renderHeader = () => (
+    <>
+      {ListHeaderComponent}
+      {showFilters && (
+        <StatusFilterBar
+          selectedStatus={selectedStatus}
+          onStatusChange={handleStatusFilter}
+          dateRange={dateRange}
+          onDatePress={() => setShowDateFilter(true)}
+          onDateClear={handleDateClear}
+          palette={palette}
+        />
+      )}
+    </>
   );
 
   return (

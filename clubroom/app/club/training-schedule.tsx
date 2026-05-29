@@ -5,8 +5,7 @@
  * Supports squad filtering and parent attendance tracking.
  */
 
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, StyleSheet, ScrollView, FlatList, type ListRenderItemInfo } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,7 +21,9 @@ import { WeeklyCalendarView } from '@/components/club/weekly-calendar-view';
 import { TrainingAttendanceCard } from '@/components/club/training-attendance-card';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import type { ThemeColors } from '@/hooks/useTheme';
 import { useTrainingSchedule, type ViewMode } from '@/hooks/use-training-schedule';
+import type { ClubSquad, GroupSession } from '@/constants/types';
 
 const VIEW_MODES: { key: ViewMode; label: string; icon: 'list' | 'calendar' }[] = [
   { key: 'list', label: 'List', icon: 'list' },
@@ -43,12 +44,13 @@ export default function TrainingScheduleScreen() {
     userHasChildren,
     isCoach,
   } = useTrainingSchedule();
+  const squadFilterItems = getSquadFilterItems(squads, selectedSquadId, colors, setSelectedSquadId);
+  const trainingItems = getTrainingSessionItems(filteredSessions, userHasChildren);
+  const attendanceFooter =
+    userHasChildren && filteredSessions.length > 0 ? <TrainingAttendanceCard /> : null;
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <Row align="center" gap="md" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
@@ -103,61 +105,25 @@ export default function TrainingScheduleScreen() {
 
       {/* Squad filter */}
       {squads.length > 0 && (
-        <ScrollView
+        <FlatList
+          contentInsetAdjustmentBehavior="automatic"
           horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.filterScroll}
           contentContainerStyle={styles.filterContainer}
-        >
-          <Clickable
-            style={[
-              styles.filterChip,
-              {
-                backgroundColor: !selectedSquadId ? colors.tint : colors.surface,
-                borderColor: !selectedSquadId ? colors.tint : colors.border,
-              },
-            ]}
-            onPress={() => setSelectedSquadId(null)}
-          >
-            <ThemedText
-              style={[
-                Typography.small,
-                { color: !selectedSquadId ? colors.onPrimary : colors.text },
-              ]}
-            >
-              All Squads
-            </ThemedText>
-          </Clickable>
-          {squads.map((squad) => (
-            <Clickable
-              key={squad.id}
-              style={[
-                styles.filterChip,
-                {
-                  backgroundColor: selectedSquadId === squad.id ? colors.tint : colors.surface,
-                  borderColor: selectedSquadId === squad.id ? colors.tint : colors.border,
-                },
-              ]}
-              onPress={() => setSelectedSquadId(squad.id)}
-            >
-              <ThemedText
-                style={[
-                  Typography.small,
-                  { color: selectedSquadId === squad.id ? colors.onPrimary : colors.text },
-                ]}
-              >
-                {squad.name}
-              </ThemedText>
-            </Clickable>
-          ))}
-        </ScrollView>
+          data={squadFilterItems}
+          keyExtractor={keySquadFilterItem}
+          renderItem={renderSquadFilterItem}
+        />
       )}
 
       {/* Content */}
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {loading ? (
+      {loading ? (
+        <View style={styles.content}>
           <LoadingState variant="schedule" />
-        ) : filteredSessions.length === 0 ? (
+        </View>
+      ) : filteredSessions.length === 0 ? (
+        <View style={styles.content}>
           <EmptyState
             icon="football-outline"
             title="No training sessions"
@@ -167,24 +133,121 @@ export default function TrainingScheduleScreen() {
                 : 'No training sessions scheduled'
             }
           />
-        ) : viewMode === 'list' ? (
-          <View style={styles.list}>
-            {filteredSessions.map((session, index) => (
-              <TrainingCard
-                key={session.id}
-                session={session}
-                index={index}
-                userHasChildrenView={userHasChildren}
-              />
-            ))}
-          </View>
-        ) : (
+        </View>
+      ) : viewMode === 'list' ? (
+        <FlatList
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          data={trainingItems}
+          keyExtractor={keyTrainingSessionItem}
+          renderItem={renderTrainingSessionItem}
+          ListFooterComponent={attendanceFooter}
+        />
+      ) : (
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
           <WeeklyCalendarView sessions={filteredSessions} />
-        )}
+          {attendanceFooter}
+        </ScrollView>
+      )}
+    </View>
+  );
+}
 
-        {userHasChildren && filteredSessions.length > 0 && <TrainingAttendanceCard />}
-      </ScrollView>
-    </SafeAreaView>
+interface SquadFilterItem {
+  key: string;
+  label: string;
+  isSelected: boolean;
+  colors: ThemeColors;
+  onPress: () => void;
+}
+
+function getSquadFilterItems(
+  squads: ClubSquad[],
+  selectedSquadId: string | null,
+  colors: ThemeColors,
+  onSelectSquadId: (squadId: string | null) => void,
+): SquadFilterItem[] {
+  return [
+    {
+      key: 'all',
+      label: 'All Squads',
+      isSelected: !selectedSquadId,
+      colors,
+      onPress: () => onSelectSquadId(null),
+    },
+    ...squads.map((squad) => ({
+      key: squad.id,
+      label: squad.name,
+      isSelected: selectedSquadId === squad.id,
+      colors,
+      onPress: () => onSelectSquadId(squad.id),
+    })),
+  ];
+}
+
+function keySquadFilterItem(item: SquadFilterItem): string {
+  return item.key;
+}
+
+function renderSquadFilterItem({ item }: ListRenderItemInfo<SquadFilterItem>) {
+  return (
+    <Clickable
+      style={[
+        styles.filterChip,
+        {
+          backgroundColor: item.isSelected ? item.colors.tint : item.colors.surface,
+          borderColor: item.isSelected ? item.colors.tint : item.colors.border,
+        },
+      ]}
+      onPress={item.onPress}
+    >
+      <ThemedText
+        style={[
+          Typography.small,
+          { color: item.isSelected ? item.colors.onPrimary : item.colors.text },
+        ]}
+      >
+        {item.label}
+      </ThemedText>
+    </Clickable>
+  );
+}
+
+interface TrainingSessionItem {
+  key: string;
+  session: GroupSession;
+  index: number;
+  userHasChildrenView: boolean;
+}
+
+function getTrainingSessionItems(
+  sessions: GroupSession[],
+  userHasChildrenView: boolean,
+): TrainingSessionItem[] {
+  return sessions.map((session, index) => ({
+    key: session.id,
+    session,
+    index,
+    userHasChildrenView,
+  }));
+}
+
+function keyTrainingSessionItem(item: TrainingSessionItem): string {
+  return item.key;
+}
+
+function renderTrainingSessionItem({ item }: ListRenderItemInfo<TrainingSessionItem>) {
+  return (
+    <TrainingCard
+      session={item.session}
+      index={item.index}
+      userHasChildrenView={item.userHasChildrenView}
+    />
   );
 }
 
@@ -208,6 +271,5 @@ const styles = StyleSheet.create({
     borderRadius: Radii.full,
     borderWidth: 1,
   },
-  content: { padding: Spacing.lg, paddingBottom: Spacing.xl * 2 },
-  list: { gap: Spacing.md },
+  content: { padding: Spacing.lg, paddingBottom: Spacing.xl * 2, gap: Spacing.md },
 });

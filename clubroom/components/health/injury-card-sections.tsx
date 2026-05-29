@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -21,7 +20,7 @@ export interface CompactInjuryRowProps {
   palette: ThemeColors;
 }
 
-export const CompactInjuryRow = memo(function CompactInjuryRow({
+export const CompactInjuryRow = function CompactInjuryRow({
   injury,
   onPress,
   palette,
@@ -43,7 +42,7 @@ export const CompactInjuryRow = memo(function CompactInjuryRow({
       </Row>
     </Clickable>
   );
-});
+};
 
 // ─── InjuryRecoveryBar ──────────────────────────────────────────
 
@@ -53,7 +52,7 @@ export interface InjuryRecoveryBarProps {
   palette: ThemeColors;
 }
 
-export const InjuryRecoveryBar = memo(function InjuryRecoveryBar({
+const renderInjuryRecoveryBar = function renderInjuryRecoveryBar({
   recoveryPercent,
   statusColor,
   palette,
@@ -78,7 +77,8 @@ export const InjuryRecoveryBar = memo(function InjuryRecoveryBar({
       </View>
     </View>
   );
-});
+};
+export const InjuryRecoveryBar = renderInjuryRecoveryBar;
 
 // ─── InjuryFooterMeta ───────────────────────────────────────────
 
@@ -87,7 +87,7 @@ export interface InjuryFooterMetaProps {
   palette: ThemeColors;
 }
 
-export const InjuryFooterMeta = memo(function InjuryFooterMeta({
+const renderInjuryFooterMeta = function renderInjuryFooterMeta({
   injury,
   palette,
 }: InjuryFooterMetaProps) {
@@ -119,7 +119,8 @@ export const InjuryFooterMeta = memo(function InjuryFooterMeta({
       )}
     </Row>
   );
-});
+};
+export const InjuryFooterMeta = renderInjuryFooterMeta;
 
 // ─── Styles ─────────────────────────────────────────────────────
 

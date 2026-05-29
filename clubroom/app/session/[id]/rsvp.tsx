@@ -1,4 +1,4 @@
-import React, { useState, useCallback, type ReactNode } from 'react';
+import React, { useState, type ReactNode } from 'react';
 import { View, ScrollView, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -44,7 +44,7 @@ export default function RSVPScreen() {
   const sessionIdParam = useRequiredParam('id');
   const sessionId = sessionIdParam.valid ? sessionIdParam.value : '';
   const rsvpId = useOptionalParam('rsvpId');
-  const router = useRouter();
+  const { back, canGoBack } = useRouter();
   const { colors } = useTheme();
   const { currentUser } = useAuth();
   const isCoach = currentUser?.role === 'COACH';
@@ -59,11 +59,7 @@ export default function RSVPScreen() {
     </SafeAreaView>
   );
 
-  if (!sessionIdParam.valid) {
-    return renderShell(<ErrorState message="Invalid RSVP link." onRetry={() => router.back()} />);
-  }
-
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     try {
       if (!sessionId) {
         return err(serviceError('VALIDATION', 'Missing session ID.'));
@@ -120,7 +116,7 @@ export default function RSVPScreen() {
     } catch {
       return err(serviceError('UNKNOWN', 'Failed to load RSVP data.'));
     }
-  }, [sessionId, rsvpId, currentUser, isCoach]);
+  };
 
   const { data, status, error, retry } = useScreen<RsvpLoadData>({
     load: loadData,
@@ -129,6 +125,10 @@ export default function RSVPScreen() {
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
   });
+
+  if (!sessionIdParam.valid) {
+    return renderShell(<ErrorState message="Invalid RSVP link." onRetry={() => back()} />);
+  }
 
   const rsvp = data?.rsvp ?? null;
   const sessionInfo = data?.sessionInfo ?? null;
@@ -149,7 +149,7 @@ export default function RSVPScreen() {
       };
 
       uiFeedback.showToast(`You've confirmed ${getSessionRsvpChildName(rsvp)} is ${statusLabels[status]}.`);
-if (router.canGoBack()) router.back();
+      if (canGoBack()) back();
       return true;
     } catch {
       uiFeedback.showToast('Failed to submit your response. Please try again.', 'error');

@@ -27,6 +27,7 @@ import { withTimeout } from '@/utils/timeout';
 import { withRetry } from '@/utils/retry';
 import { isExpoStaticRender } from '@/utils/runtime-environment';
 import { emitTyped, ServiceEvents } from './event-bus';
+import { getRegisteredApiAuthService, type ApiAuthService } from './auth-service-registry';
 
 const logger = createLogger('ApiClient');
 
@@ -129,12 +130,15 @@ class RateLimiter {
   }
 
   async waitForSlot(requestLabel?: string): Promise<void> {
-    while (!this.canMakeRequest()) {
-      const oldest = Math.min(...this.requests);
-      const waitTime = this.windowMs - (Date.now() - oldest) + 10;
-      logger.debug('Rate limited, waiting', { waitTime, request: requestLabel });
-      await new Promise((resolve) => setTimeout(resolve, Math.min(waitTime, 1000)));
+    if (this.canMakeRequest()) {
+      return;
     }
+
+    const oldest = Math.min(...this.requests);
+    const waitTime = this.windowMs - (Date.now() - oldest) + 10;
+    logger.debug('Rate limited, waiting', { waitTime, request: requestLabel });
+    await new Promise((resolve) => setTimeout(resolve, Math.min(waitTime, 1000)));
+    await this.waitForSlot(requestLabel);
   }
 }
 
@@ -152,33 +156,8 @@ export { ApiError };
 let _isRefreshing = false;
 let _refreshPromise: Promise<void> | null = null;
 
-type AuthServiceLike = {
-  getTokens: () => Promise<{
-    accessToken?: string;
-    refreshToken?: string;
-    expiresAt?: number;
-  } | null>;
-  refreshToken: () => Promise<Result<unknown, ServiceError>>;
-  logout: () => Promise<void>;
-};
-
-let authServiceRef: AuthServiceLike | null | undefined;
-
-function getAuthService(): AuthServiceLike | null {
-  if (authServiceRef !== undefined) {
-    return authServiceRef;
-  }
-
-  try {
-    // Lazy import to avoid static require-cycle with auth-service.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require('@/services/auth-service') as { authService?: AuthServiceLike };
-    authServiceRef = mod.authService ?? null;
-  } catch {
-    authServiceRef = null;
-  }
-
-  return authServiceRef;
+function getAuthService(): ApiAuthService | null {
+  return getRegisteredApiAuthService();
 }
 
 /**

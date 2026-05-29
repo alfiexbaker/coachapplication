@@ -61,9 +61,8 @@ function TagInputSection({
           value={inputValue}
           onChangeText={onInputChange}
           onSubmitEditing={onAdd}
-
-            maxLength={100}
-          />
+          maxLength={100}
+        />
         <Clickable
           accessibilityLabel="Add tag"
           onPress={onAdd}
@@ -76,7 +75,7 @@ function TagInputSection({
         <Row style={styles.tagList}>
           {items.map((item, index) => (
             <View
-              key={index}
+              key={item}
               style={[
                 styles.tag,
                 { backgroundColor: withAlpha(tagColor, 0.09), borderColor: tagColor },
@@ -98,7 +97,7 @@ function TagInputSection({
   );
 }
 
-export const MedicalTagListForm = React.memo(function MedicalTagListForm({
+export const MedicalTagListForm = function MedicalTagListForm({
   allergies,
   allergyInput,
   medicalConditions,
@@ -167,7 +166,7 @@ export const MedicalTagListForm = React.memo(function MedicalTagListForm({
       />
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   stepContent: {

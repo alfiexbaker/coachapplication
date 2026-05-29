@@ -1,13 +1,12 @@
 /**
  * Extracted sub-components for SessionTypeModal.
  *
- * Constants: DURATION_OPTIONS, TYPE_OPTIONS.
  * SegmentSelector — generic segment picker (type/duration).
  * CapacityStepper — increment/decrement capacity.
  * PriceInput — £ prefixed price field.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,17 +14,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
-import type { SessionType } from '@/constants/session-types';
 import { Row } from '@/components/primitives';
-
-// ─── Constants ───────────────────────────────────────────────────────────────
-
-export const DURATION_OPTIONS = [30, 45, 60, 90];
-
-export const TYPE_OPTIONS: { key: SessionType; label: string }[] = [
-  { key: '1-to-1', label: '1-on-1' },
-  { key: 'small-group', label: 'Group' },
-];
 
 // ─── SegmentSelector ─────────────────────────────────────────────────────────
 
@@ -42,7 +31,7 @@ interface SegmentSelectorProps<T extends string | number> {
   palette: ThemeColors;
 }
 
-export const SegmentSelector = memo(function SegmentSelector<T extends string | number>({
+export const SegmentSelector = function SegmentSelector<T extends string | number>({
   label,
   options,
   selected,
@@ -78,7 +67,7 @@ export const SegmentSelector = memo(function SegmentSelector<T extends string | 
       </Row>
     </View>
   );
-}) as <T extends string | number>(props: SegmentSelectorProps<T>) => React.ReactElement;
+} as <T extends string | number>(props: SegmentSelectorProps<T>) => React.ReactElement;
 
 // ─── CapacityStepper ─────────────────────────────────────────────────────────
 
@@ -90,7 +79,7 @@ interface CapacityStepperProps {
   palette: ThemeColors;
 }
 
-export const CapacityStepper = memo(function CapacityStepper({
+const renderCapacityStepper = function renderCapacityStepper({
   value,
   onChange,
   min = 1,
@@ -126,7 +115,8 @@ export const CapacityStepper = memo(function CapacityStepper({
       </Row>
     </View>
   );
-});
+};
+export const CapacityStepper = renderCapacityStepper;
 
 // ─── PriceInput ──────────────────────────────────────────────────────────────
 
@@ -136,7 +126,7 @@ interface PriceInputProps {
   palette: ThemeColors;
 }
 
-export const PriceInput = memo(function PriceInput({ value, onChange, palette }: PriceInputProps) {
+const renderPriceInput = function renderPriceInput({ value, onChange, palette }: PriceInputProps) {
   return (
     <View style={[styles.field, { flex: 1 }]}>
       <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Price per Head</ThemedText>
@@ -154,13 +144,13 @@ export const PriceInput = memo(function PriceInput({ value, onChange, palette }:
           value={value}
           onChangeText={onChange}
           keyboardType="numeric"
-
-            maxLength={10}
-          />
+          maxLength={10}
+        />
       </Row>
     </View>
   );
-});
+};
+export const PriceInput = renderPriceInput;
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 

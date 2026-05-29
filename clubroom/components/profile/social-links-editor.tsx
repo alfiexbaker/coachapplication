@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
@@ -78,13 +78,13 @@ function validateSocialLink(platform: SocialPlatform, raw: string): string | nul
 
 export function SocialLinksEditor({ socialLinks, onChange }: SocialLinksEditorProps) {
   const { colors: palette } = useTheme();
-  const errors = useMemo(() => {
+  const errors = (() => {
     const next: Partial<Record<SocialPlatform, string | null>> = {};
     for (const platform of PLATFORM_ORDER) {
       next[platform] = validateSocialLink(platform, socialLinks[platform] || '');
     }
     return next;
-  }, [socialLinks]);
+  })();
 
   const handleChange = (platform: SocialPlatform, value: string) => {
     onChange({

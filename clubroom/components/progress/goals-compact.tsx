@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
@@ -18,6 +18,8 @@ import { progressService } from '@/services/progress-service';
 import type { Goal } from '@/constants/types';
 import { uiFeedback } from '@/services/ui-feedback';
 
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
+
 interface GoalsCompactProps {
   activeGoals: Goal[];
   completedGoals: Goal[];
@@ -28,7 +30,7 @@ interface GoalsCompactProps {
   onViewAll?: () => void;
 }
 
-const GoalProgressBar = memo(function GoalProgressBar({
+const GoalProgressBar = function GoalProgressBar({
   progress,
   isNearComplete,
   fillColor,
@@ -45,17 +47,17 @@ const GoalProgressBar = memo(function GoalProgressBar({
   const glow = useSharedValue(0);
 
   useEffect(() => {
-    width.value = withSpring(Math.max(0, Math.min(100, progress)), {
+    width.set(withSpring(Math.max(0, Math.min(100, progress)), {
       damping: 16,
       stiffness: 100,
-    });
+    }));
     if (isNearComplete) {
-      glow.value = withSpring(1, { damping: 12, stiffness: 80 });
+      glow.set(withSpring(1, { damping: 12, stiffness: 80 }));
     }
   }, [glow, isNearComplete, progress, width]);
 
   const fillStyle = useAnimatedStyle(() => ({
-    width: `${width.value}%`,
+    transform: [{ scaleX: width.value / 100 }],
     backgroundColor: fillColor,
   }));
 
@@ -69,7 +71,7 @@ const GoalProgressBar = memo(function GoalProgressBar({
       <Animated.View style={[styles.progressFill, fillStyle]} />
     </Animated.View>
   );
-});
+};
 
 function mapCreatorLabel(goal: Goal): string {
   switch (goal.createdBy) {
@@ -83,7 +85,7 @@ function mapCreatorLabel(goal: Goal): string {
   }
 }
 
-export const GoalsCompact = memo(function GoalsCompact({
+export const GoalsCompact = function GoalsCompact({
   activeGoals,
   completedGoals,
   athleteId,
@@ -97,7 +99,7 @@ export const GoalsCompact = memo(function GoalsCompact({
   const [newGoalTitle, setNewGoalTitle] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const compactItems = useMemo(() => {
+  const compactItems = (() => {
     const active = activeGoals.slice(0, 3);
     if (active.length >= 3) {
       return active.map((goal) => ({ goal, completed: false }));
@@ -106,7 +108,7 @@ export const GoalsCompact = memo(function GoalsCompact({
       .slice(0, Math.max(0, 3 - active.length))
       .map((goal) => ({ goal, completed: true }));
     return [...active.map((goal) => ({ goal, completed: false })), ...completed];
-  }, [activeGoals, completedGoals]);
+  })();
 
   const handleCreateGoal = async () => {
     if (!athleteId || !actorId) {
@@ -120,7 +122,8 @@ export const GoalsCompact = memo(function GoalsCompact({
     }
 
     setIsSubmitting(true);
-    try {
+
+    await runAsyncTryCatchFinally(async () => {
       await progressService.createGoal(actorId, {
         userId: athleteId,
         athleteId,
@@ -136,11 +139,11 @@ export const GoalsCompact = memo(function GoalsCompact({
       setNewGoalTitle('');
       setShowCreate(false);
       onRefresh?.();
-    } catch (error) {
+    }, async error => {
       uiFeedback.showToast('Failed to create goal. Please try again.', 'error');
-    } finally {
+    }, () => {
       setIsSubmitting(false);
-    }
+    });
   };
 
   const closeCreate = () => {
@@ -314,7 +317,7 @@ export const GoalsCompact = memo(function GoalsCompact({
       </Column>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {
@@ -378,8 +381,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   progressFill: {
+    width: '100%',
     height: '100%',
     borderRadius: Radii.pill,
+    transformOrigin: 'left center',
   },
   viewAllButton: {
     minHeight: 44,

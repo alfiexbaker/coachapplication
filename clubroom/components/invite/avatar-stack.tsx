@@ -1,11 +1,3 @@
-/**
- * Avatar Stack
- *
- * Overlapping row of attendee avatars with a going count label.
- * Used on invite cards and detail screens to show social proof.
- */
-
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 
@@ -115,7 +107,7 @@ function AvatarStackComponent({
   return content;
 }
 
-export const AvatarStack = memo(AvatarStackComponent);
+export const AvatarStack = AvatarStackComponent;
 
 const styles = StyleSheet.create({
   row: {

@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -33,7 +33,7 @@ function getStatusIcon(status: string, colors: ThemeColors) {
   }
 }
 
-export const VerificationItemRow = memo(function VerificationItemRow({
+export const VerificationItemRow = function VerificationItemRow({
   colors,
   icon,
   title,
@@ -66,7 +66,7 @@ export const VerificationItemRow = memo(function VerificationItemRow({
       </Row>
     </Clickable>
   );
-});
+};
 
 const styles = StyleSheet.create({
   row: { paddingVertical: Spacing.sm },

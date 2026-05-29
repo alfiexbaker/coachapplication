@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -125,7 +125,7 @@ function GroupManageTabInner({
   );
 }
 
-export const GroupManageTab = memo(GroupManageTabInner);
+export const GroupManageTab = GroupManageTabInner;
 
 const styles = StyleSheet.create({
   container: {

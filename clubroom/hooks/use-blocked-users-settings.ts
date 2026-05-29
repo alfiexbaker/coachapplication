@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
@@ -25,7 +25,7 @@ export function useBlockedUsersSettings() {
   const userId = currentUser?.id ?? '';
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const load = async () => {
     if (!userId) {
       return err(serviceError('UNAUTHORIZED', 'No user available.'));
     }
@@ -76,7 +76,7 @@ export function useBlockedUsersSettings() {
     });
 
     return ok(items);
-  }, [userId]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen({
     load,
@@ -87,36 +87,33 @@ export function useBlockedUsersSettings() {
     dataKey: userId ? `blocked-users:${userId}` : 'blocked-users:missing',
   });
 
-  const blockedUsers = useMemo(() => data ?? [], [data]);
+  const blockedUsers = data ?? [];
 
-  const unblockUser = useCallback(
-    async (user: BlockedUserItem) => {
-      if (!userId || pendingUserId) return;
+  const unblockUser = async (user: BlockedUserItem) => {
+    if (!userId || pendingUserId) return;
 
-      const confirmed = await uiFeedback.confirm({
-        title: 'Unblock user?',
-        message: `${user.name} will be able to message you, appear in discovery, and be invited again.`,
-        confirmText: 'Unblock',
-        cancelText: 'Keep blocked',
-        destructive: false,
-      });
+    const confirmed = await uiFeedback.confirm({
+      title: 'Unblock user?',
+      message: `${user.name} will be able to message you, appear in discovery, and be invited again.`,
+      confirmText: 'Unblock',
+      cancelText: 'Keep blocked',
+      destructive: false,
+    });
 
-      if (!confirmed) {
-        return;
-      }
+    if (!confirmed) {
+      return;
+    }
 
-      setPendingUserId(user.id);
-      const result = await blockService.unblockUser(userId, user.id);
-      if (result.success) {
-        uiFeedback.showToast(`${user.name} has been unblocked.`, 'success');
-        onRefresh();
-      } else {
-        uiFeedback.showToast(result.error.message || 'Failed to unblock user.', 'error');
-      }
-      setPendingUserId(null);
-    },
-    [onRefresh, pendingUserId, userId],
-  );
+    setPendingUserId(user.id);
+    const result = await blockService.unblockUser(userId, user.id);
+    if (result.success) {
+      uiFeedback.showToast(`${user.name} has been unblocked.`, 'success');
+      onRefresh();
+    } else {
+      uiFeedback.showToast(result.error.message || 'Failed to unblock user.', 'error');
+    }
+    setPendingUserId(null);
+  };
 
   return {
     blockedUsers,

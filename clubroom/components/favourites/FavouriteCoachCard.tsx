@@ -9,7 +9,7 @@
  * - Animated entry
  */
 
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -38,14 +38,14 @@ export interface FavouriteCoachCardProps {
   index?: number;
 }
 
-export const FavouriteCoachCard = memo(function FavouriteCoachCard({
+export const FavouriteCoachCard = function FavouriteCoachCard({
   favourite,
   onBook,
   onToggleFavourite,
   toggleLoading = false,
   index = 0,
 }: FavouriteCoachCardProps) {
-  const router = useRouter();
+  const { push } = useRouter();
   const { colors } = useTheme();
   const coachName = favourite.coachName?.trim() || favourite.note?.trim() || favourite.coachId;
   const coachInitials = coachName
@@ -55,27 +55,27 @@ export const FavouriteCoachCard = memo(function FavouriteCoachCard({
     .slice(0, 2)
     .toUpperCase();
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     // Navigate to coach profile
-    router.push(Routes.coach(favourite.coachId));
-  }, [router, favourite.coachId]);
+    push(Routes.coach(favourite.coachId));
+  };
 
-  const handleBook = useCallback(() => {
+  const handleBook = () => {
     if (onBook) {
       onBook(favourite.coachId);
     } else {
       // Default: navigate to booking flow
-      router.push(
+      push(
         Routes.bookCoach(favourite.coachId, {
           source: 'favourites',
         }),
       );
     }
-  }, [onBook, favourite.coachId, router]);
+  };
 
-  const handleToggleFavourite = useCallback(() => {
+  const handleToggleFavourite = () => {
     onToggleFavourite?.(favourite);
-  }, [onToggleFavourite, favourite]);
+  };
 
   return (
     <Animated.View
@@ -121,16 +121,14 @@ export const FavouriteCoachCard = memo(function FavouriteCoachCard({
               >
                 <ThemedText style={[styles.profileButtonText, { color: colors.tint }]}>View Profile</ThemedText>
               </Clickable>
-              <Button onPress={handleBook} variant="primary" style={styles.bookButton}>
-                Book
-              </Button>
+              <Button onPress={handleBook} variant="primary" style={styles.bookButton} label="Book" />
             </Row>
           </View>
         </Row>
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

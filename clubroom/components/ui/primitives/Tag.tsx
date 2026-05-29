@@ -11,7 +11,7 @@
  *   <Tag label="Custom" color="custom-brand-color" />
  */
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Fonts, Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
@@ -84,7 +84,7 @@ const SIZE_MAP: Record<TagSize, SizeConfig> = {
 
 function TagInner({ label, color = 'info', size = 'md' }: TagProps) {
   const { colors } = useTheme();
-  const resolved = useMemo(() => resolveColor(color, colors), [color, colors]);
+  const resolved = resolveColor(color, colors);
   const sizeConfig = SIZE_MAP[size];
 
   return (
@@ -116,7 +116,7 @@ function TagInner({ label, color = 'info', size = 'md' }: TagProps) {
   );
 }
 
-export const Tag = React.memo(TagInner);
+export const Tag = TagInner;
 
 // ---------------------------------------------------------------------------
 // Styles

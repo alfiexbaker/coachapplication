@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Modal, StyleSheet, View } from 'react-native';
 
 import { Column } from '@/components/primitives/column';
@@ -17,11 +17,11 @@ function toDateKey(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-export const AttendanceHeatmap = memo(function AttendanceHeatmap({ dates }: AttendanceHeatmapProps) {
+export const AttendanceHeatmap = function AttendanceHeatmap({ dates }: AttendanceHeatmapProps) {
   const { colors } = useTheme();
   const [selectedCellKey, setSelectedCellKey] = useState<string | null>(null);
 
-  const cells = useMemo(() => {
+  const cells = (() => {
     const countsByDate = dates.reduce<Record<string, number>>((acc, dateString) => {
       const parsed = new Date(dateString);
       if (Number.isNaN(parsed.getTime())) {
@@ -47,18 +47,12 @@ export const AttendanceHeatmap = memo(function AttendanceHeatmap({ dates }: Atte
         count,
       };
     });
-  }, [dates]);
+  })();
 
-  const selectedCell = useMemo(
-    () => cells.find((cell) => cell.key === selectedCellKey) ?? null,
-    [cells, selectedCellKey],
-  );
-  const closeModal = useCallback(() => setSelectedCellKey(null), []);
+  const selectedCell = cells.find((cell) => cell.key === selectedCellKey) ?? null;
+  const closeModal = () => setSelectedCellKey(null);
 
-  const attendedDays = useMemo(
-    () => cells.reduce((total, cell) => total + (cell.count > 0 ? 1 : 0), 0),
-    [cells],
-  );
+  const attendedDays = cells.reduce((total, cell) => total + (cell.count > 0 ? 1 : 0), 0);
 
   return (
     <SurfaceCard style={styles.card}>
@@ -138,7 +132,7 @@ export const AttendanceHeatmap = memo(function AttendanceHeatmap({ dates }: Atte
       </Modal>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

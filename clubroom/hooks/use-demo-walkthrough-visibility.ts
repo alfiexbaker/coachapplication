@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 
 import { seenService } from '@/services/seen-service';
 import { createLogger } from '@/utils/logger';
@@ -16,18 +16,21 @@ export function useDemoWalkthroughVisibility(
   walkthrough: DemoWalkthrough | null,
 ) {
   const [visible, setVisible] = useState(false);
+  const walkthroughId = walkthrough?.id;
 
   useEffect(() => {
     let isActive = true;
 
-    if (!userId || !walkthrough) {
-      setVisible(false);
+    if (!userId || !walkthroughId) {
+      startTransition(() => {
+        setVisible(false);
+      });
       return () => {
         isActive = false;
       };
     }
 
-    const entityId = buildWalkthroughEntityId(userId, walkthrough.id);
+    const entityId = buildWalkthroughEntityId(userId, walkthroughId);
 
     void (async () => {
       const seenResult = await seenService.getSeenStatus(DEMO_WALKTHROUGH_ENTITY, entityId);
@@ -38,7 +41,7 @@ export function useDemoWalkthroughVisibility(
       if (!seenResult.success) {
         logger.warn('Failed to resolve walkthrough visibility', {
           userId,
-          walkthroughId: walkthrough.id,
+          walkthroughId,
           error: seenResult.error,
         });
         setVisible(true);
@@ -57,9 +60,9 @@ export function useDemoWalkthroughVisibility(
     return () => {
       isActive = false;
     };
-  }, [userId, walkthrough?.id]);
+  }, [userId, walkthroughId]);
 
-  const dismissWalkthrough = useCallback(() => {
+  const dismissWalkthrough = () => {
     if (!userId || !walkthrough) {
       setVisible(false);
       return;
@@ -71,7 +74,7 @@ export function useDemoWalkthroughVisibility(
       buildWalkthroughEntityId(userId, walkthrough.id),
       userId,
     );
-  }, [userId, walkthrough]);
+  };
 
   return {
     walkthrough: visible ? walkthrough : null,

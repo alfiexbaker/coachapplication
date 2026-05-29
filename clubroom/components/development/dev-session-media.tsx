@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
@@ -23,7 +23,7 @@ export interface DevSessionMediaProps {
   onDismissMediaPermission?: () => void;
 }
 
-export const DevSessionMedia = memo(function DevSessionMedia({
+export const DevSessionMedia = function DevSessionMedia({
   videoUrls,
   imageUrls,
   onAddVideo,
@@ -69,8 +69,8 @@ export const DevSessionMedia = memo(function DevSessionMedia({
         </Row>
         {videoUrls.length > 0 ? (
           <Column gap="xs">
-            {videoUrls.map((_, index) => (
-              <SurfaceCard key={index} style={styles.mediaCard}>
+            {videoUrls.map((videoUrl, index) => (
+              <SurfaceCard key={videoUrl} style={styles.mediaCard}>
                 <Row gap="sm" align="center" style={{ flex: 1 }}>
                   <Ionicons name="videocam" size={20} color={colors.tint} />
                   <ThemedText style={Typography.bodySmall} numberOfLines={1}>
@@ -109,8 +109,8 @@ export const DevSessionMedia = memo(function DevSessionMedia({
         </Row>
         {imageUrls.length > 0 ? (
           <Column gap="xs">
-            {imageUrls.map((_, index) => (
-              <SurfaceCard key={index} style={styles.mediaCard}>
+            {imageUrls.map((imageUrl, index) => (
+              <SurfaceCard key={imageUrl} style={styles.mediaCard}>
                 <Row gap="sm" align="center" style={{ flex: 1 }}>
                   <Ionicons name="image" size={20} color={colors.tint} />
                   <ThemedText style={Typography.bodySmall} numberOfLines={1}>
@@ -134,7 +134,7 @@ export const DevSessionMedia = memo(function DevSessionMedia({
       </Column>
     </Column>
   );
-});
+};
 
 const styles = StyleSheet.create({
   mediaCard: { alignItems: 'center', justifyContent: 'space-between', padding: Spacing.sm },

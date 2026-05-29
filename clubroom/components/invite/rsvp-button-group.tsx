@@ -1,12 +1,3 @@
-/**
- * RSVP Button Group
- *
- * Going / Maybe / Can't Go — one-tap response with animated state transitions.
- * Selected state: filled background + scale pulse + haptic. No Alert dialog.
- * Deselected buttons fade to muted outlines.
- */
-
-import { memo, useCallback } from 'react';
 import { StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -65,7 +56,7 @@ const BUTTONS: ButtonConfig[] = [
 ];
 
 /** Individual animated RSVP button — pulse on selection change. */
-const RsvpButton = memo(function RsvpButton({
+const RsvpButton = function RsvpButton({
   config,
   isSelected,
   color,
@@ -88,14 +79,14 @@ const RsvpButton = memo(function RsvpButton({
     transform: [{ scale: scale.value }],
   }));
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     // Pulse animation — quick scale up then settle
-    scale.value = withSequence(
+    scale.set(withSequence(
       withSpring(1.05, { damping: 15, stiffness: 400 }),
       withSpring(1, { damping: 12, stiffness: 300 }),
-    );
+    ));
     onPress();
-  }, [onPress, scale]);
+  };
 
   return (
     <Animated.View style={[{ flex: 1 }, animStyle]}>
@@ -131,7 +122,7 @@ const RsvpButton = memo(function RsvpButton({
       </Clickable>
     </Animated.View>
   );
-});
+};
 
 function RsvpButtonGroupComponent({
   currentStatus,
@@ -141,20 +132,17 @@ function RsvpButtonGroupComponent({
 }: RsvpButtonGroupProps) {
   const { colors: palette } = useTheme();
 
-  const handlePress = useCallback(
-    (status: RsvpStatus) => {
-      if (Platform.OS !== 'web') {
-        // Success haptic for "going", light for others
-        if (status === 'going') {
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } else {
-          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        }
+  const handlePress = (status: RsvpStatus) => {
+    if (Platform.OS !== 'web') {
+      // Success haptic for "going", light for others
+      if (status === 'going') {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-      onRespond(status);
-    },
-    [onRespond],
-  );
+    }
+    onRespond(status);
+  };
 
   return (
     <Row style={styles.row}>
@@ -179,7 +167,7 @@ function RsvpButtonGroupComponent({
   );
 }
 
-export const RsvpButtonGroup = memo(RsvpButtonGroupComponent);
+export const RsvpButtonGroup = RsvpButtonGroupComponent;
 
 const styles = StyleSheet.create({
   row: {

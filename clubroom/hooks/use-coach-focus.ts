@@ -1,5 +1,3 @@
-import { useMemo } from 'react';
-
 import type { SessionFeedback } from '@/services/progress-service';
 import {
   inferCoachFocus,
@@ -15,5 +13,5 @@ interface UseCoachFocusParams {
  * Analyzes which corners the coach emphasizes across sessions.
  */
 export function useCoachFocus({ feedback }: UseCoachFocusParams): CoachFocusNarrative | null {
-  return useMemo(() => inferCoachFocus(feedback), [feedback]);
+  return inferCoachFocus(feedback);
 }

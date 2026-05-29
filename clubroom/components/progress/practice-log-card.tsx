@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -19,7 +18,7 @@ interface PracticeLogCardProps {
 
 const QUICK_OPTIONS = [10, 20, 30, 45] as const;
 
-export const PracticeLogCard = memo(function PracticeLogCard({
+export const PracticeLogCard = function PracticeLogCard({
   todayMinutes,
   weeklyMinutes,
   onLogMinutes,
@@ -77,7 +76,7 @@ export const PracticeLogCard = memo(function PracticeLogCard({
       </Column>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

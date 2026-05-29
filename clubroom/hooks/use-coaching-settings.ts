@@ -5,7 +5,7 @@
  * Used by app/settings/coaching.tsx
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef, startTransition } from 'react';
 import {
   useSharedValue,
   withSequence,
@@ -22,6 +22,13 @@ import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import { coachTravelService, type CoachTravelSettings } from '@/services/coach-travel-service';
 import type { CoachSchedulingRules } from '@/constants/types';
 import { err, ok, type ServiceError } from '@/types/result';
+
+function clearSaveTimer(ref: { current: ReturnType<typeof setTimeout> | null }) {
+  if (ref.current) {
+    clearTimeout(ref.current);
+    ref.current = null;
+  }
+}
 
 export function useCoachingSettings() {
   const { currentUser } = useAuth();
@@ -40,7 +47,7 @@ export function useCoachingSettings() {
   // Debounce timer ref
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadRules = useCallback(async () => {
+  const loadRules = async () => {
     if (!coachId) {
       return ok(schedulingRulesService.getDefaultRules('coach_default'));
     }
@@ -50,7 +57,7 @@ export function useCoachingSettings() {
       return ok(loadedResult.data);
     }
     return err(loadedResult.error);
-  }, [coachId]);
+  };
 
   const {
     data,
@@ -70,8 +77,12 @@ export function useCoachingSettings() {
 
   useEffect(() => {
     if (data) {
-      setRules(data);
-      setSaveError(null);
+      startTransition(() => {
+        setRules(data);
+      });
+      startTransition(() => {
+        setSaveError(null);
+      });
     }
   }, [data]);
 
@@ -95,60 +106,56 @@ export function useCoachingSettings() {
   }, [coachId]);
 
   // Show "Saved" toast
-  const flashSaved = useCallback(() => {
+  const flashSaved = () => {
     setShowSaved(true);
-    toastOpacity.value = withSequence(
-      withTiming(1, { duration: 200 }),
-      withDelay(
-        1200,
-        withTiming(0, { duration: 300 }, (finished) => {
-          if (finished) runOnJS(setShowSaved)(false);
-        }),
+    toastOpacity.set(
+      withSequence(
+        withTiming(1, { duration: 200 }),
+        withDelay(
+          1200,
+          withTiming(0, { duration: 300 }, (finished) => {
+            if (finished) runOnJS(setShowSaved)(false);
+          }),
+        ),
       ),
     );
-  }, [toastOpacity]);
+  };
 
   // Debounced save
-  const persistRules = useCallback(
-    (updated: CoachSchedulingRules) => {
-      if (!coachId) return;
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(async () => {
-        try {
-          const result = await schedulingRulesService.updateCoachRules(coachId, updated);
-          if (!result.success) {
-            setSaveError(result.error.message);
-            return;
-          }
-          setRules(result.data);
-          setSaveError(null);
-          flashSaved();
-        } catch {
-          setSaveError('Failed to save coaching settings.');
+  const persistRules = (updated: CoachSchedulingRules) => {
+    if (!coachId) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      try {
+        const result = await schedulingRulesService.updateCoachRules(coachId, updated);
+        if (!result.success) {
+          setSaveError(result.error.message);
+          return;
         }
-      }, 500);
-    },
-    [coachId, flashSaved],
-  );
+        setRules(result.data);
+        setSaveError(null);
+        flashSaved();
+      } catch {
+        setSaveError('Failed to save coaching settings.');
+      }
+    }, 500);
+  };
 
   // Generic updater
-  const update = useCallback(
-    <K extends keyof CoachSchedulingRules>(key: K, value: CoachSchedulingRules[K]) => {
-      setRules((prev) => {
-        if (!prev) return prev;
-        const next = { ...prev, [key]: value };
-        setSaveError(null);
-        persistRules(next);
-        return next;
-      });
-    },
-    [persistRules],
-  );
+  const update = <K extends keyof CoachSchedulingRules>(key: K, value: CoachSchedulingRules[K]) => {
+    setRules((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, [key]: value };
+      setSaveError(null);
+      persistRules(next);
+      return next;
+    });
+  };
 
   // Cleanup timer on unmount
   useEffect(() => {
     return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
+      clearSaveTimer(saveTimer);
     };
   }, []);
 

@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Modal, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -60,7 +60,7 @@ function formatBadgeDate(value: string | undefined): string {
   });
 }
 
-export const BadgeDetailModal = memo(function BadgeDetailModal({
+export const BadgeDetailModal = function BadgeDetailModal({
   badge,
   visible,
   athleteName,
@@ -74,14 +74,14 @@ export const BadgeDetailModal = memo(function BadgeDetailModal({
 
   useEffect(() => {
     if (!visible || !badge) {
-      panelOpacity.value = 0;
-      panelTranslateY.value = 24;
-      heroScale.value = 0.92;
+      panelOpacity.set(0);
+      panelTranslateY.set(24);
+      heroScale.set(0.92);
       return;
     }
-    panelOpacity.value = withTiming(1, { duration: 220 });
-    panelTranslateY.value = withTiming(0, { duration: 240 });
-    heroScale.value = withTiming(1, { duration: 260 });
+    panelOpacity.set(withTiming(1, { duration: 220 }));
+    panelTranslateY.set(withTiming(0, { duration: 240 }));
+    heroScale.set(withTiming(1, { duration: 260 }));
     void HapticPatterns.tap();
   }, [badge, heroScale, panelOpacity, panelTranslateY, visible]);
 
@@ -94,7 +94,7 @@ export const BadgeDetailModal = memo(function BadgeDetailModal({
     transform: [{ scale: heroScale.value }],
   }));
 
-  const handleShare = useCallback(() => {
+  const handleShare = () => {
     if (!badge) {
       return;
     }
@@ -103,7 +103,7 @@ export const BadgeDetailModal = memo(function BadgeDetailModal({
     void shareBadgeCard(captureRef, {
       dialogTitle: `Share ${badge.label} badge`,
     });
-  }, [badge]);
+  };
 
   if (!badge) {
     return null;
@@ -250,7 +250,7 @@ export const BadgeDetailModal = memo(function BadgeDetailModal({
       </Row>
     </Modal>
   );
-});
+};
 
 const styles = StyleSheet.create({
   overlay: {

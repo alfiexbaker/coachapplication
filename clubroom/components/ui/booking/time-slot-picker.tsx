@@ -21,7 +21,7 @@ export function TimeSlotPicker({ selectedSlot, onSelect, slots, isLoading }: Tim
       <View style={styles.centered}>
         <ActivityIndicator size="small" color={palette.tint} />
         <ThemedText style={{ color: palette.muted, marginTop: Spacing.sm }}>
-          Loading available times...
+          Loading available times…
         </ThemedText>
       </View>
     );

@@ -1,7 +1,7 @@
 /**
  * useClubSettings — All state, data loading, and handlers for the Club Settings screen.
  */
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 import { Share } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
@@ -25,6 +25,8 @@ import {
   compareOrganizationRoles,
 } from '@/contracts/club-governance';
 import { err, ok, serviceError, type Result, type ServiceError } from '@/types/result';
+
+import { runAsyncFinally, runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('ClubSettings');
 
@@ -89,8 +91,8 @@ function buildInviteCodes(
     }))
     .sort(
       (left, right) =>
-        Number(right.isPrimary) - Number(left.isPrimary)
-        || compareOrganizationRoles(left.role, right.role),
+        Number(right.isPrimary) - Number(left.isPrimary) ||
+        compareOrganizationRoles(left.role, right.role),
     );
 }
 
@@ -102,12 +104,9 @@ export function useClubSettings() {
   const { currentUser, availableUsers } = useAuth();
   const { showToast } = useToast();
 
-  const userClubs = useMemo(
-    () => (currentUser?.id ? socialFeedService.getUserClubs(currentUser.id) : []),
-    [currentUser?.id],
-  );
+  const userClubs = currentUser?.id ? socialFeedService.getUserClubs(currentUser.id) : [];
 
-  const knownClubs = useMemo(() => {
+  const knownClubs = (() => {
     const deduped = new Map<string, Club>();
     userClubs.forEach((club) => deduped.set(club.id, club));
     availableUsers.forEach((user) => {
@@ -118,7 +117,7 @@ export function useClubSettings() {
       });
     });
     return Array.from(deduped.values());
-  }, [userClubs, availableUsers]);
+  })();
 
   const clubId = paramClubId || userClubs[0]?.id;
   const membership =
@@ -126,12 +125,12 @@ export function useClubSettings() {
   const canManageClub = canManageClubMembers(membership?.role);
   const canEditCommercialMode = canEditClubCommercialMode(membership?.role);
 
-  const initialSection: SettingsSection = SETTINGS_SECTIONS.some(
+  const routeSection: SettingsSection | null = SETTINGS_SECTIONS.some(
     (section) => section.key === paramSection,
   )
     ? (paramSection as SettingsSection)
-    : 'details';
-  const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
+    : null;
+  const [selectedSection, setSelectedSection] = useState<SettingsSection | null>(null);
   const [editName, setEditName] = useState('');
   const [editTagline, setEditTagline] = useState('');
   const [editCity, setEditCity] = useState('');
@@ -139,7 +138,7 @@ export function useClubSettings() {
   const [isSavingBranding, setIsSavingBranding] = useState(false);
   const [isSavingCommercialMode, setIsSavingCommercialMode] = useState(false);
 
-  const loadData = useCallback(async (): Promise<Result<ClubSettingsData, ServiceError>> => {
+  const loadData = async (): Promise<Result<ClubSettingsData, ServiceError>> => {
     if (!clubId) {
       return ok(EMPTY_CLUB_SETTINGS_DATA);
     }
@@ -169,7 +168,7 @@ export function useClubSettings() {
       logger.error('LoadSettingsFailed', error);
       return err(serviceError('UNKNOWN', 'Failed to load club settings.', error));
     }
-  }, [clubId, knownClubs]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<ClubSettingsData>({
     load: loadData,
@@ -182,72 +181,64 @@ export function useClubSettings() {
 
   const settingsData = data ?? EMPTY_CLUB_SETTINGS_DATA;
   const { club, squads, members, inviteCodes } = settingsData;
+  const requestedSection = selectedSection ?? routeSection ?? 'details';
+  const activeSection =
+    !canManageClub && requestedSection !== 'details' && requestedSection !== 'branding'
+      ? 'details'
+      : requestedSection;
 
   useEffect(() => {
-    setEditName(club?.name || '');
-    setEditTagline(club?.tagline || '');
-    setEditCity(club?.city || '');
-    setBrandingDraft(settingsData.branding);
+    startTransition(() => {
+      setEditName(club?.name || '');
+    });
+    startTransition(() => {
+      setEditTagline(club?.tagline || '');
+    });
+    startTransition(() => {
+      setEditCity(club?.city || '');
+    });
+    startTransition(() => {
+      setBrandingDraft(settingsData.branding);
+    });
   }, [club?.city, club?.id, club?.name, club?.tagline, settingsData.branding]);
 
-  useEffect(() => {
-    if (SETTINGS_SECTIONS.some((section) => section.key === paramSection)) {
-      setActiveSection(paramSection as SettingsSection);
+  const handleCopyCode = async (code: string) => {
+    await Clipboard.setStringAsync(code);
+    showToast('Code copied!', 'success');
+    logger.action('CopyInviteCode', { code });
+  };
+
+  const handleShareCode = async (code: string, role: string) => {
+    try {
+      const link = buildClubInviteLink(code, role as ClubRole);
+      await Share.share({
+        message: `Join ${club?.name} on Clubroom.\n${link}\n\nInvite code: ${code}`,
+      });
+      logger.action('ShareInviteCode', { code, role });
+    } catch (error) {
+      logger.error('ShareFailed', error);
     }
-  }, [paramSection]);
+  };
 
-  useEffect(() => {
-    if (!canManageClub && activeSection !== 'details' && activeSection !== 'branding') {
-      setActiveSection('details');
+  const handleGenerateCode = async (role: ClubRole) => {
+    if (!canManageClub) {
+      showToast('Only club leaders can generate invite codes', 'error');
+      return;
     }
-  }, [activeSection, canManageClub]);
+    if (!clubId || !currentUser?.id) return;
 
-  const handleCopyCode = useCallback(
-    async (code: string) => {
-      await Clipboard.setStringAsync(code);
-      showToast('Code copied!', 'success');
-      logger.action('CopyInviteCode', { code });
-    },
-    [showToast],
-  );
+    const result = await clubAuthorityService.createInviteCode(clubId, role);
+    if (!result.success) {
+      showToast(result.error.message, 'error');
+      return;
+    }
 
-  const handleShareCode = useCallback(
-    async (code: string, role: string) => {
-      try {
-        const link = buildClubInviteLink(code, role as ClubRole);
-        await Share.share({
-          message: `Join ${club?.name} on Clubroom.\n${link}\n\nInvite code: ${code}`,
-        });
-        logger.action('ShareInviteCode', { code, role });
-      } catch (error) {
-        logger.error('ShareFailed', error);
-      }
-    },
-    [club?.name],
-  );
+    onRefresh();
+    showToast(`New ${ORGANIZATION_ROLE_LABELS[role]} invite code created`, 'success');
+    logger.action('GenerateInviteCode', { role, code: result.data.code });
+  };
 
-  const handleGenerateCode = useCallback(
-    async (role: ClubRole) => {
-      if (!canManageClub) {
-        showToast('Only club leaders can generate invite codes', 'error');
-        return;
-      }
-      if (!clubId || !currentUser?.id) return;
-
-      const result = await clubAuthorityService.createInviteCode(clubId, role);
-      if (!result.success) {
-        showToast(result.error.message, 'error');
-        return;
-      }
-
-      onRefresh();
-      showToast(`New ${ORGANIZATION_ROLE_LABELS[role]} invite code created`, 'success');
-      logger.action('GenerateInviteCode', { role, code: result.data.code });
-    },
-    [canManageClub, clubId, currentUser?.id, onRefresh, showToast],
-  );
-
-  const handleSaveDetails = useCallback(async () => {
+  const handleSaveDetails = async () => {
     if (!club) return;
     if (!canManageClub) {
       showToast('Only club leaders can edit club details', 'error');
@@ -265,40 +256,41 @@ export function useClubSettings() {
     onRefresh();
     showToast('Club details saved', 'success');
     logger.action('SaveClubDetails', { name: editName, city: editCity });
-  }, [canManageClub, club, editCity, editName, editTagline, onRefresh, showToast]);
+  };
 
-  const handleUpdateCommercialMode = useCallback(
-    async (nextMode: OrganizationCommercialMode) => {
-      if (!club) return;
-      if (!canManageClub) {
-        showToast('Only club leaders can manage commercial settings', 'error');
-        return;
-      }
-      if (!canEditCommercialMode) {
-        showToast('Only the club owner can change billing responsibility', 'error');
-        return;
-      }
+  const handleUpdateCommercialMode = async (nextMode: OrganizationCommercialMode) => {
+    if (!club) return;
+    if (!canManageClub) {
+      showToast('Only club leaders can manage commercial settings', 'error');
+      return;
+    }
+    if (!canEditCommercialMode) {
+      showToast('Only the club owner can change billing responsibility', 'error');
+      return;
+    }
 
-      const currentMode = club.commercialMode ?? 'COACH_OWNED';
-      if (nextMode === currentMode || isSavingCommercialMode) {
-        return;
-      }
+    const currentMode = club.commercialMode ?? 'COACH_OWNED';
+    if (nextMode === currentMode || isSavingCommercialMode) {
+      return;
+    }
 
-      const confirmed = await uiFeedback.confirm({
-        title: 'Change billing responsibility?',
-        message:
-          nextMode === 'ORG_OWNED'
-            ? 'New club bookings will be shown as booked with, billed by, and supported by the organization. Existing bookings keep their current ownership.'
-            : 'New club bookings will be shown as booked with, billed by, and supported by the assigned coach. Existing bookings keep their current ownership.',
-        confirmText: 'Update mode',
-        cancelText: 'Keep current mode',
-      });
-      if (!confirmed) {
-        return;
-      }
+    const confirmed = await uiFeedback.confirm({
+      title: 'Change billing responsibility?',
+      message:
+        nextMode === 'ORG_OWNED'
+          ? 'New club bookings will be shown as booked with, billed by, and supported by the organization. Existing bookings keep their current ownership.'
+          : 'New club bookings will be shown as booked with, billed by, and supported by the assigned coach. Existing bookings keep their current ownership.',
+      confirmText: 'Update mode',
+      cancelText: 'Keep current mode',
+    });
+    if (!confirmed) {
+      return;
+    }
 
-      setIsSavingCommercialMode(true);
-      try {
+    setIsSavingCommercialMode(true);
+
+    return await runAsyncFinally(
+      async () => {
         const result = await socialFeedService.updateClubCommercialMode(club.id, nextMode);
         if (!result.success) {
           showToast(result.error.message, 'error');
@@ -308,18 +300,18 @@ export function useClubSettings() {
         onRefresh();
         showToast('Commercial responsibility updated for new club bookings', 'success');
         logger.action('UpdateClubCommercialMode', { clubId: club.id, commercialMode: nextMode });
-      } finally {
+      },
+      () => {
         setIsSavingCommercialMode(false);
-      }
-    },
-    [canEditCommercialMode, canManageClub, club, isSavingCommercialMode, onRefresh, showToast],
-  );
+      },
+    );
+  };
 
-  const handleBrandingChange = useCallback((updates: Partial<ClubBranding>) => {
+  const handleBrandingChange = (updates: Partial<ClubBranding>) => {
     setBrandingDraft((previous) => (previous ? { ...previous, ...updates } : previous));
-  }, []);
+  };
 
-  const handleSaveBranding = useCallback(async () => {
+  const handleSaveBranding = async () => {
     if (!clubId || !brandingDraft || isSavingBranding) return;
     if (!canManageClub) {
       showToast('Only club admins can edit branding', 'error');
@@ -327,33 +319,38 @@ export function useClubSettings() {
     }
 
     setIsSavingBranding(true);
-    try {
-      const result = await clubService.updateBranding(clubId, brandingDraft);
-      if (!result.success) {
-        logger.error('SaveBrandingFailed', result.error);
-        showToast('Failed to save branding', 'error');
-        return;
-      }
-      setBrandingDraft(result.data);
-      showToast('Branding saved', 'success');
-      logger.action('SaveBranding', { clubId });
-    } catch (error) {
-      logger.error('SaveBrandingFailed', error);
-      showToast('Failed to save branding', 'error');
-    } finally {
-      setIsSavingBranding(false);
-    }
-  }, [brandingDraft, canManageClub, clubId, isSavingBranding, showToast]);
 
-  const handleCreateSquad = useCallback(() => {
+    return await runAsyncTryCatchFinally(
+      async () => {
+        const result = await clubService.updateBranding(clubId, brandingDraft);
+        if (!result.success) {
+          logger.error('SaveBrandingFailed', result.error);
+          showToast('Failed to save branding', 'error');
+          return;
+        }
+        setBrandingDraft(result.data);
+        showToast('Branding saved', 'success');
+        logger.action('SaveBranding', { clubId });
+      },
+      async (error) => {
+        logger.error('SaveBrandingFailed', error);
+        showToast('Failed to save branding', 'error');
+      },
+      () => {
+        setIsSavingBranding(false);
+      },
+    );
+  };
+
+  const handleCreateSquad = () => {
     if (!canManageClub) {
       showToast('Only club admins can create squads', 'error');
       return;
     }
     if (clubId) router.push(Routes.clubSquadCreate(clubId));
-  }, [canManageClub, clubId, showToast]);
+  };
 
-  const handleDeleteClub = useCallback(() => {
+  const handleDeleteClub = () => {
     if (!canManageClub) {
       showToast('Only club admins can delete a club', 'error');
       return;
@@ -395,40 +392,40 @@ export function useClubSettings() {
         },
       ],
     );
-  }, [canManageClub, club?.name, clubId, showToast]);
+  };
 
-  const handleDeleteCode = useCallback(
-    (code: string) => {
-      if (!canManageClub) {
-        showToast('Only club admins can delete invite codes', 'error');
-        return;
-      }
+  const handleDeleteCode = (code: string) => {
+    if (!canManageClub) {
+      showToast('Only club admins can delete invite codes', 'error');
+      return;
+    }
 
-      const target = inviteCodes.find((invite) => invite.code === code);
-      if (!target) return;
+    const target = inviteCodes.find((invite) => invite.code === code);
+    if (!target) return;
 
-      uiFeedback.alert('Delete invite code?', `${code} will stop working immediately.`, [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            if (!clubId) return;
-            const result = await clubAuthorityService.deleteInviteCode(clubId, code);
-            if (!result.success) {
-              showToast(result.error.message, 'error');
-              return;
-            }
+    uiFeedback.alert('Delete invite code?', `${code} will stop working immediately.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          if (!clubId) return;
+          const result = await clubAuthorityService.deleteInviteCode(clubId, code);
+          if (!result.success) {
+            showToast(result.error.message, 'error');
+            return;
+          }
 
-            onRefresh();
-            showToast('Invite code deleted', 'success');
-            logger.action('DeleteInviteCode', { code });
-          },
+          onRefresh();
+          showToast('Invite code deleted', 'success');
+          logger.action('DeleteInviteCode', { code });
         },
-      ]);
-    },
-    [canManageClub, clubId, inviteCodes, onRefresh, showToast],
-  );
+      },
+    ]);
+  };
+  const setActiveSection = (section: SettingsSection) => {
+    setSelectedSection(section);
+  };
 
   return {
     club,

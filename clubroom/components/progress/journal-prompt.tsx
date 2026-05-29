@@ -1,4 +1,4 @@
-import { memo, useMemo, useState, type ComponentProps } from 'react';
+import { useState, type ComponentProps } from 'react';
 import { StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -51,7 +51,7 @@ function formatDate(dateString: string): string {
 
 const RATING_OPTIONS = [1, 2, 3, 4, 5] as const;
 
-export const JournalPrompt = memo(function JournalPrompt({
+export const JournalPrompt = function JournalPrompt({
   showPrompt,
   pendingPrompt,
   latestEntry,
@@ -63,7 +63,7 @@ export const JournalPrompt = memo(function JournalPrompt({
   const [mood, setMood] = useState(3);
   const [energyLevel, setEnergyLevel] = useState(3);
   const [confidence, setConfidence] = useState(3);
-  const dueLabel = useMemo(() => {
+  const dueLabel = (() => {
     if (!pendingPrompt?.dueAt) {
       return null;
     }
@@ -72,7 +72,7 @@ export const JournalPrompt = memo(function JournalPrompt({
       return null;
     }
     return `Due ${formatDate(pendingPrompt.dueAt)}`;
-  }, [pendingPrompt?.dueAt]);
+  })();
 
   if (!showPrompt && !latestEntry) {
     return null;
@@ -239,7 +239,7 @@ export const JournalPrompt = memo(function JournalPrompt({
       </Column>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

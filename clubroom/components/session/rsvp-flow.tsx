@@ -5,7 +5,7 @@
  * to confirm their child's attendance at a group session.
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
@@ -14,12 +14,14 @@ import { useTheme } from '@/hooks/useTheme';
 import { createCardStyles } from '@/constants/styles';
 import { ThemedText } from '@/components/themed-text';
 
+import { ResponseButton } from './rsvp-flow-sections';
 import {
   formatSessionDate,
   formatSessionTime,
   getTimeUntilDeadline,
-  ResponseButton,
-} from './rsvp-flow-sections';
+} from './rsvp-flow-helpers';
+
+import { runAsyncFinally } from '@/utils/async-control';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -58,22 +60,23 @@ export function RSVPFlow({
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const deadlineLabel = useMemo(() => {
+  const deadlineLabel = (() => {
     if (!responseDeadline) return null;
     return getTimeUntilDeadline(responseDeadline);
-  }, [responseDeadline]);
+  })();
 
   const handlePress = async (status: 'going' | 'not_going' | 'maybe') => {
     if (isSubmitting) return;
     setIsSubmitting(true);
-    try {
+
+    await runAsyncFinally(async () => {
       const success = await onRespond(status);
       if (success) {
         setSelectedStatus(status);
       }
-    } finally {
+    }, () => {
       setIsSubmitting(false);
-    }
+    });
   };
 
   return (

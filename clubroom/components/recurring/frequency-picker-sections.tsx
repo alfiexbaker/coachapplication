@@ -3,10 +3,9 @@
  *
  * FrequencyCardOption — single card-style frequency option row.
  * FrequencyPillOption — single pill-style frequency option.
- * FREQUENCY_OPTIONS — available frequency configuration.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,44 +13,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
-import type { RecurrenceFrequency } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export interface FrequencyOption {
-  value: RecurrenceFrequency;
-  label: string;
-  description: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  sessionsPerMonth: number;
-}
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-export const FREQUENCY_OPTIONS: FrequencyOption[] = [
-  {
-    value: 'WEEKLY',
-    label: 'Weekly',
-    description: 'Every week on the same day',
-    icon: 'calendar',
-    sessionsPerMonth: 4,
-  },
-  {
-    value: 'BIWEEKLY',
-    label: 'Biweekly',
-    description: 'Every 2 weeks on the same day',
-    icon: 'calendar-outline',
-    sessionsPerMonth: 2,
-  },
-  {
-    value: 'MONTHLY',
-    label: 'Monthly',
-    description: 'Once a month on the same day',
-    icon: 'calendar-clear',
-    sessionsPerMonth: 1,
-  },
-];
+import type { FrequencyOption } from './frequency-picker-helpers';
 
 // ─── FrequencyCardOption ──────────────────────────────────────────────────────
 
@@ -64,7 +27,7 @@ interface FrequencyCardOptionProps {
   palette: ThemeColors;
 }
 
-export const FrequencyCardOption = memo(function FrequencyCardOption({
+export const FrequencyCardOption = function FrequencyCardOption({
   option,
   isSelected,
   monthlyEstimate,
@@ -139,7 +102,7 @@ export const FrequencyCardOption = memo(function FrequencyCardOption({
       </View>
     </Clickable>
   );
-});
+};
 
 // ─── FrequencyPillOption ──────────────────────────────────────────────────────
 
@@ -151,7 +114,7 @@ interface FrequencyPillOptionProps {
   palette: ThemeColors;
 }
 
-export const FrequencyPillOption = memo(function FrequencyPillOption({
+export const FrequencyPillOption = function FrequencyPillOption({
   option,
   isSelected,
   onPress,
@@ -178,7 +141,7 @@ export const FrequencyPillOption = memo(function FrequencyPillOption({
       </ThemedText>
     </Clickable>
   );
-});
+};
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 

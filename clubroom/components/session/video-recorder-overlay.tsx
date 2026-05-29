@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Modal, Platform, StyleSheet, View } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,8 @@ import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+
+import { runAsyncFinally, runAsyncTryCatchFinally } from '@/utils/async-control';
 
 interface VideoRecorderOverlayProps {
   visible: boolean;
@@ -22,7 +24,18 @@ interface VideoRecorderOverlayProps {
   onSecondsRemainingChange: (seconds: number) => void;
 }
 
-export const VideoRecorderOverlay = memo(function VideoRecorderOverlay({
+interface CountdownTimerRef {
+  current: ReturnType<typeof setInterval> | null;
+}
+
+function clearCountdownTimer(timerRef: CountdownTimerRef) {
+  if (timerRef.current) {
+    clearInterval(timerRef.current);
+    timerRef.current = null;
+  }
+}
+
+export const VideoRecorderOverlay = function VideoRecorderOverlay({
   visible,
   mode,
   isRecording,
@@ -53,14 +66,11 @@ export const VideoRecorderOverlay = memo(function VideoRecorderOverlay({
     }
   }, [permission?.granted, requestPermission, visible]);
 
-  const clearCountdown = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  }, []);
+  const clearCountdown = () => {
+    clearCountdownTimer(timerRef);
+  };
 
-  const startCountdown = useCallback(() => {
+  const startCountdown = () => {
     onSecondsRemainingChange(10);
     secondsRef.current = 10;
     clearCountdown();
@@ -71,15 +81,15 @@ export const VideoRecorderOverlay = memo(function VideoRecorderOverlay({
         clearCountdown();
       }
     }, 1000);
-  }, [clearCountdown, onSecondsRemainingChange]);
+  };
 
   useEffect(() => {
     return () => {
-      clearCountdown();
+      clearCountdownTimer(timerRef);
     };
-  }, [clearCountdown]);
+  }, []);
 
-  const handleClose = useCallback(async () => {
+  const handleClose = async () => {
     if (isRecording) {
       try {
         await cameraRef.current?.stopRecording();
@@ -91,42 +101,54 @@ export const VideoRecorderOverlay = memo(function VideoRecorderOverlay({
     onRecordingStateChange(false);
     onSecondsRemainingChange(10);
     onClose();
-  }, [clearCountdown, isRecording, onClose, onRecordingStateChange, onSecondsRemainingChange]);
+  };
 
-  const handleTakePhoto = useCallback(async () => {
-    if (!cameraRef.current || isBusy) {
+  const handleTakePhoto = async () => {
+    const camera = cameraRef.current;
+    if (!camera || isBusy) {
       return;
     }
     setIsBusy(true);
-    try {
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
-        shutterSound: false,
-      });
-      await onPhotoCaptured({
-        uri: photo.uri,
-        width: photo.width,
-        height: photo.height,
-      });
-    } catch {
-      onClose();
-    } finally {
-      setIsBusy(false);
-    }
-  }, [isBusy, onClose, onPhotoCaptured]);
 
-  const handleStartStopVideo = useCallback(async () => {
-    if (!cameraRef.current || isBusy) {
+    await runAsyncTryCatchFinally(
+      async () => {
+        const photo = await camera.takePictureAsync({
+          quality: 0.8,
+          shutterSound: false,
+        });
+        await onPhotoCaptured({
+          uri: photo.uri,
+          width: photo.width,
+          height: photo.height,
+        });
+      },
+      async (error) => {
+        onClose();
+      },
+      () => {
+        setIsBusy(false);
+      },
+    );
+  };
+
+  const handleStartStopVideo = async () => {
+    const camera = cameraRef.current;
+    if (!camera || isBusy) {
       return;
     }
 
     if (isRecording) {
       setIsBusy(true);
-      try {
-        await cameraRef.current.stopRecording();
-      } finally {
-        setIsBusy(false);
-      }
+
+      await runAsyncFinally(
+        async () => {
+          await camera.stopRecording();
+        },
+        () => {
+          setIsBusy(false);
+        },
+      );
+
       return;
     }
 
@@ -134,35 +156,30 @@ export const VideoRecorderOverlay = memo(function VideoRecorderOverlay({
     onRecordingStateChange(true);
     startCountdown();
 
-    try {
-      const video = await cameraRef.current.recordAsync({ maxDuration: 10 });
-      if (!video?.uri) {
+    return await runAsyncTryCatchFinally(
+      async () => {
+        const video = await camera.recordAsync({ maxDuration: 10 });
+        if (!video?.uri) {
+          onClose();
+          return;
+        }
+        const duration = Math.max(0, 10 - secondsRef.current);
+        await onVideoCaptured({
+          uri: video.uri,
+          duration,
+        });
+      },
+      async (error) => {
         onClose();
-        return;
-      }
-      const duration = Math.max(0, 10 - secondsRef.current);
-      await onVideoCaptured({
-        uri: video.uri,
-        duration,
-      });
-    } catch {
-      onClose();
-    } finally {
-      clearCountdown();
-      onRecordingStateChange(false);
-      onSecondsRemainingChange(10);
-      setIsBusy(false);
-    }
-  }, [
-    clearCountdown,
-    isBusy,
-    isRecording,
-    onClose,
-    onRecordingStateChange,
-    onSecondsRemainingChange,
-    onVideoCaptured,
-    startCountdown,
-  ]);
+      },
+      () => {
+        clearCountdown();
+        onRecordingStateChange(false);
+        onSecondsRemainingChange(10);
+        setIsBusy(false);
+      },
+    );
+  };
 
   if (Platform.OS === 'web') {
     return null;
@@ -225,7 +242,8 @@ export const VideoRecorderOverlay = memo(function VideoRecorderOverlay({
                 style={[
                   styles.captureButton,
                   {
-                    backgroundColor: mode === 'video' && isRecording ? colors.error : colors.onPrimary,
+                    backgroundColor:
+                      mode === 'video' && isRecording ? colors.error : colors.onPrimary,
                   },
                 ]}
                 onPress={() => {
@@ -253,7 +271,7 @@ export const VideoRecorderOverlay = memo(function VideoRecorderOverlay({
       </View>
     </Modal>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: {

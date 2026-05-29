@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +19,7 @@ interface SettingsMembersSectionProps {
   colors: ThemeColors;
 }
 
-export const SettingsMembersSection = memo(function SettingsMembersSection({
+export const SettingsMembersSection = function SettingsMembersSection({
   members,
   clubId,
   colors,
@@ -85,7 +85,7 @@ export const SettingsMembersSection = memo(function SettingsMembersSection({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.md, overflow: 'hidden' },

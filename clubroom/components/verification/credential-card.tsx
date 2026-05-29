@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -17,7 +17,7 @@ interface CredentialCardProps {
   colors: ThemeColors;
 }
 
-export const CredentialCard = memo(function CredentialCard({
+export const CredentialCard = function CredentialCard({
   credential,
   index,
   colors,
@@ -76,7 +76,7 @@ export const CredentialCard = memo(function CredentialCard({
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

@@ -5,7 +5,7 @@
  * go-live toggle, and profile completion checks.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 
 import { router } from 'expo-router';
 
@@ -21,6 +21,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { Routes } from '@/navigation/routes';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncTryCatchFinally, runSyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('CoachProfile');
 
@@ -95,7 +97,11 @@ export interface UseCoachProfileResult {
   };
 }
 
-function normalizePost(post: ClubFeedPost & { clubName?: string; clubBadge?: string }): NormalizedPost {
+type CurrentUser = ReturnType<typeof useAuth>['currentUser'];
+
+function normalizePost(
+  post: ClubFeedPost & { clubName?: string; clubBadge?: string },
+): NormalizedPost {
   return {
     id: post.id,
     content: post.body,
@@ -168,6 +174,102 @@ function buildFallbackCoach(currentUser: ReturnType<typeof useAuth>['currentUser
   };
 }
 
+async function loadCoachOfferingsIntoState(
+  activeCoach: CoachProfile,
+  setSessionOfferings: (offerings: SessionOffering[]) => void,
+) {
+  if (apiClient.isMockMode) {
+    const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
+    setSessionOfferings(
+      offerings.filter(
+        (offering) => offering.coachId === activeCoach.id && offering.status === 'active',
+      ),
+    );
+    return;
+  }
+
+  const scheduledAt = activeCoach.nextAvailability || new Date().toISOString();
+  const result = await listSelfCoachOfferingsFromApi(activeCoach.id, scheduledAt);
+  if (!result.success) {
+    throw new Error(result.error.message);
+  }
+
+  setSessionOfferings(result.data);
+}
+
+async function loadCoachProfileDataIntoState(
+  currentUser: CurrentUser,
+  targets: {
+    setCoach: (coach: CoachProfile) => void;
+    setIsFollowing: (value: boolean) => void;
+    setFollowerCount: (value: number) => void;
+    setProfileError: (value: string | null) => void;
+    setProfileLoading: (value: boolean) => void;
+    setSessionOfferings: (offerings: SessionOffering[]) => void;
+  },
+) {
+  targets.setProfileError(null);
+  targets.setProfileLoading(true);
+
+  await runAsyncTryCatchFinally(
+    async () => {
+      let activeCoach = buildFallbackCoach(currentUser);
+      const coachesResult = await discoverService.getAllCoaches();
+      if (coachesResult.success && coachesResult.data.length > 0) {
+        activeCoach =
+          coachesResult.data.find((candidate) => candidate.id === currentUser?.id) ?? activeCoach;
+      }
+      targets.setCoach(activeCoach);
+
+      const results = await Promise.allSettled([
+        (async () => {
+          if (!currentUser) return;
+          const [following, count] = await Promise.all([
+            followService.isFollowing(currentUser.id, activeCoach.id),
+            followService.getFollowerCount(activeCoach.id),
+          ]);
+          targets.setIsFollowing(following);
+          targets.setFollowerCount(count);
+        })(),
+        loadCoachOfferingsIntoState(activeCoach, targets.setSessionOfferings),
+      ]);
+      const failures = results.filter((r) => r.status === 'rejected');
+      if (failures.length > 0) {
+        targets.setProfileError('Some profile data failed to load.');
+      }
+    },
+    async (error) => {
+      targets.setProfileError('Failed to load profile data. Please try again.');
+      logger.error('Failed to load profile data:', error);
+    },
+    () => {
+      targets.setProfileLoading(false);
+    },
+  );
+}
+
+function loadCoachFeedPostsIntoState(
+  coachId: string,
+  targets: {
+    setFeedLoading: (value: boolean) => void;
+    setFeedPosts: (posts: NormalizedPost[]) => void;
+  },
+) {
+  targets.setFeedLoading(true);
+  runSyncTryCatchFinally(
+    () => {
+      const posts = socialFeedService.getFollowingFeed([coachId], 'all') as AggregatedFeedPost[];
+      targets.setFeedPosts(posts.map(normalizePost));
+    },
+    (error) => {
+      logger.error('Failed to load feed posts', error);
+    },
+    () => {
+      targets.setFeedLoading(false);
+    },
+  );
+}
+
 export function useCoachProfile(): UseCoachProfileResult {
   const { currentUser, logout } = useAuth();
   const [coach, setCoach] = useState<CoachProfile | null>(null);
@@ -191,191 +293,157 @@ export function useCoachProfile(): UseCoachProfileResult {
   const [showDetailModal, setShowDetailModal] = useState(false);
 
   // Go-Live state
-  const [isLive, setIsLive] = useState(currentUser?.isLive ?? false);
+  const [localLiveState, setLocalLiveState] = useState<{
+    userId: string | undefined;
+    value: boolean;
+  } | null>(null);
   const [liveLoading, setLiveLoading] = useState(false);
 
   const resolvedCoach = coach ?? buildFallbackCoach(currentUser);
   const isOwnProfile = currentUser?.role === 'COACH' && currentUser?.id === resolvedCoach.id;
   const profileCompletion = getProfileCompletion(resolvedCoach);
   const canGoLive = profileCompletion.percentage >= 80;
-
-  const loadCoachOfferings = useCallback(
-    async (activeCoach: CoachProfile) => {
-      if (apiClient.isMockMode) {
-        const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-        setSessionOfferings(
-          offerings.filter((offering) => offering.coachId === activeCoach.id && offering.status === 'active'),
-        );
-        return;
-      }
-
-      const scheduledAt = activeCoach.nextAvailability || new Date().toISOString();
-      const result = await listSelfCoachOfferingsFromApi(activeCoach.id, scheduledAt);
-      if (!result.success) {
-        throw new Error(result.error.message);
-      }
-
-      setSessionOfferings(result.data);
-    },
-    [],
-  );
+  const hasLocalLiveState = Boolean(localLiveState && localLiveState.userId === currentUser?.id);
+  const isLive = hasLocalLiveState ? localLiveState!.value : (currentUser?.isLive ?? false);
 
   // ── Load all profile data ──
-  const loadProfileData = useCallback(async () => {
-    setProfileError(null);
-    setProfileLoading(true);
-    try {
-      let activeCoach = buildFallbackCoach(currentUser);
-      const coachesResult = await discoverService.getAllCoaches();
-      if (coachesResult.success && coachesResult.data.length > 0) {
-        activeCoach =
-          coachesResult.data.find((candidate) => candidate.id === currentUser?.id) ??
-          activeCoach;
-      }
-      setCoach(activeCoach);
-
-      const results = await Promise.allSettled([
-        (async () => {
-          if (!currentUser) return;
-          const [following, count] = await Promise.all([
-            followService.isFollowing(currentUser.id, activeCoach.id),
-            followService.getFollowerCount(activeCoach.id),
-          ]);
-          setIsFollowing(following);
-          setFollowerCount(count);
-        })(),
-        loadCoachOfferings(activeCoach),
-      ]);
-      const failures = results.filter((r) => r.status === 'rejected');
-      if (failures.length > 0) {
-        setProfileError('Some profile data failed to load.');
-      }
-    } catch (error) {
-      setProfileError('Failed to load profile data. Please try again.');
-      logger.error('Failed to load profile data:', error);
-    } finally {
-      setProfileLoading(false);
-    }
-  }, [currentUser, loadCoachOfferings]);
+  const loadProfileData = async () =>
+    loadCoachProfileDataIntoState(currentUser, {
+      setCoach,
+      setIsFollowing,
+      setFollowerCount,
+      setProfileError,
+      setProfileLoading,
+      setSessionOfferings,
+    });
 
   useEffect(() => {
-    setIsLive(currentUser?.isLive ?? false);
-  }, [currentUser?.isLive]);
-
-  useEffect(() => {
-    loadProfileData();
-  }, [loadProfileData]);
+    void loadCoachProfileDataIntoState(currentUser, {
+      setCoach,
+      setIsFollowing,
+      setFollowerCount,
+      setProfileError,
+      setProfileLoading,
+      setSessionOfferings,
+    });
+  }, [currentUser]);
 
   // ── Load profile updates ──
-  const loadFeedPosts = useCallback(() => {
-    setFeedLoading(true);
-    try {
-      const posts = socialFeedService.getFollowingFeed([resolvedCoach.id], 'all') as AggregatedFeedPost[];
-      setFeedPosts(posts.map(normalizePost));
-    } catch (error) {
-      logger.error('Failed to load feed posts', error);
-    } finally {
-      setFeedLoading(false);
-    }
-  }, [resolvedCoach.id]);
+  const loadFeedPosts = () =>
+    loadCoachFeedPostsIntoState(resolvedCoach.id, {
+      setFeedLoading,
+      setFeedPosts,
+    });
 
   useEffect(() => {
-    loadFeedPosts();
-  }, [loadFeedPosts]);
+    loadCoachFeedPostsIntoState(resolvedCoach.id, {
+      setFeedLoading,
+      setFeedPosts,
+    });
+  }, [resolvedCoach.id]);
 
   useEffect(() => {
     const unsub = onTyped(ServiceEvents.COACH_POST_CREATED, ({ coachId }) => {
       if (coachId === resolvedCoach.id) {
-        loadFeedPosts();
+        loadCoachFeedPostsIntoState(resolvedCoach.id, {
+          setFeedLoading,
+          setFeedPosts,
+        });
       }
     });
     return unsub;
-  }, [loadFeedPosts, resolvedCoach.id]);
+  }, [resolvedCoach.id]);
 
   // ── Connection toggle ──
-  const handleFollowToggle = useCallback(async () => {
+  const handleFollowToggle = async () => {
     if (!currentUser || followLoading) return;
     setFollowLoading(true);
-    try {
-      if (isFollowing) {
-        await followService.unfollow(currentUser.id, resolvedCoach.id);
-        setIsFollowing(false);
-        setFollowerCount((prev) => Math.max(0, prev - 1));
-      } else {
-        await followService.follow({
-          followerId: currentUser.id,
-          followerName: currentUser.name || currentUser.fullName || 'User',
-          followerType: currentUser.role === 'COACH' ? 'COACH' : 'USER',
-          followingId: resolvedCoach.id,
-          followingName: resolvedCoach.fullName,
-          followingType: 'COACH',
-        });
-        setIsFollowing(true);
-        setFollowerCount((prev) => prev + 1);
-      }
-    } catch (error) {
-      logger.error('Failed to toggle follow:', error);
-    } finally {
-      setFollowLoading(false);
-    }
-  }, [currentUser, isFollowing, followLoading, resolvedCoach]);
+
+    await runAsyncTryCatchFinally(
+      async () => {
+        if (isFollowing) {
+          await followService.unfollow(currentUser.id, resolvedCoach.id);
+          setIsFollowing(false);
+          setFollowerCount((prev) => Math.max(0, prev - 1));
+        } else {
+          await followService.follow({
+            followerId: currentUser.id,
+            followerName: currentUser.name || currentUser.fullName || 'User',
+            followerType: currentUser.role === 'COACH' ? 'COACH' : 'USER',
+            followingId: resolvedCoach.id,
+            followingName: resolvedCoach.fullName,
+            followingType: 'COACH',
+          });
+          setIsFollowing(true);
+          setFollowerCount((prev) => prev + 1);
+        }
+      },
+      async (error) => {
+        logger.error('Failed to toggle follow:', error);
+      },
+      () => {
+        setFollowLoading(false);
+      },
+    );
+  };
 
   // ── Go-Live toggle ──
-  const handleGoLiveToggle = useCallback(
-    async (value: boolean) => {
-      if (!canGoLive && value) {
-        uiFeedback.showToast(
-          'You need to complete at least 80% of your profile before going live.',
-        );
-        return;
-      }
-      setLiveLoading(true);
-      try {
+  const handleGoLiveToggle = async (value: boolean) => {
+    if (!currentUser?.id) return;
+    if (!canGoLive && value) {
+      uiFeedback.showToast('You need to complete at least 80% of your profile before going live.');
+      return;
+    }
+    setLiveLoading(true);
+
+    await runAsyncTryCatchFinally(
+      async () => {
         const result = await authService.updateProfile({ isLive: value });
         if (!result.success) {
           throw new Error(result.error.message);
         }
-        setIsLive(result.data.user.isLive ?? value);
+        setLocalLiveState({
+          userId: currentUser.id,
+          value: result.data.user.isLive ?? value,
+        });
         if (value) {
           uiFeedback.showToast('Athletes can now discover and book sessions with you.', 'success');
         } else {
           uiFeedback.showToast('Your profile is now offline.', 'success');
         }
-      } catch (error) {
+      },
+      async (error) => {
         logger.error('Failed to update live status:', error);
         uiFeedback.showToast('Failed to update your status. Please try again.', 'error');
-      } finally {
+      },
+      () => {
         setLiveLoading(false);
-      }
-    },
-    [canGoLive],
-  );
+      },
+    );
+  };
 
   // ── Offering press ──
-  const handleOfferingPress = useCallback((offering: SessionOffering) => {
+  const handleOfferingPress = (offering: SessionOffering) => {
     setSelectedOffering(offering);
     setShowDetailModal(true);
-  }, []);
+  };
 
   // ── Refresh offerings ──
-  const refreshOfferings = useCallback(async () => {
-    await loadCoachOfferings(resolvedCoach);
-  }, [loadCoachOfferings, resolvedCoach]);
+  const refreshOfferings = async () => {
+    await loadCoachOfferingsIntoState(resolvedCoach, setSessionOfferings);
+  };
 
-  const handleSignOut = useCallback(async () => {
+  const handleSignOut = async () => {
     await logout();
     router.replace(Routes.ROOT);
-  }, [logout]);
+  };
 
   // ── Post card data ──
-  const renderPostCard = useCallback(
-    (post: NormalizedPost) => ({
-      post,
-      coachName: resolvedCoach.fullName,
-      coachAvatar: resolvedCoach.profilePhotoUrl,
-    }),
-    [resolvedCoach.fullName, resolvedCoach.profilePhotoUrl],
-  );
+  const renderPostCard = (post: NormalizedPost) => ({
+    post,
+    coachName: resolvedCoach.fullName,
+    coachAvatar: resolvedCoach.profilePhotoUrl,
+  });
 
   return {
     coach: resolvedCoach,

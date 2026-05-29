@@ -19,9 +19,7 @@ import type {
   FourCornerRatings,
 } from '@/types/progress-types';
 import { err, ok, type Result, type ServiceError } from '@/types/result';
-
 const logger = createLogger('ProgressSkillsService');
-
 
 // ============================================================================
 // TYPES
@@ -34,9 +32,12 @@ export interface SkillLevel {
   lastUpdated: string;
   updatedBy: string; // coachId
   trend: 'improving' | 'consistent' | 'steady' | 'declining';
-  history: { date: string; level: number; coachId: string }[];
+  history: {
+    date: string;
+    level: number;
+    coachId: string;
+  }[];
 }
-
 export interface AthleteSkillLevels {
   athleteId: string;
   skills: Record<string, SkillLevel>;
@@ -50,12 +51,10 @@ export interface AthleteSkillLevels {
 async function getAllSkillLevels(): Promise<Record<string, AthleteSkillLevels>> {
   return apiClient.get<Record<string, AthleteSkillLevels>>(STORAGE_KEYS.SKILL_LEVELS, {});
 }
-
 async function getAthleteSkillLevels(athleteId: string): Promise<AthleteSkillLevels | null> {
   const allLevels = await getAllSkillLevels();
   return allLevels[athleteId] ?? null;
 }
-
 async function updateSkillLevel(
   athleteId: string,
   skill: string,
@@ -63,18 +62,14 @@ async function updateSkillLevel(
   coachId: string,
 ): Promise<SkillLevel> {
   // Validate and clamp level to 1-10 range
-  const safeLevel = Number.isFinite(newLevel)
-    ? Math.max(1, Math.min(10, Math.round(newLevel)))
-    : 5; // default to midpoint if NaN/undefined
+  const safeLevel = Number.isFinite(newLevel) ? Math.max(1, Math.min(10, Math.round(newLevel))) : 5; // default to midpoint if NaN/undefined
   newLevel = safeLevel;
-
   const allLevels = await getAllSkillLevels();
   const athleteData = allLevels[athleteId] ?? {
     athleteId,
     skills: {},
     lastUpdated: new Date().toISOString(),
   };
-
   const existingSkill = athleteData.skills[skill];
   const previousLevel = existingSkill?.level;
   const history = existingSkill?.history ?? [];
@@ -97,7 +92,6 @@ async function updateSkillLevel(
     if (curr > prev) trend = 'improving';
     else if (curr < prev) trend = 'declining';
   }
-
   const updatedSkill: SkillLevel = {
     skill,
     level: newLevel,
@@ -107,13 +101,10 @@ async function updateSkillLevel(
     trend,
     history: trimmedHistory,
   };
-
   athleteData.skills[skill] = updatedSkill;
   athleteData.lastUpdated = new Date().toISOString();
   allLevels[athleteId] = athleteData;
-
   await apiClient.set(STORAGE_KEYS.SKILL_LEVELS, allLevels);
-
   logger.info('skill_level_updated', {
     athleteId,
     skill,
@@ -121,28 +112,24 @@ async function updateSkillLevel(
     newLevel,
     trend,
   });
-
   return updatedSkill;
 }
-
 async function updateMultipleSkillLevels(
   athleteId: string,
-  skillUpdates: { skill: string; level: number }[],
+  skillUpdates: {
+    skill: string;
+    level: number;
+  }[],
   coachId: string,
 ): Promise<SkillLevel[]> {
-  const results: SkillLevel[] = [];
-  for (const update of skillUpdates) {
-    const result = await updateSkillLevel(athleteId, update.skill, update.level, coachId);
-    results.push(result);
-  }
-  return results;
+  return Promise.all(
+    skillUpdates.map((update) => updateSkillLevel(athleteId, update.skill, update.level, coachId)),
+  );
 }
-
 export interface PositionRateUpdateResult {
   updatedSkills: SkillLevel[];
   fourCorners: FourCornerRatings;
 }
-
 async function updateFromPositionRate(
   athleteId: string,
   sessionId: string,
@@ -171,7 +158,6 @@ async function updateFromPositionRate(
         }),
       );
       const fourCorners = computeFourCorners(derivedParentRatings);
-
       logger.info('position_rate_sub_skill_update_saved', {
         athleteId,
         sessionId,
@@ -181,18 +167,23 @@ async function updateFromPositionRate(
         parentCount: derivedParentRatings.length,
         fourCorners,
       });
-
-      return ok({ updatedSkills, fourCorners });
+      return ok({
+        updatedSkills,
+        fourCorners,
+      });
     }
 
     // ─── Legacy parent-skill path ──────────────────────────────────────
-    const normalizedRatings = skillRatings
-      .filter((rating) => Boolean(rating?.skill))
-      .map((rating) => ({
-        ...rating,
-        rating: Math.max(1, Math.min(5, Math.round(rating.rating))) as 1 | 2 | 3 | 4 | 5,
-      }));
-
+    const normalizedRatings = skillRatings.flatMap((rating) =>
+      Boolean(rating?.skill)
+        ? [
+            {
+              ...rating,
+              rating: Math.max(1, Math.min(5, Math.round(rating.rating))) as 1 | 2 | 3 | 4 | 5,
+            },
+          ]
+        : [],
+    );
     if (normalizedRatings.length === 0) {
       logger.warn('position_rate_update_skipped_no_ratings', {
         athleteId,
@@ -202,20 +193,22 @@ async function updateFromPositionRate(
       });
       return ok({
         updatedSkills: [],
-        fourCorners: { technical: 0, physical: 0, psychological: 0, social: 0 },
+        fourCorners: {
+          technical: 0,
+          physical: 0,
+          psychological: 0,
+          social: 0,
+        },
       });
     }
-
     const uniqueBySkill = new Map<string, SessionSkillRating>();
     normalizedRatings.forEach((entry) => uniqueBySkill.set(entry.skill, entry));
-
     const updates = Array.from(uniqueBySkill.values()).map((entry) => ({
       skill: entry.skill,
       level: Math.max(1, Math.min(10, entry.rating * 2)),
     }));
     const updatedSkills = await updateMultipleSkillLevels(athleteId, updates, coachId);
     const fourCorners = computeFourCorners(Array.from(uniqueBySkill.values()));
-
     logger.info('position_rate_skill_update_saved', {
       athleteId,
       sessionId,
@@ -224,8 +217,10 @@ async function updateFromPositionRate(
       skillCount: updates.length,
       fourCorners,
     });
-
-    return ok({ updatedSkills, fourCorners });
+    return ok({
+      updatedSkills,
+      fourCorners,
+    });
   } catch (error) {
     logger.error('Failed to save position-based skill updates', {
       athleteId,
@@ -249,7 +244,12 @@ async function updateFromPositionRate(
 async function getSkillHistory(
   athleteId: string,
   skillName: string,
-): Promise<{ date: string; level: number }[]> {
+): Promise<
+  {
+    date: string;
+    level: number;
+  }[]
+> {
   const skillLevels = await getAthleteSkillLevels(athleteId);
   if (!skillLevels) {
     return [];
@@ -258,9 +258,11 @@ async function getSkillHistory(
   if (!skill || !skill.history) {
     return [];
   }
-  return skill.history.map((h) => ({ date: h.date, level: h.level }));
+  return skill.history.map((h) => ({
+    date: h.date,
+    level: h.level,
+  }));
 }
-
 export const progressSkillsService = {
   getAthleteSkillLevels,
   getSkillHistory,

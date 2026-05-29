@@ -62,7 +62,7 @@ interface SpecialNeedsFormProps {
   palette: ThemeColors;
 }
 
-export const SpecialNeedsForm = React.memo(function SpecialNeedsForm({
+export const SpecialNeedsForm = function SpecialNeedsForm({
   firstName,
   hasSpecialNeeds,
   disabilities,
@@ -241,7 +241,7 @@ export const SpecialNeedsForm = React.memo(function SpecialNeedsForm({
       )}
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   stepContent: {

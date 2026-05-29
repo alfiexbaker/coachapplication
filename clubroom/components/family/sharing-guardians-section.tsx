@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -17,7 +16,7 @@ interface SharingGuardiansSectionProps {
   onRemove: (guardian: FamilyGuardian) => void;
 }
 
-export const SharingGuardiansSection = memo(function SharingGuardiansSection({
+export const SharingGuardiansSection = function SharingGuardiansSection({
   guardians,
   onRemove,
 }: SharingGuardiansSectionProps) {
@@ -67,9 +66,9 @@ export const SharingGuardiansSection = memo(function SharingGuardiansSection({
             )}
           </Row>
           <Row gap="sm" align="center" style={{ marginLeft: 56 }}>
-            {getPermissionIcons(guardian.permissions).map((icon, i) => (
+            {getPermissionIcons(guardian.permissions).map((icon) => (
               <Ionicons
-                key={i}
+                key={icon}
                 name={icon as keyof typeof Ionicons.glyphMap}
                 size={18}
                 color={colors.muted}
@@ -85,7 +84,7 @@ export const SharingGuardiansSection = memo(function SharingGuardiansSection({
       ))}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   section: { padding: Spacing.md, gap: Spacing.md },

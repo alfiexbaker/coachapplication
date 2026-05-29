@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
+import { useState } from 'react';
+import { FlatList, StyleSheet, View, RefreshControl, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,11 +17,12 @@ import { InjuryReportModal } from '@/components/group/injury-report-modal';
 import { QuickRateModal } from '@/components/group/quick-rate-modal';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import type { ThemeColors } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
-import { useGroupRoster } from '@/hooks/use-group-roster';
+import { useGroupRoster, type RosterFilter } from '@/hooks/use-group-roster';
 import { useRequiredParam } from '@/hooks/use-required-param';
 import { getGroupRegistrationAthleteName } from '@/utils/group-display';
-import type { GroupRegistration } from '@/constants/types';
+import type { GroupRegistration, SessionRsvp } from '@/constants/types';
 import type { QuickRateAthlete } from '@/hooks/use-quick-rate';
 
 export default function SessionRosterScreen() {
@@ -71,35 +72,50 @@ export default function SessionRosterScreen() {
     submitInjuryReport,
   } = useGroupRoster(id);
   const renderShell = (content: ReactNode) => (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
       {content}
     </SafeAreaView>
   );
 
-  if (!idParam.valid) {
-    return renderShell(<ErrorState message="Invalid session roster link." onRetry={() => router.back()} />);
-  }
-
   const [quickRateAthlete, setQuickRateAthlete] = useState<QuickRateAthlete | null>(null);
   const [showQuickRate, setShowQuickRate] = useState(false);
 
-  const handleRecognise = useCallback((reg: GroupRegistration) => {
+  const handleRecognise = (reg: GroupRegistration) => {
     const name = getGroupRegistrationAthleteName(reg);
     setQuickRateAthlete({ athleteId: reg.athleteId, athleteName: name });
     setShowQuickRate(true);
-  }, []);
+  };
 
-  const handleQuickRateSaved = useCallback(() => {
+  const handleQuickRateSaved = () => {
     setShowQuickRate(false);
     setQuickRateAthlete(null);
-  }, []);
+  };
+  const filterItems = getRosterFilterItems(filters, filter, colors, setFilter);
+  const rosterItems = getRosterItems(
+    filteredRoster,
+    getRsvpForRegistration,
+    handleMarkAttendance,
+    handleCancelRegistration,
+    handleRecognise,
+  );
+
+  if (!idParam.valid) {
+    return renderShell(
+      <ErrorState message="Invalid session roster link." onRetry={() => router.back()} />,
+    );
+  }
 
   if (status === 'loading') {
     return renderShell(<LoadingState variant="list" />);
   }
 
   if (status === 'error') {
-    return renderShell(<ErrorState message={error?.message || 'Failed to load session roster.'} onRetry={retry} />);
+    return renderShell(
+      <ErrorState message={error?.message || 'Failed to load session roster.'} onRetry={retry} />,
+    );
   }
 
   if (status === 'empty' || !session) {
@@ -182,47 +198,27 @@ export default function SessionRosterScreen() {
         </Row>
       )}
 
-      <ScrollView
+      <FlatList
         horizontal
         showsHorizontalScrollIndicator={false}
         style={{ flexGrow: 0 }}
         contentContainerStyle={{
           paddingHorizontal: Spacing.lg,
-          paddingBottom: Spacing.md,
+          paddingBottom: 24,
           gap: Spacing.xs,
         }}
-      >
-        {filters.map((f) => (
-          <Clickable
-            key={f.key}
-            onPress={() => setFilter(f.key)}
-            style={[
-              styles.filterChip,
-              {
-                backgroundColor: filter === f.key ? colors.tint : colors.surface,
-                borderColor: filter === f.key ? colors.tint : colors.border,
-              },
-            ]}
-          >
-            <ThemedText
-              style={[
-                Typography.smallSemiBold,
-                { color: filter === f.key ? colors.onPrimary : colors.text },
-              ]}
-            >
-              {f.label}
-              {f.count !== undefined ? ` (${f.count})` : ''}
-            </ThemedText>
-          </Clickable>
-        ))}
-      </ScrollView>
+        data={filterItems}
+        keyExtractor={keyRosterFilterItem}
+        renderItem={renderRosterFilterItem}
+      />
 
-      <ScrollView
+      <FlatList
         contentContainerStyle={{ padding: Spacing.lg, paddingTop: 0 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        {filteredRoster.length === 0 ? (
+        data={rosterItems}
+        keyExtractor={keyRosterItem}
+        renderItem={renderRosterItem}
+        ListEmptyComponent={
           <EmptyState
             icon="people-outline"
             title="No participants"
@@ -232,22 +228,9 @@ export default function SessionRosterScreen() {
                 : 'No one has registered for this session yet'
             }
           />
-        ) : (
-          <View style={{ gap: Spacing.sm }}>
-            {filteredRoster.map((reg, i) => (
-              <Animated.View key={reg.id} entering={FadeInDown.delay(i * 50).springify()}>
-                <ParticipantCard
-                  registration={reg}
-                  rsvp={getRsvpForRegistration(reg)}
-                  onMarkAttendance={(attended) => handleMarkAttendance(reg, attended)}
-                  onCancel={() => handleCancelRegistration(reg)}
-                  onRecognise={() => handleRecognise(reg)}
-                />
-              </Animated.View>
-            ))}
-          </View>
-        )}
-      </ScrollView>
+        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      />
 
       <RollCallModal
         visible={showRollCall}
@@ -290,8 +273,108 @@ export default function SessionRosterScreen() {
         onClose={() => setShowQuickRate(false)}
         onSaved={handleQuickRateSaved}
       />
-
     </>,
+  );
+}
+
+interface RosterFilterSource {
+  key: RosterFilter;
+  label: string;
+  count?: number;
+}
+
+interface RosterFilterItem extends RosterFilterSource {
+  isActive: boolean;
+  colors: ThemeColors;
+  onPress: () => void;
+}
+
+function getRosterFilterItems(
+  filters: RosterFilterSource[],
+  selectedFilter: RosterFilter,
+  colors: ThemeColors,
+  onSelectFilter: (filter: RosterFilter) => void,
+): RosterFilterItem[] {
+  return filters.map((filter) => ({
+    ...filter,
+    isActive: selectedFilter === filter.key,
+    colors,
+    onPress: () => onSelectFilter(filter.key),
+  }));
+}
+
+function keyRosterFilterItem(item: RosterFilterItem): string {
+  return item.key;
+}
+
+function renderRosterFilterItem({ item }: ListRenderItemInfo<RosterFilterItem>) {
+  return (
+    <Clickable
+      onPress={item.onPress}
+      style={[
+        styles.filterChip,
+        {
+          backgroundColor: item.isActive ? item.colors.tint : item.colors.surface,
+          borderColor: item.isActive ? item.colors.tint : item.colors.border,
+        },
+      ]}
+    >
+      <ThemedText
+        style={[
+          Typography.smallSemiBold,
+          { color: item.isActive ? item.colors.onPrimary : item.colors.text },
+        ]}
+      >
+        {item.label}
+        {item.count !== undefined ? ` (${item.count})` : ''}
+      </ThemedText>
+    </Clickable>
+  );
+}
+
+interface RosterItem {
+  key: string;
+  index: number;
+  registration: GroupRegistration;
+  rsvp: SessionRsvp | null | undefined;
+  onMarkAttendance: (attended: boolean) => void;
+  onCancel: () => void;
+  onRecognise: () => void;
+}
+
+function getRosterItems(
+  roster: GroupRegistration[],
+  getRsvpForRegistration: (registration: GroupRegistration) => SessionRsvp | null | undefined,
+  handleMarkAttendance: (registration: GroupRegistration, attended: boolean) => void,
+  handleCancelRegistration: (registration: GroupRegistration) => void,
+  handleRecognise: (registration: GroupRegistration) => void,
+): RosterItem[] {
+  return roster.map((registration, index) => ({
+    key: registration.id,
+    index,
+    registration,
+    rsvp: getRsvpForRegistration(registration),
+    onMarkAttendance: (attended) => handleMarkAttendance(registration, attended),
+    onCancel: () => handleCancelRegistration(registration),
+    onRecognise: () => handleRecognise(registration),
+  }));
+}
+
+function keyRosterItem(item: RosterItem): string {
+  return item.key;
+}
+
+function renderRosterItem({ item }: ListRenderItemInfo<RosterItem>) {
+  return (
+    <Animated.View entering={FadeInDown.delay(item.index * 50).springify()}>
+      <ParticipantCard
+        registration={item.registration}
+        rsvp={item.rsvp}
+        onMarkAttendance={item.onMarkAttendance}
+        onCancel={item.onCancel}
+        onRecognise={item.onRecognise}
+      />
+    </Animated.View>
   );
 }
 

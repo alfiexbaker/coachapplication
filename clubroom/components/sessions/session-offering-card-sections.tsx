@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -17,7 +16,7 @@ export interface SessionTypeBadgeProps {
   palette: ThemeColors;
 }
 
-export const SessionTypeBadge = memo(function SessionTypeBadge({
+export const SessionTypeBadge = function SessionTypeBadge({
   sessionType,
   palette,
 }: SessionTypeBadgeProps) {
@@ -46,7 +45,7 @@ export const SessionTypeBadge = memo(function SessionTypeBadge({
     );
   }
   return null;
-});
+};
 
 // ─── SessionFooterBadges ────────────────────────────────────────
 
@@ -64,7 +63,7 @@ export interface SessionFooterBadgesProps {
   palette: ThemeColors;
 }
 
-export const SessionFooterBadges = memo(function SessionFooterBadges({
+export const SessionFooterBadges = function SessionFooterBadges({
   ageMin,
   ageMax,
   sessionType,
@@ -111,7 +110,7 @@ export const SessionFooterBadges = memo(function SessionFooterBadges({
       )}
     </Row>
   );
-});
+};
 
 // ─── Styles ─────────────────────────────────────────────────────
 

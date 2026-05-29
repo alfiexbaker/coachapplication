@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
@@ -15,7 +15,7 @@ interface CancelRefundPreviewProps {
   refundCalc: RefundCalculation | null;
 }
 
-export const CancelRefundPreview = memo(function CancelRefundPreview({
+export const CancelRefundPreview = function CancelRefundPreview({
   isCoach,
   bookingAmount,
   refundCalc,
@@ -113,7 +113,7 @@ export const CancelRefundPreview = memo(function CancelRefundPreview({
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.lg, gap: Spacing.md },

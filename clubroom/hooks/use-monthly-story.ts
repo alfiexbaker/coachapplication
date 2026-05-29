@@ -2,7 +2,14 @@
  * useMonthlyStory — Story state, auto-advance timer, page index.
  * Instagram stories-style auto-play with tap-to-advance.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type MutableRefObject,
+  type SetStateAction,
+} from 'react';
 
 import { HapticPatterns } from '@/utils/haptics';
 
@@ -34,6 +41,56 @@ interface UseMonthlyStoryResult {
   close: () => boolean; // returns true if closed
 }
 
+interface MonthlyStoryTimerConfig {
+  timerRef: MutableRefObject<ReturnType<typeof setInterval> | null>;
+  startTimeRef: MutableRefObject<number>;
+  setProgress: Dispatch<SetStateAction<number>>;
+  setPageIndex: Dispatch<SetStateAction<number>>;
+  setIsPlaying: Dispatch<SetStateAction<boolean>>;
+  autoAdvanceMs: number;
+  totalPages: number;
+}
+
+function clearMonthlyStoryTimer(timerRef: MutableRefObject<ReturnType<typeof setInterval> | null>) {
+  if (timerRef.current) {
+    clearInterval(timerRef.current);
+    timerRef.current = null;
+  }
+}
+
+function startMonthlyStoryTimer({
+  timerRef,
+  startTimeRef,
+  setProgress,
+  setPageIndex,
+  setIsPlaying,
+  autoAdvanceMs,
+  totalPages,
+}: MonthlyStoryTimerConfig) {
+  clearMonthlyStoryTimer(timerRef);
+  startTimeRef.current = Date.now();
+  setProgress(0);
+
+  timerRef.current = setInterval(() => {
+    const elapsed = Date.now() - startTimeRef.current;
+    const pct = Math.min(elapsed / autoAdvanceMs, 1);
+    setProgress(pct);
+
+    if (pct >= 1) {
+      setPageIndex((prev) => {
+        if (prev < totalPages - 1) {
+          startTimeRef.current = Date.now();
+          setProgress(0);
+          return prev + 1;
+        }
+        clearMonthlyStoryTimer(timerRef);
+        setIsPlaying(false);
+        return prev;
+      });
+    }
+  }, 50);
+}
+
 export function useMonthlyStory({
   pages,
   autoAdvanceMs = 5000,
@@ -42,105 +99,94 @@ export function useMonthlyStory({
   const [isPlaying, setIsPlaying] = useState(true);
   const [progress, setProgress] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const startTimeRef = useRef(Date.now());
+  const [initialStartTime] = useState(() => Date.now());
+  const startTimeRef = useRef(initialStartTime);
 
   const totalPages = pages.length;
   const currentPage = pages[pageIndex] ?? null;
 
-  const clearTimer = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  }, []);
+  const clearTimer = () => {
+    clearMonthlyStoryTimer(timerRef);
+  };
 
-  const startTimer = useCallback(() => {
-    clearTimer();
-    startTimeRef.current = Date.now();
-    setProgress(0);
-
-    timerRef.current = setInterval(() => {
-      const elapsed = Date.now() - startTimeRef.current;
-      const pct = Math.min(elapsed / autoAdvanceMs, 1);
-      setProgress(pct);
-
-      if (pct >= 1) {
-        setPageIndex((prev) => {
-          if (prev < totalPages - 1) {
-            startTimeRef.current = Date.now();
-            return prev + 1;
-          }
-          clearTimer();
-          setIsPlaying(false);
-          return prev;
-        });
-      }
-    }, 50);
-  }, [autoAdvanceMs, clearTimer, totalPages]);
+  const startTimer = () => {
+    startMonthlyStoryTimer({
+      timerRef,
+      startTimeRef,
+      setProgress,
+      setPageIndex,
+      setIsPlaying,
+      autoAdvanceMs,
+      totalPages,
+    });
+  };
 
   useEffect(() => {
     if (isPlaying && totalPages > 0) {
-      startTimer();
+      startMonthlyStoryTimer({
+        timerRef,
+        startTimeRef,
+        setProgress,
+        setPageIndex,
+        setIsPlaying,
+        autoAdvanceMs,
+        totalPages,
+      });
     }
-    return clearTimer;
-  }, [clearTimer, isPlaying, startTimer, totalPages]);
+    return () => {
+      clearMonthlyStoryTimer(timerRef);
+    };
+  }, [autoAdvanceMs, isPlaying, totalPages]);
 
-  // Restart timer when page changes
-  useEffect(() => {
-    if (isPlaying) {
-      startTimeRef.current = Date.now();
-      setProgress(0);
-    }
-  }, [isPlaying, pageIndex]);
-
-  const advance = useCallback(() => {
+  const advance = () => {
     void HapticPatterns.storyPageAdvance();
     if (pageIndex < totalPages - 1) {
+      startTimeRef.current = Date.now();
+      setProgress(0);
       setPageIndex((prev) => prev + 1);
       setIsPlaying(true);
     } else {
       setIsPlaying(false);
     }
-  }, [pageIndex, totalPages]);
+  };
 
-  const goBack = useCallback(() => {
+  const goBack = () => {
     void HapticPatterns.tap();
     if (pageIndex > 0) {
+      startTimeRef.current = Date.now();
+      setProgress(0);
       setPageIndex((prev) => prev - 1);
       setIsPlaying(true);
     }
-  }, [pageIndex]);
+  };
 
-  const pause = useCallback(() => {
+  const pause = () => {
     setIsPlaying(false);
     clearTimer();
-  }, [clearTimer]);
+  };
 
-  const resume = useCallback(() => {
+  const resume = () => {
     setIsPlaying(true);
-  }, []);
+  };
 
-  const close = useCallback(() => {
+  const close = () => {
     clearTimer();
     setIsPlaying(false);
     setPageIndex(0);
     setProgress(0);
     return true;
-  }, [clearTimer]);
+  };
 
-  return useMemo(
-    () => ({
-      currentPage,
-      pageIndex,
-      totalPages,
-      progress,
-      isPlaying,
-      advance,
-      goBack,
-      pause,
-      resume,
-      close,
-    }),
-    [advance, close, currentPage, goBack, isPlaying, pageIndex, pause, progress, resume, totalPages],
-  );
+  return {
+    currentPage,
+    pageIndex,
+    totalPages,
+    progress,
+    isPlaying,
+    advance,
+    goBack,
+    pause,
+    resume,
+    close,
+  };
 }

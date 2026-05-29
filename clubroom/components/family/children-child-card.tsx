@@ -1,11 +1,3 @@
-/**
- * ChildrenChildCard — Primary profile card for a child.
- *
- * Entire card is pressable and opens the child's profile/development view.
- * Shows concise identity, profile signals, and core progress stats.
- */
-
-import { memo, useCallback, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -102,7 +94,7 @@ function buildSignals(child: ChildProfile): ProfileSignal[] {
   return signals.slice(0, 3);
 }
 
-export const ChildrenChildCard = memo(function ChildrenChildCard({
+export const ChildrenChildCard = function ChildrenChildCard({
   child,
   stats,
   index,
@@ -114,9 +106,9 @@ export const ChildrenChildCard = memo(function ChildrenChildCard({
   const displayName = child.nickname || child.firstName;
   const age = child.dateOfBirth ? childService.getAge(child.dateOfBirth) : null;
 
-  const profileSignals = useMemo(() => buildSignals(child), [child]);
+  const profileSignals = buildSignals(child);
   const relationshipLabel = RELATIONSHIP_LABELS[child.relationship] ?? 'Child';
-  const positionLabel = useMemo(() => {
+  const positionLabel = (() => {
     if (child.primaryPosition === null) {
       return 'Rotates';
     }
@@ -124,33 +116,32 @@ export const ChildrenChildCard = memo(function ChildrenChildCard({
       return POSITION_LABELS[child.primaryPosition];
     }
     return null;
-  }, [child.primaryPosition]);
+  })();
 
-  const handleOpenProfile = useCallback(async () => {
+  const handleOpenProfile = async () => {
     await childService.setActiveChildId(child.id, displayName);
     router.push(Routes.developmentChildProgress(child.id));
-  }, [child.id, displayName]);
+  };
 
-  const supportToneStyles = useMemo(
-    () => ({
-      neutral: {
-        backgroundColor: withAlpha(palette.tint, 0.06),
-        iconColor: palette.tint,
-        textColor: palette.tint,
-      },
-      warning: {
-        backgroundColor: withAlpha(palette.warning, 0.08),
-        iconColor: palette.warning,
-        textColor: palette.warning,
-      },
-      alert: {
-        backgroundColor: withAlpha(palette.error, 0.08),
-        iconColor: palette.error,
-        textColor: palette.error,
-      },
-    }),
-    [palette.error, palette.tint, palette.warning],
-  );
+  const supportToneStyles = ({
+    neutral: {
+      backgroundColor: withAlpha(palette.tint, 0.06),
+      iconColor: palette.tint,
+      textColor: palette.tint,
+    },
+
+    warning: {
+      backgroundColor: withAlpha(palette.warning, 0.08),
+      iconColor: palette.warning,
+      textColor: palette.warning,
+    },
+
+    alert: {
+      backgroundColor: withAlpha(palette.error, 0.08),
+      iconColor: palette.error,
+      textColor: palette.error,
+    },
+  });
 
   return (
     <Animated.View entering={FadeInDown.delay(100 + index * 50).springify()}>
@@ -274,7 +265,7 @@ export const ChildrenChildCard = memo(function ChildrenChildCard({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

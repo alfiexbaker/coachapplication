@@ -4,7 +4,7 @@
  * Bottom sheet modal showing RSVP respondents grouped by status.
  */
 
-import { memo, useState, useCallback } from 'react';
+import { useState } from 'react';
 import { View, StyleSheet, Modal, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -49,14 +49,14 @@ function AttendeeListModalComponent({
     new Set(['going', 'maybe', 'cant_go']),
   );
 
-  const toggleSection = useCallback((key: SectionKey) => {
+  const toggleSection = (key: SectionKey) => {
     setExpandedSections((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
       return next;
     });
-  }, []);
+  };
 
   const sections: SectionConfig[] = [
     { key: 'going', label: 'Going', colorKey: 'success', count: counts.going },
@@ -66,39 +66,36 @@ function AttendeeListModalComponent({
 
   const totalResponses = counts.going + counts.maybe + counts.cantGo;
 
-  const renderSectionItem = useCallback(
-    ({ item: section }: { item: SectionConfig }) => {
-      const sectionResponses = responses.filter((r) => r.status === section.key);
-      const isExpanded = expandedSections.has(section.key);
-      const color = palette[section.colorKey];
+  const renderSectionItem = ({ item: section }: { item: SectionConfig }) => {
+    const sectionResponses = responses.filter((r) => r.status === section.key);
+    const isExpanded = expandedSections.has(section.key);
+    const color = palette[section.colorKey];
 
-      return (
-        <View style={styles.section}>
-          <Clickable
-            onPress={() => toggleSection(section.key)}
-            style={styles.sectionHeader}
-            accessibilityLabel={`${section.label} section, ${section.count} responses`}
-          >
-            <Row style={styles.sectionLabelRow}>
-              <View style={[styles.statusDot, { backgroundColor: color }]} />
-              <ThemedText style={styles.sectionLabel}>{section.label}</ThemedText>
-              <View style={[styles.countBadge, { backgroundColor: withAlpha(color, 0.12) }]}>
-                <ThemedText style={[styles.countText, { color }]}>{section.count}</ThemedText>
-              </View>
-            </Row>
-            <Ionicons
-              name={isExpanded ? 'chevron-up' : 'chevron-down'}
-              size={18}
-              color={palette.muted}
-            />
-          </Clickable>
-          {isExpanded &&
-            sectionResponses.map((resp) => <AttendeeRow key={resp.id} response={resp} />)}
-        </View>
-      );
-    },
-    [responses, expandedSections, palette, toggleSection],
-  );
+    return (
+      <View style={styles.section}>
+        <Clickable
+          onPress={() => toggleSection(section.key)}
+          style={styles.sectionHeader}
+          accessibilityLabel={`${section.label} section, ${section.count} responses`}
+        >
+          <Row style={styles.sectionLabelRow}>
+            <View style={[styles.statusDot, { backgroundColor: color }]} />
+            <ThemedText style={styles.sectionLabel}>{section.label}</ThemedText>
+            <View style={[styles.countBadge, { backgroundColor: withAlpha(color, 0.12) }]}>
+              <ThemedText style={[styles.countText, { color }]}>{section.count}</ThemedText>
+            </View>
+          </Row>
+          <Ionicons
+            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={palette.muted}
+          />
+        </Clickable>
+        {isExpanded &&
+          sectionResponses.map((resp) => <AttendeeRow key={resp.id} response={resp} />)}
+      </View>
+    );
+  };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -143,7 +140,7 @@ function AttendeeListModalComponent({
   );
 }
 
-export const AttendeeListModal = memo(AttendeeListModalComponent);
+export const AttendeeListModal = AttendeeListModalComponent;
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },

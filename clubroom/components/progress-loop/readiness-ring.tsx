@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import Animated, {
@@ -30,7 +30,7 @@ function clampScore(score: number): number {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
-export const ReadinessRing = memo(function ReadinessRing({
+export const ReadinessRing = function ReadinessRing({
   score,
   label = 'Readiness',
   meta,
@@ -40,15 +40,15 @@ export const ReadinessRing = memo(function ReadinessRing({
 }: ReadinessRingProps) {
   const { colors } = useTheme();
   const safeScore = clampScore(score);
-  const radius = useMemo(() => (size - strokeWidth) / 2, [size, strokeWidth]);
-  const circumference = useMemo(() => 2 * Math.PI * radius, [radius]);
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
   const progress = useSharedValue(safeScore / 100);
 
   useEffect(() => {
-    progress.value = withTiming(safeScore / 100, {
+    progress.set(withTiming(safeScore / 100, {
       duration: reduceMotion ? 0 : 560,
       easing: Easing.out(Easing.cubic),
-    });
+    }));
   }, [progress, reduceMotion, safeScore]);
 
   const animatedProps = useAnimatedProps(() => ({
@@ -93,7 +93,7 @@ export const ReadinessRing = memo(function ReadinessRing({
       </View>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: {

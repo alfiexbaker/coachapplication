@@ -35,11 +35,8 @@ import {
 } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
-
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-
 const logger = createLogger('AcademyService');
-
 const USE_MOCK = api.useMock;
 
 // Mock academies
@@ -101,7 +98,6 @@ const MOCK_ACADEMIES: Academy[] = normalizeLegacyMockDates([
     specialties: ['Goalkeeping'],
   },
 ]);
-
 const MOCK_MEMBERSHIPS: AcademyMembership[] = normalizeLegacyMockDates([
   {
     id: 'mem_1',
@@ -141,7 +137,6 @@ const MOCK_MEMBERSHIPS: AcademyMembership[] = normalizeLegacyMockDates([
     invitedBy: 'coach1',
   },
 ]);
-
 const MOCK_INVITES: AcademyInvite[] = [
   {
     id: 'ainv_1',
@@ -155,11 +150,9 @@ const MOCK_INVITES: AcademyInvite[] = [
     currentUses: 1,
   },
 ];
-
 let academiesCache: Academy[] = [...MOCK_ACADEMIES];
 let membershipsCache: AcademyMembership[] = [...MOCK_MEMBERSHIPS];
 let invitesCache: AcademyInvite[] = [...MOCK_INVITES];
-
 async function loadAcademies(): Promise<Academy[]> {
   try {
     const stored = await apiClient.get<Academy[] | null>(STORAGE_KEYS.ACADEMIES, null);
@@ -169,7 +162,6 @@ async function loadAcademies(): Promise<Academy[]> {
   }
   return [...MOCK_ACADEMIES];
 }
-
 async function saveAcademies(academies: Academy[]): Promise<void> {
   try {
     await apiClient.set(STORAGE_KEYS.ACADEMIES, academies);
@@ -177,7 +169,6 @@ async function saveAcademies(academies: Academy[]): Promise<void> {
     logger.error('Failed to save academies', error);
   }
 }
-
 async function loadMemberships(): Promise<AcademyMembership[]> {
   try {
     const stored = await apiClient.get<AcademyMembership[] | null>(
@@ -190,7 +181,6 @@ async function loadMemberships(): Promise<AcademyMembership[]> {
   }
   return [...MOCK_MEMBERSHIPS];
 }
-
 async function saveMemberships(memberships: AcademyMembership[]): Promise<void> {
   try {
     await apiClient.set(STORAGE_KEYS.ACADEMY_MEMBERSHIPS, memberships);
@@ -198,7 +188,6 @@ async function saveMemberships(memberships: AcademyMembership[]): Promise<void> 
     logger.error('Failed to save memberships', error);
   }
 }
-
 async function loadInvites(): Promise<AcademyInvite[]> {
   try {
     const stored = await apiClient.get<AcademyInvite[] | null>(STORAGE_KEYS.ACADEMY_INVITES, null);
@@ -208,7 +197,6 @@ async function loadInvites(): Promise<AcademyInvite[]> {
   }
   return [...MOCK_INVITES];
 }
-
 async function saveInvites(invites: AcademyInvite[]): Promise<void> {
   try {
     await apiClient.set(STORAGE_KEYS.ACADEMY_INVITES, invites);
@@ -216,7 +204,6 @@ async function saveInvites(invites: AcademyInvite[]): Promise<void> {
     logger.error('Failed to save invites', error);
   }
 }
-
 export interface CreateAcademyInput {
   name: string;
   description: string;
@@ -227,7 +214,6 @@ export interface CreateAcademyInput {
   sports?: SportCategory[];
   specialties?: FootballObjective[];
 }
-
 export interface UpdateBrandingInput {
   logoUrl?: string;
   bannerUrl?: string;
@@ -238,7 +224,6 @@ export interface UpdateBrandingInput {
   website?: string;
   address?: string;
 }
-
 export const academyService = {
   /**
    * Get all academies (discovery)
@@ -251,13 +236,15 @@ export const academyService = {
       if (USE_MOCK) {
         academiesCache = await loadAcademies();
         const filtered = academiesCache
-          .filter((a) => a.isPublic)
-          .filter((a) => !filters?.postcode || a.postcode === filters.postcode)
-          .filter((a) => !filters?.sport || a.sports.includes(filters.sport))
+          .filter(
+            (a) =>
+              a.isPublic &&
+              (!filters?.postcode || a.postcode === filters.postcode) &&
+              (!filters?.sport || a.sports.includes(filters.sport)),
+          )
           .sort((a, b) => (b.rating?.average || 0) - (a.rating?.average || 0));
         return ok(filtered);
       }
-
       const response = await fetch('/api/academies');
       return ok(await response.json());
     } catch (error) {
@@ -265,7 +252,6 @@ export const academyService = {
       return err(storageError('Failed to discover academies'));
     }
   },
-
   /**
    * Get academy by ID
    */
@@ -275,7 +261,6 @@ export const academyService = {
         academiesCache = await loadAcademies();
         return ok(academiesCache.find((a) => a.id === academyId) || null);
       }
-
       const response = await fetch(`/api/academies/${academyId}`);
       if (!response.ok) return ok(null);
       return ok(await response.json());
@@ -284,7 +269,6 @@ export const academyService = {
       return err(storageError('Failed to load academy'));
     }
   },
-
   /**
    * Get academy by slug
    */
@@ -294,7 +278,6 @@ export const academyService = {
         academiesCache = await loadAcademies();
         return ok(academiesCache.find((a) => a.slug === slug) || null);
       }
-
       const response = await fetch(`/api/academies/slug/${slug}`);
       if (!response.ok) return ok(null);
       return ok(await response.json());
@@ -303,32 +286,37 @@ export const academyService = {
       return err(storageError('Failed to load academy'));
     }
   },
-
   /**
    * Get academies where user is a member
    */
-  async getUserAcademies(
-    userId: string,
-  ): Promise<Result<(Academy & { membership: AcademyMembership })[], ServiceError>> {
+  async getUserAcademies(userId: string): Promise<
+    Result<
+      (Academy & {
+        membership: AcademyMembership;
+      })[],
+      ServiceError
+    >
+  > {
     try {
       if (USE_MOCK) {
         academiesCache = await loadAcademies();
         membershipsCache = await loadMemberships();
-
         const userMemberships = membershipsCache.filter(
           (m) => m.userId === userId && m.status === 'ACTIVE',
         );
-
-        const data = userMemberships
-          .map((m) => {
-            const academy = academiesCache.find((a) => a.id === m.academyId);
-            if (!academy) return null;
-            return { ...academy, membership: m };
-          })
-          .filter(Boolean) as (Academy & { membership: AcademyMembership })[];
+        const data = userMemberships.flatMap((m) => {
+          const academy = academiesCache.find((a) => a.id === m.academyId);
+          return academy
+            ? [
+                {
+                  ...academy,
+                  membership: m,
+                },
+              ]
+            : [];
+        });
         return ok(data);
       }
-
       const response = await fetch(`/api/users/${userId}/academies`);
       return ok(await response.json());
     } catch (error) {
@@ -336,7 +324,6 @@ export const academyService = {
       return err(storageError('Failed to load user academies'));
     }
   },
-
   /**
    * Create a new academy
    */
@@ -346,7 +333,6 @@ export const academyService = {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
-
       const newAcademy: Academy = {
         id: `academy_${Date.now()}`,
         name: input.name,
@@ -384,23 +370,20 @@ export const academyService = {
         status: 'ACTIVE',
         joinedAt: new Date().toISOString(),
       };
-
       if (USE_MOCK) {
         academiesCache = await loadAcademies();
         membershipsCache = await loadMemberships();
-
         academiesCache.push(newAcademy);
         membershipsCache.push(ownerMembership);
-
         await saveAcademies(academiesCache);
         await saveMemberships(membershipsCache);
-
         return ok(newAcademy);
       }
-
       const response = await fetch('/api/academies', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(newAcademy),
       });
       return ok(await response.json());
@@ -409,7 +392,6 @@ export const academyService = {
       return err(storageError('Failed to create academy'));
     }
   },
-
   /**
    * Update academy branding
    */
@@ -421,20 +403,19 @@ export const academyService = {
       academiesCache = await loadAcademies();
       const academy = academiesCache.find((a) => a.id === academyId);
       if (!academy) return err(notFound('Academy', academyId));
-
       Object.assign(academy, branding);
       await saveAcademies(academiesCache);
       return ok(academy);
     }
-
     const response = await fetch(`/api/academies/${academyId}/branding`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(branding),
     });
     return ok(await response.json());
   },
-
   /**
    * Update academy settings
    */
@@ -446,20 +427,19 @@ export const academyService = {
       academiesCache = await loadAcademies();
       const academy = academiesCache.find((a) => a.id === academyId);
       if (!academy) return err(notFound('Academy', academyId));
-
       Object.assign(academy, settings);
       await saveAcademies(academiesCache);
       return ok(academy);
     }
-
     const response = await fetch(`/api/academies/${academyId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(settings),
     });
     return ok(await response.json());
   },
-
   async updateCommercialMode(
     academyId: string,
     commercialMode: OrganizationCommercialMode,
@@ -468,20 +448,21 @@ export const academyService = {
       academiesCache = await loadAcademies();
       const academy = academiesCache.find((candidate) => candidate.id === academyId);
       if (!academy) return err(notFound('Academy', academyId));
-
       academy.commercialMode = commercialMode;
       await saveAcademies(academiesCache);
       return ok(academy);
     }
-
     const response = await fetch(`/api/academies/${academyId}/commercial-mode`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ commercialMode }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        commercialMode,
+      }),
     });
     return ok(await response.json());
   },
-
   /**
    * Get academy staff
    */
@@ -497,7 +478,6 @@ export const academyService = {
           });
         return ok(staff);
       }
-
       const response = await fetch(`/api/academies/${academyId}/staff`);
       return ok(await response.json());
     } catch (error) {
@@ -505,7 +485,6 @@ export const academyService = {
       return err(storageError('Failed to load academy staff'));
     }
   },
-
   /**
    * Create an invite code
    */
@@ -524,10 +503,8 @@ export const academyService = {
         .slice(0, 4)
         .toUpperCase()
         .replace(/[^A-Z]/g, '')}${Date.now().toString(36).toUpperCase().slice(-4)}`;
-
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + expiresInDays);
-
       const invite: AcademyInvite = {
         id: `ainv_${Date.now()}`,
         academyId,
@@ -539,17 +516,17 @@ export const academyService = {
         maxUses,
         currentUses: 0,
       };
-
       if (USE_MOCK) {
         invitesCache = await loadInvites();
         invitesCache.push(invite);
         await saveInvites(invitesCache);
         return ok(invite);
       }
-
       const response = await fetch(`/api/academies/${academyId}/invites`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(invite),
       });
       return ok(await response.json());
@@ -558,7 +535,6 @@ export const academyService = {
       return err(storageError('Failed to create academy invite'));
     }
   },
-
   /**
    * Join academy with invite code
    */
@@ -572,7 +548,6 @@ export const academyService = {
       invitesCache = await loadInvites();
       membershipsCache = await loadMemberships();
       academiesCache = await loadAcademies();
-
       const invite = invitesCache.find(
         (i) => i.code === code && new Date(i.expiresAt) > new Date() && i.currentUses < i.maxUses,
       );
@@ -583,7 +558,6 @@ export const academyService = {
         (m) => m.academyId === invite.academyId && m.userId === userId,
       );
       if (existingMembership) return err(conflictError('Already a member of this academy'));
-
       const membership: AcademyMembership = {
         id: `mem_${Date.now()}`,
         academyId: invite.academyId,
@@ -594,7 +568,6 @@ export const academyService = {
         joinedAt: new Date().toISOString(),
         invitedBy: invite.createdBy,
       };
-
       membershipsCache.push(membership);
       invite.currentUses += 1;
 
@@ -603,22 +576,27 @@ export const academyService = {
       if (academy && ['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH', 'ASSISTANT'].includes(invite.role)) {
         academy.coachCount += 1;
       }
-
-      await saveMemberships(membershipsCache);
-      await saveInvites(invitesCache);
-      await saveAcademies(academiesCache);
-
+      await Promise.all([
+        saveMemberships(membershipsCache),
+        saveInvites(invitesCache),
+        saveAcademies(academiesCache),
+      ]);
       return ok(membership);
     }
-
     const response = await fetch('/api/academies/join', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, userId, userName, userPhotoUrl }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        code,
+        userId,
+        userName,
+        userPhotoUrl,
+      }),
     });
     return ok(await response.json());
   },
-
   /**
    * Update member role
    */
@@ -631,22 +609,23 @@ export const academyService = {
       membershipsCache = await loadMemberships();
       const membership = membershipsCache.find((m) => m.id === membershipId);
       if (!membership) return err(notFound('Membership', membershipId));
-
       membership.role = role;
       membership.permissions = permissions;
-
       await saveMemberships(membershipsCache);
       return ok(membership);
     }
-
     const response = await fetch(`/api/memberships/${membershipId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role, permissions }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        role,
+        permissions,
+      }),
     });
     return ok(await response.json());
   },
-
   /**
    * Remove member from academy
    */
@@ -655,20 +634,18 @@ export const academyService = {
       membershipsCache = await loadMemberships();
       const membership = membershipsCache.find((m) => m.id === membershipId);
       if (!membership) return err(notFound('Membership', membershipId));
-
       if (membership.role === 'OWNER') {
         return err(validationError('Cannot remove owner'));
       }
-
       membership.status = 'SUSPENDED';
       await saveMemberships(membershipsCache);
       return ok(undefined);
     }
-
-    await fetch(`/api/memberships/${membershipId}`, { method: 'DELETE' });
+    await fetch(`/api/memberships/${membershipId}`, {
+      method: 'DELETE',
+    });
     return ok(undefined);
   },
-
   /**
    * Check if user has permission
    */
@@ -687,7 +664,6 @@ export const academyService = {
         if (membership.role === 'OWNER') return ok(true);
         return ok(membership.permissions.includes(permission));
       }
-
       const response = await fetch(
         `/api/academies/${academyId}/permissions/${userId}/${permission}`,
       );
@@ -698,7 +674,6 @@ export const academyService = {
       return err(storageError('Failed to check academy permission'));
     }
   },
-
   /**
    * Delete an academy
    * TODO: Implement full deletion logic with membership cleanup
@@ -708,16 +683,15 @@ export const academyService = {
       academiesCache = await loadAcademies();
       const index = academiesCache.findIndex((a) => a.id === academyId);
       if (index === -1) return err(notFound('Academy', academyId));
-
       academiesCache.splice(index, 1);
       await saveAcademies(academiesCache);
       return ok(undefined);
     }
-
-    await fetch(`/api/academies/${academyId}`, { method: 'DELETE' });
+    await fetch(`/api/academies/${academyId}`, {
+      method: 'DELETE',
+    });
     return ok(undefined);
   },
-
   /**
    * Format role for display
    */

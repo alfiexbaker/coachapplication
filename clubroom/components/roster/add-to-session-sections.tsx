@@ -17,7 +17,7 @@ type HeaderProps = {
   onClose: () => void;
 };
 
-export const AddToSessionHeader = React.memo(function AddToSessionHeader({
+export const AddToSessionHeader = function AddToSessionHeader({
   colors,
   athleteName,
   onClose,
@@ -40,7 +40,7 @@ export const AddToSessionHeader = React.memo(function AddToSessionHeader({
       <View style={styles.headerSpacer} />
     </Row>
   );
-});
+};
 
 type SessionCardProps = {
   colors: ThemeColors;
@@ -51,7 +51,7 @@ type SessionCardProps = {
   formatDate: (value: string) => string;
 };
 
-export const AddToSessionCard = React.memo(function AddToSessionCard({
+const renderAddToSessionCard = function renderAddToSessionCard({
   colors,
   session,
   index,
@@ -136,7 +136,8 @@ export const AddToSessionCard = React.memo(function AddToSessionCard({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
+export const AddToSessionCard = renderAddToSessionCard;
 
 type AddToSessionActionCardProps = {
   colors: ThemeColors;
@@ -149,7 +150,7 @@ type AddToSessionActionCardProps = {
   accentKey?: 'tint' | 'success' | 'warning' | 'info';
 };
 
-export const AddToSessionActionCard = React.memo(function AddToSessionActionCard({
+const renderAddToSessionActionCard = function renderAddToSessionActionCard({
   colors,
   title,
   description,
@@ -201,7 +202,8 @@ export const AddToSessionActionCard = React.memo(function AddToSessionActionCard
       </View>
     </SurfaceCard>
   );
-});
+};
+export const AddToSessionActionCard = renderAddToSessionActionCard;
 
 const styles = StyleSheet.create({
   header: {

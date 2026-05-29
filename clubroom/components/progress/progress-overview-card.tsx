@@ -1,7 +1,3 @@
-/**
- * OverviewCard — Level, trend, progress bar, and stats grid.
- */
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -104,7 +100,7 @@ function OverviewCardInner({ progress }: { progress: AthleteProgress; viewerRole
   );
 }
 
-export const OverviewCard = memo(OverviewCardInner);
+export const OverviewCard = OverviewCardInner;
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.md },

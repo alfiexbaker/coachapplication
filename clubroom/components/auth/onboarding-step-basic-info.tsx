@@ -2,7 +2,7 @@
  * StepBasicInfo — Basic information form step of onboarding.
  */
 
-import { memo, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -37,7 +37,7 @@ function StepBasicInfoInner({
   onChangeField,
 }: StepBasicInfoProps) {
   const { colors: palette } = useTheme();
-  const today = useMemo(() => new Date(), []);
+  const today = new Date();
   const [emailTouched, setEmailTouched] = useState(false);
   const emailRegex = /^(?!\.)(?!.*\.\.)([A-Za-z0-9._%+-]+)@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
   const trimmedEmail = email.trim();
@@ -240,7 +240,7 @@ function StepBasicInfoInner({
   );
 }
 
-export const StepBasicInfo = memo(StepBasicInfoInner);
+export const StepBasicInfo = StepBasicInfoInner;
 
 const styles = StyleSheet.create({
   content: {

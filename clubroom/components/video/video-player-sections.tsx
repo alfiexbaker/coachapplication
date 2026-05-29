@@ -2,7 +2,6 @@
  * Extracted sub-components for video-player.
  *
  * AnnotationTimeline — list of video annotations with seek-to-timestamp.
- * formatTime — shared time formatting helper.
  */
 
 import React from 'react';
@@ -14,30 +13,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { VideoAnnotation } from '@/constants/types';
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-export function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
-
-export function getMarkerColor(
-  type: VideoAnnotation['type'],
-  palette: { success: string; warning: string; tint: string; muted: string },
-) {
-  switch (type) {
-    case 'HIGHLIGHT':
-      return palette.success;
-    case 'IMPROVEMENT':
-      return palette.warning;
-    case 'TECHNIQUE':
-      return palette.tint;
-    default:
-      return palette.muted;
-  }
-}
+import { formatTime, getMarkerColor } from './video-player-helpers';
 
 // ─── AnnotationTimeline ─────────────────────────────────────────────────────
 

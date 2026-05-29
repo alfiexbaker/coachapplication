@@ -1,7 +1,3 @@
-/**
- * InviteAthlete — Filter panel and quick select actions.
- */
-import { memo } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -108,7 +104,7 @@ function FilterPanelInner(p: FilterPanelProps) {
   );
 }
 
-export const FilterPanel = memo(FilterPanelInner);
+export const FilterPanel = FilterPanelInner;
 
 // ---------------------------------------------------------------------------
 // Quick Select Actions
@@ -181,7 +177,7 @@ function QuickSelectInner(p: QuickSelectProps) {
   );
 }
 
-export const QuickSelect = memo(QuickSelectInner);
+export const QuickSelect = QuickSelectInner;
 
 const styles = StyleSheet.create({
   panel: {

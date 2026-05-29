@@ -1,8 +1,3 @@
-/**
- * OnboardingProgressBar — Step progress indicator for onboarding wizard.
- */
-
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
@@ -26,7 +21,7 @@ function OnboardingProgressBarInner({
   const percent = Math.round((stepNumber / totalSteps) * 100);
 
   const fillStyle = useAnimatedStyle(() => ({
-    width: withTiming(`${(stepNumber / totalSteps) * 100}%`, { duration: 300 }),
+    transform: [{ scaleX: withTiming(stepNumber / totalSteps, { duration: 300 }) }],
   }));
 
   return (
@@ -66,7 +61,7 @@ function OnboardingProgressBarInner({
   );
 }
 
-export const OnboardingProgressBar = memo(OnboardingProgressBarInner);
+export const OnboardingProgressBar = OnboardingProgressBarInner;
 
 const styles = StyleSheet.create({
   container: {
@@ -83,8 +78,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   fill: {
+    width: '100%',
     height: '100%',
     borderRadius: Radii.sm,
+    transformOrigin: 'left center',
   },
   text: {
     ...Typography.caption,

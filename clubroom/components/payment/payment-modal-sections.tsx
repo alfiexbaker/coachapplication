@@ -9,7 +9,7 @@
  * SecurityNote — encryption assurance banner.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -34,7 +34,7 @@ export function PaymentProcessingView({ palette }: { palette: ThemeColors }) {
         Processing Payment
       </ThemedText>
       <ThemedText style={[styles.stateText, { color: palette.muted }]}>
-        Please wait while we process your payment...
+        Please wait while we process your payment…
       </ThemedText>
     </View>
   );
@@ -72,7 +72,7 @@ interface SessionSummaryCardProps {
   palette: ThemeColors;
 }
 
-export const SessionSummaryCard = memo(function SessionSummaryCard({
+export const SessionSummaryCard = function SessionSummaryCard({
   coachName,
   sessionType,
   focus,
@@ -133,7 +133,7 @@ export const SessionSummaryCard = memo(function SessionSummaryCard({
       </SurfaceCard>
     </View>
   );
-});
+};
 
 // ─── PaymentBreakdownCard ────────────────────────────────────────────────────
 
@@ -144,7 +144,7 @@ interface PaymentBreakdownCardProps {
   palette: ThemeColors;
 }
 
-export const PaymentBreakdownCard = memo(function PaymentBreakdownCard({
+export const PaymentBreakdownCard = function PaymentBreakdownCard({
   price,
   serviceFee,
   total,
@@ -177,11 +177,11 @@ export const PaymentBreakdownCard = memo(function PaymentBreakdownCard({
       </SurfaceCard>
     </View>
   );
-});
+};
 
 // ─── PaymentMethodCard ───────────────────────────────────────────────────────
 
-export const PaymentMethodCard = memo(function PaymentMethodCard({
+export const PaymentMethodCard = function PaymentMethodCard({
   palette,
   onChangeMethod,
 }: {
@@ -224,7 +224,7 @@ export const PaymentMethodCard = memo(function PaymentMethodCard({
       </SurfaceCard>
     </View>
   );
-});
+};
 
 // ─── SecurityNote ────────────────────────────────────────────────────────────
 

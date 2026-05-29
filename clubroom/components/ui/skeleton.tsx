@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect } from 'react';
 import {
   AccessibilityInfo,
   StyleSheet,
@@ -58,29 +58,32 @@ export function Skeleton({
   accessibilityLabel = 'Loading content',
 }: SkeletonProps) {
   const { colors: palette, scheme } = useTheme();
-  const [reduceMotion, setReduceMotion] = useState(false);
   const pulseOpacity = useSharedValue(1);
 
   useEffect(() => {
     let isMounted = true;
+    const applyMotionPreference = (enabled: boolean) => {
+      cancelAnimation(pulseOpacity);
+      if (enabled) {
+        pulseOpacity.set(1);
+        return;
+      }
+      pulseOpacity.set(withRepeat(withTiming(0.6, { duration: 1000 }), -1, true));
+    };
+
     AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
-      if (isMounted) setReduceMotion(enabled);
+      if (isMounted) applyMotionPreference(enabled);
     });
-    const subscription = AccessibilityInfo.addEventListener?.('reduceMotionChanged', setReduceMotion);
+    const subscription = AccessibilityInfo.addEventListener(
+      'reduceMotionChanged',
+      applyMotionPreference,
+    );
     return () => {
       isMounted = false;
-      subscription?.remove?.();
+      cancelAnimation(pulseOpacity);
+      subscription.remove();
     };
-  }, []);
-
-  useEffect(() => {
-    cancelAnimation(pulseOpacity);
-    if (reduceMotion) {
-      pulseOpacity.value = 1;
-      return;
-    }
-    pulseOpacity.value = withRepeat(withTiming(0.6, { duration: 1000 }), -1, true);
-  }, [pulseOpacity, reduceMotion]);
+  }, [pulseOpacity]);
 
   const pulseStyle = useAnimatedStyle(() => ({
     opacity: pulseOpacity.value,
@@ -126,7 +129,15 @@ export function SkeletonPill({
   style,
   accessibilityLabel = 'Loading chip',
 }: SkeletonProps) {
-  return <Skeleton height={height} width={width} radius={radius} style={style} accessibilityLabel={accessibilityLabel} />;
+  return (
+    <Skeleton
+      height={height}
+      width={width}
+      radius={radius}
+      style={style}
+      accessibilityLabel={accessibilityLabel}
+    />
+  );
 }
 
 export function SkeletonText({
@@ -137,20 +148,21 @@ export function SkeletonText({
   style,
   accessibilityLabel = 'Loading text',
 }: SkeletonTextProps) {
-  const resolvedWidths = useMemo<DimensionValue[]>(
-    () =>
-      widths && widths.length > 0
-        ? widths
-        : Array.from({ length: lines }).map((_, index) => {
-            if (index === 0) return '100%';
-            if (index === lines - 1) return '62%';
-            return `${Math.max(72, 92 - index * 8)}%` as DimensionValue;
-          }),
-    [lines, widths],
-  );
+  const resolvedWidths =
+    widths && widths.length > 0
+      ? widths
+      : Array.from({ length: lines }).map((_, index) => {
+          if (index === 0) return '100%';
+          if (index === lines - 1) return '62%';
+          return `${Math.max(72, 92 - index * 8)}%` as DimensionValue;
+        });
 
   return (
-    <View style={[styles.stack, { gap }, style]} accessibilityRole="none" accessibilityLabel={accessibilityLabel}>
+    <View
+      style={[styles.stack, { gap }, style]}
+      accessibilityRole="none"
+      accessibilityLabel={accessibilityLabel}
+    >
       {resolvedWidths.map((lineWidth, index) => (
         <Skeleton
           key={`${lineWidth}-${index}`}
@@ -182,16 +194,13 @@ export function SkeletonCluster({
   );
 }
 
-export function SkeletonRow({
-  count = 3,
-  widths,
-}: {
-  count?: number;
-  widths?: DimensionValue[];
-}) {
-  const rowWidths = widths && widths.length > 0
-    ? widths
-    : Array.from({ length: count }).map((_, idx) => `${Math.max(50, 100 - idx * 10)}%` as DimensionValue);
+export function SkeletonRow({ count = 3, widths }: { count?: number; widths?: DimensionValue[] }) {
+  const rowWidths =
+    widths && widths.length > 0
+      ? widths
+      : Array.from({ length: count }).map(
+          (_, idx) => `${Math.max(50, 100 - idx * 10)}%` as DimensionValue,
+        );
 
   return (
     <View style={styles.rowContainer} accessibilityRole="none" accessibilityLabel="Loading content">

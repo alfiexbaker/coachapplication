@@ -6,7 +6,7 @@
  * (Expo 54 / Hermes / RN 0.81).
  */
 
-import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import {
   KeyboardAvoidingView,
@@ -34,12 +34,15 @@ import { useAuth } from '@/hooks/use-auth';
 import { buildDemoCredentialRows, buildDemoRoleEntries } from '@/utils/demo-role-entry';
 import { DemoRoleEntryCard } from './login-screen-sections';
 
+import { runAsyncFinally } from '@/utils/async-control';
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type ScreenMode = 'login' | 'signup' | 'coach-signup';
 
 const LazyOnboardingScreen = lazy(() => import('./onboarding-screen'));
 const LazyCoachSignupScreen = lazy(() => import('./coach-signup-screen'));
+const MOCK_API_MODE = apiConfig.useMock;
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -63,8 +66,8 @@ export default function LoginScreen() {
   const cardTranslate = useSharedValue(24);
 
   useEffect(() => {
-    cardOpacity.value = withDelay(100, withTiming(1, { duration: 500 }));
-    cardTranslate.value = withDelay(100, withTiming(0, { duration: 500 }));
+    cardOpacity.set(withDelay(100, withTiming(1, { duration: 500 })));
+    cardTranslate.set(withDelay(100, withTiming(0, { duration: 500 })));
   }, [cardOpacity, cardTranslate]);
 
   const cardStyle = useAnimatedStyle(() => ({
@@ -73,68 +76,64 @@ export default function LoginScreen() {
   }));
 
   // ── Handlers ──────────────────────────────────────────────────────────
-  const handleLogin = useCallback(async () => {
+  const handleLogin = async () => {
     setLocalError(null);
     if (!username.trim() || !password.trim()) {
       setLocalError('Please enter your email or username and password');
       return;
     }
     setSubmitting(true);
-    try {
-      await login(username.trim(), password.trim());
-    } finally {
-      setSubmitting(false);
-    }
-  }, [username, password, login]);
 
-  const handleUsernameChange = useCallback((text: string) => {
+    await runAsyncFinally(async () => {
+      await login(username.trim(), password.trim());
+    }, () => {
+      setSubmitting(false);
+    });
+  };
+
+  const handleUsernameChange = (text: string) => {
     setUsername(text);
     if (displayError) setLocalError(null);
-  }, [displayError]);
+  };
 
-  const handlePasswordChange = useCallback((text: string) => {
+  const handlePasswordChange = (text: string) => {
     setPassword(text);
     if (displayError) setLocalError(null);
-  }, [displayError]);
+  };
 
-  const handleDemoSelect = useCallback(
-    (user: { username: string; password: string }) => {
-      setUsername(user.username);
-      setPassword(user.password);
-    },
-    [],
-  );
+  const handleDemoSelect = (user: { username: string; password: string }) => {
+    setUsername(user.username);
+    setPassword(user.password);
+  };
 
-  const handleRoleEntry = useCallback(
-    async (entry: { username: string; password: string; initialRoute?: unknown }) => {
-      if (submitting) return;
-      setLocalError(null);
-      setUsername(entry.username);
-      setPassword(entry.password);
-      setSubmitting(true);
-      try {
-        const success = await login(entry.username, entry.password);
-        if (success && entry.initialRoute) {
-          router.replace(entry.initialRoute as never);
-        }
-      } finally {
-        setSubmitting(false);
+  const handleRoleEntry = async (entry: { username: string; password: string; initialRoute?: unknown }) => {
+    if (submitting) return;
+    setLocalError(null);
+    setUsername(entry.username);
+    setPassword(entry.password);
+    setSubmitting(true);
+
+    await runAsyncFinally(async () => {
+      const success = await login(entry.username, entry.password);
+      if (success && entry.initialRoute) {
+        router.replace(entry.initialRoute as never);
       }
-    },
-    [login, submitting],
-  );
+    }, () => {
+      setSubmitting(false);
+    });
+  };
 
   const isDesktop = screenWidth >= 980;
   const canSubmit = username.trim().length > 0 && password.trim().length > 0 && !submitting;
   const demoRoleEntries = buildDemoRoleEntries(availableUsers);
   const demoCredentialRows = buildDemoCredentialRows(availableUsers);
   const showRoleEntry = __DEV__ || availableUsers.length > 0;
-  const loginHint = apiConfig.useMock
+  const loginHint = MOCK_API_MODE
     ? 'e.g. coach1 or user1'
     : 'e.g. coach1 or amelia.shaw@clubroom.demo';
   const lazyFallback = (
     <View style={[styles.lazyFallback, { backgroundColor: palette.surface }]}>
-      <ThemedText style={[styles.hint, { color: palette.muted }]}>Loading...</ThemedText>
+      <ThemedText style={[styles.hint, { color: palette.muted }]}>Loading…</ThemedText>
     </View>
   );
 
@@ -278,7 +277,7 @@ export default function LoginScreen() {
               </View>
             ) : (
               <ThemedText style={[styles.hint, { color: palette.muted }]}>
-                {apiConfig.useMock
+                {MOCK_API_MODE
                   ? 'Mock mode accepts the seeded username for the active story.'
                   : 'API mode accepts the seeded username or the seeded email.'}
               </ThemedText>

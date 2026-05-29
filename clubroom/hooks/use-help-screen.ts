@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Share } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -48,11 +48,11 @@ export function useHelpScreen() {
   const { currentUser } = useAuth();
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
 
-  const toggleFAQ = useCallback((index: number) => {
+  const toggleFAQ = (index: number) => {
     setExpandedFAQ((prev) => (prev === index ? null : index));
-  }, []);
+  };
 
-  const handleContactSupport = useCallback(() => {
+  const handleContactSupport = () => {
     logger.press('ContactSupport');
     const body = [
       'Describe the issue you need help with.',
@@ -66,14 +66,14 @@ export function useHelpScreen() {
       }),
       'Could not open your email app right now.',
     );
-  }, [currentUser?.id]);
+  };
 
-  const handleReportProblem = useCallback(() => {
+  const handleReportProblem = () => {
     logger.press('ReportProblem');
     router.push(Routes.BOOKINGS_REPORT_PROBLEM);
-  }, []);
+  };
 
-  const handleSendFeedback = useCallback(() => {
+  const handleSendFeedback = () => {
     logger.press('SendFeedback');
     void (async () => {
       const selected = await uiFeedback.choose({
@@ -106,9 +106,9 @@ export function useHelpScreen() {
         );
       }
     })();
-  }, [currentUser?.id]);
+  };
 
-  const handleShareApp = useCallback(() => {
+  const handleShareApp = () => {
     logger.press('ShareApp');
     void Share.share({
       message:
@@ -117,7 +117,7 @@ export function useHelpScreen() {
       logger.error('Failed to share app', error);
       uiFeedback.showToast('Could not open the share sheet right now.', 'error');
     });
-  }, []);
+  };
 
   return {
     currentUser,

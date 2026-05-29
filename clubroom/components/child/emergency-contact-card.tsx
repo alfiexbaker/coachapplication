@@ -1,4 +1,3 @@
-import { memo, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -20,7 +19,7 @@ interface EmergencyContactCardProps {
   onSetPrimary: () => void;
 }
 
-export const EmergencyContactCard = memo(function EmergencyContactCard({
+export const EmergencyContactCard = function EmergencyContactCard({
   contact,
   onEdit,
   onDelete,
@@ -28,7 +27,7 @@ export const EmergencyContactCard = memo(function EmergencyContactCard({
 }: EmergencyContactCardProps) {
   const { colors } = useTheme();
 
-  const handleDelete = useCallback(() => {
+  const handleDelete = () => {
     uiFeedback.alert(
       'Delete Emergency Contact',
       `Remove ${contact.name} (${contact.relationship}) as emergency contact?\n\nThis is critical safety information and should only be deleted if no longer accurate.`,
@@ -41,7 +40,7 @@ export const EmergencyContactCard = memo(function EmergencyContactCard({
         },
       ],
     );
-  }, [contact.name, contact.relationship, onDelete]);
+  };
 
   return (
     <SurfaceCard style={styles.card}>
@@ -102,7 +101,7 @@ export const EmergencyContactCard = memo(function EmergencyContactCard({
       </Row>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },

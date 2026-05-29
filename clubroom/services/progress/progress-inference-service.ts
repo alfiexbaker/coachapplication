@@ -15,6 +15,14 @@ import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('ProgressInferenceService');
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function includesText(source: string, needle: string): boolean {
+  return needle.length === 0 || new RegExp(escapeRegExp(needle)).test(source);
+}
+
 // ─── Types ───
 
 export interface CoachFocusNarrative {
@@ -77,7 +85,7 @@ export function inferCoachFocus(feedback: SessionFeedback[]): CoachFocusNarrativ
     return null;
   }
 
-  const sorted = [...feedback].sort(
+  const sorted = Array.from(feedback).toSorted(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
   const recent = sorted.slice(0, 6);
@@ -148,7 +156,7 @@ export function inferSkillTrajectories(skills: SkillLevel[]): SkillTrajectory[] 
     }
 
     const corner = mapSkillToCorner(skill.skill);
-    const sortedHistory = [...skill.history].sort(
+    const sortedHistory = Array.from(skill.history).toSorted(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
 
@@ -213,11 +221,13 @@ export function inferGoalAlignment(
     let matchingCorner: FourCornerKey | null = null;
 
     // Match by skill name overlap in recent feedback
+    const goalFirstWord = goalTitle.split(' ')[0];
     for (const entry of feedback.slice(0, 5)) {
       for (const skill of entry.skillsWorkedOn) {
+        const normalizedSkill = skill.toLowerCase();
         if (
-          goalTitle.includes(skill.toLowerCase()) ||
-          skill.toLowerCase().includes(goalTitle.split(' ')[0])
+          includesText(goalTitle, normalizedSkill) ||
+          includesText(normalizedSkill, goalFirstWord)
         ) {
           matchingSkills.push(skill);
           matchingCorner = mapSkillToCorner(skill);
@@ -228,7 +238,10 @@ export function inferGoalAlignment(
     // Match by category/corner keywords
     if (!matchingCorner) {
       for (const corner of Object.keys(CORNER_LABELS) as FourCornerKey[]) {
-        if (goalTitle.includes(corner) || goalTitle.includes(CORNER_LABELS[corner].toLowerCase())) {
+        if (
+          includesText(goalTitle, corner) ||
+          includesText(goalTitle, CORNER_LABELS[corner].toLowerCase())
+        ) {
           matchingCorner = corner;
           break;
         }
@@ -344,7 +357,7 @@ export function inferSessionPatterns(feedback: SessionFeedback[]): SessionPatter
     };
   }
 
-  const sorted = [...feedback].sort(
+  const sorted = Array.from(feedback).toSorted(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
 

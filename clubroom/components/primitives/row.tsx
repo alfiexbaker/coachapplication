@@ -11,7 +11,7 @@
  *   </Row>
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import {
   View,
   type ViewStyle,
@@ -86,7 +86,7 @@ function resolveSpacing(value: SpacingKey | number | undefined): number | undefi
   return Spacing[value];
 }
 
-export const Row = memo(function Row({
+export const Row = function Row({
   gap,
   align,
   justify,
@@ -125,4 +125,4 @@ export const Row = memo(function Row({
       {children}
     </View>
   );
-});
+};

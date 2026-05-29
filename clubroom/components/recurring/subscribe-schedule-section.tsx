@@ -1,7 +1,3 @@
-/**
- * SubscribeScheduleSection — Day, time, and frequency selectors.
- */
-import { memo } from 'react';
 import { StyleSheet, View, Platform } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -122,7 +118,7 @@ function SubscribeScheduleSectionInner({
   );
 }
 
-export const SubscribeScheduleSection = memo(SubscribeScheduleSectionInner);
+export const SubscribeScheduleSection = SubscribeScheduleSectionInner;
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.sm },

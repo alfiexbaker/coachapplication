@@ -6,7 +6,7 @@
  * Animated entry with FadeInDown. Memoized for FlatList usage.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -27,7 +27,7 @@ interface GroupConversationRowProps {
   onPress: () => void;
 }
 
-export const GroupConversationRow = memo(function GroupConversationRow({
+export const GroupConversationRow = function GroupConversationRow({
   thread,
   index,
   onPress,
@@ -53,7 +53,7 @@ export const GroupConversationRow = memo(function GroupConversationRow({
               <ThemedText type="defaultSemiBold" style={styles.coachName} numberOfLines={1}>
                 {displayName}
               </ThemedText>
-              <Chip dense>{thread.groupType || 'group'}</Chip>
+              <Chip dense label={thread.groupType || 'group'} />
             </Row>
             <ThemedText style={[styles.serviceName, { color: palette.muted }]} numberOfLines={1}>
               {thread.subtitle || thread.serviceName}
@@ -91,15 +91,16 @@ export const GroupConversationRow = memo(function GroupConversationRow({
         ) : null}
         <Row justify="between" align="center">
           <Row gap="xs" wrap>
-            <Chip dense>
-              {thread.postingAsOptions?.length
-                ? 'Post as: ' + thread.postingAsOptions.join(' / ')
-                : 'Post as yourself'}
-            </Chip>
+            <Chip
+              dense
+              label={
+                thread.postingAsOptions?.length
+                  ? 'Post as: ' + thread.postingAsOptions.join(' / ')
+                  : 'Post as yourself'
+              }
+            />
             {unreadMentions > 0 ? (
-              <Chip dense active>
-                @{unreadMentions} mentions
-              </Chip>
+              <Chip dense active label={`@${unreadMentions} mentions`} />
             ) : null}
           </Row>
           <Clickable onPress={onPress} accessibilityLabel={`Jump into ${displayName}`}>
@@ -111,7 +112,7 @@ export const GroupConversationRow = memo(function GroupConversationRow({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   groupCard: {

@@ -1,5 +1,3 @@
-import { useCallback, useMemo } from 'react';
-
 import { router } from 'expo-router';
 
 import type { Injury } from '@/constants/types';
@@ -20,7 +18,7 @@ export function useCoachAthleteHealth(athleteId: string) {
   const { currentUser } = useAuth();
   const coachId = currentUser?.id ?? '';
 
-  const load = useCallback(async () => {
+  const load = async () => {
     if (!coachId || !athleteId) {
       return err(serviceError('UNAUTHORIZED', 'Missing coach or athlete context.'));
     }
@@ -40,7 +38,7 @@ export function useCoachAthleteHealth(athleteId: string) {
     } catch (error) {
       return err(serviceError('UNKNOWN', 'Failed to load athlete health.', error));
     }
-  }, [athleteId, coachId]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen({
     load,
@@ -52,30 +50,23 @@ export function useCoachAthleteHealth(athleteId: string) {
   });
 
   const injuries = data?.injuries ?? [];
-  const activeCount = useMemo(
-    () => injuries.filter((injury) => injury.status === 'ACTIVE' || injury.status === 'RECOVERING').length,
-    [injuries],
-  );
-  const averageRecovery = useMemo(() => {
+  const activeCount = injuries.filter((injury) => injury.status === 'ACTIVE' || injury.status === 'RECOVERING').length;
+  const averageRecovery = (() => {
     const active = injuries.filter((injury) => injury.status !== 'HEALED');
     if (active.length === 0) return 100;
     return Math.round(active.reduce((sum, injury) => sum + injury.recoveryPercent, 0) / active.length);
-  }, [injuries]);
-  const timelineInjuries = useMemo(
-    () =>
-      [...injuries].sort(
-        (a, b) => new Date(b.updatedAt || b.createdAt || b.occurredAt).getTime() - new Date(a.updatedAt || a.createdAt || a.occurredAt).getTime(),
-      ),
-    [injuries],
+  })();
+  const timelineInjuries = Array.from(injuries).toSorted(
+    (a, b) => new Date(b.updatedAt || b.createdAt || b.occurredAt).getTime() - new Date(a.updatedAt || a.createdAt || a.occurredAt).getTime(),
   );
 
-  const handleOpenInjury = useCallback((injury: Injury) => {
+  const handleOpenInjury = (injury: Injury) => {
     router.push({ pathname: '/health/[id]', params: { id: injury.id } });
-  }, []);
+  };
 
-  const handleOpenEmergency = useCallback(() => {
+  const handleOpenEmergency = () => {
     router.push({ pathname: '/roster/[athleteId]/emergency', params: { athleteId } });
-  }, [athleteId]);
+  };
 
   return {
     athleteName: data?.athleteName ?? '',

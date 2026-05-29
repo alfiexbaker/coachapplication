@@ -42,16 +42,12 @@ import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
 import { normalizeForJson } from '../../repositories/p0/normalize.js';
-import {
-  generateInvoiceForBooking,
-  getBookingInvoiceContext,
-} from '../../lib/invoice-runtime.js';
+import { generateInvoiceForBooking, getBookingInvoiceContext } from '../../lib/invoice-runtime.js';
 import {
   assertCoachAvailabilitySlotOpen,
   resolveCoachAvailabilityTables,
   slotToScheduledAt,
 } from '../coach-club/availability.js';
-
 type SeedRow = Record<string, unknown>;
 type InviteRuntimeBackend = 'seed' | 'db-fixture' | 'db';
 type InviteRuntimeStore = {
@@ -59,7 +55,6 @@ type InviteRuntimeStore = {
   tables: SeedTables;
   backend: InviteRuntimeBackend;
 };
-
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
@@ -77,7 +72,6 @@ const bookingSeriesIdSchema = z.string().regex(/^rec_[A-Za-z0-9-]+$/);
 const coachIdSchema = z.string().trim().min(1);
 const INVITE_CREATE_ENDPOINT_KEY = 'POST:/v1/invites';
 const INVITE_IDEMPOTENCY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-
 async function recordInviteAudit(params: {
   request: FastifyRequest;
   action: 'invite.create' | 'invite.cancel' | 'invite.remind' | 'invite.dismiss' | 'invite.respond';
@@ -96,7 +90,6 @@ async function recordInviteAudit(params: {
     metadata: params.metadata,
   });
 }
-
 async function generateRegistrationInvoiceIfBillable(params: {
   bookingId?: string | null;
   actorUserId: string;
@@ -115,11 +108,9 @@ async function generateRegistrationInvoiceIfBillable(params: {
   });
   return generated.invoice;
 }
-
 function toSeedRows<T>(values: T[]): SeedRow[] {
   return normalizeForJson(values) as unknown as SeedRow[];
 }
-
 function mergeInviteRuntimeTables(target: SeedTables, source: SeedTables): void {
   for (const [key, rows] of Object.entries(source)) {
     if (key === 'invites' || key === 'inviteTargets' || key === 'idempotencyKeys') {
@@ -128,7 +119,6 @@ function mergeInviteRuntimeTables(target: SeedTables, source: SeedTables): void 
     target[key] = rows;
   }
 }
-
 function toOptionalDate(value: unknown): Date | null {
   const stringValue = asString(value);
   if (!stringValue) {
@@ -137,8 +127,9 @@ function toOptionalDate(value: unknown): Date | null {
   const time = Date.parse(stringValue);
   return Number.isFinite(time) ? new Date(time) : null;
 }
-
-function toInviteStatus(value: unknown): 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'REVOKED' {
+function toInviteStatus(
+  value: unknown,
+): 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'REVOKED' {
   const normalized = asString(value)?.toUpperCase();
   if (
     normalized === 'ACCEPTED' ||
@@ -150,7 +141,6 @@ function toInviteStatus(value: unknown): 'PENDING' | 'ACCEPTED' | 'DECLINED' | '
   }
   return 'PENDING';
 }
-
 async function getInviteRuntimeStore(params?: {
   athleteIds?: string[];
   authUserId?: string;
@@ -172,9 +162,15 @@ async function getInviteRuntimeStore(params?: {
     const invites = await prisma.invite.findMany({
       where: {
         inviteType: 'session_invite',
-        ...(params?.inviteId ? { id: params.inviteId } : {}),
+        ...(params?.inviteId
+          ? {
+              id: params.inviteId,
+            }
+          : {}),
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
     const inviteIds = invites.map((invite) => invite.id);
     const inviteTargets =
@@ -191,12 +187,12 @@ async function getInviteRuntimeStore(params?: {
       new Set(
         [
           params?.existingSessionId,
-          ...invites.map((invite) => invite.groupSessionId).filter(Boolean),
+          ...invites.flatMap((invite) => (invite.groupSessionId ? [invite.groupSessionId] : [])),
         ].filter((id): id is string => typeof id === 'string' && id.length > 0),
       ),
     );
     const clubIds = Array.from(
-      new Set(invites.map((invite) => invite.clubId).filter((id): id is string => Boolean(id))),
+      new Set(invites.flatMap((invite) => (invite.clubId ? [invite.clubId] : []))),
     );
     const userIds = Array.from(
       new Set(
@@ -205,7 +201,7 @@ async function getInviteRuntimeStore(params?: {
           params?.coachUserId,
           params?.parentUserId,
           ...invites.map((invite) => invite.senderUserId),
-          ...inviteTargets.map((target) => target.targetUserId).filter(Boolean),
+          ...inviteTargets.flatMap((target) => (target.targetUserId ? [target.targetUserId] : [])),
         ].filter((id): id is string => typeof id === 'string' && id.length > 0),
       ),
     );
@@ -213,11 +209,12 @@ async function getInviteRuntimeStore(params?: {
       new Set(
         [
           ...(params?.athleteIds ?? []),
-          ...inviteTargets.map((target) => target.targetAthleteId).filter(Boolean),
+          ...inviteTargets.flatMap((target) =>
+            target.targetAthleteId ? [target.targetAthleteId] : [],
+          ),
         ].filter((id): id is string => typeof id === 'string' && id.length > 0),
       ),
     );
-
     const [users, guardianChildLinks, groupSessions, clubs, idempotencyKeys] = await Promise.all([
       userIds.length > 0
         ? prisma.user.findMany({
@@ -238,7 +235,11 @@ async function getInviteRuntimeStore(params?: {
                     },
                   }
                 : {}),
-              ...(params?.parentUserId ? { guardianUserId: params.parentUserId } : {}),
+              ...(params?.parentUserId
+                ? {
+                    guardianUserId: params.parentUserId,
+                  }
+                : {}),
               deletedAt: null,
             },
           })
@@ -276,7 +277,6 @@ async function getInviteRuntimeStore(params?: {
           })
         : Promise.resolve([]),
     ]);
-
     return {
       version: null,
       backend: 'db',
@@ -298,126 +298,128 @@ async function getInviteRuntimeStore(params?: {
     backend: 'seed',
   };
 }
-
 async function commitInviteRuntimeStore(store: InviteRuntimeStore): Promise<void> {
   if (store.backend !== 'db') {
     return;
   }
-
   const prisma = getPrismaClientOrThrow();
   const invites = asRows(store.tables.invites);
   const targets = asRows(store.tables.inviteTargets);
   const idempotencyKeys = asRows(store.tables.idempotencyKeys);
-
   await prisma.$transaction(async (tx) => {
-    for (const invite of invites) {
-      const inviteId = asString(invite.id);
-      const senderUserId = asString(invite.senderUserId);
-      if (!inviteId || !senderUserId || asString(invite.inviteType) !== 'session_invite') {
-        continue;
-      }
-
-      const data = {
-        inviteType: 'session_invite',
-        senderUserId,
-        clubId: asString(invite.clubId) ?? null,
-        groupSessionId: asString(invite.groupSessionId) ?? null,
-        bookingId: asString(invite.bookingId) ?? null,
-        eventId: asString(invite.eventId) ?? null,
-        status: toInviteStatus(invite.status),
-        message: asString(invite.message) ?? null,
-        expiresAt: toOptionalDate(invite.expiresAt),
-        metadataJson: (asObject(invite.metadataJson) ?? {}) as never,
-        revokedAt: toOptionalDate(invite.revokedAt),
-        createdAt: toOptionalDate(invite.createdAt) ?? new Date(),
-        updatedAt: toOptionalDate(invite.updatedAt) ?? new Date(),
-      };
-
-      await tx.invite.upsert({
-        where: { id: inviteId },
-        create: {
-          id: inviteId,
-          ...data,
-        },
-        update: data,
-      });
-    }
-
-    for (const target of targets) {
-      const targetId = asString(target.id);
-      const inviteId = asString(target.inviteId);
-      if (!targetId || !inviteId) {
-        continue;
-      }
-
-      const data = {
-        inviteId,
-        targetUserId: asString(target.targetUserId) ?? null,
-        targetAthleteId: asString(target.targetAthleteId) ?? null,
-        targetFamilyId: asString(target.targetFamilyId) ?? null,
-        status: toInviteStatus(target.status),
-        respondedAt: toOptionalDate(target.respondedAt),
-        responsePayloadJson: (asObject(target.responsePayloadJson) ?? null) as never,
-        createdAt: toOptionalDate(target.createdAt) ?? new Date(),
-        updatedAt: toOptionalDate(target.updatedAt) ?? new Date(),
-      };
-
-      await tx.inviteTarget.upsert({
-        where: { id: targetId },
-        create: {
-          id: targetId,
-          ...data,
-        },
-        update: data,
-      });
-    }
-
-    for (const entry of idempotencyKeys) {
-      const userId = asString(entry.userId);
-      const endpointKey = asString(entry.endpointKey);
-      const idempotencyKey = asString(entry.idempotencyKey);
-      const requestHash = asString(entry.requestHash);
-      if (!userId || !endpointKey || !idempotencyKey || !requestHash) {
-        continue;
-      }
-
-      const data = {
-        id: asString(entry.id) ?? newId('idk'),
-        userId,
-        endpointKey,
-        idempotencyKey,
-        requestHash,
-        responseStatus: asNumber(entry.responseStatus) ?? 201,
-        responseBodyJson: (asObject(entry.responseBodyJson) ?? {}) as never,
-        expiresAt: toOptionalDate(entry.expiresAt) ?? new Date(Date.now() + INVITE_IDEMPOTENCY_TTL_MS),
-      };
-
-      await tx.idempotencyKey.upsert({
-        where: {
-          userId_endpointKey_idempotencyKey: {
-            userId,
-            endpointKey,
-            idempotencyKey,
+    await Promise.all(
+      invites.map((invite) => {
+        const inviteId = asString(invite.id);
+        const senderUserId = asString(invite.senderUserId);
+        if (!inviteId || !senderUserId || asString(invite.inviteType) !== 'session_invite') {
+          return Promise.resolve();
+        }
+        const data = {
+          inviteType: 'session_invite',
+          senderUserId,
+          clubId: asString(invite.clubId) ?? null,
+          groupSessionId: asString(invite.groupSessionId) ?? null,
+          bookingId: asString(invite.bookingId) ?? null,
+          eventId: asString(invite.eventId) ?? null,
+          status: toInviteStatus(invite.status),
+          message: asString(invite.message) ?? null,
+          expiresAt: toOptionalDate(invite.expiresAt),
+          metadataJson: (asObject(invite.metadataJson) ?? {}) as never,
+          revokedAt: toOptionalDate(invite.revokedAt),
+          createdAt: toOptionalDate(invite.createdAt) ?? new Date(),
+          updatedAt: toOptionalDate(invite.updatedAt) ?? new Date(),
+        };
+        return tx.invite.upsert({
+          where: {
+            id: inviteId,
           },
-        },
-        create: data,
-        update: {
-          requestHash: data.requestHash,
-          responseStatus: data.responseStatus,
-          responseBodyJson: data.responseBodyJson,
-          expiresAt: data.expiresAt,
-        },
-      });
-    }
+          create: {
+            id: inviteId,
+            ...data,
+          },
+          update: data,
+        });
+      }),
+    )
+      .then(() =>
+        Promise.all(
+          targets.map((target) => {
+            const targetId = asString(target.id);
+            const inviteId = asString(target.inviteId);
+            if (!targetId || !inviteId) {
+              return Promise.resolve();
+            }
+            const data = {
+              inviteId,
+              targetUserId: asString(target.targetUserId) ?? null,
+              targetAthleteId: asString(target.targetAthleteId) ?? null,
+              targetFamilyId: asString(target.targetFamilyId) ?? null,
+              status: toInviteStatus(target.status),
+              respondedAt: toOptionalDate(target.respondedAt),
+              responsePayloadJson: (asObject(target.responsePayloadJson) ?? null) as never,
+              createdAt: toOptionalDate(target.createdAt) ?? new Date(),
+              updatedAt: toOptionalDate(target.updatedAt) ?? new Date(),
+            };
+            return tx.inviteTarget.upsert({
+              where: {
+                id: targetId,
+              },
+              create: {
+                id: targetId,
+                ...data,
+              },
+              update: data,
+            });
+          }),
+        ),
+      )
+      .then(() =>
+        Promise.all(
+          idempotencyKeys.map((entry) => {
+            const userId = asString(entry.userId);
+            const endpointKey = asString(entry.endpointKey);
+            const idempotencyKey = asString(entry.idempotencyKey);
+            const requestHash = asString(entry.requestHash);
+            if (!userId || !endpointKey || !idempotencyKey || !requestHash) {
+              return Promise.resolve();
+            }
+            const data = {
+              id: asString(entry.id) ?? newId('idk'),
+              userId,
+              endpointKey,
+              idempotencyKey,
+              requestHash,
+              responseStatus: asNumber(entry.responseStatus) ?? 201,
+              responseBodyJson: (asObject(entry.responseBodyJson) ?? {}) as never,
+              expiresAt:
+                toOptionalDate(entry.expiresAt) ?? new Date(Date.now() + INVITE_IDEMPOTENCY_TTL_MS),
+            };
+            return tx.idempotencyKey.upsert({
+              where: {
+                userId_endpointKey_idempotencyKey: {
+                  userId,
+                  endpointKey,
+                  idempotencyKey,
+                },
+              },
+              create: data,
+              update: {
+                requestHash: data.requestHash,
+                responseStatus: data.responseStatus,
+                responseBodyJson: data.responseBodyJson,
+                expiresAt: data.expiresAt,
+              },
+            });
+          }),
+        ),
+      );
   });
 }
-
 const eventRsvpRequestSchema = z.object({
   status: z.enum(['GOING', 'MAYBE', 'NOT_GOING']),
   guestCount: z.number().int().min(0).max(10).optional(),
   notes: z.string().max(500).nullable().optional(),
 });
-
 const groupSessionQuerySchema = z.object({
   status: z.string().optional(),
   coachUserId: z.string().optional(),
@@ -428,15 +430,12 @@ const groupSessionQuerySchema = z.object({
   skillLevel: z.string().optional(),
   discover: z.coerce.boolean().optional(),
 });
-
 const groupSessionScheduleEntrySchema = z.object({
   date: z.string().trim().min(1),
   startTime: z.string().trim().min(1),
   endTime: z.string().trim().min(1),
 });
-
 const inviteAudienceTypeSchema = z.enum(['OPEN', 'CLOSED', 'SQUAD_ONLY']);
-
 const createGroupSessionRequestSchema = z.object({
   coachId: z.string().trim().min(1),
   clubId: z.string().trim().min(1).optional(),
@@ -459,22 +458,18 @@ const createGroupSessionRequestSchema = z.object({
   inviteType: inviteAudienceTypeSchema.optional(),
   registrationDeadline: z.string().datetime().optional(),
 });
-
 const bookingReviewRequestSchema = z.object({
   rating: z.number().int().min(1).max(5),
   comment: z.string().trim().max(2000).nullable().optional(),
   categories: z.record(z.number().min(1).max(5)).optional(),
 });
-
 const markGroupSessionAttendanceRequestSchema = z.object({
   date: z.string().trim().min(1),
   attended: z.boolean(),
 });
-
 const groupSessionRegistrationsQuerySchema = z.object({
   athleteIds: z.string().optional(),
 });
-
 const invitesQuerySchema = z.object({
   coachUserId: z.string().optional(),
   parentUserId: z.string().optional(),
@@ -482,8 +477,10 @@ const invitesQuerySchema = z.object({
   inviteType: inviteAudienceTypeSchema.optional(),
   squadIds: z.string().optional(),
 });
-
-function getScheduleWindow(session: SeedRow): { startsAt: string; durationMinutes: number } {
+function getScheduleWindow(session: SeedRow): {
+  startsAt: string;
+  durationMinutes: number;
+} {
   const schedule = asRows(session.scheduleJson);
   const firstWindow = schedule[0];
   const startsAt = asString(firstWindow?.startsAt);
@@ -494,25 +491,20 @@ function getScheduleWindow(session: SeedRow): { startsAt: string; durationMinute
     Number.isFinite(startTime) && Number.isFinite(endTime) && endTime > startTime
       ? Math.max(15, Math.round((endTime - startTime) / 60000))
       : 60;
-
   return {
     startsAt: startsAt ?? isoNow(),
     durationMinutes,
   };
 }
-
 function humanizeSessionValue(value: string | undefined, fallback: string): string {
   if (!value) {
     return fallback;
   }
-
   return value
     .split(/[_-]/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .flatMap((item) => (Boolean(item) ? [item.charAt(0).toUpperCase() + item.slice(1)] : []))
     .join(' ');
 }
-
 function normalizeInviteAudienceType(
   value: string | undefined,
 ): 'OPEN' | 'CLOSED' | 'SQUAD_ONLY' | undefined {
@@ -528,13 +520,11 @@ function normalizeInviteAudienceType(
   }
   return undefined;
 }
-
 function mapSessionInviteAudienceType(
   session: SeedRow | undefined,
 ): 'OPEN' | 'CLOSED' | 'SQUAD_ONLY' | undefined {
   return normalizeInviteAudienceType(asString(session?.inviteType));
 }
-
 function buildInviteProposedSlots(session: SeedRow | undefined): {
   date: string;
   startTime: string;
@@ -542,48 +532,40 @@ function buildInviteProposedSlots(session: SeedRow | undefined): {
   location?: string;
 }[] {
   const location = asString(session?.location);
-
-  return asRows(session?.scheduleJson)
-    .map((entry) => {
+  return asRows(session?.scheduleJson).flatMap((entry) => {
+    const mapped = (() => {
       const startsAt = asString(entry.startsAt);
       const endsAt = asString(entry.endsAt);
       if (!startsAt || !endsAt) {
         return null;
       }
-
       const start = new Date(startsAt);
       const end = new Date(endsAt);
       if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
         return null;
       }
-
       return {
         date: start.toISOString().slice(0, 10),
         startTime: start.toISOString().slice(11, 16),
         endTime: end.toISOString().slice(11, 16),
-        ...(location ? { location } : {}),
+        ...(location
+          ? {
+              location,
+            }
+          : {}),
       };
-    })
-    .filter(
-      (
-        slot,
-      ): slot is {
-        date: string;
-        startTime: string;
-        endTime: string;
-        location?: string;
-      } => Boolean(slot),
-    );
+    })();
+    return Boolean(mapped) ? [mapped] : [];
+  });
 }
-
 function buildInviteProposedSlotsFromMetadata(metadata: SeedRow | undefined): {
   date: string;
   startTime: string;
   endTime: string;
   location?: string;
 }[] {
-  return asRows(metadata?.proposedSlots)
-    .map((entry) => {
+  return asRows(metadata?.proposedSlots).flatMap((entry) => {
+    const mapped = (() => {
       const date = asString(entry.date);
       const startTime = asString(entry.startTime);
       const endTime = asString(entry.endTime);
@@ -591,50 +573,46 @@ function buildInviteProposedSlotsFromMetadata(metadata: SeedRow | undefined): {
       if (!date || !startTime || !endTime) {
         return null;
       }
-
       return {
         date,
         startTime,
         endTime,
-        ...(location ? { location } : {}),
+        ...(location
+          ? {
+              location,
+            }
+          : {}),
       };
-    })
-    .filter(
-      (
-        slot,
-      ): slot is {
-        date: string;
-        startTime: string;
-        endTime: string;
-        location?: string;
-      } => Boolean(slot),
-    );
+    })();
+    return Boolean(mapped) ? [mapped] : [];
+  });
 }
-
-function buildInviteLocationCoordinates(
-  metadata: SeedRow | undefined,
-): { latitude: number; longitude: number } | undefined {
+function buildInviteLocationCoordinates(metadata: SeedRow | undefined):
+  | {
+      latitude: number;
+      longitude: number;
+    }
+  | undefined {
   const locationCoordinates = asObject(metadata?.locationCoordinates);
   const latitude = asNumber(locationCoordinates?.latitude);
   const longitude = asNumber(locationCoordinates?.longitude);
   if (typeof latitude !== 'number' || typeof longitude !== 'number') {
     return undefined;
   }
-
-  return { latitude, longitude };
+  return {
+    latitude,
+    longitude,
+  };
 }
-
 function splitCsvQueryValue(value: string | undefined): string[] {
   if (!value) {
     return [];
   }
-
-  return value
-    .split(',')
-    .map((entry) => entry.trim())
-    .filter(Boolean);
+  return value.split(',').flatMap((entry) => {
+    const trimmed = entry.trim();
+    return trimmed ? [trimmed] : [];
+  });
 }
-
 function calculateSlotDurationMinutes(slot: {
   startTime: string;
   endTime: string;
@@ -649,29 +627,34 @@ function calculateSlotDurationMinutes(slot: {
   ) {
     return undefined;
   }
-
   const duration = endHour * 60 + endMinute - (startHour * 60 + startMinute);
   return duration > 0 ? duration : undefined;
 }
-
 function areMatchingInviteSlots(
-  left: { date: string; startTime: string; endTime: string },
-  right: { date: string; startTime: string; endTime: string },
+  left: {
+    date: string;
+    startTime: string;
+    endTime: string;
+  },
+  right: {
+    date: string;
+    startTime: string;
+    endTime: string;
+  },
 ): boolean {
   return (
     left.date === right.date && left.startTime === right.startTime && left.endTime === right.endTime
   );
 }
-
 function isInviteDismissed(target: SeedRow | undefined): boolean {
   const responsePayload = asObject(target?.responsePayloadJson);
   return asBoolean(responsePayload?.dismissed) === true;
 }
-
-function isTerminalInviteResponseStatus(status: string | undefined): status is 'ACCEPTED' | 'DECLINED' {
+function isTerminalInviteResponseStatus(
+  status: string | undefined,
+): status is 'ACCEPTED' | 'DECLINED' {
   return status === 'ACCEPTED' || status === 'DECLINED';
 }
-
 function buildSessionInviteView(params: {
   tables: SeedTables;
   invite: SeedRow;
@@ -696,9 +679,10 @@ function buildSessionInviteView(params: {
   const selectedSlot = asObject(selectedSlotPayload);
   const athleteIds = Array.from(
     new Set(
-      targets
-        .map((target) => asString(target.targetAthleteId))
-        .filter((athleteId): athleteId is string => Boolean(athleteId)),
+      targets.flatMap((target) => {
+        const mapped = asString(target.targetAthleteId);
+        return Boolean(mapped) ? [mapped] : [];
+      }),
     ),
   );
   const squadId = asString(linkedSession?.squadId) ?? asString(metadata?.squadId);
@@ -709,15 +693,24 @@ function buildSessionInviteView(params: {
     mapSessionInviteAudienceType(linkedSession) ??
     normalizeInviteAudienceType(asString(metadata?.inviteAudienceType));
   const locationCoordinates = buildInviteLocationCoordinates(metadata);
-
   return {
     id: inviteId,
     coachId: asString(invite.senderUserId) ?? '',
     ...((asString(metadata?.clubName) ?? asString(club?.name))
-      ? { clubName: asString(metadata?.clubName) ?? asString(club?.name) }
+      ? {
+          clubName: asString(metadata?.clubName) ?? asString(club?.name),
+        }
       : {}),
-    ...(inviteAudienceType ? { inviteType: inviteAudienceType } : {}),
-    ...(squadId ? { squadIds: [squadId] } : {}),
+    ...(inviteAudienceType
+      ? {
+          inviteType: inviteAudienceType,
+        }
+      : {}),
+    ...(squadId
+      ? {
+          squadIds: [squadId],
+        }
+      : {}),
     athleteIds,
     parentId: asString(primaryTarget?.targetUserId) ?? '',
     proposedSlots: proposedSlots.length > 0 ? proposedSlots : metadataProposedSlots,
@@ -728,7 +721,9 @@ function buildSessionInviteView(params: {
         'Session',
       ),
     ...(asString(metadata?.sessionTemplateId)
-      ? { sessionTemplateId: asString(metadata?.sessionTemplateId) }
+      ? {
+          sessionTemplateId: asString(metadata?.sessionTemplateId),
+        }
       : {}),
     focus:
       focusParts.length > 0
@@ -740,16 +735,22 @@ function buildSessionInviteView(params: {
       asString(linkedSession?.description) ??
       null,
     ...(typeof asNumber(linkedSession?.pricePerParticipantMinor) === 'number'
-      ? { price: (asNumber(linkedSession?.pricePerParticipantMinor) ?? 0) / 100 }
+      ? {
+          price: (asNumber(linkedSession?.pricePerParticipantMinor) ?? 0) / 100,
+        }
       : typeof asNumber(metadata?.priceMinor) === 'number'
-        ? { price: (asNumber(metadata?.priceMinor) ?? 0) / 100 }
+        ? {
+            price: (asNumber(metadata?.priceMinor) ?? 0) / 100,
+          }
         : {}),
     duration: durationMinutes,
     status: targetStatus,
     expiresAt: asString(invite.expiresAt) ?? isoNow(),
     createdAt: asString(invite.createdAt) ?? isoNow(),
     ...(asString(primaryTarget?.respondedAt)
-      ? { respondedAt: asString(primaryTarget?.respondedAt) }
+      ? {
+          respondedAt: asString(primaryTarget?.respondedAt),
+        }
       : {}),
     ...(selectedSlot
       ? {
@@ -758,7 +759,9 @@ function buildSessionInviteView(params: {
             startTime: asString(selectedSlot.startTime) ?? '',
             endTime: asString(selectedSlot.endTime) ?? '',
             ...(asString(selectedSlot.location)
-              ? { location: asString(selectedSlot.location) }
+              ? {
+                  location: asString(selectedSlot.location),
+                }
               : {}),
           },
         }
@@ -769,27 +772,49 @@ function buildSessionInviteView(params: {
             asString(invite.groupSessionId) ?? asString(metadata?.existingSessionId),
         }
       : {}),
-    ...(asString(metadata?.groupId) ? { groupId: asString(metadata?.groupId) } : {}),
-    ...(asString(invite.bookingId) ? { bookingId: asString(invite.bookingId) } : {}),
-    ...(isInviteDismissed(primaryTarget) ? { dismissed: true } : {}),
-    ...(asBoolean(metadata?.isRecurring) === true ? { isRecurring: true } : {}),
+    ...(asString(metadata?.groupId)
+      ? {
+          groupId: asString(metadata?.groupId),
+        }
+      : {}),
+    ...(asString(invite.bookingId)
+      ? {
+          bookingId: asString(invite.bookingId),
+        }
+      : {}),
+    ...(isInviteDismissed(primaryTarget)
+      ? {
+          dismissed: true,
+        }
+      : {}),
+    ...(asBoolean(metadata?.isRecurring) === true
+      ? {
+          isRecurring: true,
+        }
+      : {}),
     ...(typeof asNumber(metadata?.recurrenceWeeks) === 'number'
-      ? { recurrenceWeeks: asNumber(metadata?.recurrenceWeeks) }
+      ? {
+          recurrenceWeeks: asNumber(metadata?.recurrenceWeeks),
+        }
       : {}),
     ...(asString(metadata?.coverImageUrl)
-      ? { coverImageUrl: asString(metadata?.coverImageUrl) }
+      ? {
+          coverImageUrl: asString(metadata?.coverImageUrl),
+        }
       : {}),
-    ...(locationCoordinates ? { locationCoordinates } : {}),
+    ...(locationCoordinates
+      ? {
+          locationCoordinates,
+        }
+      : {}),
   };
 }
-
 const inviteProposedSlotSchema = z.object({
   date: z.string().trim().min(1),
   startTime: z.string().trim().min(1),
   endTime: z.string().trim().min(1),
   location: z.string().trim().min(1).optional(),
 });
-
 const createInviteRequestSchema = z.object({
   coachUserId: z.string().trim().min(1),
   clubName: z.string().trim().min(1).max(160).optional(),
@@ -819,16 +844,13 @@ const createInviteRequestSchema = z.object({
   currency: z.string().trim().length(3).optional(),
   idempotencyKey: z.string().trim().min(8).max(200).optional(),
 });
-
 type CreateInviteRequest = z.infer<typeof createInviteRequestSchema>;
-
 function getMutableRows(tables: SeedTables, key: string): SeedRow[] {
   if (!Array.isArray(tables[key])) {
     tables[key] = [];
   }
   return tables[key];
 }
-
 function canonicalizeJson(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(canonicalizeJson);
@@ -842,29 +864,29 @@ function canonicalizeJson(value: unknown): unknown {
   }
   return value;
 }
-
 function hashCreateInviteRequest(body: CreateInviteRequest): string {
   return crypto
     .createHash('sha256')
     .update(JSON.stringify(canonicalizeJson(body)))
     .digest('hex');
 }
-
 function assertMatchingInviteIdempotencyRequest(entry: SeedRow, requestHash: string): void {
   if (asString(entry.requestHash) !== requestHash) {
     throw conflict('Idempotency key was already used with a different invite payload');
   }
 }
-
 function findSeedCreateInviteIdempotency(params: {
   tables: SeedTables;
   authUserId: string;
   body: CreateInviteRequest;
-}): { invite: SeedRow; targets: SeedRow[]; responseStatus: number } | null {
+}): {
+  invite: SeedRow;
+  targets: SeedRow[];
+  responseStatus: number;
+} | null {
   if (!params.body.idempotencyKey) {
     return null;
   }
-
   const requestHash = hashCreateInviteRequest(params.body);
   const entry = asRows(params.tables.idempotencyKeys).find(
     (row) =>
@@ -875,19 +897,16 @@ function findSeedCreateInviteIdempotency(params: {
   if (!entry) {
     return null;
   }
-
   assertMatchingInviteIdempotencyRequest(entry, requestHash);
   const responseBody = asObject(entry.responseBodyJson);
   const inviteId = asString(responseBody?.inviteId) ?? asString(asObject(responseBody?.invite)?.id);
   if (!inviteId) {
     throw conflict('Stored invite idempotency response is no longer valid');
   }
-
   const invite = asRows(params.tables.invites).find((row) => asString(row.id) === inviteId);
   if (!invite) {
     throw conflict('Stored invite idempotency response is no longer valid');
   }
-
   return {
     invite,
     targets: asRows(params.tables.inviteTargets).filter(
@@ -896,7 +915,6 @@ function findSeedCreateInviteIdempotency(params: {
     responseStatus: asNumber(entry.responseStatus) ?? 201,
   };
 }
-
 function recordSeedCreateInviteIdempotency(params: {
   tables: SeedTables;
   authUserId: string;
@@ -907,7 +925,6 @@ function recordSeedCreateInviteIdempotency(params: {
   if (!params.body.idempotencyKey) {
     return;
   }
-
   getMutableRows(params.tables, 'idempotencyKeys').push({
     id: newId('idk'),
     userId: params.authUserId,
@@ -922,35 +939,46 @@ function recordSeedCreateInviteIdempotency(params: {
     expiresAt: new Date(Date.parse(params.now) + INVITE_IDEMPOTENCY_TTL_MS).toISOString(),
   });
 }
-
 const bookingRoutes: FastifyPluginAsync = async (app) => {
   app.get('/coaches/:coachId/reviews', async (request, reply) => {
     const coachId = coachIdSchema.parse(
-      (request.params as { coachId?: string } | undefined)?.coachId,
+      (
+        request.params as
+          | {
+              coachId?: string;
+            }
+          | undefined
+      )?.coachId,
     );
     const repository = resolveBookingReviewRepository();
-    const result = await repository.listCoachReviews({ coachUserId: coachId });
-
+    const result = await repository.listCoachReviews({
+      coachUserId: coachId,
+    });
     return reply.send({
       reviews: result.reviews,
       seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
   });
-
   app.get('/bookings', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const repository = resolveBookingRepository();
-    const statusFilter = asString((request.query as { status?: string } | undefined)?.status);
+    const statusFilter = asString(
+      (
+        request.query as
+          | {
+              status?: string;
+            }
+          | undefined
+      )?.status,
+    );
     const result = await repository.listVisibleBookings({
       authUserId,
       statusFilter,
     });
-
     return reply.send({
       bookings: result.bookings,
       total: result.bookings.length,
@@ -958,22 +986,25 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
   app.get('/bookings/:bookingId/rebook-context', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const bookingId = bookingIdSchema.parse(
-      (request.params as { bookingId?: string } | undefined)?.bookingId,
+      (
+        request.params as
+          | {
+              bookingId?: string;
+            }
+          | undefined
+      )?.bookingId,
     );
     const repository = resolveBookingRepository();
     const booking = await repository.getVisibleBookingById({
       authUserId,
       bookingId,
     });
-
     const actorIsBookedFamily =
       booking.bookedByUserId === authUserId ||
       booking.participants.some((participant) => participant.guardianUserId === authUserId);
@@ -981,7 +1012,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     if (actorIsCoachOnly) {
       throw forbidden('Only the booked family or athlete can rebook from this booking context');
     }
-
     return reply.send({
       sourceBookingId: booking.id,
       coachId: booking.coachUserId,
@@ -994,44 +1024,46 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       objectives: booking.objectives,
       priceMinor: booking.priceMinor ?? null,
       currency: booking.currency,
-      athleteIds: booking.participants
-        .filter((participant) => participant.status !== 'cancelled')
-        .map((participant) => participant.athleteId),
+      athleteIds: booking.participants.flatMap((participant) =>
+        participant.status !== 'cancelled' ? [participant.athleteId] : [],
+      ),
       requestId: request.requestId,
     });
   });
-
   app.get('/bookings/:bookingId', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const bookingId = bookingIdSchema.parse(
-      (request.params as { bookingId?: string } | undefined)?.bookingId,
+      (
+        request.params as
+          | {
+              bookingId?: string;
+            }
+          | undefined
+      )?.bookingId,
     );
-
     const repository = resolveBookingRepository();
     const booking = await repository.getVisibleBookingById({
       authUserId,
       bookingId,
     });
-
     return reply.send(booking);
   });
-
   app.post('/bookings', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const body = createBookingRequestSchema.parse(request.body);
-    const idempotentResponse = await resolveCreateBookingIdempotency({ authUserId, body });
+    const idempotentResponse = await resolveCreateBookingIdempotency({
+      authUserId,
+      body,
+    });
     if (idempotentResponse) {
       return reply.status(idempotentResponse.responseStatus).send(idempotentResponse.response);
     }
-
     const availability = await resolveCoachAvailabilityTables(body.coachUserId);
     assertCoachAvailabilitySlotOpen({
       tables: availability.tables,
@@ -1048,16 +1080,15 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     });
     return reply.status(201).send(response);
   });
-
   app.get('/booking-series', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const repository = resolveBookingSeriesRepository();
-    const result = await repository.listVisibleBookingSeries({ authUserId });
-
+    const result = await repository.listVisibleBookingSeries({
+      authUserId,
+    });
     return reply.send({
       series: result.series,
       total: result.series.length,
@@ -1065,40 +1096,45 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
   app.get('/booking-series/:seriesId', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const seriesId = bookingSeriesIdSchema.parse(
-      (request.params as { seriesId?: string } | undefined)?.seriesId,
+      (
+        request.params as
+          | {
+              seriesId?: string;
+            }
+          | undefined
+      )?.seriesId,
     );
     const repository = resolveBookingSeriesRepository();
     const series = await repository.getVisibleBookingSeriesById({
       authUserId,
       seriesId,
     });
-
     return reply.send(series);
   });
-
   app.post('/booking-series', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const body = createBookingSeriesRequestSchema.parse(request.body);
-    const idempotentResponse = await resolveCreateBookingSeriesIdempotency({ authUserId, body });
+    const idempotentResponse = await resolveCreateBookingSeriesIdempotency({
+      authUserId,
+      body,
+    });
     if (idempotentResponse) {
       return reply.status(idempotentResponse.responseStatus).send(idempotentResponse.response);
     }
-
     assertBookingSeriesOccurrencesValid(body);
-    await assertBookingSeriesCreateAccess({ authUserId, body });
-
+    await assertBookingSeriesCreateAccess({
+      authUserId,
+      body,
+    });
     const availability = await resolveCoachAvailabilityTables(body.coachUserId);
     for (const occurrence of body.occurrences) {
       assertCoachAvailabilitySlotOpen({
@@ -1109,7 +1145,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         applySchedulingRules: true,
       });
     }
-
     const repository = resolveBookingSeriesRepository();
     const response = await repository.createBookingSeries({
       authUserId,
@@ -1118,18 +1153,21 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     });
     return reply.status(201).send(response);
   });
-
   app.post('/booking-series/:seriesId/cancel', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const seriesId = bookingSeriesIdSchema.parse(
-      (request.params as { seriesId?: string } | undefined)?.seriesId,
+      (
+        request.params as
+          | {
+              seriesId?: string;
+            }
+          | undefined
+      )?.seriesId,
     );
     const body = cancelBookingSeriesRequestSchema.parse(request.body);
-
     const repository = resolveBookingSeriesRepository();
     const response = await repository.cancelBookingSeries({
       authUserId,
@@ -1137,21 +1175,23 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       seriesId,
       body,
     });
-
     return reply.send(response);
   });
-
   app.post('/booking-series/:seriesId/pause', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const seriesId = bookingSeriesIdSchema.parse(
-      (request.params as { seriesId?: string } | undefined)?.seriesId,
+      (
+        request.params as
+          | {
+              seriesId?: string;
+            }
+          | undefined
+      )?.seriesId,
     );
     const body = pauseBookingSeriesRequestSchema.parse(request.body);
-
     const repository = resolveBookingSeriesRepository();
     const response = await repository.pauseBookingSeries({
       authUserId,
@@ -1159,21 +1199,23 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       seriesId,
       body,
     });
-
     return reply.send(response);
   });
-
   app.post('/booking-series/:seriesId/resume', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const seriesId = bookingSeriesIdSchema.parse(
-      (request.params as { seriesId?: string } | undefined)?.seriesId,
+      (
+        request.params as
+          | {
+              seriesId?: string;
+            }
+          | undefined
+      )?.seriesId,
     );
     const body = resumeBookingSeriesRequestSchema.parse(request.body);
-
     const repository = resolveBookingSeriesRepository();
     const response = await repository.resumeBookingSeries({
       authUserId,
@@ -1181,21 +1223,23 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       seriesId,
       body,
     });
-
     return reply.send(response);
   });
-
   app.patch('/booking-series/:seriesId', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const seriesId = bookingSeriesIdSchema.parse(
-      (request.params as { seriesId?: string } | undefined)?.seriesId,
+      (
+        request.params as
+          | {
+              seriesId?: string;
+            }
+          | undefined
+      )?.seriesId,
     );
     const body = updateBookingSeriesRequestSchema.parse(request.body);
-
     const repository = resolveBookingSeriesRepository();
     const response = await repository.updateBookingSeries({
       authUserId,
@@ -1203,21 +1247,23 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       seriesId,
       body,
     });
-
     return reply.send(response);
   });
-
   app.post('/bookings/:bookingId/cancel', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const bookingId = bookingIdSchema.parse(
-      (request.params as { bookingId?: string } | undefined)?.bookingId,
+      (
+        request.params as
+          | {
+              bookingId?: string;
+            }
+          | undefined
+      )?.bookingId,
     );
     const body = cancelBookingRequestSchema.parse(request.body);
-
     const repository = resolveBookingRepository();
     const response = await repository.cancelBooking({
       authUserId,
@@ -1225,21 +1271,23 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       bookingId,
       body,
     });
-
     return reply.send(response);
   });
-
   app.post('/bookings/:bookingId/reopen', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const bookingId = bookingIdSchema.parse(
-      (request.params as { bookingId?: string } | undefined)?.bookingId,
+      (
+        request.params as
+          | {
+              bookingId?: string;
+            }
+          | undefined
+      )?.bookingId,
     );
     const body = reopenBookingRequestSchema.parse(request.body ?? {});
-
     const repository = resolveBookingRepository();
     const response = await repository.reopenBooking({
       authUserId,
@@ -1247,21 +1295,23 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       bookingId,
       body,
     });
-
     return reply.send(response);
   });
-
   app.post('/bookings/:bookingId/complete', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const bookingId = bookingIdSchema.parse(
-      (request.params as { bookingId?: string } | undefined)?.bookingId,
+      (
+        request.params as
+          | {
+              bookingId?: string;
+            }
+          | undefined
+      )?.bookingId,
     );
     const body = completeBookingRequestSchema.parse(request.body ?? {});
-
     const repository = resolveBookingRepository();
     const response = await repository.completeBooking({
       authUserId,
@@ -1269,25 +1319,27 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       bookingId,
       body,
     });
-
     return reply.send(response);
   });
-
   app.get('/bookings/:bookingId/reviews/me', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const bookingId = bookingIdSchema.parse(
-      (request.params as { bookingId?: string } | undefined)?.bookingId,
+      (
+        request.params as
+          | {
+              bookingId?: string;
+            }
+          | undefined
+      )?.bookingId,
     );
     const repository = resolveBookingReviewRepository();
     const result = await repository.getBookingReviewForActor({
       authUserId,
       bookingId,
     });
-
     return reply.send({
       hasReviewed: Boolean(result.review),
       review: result.review,
@@ -1295,26 +1347,28 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
   app.post('/bookings/:bookingId/reviews', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const bookingId = bookingIdSchema.parse(
-      (request.params as { bookingId?: string } | undefined)?.bookingId,
+      (
+        request.params as
+          | {
+              bookingId?: string;
+            }
+          | undefined
+      )?.bookingId,
     );
     const body = bookingReviewRequestSchema.parse(request.body ?? {});
     const repository = resolveBookingReviewRepository();
-
     try {
       const result = await repository.createBookingReview({
         authUserId,
         bookingId,
         input: body,
       });
-
       await recordAuditEvent({
         request,
         action: 'booking_review.create',
@@ -1329,7 +1383,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
           verifiedBooking: result.review.isVerifiedBooking,
         },
       });
-
       reply.code(result.reused ? 200 : 201);
       return reply.send({
         review: result.review,
@@ -1353,13 +1406,11 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       throw error;
     }
   });
-
   app.get('/group-sessions', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const query = groupSessionQuerySchema.parse(request.query ?? {});
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
     const repository = resolveGroupSessionRepository();
@@ -1375,7 +1426,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       skillLevel: asString(query.skillLevel),
       discover: query.discover,
     });
-
     return reply.send({
       groupSessions: result.sessions,
       total: result.sessions.length,
@@ -1383,110 +1433,124 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
   app.get('/group-sessions/:sessionId', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
-    const sessionId = asString((request.params as { sessionId?: string } | undefined)?.sessionId);
+    const sessionId = asString(
+      (
+        request.params as
+          | {
+              sessionId?: string;
+            }
+          | undefined
+      )?.sessionId,
+    );
     if (!sessionId) {
       throw notFound('Group session id is required');
     }
-
     const result = await resolveGroupSessionRepository().getVisibleSessionById({
       authUserId,
       isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
       sessionId,
     });
-
     return reply.send({
       groupSession: result.session,
       seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
   });
-
   app.post('/group-sessions', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const result = await resolveGroupSessionRepository().createSession({
       authUserId,
       isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
       body: createGroupSessionRequestSchema.parse(request.body ?? {}),
     });
-
     return reply.status(201).send({
       groupSession: result.session,
       seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
   });
-
   app.patch('/group-sessions/:sessionId/publish', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
-    const sessionId = asString((request.params as { sessionId?: string } | undefined)?.sessionId);
+    const sessionId = asString(
+      (
+        request.params as
+          | {
+              sessionId?: string;
+            }
+          | undefined
+      )?.sessionId,
+    );
     if (!sessionId) {
       throw notFound('Group session id is required');
     }
-
     const result = await resolveGroupSessionRepository().publishSession({
       authUserId,
       isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
       sessionId,
     });
-
     return reply.send({
       groupSession: result.session,
       seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
   });
-
   app.patch('/group-sessions/:sessionId/cancel', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
-    const sessionId = asString((request.params as { sessionId?: string } | undefined)?.sessionId);
+    const sessionId = asString(
+      (
+        request.params as
+          | {
+              sessionId?: string;
+            }
+          | undefined
+      )?.sessionId,
+    );
     if (!sessionId) {
       throw notFound('Group session id is required');
     }
-
     const result = await resolveGroupSessionRepository().cancelSession({
       authUserId,
       isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
       sessionId,
       requestId: request.requestId,
     });
-
     return reply.send({
       groupSession: result.session,
       seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
   });
-
   app.post('/group-sessions/:sessionId/register', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
-    const sessionId = asString((request.params as { sessionId?: string } | undefined)?.sessionId);
+    const sessionId = asString(
+      (
+        request.params as
+          | {
+              sessionId?: string;
+            }
+          | undefined
+      )?.sessionId,
+    );
     if (!sessionId) {
       throw notFound('Group session id is required');
     }
-
     const body = registerGroupSessionRequestSchema.parse(request.body);
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
     if (!isPrivilegedAdmin && body.parentUserId && body.parentUserId !== authUserId) {
@@ -1505,7 +1569,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       bookingId: result.booking?.id,
       actorUserId: authUserId,
     });
-
     return reply.send({
       registration: {
         id: result.registration.id,
@@ -1532,24 +1595,28 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
   app.get('/group-sessions/:sessionId/roster', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
-    const sessionId = asString((request.params as { sessionId?: string } | undefined)?.sessionId);
+    const sessionId = asString(
+      (
+        request.params as
+          | {
+              sessionId?: string;
+            }
+          | undefined
+      )?.sessionId,
+    );
     if (!sessionId) {
       throw notFound('Group session id is required');
     }
-
     const result = await resolveGroupSessionRepository().listSessionRoster({
       authUserId,
       isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
       sessionId,
     });
-
     return reply.send({
       session: result.session,
       registrations: result.registrations,
@@ -1558,42 +1625,47 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
   app.delete('/group-session-registrations/:registrationId', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const registrationId = asString(
-      (request.params as { registrationId?: string } | undefined)?.registrationId,
+      (
+        request.params as
+          | {
+              registrationId?: string;
+            }
+          | undefined
+      )?.registrationId,
     );
     if (!registrationId) {
       throw notFound('Registration id is required');
     }
-
     await resolveGroupSessionRepository().cancelRegistration({
       authUserId,
       isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
       registrationId,
     });
-
     return reply.status(204).send();
   });
-
   app.patch('/group-session-registrations/:registrationId/attendance', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const registrationId = asString(
-      (request.params as { registrationId?: string } | undefined)?.registrationId,
+      (
+        request.params as
+          | {
+              registrationId?: string;
+            }
+          | undefined
+      )?.registrationId,
     );
     if (!registrationId) {
       throw notFound('Registration id is required');
     }
-
     const body = markGroupSessionAttendanceRequestSchema.parse(request.body ?? {});
     const result = await resolveGroupSessionRepository().markAttendance({
       authUserId,
@@ -1618,32 +1690,27 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         registrationStatus: result.registration.status,
       },
     });
-
     return reply.send({
       registration: result.registration,
       seedVersion: result.dataVersion,
       requestId: request.requestId,
     });
   });
-
   app.get('/group-session-registrations', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const query = groupSessionRegistrationsQuerySchema.parse(request.query ?? {});
     const athleteIds = splitCsvQueryValue(asString(query.athleteIds));
     if (athleteIds.length === 0) {
       throw badRequest('athleteIds is required');
     }
-
     const result = await resolveGroupSessionRepository().listRegistrationsForAthleteIds({
       authUserId,
       isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
       athleteIds,
     });
-
     return reply.send({
       registrations: result.registrations,
       total: result.registrations.length,
@@ -1651,19 +1718,18 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
   app.get('/invites', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const query = invitesQuerySchema.parse(request.query ?? {});
     const requestedCoachUserId = asString(query.coachUserId);
     const requestedParentUserId = asString(query.parentUserId);
     const requestedGroupId = asString(query.groupId);
     const requestedInviteType = normalizeInviteAudienceType(asString(query.inviteType));
     const requestedSquadIds = splitCsvQueryValue(asString(query.squadIds));
+    const requestedSquadIdSet = new Set(requestedSquadIds);
     if (
       !requestedCoachUserId &&
       !requestedParentUserId &&
@@ -1675,7 +1741,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     if (requestedCoachUserId && requestedParentUserId) {
       throw badRequest('coachUserId and parentUserId cannot be combined');
     }
-
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
     const store = await getInviteRuntimeStore({
       coachUserId: requestedCoachUserId,
@@ -1683,33 +1748,34 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     });
     const invites = asRows(store.tables.invites);
     const targets = asRows(store.tables.inviteTargets);
-
     if (requestedCoachUserId) {
       if (!isPrivilegedAdmin && requestedCoachUserId !== authUserId) {
         throw forbidden('coachUserId must match authenticated user');
       }
-
       const rows = invites
-        .filter((invite) => asString(invite.senderUserId) === requestedCoachUserId)
-        .map((invite) => {
+        .flatMap((invite) => {
+          if (asString(invite.senderUserId) !== requestedCoachUserId) {
+            return [];
+          }
           const inviteId = asString(invite.id);
           const inviteTargets = targets.filter((target) => asString(target.inviteId) === inviteId);
-          return buildSessionInviteView({
+          const view = buildSessionInviteView({
             tables: store.tables,
             invite,
             targets: inviteTargets,
           });
+          if (
+            !view.id ||
+            (requestedGroupId && view.groupId !== requestedGroupId) ||
+            (requestedInviteType && view.inviteType !== requestedInviteType) ||
+            (requestedSquadIds.length > 0 &&
+              !view.squadIds?.some((squadId) => requestedSquadIdSet.has(squadId)))
+          ) {
+            return [];
+          }
+          return [view];
         })
-        .filter((invite) => invite.id)
-        .filter((invite) => !requestedGroupId || invite.groupId === requestedGroupId)
-        .filter((invite) => !requestedInviteType || invite.inviteType === requestedInviteType)
-        .filter(
-          (invite) =>
-            requestedSquadIds.length === 0 ||
-            invite.squadIds?.some((squadId) => requestedSquadIds.includes(squadId)),
-        )
         .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
-
       return reply.send({
         invites: rows,
         total: rows.length,
@@ -1717,11 +1783,9 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         requestId: request.requestId,
       });
     }
-
     if (requestedParentUserId && !isPrivilegedAdmin && requestedParentUserId !== authUserId) {
       throw forbidden('parentUserId must match authenticated user');
     }
-
     const rowMap = new Map<string, ReturnType<typeof buildSessionInviteView>>();
     const addInviteRow = (params: {
       invite: SeedRow;
@@ -1744,11 +1808,10 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       }
       if (
         requestedSquadIds.length > 0 &&
-        (!row.squadIds || !row.squadIds.some((squadId) => requestedSquadIds.includes(squadId)))
+        (!row.squadIds || !row.squadIds.some((squadId) => requestedSquadIdSet.has(squadId)))
       ) {
         return;
       }
-
       rowMap.set(
         row.id,
         params.overrideParentUserId
@@ -1760,14 +1823,12 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
           : row,
       );
     };
-
     const visibleParentUserId = requestedParentUserId ?? authUserId;
     for (const invite of invites) {
       const inviteId = asString(invite.id);
       if (!inviteId) {
         continue;
       }
-
       const inviteTargets = targets.filter((target) => asString(target.inviteId) === inviteId);
       const targetedRows = inviteTargets.filter(
         (target) => asString(target.targetUserId) === visibleParentUserId,
@@ -1777,7 +1838,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         invite,
         targets: inviteTargets,
       });
-
       if (requestedParentUserId) {
         if (targetedRows.length > 0) {
           if (!isInviteDismissed(targetedRows[0])) {
@@ -1788,22 +1848,26 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
           }
           continue;
         }
-
         if (
           requestedInviteType === 'SQUAD_ONLY' &&
           requestedSquadIds.length > 0 &&
-          inviteView.squadIds?.some((squadId) => requestedSquadIds.includes(squadId))
+          inviteView.squadIds?.some((squadId) => requestedSquadIdSet.has(squadId))
         ) {
           addInviteRow({
             invite,
             inviteTargets:
-              inviteTargets.length > 0 ? inviteTargets : [{ targetUserId: visibleParentUserId }],
+              inviteTargets.length > 0
+                ? inviteTargets
+                : [
+                    {
+                      targetUserId: visibleParentUserId,
+                    },
+                  ],
             overrideParentUserId: visibleParentUserId,
           });
         }
         continue;
       }
-
       const isOwner = asString(invite.senderUserId) === authUserId;
       if (isOwner) {
         addInviteRow({
@@ -1812,7 +1876,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         });
         continue;
       }
-
       if (targetedRows.length > 0) {
         if (!isInviteDismissed(targetedRows[0])) {
           addInviteRow({
@@ -1822,20 +1885,24 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         }
         continue;
       }
-
       if (requestedInviteType === 'OPEN') {
         addInviteRow({
           invite,
-          inviteTargets: inviteTargets.length > 0 ? inviteTargets : [{ targetUserId: authUserId }],
+          inviteTargets:
+            inviteTargets.length > 0
+              ? inviteTargets
+              : [
+                  {
+                    targetUserId: authUserId,
+                  },
+                ],
           overrideParentUserId: authUserId,
         });
       }
     }
-
     const rows = Array.from(rowMap.values()).sort(
       (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
     );
-
     return reply.send({
       invites: rows,
       total: rows.length,
@@ -1843,13 +1910,11 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
   app.post('/invites', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
     const body = createInviteRequestSchema.parse(request.body ?? {});
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
     if (!isPrivilegedAdmin && body.coachUserId !== authUserId) {
@@ -1867,7 +1932,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       });
       throw forbidden('coachUserId must match authenticated user');
     }
-
     const store = await getInviteRuntimeStore({
       athleteIds: body.athleteIds,
       authUserId,
@@ -1891,28 +1955,27 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         requestId: request.requestId,
       });
     }
-
     const groupSessionRepository = resolveGroupSessionRepository();
     const users = asRows(store.tables.users);
     const coachExists = users.some((row) => asString(row.id) === body.coachUserId);
     if (!coachExists) {
-      throw notFound('Coach user not found', { coachUserId: body.coachUserId });
+      throw notFound('Coach user not found', {
+        coachUserId: body.coachUserId,
+      });
     }
-
     const parentExists = users.some((row) => asString(row.id) === body.parentUserId);
     if (!parentExists) {
-      throw notFound('Parent user not found', { parentUserId: body.parentUserId });
+      throw notFound('Parent user not found', {
+        parentUserId: body.parentUserId,
+      });
     }
-
     const now = isoNow();
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + (body.expiresInDays ?? 7));
-
     const guardianLinks = asRows(store.tables.guardianChildLinks);
     const linkedGroupSession = body.existingSessionId
       ? await groupSessionRepository.findSessionById(body.existingSessionId)
       : null;
-
     const targetsToCreate = body.athleteIds.map((athleteId) => {
       const guardianLink = guardianLinks.find(
         (row) =>
@@ -1922,13 +1985,11 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       if (!guardianLink) {
         throw badRequest('Each athleteId must belong to the provided parentUserId');
       }
-
       return {
         athleteId,
         familyId: asString(guardianLink.familyId) ?? null,
       };
     });
-
     const seenSlots = new Set<string>();
     for (const slot of body.proposedSlots) {
       const slotKey = `${slot.date}_${slot.startTime}_${slot.endTime}`;
@@ -1937,7 +1998,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       }
       seenSlots.add(slotKey);
     }
-
     if (!linkedGroupSession) {
       const availability = await resolveCoachAvailabilityTables(body.coachUserId);
       mergeInviteRuntimeTables(store.tables, availability.tables);
@@ -1954,7 +2014,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         });
       }
     }
-
     const inviteId = newId('inv');
     const inviteRow: SeedRow = {
       id: inviteId,
@@ -1991,7 +2050,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       updatedAt: now,
     };
     asRows(store.tables.invites).push(inviteRow);
-
     const inviteTargets = asRows(store.tables.inviteTargets);
     const createdTargets = targetsToCreate.map(({ athleteId, familyId }) => {
       const targetRow: SeedRow = {
@@ -2009,7 +2067,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       inviteTargets.push(targetRow);
       return targetRow;
     });
-
     await recordInviteAudit({
       request,
       action: 'invite.create',
@@ -2023,7 +2080,10 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         inviteAudienceType: body.inviteType ?? 'OPEN',
         groupId: body.groupId ?? null,
         existingSessionId: body.existingSessionId ?? null,
-        targetIds: createdTargets.map((target) => asString(target.id)).filter(Boolean),
+        targetIds: createdTargets.flatMap((target) => {
+          const targetId = asString(target.id);
+          return targetId ? [targetId] : [];
+        }),
       },
     });
     recordSeedCreateInviteIdempotency({
@@ -2034,7 +2094,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       now,
     });
     await commitInviteRuntimeStore(store);
-
     return reply.status(201).send({
       invite: buildSessionInviteView({
         tables: store.tables,
@@ -2045,33 +2104,40 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
   app.get('/invites/:inviteId', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
-    const inviteId = asString((request.params as { inviteId?: string } | undefined)?.inviteId);
+    const inviteId = asString(
+      (
+        request.params as
+          | {
+              inviteId?: string;
+            }
+          | undefined
+      )?.inviteId,
+    );
     if (!inviteId) {
       throw notFound('Invite id is required');
     }
-
-    const store = await getInviteRuntimeStore({ inviteId });
+    const store = await getInviteRuntimeStore({
+      inviteId,
+    });
     const invites = asRows(store.tables.invites);
     const targets = asRows(store.tables.inviteTargets);
     const invite = invites.find((row) => asString(row.id) === inviteId);
     if (!invite) {
-      throw notFound('Invite not found', { inviteId });
+      throw notFound('Invite not found', {
+        inviteId,
+      });
     }
-
     const inviteTargets = targets.filter((row) => asString(row.inviteId) === inviteId);
     const isOwner = asString(invite.senderUserId) === authUserId;
     const visibleTargets = inviteTargets.filter((row) => asString(row.targetUserId) === authUserId);
     if (!isOwner && visibleTargets.length === 0) {
       throw forbidden('Invite does not belong to authenticated user');
     }
-
     return reply.send({
       invite: buildSessionInviteView({
         tables: store.tables,
@@ -2082,26 +2148,34 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
   app.delete('/invites/:inviteId', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
-    const inviteId = asString((request.params as { inviteId?: string } | undefined)?.inviteId);
+    const inviteId = asString(
+      (
+        request.params as
+          | {
+              inviteId?: string;
+            }
+          | undefined
+      )?.inviteId,
+    );
     if (!inviteId) {
       throw notFound('Invite id is required');
     }
-
-    const store = await getInviteRuntimeStore({ inviteId });
+    const store = await getInviteRuntimeStore({
+      inviteId,
+    });
     const invites = asRows(store.tables.invites);
     const targets = asRows(store.tables.inviteTargets);
     const invite = invites.find((row) => asString(row.id) === inviteId);
     if (!invite) {
-      throw notFound('Invite not found', { inviteId });
+      throw notFound('Invite not found', {
+        inviteId,
+      });
     }
-
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
     const isOwner = asString(invite.senderUserId) === authUserId;
     if (!isOwner && !isPrivilegedAdmin) {
@@ -2109,7 +2183,9 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         request,
         action: 'invite.cancel',
         resourceId: inviteId,
-        subjectUserId: asString(targets.find((target) => asString(target.inviteId) === inviteId)?.targetUserId),
+        subjectUserId: asString(
+          targets.find((target) => asString(target.inviteId) === inviteId)?.targetUserId,
+        ),
         result: 'DENY',
         metadata: {
           reason: 'not_owner_or_admin',
@@ -2119,22 +2195,18 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       });
       throw forbidden('Invite does not belong to authenticated user');
     }
-
     const now = isoNow();
     const previousStatus = asString(invite.status) ?? null;
     invite.status = 'EXPIRED';
     invite.revokedAt = now;
     invite.updatedAt = now;
-
     const inviteTargets = targets.filter((target) => asString(target.inviteId) === inviteId);
-    inviteTargets
-      .forEach((target) => {
-        if (asString(target.status) === 'PENDING') {
-          target.status = 'EXPIRED';
-        }
-        target.updatedAt = now;
-      });
-
+    inviteTargets.forEach((target) => {
+      if (asString(target.status) === 'PENDING') {
+        target.status = 'EXPIRED';
+      }
+      target.updatedAt = now;
+    });
     await recordInviteAudit({
       request,
       action: 'invite.cancel',
@@ -2144,33 +2216,46 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       metadata: {
         previousStatus,
         status: asString(invite.status) ?? null,
-        targetIds: inviteTargets.map((target) => asString(target.id)).filter(Boolean),
-        targetUserIds: inviteTargets.map((target) => asString(target.targetUserId)).filter(Boolean),
+        targetIds: inviteTargets.flatMap((target) => {
+          const targetId = asString(target.id);
+          return targetId ? [targetId] : [];
+        }),
+        targetUserIds: inviteTargets.flatMap((target) => {
+          const targetUserId = asString(target.targetUserId);
+          return targetUserId ? [targetUserId] : [];
+        }),
       },
     });
     await commitInviteRuntimeStore(store);
-
     return reply.status(204).send();
   });
-
   app.post('/invites/:inviteId/remind', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
-    const inviteId = asString((request.params as { inviteId?: string } | undefined)?.inviteId);
+    const inviteId = asString(
+      (
+        request.params as
+          | {
+              inviteId?: string;
+            }
+          | undefined
+      )?.inviteId,
+    );
     if (!inviteId) {
       throw notFound('Invite id is required');
     }
-
-    const store = await getInviteRuntimeStore({ inviteId });
+    const store = await getInviteRuntimeStore({
+      inviteId,
+    });
     const invites = asRows(store.tables.invites);
     const invite = invites.find((row) => asString(row.id) === inviteId);
     if (!invite) {
-      throw notFound('Invite not found', { inviteId });
+      throw notFound('Invite not found', {
+        inviteId,
+      });
     }
-
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
     const isOwner = asString(invite.senderUserId) === authUserId;
     if (!isOwner && !isPrivilegedAdmin) {
@@ -2190,7 +2275,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     if (asString(invite.revokedAt) || asString(invite.status) !== 'PENDING') {
       throw badRequest('Only pending invites can be reminded');
     }
-
     const now = isoNow();
     const metadata = asObject(invite.metadataJson) ?? {};
     invite.metadataJson = {
@@ -2199,7 +2283,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       reminderCount: (asNumber(metadata.reminderCount) ?? 0) + 1,
     };
     invite.updatedAt = now;
-
     await recordInviteAudit({
       request,
       action: 'invite.remind',
@@ -2212,27 +2295,34 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       },
     });
     await commitInviteRuntimeStore(store);
-
     return reply.status(204).send();
   });
-
   app.post('/invites/:inviteId/dismiss', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
-    const inviteId = asString((request.params as { inviteId?: string } | undefined)?.inviteId);
+    const inviteId = asString(
+      (
+        request.params as
+          | {
+              inviteId?: string;
+            }
+          | undefined
+      )?.inviteId,
+    );
     if (!inviteId) {
       throw notFound('Invite id is required');
     }
-
-    const store = await getInviteRuntimeStore({ inviteId });
+    const store = await getInviteRuntimeStore({
+      inviteId,
+    });
     const invite = asRows(store.tables.invites).find((row) => asString(row.id) === inviteId);
     if (!invite) {
-      throw notFound('Invite not found', { inviteId });
+      throw notFound('Invite not found', {
+        inviteId,
+      });
     }
-
     const visibleTargets = asRows(store.tables.inviteTargets).filter(
       (row) => asString(row.inviteId) === inviteId && asString(row.targetUserId) === authUserId,
     );
@@ -2249,7 +2339,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       });
       throw forbidden('Invite does not belong to authenticated user');
     }
-
     const now = isoNow();
     visibleTargets.forEach((target) => {
       const responsePayload = asObject(target.responsePayloadJson) ?? {};
@@ -2260,7 +2349,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       };
       target.updatedAt = now;
     });
-
     await recordInviteAudit({
       request,
       action: 'invite.dismiss',
@@ -2269,37 +2357,46 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       result: 'SUCCESS',
       metadata: {
         status: asString(invite.status) ?? null,
-        targetIds: visibleTargets.map((target) => asString(target.id)).filter(Boolean),
+        targetIds: visibleTargets.flatMap((target) => {
+          const targetId = asString(target.id);
+          return targetId ? [targetId] : [];
+        }),
       },
     });
     await commitInviteRuntimeStore(store);
-
     return reply.status(204).send();
   });
-
   app.post('/invites/:inviteId/respond', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
-    const inviteId = asString((request.params as { inviteId?: string }).inviteId);
+    const inviteId = asString(
+      (
+        request.params as {
+          inviteId?: string;
+        }
+      ).inviteId,
+    );
     if (!inviteId) {
       throw notFound('Invite id is required');
     }
     const body = inviteResponseRequestSchema.parse(request.body);
-
-    const store = await getInviteRuntimeStore({ inviteId, parentUserId: authUserId });
+    const store = await getInviteRuntimeStore({
+      inviteId,
+      parentUserId: authUserId,
+    });
     const invites = asRows(store.tables.invites);
     const targets = asRows(store.tables.inviteTargets);
     const invite = invites.find((row) => asString(row.id) === inviteId);
     if (!invite) {
-      throw notFound('Invite not found', { inviteId });
+      throw notFound('Invite not found', {
+        inviteId,
+      });
     }
     if (asString(invite.revokedAt) || asString(invite.status) === 'EXPIRED') {
       throw badRequest('Invite has expired');
     }
-
     const visibleTargets = targets.filter(
       (row) => asString(row.inviteId) === inviteId && asString(row.targetUserId) === authUserId,
     );
@@ -2317,7 +2414,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       });
       throw forbidden('Invite does not belong to authenticated user');
     }
-
     const now = isoNow();
     const existingBookingId = asString(invite.bookingId);
     const visibleTargetStatuses = visibleTargets.map(
@@ -2385,7 +2481,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       });
       throw conflict('Invite response has already been recorded');
     }
-
     let registrationId: string | null = null;
     let registrationStatus:
       | 'REGISTERED'
@@ -2399,43 +2494,54 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     const metadata = asObject(invite.metadataJson);
     if (body.response === 'ACCEPTED') {
       if (groupSessionId) {
-        const linkedSession = await resolveGroupSessionRepository().findSessionById(groupSessionId);
+        const groupSessionRepository = resolveGroupSessionRepository();
+        const linkedSession = await groupSessionRepository.findSessionById(groupSessionId);
         if (!linkedSession) {
-          throw notFound('Linked group session not found', { groupSessionId });
-        }
-
-        for (const visibleTarget of visibleTargets) {
-          const targetAthleteId = asString(visibleTarget.targetAthleteId);
-          if (!targetAthleteId) {
-            continue;
-          }
-
-          const registrationResult = await resolveGroupSessionRepository().registerAthlete({
-            authUserId,
-            isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
-            requestId: request.requestId,
-            sessionId: groupSessionId,
-            athleteId: targetAthleteId,
-            bookedByUserId: authUserId,
-            note: 'Accepted via /v1/invites/:inviteId/respond',
+          throw notFound('Linked group session not found', {
+            groupSessionId,
           });
-
-          if (!registrationId) {
-            registrationId = registrationResult.registration.id;
-            registrationStatus = registrationResult.registration.status;
-          }
-          booking = booking ?? registrationResult.booking;
         }
-
+        const targetAthleteIds = visibleTargets.flatMap((visibleTarget) => {
+          const targetAthleteId = asString(visibleTarget.targetAthleteId);
+          return targetAthleteId ? [targetAthleteId] : [];
+        });
+        const registrationResults: Array<
+          Awaited<ReturnType<typeof groupSessionRepository.registerAthlete>>
+        > = [];
+        await targetAthleteIds.reduce(
+          (chain, targetAthleteId) =>
+            chain.then(() =>
+              groupSessionRepository
+                .registerAthlete({
+                  authUserId,
+                  isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+                  requestId: request.requestId,
+                  sessionId: groupSessionId,
+                  athleteId: targetAthleteId,
+                  bookedByUserId: authUserId,
+                  note: 'Accepted via /v1/invites/:inviteId/respond',
+                })
+                .then((registrationResult) => {
+                  registrationResults.push(registrationResult);
+                }),
+            ),
+          Promise.resolve(),
+        );
+        const firstRegistration = registrationResults[0];
+        if (firstRegistration) {
+          registrationId = firstRegistration.registration.id;
+          registrationStatus = firstRegistration.registration.status;
+        }
+        booking = registrationResults.find((result) => result.booking)?.booking ?? null;
         invite.bookingId = booking?.id ?? null;
       } else {
-        const athleteIds = visibleTargets
-          .map((target) => asString(target.targetAthleteId))
-          .filter((athleteId): athleteId is string => Boolean(athleteId));
+        const athleteIds = visibleTargets.flatMap((target) => {
+          const mapped = asString(target.targetAthleteId);
+          return Boolean(mapped) ? [mapped] : [];
+        });
         if (athleteIds.length === 0) {
           throw badRequest('Invite is missing athlete targets');
         }
-
         const selectedSlot = body.selectedSlot ?? buildInviteProposedSlotsFromMetadata(metadata)[0];
         if (!selectedSlot) {
           throw badRequest('A selected slot is required to accept an invite');
@@ -2447,7 +2553,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         ) {
           throw badRequest('Selected slot must match one of the invite proposed slots');
         }
-
         const durationMinutes =
           calculateSlotDurationMinutes(selectedSlot) ?? asNumber(metadata?.durationMinutes) ?? 60;
         const coachUserId = asString(invite.senderUserId) ?? '';
@@ -2484,7 +2589,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         invite.bookingId = booking.id;
       }
     }
-
     visibleTargets.forEach((target) => {
       const responsePayload = asObject(target.responsePayloadJson) ?? {};
       target.status = body.response;
@@ -2494,13 +2598,16 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         response: body.response.toLowerCase(),
         source: 'api-runtime',
         dismissed: false,
-        ...(body.selectedSlot ? { selectedSlot: body.selectedSlot } : {}),
+        ...(body.selectedSlot
+          ? {
+              selectedSlot: body.selectedSlot,
+            }
+          : {}),
       };
       target.updatedAt = now;
     });
     invite.status = body.response;
     invite.updatedAt = now;
-
     await recordInviteAudit({
       request,
       action: 'invite.respond',
@@ -2516,11 +2623,13 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
         bookingId: asString(invite.bookingId) ?? booking?.id ?? null,
         registrationId,
         registrationStatus,
-        targetIds: visibleTargets.map((target) => asString(target.id)).filter(Boolean),
+        targetIds: visibleTargets.flatMap((target) => {
+          const targetId = asString(target.id);
+          return targetId ? [targetId] : [];
+        }),
       },
     });
     await commitInviteRuntimeStore(store);
-
     return reply.send({
       invite: buildSessionInviteView({
         tables: store.tables,
@@ -2540,28 +2649,32 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
   app.post('/events/:eventId/rsvp', async (request, reply) => {
     const authUserId = request.auth?.userId;
     if (!authUserId) {
       throw forbidden('Authenticated user is required');
     }
-
-    const eventId = asString((request.params as { eventId?: string }).eventId);
+    const eventId = asString(
+      (
+        request.params as {
+          eventId?: string;
+        }
+      ).eventId,
+    );
     if (!eventId) {
       throw notFound('Event id is required');
     }
     const body = eventRsvpRequestSchema.parse(request.body);
-
     const store = getMarketplaceSeedStore();
     const events = asRows(store.tables.clubEvents);
     const rsvps = asRows(store.tables.eventRsvps);
     const memberships = asRows(store.tables.clubMemberships);
     const event = events.find((row) => asString(row.id) === eventId);
     if (!event) {
-      throw notFound('Club event not found', { eventId });
+      throw notFound('Club event not found', {
+        eventId,
+      });
     }
-
     const eventClubId = asString(event.clubId);
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
     const hasClubMembership = memberships.some(
@@ -2573,7 +2686,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     if (!isPrivilegedAdmin && !hasClubMembership) {
       throw forbidden('User is not a member of event club');
     }
-
     const now = isoNow();
     let row = rsvps.find(
       (item) => asString(item.clubEventId) === eventId && asString(item.userId) === authUserId,
@@ -2598,7 +2710,6 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       row.respondedAt = now;
       row.updatedAt = now;
     }
-
     return reply.send({
       rsvp: row,
       requestId: request.requestId,
@@ -2606,5 +2717,4 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 };
-
 export default bookingRoutes;

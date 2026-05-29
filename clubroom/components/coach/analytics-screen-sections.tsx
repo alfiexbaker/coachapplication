@@ -1,21 +1,14 @@
-/**
- * Extracted sub-components for CoachAnalyticsScreen.
- *
- * AnalyticsStatCard — single stat card (sessions, clients, rating, revenue).
- * TopSkillsSection — ranked skills list.
- * ScheduleInsightsSection — busiest day insight.
- */
-
-import { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
-import { DemoBanner, isDemoMode } from '@/utils/demo-mode';
+import { DemoBanner } from '@/utils/demo-mode';
+import { isDemoMode } from '@/utils/demo-mode-helpers';
+import { styles } from './analytics-screen-styles';
 
 // ─── AnalyticsStatCard ───────────────────────────────────────────────────────
 
@@ -30,7 +23,7 @@ interface AnalyticsStatCardProps {
   palette: ThemeColors;
 }
 
-export const AnalyticsStatCard = memo(function AnalyticsStatCard({
+export const AnalyticsStatCard = function AnalyticsStatCard({
   icon,
   iconColor,
   value,
@@ -55,7 +48,7 @@ export const AnalyticsStatCard = memo(function AnalyticsStatCard({
       </Row>
     </SurfaceCard>
   );
-});
+};
 
 // ─── TopSkillsSection ────────────────────────────────────────────────────────
 
@@ -64,7 +57,7 @@ interface TopSkillsSectionProps {
   palette: ThemeColors;
 }
 
-export const TopSkillsSection = memo(function TopSkillsSection({
+const renderTopSkillsSection = function renderTopSkillsSection({
   topSkills,
   palette,
 }: TopSkillsSectionProps) {
@@ -103,7 +96,8 @@ export const TopSkillsSection = memo(function TopSkillsSection({
       </View>
     </SurfaceCard>
   );
-});
+};
+export const TopSkillsSection = renderTopSkillsSection;
 
 // ─── ScheduleInsightsSection ─────────────────────────────────────────────────
 
@@ -112,7 +106,7 @@ interface ScheduleInsightsSectionProps {
   palette: ThemeColors;
 }
 
-export const ScheduleInsightsSection = memo(function ScheduleInsightsSection({
+const renderScheduleInsightsSection = function renderScheduleInsightsSection({
   busiestDay,
   palette,
 }: ScheduleInsightsSectionProps) {
@@ -136,92 +130,5 @@ export const ScheduleInsightsSection = memo(function ScheduleInsightsSection({
       </Row>
     </SurfaceCard>
   );
-});
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing['2xl'],
-    gap: Spacing.lg,
-  },
-  header: {
-    gap: Spacing.xs,
-    marginBottom: Spacing.sm,
-  },
-  title: { ...Typography.display, letterSpacing: -0.8 },
-  subtitle: {
-    ...Typography.body,
-    fontWeight: '500',
-  },
-  statsGrid: {
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: 160,
-    padding: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  statIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xs,
-  },
-  statNumber: { ...Typography.display },
-  statLabel: {
-    ...Typography.smallSemiBold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  change: {
-    alignItems: 'center',
-    gap: Spacing.xs / 2,
-    marginTop: Spacing.xs / 2,
-  },
-  changeText: { ...Typography.caption },
-  section: {
-    padding: Spacing.lg,
-    gap: Spacing.md,
-  },
-  sectionHeader: {
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  sectionTitle: { ...Typography.subheading },
-  skillsList: {
-    gap: Spacing.md,
-  },
-  skillRow: {
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  skillInfo: {
-    alignItems: 'center',
-    gap: Spacing.sm,
-    flex: 1,
-  },
-  skillRank: { ...Typography.bodySmall, width: 24 },
-  skillName: { ...Typography.body },
-  skillCount: {
-    alignItems: 'baseline',
-    gap: Spacing.xs / 2,
-  },
-  skillCountText: { ...Typography.heading },
-  skillCountLabel: { ...Typography.caption },
-  insightRow: {
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-  },
-});
+};
+export const ScheduleInsightsSection = renderScheduleInsightsSection;

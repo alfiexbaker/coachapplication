@@ -5,7 +5,7 @@
  * Shows avatar, name, and attendance status buttons for each athlete.
  */
 
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
@@ -60,13 +60,10 @@ interface AthleteRowProps {
   onUpdateStatus: (registrationId: string, status: AttendanceStatus) => void;
 }
 
-const AthleteRow = memo(function AthleteRow({ athlete, colors, onUpdateStatus }: AthleteRowProps) {
-  const handlePress = useCallback(
-    (status: AttendanceStatus) => {
-      onUpdateStatus(athlete.registrationId, status);
-    },
-    [athlete.registrationId, onUpdateStatus],
-  );
+const AthleteRow = function AthleteRow({ athlete, colors, onUpdateStatus }: AthleteRowProps) {
+  const handlePress = (status: AttendanceStatus) => {
+    onUpdateStatus(athlete.registrationId, status);
+  };
 
   return (
     <View style={[styles.athleteRow, { borderBottomColor: colors.border }]}>
@@ -116,13 +113,13 @@ const AthleteRow = memo(function AthleteRow({ athlete, colors, onUpdateStatus }:
       </Row>
     </View>
   );
-});
+};
 
 // ============================================================================
 // ATTENDANCE STEP
 // ============================================================================
 
-export const AttendanceStep = memo(function AttendanceStep({
+export const AttendanceStep = function AttendanceStep({
   athletes,
   colors,
   onUpdateStatus,
@@ -150,7 +147,7 @@ export const AttendanceStep = memo(function AttendanceStep({
       )}
     </SurfaceCard>
   );
-});
+};
 
 // ============================================================================
 // STYLES

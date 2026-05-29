@@ -125,7 +125,7 @@ function buildSessionInviteIdempotencyKey(input: CreateSessionInviteAuthorityInp
     coachUserId: toApiUserId(input.coachId),
     clubName: input.clubName ?? null,
     inviteType: input.inviteType ?? 'OPEN',
-    squadIds: [...(input.squadIds ?? [])].sort(),
+    squadIds: Array.from((input.squadIds ?? [])).toSorted(),
     athleteIds: input.athleteIds.map((athleteId) => toApiAthleteId(athleteId)).sort(),
     parentUserId: toApiUserId(input.parentId),
     proposedSlots: input.proposedSlots.map((slot) => ({

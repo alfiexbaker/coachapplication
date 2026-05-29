@@ -5,7 +5,7 @@
  * AttendeeDetailContent — full card content with RSVP status, role, check-in, note.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,30 +18,7 @@ import { eventService } from '@/services/event-service';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
 import { styles } from './attendee-card-styles';
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-export function getRoleIcon(role: string): keyof typeof Ionicons.glyphMap {
-  switch (role) {
-    case 'COACH':
-      return 'megaphone-outline';
-    case 'ATHLETE':
-      return 'football-outline';
-    default:
-      return 'person-outline';
-  }
-}
-
-export function getRoleLabel(role: string): string {
-  switch (role) {
-    case 'COACH':
-      return 'Coach';
-    case 'ATHLETE':
-      return 'Athlete';
-    default:
-      return 'Parent';
-  }
-}
+import { getRoleIcon, getRoleLabel } from './attendee-card-helpers';
 
 // ─── CompactAttendeeCardInner ────────────────────────────────────────────────
 
@@ -55,7 +32,7 @@ interface CompactAttendeeCardInnerProps {
   palette: ThemeColors;
 }
 
-export const CompactAttendeeCardInner = memo(function CompactAttendeeCardInner({
+export const CompactAttendeeCardInner = function CompactAttendeeCardInner({
   userName,
   userPhotoUrl,
   showCheckInStatus,
@@ -104,7 +81,7 @@ export const CompactAttendeeCardInner = memo(function CompactAttendeeCardInner({
       )}
     </SurfaceCard>
   );
-});
+};
 
 // ─── AttendeeDetailContent ───────────────────────────────────────────────────
 
@@ -119,7 +96,7 @@ interface AttendeeDetailContentProps {
   palette: ThemeColors;
 }
 
-export const AttendeeDetailContent = memo(function AttendeeDetailContent({
+export const AttendeeDetailContent = function AttendeeDetailContent({
   userName,
   userPhotoUrl,
   userRole,
@@ -218,6 +195,4 @@ export const AttendeeDetailContent = memo(function AttendeeDetailContent({
       </View>
     </Row>
   );
-});
-
-export { styles };
+};

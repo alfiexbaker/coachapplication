@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -15,7 +15,7 @@ import { useTheme } from '@/hooks/useTheme';
 import type { RosterEntry } from '@/constants/types';
 import { getRosterAthleteName } from '@/utils/roster-display';
 
-export const NextSessionCard = React.memo(function NextSessionCard({
+export const NextSessionCard = function NextSessionCard({
   athlete,
 }: {
   athlete: RosterEntry;
@@ -23,10 +23,10 @@ export const NextSessionCard = React.memo(function NextSessionCard({
   const { colors } = useTheme();
   const athleteName = getRosterAthleteName(athlete);
 
-  const handleBook = useCallback(() => {
+  const handleBook = () => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(Routes.rosterAthleteAddToSession(athlete.athleteId, athleteName));
-  }, [athlete.athleteId, athleteName]);
+  };
 
   if (athlete.nextSessionDate) {
     const date = new Date(athlete.nextSessionDate);
@@ -67,12 +67,10 @@ export const NextSessionCard = React.memo(function NextSessionCard({
           </ThemedText>
         </Column>
       </Row>
-      <Button onPress={handleBook} style={styles.bookButton}>
-        Book Now
-      </Button>
+      <Button onPress={handleBook} style={styles.bookButton} label="Book Now" />
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

@@ -1,14 +1,13 @@
 /**
  * Extracted sub-components for AvailabilityTutorial.
  *
- * TUTORIAL_STEPS — step config data.
  * TutorialStepContent — animated step content (icon + title + description).
  * TutorialProgressDots — step indicator dots.
  * TutorialNavButtons — back/next navigation buttons.
  */
 
-import React, { memo } from 'react';
-import { View, Dimensions } from 'react-native';
+import React from 'react';
+import { View, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -18,50 +17,7 @@ import { withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
 import { styles } from './availability-tutorial-styles';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-export interface TutorialStep {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  description: string;
-  accentColor: 'tint' | 'success' | 'warning' | 'info';
-}
-
-// ─── Constants ───────────────────────────────────────────────────────────────
-
-export const TUTORIAL_STEPS: TutorialStep[] = [
-  {
-    icon: 'calendar-outline',
-    title: 'Welcome to Availability',
-    description:
-      "Let's set up when parents can book sessions with you. It only takes a minute to get started.",
-    accentColor: 'tint',
-  },
-  {
-    icon: 'grid-outline',
-    title: 'Tap to Set Availability',
-    description:
-      'Use the weekly grid to mark yourself as available. Tap any time slot to toggle it on or off.',
-    accentColor: 'success',
-  },
-  {
-    icon: 'flash-outline',
-    title: 'Quick Setup Templates',
-    description:
-      'Short on time? Use a quick-start template like "Weekday Mornings" or "Weekend Sessions" to set up in one tap.',
-    accentColor: 'warning',
-  },
-  {
-    icon: 'checkmark-circle-outline',
-    title: "You're All Set!",
-    description:
-      'Parents can now see your availability and book sessions. You can always adjust your schedule later.',
-    accentColor: 'info',
-  },
-];
+import type { TutorialStep } from './availability-tutorial-helpers';
 
 // ─── TutorialStepContent ─────────────────────────────────────────────────────
 
@@ -73,7 +29,7 @@ interface TutorialStepContentProps {
   palette: ThemeColors;
 }
 
-export const TutorialStepContent = memo(function TutorialStepContent({
+export const TutorialStepContent = function TutorialStepContent({
   step,
   accentColor,
   fadeAnim,
@@ -100,7 +56,7 @@ export const TutorialStepContent = memo(function TutorialStepContent({
       </ThemedText>
     </Animated.View>
   );
-});
+};
 
 // ─── TutorialProgressDots ────────────────────────────────────────────────────
 
@@ -110,7 +66,7 @@ interface TutorialProgressDotsProps {
   palette: ThemeColors;
 }
 
-export const TutorialProgressDots = memo(function TutorialProgressDots({
+const renderTutorialProgressDots = function renderTutorialProgressDots({
   currentStep,
   totalSteps,
   palette,
@@ -131,7 +87,8 @@ export const TutorialProgressDots = memo(function TutorialProgressDots({
       ))}
     </Row>
   );
-});
+};
+export const TutorialProgressDots = renderTutorialProgressDots;
 
 // ─── TutorialNavButtons ──────────────────────────────────────────────────────
 
@@ -143,13 +100,15 @@ interface TutorialNavButtonsProps {
   palette: ThemeColors;
 }
 
-export const TutorialNavButtons = memo(function TutorialNavButtons({
+export const TutorialNavButtons = function TutorialNavButtons({
   isFirstStep,
   isLastStep,
   onBack,
   onNext,
   palette,
 }: TutorialNavButtonsProps) {
+  const { width } = useWindowDimensions();
+
   return (
     <Row style={styles.buttonRow}>
       {!isFirstStep ? (
@@ -163,10 +122,7 @@ export const TutorialNavButtons = memo(function TutorialNavButtons({
 
       <Clickable
         onPress={onNext}
-        style={[
-          styles.nextButton,
-          { backgroundColor: palette.tint, maxWidth: SCREEN_WIDTH * 0.45 },
-        ]}
+        style={[styles.nextButton, { backgroundColor: palette.tint, maxWidth: width * 0.45 }]}
       >
         <ThemedText style={[styles.nextButtonText, { color: palette.onPrimary }]}>
           {isLastStep ? 'Get Started' : 'Next'}
@@ -176,6 +132,4 @@ export const TutorialNavButtons = memo(function TutorialNavButtons({
       </Clickable>
     </Row>
   );
-});
-
-export { styles };
+};

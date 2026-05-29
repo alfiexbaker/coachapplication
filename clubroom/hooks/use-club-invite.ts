@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 
 import { useToast } from '@/components/ui/toast';
@@ -8,6 +8,8 @@ import { socialFeedService } from '@/services/social-feed-service';
 import type { ClubRole } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';
 import { createLogger } from '@/utils/logger';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('InviteMembers');
 
@@ -43,13 +45,13 @@ export function useClubInvite() {
   const [completedBookings, setCompletedBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const club = useMemo(() => {
+  const club = (() => {
     if (!clubId || !currentUser?.id) return null;
     return (
       socialFeedService.getUserClubs(currentUser.id).find((candidate) => candidate.id === clubId) ||
       null
     );
-  }, [clubId, currentUser?.id]);
+  })();
 
   useEffect(() => {
     let active = true;
@@ -64,7 +66,7 @@ export function useClubInvite() {
         return;
       }
 
-      try {
+      return await runAsyncTryCatchFinally(async () => {
         const allBookings = await bookingService.list();
         if (!active) {
           return;
@@ -75,16 +77,16 @@ export function useClubInvite() {
             (booking) => booking.coachId === currentUser.id && booking.status === 'COMPLETED',
           ),
         );
-      } catch (loadError) {
+      }, async loadError => {
         logger.error('Failed to load completed bookings for invites', loadError);
         if (active) {
           setCompletedBookings([]);
         }
-      } finally {
+      }, () => {
         if (active) {
           setLoading(false);
         }
-      }
+      });
     };
 
     void loadCompletedBookings();
@@ -94,7 +96,7 @@ export function useClubInvite() {
     };
   }, [currentUser?.id]);
 
-  const pastSessionUsers = useMemo(() => {
+  const pastSessionUsers = (() => {
     if (!currentUser) return [];
 
     const userMap = new Map<string, PastSessionUser>();
@@ -131,17 +133,17 @@ export function useClubInvite() {
     });
 
     return Array.from(userMap.values()).sort((a, b) => b.sessionCount - a.sessionCount);
-  }, [currentUser, completedBookings, availableUsers]);
+  })();
 
-  const filteredUsers = useMemo(() => {
+  const filteredUsers = (() => {
     if (!searchQuery) return pastSessionUsers;
     const query = searchQuery.toLowerCase();
     return pastSessionUsers.filter(
       (u) => u.userName.toLowerCase().includes(query) || u.childName?.toLowerCase().includes(query),
     );
-  }, [pastSessionUsers, searchQuery]);
+  })();
 
-  const toggleUserSelection = useCallback((userId: string) => {
+  const toggleUserSelection = (userId: string) => {
     setSelectedUsers((prev) => {
       const next = new Set(prev);
       if (next.has(userId)) {
@@ -151,17 +153,17 @@ export function useClubInvite() {
       }
       return next;
     });
-  }, []);
+  };
 
-  const handleSelectAll = useCallback(() => {
+  const handleSelectAll = () => {
     if (selectedUsers.size === filteredUsers.length) {
       setSelectedUsers(new Set());
     } else {
       setSelectedUsers(new Set(filteredUsers.map((u) => u.userId)));
     }
-  }, [selectedUsers.size, filteredUsers]);
+  };
 
-  const handleSendInvites = useCallback(async () => {
+  const handleSendInvites = async () => {
     if (selectedUsers.size === 0) {
       showToast('Select at least one user', 'warning');
       return;
@@ -175,9 +177,9 @@ export function useClubInvite() {
     showToast(`Invited ${selectedUsers.size} users to ${club?.name}`, 'success');
     setIsInviting(false);
     router.back();
-  }, [selectedUsers.size, clubId, selectedRole, club?.name, showToast]);
+  };
 
-  const handleManualInvite = useCallback(() => {
+  const handleManualInvite = () => {
     if (!manualEmail.trim() || !manualEmail.includes('@')) {
       showToast('Enter a valid email', 'warning');
       return;
@@ -186,7 +188,7 @@ export function useClubInvite() {
     logger.action('ManualInvite', { email: manualEmail, role: selectedRole });
     showToast(`Invite sent to ${manualEmail}`, 'success');
     setManualEmail('');
-  }, [manualEmail, selectedRole, showToast]);
+  };
 
   return {
     loading,

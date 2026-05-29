@@ -7,7 +7,6 @@
  */
 
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -48,10 +47,7 @@ export default function InjuryHistoryScreen() {
   const isAllFilter = c.statusFilter === 'ALL';
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       <Row align="center" justify="space-between" style={styles.header}>
         <Row align="center" gap="md" style={styles.headerLeft}>
           <Clickable
@@ -92,7 +88,9 @@ export default function InjuryHistoryScreen() {
               <Row align="center" gap="xs">
                 <Ionicons name="person-circle-outline" size={18} color={palette.tint} />
                 <ThemedText style={[styles.subjectLabel, { color: palette.muted }]}>For</ThemedText>
-                <ThemedText style={styles.subjectName}>{c.selectedSubjectName ?? 'Selected'}</ThemedText>
+                <ThemedText style={styles.subjectName}>
+                  {c.selectedSubjectName ?? 'Selected'}
+                </ThemedText>
               </Row>
               <Row align="center" gap="xs">
                 <Clickable
@@ -105,7 +103,9 @@ export default function InjuryHistoryScreen() {
                 >
                   <Row align="center" gap="xxs">
                     <Ionicons name="create-outline" size={14} color={palette.tint} />
-                    <ThemedText style={[styles.subjectActionText, { color: palette.tint }]}>Edit</ThemedText>
+                    <ThemedText style={[styles.subjectActionText, { color: palette.tint }]}>
+                      Edit
+                    </ThemedText>
                   </Row>
                 </Clickable>
               </Row>
@@ -113,7 +113,11 @@ export default function InjuryHistoryScreen() {
           </View>
         )}
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          horizontal
+          showsHorizontalScrollIndicator={false}
+        >
           <Row gap="xs" style={styles.filterRow}>
             {FILTERS.map((filter) => {
               const isActive = c.statusFilter === filter.value;
@@ -148,6 +152,7 @@ export default function InjuryHistoryScreen() {
       </View>
 
       <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={c.refreshing} onRefresh={c.handleRefresh} />}
@@ -155,7 +160,10 @@ export default function InjuryHistoryScreen() {
         {c.loading ? (
           <LoadingState variant="list" />
         ) : c.status === 'error' ? (
-          <ErrorState message={c.error?.message ?? 'Failed to load injury records.'} onRetry={c.retry} />
+          <ErrorState
+            message={c.error?.message ?? 'Failed to load injury records.'}
+            onRetry={c.retry}
+          />
         ) : (
           <View>
             {isAllFilter && (
@@ -169,7 +177,12 @@ export default function InjuryHistoryScreen() {
 
                 {c.openInjuries.length === 0 ? (
                   <Animated.View entering={FadeInDown.springify()} style={styles.emptyState}>
-                    <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+                    <View
+                      style={[
+                        styles.emptyIcon,
+                        { backgroundColor: withAlpha(palette.success, 0.09) },
+                      ]}
+                    >
                       <Ionicons name="checkmark-circle-outline" size={42} color={palette.success} />
                     </View>
                     <ThemedText type="subtitle" style={styles.emptyTitle}>
@@ -181,7 +194,10 @@ export default function InjuryHistoryScreen() {
                   </Animated.View>
                 ) : (
                   c.openInjuries.map((injury, index) => (
-                    <Animated.View key={injury.id} entering={FadeInDown.delay(index * 40).springify()}>
+                    <Animated.View
+                      key={injury.id}
+                      entering={FadeInDown.delay(index * 40).springify()}
+                    >
                       <InjuryCard injury={injury} onPress={() => c.handleInjuryPress(injury)} />
                       <Row gap="sm" style={styles.cardActions}>
                         <Clickable
@@ -199,10 +215,15 @@ export default function InjuryHistoryScreen() {
                           onPress={() => c.handleQuickHeal(injury)}
                           style={[
                             styles.primaryAction,
-                            { borderColor: palette.success, backgroundColor: withAlpha(palette.success, 0.16) },
+                            {
+                              borderColor: palette.success,
+                              backgroundColor: withAlpha(palette.success, 0.16),
+                            },
                           ]}
                         >
-                          <ThemedText style={[styles.primaryActionText, { color: palette.success }]}>
+                          <ThemedText
+                            style={[styles.primaryActionText, { color: palette.success }]}
+                          >
                             Mark Recovered
                           </ThemedText>
                         </Clickable>
@@ -222,9 +243,15 @@ export default function InjuryHistoryScreen() {
                     {c.healedInjuries.slice(0, 5).map((injury, index) => (
                       <Animated.View
                         key={injury.id}
-                        entering={FadeInDown.delay((index + c.openInjuries.length) * 30).springify()}
+                        entering={FadeInDown.delay(
+                          (index + c.openInjuries.length) * 30,
+                        ).springify()}
                       >
-                        <InjuryCard injury={injury} compact onPress={() => c.handleInjuryPress(injury)} />
+                        <InjuryCard
+                          injury={injury}
+                          compact
+                          onPress={() => c.handleInjuryPress(injury)}
+                        />
                       </Animated.View>
                     ))}
                   </View>
@@ -234,7 +261,9 @@ export default function InjuryHistoryScreen() {
 
             {!isAllFilter && c.filteredInjuries.length === 0 && (
               <Animated.View entering={FadeInDown.springify()} style={styles.emptyState}>
-                <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+                <View
+                  style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
+                >
                   <Ionicons name={EMPTY_ICONS[c.statusFilter]} size={42} color={palette.tint} />
                 </View>
                 <ThemedText type="subtitle" style={styles.emptyTitle}>
@@ -268,7 +297,10 @@ export default function InjuryHistoryScreen() {
                         onPress={() => c.handleQuickHeal(injury)}
                         style={[
                           styles.primaryAction,
-                          { borderColor: palette.success, backgroundColor: withAlpha(palette.success, 0.16) },
+                          {
+                            borderColor: palette.success,
+                            backgroundColor: withAlpha(palette.success, 0.16),
+                          },
                         ]}
                       >
                         <ThemedText style={[styles.primaryActionText, { color: palette.success }]}>
@@ -282,7 +314,7 @@ export default function InjuryHistoryScreen() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -12,6 +12,11 @@ const timeFormatter = new Intl.DateTimeFormat('en-GB', {
   hour: 'numeric',
   minute: '2-digit',
 });
+const nextAvailabilityFormatter = new Intl.DateTimeFormat('en-GB', {
+  weekday: 'short',
+  hour: 'numeric',
+  minute: '2-digit',
+});
 
 const toDate = (value: string | number | Date) => (value instanceof Date ? value : new Date(value));
 
@@ -36,11 +41,7 @@ export const formatDistance = (distanceMiles: number) => `${distanceMiles.toFixe
 
 export const formatNextAvailability = (isoString: string) => {
   const date = new Date(isoString);
-  return new Intl.DateTimeFormat('en-GB', {
-    weekday: 'short',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(date);
+  return nextAvailabilityFormatter.format(date);
 };
 
 // Currency formatting helper

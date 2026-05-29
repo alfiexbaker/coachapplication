@@ -2,7 +2,7 @@
  * Hook for the athlete development detail screen.
  * Manages sessions, badges, progression, special needs, and badge award modal state.
  */
-import { useState, useCallback, useMemo } from 'react';
+import { useState } from 'react';
 import { ensureCoachSessionsSeeded } from '@/services/coach-session-seed-service';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
@@ -61,7 +61,7 @@ export function useAthleteDevelopment(athleteId: string) {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [showBadgeModal, setShowBadgeModal] = useState(false);
 
-  const loadDevelopment = useCallback(async () => {
+  const loadDevelopment = async () => {
     if (!athleteId) {
       return err(serviceError('VALIDATION', 'Missing athlete id.'));
     }
@@ -114,7 +114,7 @@ export function useAthleteDevelopment(athleteId: string) {
       logger.error('Failed to load athlete development', { athleteId, error });
       return err(serviceError('UNKNOWN', 'Failed to load athlete progress.', error));
     }
-  }, [athleteId, currentUser?.id]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<AthleteDevelopmentData>({
     load: loadDevelopment,
@@ -131,7 +131,7 @@ export function useAthleteDevelopment(athleteId: string) {
   const athlete = data?.athlete ?? null;
   const sessions = data?.sessions ?? [];
   const baseAwards = data?.awards ?? [];
-  const awards = useMemo(() => {
+  const awards = (() => {
     if (optimisticAwards.length === 0) {
       return baseAwards;
     }
@@ -144,14 +144,14 @@ export function useAthleteDevelopment(athleteId: string) {
       seen.add(key);
       return true;
     });
-  }, [baseAwards, optimisticAwards]);
+  })();
   const childProfile = data?.childProfile ?? null;
   const progressionSummary = data?.progressionSummary ?? null;
 
   // Computed: progress trend
-  const trend = useMemo(() => {
+  const trend = (() => {
     if (sessions.length < 2) return 'steady' as const;
-    const sorted = [...sessions].sort(
+    const sorted = Array.from(sessions).toSorted(
       (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
     );
     const recentAvg =
@@ -164,23 +164,19 @@ export function useAthleteDevelopment(athleteId: string) {
     if (recentAvg > previousAvg + 0.3) return 'improving' as const;
     if (recentAvg < previousAvg - 0.3) return 'declining' as const;
     return 'steady' as const;
-  }, [sessions]);
+  })();
 
   // Computed: level badge
-  const level: LevelBadge = useMemo(() => {
+  const level: LevelBadge = (() => {
     const count = sessions.length;
     if (count >= 20) return { name: 'Gold', icon: 'trophy-outline' as const, color: '#FFD700' };
     if (count >= 10) return { name: 'Silver', icon: 'medal-outline' as const, color: '#C0C0C0' };
     return { name: 'Bronze', icon: 'ribbon-outline' as const, color: '#CD7F32' };
-  }, [sessions.length]);
+  })();
 
   // Computed: sorted sessions
-  const sortedSessions = useMemo(
-    () =>
-      [...sessions].sort(
-        (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
-      ),
-    [sessions],
+  const sortedSessions = Array.from(sessions).toSorted(
+    (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
   );
 
   // Computed: selected session label
@@ -189,38 +185,32 @@ export function useAthleteDevelopment(athleteId: string) {
     : undefined;
 
   // Handler: open badge modal from profile button
-  const handleOpenBadgeModal = useCallback(() => {
+  const handleOpenBadgeModal = () => {
     logger.press('AwardBadgeFromProfile', { athleteId });
     setShowBadgeModal(true);
-  }, [athleteId]);
+  };
 
   // Handler: select session for badge workspace
-  const handleSelectSession = useCallback(
-    (session: Session) => {
-      logger.info('badge_workspace_deeplink', {
-        sessionId: session.id,
-        athleteId,
-        source: 'AthleteSessionHistory',
-      });
-      setSelectedSession(session);
-    },
-    [athleteId],
-  );
+  const handleSelectSession = (session: Session) => {
+    logger.info('badge_workspace_deeplink', {
+      sessionId: session.id,
+      athleteId,
+      source: 'AthleteSessionHistory',
+    });
+    setSelectedSession(session);
+  };
 
   // Handler: close modal
-  const handleCloseModal = useCallback(() => {
+  const handleCloseModal = () => {
     setSelectedSession(null);
     setShowBadgeModal(false);
-  }, []);
+  };
 
   // Handler: badge awarded
-  const handleOnAwarded = useCallback(
-    (award: BadgeAward) => {
-      setOptimisticAwards((prev) => [award, ...prev.filter((item) => item.id !== award.id)]);
-      onRefresh();
-    },
-    [onRefresh],
-  );
+  const handleOnAwarded = (award: BadgeAward) => {
+    setOptimisticAwards((prev) => [award, ...prev.filter((item) => item.id !== award.id)]);
+    onRefresh();
+  };
 
   return {
     athlete,

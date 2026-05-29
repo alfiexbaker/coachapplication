@@ -5,7 +5,7 @@
  * Used at the bottom of the completion wizard scroll area.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -34,7 +34,7 @@ interface WizardNavButtonsProps {
 // COMPONENT
 // ============================================================================
 
-export const WizardNavButtons = memo(function WizardNavButtons({
+export const WizardNavButtons = function WizardNavButtons({
   colors,
   currentStep,
   currentStepIndex,
@@ -90,7 +90,7 @@ export const WizardNavButtons = memo(function WizardNavButtons({
           <Row align="center" justify="center" gap="sm">
             {submitting ? (
               <ThemedText style={[styles.submitText, { color: colors.onPrimary }]}>
-                Saving...
+                Saving…
               </ThemedText>
             ) : (
               <>
@@ -105,7 +105,7 @@ export const WizardNavButtons = memo(function WizardNavButtons({
       )}
     </Row>
   );
-});
+};
 
 // ============================================================================
 // STYLES

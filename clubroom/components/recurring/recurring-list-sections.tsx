@@ -3,37 +3,17 @@
  *
  * RecurringFilterChip — filter pill for status filtering.
  * RecurringSummaryCard — subscription summary with active count + monthly value.
- * FILTER_DATA — static filter options.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Typography, Radii, withAlpha } from '@/constants/theme';
-import type { RecurringBooking, RecurringBookingStatus } from '@/constants/types';
+import type { RecurringBooking } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-export type FilterOption = 'ALL' | RecurringBookingStatus;
-
-export interface FilterItem {
-  key: FilterOption;
-  label: string;
-}
-
-// ─── Constants ───────────────────────────────────────────────────────────────
-
-export const FILTER_DATA: FilterItem[] = [
-  { key: 'ALL', label: 'All' },
-  { key: 'ACTIVE', label: 'Active' },
-  { key: 'PAUSED', label: 'Paused' },
-  { key: 'CANCELLED', label: 'Cancelled' },
-  { key: 'EXPIRED', label: 'Expired' },
-];
 
 // ─── RecurringFilterChip ─────────────────────────────────────────────────────
 
@@ -45,7 +25,7 @@ interface RecurringFilterChipProps {
   palette: ThemeColors;
 }
 
-export const RecurringFilterChip = memo(function RecurringFilterChip({
+export const RecurringFilterChip = function RecurringFilterChip({
   label,
   isActive,
   onPress,
@@ -90,7 +70,7 @@ export const RecurringFilterChip = memo(function RecurringFilterChip({
       )}
     </Clickable>
   );
-});
+};
 
 // ─── RecurringSummaryCard ────────────────────────────────────────────────────
 
@@ -100,7 +80,7 @@ interface RecurringSummaryCardProps {
   palette: ThemeColors;
 }
 
-export const RecurringSummaryCard = memo(function RecurringSummaryCard({
+export const RecurringSummaryCard = function RecurringSummaryCard({
   bookings,
   activeCount,
   palette,
@@ -149,7 +129,7 @@ export const RecurringSummaryCard = memo(function RecurringSummaryCard({
       </View>
     </Row>
   );
-});
+};
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 

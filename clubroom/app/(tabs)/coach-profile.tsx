@@ -5,7 +5,7 @@
  * Sub-components: components/coach/profile-*.tsx (pre-existing)
  */
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import type { ReactNode } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -53,34 +53,28 @@ export default function CoachProfileScreen() {
     handleSignOut,
   } = useCoachProfile();
 
-  const renderPostCard = useCallback(
-    (post: NormalizedPost) => (
-      <ProfilePostCard
-        post={post}
-        coachName={coach.fullName}
-        coachAvatar={coach.profilePhotoUrl}
-        contextLabel={post.clubName}
-      />
-    ),
-    [coach.fullName, coach.profilePhotoUrl],
+  const renderPostCard = (post: NormalizedPost) => (
+    <ProfilePostCard
+      post={post}
+      coachName={coach.fullName}
+      coachAvatar={coach.profilePhotoUrl}
+      contextLabel={post.clubName}
+    />
   );
 
-  const handleCloseModal = useCallback(() => {
+  const handleCloseModal = () => {
     setShowDetailModal(false);
     setSelectedOffering(null);
-  }, [setShowDetailModal, setSelectedOffering]);
+  };
 
-  const renderShell = useCallback(
-    (children: ReactNode) => (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
-        <ScreenHeader title="Coach Profile" />
-        {children}
-      </SafeAreaView>
-    ),
-    [palette.background],
+  const renderShell = (children: ReactNode) => (
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
+      <ScreenHeader title="Coach Profile" />
+      {children}
+    </SafeAreaView>
   );
 
   // ── Loading state ──

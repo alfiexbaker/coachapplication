@@ -7,7 +7,7 @@
  * SubmitLineupButton — confirm lineup footer button.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,7 +31,7 @@ interface LineupSummaryRowProps {
   palette: ThemeColors;
 }
 
-export const LineupSummaryRow = memo(function LineupSummaryRow({
+export const LineupSummaryRow = function LineupSummaryRow({
   availableCount,
   selectedCount,
   maxPlayers,
@@ -62,7 +62,7 @@ export const LineupSummaryRow = memo(function LineupSummaryRow({
       </View>
     </Row>
   );
-});
+};
 
 // ─── SelectablePlayerRow ─────────────────────────────────────────────────────
 
@@ -73,7 +73,7 @@ interface SelectablePlayerRowProps {
   palette: ThemeColors;
 }
 
-export const SelectablePlayerRow = memo(function SelectablePlayerRow({
+export const SelectablePlayerRow = function SelectablePlayerRow({
   player,
   selectionStatus,
   onPress,
@@ -133,7 +133,7 @@ export const SelectablePlayerRow = memo(function SelectablePlayerRow({
       </Row>
     </Clickable>
   );
-});
+};
 
 // ─── DisabledPlayerRow ───────────────────────────────────────────────────────
 
@@ -143,7 +143,7 @@ interface DisabledPlayerRowProps {
   palette: ThemeColors;
 }
 
-export const DisabledPlayerRow = memo(function DisabledPlayerRow({
+export const DisabledPlayerRow = function DisabledPlayerRow({
   player,
   variant,
   palette,
@@ -177,7 +177,7 @@ export const DisabledPlayerRow = memo(function DisabledPlayerRow({
       <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={18} color={color} />
     </Row>
   );
-});
+};
 
 // ─── SubmitLineupButton ──────────────────────────────────────────────────────
 
@@ -189,7 +189,7 @@ interface SubmitLineupButtonProps {
   palette: ThemeColors;
 }
 
-export const SubmitLineupButton = memo(function SubmitLineupButton({
+export const SubmitLineupButton = function SubmitLineupButton({
   selectedCount,
   reserveCount,
   isLoading,
@@ -211,7 +211,7 @@ export const SubmitLineupButton = memo(function SubmitLineupButton({
       >
         {isLoading ? (
           <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>
-            Setting Lineup...
+            Setting Lineup…
           </ThemedText>
         ) : (
           <Row align="center" justify="center" gap="sm">
@@ -224,4 +224,4 @@ export const SubmitLineupButton = memo(function SubmitLineupButton({
       </Clickable>
     </View>
   );
-});
+};

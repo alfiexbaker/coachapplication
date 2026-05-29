@@ -1,4 +1,4 @@
-import { memo, type ComponentProps } from 'react';
+import { type ComponentProps } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
@@ -36,7 +36,7 @@ function toDotScore(level: number): number {
   return Math.max(1, Math.min(5, Math.ceil(level / 2)));
 }
 
-export const CornerDetailPanel = memo(function CornerDetailPanel({
+export const CornerDetailPanel = function CornerDetailPanel({
   corner,
   skills,
 }: CornerDetailPanelProps) {
@@ -119,7 +119,7 @@ export const CornerDetailPanel = memo(function CornerDetailPanel({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

@@ -1,6 +1,5 @@
-import { useCallback, useRef } from 'react';
+import { useRef } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Routes } from '@/navigation/routes';
@@ -40,17 +39,14 @@ export default function MessagesScreen() {
     handleThreadPress,
   } = useMessages();
 
-  const handleFindCoaches = useCallback(() => {
+  const handleFindCoaches = () => {
     router.push(Routes.DISCOVER_MAP);
-  }, []);
+  };
   const renderState = (content: ReactNode) => (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
+    <View style={[styles.safeArea, { backgroundColor: palette.background }]}>
       <ScreenHeader title="Messages" subtitle="Your conversations" />
       {content}
-    </SafeAreaView>
+    </View>
   );
 
   if (showLoadingState) {
@@ -81,10 +77,7 @@ export default function MessagesScreen() {
   }
 
   return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
+    <View style={[styles.safeArea, { backgroundColor: palette.background }]}>
       <ScreenHeader title="Messages" subtitle="Your conversations" />
       <MessagesSearchBar value={search} onChangeText={setSearch} />
       <MessagesViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
@@ -93,6 +86,7 @@ export default function MessagesScreen() {
       ) : null}
 
       <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
         ref={scrollRef}
         style={styles.scrollView}
         refreshControl={
@@ -126,7 +120,7 @@ export default function MessagesScreen() {
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

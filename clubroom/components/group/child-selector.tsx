@@ -1,10 +1,3 @@
-/**
- * ChildSelector — Child picker for multi-kid parents.
- *
- * Shows pill chips for each child. Selected child highlighted with tint color.
- */
-
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -83,7 +76,7 @@ function ChildSelectorComponent({ options, selectedId, onSelect }: ChildSelector
   );
 }
 
-export const ChildSelector = memo(ChildSelectorComponent);
+export const ChildSelector = ChildSelectorComponent;
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.md },

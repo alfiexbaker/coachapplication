@@ -1,7 +1,3 @@
-/**
- * DayEditorTimeSection — Time range picker with validation and duration badge.
- */
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -81,7 +77,7 @@ function DayEditorTimeSectionInner({
   );
 }
 
-export const DayEditorTimeSection = memo(DayEditorTimeSectionInner);
+export const DayEditorTimeSection = DayEditorTimeSectionInner;
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.sm },

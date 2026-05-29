@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -34,7 +33,7 @@ function normalizeParam(value: string | string[] | undefined): string | null {
 export default function SessionHistoryScreen() {
   const { colors } = useTheme();
   const { athleteId } = useLocalSearchParams<{ athleteId?: string | string[] }>();
-  const athleteIdParam = useMemo(() => normalizeParam(athleteId), [athleteId]);
+  const athleteIdParam = normalizeParam(athleteId);
 
   const {
     loading,

@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
@@ -38,7 +37,7 @@ export interface MedicalItemChipsProps {
   palette: ThemeColors;
 }
 
-export const MedicalItemChips = memo(function MedicalItemChips({
+export const MedicalItemChips = function MedicalItemChips({
   topItems,
   remainingCount,
   palette,
@@ -74,7 +73,7 @@ export const MedicalItemChips = memo(function MedicalItemChips({
       </Row>
     </View>
   );
-});
+};
 
 // ─── EmergencyCallSection ───────────────────────────────────────
 
@@ -84,7 +83,7 @@ export interface EmergencyCallSectionProps {
   palette: ThemeColors;
 }
 
-export const EmergencyCallSection = memo(function EmergencyCallSection({
+const renderEmergencyCallSection = function renderEmergencyCallSection({
   contact,
   onCall,
   palette,
@@ -107,7 +106,8 @@ export const EmergencyCallSection = memo(function EmergencyCallSection({
       </Clickable>
     </Row>
   );
-});
+};
+export const EmergencyCallSection = renderEmergencyCallSection;
 
 // ─── NoContactWarning ───────────────────────────────────────────
 
@@ -115,7 +115,7 @@ export interface NoContactWarningProps {
   palette: ThemeColors;
 }
 
-export const NoContactWarning = memo(function NoContactWarning({ palette }: NoContactWarningProps) {
+const renderNoContactWarning = function renderNoContactWarning({ palette }: NoContactWarningProps) {
   return (
     <Row
       align="center"
@@ -128,7 +128,8 @@ export const NoContactWarning = memo(function NoContactWarning({ palette }: NoCo
       </ThemedText>
     </Row>
   );
-});
+};
+export const NoContactWarning = renderNoContactWarning;
 
 // ─── Styles ─────────────────────────────────────────────────────
 

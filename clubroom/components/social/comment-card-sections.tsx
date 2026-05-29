@@ -1,10 +1,3 @@
-/**
- * Comment Card — Extracted sections
- *
- * Helper and action row sub-component for CommentCard.
- */
-
-import { memo, useCallback } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,25 +9,6 @@ import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-export function formatTimeAgo(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m`;
-  if (diffHours < 24) return `${diffHours}h`;
-  if (diffDays < 7) return `${diffDays}d`;
-  return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
-}
 
 // ---------------------------------------------------------------------------
 // CommentActions
@@ -51,7 +25,7 @@ export interface CommentActionsProps {
   palette: ThemeColors;
 }
 
-export const CommentActions = memo(function CommentActions({
+export const CommentActions = function CommentActions({
   commentId,
   authorName,
   isLiked,
@@ -61,20 +35,20 @@ export const CommentActions = memo(function CommentActions({
   onReply,
   palette,
 }: CommentActionsProps) {
-  const handleLike = useCallback(() => {
+  const handleLike = () => {
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     onLike(commentId);
-  }, [onLike, commentId]);
+  };
 
-  const handleReply = useCallback(() => {
+  const handleReply = () => {
     if (isReply) return;
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     onReply(commentId, authorName);
-  }, [isReply, onReply, commentId, authorName]);
+  };
 
   return (
     <Row gap="sm" style={styles.actionsRow}>
@@ -111,7 +85,7 @@ export const CommentActions = memo(function CommentActions({
       )}
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   actionsRow: {

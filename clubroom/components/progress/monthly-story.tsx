@@ -1,16 +1,9 @@
-import { memo, useCallback } from 'react';
 import { Modal, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  FadeOut,
-  SlideInRight,
-} from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, FadeOut, SlideInRight } from 'react-native-reanimated';
 
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { Center } from '@/components/primitives/center';
 import { Clickable } from '@/components/primitives/clickable';
@@ -36,37 +29,33 @@ const PAGE_ICONS: Record<StoryPage['type'], React.ComponentProps<typeof Ionicons
   next_focus: 'arrow-forward-circle',
 };
 
-export const MonthlyStory = memo(function MonthlyStory({
-  visible,
-  pages,
-  onClose,
-}: MonthlyStoryProps) {
+export const MonthlyStory = function MonthlyStory({ visible, pages, onClose }: MonthlyStoryProps) {
   const { colors } = useTheme();
   const { width: screenWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
   const story = useMonthlyStory({ pages });
 
-  const handleTapLeft = useCallback(() => {
+  const handleTapLeft = () => {
     story.goBack();
-  }, [story]);
+  };
 
-  const handleTapRight = useCallback(() => {
+  const handleTapRight = () => {
     story.advance();
-  }, [story]);
+  };
 
-  const handleClose = useCallback(() => {
+  const handleClose = () => {
     story.close();
     onClose();
-  }, [onClose, story]);
+  };
 
-  const handleLongPressIn = useCallback(() => {
+  const handleLongPressIn = () => {
     story.pause();
-  }, [story]);
+  };
 
-  const handleLongPressOut = useCallback(() => {
+  const handleLongPressOut = () => {
     story.resume();
-  }, [story]);
+  };
 
   if (!visible || !story.currentPage) return null;
 
@@ -90,9 +79,12 @@ export const MonthlyStory = memo(function MonthlyStory({
               style={StyleSheet.absoluteFill}
               contentFit="cover"
             />
-            <LinearGradient
-              colors={[withAlpha(colors.background, 0.6), withAlpha(colors.background, 0.85), withAlpha(colors.background, 0.95)]}
-              style={StyleSheet.absoluteFill}
+            <View
+              pointerEvents="none"
+              style={[
+                StyleSheet.absoluteFill,
+                { backgroundColor: withAlpha(colors.background, 0.86) },
+              ]}
             />
           </>
         ) : null}
@@ -102,10 +94,7 @@ export const MonthlyStory = memo(function MonthlyStory({
           {pages.map((p, i) => (
             <View
               key={p.id}
-              style={[
-                styles.progressTrack,
-                { backgroundColor: withAlpha(colors.text, 0.2) },
-              ]}
+              style={[styles.progressTrack, { backgroundColor: withAlpha(colors.text, 0.2) }]}
             >
               <View
                 style={[
@@ -164,10 +153,7 @@ export const MonthlyStory = memo(function MonthlyStory({
               {/* Icon */}
               <Animated.View
                 entering={FadeInDown.delay(80).springify()}
-                style={[
-                  styles.pageIcon,
-                  { backgroundColor: withAlpha(accent, 0.2) },
-                ]}
+                style={[styles.pageIcon, { backgroundColor: withAlpha(accent, 0.2) }]}
               >
                 <Ionicons name={icon} size={36} color={accent} />
               </Animated.View>
@@ -214,7 +200,7 @@ export const MonthlyStory = memo(function MonthlyStory({
       </View>
     </Modal>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: {

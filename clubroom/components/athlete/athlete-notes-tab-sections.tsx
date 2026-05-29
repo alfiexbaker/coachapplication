@@ -1,5 +1,5 @@
-import React, { memo, useCallback } from 'react';
-import { View, StyleSheet, TextInput, Platform } from 'react-native';
+import React from 'react';
+import { View, TextInput, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -13,6 +13,7 @@ import type { ThemeColors } from '@/hooks/useTheme';
 import type { RosterNote, FootballObjective } from '@/constants/types';
 import { COACHING_FOCUSES } from '@/constants/football-registry';
 import { uiFeedback } from '@/services/ui-feedback';
+import { styles } from './athlete-notes-tab-styles';
 
 export const FOCUS_OPTIONS: FootballObjective[] = COACHING_FOCUSES;
 interface NoteCardProps {
@@ -21,8 +22,8 @@ interface NoteCardProps {
   palette: ThemeColors;
 }
 
-export const NoteCard = memo(function NoteCard({ note, onDelete, palette }: NoteCardProps) {
-  const handleDelete = useCallback(() => {
+export const NoteCard = function NoteCard({ note, onDelete, palette }: NoteCardProps) {
+  const handleDelete = () => {
     uiFeedback.alert('Delete Note', 'Are you sure you want to delete this note?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -36,7 +37,7 @@ export const NoteCard = memo(function NoteCard({ note, onDelete, palette }: Note
         },
       },
     ]);
-  }, [onDelete]);
+  };
 
   const date = new Date(note.createdAt);
 
@@ -57,7 +58,7 @@ export const NoteCard = memo(function NoteCard({ note, onDelete, palette }: Note
       <ThemedText style={styles.noteContent}>{note.content}</ThemedText>
     </View>
   );
-});
+};
 
 interface PrimaryFocusSectionProps {
   primaryFocus: FootballObjective | undefined;
@@ -67,7 +68,7 @@ interface PrimaryFocusSectionProps {
   palette: ThemeColors;
 }
 
-export const PrimaryFocusSection = memo(function PrimaryFocusSection({
+const renderPrimaryFocusSection = function renderPrimaryFocusSection({
   primaryFocus,
   showPicker,
   onTogglePicker,
@@ -114,7 +115,8 @@ export const PrimaryFocusSection = memo(function PrimaryFocusSection({
       )}
     </SurfaceCard>
   );
-});
+};
+export const PrimaryFocusSection = renderPrimaryFocusSection;
 
 interface NoteSearchBarProps {
   searchQuery: string;
@@ -122,7 +124,7 @@ interface NoteSearchBarProps {
   palette: ThemeColors;
 }
 
-export const NoteSearchBar = memo(function NoteSearchBar({
+const renderNoteSearchBar = function renderNoteSearchBar({
   searchQuery,
   onChangeQuery,
   palette,
@@ -137,9 +139,8 @@ export const NoteSearchBar = memo(function NoteSearchBar({
         value={searchQuery}
         onChangeText={onChangeQuery}
         accessibilityLabel="Search notes"
-
-            maxLength={200}
-          />
+        maxLength={200}
+      />
       {searchQuery.length > 0 && (
         <Clickable accessibilityLabel="Clear search" onPress={() => onChangeQuery('')}>
           <Ionicons name="close-circle" size={16} color={palette.muted} />
@@ -147,77 +148,5 @@ export const NoteSearchBar = memo(function NoteSearchBar({
       )}
     </Row>
   );
-});
-
-export const styles = StyleSheet.create({
-  container: {
-    paddingBottom: Spacing.xl,
-  },
-  flex1: { flex: 1 },
-  section: {
-    gap: Spacing.sm,
-  },
-  focusBadge: {
-    alignItems: 'center',
-    gap: Spacing.xs,
-    alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-  },
-  focusOption: {
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Radii.md,
-    minHeight: 44,
-  },
-  input: {
-    ...Typography.bodySmall,
-    minHeight: 80,
-    borderRadius: Radii.md,
-    padding: Spacing.md,
-    textAlignVertical: 'top',
-  },
-  cancelButton: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    minHeight: 36,
-    justifyContent: 'center',
-  },
-  searchContainer: {
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.md,
-  },
-  searchInput: {
-    flex: 1,
-    ...Typography.bodySmall,
-    paddingVertical: Spacing.xxs,
-  },
-  noteCard: {
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    gap: Spacing.xs,
-  },
-  noteDate: {
-    ...Typography.caption,
-  },
-  noteContent: {
-    ...Typography.bodySmall,
-  },
-  emptyNotes: {
-    alignItems: 'center',
-    padding: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  emptyText: {
-    ...Typography.small,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-});
+};
+export const NoteSearchBar = renderNoteSearchBar;

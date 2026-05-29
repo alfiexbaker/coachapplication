@@ -18,8 +18,8 @@ export function formatInUserTimezone(
     return '';
   }
 
-  return new Intl.DateTimeFormat(locale, {
+  return date.toLocaleString(locale, {
     ...options,
     timeZone: getUserTimezone(),
-  }).format(date);
+  });
 }

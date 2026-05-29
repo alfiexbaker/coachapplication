@@ -10,6 +10,8 @@ import type { Booking } from '@/constants/app-types';
 import { useTheme } from '@/hooks/useTheme';
 import { uiFeedback } from '@/services/ui-feedback';
 
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
+
 export interface CalendarExportButtonProps {
   /** Single booking to export */
   booking?: Booking;
@@ -48,7 +50,8 @@ export function CalendarExportButton({
     if (disabled || isExporting) return;
 
     setIsExporting(true);
-    try {
+
+    await runAsyncTryCatchFinally(async () => {
       let result: { success: boolean; error?: string };
 
       if (onExport) {
@@ -68,13 +71,13 @@ export function CalendarExportButton({
         onExportError?.(errorMsg);
         uiFeedback.showToast(errorMsg, 'error');
       }
-    } catch (error) {
+    }, async error => {
       const errorMsg = error instanceof Error ? error.message : 'Export failed';
       onExportError?.(errorMsg);
       uiFeedback.showToast(errorMsg, 'error');
-    } finally {
+    }, () => {
       setIsExporting(false);
-    }
+    });
   };
 
   const getSizeStyles = () => {

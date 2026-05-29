@@ -1,12 +1,4 @@
-/**
- * ChildrenRecentBadges — Horizontal scroll of recent badge awards.
- *
- * Shows badges awarded in the last 7 days across all children.
- * Unseen badges are highlighted with a "NEW" indicator.
- */
-
-import { memo, useCallback } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, FlatList, type ListRenderItemInfo } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -24,7 +16,7 @@ interface ChildrenRecentBadgesProps {
   onViewBadge: (badge: BadgeAward) => void;
 }
 
-const BadgeItem = memo(function BadgeItem({
+const BadgeItem = function BadgeItem({
   badge,
   onPress,
 }: {
@@ -75,20 +67,16 @@ const BadgeItem = memo(function BadgeItem({
       </Column>
     </Clickable>
   );
-});
+};
 
-export const ChildrenRecentBadges = memo(function ChildrenRecentBadges({
+export const ChildrenRecentBadges = function ChildrenRecentBadges({
   badges,
   onViewBadge,
 }: ChildrenRecentBadgesProps) {
   const { colors: palette } = useTheme();
 
-  const handleBadgePress = useCallback(
-    (badge: BadgeAward) => () => onViewBadge(badge),
-    [onViewBadge],
-  );
-
   if (badges.length === 0) return null;
+  const badgeItems = getRecentBadgeItems(badges, onViewBadge);
 
   return (
     <Animated.View entering={FadeInDown.delay(75).springify()}>
@@ -102,19 +90,43 @@ export const ChildrenRecentBadges = memo(function ChildrenRecentBadges({
             Tap to view details
           </ThemedText>
         </Row>
-        <ScrollView
+        <FlatList
           horizontal
+          data={badgeItems}
+          keyExtractor={keyRecentBadgeItem}
+          renderItem={renderRecentBadgeItem}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.badgeScroll}
-        >
-          {badges.map((badge) => (
-            <BadgeItem key={badge.id} badge={badge} onPress={handleBadgePress(badge)} />
-          ))}
-        </ScrollView>
+        />
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
+
+interface RecentBadgeItem {
+  key: string;
+  badge: BadgeAward;
+  onPress: () => void;
+}
+
+function getRecentBadgeItems(
+  badges: BadgeAward[],
+  onViewBadge: (badge: BadgeAward) => void,
+): RecentBadgeItem[] {
+  return badges.map((badge) => ({
+    key: badge.id,
+    badge,
+    onPress: () => onViewBadge(badge),
+  }));
+}
+
+function keyRecentBadgeItem(item: RecentBadgeItem) {
+  return item.key;
+}
+
+function renderRecentBadgeItem({ item }: ListRenderItemInfo<RecentBadgeItem>) {
+  return <BadgeItem badge={item.badge} onPress={item.onPress} />;
+}
 
 const styles = StyleSheet.create({
   card: {

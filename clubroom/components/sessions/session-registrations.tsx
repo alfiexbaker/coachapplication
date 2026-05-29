@@ -1,7 +1,7 @@
 /**
  * SessionRegistrations — Attendee roster for coach and registered athlete views.
  */
-import { memo, useMemo, useState, useCallback, useEffect } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,23 +33,23 @@ function SessionRegistrationsInner({
   const { colors: palette } = useTheme();
   const confirmedRegistrations = offering.registrations.filter((r) => r.status === 'confirmed');
   const [visibleCount, setVisibleCount] = useState(10);
+  // react-doctor-disable-next-line react-doctor/no-reset-all-state-on-prop-change -- pagination resets when the offering identity changes.
   useEffect(() => {
-    setVisibleCount(10);
+    startTransition(() => {
+      setVisibleCount(10);
+    });
   }, [offering.id]);
-  const visibleRegistrations = useMemo(
-    () => confirmedRegistrations.slice(0, visibleCount),
-    [confirmedRegistrations, visibleCount],
-  );
+  const visibleRegistrations = confirmedRegistrations.slice(0, visibleCount);
   const remainingCount = Math.max(0, confirmedRegistrations.length - visibleCount);
-  const handleShowMore = useCallback(() => {
+  const handleShowMore = () => {
     setVisibleCount((prev) => Math.min(prev + 10, confirmedRegistrations.length));
-  }, [confirmedRegistrations.length]);
-  const handleShowAll = useCallback(() => {
+  };
+  const handleShowAll = () => {
     setVisibleCount(confirmedRegistrations.length);
-  }, [confirmedRegistrations.length]);
-  const handleShowLess = useCallback(() => {
+  };
+  const handleShowLess = () => {
     setVisibleCount(10);
-  }, []);
+  };
   const isCoachView = viewer === 'coach';
   const title = isCoachView
     ? `Registered Athletes (${registeredCount})`
@@ -135,7 +135,7 @@ function SessionRegistrationsInner({
   );
 }
 
-export const SessionRegistrations = memo(SessionRegistrationsInner);
+export const SessionRegistrations = SessionRegistrationsInner;
 
 const styles = StyleSheet.create({
   card: { marginBottom: Spacing.sm, padding: Spacing.sm, gap: Spacing.sm },

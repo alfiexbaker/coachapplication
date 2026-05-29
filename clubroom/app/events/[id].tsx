@@ -247,9 +247,7 @@ export default function EventDetailScreen() {
             ) : null}
           </View>
           {event.isVirtual && event.meetingLink ? (
-            <Button variant="outline" onPress={handleJoinMeeting}>
-              Join meeting
-            </Button>
+            <Button variant="outline" onPress={handleJoinMeeting} label="Join meeting" />
           ) : null}
           <ThemedText style={[styles.description, { color: palette.text }]}>{event.description}</ThemedText>
         </SurfaceCard>
@@ -286,9 +284,7 @@ export default function EventDetailScreen() {
               </ThemedText>
             </View>
             {isOrganizer && reminderTargetCount > 0 && event.status === 'PUBLISHED' ? (
-              <Button variant="outline" onPress={handleSendReminder}>
-                Remind {reminderTargetCount}
-              </Button>
+              <Button variant="outline" onPress={handleSendReminder} label={`Remind ${reminderTargetCount}`} />
             ) : null}
           </Row>
 
@@ -328,9 +324,7 @@ export default function EventDetailScreen() {
           )}
 
           {isOrganizer ? (
-            <Button variant="outline" onPress={handleOpenFullAttendance}>
-              Open full response list
-            </Button>
+            <Button variant="outline" onPress={handleOpenFullAttendance} label="Open full response list" />
           ) : null}
         </SurfaceCard>
 
@@ -380,17 +374,13 @@ export default function EventDetailScreen() {
             </ThemedText>
             <View style={styles.actionStack}>
               {isCreator && event.status === 'DRAFT' ? (
-                <Button onPress={handlePublish}>Publish event</Button>
+                <Button onPress={handlePublish} label="Publish event" />
               ) : null}
               {isCreator && event.status === 'PUBLISHED' ? (
-                <Button variant="outline" onPress={handleCancel}>
-                  Cancel event
-                </Button>
+                <Button variant="outline" onPress={handleCancel} label="Cancel event" />
               ) : null}
               {canShareRecap ? (
-                <Button variant="secondary" onPress={handleOpenRecap}>
-                  Share update
-                </Button>
+                <Button variant="secondary" onPress={handleOpenRecap} label="Share update" />
               ) : null}
             </View>
           </SurfaceCard>

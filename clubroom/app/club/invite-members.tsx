@@ -6,7 +6,6 @@
  */
 
 import { View, StyleSheet, ScrollView, ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -50,20 +49,14 @@ export default function InviteMembersScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <LoadingState variant="list" />
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <PageHeader
         title="Invite Members"
         showBack
@@ -104,6 +97,7 @@ export default function InviteMembersScreen() {
       </Row>
 
       <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -152,7 +146,7 @@ export default function InviteMembersScreen() {
             <Row align="center" justify="center" gap="sm">
               {isInviting ? (
                 <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>
-                  Sending...
+                  Sending…
                 </ThemedText>
               ) : (
                 <>
@@ -166,7 +160,7 @@ export default function InviteMembersScreen() {
           </Clickable>
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

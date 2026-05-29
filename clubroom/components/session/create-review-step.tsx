@@ -4,7 +4,7 @@
  * Shows a summary card with all session details for final review.
  */
 
-import React, { memo, useMemo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInRight } from 'react-native-reanimated';
@@ -86,7 +86,7 @@ function formatDuration(minutes: number): string {
   return `${hours} hr ${remainder} min`;
 }
 
-export const CreateReviewStep = memo(function CreateReviewStep({
+export const CreateReviewStep = function CreateReviewStep({
   colors,
   sessionType,
   title,
@@ -113,36 +113,30 @@ export const CreateReviewStep = memo(function CreateReviewStep({
   selectedClubCommercialMode,
   selectedAssigneeName,
 }: CreateReviewStepProps) {
-  const typeConfig = useMemo(() => SESSION_TYPES.find((t) => t.key === sessionType), [sessionType]);
-  const recurrenceLabel = useMemo(
-    () => RECURRENCE_OPTIONS.find((r) => r.key === recurrence)?.label || 'One-time',
-    [recurrence],
-  );
+  const typeConfig = SESSION_TYPES.find((t) => t.key === sessionType);
+  const recurrenceLabel = RECURRENCE_OPTIONS.find((r) => r.key === recurrence)?.label || 'One-time';
   const isCamp = sessionType === 'camp';
   const participants = maxParticipants || defaultMaxParticipants;
-  const displayLocation = useMemo(() => {
+  const displayLocation = (() => {
     const resolvedLocation = getDisplayLocationLabel(location, locationCoordinates);
     const normalizedVenue = venueName.trim();
     if (!normalizedVenue) {
       return resolvedLocation;
     }
     return resolvedLocation ? `${normalizedVenue} · ${resolvedLocation}` : normalizedVenue;
-  }, [location, locationCoordinates, venueName]);
-  const mainDurationMinutes = useMemo(
-    () => durationBetween(selectedTime, selectedEndTime),
-    [selectedTime, selectedEndTime],
-  );
+  })();
+  const mainDurationMinutes = durationBetween(selectedTime, selectedEndTime);
   const durationLabel =
     mainDurationMinutes > 0 ? formatDuration(mainDurationMinutes) : 'Check start/end time';
-  const scheduleLabel = useMemo(() => {
+  const scheduleLabel = (() => {
     if (!isCamp) return `${selectedDate} at ${selectedTime} - ${selectedEndTime}`;
     if (campLength === 'multi_day' && campEndDate) {
       return `${selectedDate} to ${campEndDate}`;
     }
     return `${selectedDate} at ${selectedTime} - ${selectedEndTime}`;
-  }, [campEndDate, campLength, isCamp, selectedDate, selectedTime, selectedEndTime]);
+  })();
 
-  const scheduleSubLabel = useMemo(() => {
+  const scheduleSubLabel = (() => {
     if (!isCamp) return recurrenceLabel;
     if (campLength === 'multi_day' && useCampDailyTimes) {
       return `Different times by day (${campDatesPreview.length} days)`;
@@ -151,44 +145,24 @@ export const CreateReviewStep = memo(function CreateReviewStep({
       return `${selectedTime} - ${selectedEndTime} daily`;
     }
     return 'Single-day camp';
-  }, [
-    campDatesPreview.length,
-    campLength,
-    isCamp,
-    recurrenceLabel,
-    selectedEndTime,
-    selectedTime,
-    useCampDailyTimes,
-  ]);
-  const offerDisplay = useMemo(
-    () =>
-      getDraftSessionOfferDisplay({
-        sessionType,
-        recurrence,
-        maxParticipants: Number.parseInt(String(participants), 10) || defaultMaxParticipants,
-      }),
-    [defaultMaxParticipants, participants, recurrence, sessionType],
-  );
-  const capacityDisplay = useMemo(
-    () =>
-      getOfferCapacityDisplay({
-        maxParticipants: Number.parseInt(String(participants), 10) || defaultMaxParticipants,
-      }),
-    [defaultMaxParticipants, participants],
-  );
-  const ownershipDisplay = useMemo(
-    () =>
-      getProgramOwnershipDisplay({
-        actingAs: postingAs,
-        commercialMode: selectedClubCommercialMode,
-        organizationLabel: selectedClubName,
-        coachLabel: selectedAssigneeName,
-        deliveredByLabel: selectedAssigneeName,
-      }),
-    [postingAs, selectedAssigneeName, selectedClubCommercialMode, selectedClubName],
-  );
+  })();
+  const offerDisplay = getDraftSessionOfferDisplay({
+    sessionType,
+    recurrence,
+    maxParticipants: Number.parseInt(String(participants), 10) || defaultMaxParticipants,
+  });
+  const capacityDisplay = getOfferCapacityDisplay({
+    maxParticipants: Number.parseInt(String(participants), 10) || defaultMaxParticipants,
+  });
+  const ownershipDisplay = getProgramOwnershipDisplay({
+    actingAs: postingAs,
+    commercialMode: selectedClubCommercialMode,
+    organizationLabel: selectedClubName,
+    coachLabel: selectedAssigneeName,
+    deliveredByLabel: selectedAssigneeName,
+  });
 
-  const perDaySummary = useMemo(() => {
+  const perDaySummary = (() => {
     if (!isCamp || campLength !== 'multi_day' || !useCampDailyTimes) return [];
     return campDatesPreview.slice(0, 3).map((date) => {
       const dayTime = campDailyTimes[date];
@@ -197,9 +171,9 @@ export const CreateReviewStep = memo(function CreateReviewStep({
         label: dayTime ? `${dayTime.startTime}-${dayTime.endTime}` : 'Using default times',
       };
     });
-  }, [campDailyTimes, campDatesPreview, campLength, isCamp, useCampDailyTimes]);
+  })();
 
-  const visibilityNote = useMemo(() => {
+  const visibilityNote = (() => {
     switch (inviteType) {
       case 'OPEN':
         return postingAs === 'club'
@@ -212,7 +186,7 @@ export const CreateReviewStep = memo(function CreateReviewStep({
       case 'SQUAD_ONLY':
         return 'This is private squad training. Other club members and outside athletes will not see it.';
     }
-  }, [inviteType, postingAs]);
+  })();
   const handleOpenMap = () => {
     void openLocationInMaps({ location, coordinates: locationCoordinates }).then((opened) => {
       if (!opened) {
@@ -423,7 +397,7 @@ export const CreateReviewStep = memo(function CreateReviewStep({
       </Column>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   reviewCard: {

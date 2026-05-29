@@ -11,7 +11,6 @@ import {
 import type { PrismaClient } from '@clubroom/db';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from './prisma-runtime.js';
 import { normalizeForJson } from '../repositories/p0/normalize.js';
-
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
 type InvoicePrismaTransaction = Pick<
@@ -24,7 +23,6 @@ type InvoicePrismaTransaction = Pick<
   | 'reconcilerEntry'
   | 'user'
 >;
-
 export interface InvoiceListQuery {
   status?: string;
   coachId?: string;
@@ -32,7 +30,6 @@ export interface InvoiceListQuery {
   dateFrom?: string;
   dateTo?: string;
 }
-
 export interface InvoiceDetailRecord {
   invoice: SeedRow;
   lineItems: SeedRow[];
@@ -42,7 +39,6 @@ export interface InvoiceDetailRecord {
   paymentInstructionTemplates: SeedRow[];
   paymentAttempts: SeedRow[];
 }
-
 export interface GenerateInvoiceInput {
   bookingId: string;
   actorUserId: string;
@@ -50,25 +46,21 @@ export interface GenerateInvoiceInput {
   dueDate?: string;
   taxRatePercent?: number;
 }
-
 export interface GeneratedInvoiceRecord {
   invoice: SeedRow;
   created: boolean;
 }
-
 export interface CreateInvoiceReminderInput {
   invoiceId: string;
   actorUserId: string;
   recipientEmail?: string;
   message?: string;
 }
-
 export interface InvoiceReminderRecord {
   invoice: SeedRow;
   reminder: SeedRow;
   sentAt: string;
 }
-
 export interface CreateInvoicePaymentSessionInput {
   invoiceId: string;
   actorUserId: string;
@@ -76,14 +68,12 @@ export interface CreateInvoicePaymentSessionInput {
   returnUrl?: string;
   cancelUrl?: string;
 }
-
 export interface InvoicePaymentSessionRecord {
   invoice: SeedRow;
   attempt: SeedRow;
   hostedSession: HostedPaymentSession;
   reused: boolean;
 }
-
 export interface RequestInvoiceRefundInput {
   invoiceId: string;
   actorUserId: string;
@@ -93,24 +83,20 @@ export interface RequestInvoiceRefundInput {
   amountMinor?: number;
   requestId?: string;
 }
-
 export interface InvoiceRefundRecord {
   invoice: SeedRow;
   refund: SeedRow;
   reused: boolean;
 }
-
 export interface CompleteSimulatedInvoicePaymentInput {
   attemptId: string;
   token: string;
 }
-
 export interface CompleteSimulatedInvoicePaymentResult {
   invoice: SeedRow;
   attempt: SeedRow;
   alreadyCompleted: boolean;
 }
-
 export interface HostedPaymentPageData {
   invoice: SeedRow;
   attempt: SeedRow;
@@ -118,14 +104,12 @@ export interface HostedPaymentPageData {
   returnUrl?: string | null;
   cancelUrl?: string | null;
 }
-
 export type InvoiceTransitionAction =
   | 'mark-paid'
   | 'mark-unpaid'
   | 'write-off'
   | 'restore'
   | 'void';
-
 export interface TransitionInvoiceInput {
   invoiceId: string;
   actorUserId: string;
@@ -133,21 +117,18 @@ export interface TransitionInvoiceInput {
   reason?: string;
   requestId?: string;
 }
-
 export interface BookingInvoiceLifecycleInput {
   bookingId: string;
   actorUserId: string;
   reason?: string;
   requestId?: string;
 }
-
 export interface BookingInvoiceAdjustmentInput {
   bookingIds: string[];
   actorUserId: string;
   reason?: string;
   requestId?: string;
 }
-
 interface BookingInvoiceContext {
   bookingId: string;
   coachUserId: string;
@@ -163,11 +144,9 @@ interface BookingInvoiceContext {
   coachBusinessEmail?: string | null;
   billingAddress?: string | null;
 }
-
 const INVOICE_STATUSES = ['DRAFT', 'SENT', 'PAID', 'VOID', 'WRITTEN_OFF'] as const;
 const ACTIVE_PAYMENT_ATTEMPT_STATUSES = new Set(['PENDING', 'ACTION_REQUIRED']);
 const SIMULATED_REFUND_VERIFICATION_CODE = '000000';
-
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
@@ -176,22 +155,18 @@ const asNumber = (value: unknown): number | undefined =>
 const asBoolean = (value: unknown): boolean => value === true;
 const nowIso = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
-
 function getActiveRows(rows: SeedRow[]): SeedRow[] {
   return rows.filter((row) => row.deletedAt == null);
 }
-
 function getMutableRows(tables: SeedTables, key: string): SeedRow[] {
   if (!Array.isArray(tables[key])) {
     tables[key] = [];
   }
   return tables[key] as SeedRow[];
 }
-
 function moneyFromMinor(value: unknown): number {
   return Math.round((Number(value ?? 0) / 100) * 100) / 100;
 }
-
 function formatSessionType(value: string | undefined): string | undefined {
   if (!value) {
     return undefined;
@@ -204,12 +179,10 @@ function formatSessionType(value: string | undefined): string | undefined {
     default:
       return value
         .split('_')
-        .filter(Boolean)
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .flatMap((item) => (Boolean(item) ? [item.charAt(0).toUpperCase() + item.slice(1)] : []))
         .join(' ');
   }
 }
-
 function toInvoiceStatus(value: unknown): (typeof INVOICE_STATUSES)[number] {
   const status = asString(value)?.toUpperCase();
   if (status && INVOICE_STATUSES.includes(status as (typeof INVOICE_STATUSES)[number])) {
@@ -217,7 +190,6 @@ function toInvoiceStatus(value: unknown): (typeof INVOICE_STATUSES)[number] {
   }
   return 'SENT';
 }
-
 function findUserEmail(users: SeedRow[], userId: string | undefined): string | undefined {
   if (!userId) {
     return undefined;
@@ -225,7 +197,6 @@ function findUserEmail(users: SeedRow[], userId: string | undefined): string | u
   const user = users.find((row) => asString(row.id) === userId);
   return asString(user?.email);
 }
-
 function displayNameForUser(user: SeedRow | null | undefined): string | undefined {
   if (!user) {
     return undefined;
@@ -241,7 +212,6 @@ function displayNameForUser(user: SeedRow | null | undefined): string | undefine
   }
   return undefined;
 }
-
 function mapInvoice(row: SeedRow, users: SeedRow[]): SeedRow {
   const payerUserId = asString(row.payerUserId) ?? '';
   return {
@@ -275,7 +245,6 @@ function mapInvoice(row: SeedRow, users: SeedRow[]): SeedRow {
     billingAddress: asString(row.billingAddress),
   };
 }
-
 function parseDate(value: string | undefined): number | null {
   if (!value) {
     return null;
@@ -283,7 +252,6 @@ function parseDate(value: string | undefined): number | null {
   const parsed = Date.parse(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
-
 function matchesInvoiceFilters(row: SeedRow, query: InvoiceListQuery): boolean {
   if (query.coachId && asString(row.coachUserId) !== query.coachId) {
     return false;
@@ -292,15 +260,14 @@ function matchesInvoiceFilters(row: SeedRow, query: InvoiceListQuery): boolean {
     return false;
   }
   if (query.status) {
-    const statuses = query.status
-      .split(',')
-      .map((value) => value.trim().toUpperCase())
-      .filter(Boolean);
+    const statuses = query.status.split(',').flatMap((value) => {
+      const status = value.trim().toUpperCase();
+      return status ? [status] : [];
+    });
     if (statuses.length > 0 && !statuses.includes(toInvoiceStatus(row.status))) {
       return false;
     }
   }
-
   const sessionDate = parseDate(asString(row.sessionDate));
   if (query.dateFrom) {
     const from = parseDate(query.dateFrom);
@@ -314,10 +281,8 @@ function matchesInvoiceFilters(row: SeedRow, query: InvoiceListQuery): boolean {
       return false;
     }
   }
-
   return true;
 }
-
 function canAccessInvoiceRow(authUserId: string, isAdmin: boolean, invoice: SeedRow): boolean {
   return (
     isAdmin ||
@@ -325,19 +290,26 @@ function canAccessInvoiceRow(authUserId: string, isAdmin: boolean, invoice: Seed
     asString(invoice.payerUserId) === authUserId
   );
 }
-
-function resolveMutableTables(): { tables: SeedTables; version: string } | null {
+function resolveMutableTables(): {
+  tables: SeedTables;
+  version: string;
+} | null {
   if (getApiDataBackend() === 'seed') {
     const store = getMarketplaceSeedStore();
-    return { tables: store.tables, version: store.version };
+    return {
+      tables: store.tables,
+      version: store.version,
+    };
   }
   if (shouldUseDbFixtureFallback()) {
     const store = getDbFixtureStore();
-    return { tables: store.tables, version: store.version };
+    return {
+      tables: store.tables,
+      version: store.version,
+    };
   }
   return null;
 }
-
 function markMutableGroupSessionRegistrationPaid(params: {
   tables: SeedTables;
   invoice: SeedRow;
@@ -362,7 +334,9 @@ function markMutableGroupSessionRegistrationPaid(params: {
   if (!athleteId) {
     return;
   }
-  const registration = getActiveRows(getMutableRows(params.tables, 'groupSessionRegistrations')).find(
+  const registration = getActiveRows(
+    getMutableRows(params.tables, 'groupSessionRegistrations'),
+  ).find(
     (row) =>
       asString(row.groupSessionId) === groupSessionId &&
       asString(row.athleteId) === athleteId &&
@@ -376,21 +350,23 @@ function markMutableGroupSessionRegistrationPaid(params: {
   registration.updatedByUserId = params.actorUserId;
   registration.version = (asNumber(registration.version) ?? 1) + 1;
 }
-
 function coerceMetadata(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return {};
   }
   return value as Record<string, unknown>;
 }
-
 function buildRefundRequestHash(params: { amountMinor: number; reason: string }): string {
   return crypto
     .createHash('sha256')
-    .update(JSON.stringify({ amountMinor: params.amountMinor, reason: params.reason.trim() }))
+    .update(
+      JSON.stringify({
+        amountMinor: params.amountMinor,
+        reason: params.reason.trim(),
+      }),
+    )
     .digest('hex');
 }
-
 function existingRefundEventFromRows(
   invoiceEvents: SeedRow[],
   invoiceId: string,
@@ -406,7 +382,6 @@ function existingRefundEventFromRows(
     );
   });
 }
-
 function computeTaxBreakdown(
   totalMinor: number,
   taxRatePercent: number,
@@ -420,7 +395,6 @@ function computeTaxBreakdown(
     taxMinor: totalMinor - subtotalMinor,
   };
 }
-
 function reconcileStateForInvoiceStatus(status: (typeof INVOICE_STATUSES)[number]): string {
   switch (status) {
     case 'PAID':
@@ -436,7 +410,6 @@ function reconcileStateForInvoiceStatus(status: (typeof INVOICE_STATUSES)[number
       return 'OUTSTANDING';
   }
 }
-
 function appendInvoiceEvent(params: {
   invoiceEvents: SeedRow[];
   invoiceId: string;
@@ -458,7 +431,6 @@ function appendInvoiceEvent(params: {
     occurredAt: params.occurredAt,
   });
 }
-
 function updateReconcilerEntry(params: {
   reconcilerEntries: SeedRow[];
   invoice: SeedRow;
@@ -470,7 +442,6 @@ function updateReconcilerEntry(params: {
   const invoiceId = asString(params.invoice.id) ?? '';
   const existing = params.reconcilerEntries.find((row) => asString(row.invoiceId) === invoiceId);
   const nextState = reconcileStateForInvoiceStatus(params.nextStatus);
-
   if (existing) {
     existing.state = nextState;
     existing.internalNote = params.note;
@@ -479,7 +450,6 @@ function updateReconcilerEntry(params: {
     existing.version = (asNumber(existing.version) ?? 1) + 1;
     return;
   }
-
   params.reconcilerEntries.push({
     id: newId('rec'),
     invoiceId,
@@ -493,7 +463,6 @@ function updateReconcilerEntry(params: {
     updatedAt: params.now,
   });
 }
-
 function cancelActivePaymentAttemptsForInvoice(params: {
   paymentAttempts: SeedRow[];
   invoiceId: string;
@@ -512,7 +481,6 @@ function cancelActivePaymentAttemptsForInvoice(params: {
     }
   }
 }
-
 function getInvoiceTransitionPlan(params: {
   action: InvoiceTransitionAction;
   currentStatus: (typeof INVOICE_STATUSES)[number];
@@ -526,11 +494,12 @@ function getInvoiceTransitionPlan(params: {
   idempotent: boolean;
 } {
   const { action, currentStatus, reason, invoiceId } = params;
-
   switch (action) {
     case 'mark-paid':
       if (currentStatus === 'VOID') {
-        throw badRequest('Voided invoices cannot be marked as paid', { invoiceId });
+        throw badRequest('Voided invoices cannot be marked as paid', {
+          invoiceId,
+        });
       }
       return {
         nextStatus: 'PAID',
@@ -541,7 +510,9 @@ function getInvoiceTransitionPlan(params: {
       };
     case 'mark-unpaid':
       if (currentStatus !== 'PAID') {
-        throw badRequest('Only paid invoices can be moved back to unpaid', { invoiceId });
+        throw badRequest('Only paid invoices can be moved back to unpaid', {
+          invoiceId,
+        });
       }
       return {
         nextStatus: 'SENT',
@@ -552,7 +523,9 @@ function getInvoiceTransitionPlan(params: {
       };
     case 'write-off':
       if (currentStatus === 'PAID' || currentStatus === 'VOID') {
-        throw badRequest('Paid or void invoices cannot be written off', { invoiceId });
+        throw badRequest('Paid or void invoices cannot be written off', {
+          invoiceId,
+        });
       }
       return {
         nextStatus: 'WRITTEN_OFF',
@@ -563,7 +536,9 @@ function getInvoiceTransitionPlan(params: {
       };
     case 'restore':
       if (currentStatus !== 'WRITTEN_OFF') {
-        throw badRequest('Only written-off invoices can be restored', { invoiceId });
+        throw badRequest('Only written-off invoices can be restored', {
+          invoiceId,
+        });
       }
       return {
         nextStatus: 'SENT',
@@ -574,7 +549,9 @@ function getInvoiceTransitionPlan(params: {
       };
     case 'void':
       if (currentStatus === 'PAID') {
-        throw badRequest('Paid invoices cannot be voided', { invoiceId });
+        throw badRequest('Paid invoices cannot be voided', {
+          invoiceId,
+        });
       }
       return {
         nextStatus: 'VOID',
@@ -585,7 +562,6 @@ function getInvoiceTransitionPlan(params: {
       };
   }
 }
-
 function assertMutableInvoiceBookingLink(
   tables: SeedTables,
   invoice: SeedRow,
@@ -595,7 +571,6 @@ function assertMutableInvoiceBookingLink(
   if (!bookingId) {
     return;
   }
-
   const bookingContext = resolveBookingInvoiceContextFromTables(tables, bookingId);
   if (!bookingContext) {
     throw badRequest('Invoice booking link is no longer authoritative', {
@@ -610,7 +585,6 @@ function assertMutableInvoiceBookingLink(
     });
   }
 }
-
 function applyBookingCancellationInvoiceEffectsInTables(
   tables: SeedTables,
   input: BookingInvoiceLifecycleInput,
@@ -621,7 +595,6 @@ function applyBookingCancellationInvoiceEffectsInTables(
   if (invoices.length === 0) {
     return;
   }
-
   const paidInvoice = invoices.find((row) => toInvoiceStatus(row.status) === 'PAID');
   if (paidInvoice) {
     throw badRequest('Paid booking invoices require a refund workflow before cancellation', {
@@ -629,12 +602,10 @@ function applyBookingCancellationInvoiceEffectsInTables(
       invoiceId: asString(paidInvoice.id),
     });
   }
-
   const now = nowIso();
   const paymentAttempts = getMutableRows(tables, 'paymentAttempts');
   const invoiceEvents = getMutableRows(tables, 'invoiceEvents');
   const reconcilerEntries = getMutableRows(tables, 'reconcilerEntries');
-
   for (const invoice of invoices) {
     const invoiceId = asString(invoice.id) ?? '';
     cancelActivePaymentAttemptsForInvoice({
@@ -643,12 +614,10 @@ function applyBookingCancellationInvoiceEffectsInTables(
       now,
       reason: 'Booking was cancelled before payment completion.',
     });
-
     const status = toInvoiceStatus(invoice.status);
     if (status !== 'DRAFT' && status !== 'SENT') {
       continue;
     }
-
     const voidReason = input.reason ?? 'Booking cancelled before payment.';
     invoice.status = 'VOID';
     invoice.paidAt = null;
@@ -657,7 +626,6 @@ function applyBookingCancellationInvoiceEffectsInTables(
     invoice.updatedAt = now;
     invoice.updatedByUserId = input.actorUserId;
     invoice.version = (asNumber(invoice.version) ?? 1) + 1;
-
     appendInvoiceEvent({
       invoiceEvents,
       invoiceId,
@@ -681,7 +649,6 @@ function applyBookingCancellationInvoiceEffectsInTables(
     });
   }
 }
-
 function wasInvoiceVoidedByBookingCancellation(
   invoiceEvents: SeedRow[],
   invoiceId: string,
@@ -697,7 +664,6 @@ function wasInvoiceVoidedByBookingCancellation(
     );
   });
 }
-
 function applyBookingReopenInvoiceEffectsInTables(
   tables: SeedTables,
   input: BookingInvoiceLifecycleInput,
@@ -708,11 +674,9 @@ function applyBookingReopenInvoiceEffectsInTables(
   if (invoices.length === 0) {
     return;
   }
-
   const invoiceEvents = getMutableRows(tables, 'invoiceEvents');
   const reconcilerEntries = getMutableRows(tables, 'reconcilerEntries');
   const now = nowIso();
-
   for (const invoice of invoices) {
     const invoiceId = asString(invoice.id) ?? '';
     if (
@@ -721,14 +685,12 @@ function applyBookingReopenInvoiceEffectsInTables(
     ) {
       continue;
     }
-
     invoice.status = 'SENT';
     invoice.voidedAt = null;
     invoice.voidReason = null;
     invoice.updatedAt = now;
     invoice.updatedByUserId = input.actorUserId;
     invoice.version = (asNumber(invoice.version) ?? 1) + 1;
-
     appendInvoiceEvent({
       invoiceEvents,
       invoiceId,
@@ -752,7 +714,6 @@ function applyBookingReopenInvoiceEffectsInTables(
     });
   }
 }
-
 function applyBookingInvoiceAdjustmentsInTables(
   tables: SeedTables,
   input: BookingInvoiceAdjustmentInput,
@@ -761,26 +722,26 @@ function applyBookingInvoiceAdjustmentsInTables(
   if (bookingIds.size === 0) {
     return;
   }
-
   const invoices = getActiveRows(getMutableRows(tables, 'invoices')).filter((row) =>
     bookingIds.has(asString(row.bookingId) ?? ''),
   );
   if (invoices.length === 0) {
     return;
   }
-
   const blockedInvoice = invoices.find((row) => {
     const status = toInvoiceStatus(row.status);
     return status !== 'DRAFT' && status !== 'SENT';
   });
   if (blockedInvoice) {
-    throw badRequest('Booking series updates require explicit invoice adjustment for settled invoices', {
-      bookingId: asString(blockedInvoice.bookingId),
-      invoiceId: asString(blockedInvoice.id),
-      invoiceStatus: toInvoiceStatus(blockedInvoice.status),
-    });
+    throw badRequest(
+      'Booking series updates require explicit invoice adjustment for settled invoices',
+      {
+        bookingId: asString(blockedInvoice.bookingId),
+        invoiceId: asString(blockedInvoice.id),
+        invoiceStatus: toInvoiceStatus(blockedInvoice.status),
+      },
+    );
   }
-
   const now = nowIso();
   const invoiceEvents = getMutableRows(tables, 'invoiceEvents');
   const lineItems = getMutableRows(tables, 'invoiceLineItems');
@@ -790,7 +751,6 @@ function applyBookingInvoiceAdjustmentsInTables(
     if (!bookingId) {
       continue;
     }
-
     const context = resolveBookingInvoiceContextFromTables(tables, bookingId);
     if (!context) {
       throw badRequest('Invoice booking link is no longer authoritative', {
@@ -804,7 +764,6 @@ function applyBookingInvoiceAdjustmentsInTables(
         bookingId,
       });
     }
-
     invoice.sessionDate = context.sessionDate;
     invoice.sessionType = context.sessionType;
     invoice.sessionLocation = context.sessionLocation;
@@ -812,12 +771,10 @@ function applyBookingInvoiceAdjustmentsInTables(
     invoice.updatedAt = now;
     invoice.updatedByUserId = input.actorUserId;
     invoice.version = (asNumber(invoice.version) ?? 1) + 1;
-
     for (const lineItem of lineItems.filter((row) => asString(row.invoiceId) === invoiceId)) {
       lineItem.description = formatSessionType(context.sessionType) ?? context.sessionType;
       lineItem.updatedAt = now;
     }
-
     appendInvoiceEvent({
       invoiceEvents,
       invoiceId,
@@ -833,17 +790,14 @@ function applyBookingInvoiceAdjustmentsInTables(
     });
   }
 }
-
 function defaultDueDateIso(): string {
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 14);
   return dueDate.toISOString();
 }
-
 function coerceAttemptStatus(value: unknown): string {
   return asString(value)?.toUpperCase() ?? 'PENDING';
 }
-
 function expireAttemptRow(row: SeedRow): void {
   if (!ACTIVE_PAYMENT_ATTEMPT_STATUSES.has(coerceAttemptStatus(row.status))) {
     return;
@@ -855,13 +809,11 @@ function expireAttemptRow(row: SeedRow): void {
   row.status = 'EXPIRED';
   row.updatedAt = nowIso();
 }
-
 function ensureAttemptFreshness(rows: SeedRow[]): void {
   for (const row of rows) {
     expireAttemptRow(row);
   }
 }
-
 function resolveBookingInvoiceContextFromTables(
   tables: SeedTables,
   bookingId: string,
@@ -872,7 +824,6 @@ function resolveBookingInvoiceContextFromTables(
   if (!booking) {
     return null;
   }
-
   const bookingParticipants = getActiveRows(asRows(tables.bookingParticipants)).filter(
     (row) => asString(row.bookingId) === bookingId,
   );
@@ -888,7 +839,6 @@ function resolveBookingInvoiceContextFromTables(
   const users = asRows(tables.users);
   const coachUser = users.find((row) => asString(row.id) === asString(booking.coachUserId));
   const payerUser = users.find((row) => asString(row.id) === payerUserId);
-
   return {
     bookingId,
     coachUserId: asString(booking.coachUserId) ?? '',
@@ -905,7 +855,6 @@ function resolveBookingInvoiceContextFromTables(
     billingAddress: displayNameForUser(payerUser) ?? null,
   };
 }
-
 async function resolveBookingInvoiceContextFromDb(
   bookingId: string,
 ): Promise<BookingInvoiceContext | null> {
@@ -926,7 +875,6 @@ async function resolveBookingInvoiceContextFromDb(
   if (!booking) {
     return null;
   }
-
   const firstParticipant = booking.participants[0] ?? null;
   const totalMinor =
     (booking.status === 'CANCELLED' ? booking.cancellationFeeMinor : booking.priceMinor) ?? 0;
@@ -942,7 +890,6 @@ async function resolveBookingInvoiceContextFromDb(
   const coachUser = users.find((row) => row.id === booking.coachUserId);
   const payerUserId = booking.bookedByUserId ?? firstParticipant?.guardianUserId ?? null;
   const payerUser = users.find((row) => row.id === payerUserId);
-
   return {
     bookingId: booking.id,
     coachUserId: booking.coachUserId,
@@ -959,7 +906,6 @@ async function resolveBookingInvoiceContextFromDb(
     billingAddress: payerUser?.name || payerUser?.email || null,
   };
 }
-
 async function resolveBookingInvoiceContextFromDbTransaction(
   tx: Pick<PrismaClient, 'booking' | 'user'>,
   bookingId: string,
@@ -980,7 +926,6 @@ async function resolveBookingInvoiceContextFromDbTransaction(
   if (!booking) {
     return null;
   }
-
   const firstParticipant = booking.participants[0] ?? null;
   const totalMinor =
     (booking.status === 'CANCELLED' ? booking.cancellationFeeMinor : booking.priceMinor) ?? 0;
@@ -996,7 +941,6 @@ async function resolveBookingInvoiceContextFromDbTransaction(
   const coachUser = users.find((row) => row.id === booking.coachUserId);
   const payerUserId = booking.bookedByUserId ?? firstParticipant?.guardianUserId ?? null;
   const payerUser = users.find((row) => row.id === payerUserId);
-
   return {
     bookingId: booking.id,
     coachUserId: booking.coachUserId,
@@ -1013,7 +957,6 @@ async function resolveBookingInvoiceContextFromDbTransaction(
     billingAddress: payerUser?.name || payerUser?.email || null,
   };
 }
-
 export async function getBookingInvoiceContext(
   bookingId: string,
 ): Promise<BookingInvoiceContext | null> {
@@ -1023,7 +966,6 @@ export async function getBookingInvoiceContext(
   }
   return resolveBookingInvoiceContextFromDb(bookingId);
 }
-
 export async function applyBookingCancellationInvoiceEffectsInDbTransaction(
   tx: InvoicePrismaTransaction,
   input: BookingInvoiceLifecycleInput,
@@ -1037,7 +979,6 @@ export async function applyBookingCancellationInvoiceEffectsInDbTransaction(
   if (invoices.length === 0) {
     return;
   }
-
   const paidInvoice = invoices.find((invoice) => invoice.status === 'PAID');
   if (paidInvoice) {
     throw badRequest('Paid booking invoices require a refund workflow before cancellation', {
@@ -1045,87 +986,94 @@ export async function applyBookingCancellationInvoiceEffectsInDbTransaction(
       invoiceId: paidInvoice.id,
     });
   }
-
   const now = new Date();
-  for (const invoice of invoices) {
-    await tx.paymentAttempt.updateMany({
-      where: {
-        invoiceId: invoice.id,
-        status: {
-          in: ['PENDING', 'ACTION_REQUIRED'],
-        },
-      },
-      data: {
-        status: 'CANCELED',
-        canceledAt: now,
-        failureReason: 'Booking was cancelled before payment completion.',
-      },
-    });
-
-    if (invoice.status !== 'DRAFT' && invoice.status !== 'SENT') {
-      continue;
-    }
-
-    const voidReason = input.reason ?? 'Booking cancelled before payment.';
-    await tx.invoice.update({
-      where: { id: invoice.id },
-      data: {
-        status: 'VOID',
-        paidAt: null,
-        voidedAt: now,
-        voidReason,
-        updatedByUserId: input.actorUserId,
-        version: {
-          increment: 1,
-        },
-      },
-    });
-    await tx.invoiceEvent.create({
-      data: {
-        id: newId('ine'),
-        invoiceId: invoice.id,
-        eventType: 'VOIDED',
-        actorUserId: input.actorUserId,
-        reason: voidReason,
-        requestId: input.requestId ?? null,
-        metadataJson: {
-          source: 'booking-cancellation',
-          bookingId: input.bookingId,
-        } as never,
-      },
-    });
-
-    const existingReconciler = await tx.reconcilerEntry.findFirst({
-      where: { invoiceId: invoice.id },
-    });
-    if (existingReconciler) {
-      await tx.reconcilerEntry.update({
-        where: { id: existingReconciler.id },
-        data: {
-          state: 'VOID',
-          internalNote: 'Voided because the linked booking was cancelled before payment.',
-          updatedByUserId: input.actorUserId,
-          version: {
-            increment: 1,
+  await Promise.all(
+    invoices.map(async (invoice) => {
+      const cancelPendingAttempts = tx.paymentAttempt.updateMany({
+        where: {
+          invoiceId: invoice.id,
+          status: {
+            in: ['PENDING', 'ACTION_REQUIRED'],
           },
         },
-      });
-    } else {
-      await tx.reconcilerEntry.create({
         data: {
-          id: newId('rec'),
-          invoiceId: invoice.id,
-          coachUserId: invoice.coachUserId,
-          state: 'VOID',
-          internalNote: 'Voided because the linked booking was cancelled before payment.',
-          createdByUserId: input.actorUserId,
-          updatedByUserId: input.actorUserId,
+          status: 'CANCELED',
+          canceledAt: now,
+          failureReason: 'Booking was cancelled before payment completion.',
         },
       });
-    }
-  }
+      if (invoice.status !== 'DRAFT' && invoice.status !== 'SENT') {
+        await cancelPendingAttempts;
+        return;
+      }
+      const voidReason = input.reason ?? 'Booking cancelled before payment.';
+      const existingReconcilerPromise = tx.reconcilerEntry.findFirst({
+        where: {
+          invoiceId: invoice.id,
+        },
+      });
+      const existingReconciler = await existingReconcilerPromise;
+      const reconcilerWrite = existingReconciler
+        ? tx.reconcilerEntry.update({
+            where: {
+              id: existingReconciler.id,
+            },
+            data: {
+              state: 'VOID',
+              internalNote: 'Voided because the linked booking was cancelled before payment.',
+              updatedByUserId: input.actorUserId,
+              version: {
+                increment: 1,
+              },
+            },
+          })
+        : tx.reconcilerEntry.create({
+            data: {
+              id: newId('rec'),
+              invoiceId: invoice.id,
+              coachUserId: invoice.coachUserId,
+              state: 'VOID',
+              internalNote: 'Voided because the linked booking was cancelled before payment.',
+              createdByUserId: input.actorUserId,
+              updatedByUserId: input.actorUserId,
+            },
+          });
+      await Promise.all([
+        cancelPendingAttempts,
+        tx.invoice.update({
+          where: {
+            id: invoice.id,
+          },
+          data: {
+            status: 'VOID',
+            paidAt: null,
+            voidedAt: now,
+            voidReason,
+            updatedByUserId: input.actorUserId,
+            version: {
+              increment: 1,
+            },
+          },
+        }),
+        tx.invoiceEvent.create({
+          data: {
+            id: newId('ine'),
+            invoiceId: invoice.id,
+            eventType: 'VOIDED',
+            actorUserId: input.actorUserId,
+            reason: voidReason,
+            requestId: input.requestId ?? null,
+            metadataJson: {
+              source: 'booking-cancellation',
+              bookingId: input.bookingId,
+            } as never,
+          },
+        }),
+        reconcilerWrite,
+      ]);
+    }),
+  );
 }
-
 export async function applyBookingReopenInvoiceEffectsInDbTransaction(
   tx: InvoicePrismaTransaction,
   input: BookingInvoiceLifecycleInput,
@@ -1140,85 +1088,90 @@ export async function applyBookingReopenInvoiceEffectsInDbTransaction(
   if (invoices.length === 0) {
     return;
   }
-
   const now = new Date();
-  for (const invoice of invoices) {
-    const cancellationVoidEvent = await tx.invoiceEvent.findFirst({
-      where: {
-        invoiceId: invoice.id,
-        eventType: 'VOIDED',
-        metadataJson: {
-          path: ['source'],
-          equals: 'booking-cancellation',
-        },
-      },
-      orderBy: {
-        occurredAt: 'desc',
-      },
-    });
-    const metadata = coerceMetadata(cancellationVoidEvent?.metadataJson);
-    if (asString(metadata.bookingId) !== input.bookingId) {
-      continue;
-    }
-
-    await tx.invoice.update({
-      where: { id: invoice.id },
-      data: {
-        status: 'SENT',
-        voidedAt: null,
-        voidReason: null,
-        updatedByUserId: input.actorUserId,
-        version: {
-          increment: 1,
-        },
-      },
-    });
-    await tx.invoiceEvent.create({
-      data: {
-        id: newId('ine'),
-        invoiceId: invoice.id,
-        eventType: 'RESTORED',
-        actorUserId: input.actorUserId,
-        reason: input.reason ?? 'Linked booking reopened.',
-        requestId: input.requestId ?? null,
-        metadataJson: {
-          source: 'booking-reopen',
-          bookingId: input.bookingId,
-        } as never,
-      },
-    });
-
-    const existingReconciler = await tx.reconcilerEntry.findFirst({
-      where: { invoiceId: invoice.id },
-    });
-    if (existingReconciler) {
-      await tx.reconcilerEntry.update({
-        where: { id: existingReconciler.id },
-        data: {
-          state: 'OUTSTANDING',
-          internalNote: 'Restored because the linked booking was reopened.',
-          updatedByUserId: input.actorUserId,
-          version: {
-            increment: 1,
+  await Promise.all(
+    invoices.map(async (invoice) => {
+      const cancellationVoidEvent = await tx.invoiceEvent.findFirst({
+        where: {
+          invoiceId: invoice.id,
+          eventType: 'VOIDED',
+          metadataJson: {
+            path: ['source'],
+            equals: 'booking-cancellation',
           },
         },
-      });
-    } else {
-      await tx.reconcilerEntry.create({
-        data: {
-          id: newId('rec'),
-          invoiceId: invoice.id,
-          coachUserId: invoice.coachUserId,
-          state: 'OUTSTANDING',
-          internalNote: 'Restored because the linked booking was reopened.',
-          createdByUserId: input.actorUserId,
-          updatedByUserId: input.actorUserId,
+        orderBy: {
+          occurredAt: 'desc',
         },
       });
-    }
-  }
+      const metadata = coerceMetadata(cancellationVoidEvent?.metadataJson);
+      if (asString(metadata.bookingId) !== input.bookingId) {
+        return;
+      }
+      const existingReconciler = await tx.reconcilerEntry.findFirst({
+        where: {
+          invoiceId: invoice.id,
+        },
+      });
+      const reconcilerWrite = existingReconciler
+        ? tx.reconcilerEntry.update({
+            where: {
+              id: existingReconciler.id,
+            },
+            data: {
+              state: 'OUTSTANDING',
+              internalNote: 'Restored because the linked booking was reopened.',
+              updatedByUserId: input.actorUserId,
+              version: {
+                increment: 1,
+              },
+            },
+          })
+        : tx.reconcilerEntry.create({
+            data: {
+              id: newId('rec'),
+              invoiceId: invoice.id,
+              coachUserId: invoice.coachUserId,
+              state: 'OUTSTANDING',
+              internalNote: 'Restored because the linked booking was reopened.',
+              createdByUserId: input.actorUserId,
+              updatedByUserId: input.actorUserId,
+            },
+          });
+      await Promise.all([
+        tx.invoice.update({
+          where: {
+            id: invoice.id,
+          },
+          data: {
+            status: 'SENT',
+            voidedAt: null,
+            voidReason: null,
+            updatedByUserId: input.actorUserId,
+            version: {
+              increment: 1,
+            },
+          },
+        }),
+        tx.invoiceEvent.create({
+          data: {
+            id: newId('ine'),
+            invoiceId: invoice.id,
+            eventType: 'RESTORED',
+            actorUserId: input.actorUserId,
+            reason: input.reason ?? 'Linked booking reopened.',
+            requestId: input.requestId ?? null,
+            metadataJson: {
+              source: 'booking-reopen',
+              bookingId: input.bookingId,
+            } as never,
+          },
+        }),
+        reconcilerWrite,
+      ]);
+    }),
+  );
 }
-
 export async function applyBookingInvoiceAdjustmentsInDbTransaction(
   tx: InvoicePrismaTransaction,
   input: BookingInvoiceAdjustmentInput,
@@ -1226,85 +1179,92 @@ export async function applyBookingInvoiceAdjustmentsInDbTransaction(
   if (input.bookingIds.length === 0) {
     return;
   }
-
   const invoices = await tx.invoice.findMany({
     where: {
-      bookingId: { in: input.bookingIds },
+      bookingId: {
+        in: input.bookingIds,
+      },
       deletedAt: null,
     },
   });
   if (invoices.length === 0) {
     return;
   }
-
   const blockedInvoice = invoices.find(
     (invoice) => invoice.status !== 'DRAFT' && invoice.status !== 'SENT',
   );
   if (blockedInvoice) {
-    throw badRequest('Booking series updates require explicit invoice adjustment for settled invoices', {
-      bookingId: blockedInvoice.bookingId,
-      invoiceId: blockedInvoice.id,
-      invoiceStatus: blockedInvoice.status,
-    });
+    throw badRequest(
+      'Booking series updates require explicit invoice adjustment for settled invoices',
+      {
+        bookingId: blockedInvoice.bookingId,
+        invoiceId: blockedInvoice.id,
+        invoiceStatus: blockedInvoice.status,
+      },
+    );
   }
-
   const now = new Date();
-  for (const invoice of invoices) {
-    if (!invoice.bookingId) {
-      continue;
-    }
-
-    const context = await resolveBookingInvoiceContextFromDbTransaction(tx, invoice.bookingId);
-    if (!context) {
-      throw badRequest('Invoice booking link is no longer authoritative', {
-        invoiceId: invoice.id,
-        bookingId: invoice.bookingId,
-      });
-    }
-    if (context.coachUserId !== invoice.coachUserId) {
-      throw badRequest('Invoice booking coach link does not match authoritative booking', {
-        invoiceId: invoice.id,
-        bookingId: invoice.bookingId,
-      });
-    }
-
-    await tx.invoice.update({
-      where: { id: invoice.id },
-      data: {
-        sessionDate: new Date(context.sessionDate),
-        sessionType: context.sessionType,
-        sessionLocation: context.sessionLocation,
-        sessionDurationMinutes: context.sessionDurationMinutes,
-        updatedByUserId: input.actorUserId,
-        version: {
-          increment: 1,
-        },
-      },
-    });
-    await tx.invoiceLineItem.updateMany({
-      where: { invoiceId: invoice.id },
-      data: {
-        description: formatSessionType(context.sessionType) ?? context.sessionType,
-      },
-    });
-    await tx.invoiceEvent.create({
-      data: {
-        id: newId('ine'),
-        invoiceId: invoice.id,
-        eventType: 'SENT',
-        actorUserId: input.actorUserId,
-        reason: input.reason ?? 'Linked booking series was updated.',
-        requestId: input.requestId ?? null,
-        occurredAt: now,
-        metadataJson: {
-          source: 'booking-series-update',
+  await Promise.all(
+    invoices.map(async (invoice) => {
+      if (!invoice.bookingId) {
+        return;
+      }
+      const context = await resolveBookingInvoiceContextFromDbTransaction(tx, invoice.bookingId);
+      if (!context) {
+        throw badRequest('Invoice booking link is no longer authoritative', {
+          invoiceId: invoice.id,
           bookingId: invoice.bookingId,
-        } as never,
-      },
-    });
-  }
+        });
+      }
+      if (context.coachUserId !== invoice.coachUserId) {
+        throw badRequest('Invoice booking coach link does not match authoritative booking', {
+          invoiceId: invoice.id,
+          bookingId: invoice.bookingId,
+        });
+      }
+      await Promise.all([
+        tx.invoice.update({
+          where: {
+            id: invoice.id,
+          },
+          data: {
+            sessionDate: new Date(context.sessionDate),
+            sessionType: context.sessionType,
+            sessionLocation: context.sessionLocation,
+            sessionDurationMinutes: context.sessionDurationMinutes,
+            updatedByUserId: input.actorUserId,
+            version: {
+              increment: 1,
+            },
+          },
+        }),
+        tx.invoiceLineItem.updateMany({
+          where: {
+            invoiceId: invoice.id,
+          },
+          data: {
+            description: formatSessionType(context.sessionType) ?? context.sessionType,
+          },
+        }),
+        tx.invoiceEvent.create({
+          data: {
+            id: newId('ine'),
+            invoiceId: invoice.id,
+            eventType: 'SENT',
+            actorUserId: input.actorUserId,
+            reason: input.reason ?? 'Linked booking series was updated.',
+            requestId: input.requestId ?? null,
+            occurredAt: now,
+            metadataJson: {
+              source: 'booking-series-update',
+              bookingId: invoice.bookingId,
+            } as never,
+          },
+        }),
+      ]);
+    }),
+  );
 }
-
 export async function applyBookingCancellationInvoiceEffects(
   input: BookingInvoiceLifecycleInput,
 ): Promise<void> {
@@ -1313,11 +1273,11 @@ export async function applyBookingCancellationInvoiceEffects(
     applyBookingCancellationInvoiceEffectsInTables(mutable.tables, input);
     return;
   }
-
   const prisma = getPrismaClientOrThrow();
-  await prisma.$transaction((tx) => applyBookingCancellationInvoiceEffectsInDbTransaction(tx, input));
+  await prisma.$transaction((tx) =>
+    applyBookingCancellationInvoiceEffectsInDbTransaction(tx, input),
+  );
 }
-
 export async function applyBookingReopenInvoiceEffects(
   input: BookingInvoiceLifecycleInput,
 ): Promise<void> {
@@ -1326,11 +1286,9 @@ export async function applyBookingReopenInvoiceEffects(
     applyBookingReopenInvoiceEffectsInTables(mutable.tables, input);
     return;
   }
-
   const prisma = getPrismaClientOrThrow();
   await prisma.$transaction((tx) => applyBookingReopenInvoiceEffectsInDbTransaction(tx, input));
 }
-
 export async function applyBookingInvoiceAdjustments(
   input: BookingInvoiceAdjustmentInput,
 ): Promise<void> {
@@ -1339,11 +1297,9 @@ export async function applyBookingInvoiceAdjustments(
     applyBookingInvoiceAdjustmentsInTables(mutable.tables, input);
     return;
   }
-
   const prisma = getPrismaClientOrThrow();
   await prisma.$transaction((tx) => applyBookingInvoiceAdjustmentsInDbTransaction(tx, input));
 }
-
 function mapPaymentAttemptRow(row: SeedRow): SeedRow {
   return normalizeForJson({
     id: asString(row.id) ?? '',
@@ -1364,7 +1320,6 @@ function mapPaymentAttemptRow(row: SeedRow): SeedRow {
     updatedAt: asString(row.updatedAt) ?? nowIso(),
   });
 }
-
 export async function listAccessibleInvoices(
   authUserId: string,
   isAdmin: boolean,
@@ -1374,33 +1329,48 @@ export async function listAccessibleInvoices(
   if (mutable) {
     const users = asRows(mutable.tables.users);
     return getActiveRows(asRows(mutable.tables.invoices))
-      .filter((row) => canAccessInvoiceRow(authUserId, isAdmin, row))
-      .filter((row) => matchesInvoiceFilters(row, query))
-      .map((row) => mapInvoice(row, users))
+      .flatMap((row) => {
+        if (!canAccessInvoiceRow(authUserId, isAdmin, row)) return [];
+        return matchesInvoiceFilters(row, query) ? [mapInvoice(row, users)] : [];
+      })
       .sort(
         (left, right) =>
           (parseDate(asString(right.createdAt)) ?? 0) - (parseDate(asString(left.createdAt)) ?? 0),
       );
   }
-
   const prisma = getPrismaClientOrThrow();
   const statuses = query.status
-    ? query.status
-        .split(',')
-        .map((value) => value.trim().toUpperCase())
-        .filter((value): value is (typeof INVOICE_STATUSES)[number] =>
-          INVOICE_STATUSES.includes(value as (typeof INVOICE_STATUSES)[number]),
-        )
+    ? query.status.split(',').flatMap((value) => {
+        const mapped = value.trim().toUpperCase();
+        return INVOICE_STATUSES.includes(mapped as (typeof INVOICE_STATUSES)[number])
+          ? [mapped]
+          : [];
+      })
     : undefined;
   const where = {
     deletedAt: null,
     ...(isAdmin
       ? {}
       : {
-          OR: [{ coachUserId: authUserId }, { payerUserId: authUserId }],
+          OR: [
+            {
+              coachUserId: authUserId,
+            },
+            {
+              payerUserId: authUserId,
+            },
+          ],
         }),
-    ...(query.coachId ? { coachUserId: query.coachId } : {}),
-    ...(query.bookingId ? { bookingId: query.bookingId } : {}),
+    ...(query.coachId
+      ? {
+          coachUserId: query.coachId,
+        }
+      : {}),
+    ...(query.bookingId
+      ? {
+          bookingId: query.bookingId,
+        }
+      : {}),
     ...(statuses
       ? {
           status: {
@@ -1411,8 +1381,16 @@ export async function listAccessibleInvoices(
     ...(query.dateFrom || query.dateTo
       ? {
           sessionDate: {
-            ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
-            ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
+            ...(query.dateFrom
+              ? {
+                  gte: new Date(query.dateFrom),
+                }
+              : {}),
+            ...(query.dateTo
+              ? {
+                  lte: new Date(query.dateTo),
+                }
+              : {}),
           },
         }
       : {}),
@@ -1425,7 +1403,6 @@ export async function listAccessibleInvoices(
   });
   return invoices.map((row) => normalizeForJson(mapInvoice(row as unknown as SeedRow, [])));
 }
-
 export async function getInvoiceDetail(invoiceId: string): Promise<InvoiceDetailRecord | null> {
   const mutable = resolveMutableTables();
   if (mutable) {
@@ -1464,13 +1441,12 @@ export async function getInvoiceDetail(invoiceId: string): Promise<InvoiceDetail
         ),
       ),
       paymentAttempts: normalizeForJson(
-        paymentAttempts
-          .filter((row) => asString(row.invoiceId) === invoiceId)
-          .map((row) => mapPaymentAttemptRow(row)),
+        paymentAttempts.flatMap((row) =>
+          asString(row.invoiceId) === invoiceId ? [mapPaymentAttemptRow(row)] : [],
+        ),
       ),
     };
   }
-
   const prisma = getPrismaClientOrThrow();
   const invoice = await prisma.invoice.findFirst({
     where: {
@@ -1506,7 +1482,6 @@ export async function getInvoiceDetail(invoiceId: string): Promise<InvoiceDetail
       deletedAt: null,
     },
   });
-
   return {
     invoice: normalizeForJson(mapInvoice(invoice as unknown as SeedRow, [])),
     lineItems: normalizeForJson(invoice.lineItems),
@@ -1519,7 +1494,6 @@ export async function getInvoiceDetail(invoiceId: string): Promise<InvoiceDetail
     ),
   };
 }
-
 export async function getInvoiceRow(invoiceId: string): Promise<SeedRow | null> {
   const mutable = resolveMutableTables();
   if (mutable) {
@@ -1529,7 +1503,6 @@ export async function getInvoiceRow(invoiceId: string): Promise<SeedRow | null> 
       ) ?? null
     );
   }
-
   const prisma = getPrismaClientOrThrow();
   const invoice = await prisma.invoice.findFirst({
     where: {
@@ -1539,19 +1512,18 @@ export async function getInvoiceRow(invoiceId: string): Promise<SeedRow | null> 
   });
   return invoice ? normalizeForJson(invoice) : null;
 }
-
 export async function transitionInvoiceStatus(input: TransitionInvoiceInput): Promise<SeedRow> {
   const mutable = resolveMutableTables();
   if (mutable) {
     const invoices = getMutableRows(mutable.tables, 'invoices');
     const invoice = getActiveRows(invoices).find((row) => asString(row.id) === input.invoiceId);
     if (!invoice) {
-      throw notFound('Invoice not found', { invoiceId: input.invoiceId });
+      throw notFound('Invoice not found', {
+        invoiceId: input.invoiceId,
+      });
     }
-
     const bookingId = asString(invoice.bookingId);
     assertMutableInvoiceBookingLink(mutable.tables, invoice, input.invoiceId);
-
     const currentStatus = toInvoiceStatus(invoice.status);
     const plan = getInvoiceTransitionPlan({
       action: input.action,
@@ -1562,13 +1534,11 @@ export async function transitionInvoiceStatus(input: TransitionInvoiceInput): Pr
     if (plan.idempotent) {
       return invoice;
     }
-
     const now = nowIso();
     invoice.status = plan.nextStatus;
     invoice.updatedAt = now;
     invoice.updatedByUserId = input.actorUserId;
     invoice.version = (asNumber(invoice.version) ?? 1) + 1;
-
     switch (input.action) {
       case 'mark-paid':
         invoice.paidAt = now;
@@ -1589,7 +1559,6 @@ export async function transitionInvoiceStatus(input: TransitionInvoiceInput): Pr
         invoice.voidReason = plan.reason;
         break;
     }
-
     appendInvoiceEvent({
       invoiceEvents: getMutableRows(mutable.tables, 'invoiceEvents'),
       invoiceId: input.invoiceId,
@@ -1611,10 +1580,8 @@ export async function transitionInvoiceStatus(input: TransitionInvoiceInput): Pr
       note: plan.note,
       now,
     });
-
     return invoice;
   }
-
   const prisma = getPrismaClientOrThrow();
   return prisma.$transaction(async (tx) => {
     const invoice = await tx.invoice.findFirst({
@@ -1624,9 +1591,10 @@ export async function transitionInvoiceStatus(input: TransitionInvoiceInput): Pr
       },
     });
     if (!invoice) {
-      throw notFound('Invoice not found', { invoiceId: input.invoiceId });
+      throw notFound('Invoice not found', {
+        invoiceId: input.invoiceId,
+      });
     }
-
     if (invoice.bookingId) {
       const booking = await tx.booking.findFirst({
         where: {
@@ -1647,7 +1615,6 @@ export async function transitionInvoiceStatus(input: TransitionInvoiceInput): Pr
         });
       }
     }
-
     const currentStatus = toInvoiceStatus(invoice.status);
     const plan = getInvoiceTransitionPlan({
       action: input.action,
@@ -1658,7 +1625,6 @@ export async function transitionInvoiceStatus(input: TransitionInvoiceInput): Pr
     if (plan.idempotent) {
       return normalizeForJson(invoice);
     }
-
     const now = new Date();
     const data = {
       status: plan.nextStatus,
@@ -1666,38 +1632,67 @@ export async function transitionInvoiceStatus(input: TransitionInvoiceInput): Pr
       version: {
         increment: 1,
       },
-      ...(input.action === 'mark-paid' ? { paidAt: now } : {}),
-      ...(input.action === 'mark-unpaid' ? { paidAt: null } : {}),
-      ...(input.action === 'write-off' ? { paidAt: null, voidReason: plan.reason } : {}),
-      ...(input.action === 'restore' ? { voidReason: null } : {}),
-      ...(input.action === 'void' ? { paidAt: null, voidedAt: now, voidReason: plan.reason } : {}),
+      ...(input.action === 'mark-paid'
+        ? {
+            paidAt: now,
+          }
+        : {}),
+      ...(input.action === 'mark-unpaid'
+        ? {
+            paidAt: null,
+          }
+        : {}),
+      ...(input.action === 'write-off'
+        ? {
+            paidAt: null,
+            voidReason: plan.reason,
+          }
+        : {}),
+      ...(input.action === 'restore'
+        ? {
+            voidReason: null,
+          }
+        : {}),
+      ...(input.action === 'void'
+        ? {
+            paidAt: null,
+            voidedAt: now,
+            voidReason: plan.reason,
+          }
+        : {}),
     };
-
-    const updatedInvoice = await tx.invoice.update({
-      where: { id: input.invoiceId },
-      data,
-    });
-    await tx.invoiceEvent.create({
-      data: {
-        id: newId('ine'),
-        invoiceId: input.invoiceId,
-        eventType: plan.eventType,
-        actorUserId: input.actorUserId,
-        reason: plan.reason,
-        requestId: input.requestId ?? null,
-        metadataJson: {
-          source: 'coach-reconciler',
-          bookingId: invoice.bookingId ?? null,
-        } as never,
-      },
-    });
-
-    const existingReconciler = await tx.reconcilerEntry.findFirst({
-      where: { invoiceId: input.invoiceId },
-    });
+    const [updatedInvoice, , existingReconciler] = await Promise.all([
+      tx.invoice.update({
+        where: {
+          id: input.invoiceId,
+        },
+        data,
+      }),
+      tx.invoiceEvent.create({
+        data: {
+          id: newId('ine'),
+          invoiceId: input.invoiceId,
+          eventType: plan.eventType,
+          actorUserId: input.actorUserId,
+          reason: plan.reason,
+          requestId: input.requestId ?? null,
+          metadataJson: {
+            source: 'coach-reconciler',
+            bookingId: invoice.bookingId ?? null,
+          } as never,
+        },
+      }),
+      tx.reconcilerEntry.findFirst({
+        where: {
+          invoiceId: input.invoiceId,
+        },
+      }),
+    ]);
     if (existingReconciler) {
       await tx.reconcilerEntry.update({
-        where: { id: existingReconciler.id },
+        where: {
+          id: existingReconciler.id,
+        },
         data: {
           state: reconcileStateForInvoiceStatus(plan.nextStatus),
           internalNote: plan.note,
@@ -1720,31 +1715,33 @@ export async function transitionInvoiceStatus(input: TransitionInvoiceInput): Pr
         },
       });
     }
-
     return normalizeForJson(updatedInvoice);
   });
 }
-
 export async function requestInvoiceRefund(
   input: RequestInvoiceRefundInput,
 ): Promise<InvoiceRefundRecord> {
   const reason = input.reason.trim();
   if (!reason) {
-    throw badRequest('Refund reason is required', { invoiceId: input.invoiceId });
+    throw badRequest('Refund reason is required', {
+      invoiceId: input.invoiceId,
+    });
   }
   if (input.verificationCode.trim() !== SIMULATED_REFUND_VERIFICATION_CODE) {
-    throw badRequest('Refund verification code is invalid', { invoiceId: input.invoiceId });
+    throw badRequest('Refund verification code is invalid', {
+      invoiceId: input.invoiceId,
+    });
   }
-
   const mutable = resolveMutableTables();
   if (mutable) {
     const invoices = getMutableRows(mutable.tables, 'invoices');
     const invoice = getActiveRows(invoices).find((row) => asString(row.id) === input.invoiceId);
     if (!invoice) {
-      throw notFound('Invoice not found', { invoiceId: input.invoiceId });
+      throw notFound('Invoice not found', {
+        invoiceId: input.invoiceId,
+      });
     }
     assertMutableInvoiceBookingLink(mutable.tables, invoice, input.invoiceId);
-
     const totalMinor = asNumber(invoice.totalMinor) ?? 0;
     const amountMinor = input.amountMinor ?? totalMinor;
     if (amountMinor !== totalMinor || amountMinor <= 0) {
@@ -1754,10 +1751,16 @@ export async function requestInvoiceRefund(
         amountMinor,
       });
     }
-
-    const requestHash = buildRefundRequestHash({ amountMinor, reason });
+    const requestHash = buildRefundRequestHash({
+      amountMinor,
+      reason,
+    });
     const invoiceEvents = getMutableRows(mutable.tables, 'invoiceEvents');
-    const existing = existingRefundEventFromRows(invoiceEvents, input.invoiceId, input.idempotencyKey);
+    const existing = existingRefundEventFromRows(
+      invoiceEvents,
+      input.invoiceId,
+      input.idempotencyKey,
+    );
     if (existing) {
       const metadata = coerceMetadata(existing.metadataJson);
       if (asString(metadata.requestHash) !== requestHash) {
@@ -1766,9 +1769,12 @@ export async function requestInvoiceRefund(
           idempotencyKey: input.idempotencyKey,
         });
       }
-      return { invoice, refund: existing, reused: true };
+      return {
+        invoice,
+        refund: existing,
+        reused: true,
+      };
     }
-
     const status = toInvoiceStatus(invoice.status);
     if (status !== 'PAID') {
       throw badRequest('Only paid invoices can be refunded', {
@@ -1776,7 +1782,6 @@ export async function requestInvoiceRefund(
         status,
       });
     }
-
     const now = nowIso();
     const refundId = newId('rfnd');
     invoice.status = 'VOID';
@@ -1786,7 +1791,6 @@ export async function requestInvoiceRefund(
     invoice.updatedAt = now;
     invoice.updatedByUserId = input.actorUserId;
     invoice.version = (asNumber(invoice.version) ?? 1) + 1;
-
     appendInvoiceEvent({
       invoiceEvents,
       invoiceId: input.invoiceId,
@@ -1807,7 +1811,6 @@ export async function requestInvoiceRefund(
         bookingId: asString(invoice.bookingId) ?? null,
       },
     });
-
     const refundEvent = invoiceEvents[invoiceEvents.length - 1];
     updateReconcilerEntry({
       reconcilerEntries: getMutableRows(mutable.tables, 'reconcilerEntries'),
@@ -1817,9 +1820,12 @@ export async function requestInvoiceRefund(
       note: 'Refund approved through backend invoice authority.',
       now,
     });
-    return { invoice, refund: refundEvent, reused: false };
+    return {
+      invoice,
+      refund: refundEvent,
+      reused: false,
+    };
   }
-
   const prisma = getPrismaClientOrThrow();
   return prisma.$transaction(async (tx) => {
     const invoice = await tx.invoice.findFirst({
@@ -1829,7 +1835,9 @@ export async function requestInvoiceRefund(
       },
     });
     if (!invoice) {
-      throw notFound('Invoice not found', { invoiceId: input.invoiceId });
+      throw notFound('Invoice not found', {
+        invoiceId: input.invoiceId,
+      });
     }
     if (invoice.bookingId) {
       const booking = await tx.booking.findFirst({
@@ -1851,7 +1859,6 @@ export async function requestInvoiceRefund(
         });
       }
     }
-
     const totalMinor = invoice.totalMinor;
     const amountMinor = input.amountMinor ?? totalMinor;
     if (amountMinor !== totalMinor || amountMinor <= 0) {
@@ -1861,8 +1868,10 @@ export async function requestInvoiceRefund(
         amountMinor,
       });
     }
-
-    const requestHash = buildRefundRequestHash({ amountMinor, reason });
+    const requestHash = buildRefundRequestHash({
+      amountMinor,
+      reason,
+    });
     const existing = await tx.invoiceEvent.findFirst({
       where: {
         invoiceId: input.invoiceId,
@@ -1890,58 +1899,62 @@ export async function requestInvoiceRefund(
         reused: true,
       };
     }
-
     if (invoice.status !== 'PAID') {
       throw badRequest('Only paid invoices can be refunded', {
         invoiceId: input.invoiceId,
         status: invoice.status,
       });
     }
-
     const now = new Date();
     const refundId = newId('rfnd');
-    const updatedInvoice = await tx.invoice.update({
-      where: { id: input.invoiceId },
-      data: {
-        status: 'VOID',
-        paidAt: null,
-        voidedAt: now,
-        voidReason: reason,
-        updatedByUserId: input.actorUserId,
-        version: {
-          increment: 1,
+    const [updatedInvoice, refundEvent, existingReconciler] = await Promise.all([
+      tx.invoice.update({
+        where: {
+          id: input.invoiceId,
         },
-      },
-    });
-
-    const refundEvent = await tx.invoiceEvent.create({
-      data: {
-        id: newId('ine'),
-        invoiceId: input.invoiceId,
-        eventType: 'VOIDED',
-        actorUserId: input.actorUserId,
-        reason,
-        requestId: input.requestId ?? null,
-        metadataJson: {
-          source: 'invoice-refund',
-          refundId,
-          provider: 'simulated',
-          status: 'APPROVED',
-          amountMinor,
-          currency: invoice.currency,
-          idempotencyKey: input.idempotencyKey,
-          requestHash,
-          bookingId: invoice.bookingId ?? null,
-        } as never,
-      },
-    });
-
-    const existingReconciler = await tx.reconcilerEntry.findFirst({
-      where: { invoiceId: input.invoiceId },
-    });
+        data: {
+          status: 'VOID',
+          paidAt: null,
+          voidedAt: now,
+          voidReason: reason,
+          updatedByUserId: input.actorUserId,
+          version: {
+            increment: 1,
+          },
+        },
+      }),
+      tx.invoiceEvent.create({
+        data: {
+          id: newId('ine'),
+          invoiceId: input.invoiceId,
+          eventType: 'VOIDED',
+          actorUserId: input.actorUserId,
+          reason,
+          requestId: input.requestId ?? null,
+          metadataJson: {
+            source: 'invoice-refund',
+            refundId,
+            provider: 'simulated',
+            status: 'APPROVED',
+            amountMinor,
+            currency: invoice.currency,
+            idempotencyKey: input.idempotencyKey,
+            requestHash,
+            bookingId: invoice.bookingId ?? null,
+          } as never,
+        },
+      }),
+      tx.reconcilerEntry.findFirst({
+        where: {
+          invoiceId: input.invoiceId,
+        },
+      }),
+    ]);
     if (existingReconciler) {
       await tx.reconcilerEntry.update({
-        where: { id: existingReconciler.id },
+        where: {
+          id: existingReconciler.id,
+        },
         data: {
           state: 'VOID',
           internalNote: 'Refund approved through backend invoice authority.',
@@ -1964,7 +1977,6 @@ export async function requestInvoiceRefund(
         },
       });
     }
-
     return {
       invoice: normalizeForJson(updatedInvoice),
       refund: normalizeForJson(refundEvent),
@@ -1972,7 +1984,6 @@ export async function requestInvoiceRefund(
     };
   });
 }
-
 export async function generateInvoiceForBooking(
   input: GenerateInvoiceInput,
 ): Promise<GeneratedInvoiceRecord> {
@@ -1984,17 +1995,22 @@ export async function generateInvoiceForBooking(
       (row) => asString(row.bookingId) === input.bookingId,
     );
     if (existing) {
-      return { invoice: existing, created: false };
+      return {
+        invoice: existing,
+        created: false,
+      };
     }
-
     const context = resolveBookingInvoiceContextFromTables(mutable.tables, input.bookingId);
     if (!context) {
-      throw notFound('Booking not found', { bookingId: input.bookingId });
+      throw notFound('Booking not found', {
+        bookingId: input.bookingId,
+      });
     }
     if (context.totalMinor <= 0) {
-      throw badRequest('Booking has no billable value', { bookingId: input.bookingId });
+      throw badRequest('Booking has no billable value', {
+        bookingId: input.bookingId,
+      });
     }
-
     const { subtotalMinor, taxMinor } = computeTaxBreakdown(context.totalMinor, taxRatePercent);
     const now = nowIso();
     const invoiceId = newId('invc');
@@ -2037,7 +2053,6 @@ export async function generateInvoiceForBooking(
         : null,
     };
     invoices.push(invoice);
-
     getMutableRows(mutable.tables, 'invoiceLineItems').push({
       id: newId('ili'),
       invoiceId,
@@ -2065,10 +2080,11 @@ export async function generateInvoiceForBooking(
       requestId: null,
       occurredAt: now,
     });
-
-    return { invoice, created: true };
+    return {
+      invoice,
+      created: true,
+    };
   }
-
   const prisma = getPrismaClientOrThrow();
   const existing = await prisma.invoice.findFirst({
     where: {
@@ -2077,23 +2093,27 @@ export async function generateInvoiceForBooking(
     },
   });
   if (existing) {
-    return { invoice: normalizeForJson(existing), created: false };
+    return {
+      invoice: normalizeForJson(existing),
+      created: false,
+    };
   }
-
   const context = await resolveBookingInvoiceContextFromDb(input.bookingId);
   if (!context) {
-    throw notFound('Booking not found', { bookingId: input.bookingId });
+    throw notFound('Booking not found', {
+      bookingId: input.bookingId,
+    });
   }
   if (context.totalMinor <= 0) {
-    throw badRequest('Booking has no billable value', { bookingId: input.bookingId });
+    throw badRequest('Booking has no billable value', {
+      bookingId: input.bookingId,
+    });
   }
-
   const { subtotalMinor, taxMinor } = computeTaxBreakdown(context.totalMinor, taxRatePercent);
   const now = new Date();
   const invoiceId = newId('invc');
   const invoiceNumber = `INV-${now.getUTCFullYear()}-${String(Date.now()).slice(-6)}`;
   const dueDate = new Date(input.dueDate ?? defaultDueDateIso());
-
   const created = await prisma.invoice.create({
     data: {
       id: invoiceId,
@@ -2146,13 +2166,11 @@ export async function generateInvoiceForBooking(
       },
     },
   });
-
   return {
     invoice: normalizeForJson(created),
     created: true,
   };
 }
-
 export async function createInvoiceReminder(
   input: CreateInvoiceReminderInput,
 ): Promise<InvoiceReminderRecord> {
@@ -2161,7 +2179,9 @@ export async function createInvoiceReminder(
     const invoices = getMutableRows(mutable.tables, 'invoices');
     const invoice = getActiveRows(invoices).find((row) => asString(row.id) === input.invoiceId);
     if (!invoice) {
-      throw notFound('Invoice not found', { invoiceId: input.invoiceId });
+      throw notFound('Invoice not found', {
+        invoiceId: input.invoiceId,
+      });
     }
     const status = toInvoiceStatus(invoice.status);
     if (status === 'VOID' || status === 'PAID' || status === 'WRITTEN_OFF') {
@@ -2170,7 +2190,6 @@ export async function createInvoiceReminder(
         status,
       });
     }
-
     const now = nowIso();
     const recipientUserId = asString(invoice.payerUserId) ?? null;
     if (status === 'DRAFT') {
@@ -2194,7 +2213,6 @@ export async function createInvoiceReminder(
         occurredAt: now,
       });
     }
-
     const reminder = {
       id: newId('rem'),
       invoiceId: input.invoiceId,
@@ -2222,10 +2240,12 @@ export async function createInvoiceReminder(
       requestId: null,
       occurredAt: now,
     });
-
-    return { invoice, reminder, sentAt: now };
+    return {
+      invoice,
+      reminder,
+      sentAt: now,
+    };
   }
-
   const prisma = getPrismaClientOrThrow();
   const invoice = await prisma.invoice.findFirst({
     where: {
@@ -2234,7 +2254,9 @@ export async function createInvoiceReminder(
     },
   });
   if (!invoice) {
-    throw notFound('Invoice not found', { invoiceId: input.invoiceId });
+    throw notFound('Invoice not found', {
+      invoiceId: input.invoiceId,
+    });
   }
   if (invoice.status === 'VOID' || invoice.status === 'PAID' || invoice.status === 'WRITTEN_OFF') {
     throw badRequest('Only open invoices can be sent or reminded', {
@@ -2243,11 +2265,12 @@ export async function createInvoiceReminder(
     });
   }
   const now = new Date();
-
   const updatedInvoice =
     invoice.status === 'DRAFT'
       ? await prisma.invoice.update({
-          where: { id: input.invoiceId },
+          where: {
+            id: input.invoiceId,
+          },
           data: {
             status: 'SENT',
             sentAt: now,
@@ -2270,7 +2293,6 @@ export async function createInvoiceReminder(
           },
         })
       : invoice;
-
   const reminder = await prisma.paymentReminder.create({
     data: {
       id: newId('rem'),
@@ -2298,14 +2320,12 @@ export async function createInvoiceReminder(
       } as never,
     },
   });
-
   return {
     invoice: normalizeForJson(updatedInvoice),
     reminder: normalizeForJson(reminder),
     sentAt: now.toISOString(),
   };
 }
-
 export async function createInvoicePaymentSession(
   input: CreateInvoicePaymentSessionInput,
 ): Promise<InvoicePaymentSessionRecord> {
@@ -2315,11 +2335,15 @@ export async function createInvoicePaymentSession(
     const invoices = getMutableRows(mutable.tables, 'invoices');
     const invoice = getActiveRows(invoices).find((row) => asString(row.id) === input.invoiceId);
     if (!invoice) {
-      throw notFound('Invoice not found', { invoiceId: input.invoiceId });
+      throw notFound('Invoice not found', {
+        invoiceId: input.invoiceId,
+      });
     }
     const status = toInvoiceStatus(invoice.status);
     if (status === 'PAID') {
-      throw badRequest('Invoice is already paid', { invoiceId: input.invoiceId });
+      throw badRequest('Invoice is already paid', {
+        invoiceId: input.invoiceId,
+      });
     }
     if (status !== 'SENT') {
       throw badRequest('Only sent invoices can create payment sessions', {
@@ -2328,7 +2352,6 @@ export async function createInvoicePaymentSession(
       });
     }
     assertMutableInvoiceBookingLink(mutable.tables, invoice, input.invoiceId);
-
     const attempts = getMutableRows(mutable.tables, 'paymentAttempts');
     ensureAttemptFreshness(attempts);
     const existing = attempts.find(
@@ -2350,9 +2373,13 @@ export async function createInvoicePaymentSession(
           url: asString(coerceMetadata(existing.metadataJson).nextActionUrl) ?? '',
         },
       };
-      return { invoice, attempt: existing, hostedSession, reused: true };
+      return {
+        invoice,
+        attempt: existing,
+        hostedSession,
+        reused: true,
+      };
     }
-
     for (const row of attempts) {
       if (
         asString(row.invoiceId) === input.invoiceId &&
@@ -2364,7 +2391,6 @@ export async function createInvoicePaymentSession(
         row.failureReason = 'Superseded by a newer payment attempt.';
       }
     }
-
     const attemptId = newId('payatt');
     const hostedSession = await provider.createHostedPaymentSession({
       attemptId,
@@ -2415,9 +2441,13 @@ export async function createInvoicePaymentSession(
       requestId: null,
       occurredAt: now,
     });
-    return { invoice, attempt, hostedSession, reused: false };
+    return {
+      invoice,
+      attempt,
+      hostedSession,
+      reused: false,
+    };
   }
-
   const prisma = getPrismaClientOrThrow();
   const invoice = await prisma.invoice.findFirst({
     where: {
@@ -2426,10 +2456,14 @@ export async function createInvoicePaymentSession(
     },
   });
   if (!invoice) {
-    throw notFound('Invoice not found', { invoiceId: input.invoiceId });
+    throw notFound('Invoice not found', {
+      invoiceId: input.invoiceId,
+    });
   }
   if (invoice.status === 'PAID') {
-    throw badRequest('Invoice is already paid', { invoiceId: input.invoiceId });
+    throw badRequest('Invoice is already paid', {
+      invoiceId: input.invoiceId,
+    });
   }
   if (invoice.status !== 'SENT') {
     throw badRequest('Only sent invoices can create payment sessions', {
@@ -2457,7 +2491,6 @@ export async function createInvoicePaymentSession(
       });
     }
   }
-
   await prisma.paymentAttempt.updateMany({
     where: {
       invoiceId: input.invoiceId,
@@ -2473,7 +2506,6 @@ export async function createInvoicePaymentSession(
       failureReason: 'Attempt expired before completion.',
     },
   });
-
   const existing = await prisma.paymentAttempt.findFirst({
     where: {
       invoiceId: input.invoiceId,
@@ -2506,7 +2538,6 @@ export async function createInvoicePaymentSession(
       reused: true,
     };
   }
-
   await prisma.paymentAttempt.updateMany({
     where: {
       invoiceId: input.invoiceId,
@@ -2520,7 +2551,6 @@ export async function createInvoicePaymentSession(
       failureReason: 'Superseded by a newer payment attempt.',
     },
   });
-
   const attemptId = newId('payatt');
   const hostedSession = await provider.createHostedPaymentSession({
     attemptId,
@@ -2531,7 +2561,6 @@ export async function createInvoicePaymentSession(
     returnUrl: input.returnUrl,
     cancelUrl: input.cancelUrl,
   });
-
   const attempt = await prisma.paymentAttempt.create({
     data: {
       id: attemptId,
@@ -2565,7 +2594,6 @@ export async function createInvoicePaymentSession(
       } as never,
     },
   });
-
   return {
     invoice: normalizeForJson(invoice),
     attempt: normalizeForJson(attempt),
@@ -2573,30 +2601,38 @@ export async function createInvoicePaymentSession(
     reused: false,
   };
 }
-
 export async function getHostedPaymentPageData(
   attemptId: string,
   token: string,
 ): Promise<HostedPaymentPageData> {
   const payload = verifySimulatedPaymentToken(token);
   if (payload.attemptId !== attemptId) {
-    throw badRequest('Payment attempt token mismatch', { attemptId });
+    throw badRequest('Payment attempt token mismatch', {
+      attemptId,
+    });
   }
-
   const detail = await getPaymentAttemptById(attemptId);
   if (!detail) {
-    throw notFound('Payment attempt not found', { attemptId });
+    throw notFound('Payment attempt not found', {
+      attemptId,
+    });
   }
   const attempt = detail.attempt;
   const invoice = detail.invoice;
   if (asString(attempt.providerSessionId) !== payload.providerSessionId) {
-    throw badRequest('Payment attempt provider session mismatch', { attemptId });
+    throw badRequest('Payment attempt provider session mismatch', {
+      attemptId,
+    });
   }
   if ((asNumber(attempt.amountMinor) ?? 0) !== payload.amountMinor) {
-    throw badRequest('Payment attempt amount mismatch', { attemptId });
+    throw badRequest('Payment attempt amount mismatch', {
+      attemptId,
+    });
   }
   if ((asString(attempt.currency) ?? 'GBP') !== payload.currency) {
-    throw badRequest('Payment attempt currency mismatch', { attemptId });
+    throw badRequest('Payment attempt currency mismatch', {
+      attemptId,
+    });
   }
   if (!ACTIVE_PAYMENT_ATTEMPT_STATUSES.has(coerceAttemptStatus(attempt.status))) {
     throw badRequest('Payment attempt is not payable', {
@@ -2604,7 +2640,6 @@ export async function getHostedPaymentPageData(
       status: attempt.status,
     });
   }
-
   return {
     invoice,
     attempt,
@@ -2613,42 +2648,55 @@ export async function getHostedPaymentPageData(
     cancelUrl: payload.cancelUrl ?? null,
   };
 }
-
 export async function completeSimulatedInvoicePayment(
   input: CompleteSimulatedInvoicePaymentInput,
 ): Promise<CompleteSimulatedInvoicePaymentResult> {
   const payload = verifySimulatedPaymentToken(input.token);
   if (payload.attemptId !== input.attemptId) {
-    throw badRequest('Payment attempt token mismatch', { attemptId: input.attemptId });
+    throw badRequest('Payment attempt token mismatch', {
+      attemptId: input.attemptId,
+    });
   }
-
   const mutable = resolveMutableTables();
   if (mutable) {
     const attempts = getMutableRows(mutable.tables, 'paymentAttempts');
     ensureAttemptFreshness(attempts);
     const attempt = attempts.find((row) => asString(row.id) === input.attemptId);
     if (!attempt) {
-      throw notFound('Payment attempt not found', { attemptId: input.attemptId });
+      throw notFound('Payment attempt not found', {
+        attemptId: input.attemptId,
+      });
     }
     const invoice = getActiveRows(getMutableRows(mutable.tables, 'invoices')).find(
       (row) => asString(row.id) === asString(attempt.invoiceId),
     );
     if (!invoice) {
-      throw notFound('Invoice not found', { invoiceId: asString(attempt.invoiceId) });
+      throw notFound('Invoice not found', {
+        invoiceId: asString(attempt.invoiceId),
+      });
     }
-
     if (asString(attempt.providerSessionId) !== payload.providerSessionId) {
-      throw badRequest('Payment attempt provider session mismatch', { attemptId: input.attemptId });
+      throw badRequest('Payment attempt provider session mismatch', {
+        attemptId: input.attemptId,
+      });
     }
     if ((asNumber(attempt.amountMinor) ?? 0) !== payload.amountMinor) {
-      throw badRequest('Payment attempt amount mismatch', { attemptId: input.attemptId });
+      throw badRequest('Payment attempt amount mismatch', {
+        attemptId: input.attemptId,
+      });
     }
     if ((asString(attempt.currency) ?? 'GBP') !== payload.currency) {
-      throw badRequest('Payment attempt currency mismatch', { attemptId: input.attemptId });
+      throw badRequest('Payment attempt currency mismatch', {
+        attemptId: input.attemptId,
+      });
     }
     const attemptStatus = coerceAttemptStatus(attempt.status);
     if (attemptStatus === 'COMPLETED') {
-      return { invoice, attempt, alreadyCompleted: true };
+      return {
+        invoice,
+        attempt,
+        alreadyCompleted: true,
+      };
     }
     if (!ACTIVE_PAYMENT_ATTEMPT_STATUSES.has(attemptStatus)) {
       throw badRequest('Payment attempt is not payable', {
@@ -2666,7 +2714,6 @@ export async function completeSimulatedInvoicePayment(
       });
     }
     assertMutableInvoiceBookingLink(mutable.tables, invoice, asString(invoice.id) ?? '');
-
     const now = nowIso();
     const alreadyCompleted = toInvoiceStatus(invoice.status) === 'PAID';
     attempt.status = 'COMPLETED';
@@ -2723,26 +2770,40 @@ export async function completeSimulatedInvoicePayment(
         actorUserId: asString(attempt.actorUserId) ?? 'system',
       });
     }
-
-    return { invoice, attempt, alreadyCompleted };
+    return {
+      invoice,
+      attempt,
+      alreadyCompleted,
+    };
   }
-
   const prisma = getPrismaClientOrThrow();
   const attempt = await prisma.paymentAttempt.findUnique({
-    where: { id: input.attemptId },
-    include: { invoice: true },
+    where: {
+      id: input.attemptId,
+    },
+    include: {
+      invoice: true,
+    },
   });
   if (!attempt) {
-    throw notFound('Payment attempt not found', { attemptId: input.attemptId });
+    throw notFound('Payment attempt not found', {
+      attemptId: input.attemptId,
+    });
   }
   if (attempt.providerSessionId !== payload.providerSessionId) {
-    throw badRequest('Payment attempt provider session mismatch', { attemptId: input.attemptId });
+    throw badRequest('Payment attempt provider session mismatch', {
+      attemptId: input.attemptId,
+    });
   }
   if (attempt.amountMinor !== payload.amountMinor) {
-    throw badRequest('Payment attempt amount mismatch', { attemptId: input.attemptId });
+    throw badRequest('Payment attempt amount mismatch', {
+      attemptId: input.attemptId,
+    });
   }
   if (attempt.currency !== payload.currency) {
-    throw badRequest('Payment attempt currency mismatch', { attemptId: input.attemptId });
+    throw badRequest('Payment attempt currency mismatch', {
+      attemptId: input.attemptId,
+    });
   }
   if (attempt.status === 'COMPLETED') {
     return {
@@ -2783,119 +2844,148 @@ export async function completeSimulatedInvoicePayment(
       });
     }
   }
-
   const alreadyCompleted = attempt.invoice.status === 'PAID';
   const now = new Date();
-  await prisma.paymentAttempt.update({
-    where: { id: input.attemptId },
+  const completeAttempt = prisma.paymentAttempt.update({
+    where: {
+      id: input.attemptId,
+    },
     data: {
       status: 'COMPLETED',
       confirmedAt: now,
     },
   });
   if (!alreadyCompleted) {
-    await prisma.invoice.update({
-      where: { id: attempt.invoiceId },
-      data: {
-        status: 'PAID',
-        paidAt: now,
-        updatedByUserId: attempt.actorUserId,
-        version: {
-          increment: 1,
-        },
-      },
-    });
-    await prisma.invoiceEvent.create({
-      data: {
-        id: newId('ine'),
-        invoiceId: attempt.invoiceId,
-        eventType: 'MARKED_PAID',
-        actorUserId: attempt.actorUserId,
-        reason: 'Hosted payment confirmed by simulated provider.',
-        metadataJson: {
-          source: 'simulated-provider',
-          attemptId: input.attemptId,
-          providerSessionId: payload.providerSessionId,
-        } as never,
-      },
-    });
-    const existingReconciler = await prisma.reconcilerEntry.findFirst({
-      where: { invoiceId: attempt.invoiceId },
-    });
-    if (existingReconciler) {
-      await prisma.reconcilerEntry.update({
-        where: { id: existingReconciler.id },
-        data: {
-          state: 'PAID',
-          internalNote: 'Marked paid by hosted payment confirmation.',
-          updatedByUserId: attempt.actorUserId,
-          version: {
-            increment: 1,
-          },
-        },
-      });
-    } else {
-      await prisma.reconcilerEntry.create({
-        data: {
-          id: newId('rec'),
+    const [existingReconciler, paidBooking] = await Promise.all([
+      prisma.reconcilerEntry.findFirst({
+        where: {
           invoiceId: attempt.invoiceId,
-          coachUserId: attempt.invoice.coachUserId,
-          state: 'PAID',
-          internalNote: 'Created by hosted payment confirmation.',
-          createdByUserId: attempt.actorUserId,
-          updatedByUserId: attempt.actorUserId,
         },
-      });
-    }
-    if (attempt.invoice.bookingId) {
-      const paidBooking = await prisma.booking.findFirst({
-        where: { id: attempt.invoice.bookingId, deletedAt: null },
-        select: {
-          groupSessionId: true,
-          participants: {
-            where: { deletedAt: null },
-            select: { athleteId: true },
-            take: 1,
-          },
-        },
-      });
-      const athleteId = paidBooking?.participants[0]?.athleteId;
-      if (paidBooking?.groupSessionId && athleteId) {
-        await prisma.groupSessionRegistration.updateMany({
+      }),
+      attempt.invoice.bookingId
+        ? prisma.booking.findFirst({
+            where: {
+              id: attempt.invoice.bookingId,
+              deletedAt: null,
+            },
+            select: {
+              groupSessionId: true,
+              participants: {
+                where: {
+                  deletedAt: null,
+                },
+                select: {
+                  athleteId: true,
+                },
+                take: 1,
+              },
+            },
+          })
+        : Promise.resolve(null),
+    ]);
+    const reconcilerWrite = existingReconciler
+      ? prisma.reconcilerEntry.update({
           where: {
-            groupSessionId: paidBooking.groupSessionId,
-            athleteId,
-            deletedAt: null,
-            status: { not: 'CANCELLED' },
+            id: existingReconciler.id,
           },
           data: {
-            paidAt: now,
+            state: 'PAID',
+            internalNote: 'Marked paid by hosted payment confirmation.',
             updatedByUserId: attempt.actorUserId,
             version: {
               increment: 1,
             },
           },
+        })
+      : prisma.reconcilerEntry.create({
+          data: {
+            id: newId('rec'),
+            invoiceId: attempt.invoiceId,
+            coachUserId: attempt.invoice.coachUserId,
+            state: 'PAID',
+            internalNote: 'Created by hosted payment confirmation.',
+            createdByUserId: attempt.actorUserId,
+            updatedByUserId: attempt.actorUserId,
+          },
         });
-      }
-    }
+    const athleteId = paidBooking?.participants[0]?.athleteId;
+    const registrationPaidWrite =
+      paidBooking?.groupSessionId && athleteId
+        ? prisma.groupSessionRegistration.updateMany({
+            where: {
+              groupSessionId: paidBooking.groupSessionId,
+              athleteId,
+              deletedAt: null,
+              status: {
+                not: 'CANCELLED',
+              },
+            },
+            data: {
+              paidAt: now,
+              updatedByUserId: attempt.actorUserId,
+              version: {
+                increment: 1,
+              },
+            },
+          })
+        : Promise.resolve(null);
+    await Promise.all([
+      completeAttempt,
+      prisma.invoice.update({
+        where: {
+          id: attempt.invoiceId,
+        },
+        data: {
+          status: 'PAID',
+          paidAt: now,
+          updatedByUserId: attempt.actorUserId,
+          version: {
+            increment: 1,
+          },
+        },
+      }),
+      prisma.invoiceEvent.create({
+        data: {
+          id: newId('ine'),
+          invoiceId: attempt.invoiceId,
+          eventType: 'MARKED_PAID',
+          actorUserId: attempt.actorUserId,
+          reason: 'Hosted payment confirmed by simulated provider.',
+          metadataJson: {
+            source: 'simulated-provider',
+            attemptId: input.attemptId,
+            providerSessionId: payload.providerSessionId,
+          } as never,
+        },
+      }),
+      reconcilerWrite,
+      registrationPaidWrite,
+    ]);
+  } else {
+    await completeAttempt;
   }
-
-  const refreshedAttempt = await prisma.paymentAttempt.findUniqueOrThrow({
-    where: { id: input.attemptId },
-  });
-  const refreshedInvoice = await prisma.invoice.findUniqueOrThrow({
-    where: { id: attempt.invoiceId },
-  });
+  const [refreshedAttempt, refreshedInvoice] = await Promise.all([
+    prisma.paymentAttempt.findUniqueOrThrow({
+      where: {
+        id: input.attemptId,
+      },
+    }),
+    prisma.invoice.findUniqueOrThrow({
+      where: {
+        id: attempt.invoiceId,
+      },
+    }),
+  ]);
   return {
     invoice: normalizeForJson(refreshedInvoice),
     attempt: normalizeForJson(refreshedAttempt),
     alreadyCompleted,
   };
 }
-
-async function getPaymentAttemptById(
-  attemptId: string,
-): Promise<{ attempt: SeedRow; invoice: SeedRow } | null> {
+async function getPaymentAttemptById(attemptId: string): Promise<{
+  attempt: SeedRow;
+  invoice: SeedRow;
+} | null> {
   const mutable = resolveMutableTables();
   if (mutable) {
     const attempts = getMutableRows(mutable.tables, 'paymentAttempts');
@@ -2910,13 +3000,19 @@ async function getPaymentAttemptById(
     if (!invoice) {
       return null;
     }
-    return { attempt, invoice };
+    return {
+      attempt,
+      invoice,
+    };
   }
-
   const prisma = getPrismaClientOrThrow();
   const attempt = await prisma.paymentAttempt.findUnique({
-    where: { id: attemptId },
-    include: { invoice: true },
+    where: {
+      id: attemptId,
+    },
+    include: {
+      invoice: true,
+    },
   });
   if (!attempt) {
     return null;

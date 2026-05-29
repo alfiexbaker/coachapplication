@@ -1,13 +1,3 @@
-/**
- * Multi-Week Picker
- *
- * FlatList of toggleable week rows for multi-week booking.
- * Each row shows date, day name, time, location, and price.
- * Running total displayed at the bottom.
- * Disabled rows for unavailable weeks show the reason.
- */
-
-import { useCallback } from 'react';
 import { View, FlatList, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -18,10 +8,6 @@ import { useTheme } from '@/hooks/useTheme';
 import { WeekSeparator, WeekRowItem } from './multi-week-picker-sections';
 import { Row } from '@/components/primitives';
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
-
-// Re-export extracted components for backward compat
-export { formatTimeDisplay, WeekSeparator, WeekRowItem } from './multi-week-picker-sections';
-export type { WeekRowItemProps } from './multi-week-picker-sections';
 
 export interface WeekRow {
   weekDate: string;
@@ -55,20 +41,17 @@ export function MultiWeekPicker({
     .filter((w) => selectedWeeks.has(w.weekDate))
     .reduce((sum, w) => sum + w.price, 0);
 
-  const renderItem = useCallback(
-    ({ item }: { item: WeekRow }) => (
-      <WeekRowItem
-        week={item}
-        isSelected={selectedWeeks.has(item.weekDate)}
-        onToggle={onToggleWeek}
-        currency={currency}
-        palette={palette}
-      />
-    ),
-    [selectedWeeks, onToggleWeek, currency, palette],
+  const renderItem = ({ item }: { item: WeekRow }) => (
+    <WeekRowItem
+      week={item}
+      isSelected={selectedWeeks.has(item.weekDate)}
+      onToggle={onToggleWeek}
+      currency={currency}
+      palette={palette}
+    />
   );
 
-  const keyExtractor = useCallback((item: WeekRow) => item.weekDate, []);
+  const keyExtractor = (item: WeekRow) => item.weekDate;
 
   return (
     <View style={styles.container}>

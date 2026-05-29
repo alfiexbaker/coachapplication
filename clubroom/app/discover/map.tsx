@@ -9,7 +9,7 @@
  * contains zero native-only imports.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
@@ -36,68 +36,100 @@ const DEFAULT_LOCATION = { lat: 51.5074, lng: -0.1278, radiusKm: 10 };
 const logger = createLogger('DiscoverMapScreen');
 let lastMapSnapshot: MapScreenData | null = null;
 
+interface InitialMapSearchState {
+  filters: CoachSearchFilters;
+  searchQuery: string;
+}
+
+function getInitialMapSearchState(filtersParam: string | undefined): InitialMapSearchState {
+  if (!filtersParam) {
+    return {
+      filters: {
+        location: DEFAULT_LOCATION,
+      },
+      searchQuery: '',
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(filtersParam) as CoachSearchFilters;
+    return {
+      filters: {
+        ...parsed,
+        location: parsed.location ?? DEFAULT_LOCATION,
+      },
+      searchQuery: parsed.query ?? '',
+    };
+  } catch {
+    return {
+      filters: {
+        location: DEFAULT_LOCATION,
+      },
+      searchQuery: '',
+    };
+  }
+}
+
 function selectPreferredOffering(
   offerings: SessionOffering[],
   coachId: string,
 ): SessionOffering | null {
   const now = Date.now();
 
-  return (
-    offerings
-      .filter((offering) => accountIdsMatch(offering.coachId, coachId))
-      .filter((offering) => offering.status === 'active')
-      .filter((offering) => {
-        const startsAt = new Date(offering.scheduledAt).getTime();
-        return offering.isRecurring || (Number.isFinite(startsAt) && startsAt >= now);
-      })
-      .filter((offering) => getSessionOfferingHeadcount(offering) < offering.maxParticipants)
-      .sort((a, b) => {
-        const aDate = getFixedScheduleFromOffering(a)?.date ?? a.scheduledAt;
-        const bDate = getFixedScheduleFromOffering(b)?.date ?? b.scheduledAt;
-        return new Date(aDate).getTime() - new Date(bDate).getTime();
-      })[0] ?? null
-  );
+  return offerings.reduce<SessionOffering | null>((preferred, offering) => {
+    const startsAt = new Date(offering.scheduledAt).getTime();
+    if (
+      !accountIdsMatch(offering.coachId, coachId) ||
+      offering.status !== 'active' ||
+      (!offering.isRecurring && (!Number.isFinite(startsAt) || startsAt < now)) ||
+      getSessionOfferingHeadcount(offering) >= offering.maxParticipants
+    ) {
+      return preferred;
+    }
+
+    if (!preferred) {
+      return offering;
+    }
+
+    const offeringDate = getFixedScheduleFromOffering(offering)?.date ?? offering.scheduledAt;
+    const preferredDate = getFixedScheduleFromOffering(preferred)?.date ?? preferred.scheduledAt;
+    return new Date(offeringDate).getTime() < new Date(preferredDate).getTime()
+      ? offering
+      : preferred;
+  }, null);
 }
 
 // ─── Screen ────────────────────────────────────────────────────────────────
 
 export default function MapScreen() {
-  const { colors: palette } = useTheme();
-  const router = useRouter();
   const params = useLocalSearchParams<{ filters?: string }>();
+  const initialState = getInitialMapSearchState(params.filters);
+  const { colors: palette } = useTheme();
+  const { back, push, replace } = useRouter();
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState<CoachSearchFilters>({
-    location: DEFAULT_LOCATION,
-  });
+  const [searchQuery, setSearchQuery] = useState(initialState.searchQuery);
+  const [filters, setFilters] = useState<CoachSearchFilters>(initialState.filters);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [selectedCoachId, setSelectedCoachId] = useState<string | undefined>();
+  const filtersRef = useRef(filters);
 
-  // ── Parse route params ────────────────────────────────────────────────
   useEffect(() => {
-    if (!params.filters) return;
-    try {
-      const parsed = JSON.parse(params.filters) as CoachSearchFilters;
-      setFilters((prev) => ({ ...prev, ...parsed, location: parsed.location ?? prev.location }));
-      setSearchQuery(parsed.query ?? '');
-    } catch {
-      // ignore malformed
-    }
-  }, [params.filters]);
+    filtersRef.current = filters;
+  });
 
   // ── Data loading ──────────────────────────────────────────────────────
-  const loadMapData = useCallback(async () => {
-    const result = await discoverService.searchCoaches(filters);
+  const loadMapData = async () => {
+    const result = await discoverService.searchCoaches(filtersRef.current);
     if (!result.success) return result;
     return ok<MapScreenData>({
       coaches: result.data.results,
       filterOptions: result.data.filterOptions,
     });
-  }, [filters]);
+  };
 
   const { data, status, error, onRefresh, retry } = useScreen<MapScreenData>({
     load: loadMapData,
-    deps: [loadMapData],
+    deps: [filters],
     isEmpty: (value) => value.coaches.length === 0,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
@@ -118,78 +150,75 @@ export default function MapScreen() {
   const blockingEmpty = status === 'empty' && resolvedData === null;
 
   // ── Handlers ──────────────────────────────────────────────────────────
-  const handleSearch = useCallback(() => {
+  const handleSearch = () => {
     setFilters((prev) => ({ ...prev, query: searchQuery.trim() || undefined }));
-  }, [searchQuery]);
+  };
 
-  const handleClearSearch = useCallback(() => {
+  const handleClearSearch = () => {
     setSearchQuery('');
     setFilters((prev) => ({ ...prev, query: undefined }));
-  }, []);
+  };
 
-  const handleFilterChange = useCallback((next: CoachSearchFilters) => {
+  const handleFilterChange = (next: CoachSearchFilters) => {
     setFilters((prev) => ({ ...prev, ...next, location: prev.location }));
     setShowFilterModal(false);
-  }, []);
+  };
 
-  const handleCoachSelect = useCallback((coachId: string) => {
+  const handleCoachSelect = (coachId: string) => {
     setSelectedCoachId(coachId);
-  }, []);
+  };
 
-  const handleCoachProfile = useCallback(
-    (coachId: string) => {
-      router.push(Routes.coach(coachId));
-    },
-    [router],
-  );
+  const handleCoachProfile = (coachId: string) => {
+    push(Routes.coach(coachId));
+  };
 
-  const handleBookCoach = useCallback(
-    (coachId: string) => {
-      void (async () => {
-        let offeringId: string | undefined;
-        try {
-          if (apiClient.isMockMode) {
-            const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
-            offeringId = selectPreferredOffering(offerings, coachId)?.id;
-          } else {
-            const offeringsResult = await listPublicCoachOfferingsFromApi(
+  const handleBookCoach = (coachId: string) => {
+    void (async () => {
+      let offeringId: string | undefined;
+      try {
+        if (apiClient.isMockMode) {
+          const offerings = await apiClient.get<SessionOffering[]>(
+            STORAGE_KEYS.SESSION_OFFERINGS,
+            [],
+          );
+          offeringId = selectPreferredOffering(offerings, coachId)?.id;
+        } else {
+          const offeringsResult = await listPublicCoachOfferingsFromApi(
+            coachId,
+            new Date().toISOString(),
+          );
+          if (!offeringsResult.success) {
+            logger.warn('Discover map offering fast-track unavailable', {
               coachId,
-              new Date().toISOString(),
-            );
-            if (!offeringsResult.success) {
-              logger.warn('Discover map offering fast-track unavailable', {
-                coachId,
-                error: offeringsResult.error,
-              });
-            }
-            const offerings = offeringsResult.success ? offeringsResult.data : [];
-            offeringId = selectPreferredOffering(offerings, coachId)?.id;
+              error: offeringsResult.error,
+            });
           }
-        } catch {
-          offeringId = undefined;
+          const offerings = offeringsResult.success ? offeringsResult.data : [];
+          offeringId = selectPreferredOffering(offerings, coachId)?.id;
         }
+      } catch {
+        offeringId = undefined;
+      }
 
-        logger.debug('Discover map routing decision', {
-          coachId,
+      logger.debug('Discover map routing decision', {
+        coachId,
+        source: 'discover_map_coach',
+        target: offeringId ? 'offering_fast_track' : 'session_list_first',
+        offeringId: offeringId ?? null,
+      });
+
+      push(
+        Routes.bookCoach(coachId, {
           source: 'discover_map_coach',
-          target: offeringId ? 'offering_fast_track' : 'session_list_first',
-          offeringId: offeringId ?? null,
-        });
+          offeringId,
+        }),
+      );
+    })();
+  };
 
-        router.push(
-          Routes.bookCoach(coachId, {
-            source: 'discover_map_coach',
-            offeringId,
-          }),
-        );
-      })();
-    },
-    [router],
-  );
-
-  const handleToggleView = useCallback(() => {
-    router.replace(Routes.bookCoachSearch({ filters: JSON.stringify(filters) }));
-  }, [filters, router]);
+  const handleToggleView = () => {
+    replace(Routes.bookCoachSearch({ filters: JSON.stringify(filters) }));
+  };
 
   // ── Non-success states ────────────────────────────────────────────────
   if (coldLoading) {
@@ -240,7 +269,7 @@ export default function MapScreen() {
       onCoachSelect={handleCoachSelect}
       onCoachProfile={handleCoachProfile}
       onBookCoach={handleBookCoach}
-      onBack={() => router.back()}
+      onBack={() => back()}
       onToggleView={handleToggleView}
     />
   );

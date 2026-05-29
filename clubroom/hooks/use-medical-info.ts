@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 
 import { safetyService } from '@/services/safety-service';
@@ -6,6 +6,8 @@ import { createLogger } from '@/utils/logger';
 import type { MedicalInfo, Consent, ConsentType } from '@/constants/types';
 import { useScreen } from '@/hooks/use-screen';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('MedicalInfoScreen');
 
@@ -29,7 +31,7 @@ export function useMedicalInfo() {
   const [notes, setNotes] = useState('');
   const [consents, setConsents] = useState<Consent[]>([]);
 
-  const loadInfo = useCallback(async () => {
+  const loadInfo = async () => {
     if (!id) {
       return err(serviceError('VALIDATION', 'Missing child id for medical profile.'));
     }
@@ -56,7 +58,7 @@ export function useMedicalInfo() {
       logger.error('Failed to load medical info:', error);
       return err(serviceError('UNKNOWN', 'Failed to load medical information.', error));
     }
-  }, [id]);
+  };
 
   const { status, error, refreshing, onRefresh, retry } = useScreen<MedicalInfoData>({
     load: loadInfo,
@@ -67,7 +69,7 @@ export function useMedicalInfo() {
     dataKey: id ? `child-medical:${id}` : 'child-medical:missing',
   });
 
-  const handleConsentToggle = useCallback((type: ConsentType, granted: boolean) => {
+  const handleConsentToggle = (type: ConsentType, granted: boolean) => {
     setConsents((prev) =>
       prev.map((c) =>
         c.type === type
@@ -80,76 +82,62 @@ export function useMedicalInfo() {
           : c,
       ),
     );
-  }, []);
+  };
 
-  const handleSave = useCallback(async () => {
+  const handleSave = async () => {
     if (!id) return;
     setSaving(true);
-    try {
-      const medicalUpdate: Partial<MedicalInfo> = {
-        conditions,
-        allergies,
-        medications,
-        restrictions,
-        doctorName: doctorName || undefined,
-        doctorPhone: doctorPhone || undefined,
-        insuranceProvider: insuranceProvider || undefined,
-        insuranceNumber: insuranceNumber || undefined,
-        notes: notes || undefined,
-      };
 
-      const updateMedicalResult = await safetyService.updateMedicalInfo(id, medicalUpdate);
-      if (!updateMedicalResult.success) {
-        logger.error('Failed to update medical info', updateMedicalResult.error);
-        return;
-      }
+    return await runAsyncTryCatchFinally(
+      async () => {
+        const medicalUpdate: Partial<MedicalInfo> = {
+          conditions,
+          allergies,
+          medications,
+          restrictions,
+          doctorName: doctorName || undefined,
+          doctorPhone: doctorPhone || undefined,
+          insuranceProvider: insuranceProvider || undefined,
+          insuranceNumber: insuranceNumber || undefined,
+          notes: notes || undefined,
+        };
 
-      for (const consent of consents) {
-        const consentResult = await safetyService.updateConsent(
-          id,
-          consent.type,
-          consent.granted,
-          consent.grantedBy,
-        );
-        if (!consentResult.success) {
-          logger.error('Failed to update consent', consentResult.error);
+        const updateMedicalResult = await safetyService.updateMedicalInfo(id, medicalUpdate);
+        if (!updateMedicalResult.success) {
+          logger.error('Failed to update medical info', updateMedicalResult.error);
           return;
         }
-      }
 
-      router.back();
-    } catch (error) {
-      logger.error('Failed to save medical info:', error);
-    } finally {
-      setSaving(false);
-    }
-  }, [
-    id,
-    conditions,
-    allergies,
-    medications,
-    restrictions,
-    doctorName,
-    doctorPhone,
-    insuranceProvider,
-    insuranceNumber,
-    notes,
-    consents,
-  ]);
+        const consentResults = await Promise.all(
+          consents.map((consent) =>
+            safetyService.updateConsent(id, consent.type, consent.granted, consent.grantedBy),
+          ),
+        );
+        const failedConsentResult = consentResults.find((result) => !result.success);
+        if (failedConsentResult) {
+          logger.error('Failed to update consent', failedConsentResult.error);
+          return;
+        }
 
-  const addItem = useCallback(
-    (setter: React.Dispatch<React.SetStateAction<string[]>>) => (item: string) => {
-      setter((prev) => [...prev, item]);
-    },
-    [],
-  );
+        router.back();
+      },
+      async (error) => {
+        logger.error('Failed to save medical info:', error);
+      },
+      () => {
+        setSaving(false);
+      },
+    );
+  };
 
-  const removeItem = useCallback(
+  const addItem = (setter: React.Dispatch<React.SetStateAction<string[]>>) => (item: string) => {
+    setter((prev) => [...prev, item]);
+  };
+
+  const removeItem =
     (setter: React.Dispatch<React.SetStateAction<string[]>>) => (index: number) => {
       setter((prev) => prev.filter((_, i) => i !== index));
-    },
-    [],
-  );
+    };
 
   return {
     loading: status === 'loading',

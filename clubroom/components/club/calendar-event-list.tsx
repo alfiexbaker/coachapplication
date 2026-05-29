@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -28,7 +27,7 @@ interface CalendarEventListProps {
   events: CalendarEvent[];
 }
 
-export const CalendarEventList = memo(function CalendarEventList({
+export const CalendarEventList = function CalendarEventList({
   year,
   month,
   selectedDay,
@@ -109,7 +108,7 @@ export const CalendarEventList = memo(function CalendarEventList({
       )}
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.sm },

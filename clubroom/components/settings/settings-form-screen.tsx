@@ -1,6 +1,5 @@
 import { useEffect, type ReactElement, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View, type RefreshControlProps } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, usePathname } from 'expo-router';
 
 import { PageHeader } from '@/components/primitives/page-header';
@@ -53,10 +52,7 @@ export function SettingsFormScreen({
   };
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       <PageHeader
         title={title}
         showBack
@@ -66,6 +62,7 @@ export function SettingsFormScreen({
       />
 
       <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={refreshControl}
@@ -77,7 +74,7 @@ export function SettingsFormScreen({
           </View>
         ) : null}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

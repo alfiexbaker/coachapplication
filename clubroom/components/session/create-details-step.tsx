@@ -5,7 +5,7 @@
  * description, and focus area chips.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInRight } from 'react-native-reanimated';
@@ -46,7 +46,10 @@ interface CreateDetailsStepProps {
   onSelectedAssigneeIdChange?: (v: string | null) => void;
 }
 
-export const CreateDetailsStep = memo(function CreateDetailsStep({
+const EMPTY_CLUB_OPTIONS: NonNullable<CreateDetailsStepProps['clubOptions']> = [];
+const EMPTY_ASSIGNEE_OPTIONS: NonNullable<CreateDetailsStepProps['assigneeOptions']> = [];
+
+export const CreateDetailsStep = function CreateDetailsStep({
   colors,
   sessionType,
   title,
@@ -60,9 +63,9 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
   onToggleFocusArea,
   onMaxParticipantsChange,
   postingAs = 'self',
-  clubOptions = [],
+  clubOptions = EMPTY_CLUB_OPTIONS,
   selectedClubId = null,
-  assigneeOptions = [],
+  assigneeOptions = EMPTY_ASSIGNEE_OPTIONS,
   selectedAssigneeId = null,
   onPostingAsChange,
   onSelectedClubIdChange,
@@ -344,7 +347,7 @@ export const CreateDetailsStep = memo(function CreateDetailsStep({
       </Column>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   label: { ...Typography.bodySmall },

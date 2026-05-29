@@ -31,8 +31,16 @@ async function saveSessionMedia(
   try {
     // SAFEGUARDING: Check photo/video consent when coachId provided
     if (coachId && media.athleteId) {
-      const photoConsentResult = await consentService.checkConsent(media.athleteId, 'PHOTO', coachId);
-      const videoConsentResult = await consentService.checkConsent(media.athleteId, 'VIDEO', coachId);
+      const photoConsentResult = await consentService.checkConsent(
+        media.athleteId,
+        'PHOTO',
+        coachId,
+      );
+      const videoConsentResult = await consentService.checkConsent(
+        media.athleteId,
+        'VIDEO',
+        coachId,
+      );
 
       const hasPhotoConsent = photoConsentResult.success && photoConsentResult.data;
       const hasVideoConsent = videoConsentResult.success && videoConsentResult.data;
@@ -101,7 +109,9 @@ async function getSessionMedia(
   }
 }
 
-async function listMediaForSession(sessionId: string): Promise<Result<SessionMedia[], ServiceError>> {
+async function listMediaForSession(
+  sessionId: string,
+): Promise<Result<SessionMedia[], ServiceError>> {
   try {
     const allMedia = await getAllSessionMedia();
     return ok(allMedia.filter((entry) => entry.sessionId === sessionId));
@@ -115,7 +125,9 @@ async function listMediaForSession(sessionId: string): Promise<Result<SessionMed
   }
 }
 
-async function listMediaForAthlete(athleteId: string): Promise<Result<SessionMedia[], ServiceError>> {
+async function listMediaForAthlete(
+  athleteId: string,
+): Promise<Result<SessionMedia[], ServiceError>> {
   try {
     const allMedia = await getAllSessionMedia();
     return ok(allMedia.filter((entry) => entry.athleteId === athleteId));
@@ -255,52 +267,62 @@ async function shareMedia(
   }
 }
 
-async function cleanupOldMedia(
-  olderThanMonths: number = 6,
-): Promise<Result<number, ServiceError>> {
+async function cleanupOldMedia(olderThanMonths: number = 6): Promise<Result<number, ServiceError>> {
   try {
     const now = new Date();
     const cutoff = new Date(now.getFullYear(), now.getMonth() - olderThanMonths, now.getDate());
     const allMedia = await getAllSessionMedia();
     let deletedCount = 0;
 
-    const compacted: SessionMedia[] = [];
-    for (const entry of allMedia) {
-      const keptPhotos: SessionMedia['photos'] = [];
-      for (const photo of entry.photos) {
-        const capturedAt = new Date(photo.capturedAt);
-        if (!Number.isNaN(capturedAt.getTime()) && capturedAt < cutoff) {
-          await safeDelete(photo.uri);
-          if (photo.thumbnailUri !== photo.uri) {
-            await safeDelete(photo.thumbnailUri);
-          }
-          deletedCount += 1;
-        } else {
-          keptPhotos.push(photo);
-        }
-      }
+    const compactedEntries = await Promise.all(
+      allMedia.map(async (entry) => {
+        const keptPhotos: SessionMedia['photos'] = [];
+        let entryDeletedCount = 0;
+        await Promise.all(
+          entry.photos.map(async (photo) => {
+            const capturedAt = new Date(photo.capturedAt);
+            if (!Number.isNaN(capturedAt.getTime()) && capturedAt < cutoff) {
+              await safeDelete(photo.uri);
+              if (photo.thumbnailUri !== photo.uri) {
+                await safeDelete(photo.thumbnailUri);
+              }
+              entryDeletedCount += 1;
+            } else {
+              keptPhotos.push(photo);
+            }
+          }),
+        );
 
-      let keptVideo = entry.video;
-      if (entry.video) {
-        const capturedAt = new Date(entry.video.capturedAt);
-        if (!Number.isNaN(capturedAt.getTime()) && capturedAt < cutoff) {
-          await safeDelete(entry.video.uri);
-          if (entry.video.thumbnailUri !== entry.video.uri) {
-            await safeDelete(entry.video.thumbnailUri);
+        let keptVideo = entry.video;
+        if (entry.video) {
+          const capturedAt = new Date(entry.video.capturedAt);
+          if (!Number.isNaN(capturedAt.getTime()) && capturedAt < cutoff) {
+            await safeDelete(entry.video.uri);
+            if (entry.video.thumbnailUri !== entry.video.uri) {
+              await safeDelete(entry.video.thumbnailUri);
+            }
+            keptVideo = null;
+            entryDeletedCount += 1;
           }
-          keptVideo = null;
-          deletedCount += 1;
         }
-      }
 
-      if (keptPhotos.length > 0 || keptVideo) {
-        compacted.push({
-          ...entry,
-          photos: keptPhotos,
-          video: keptVideo,
-        });
-      }
-    }
+        if (keptPhotos.length > 0 || keptVideo) {
+          return {
+            deletedCount: entryDeletedCount,
+            entry: {
+              ...entry,
+              photos: keptPhotos,
+              video: keptVideo,
+            },
+          };
+        }
+        return { deletedCount: entryDeletedCount, entry: null };
+      }),
+    );
+    const compacted = compactedEntries
+      .map((entryResult) => entryResult.entry)
+      .filter((entry): entry is SessionMedia => entry !== null);
+    deletedCount = compactedEntries.reduce((sum, entryResult) => sum + entryResult.deletedCount, 0);
 
     await apiClient.set(STORAGE_KEYS.SESSION_MEDIA, compacted);
     return ok(deletedCount);

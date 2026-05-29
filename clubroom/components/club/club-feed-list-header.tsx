@@ -5,7 +5,7 @@
  * members section, and feed filters into a single ListHeaderComponent.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { ClubHeader, ClubStatsRow } from '@/components/club/ClubHeader';
@@ -23,7 +23,7 @@ export interface ClubFeedListHeaderProps {
   onToggleMembers: () => void;
 }
 
-export const ClubFeedListHeader = memo(function ClubFeedListHeader({
+export const ClubFeedListHeader = function ClubFeedListHeader({
   hub,
   onToggleMembers,
 }: ClubFeedListHeaderProps) {
@@ -82,7 +82,7 @@ export const ClubFeedListHeader = memo(function ClubFeedListHeader({
       />
     </>
   );
-});
+};
 
 const styles = StyleSheet.create({
   headerSection: {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
@@ -14,7 +14,7 @@ export function usePrivacySettings() {
   const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
   const [savingKey, setSavingKey] = useState<keyof PrivacySettings | null>(null);
 
-  const load = useCallback(async () => {
+  const load = async () => {
     if (!userId) {
       return err(serviceError('UNAUTHORIZED', 'No user available.'));
     }
@@ -32,7 +32,7 @@ export function usePrivacySettings() {
       settings: settingsResult.data,
       blockedUsers: blockedResult.success ? blockedResult.data : [],
     });
-  }, [userId]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen({
     load,
@@ -45,23 +45,24 @@ export function usePrivacySettings() {
 
   useEffect(() => {
     if (data) {
-      setSettings(data.settings);
-      setBlockedUsers(data.blockedUsers);
+      startTransition(() => {
+        setSettings(data.settings);
+      });
+      startTransition(() => {
+        setBlockedUsers(data.blockedUsers);
+      });
     }
   }, [data]);
 
-  const toggle = useCallback(
-    async <K extends keyof PrivacySettings>(key: K, value: PrivacySettings[K]) => {
-      if (!userId || !settings) return;
-      setSavingKey(key);
-      const result = await privacySettingsService.updateSettings(userId, { [key]: value });
-      if (result.success) {
-        setSettings(result.data);
-      }
-      setSavingKey(null);
-    },
-    [settings, userId],
-  );
+  const toggle = async <K extends keyof PrivacySettings>(key: K, value: PrivacySettings[K]) => {
+    if (!userId || !settings) return;
+    setSavingKey(key);
+    const result = await privacySettingsService.updateSettings(userId, { [key]: value });
+    if (result.success) {
+      setSettings(result.data);
+    }
+    setSavingKey(null);
+  };
 
   return {
     settings,

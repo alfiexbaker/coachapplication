@@ -1,13 +1,3 @@
-/**
- * Hook: useEventDetail
- *
- * Manages the launch event workspace: detail, RSVP, reminders, attendance,
- * check-in, and organizer actions from one screen.
- * Used by app/events/[id].tsx
- */
-
-import { useCallback, useMemo } from 'react';
-
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
@@ -85,7 +75,7 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
         ? 'PARENT'
         : 'ATHLETE';
 
-  const loadEvent = useCallback(async () => {
+  const loadEvent = async () => {
     if (!id || !currentUser) {
       return ok<EventDetailData>({
         event: null,
@@ -122,7 +112,7 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
         serviceError('UNKNOWN', 'Failed to load event. Pull down to refresh.', loadError),
       );
     }
-  }, [currentUser, id]);
+  };
 
   const {
     data,
@@ -145,29 +135,26 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
   const attendanceStats = data?.attendanceStats ?? null;
   const currentAttendance = data?.currentAttendance ?? null;
 
-  const handleRSVP = useCallback(
-    async (status: RSVPStatus) => {
-      if (!event || !currentUser) return;
+  const handleRSVP = async (status: RSVPStatus) => {
+    if (!event || !currentUser) return;
 
-      try {
-        await eventService.submitRSVP({
-          eventId: event.id,
-          userId: currentUser.id,
-          userRole: actorRole,
-          status,
-          guestCount: 0,
-        });
-        onRefresh();
-        uiFeedback.showToast(`Response saved: ${eventService.formatRSVPStatus(status)}`, 'success');
-      } catch (error) {
-        logger.error('Failed to RSVP:', error);
-        uiFeedback.showToast('Failed to save your response. Please try again.', 'error');
-      }
-    },
-    [actorRole, currentUser, event, onRefresh],
-  );
+    try {
+      await eventService.submitRSVP({
+        eventId: event.id,
+        userId: currentUser.id,
+        userRole: actorRole,
+        status,
+        guestCount: 0,
+      });
+      onRefresh();
+      uiFeedback.showToast(`Response saved: ${eventService.formatRSVPStatus(status)}`, 'success');
+    } catch (error) {
+      logger.error('Failed to RSVP:', error);
+      uiFeedback.showToast('Failed to save your response. Please try again.', 'error');
+    }
+  };
 
-  const handlePublish = useCallback(async () => {
+  const handlePublish = async () => {
     if (!event) return;
     try {
       const publishResult = await eventService.publishEvent(event.id);
@@ -182,9 +169,9 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
       logger.error('Failed to publish:', error);
       uiFeedback.showToast('Failed to publish event.', 'error');
     }
-  }, [event, onRefresh]);
+  };
 
-  const handleCancel = useCallback(async () => {
+  const handleCancel = async () => {
     if (!event) return;
 
     uiFeedback.alert('Cancel Event', 'Are you sure you want to cancel this event?', [
@@ -211,9 +198,9 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
         },
       },
     ]);
-  }, [event, onRefresh]);
+  };
 
-  const handleSendReminder = useCallback(async () => {
+  const handleSendReminder = async () => {
     if (!event || !isCoach) return;
 
     try {
@@ -233,23 +220,20 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
       logger.error('Failed to send reminders:', sendError);
       uiFeedback.showToast('Could not send reminders. Please try again.', 'error');
     }
-  }, [event, isCoach]);
+  };
 
-  const handleCheckIn = useCallback(
-    async (input: CheckInInput) => {
-      try {
-        await eventService.checkIn(input);
-        onRefresh();
-        uiFeedback.showToast('Checked in.', 'success');
-      } catch (checkInError) {
-        logger.error('Failed to check in attendee', checkInError);
-        uiFeedback.showToast('Could not complete check-in. Please try again.', 'error');
-      }
-    },
-    [onRefresh],
-  );
+  const handleCheckIn = async (input: CheckInInput) => {
+    try {
+      await eventService.checkIn(input);
+      onRefresh();
+      uiFeedback.showToast('Checked in.', 'success');
+    } catch (checkInError) {
+      logger.error('Failed to check in attendee', checkInError);
+      uiFeedback.showToast('Could not complete check-in. Please try again.', 'error');
+    }
+  };
 
-  const handleUndoCheckIn = useCallback(async () => {
+  const handleUndoCheckIn = async () => {
     if (!id || !currentUser) return;
     try {
       await eventService.removeCheckIn(id, currentUser.id);
@@ -259,9 +243,9 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
       logger.error('Failed to undo check-in', undoError);
       uiFeedback.showToast('Could not undo check-in. Please try again.', 'error');
     }
-  }, [currentUser, id, onRefresh]);
+  };
 
-  const handleOpenRecap = useCallback(() => {
+  const handleOpenRecap = () => {
     if (!event) return;
     const isSquadAudience = event.targetAudience === 'SQUAD' && (event.squadIds?.length ?? 0) > 0;
     router.push(
@@ -271,12 +255,12 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
         squadId: isSquadAudience ? event.squadIds?.[0] : undefined,
       }),
     );
-  }, [event]);
+  };
 
-  const handleOpenFullAttendance = useCallback(() => {
+  const handleOpenFullAttendance = () => {
     if (!event) return;
     router.push(Routes.eventAttendees(event.id));
-  }, [event]);
+  };
 
   const typeColor = event ? eventService.getEventTypeColor(event.eventType) : '';
   const typeIcon = event ? eventService.getEventTypeIcon(event.eventType) : '';
@@ -284,7 +268,7 @@ export function useEventDetail(id: string | undefined): UseEventDetailResult {
     ? eventService.getAttendeeCounts(event.attendees)
     : { going: 0, maybe: 0, notGoing: 0, totalGuests: 0 };
   const isCreator = currentUser?.id === event?.createdBy;
-  const workspaceState = useMemo(() => getEventWorkspaceState(event, rsvps), [event, rsvps]);
+  const workspaceState = getEventWorkspaceState(event, rsvps);
   const isOrganizer = isCreator || isCoach;
 
   return {

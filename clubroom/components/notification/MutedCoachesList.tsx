@@ -17,10 +17,6 @@ import type { MutedCoach } from '@/constants/types';
 
 import { MutedCoachRow } from './muted-coaches-list-sections';
 
-// Re-export extracted components for backward compat
-export { formatMutedDate, MutedCoachRow } from './muted-coaches-list-sections';
-export type { MutedCoachRowProps } from './muted-coaches-list-sections';
-
 export interface MutedCoachesListProps {
   mutedCoaches: MutedCoach[];
   onUnmute: (coachId: string) => void;

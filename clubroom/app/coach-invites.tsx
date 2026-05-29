@@ -102,7 +102,7 @@ export default function CoachInvitesScreen() {
             <Row align="center" justify="center" gap="xs">
               {isResponding ? (
                 <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>
-                  Joining...
+                  Joining…
                 </ThemedText>
               ) : (
                 <>

@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
@@ -29,7 +29,7 @@ function categoryColor(category: AllBadgeWithProgress['category'], fallback: str
   return CORNER_COLORS[category] ?? fallback;
 }
 
-export const BadgeCircle = memo(function BadgeCircle({ badge, onPress }: BadgeCircleProps) {
+export const BadgeCircle = function BadgeCircle({ badge, onPress }: BadgeCircleProps) {
   const { colors } = useTheme();
   const unlocked = badge.isUnlocked;
   const accent = categoryColor(badge.category, colors.tint);
@@ -43,24 +43,24 @@ export const BadgeCircle = memo(function BadgeCircle({ badge, onPress }: BadgeCi
   const unlockedBackground = withAlpha(accent, 0.16);
   const lockedBorder = withAlpha(colors.border, 0.7);
   const unlockedBorder = withAlpha(accent, 0.6);
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     void HapticPatterns.tap();
     onPress(badge);
-  }, [badge, onPress]);
+  };
 
   useEffect(() => {
-    fillProgress.value = withTiming(unlocked ? 1 : 0, { duration: 260 });
-    iconReveal.value = withTiming(unlocked ? 1 : 0, { duration: 220 });
+    fillProgress.set(withTiming(unlocked ? 1 : 0, { duration: 260 }));
+    iconReveal.set(withTiming(unlocked ? 1 : 0, { duration: 220 }));
 
     if (unlocked && !previouslyUnlocked.current) {
-      pulse.value = withSequence(
+      pulse.set(withSequence(
         withTiming(1, { duration: 120 }),
         withTiming(0, { duration: 170 }),
-      );
-      glow.value = withSequence(
+      ));
+      glow.set(withSequence(
         withTiming(1, { duration: 280 }),
         withTiming(0, { duration: 300 }),
-      );
+      ));
       void HapticPatterns.success();
     }
 
@@ -127,7 +127,7 @@ export const BadgeCircle = memo(function BadgeCircle({ badge, onPress }: BadgeCi
       ) : null}
     </Clickable>
   );
-});
+};
 
 const styles = StyleSheet.create({
   wrapper: {

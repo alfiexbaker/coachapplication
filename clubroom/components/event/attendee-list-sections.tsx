@@ -6,7 +6,7 @@
  * AttendeeEmptyState — empty state with icon + message.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -35,7 +35,7 @@ interface AttendeeStatsCardProps {
   palette: ThemeColors;
 }
 
-export const AttendeeStatsCard = memo(function AttendeeStatsCard({
+export const AttendeeStatsCard = function AttendeeStatsCard({
   stats,
   palette,
 }: AttendeeStatsCardProps) {
@@ -105,7 +105,7 @@ export const AttendeeStatsCard = memo(function AttendeeStatsCard({
       )}
     </View>
   );
-});
+};
 
 // ─── AttendeeFilterChip ──────────────────────────────────────────────────────
 
@@ -116,7 +116,7 @@ interface AttendeeFilterChipProps {
   palette: ThemeColors;
 }
 
-export const AttendeeFilterChip = memo(function AttendeeFilterChip({
+const renderAttendeeFilterChip = function renderAttendeeFilterChip({
   item,
   isActive,
   onPress,
@@ -155,7 +155,8 @@ export const AttendeeFilterChip = memo(function AttendeeFilterChip({
       </View>
     </Clickable>
   );
-});
+};
+export const AttendeeFilterChip = renderAttendeeFilterChip;
 
 // ─── AttendeeEmptyState ──────────────────────────────────────────────────────
 
@@ -164,7 +165,7 @@ interface AttendeeEmptyStateProps {
   palette: ThemeColors;
 }
 
-export const AttendeeEmptyState = memo(function AttendeeEmptyState({
+const renderAttendeeEmptyState = function renderAttendeeEmptyState({
   message,
   palette,
 }: AttendeeEmptyStateProps) {
@@ -174,4 +175,5 @@ export const AttendeeEmptyState = memo(function AttendeeEmptyState({
       <ThemedText style={[styles.emptyText, { color: palette.muted }]}>{message}</ThemedText>
     </View>
   );
-});
+};
+export const AttendeeEmptyState = renderAttendeeEmptyState;

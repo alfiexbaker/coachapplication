@@ -11,7 +11,7 @@ import { useTheme } from '@/hooks/useTheme';
 import type { ChildProfile } from '@/services/child-service';
 import type { RosterEntry } from '@/constants/types';
 
-export const SpecialNeedsSummary = React.memo(function SpecialNeedsSummary({
+export const SpecialNeedsSummary = function SpecialNeedsSummary({
   childData,
 }: {
   childData: ChildProfile;
@@ -56,9 +56,9 @@ export const SpecialNeedsSummary = React.memo(function SpecialNeedsSummary({
       )}
     </SurfaceCard>
   );
-});
+};
 
-export const SenSummary = React.memo(function SenSummary({ athlete }: { athlete: RosterEntry }) {
+export const SenSummary = function SenSummary({ athlete }: { athlete: RosterEntry }) {
   const { colors } = useTheme();
   if (!athlete.senInfo?.hasSen) return null;
 
@@ -82,7 +82,7 @@ export const SenSummary = React.memo(function SenSummary({ athlete }: { athlete:
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   section: {

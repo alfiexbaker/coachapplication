@@ -3,7 +3,7 @@
  * Handles CRUD operations and modal state.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 
 import {
   coachObservationService,
@@ -15,6 +15,8 @@ import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
 
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
+
 const logger = createLogger('useCoachObservations');
 
 export function useCoachObservations(athleteId: string) {
@@ -25,52 +27,56 @@ export function useCoachObservations(athleteId: string) {
   const [editingObservation, setEditingObservation] = useState<CoachObservation | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const loadObservations = useCallback(async () => {
-    const result = await coachObservationService.getObservations(athleteId);
-    if (result.success) {
-      setObservations(result.data);
-    }
-    setLoading(false);
-  }, [athleteId]);
-
   useEffect(() => {
-    loadObservations();
-  }, [loadObservations]);
+    startTransition(() => {
+      void loadCoachObservations(athleteId, setObservations, setLoading);
+    });
+  }, [athleteId]);
 
   // Subscribe to observation events for live updates
   useEffect(() => {
+    const reloadObservations = () => {
+      void loadCoachObservations(athleteId, setObservations, setLoading);
+    };
     const unsubs = [
       onTyped(ServiceEvents.COACH_OBSERVATION_CREATED, (e) => {
-        if (e.athleteId === athleteId) loadObservations();
+        if (e.athleteId === athleteId) reloadObservations();
       }),
       onTyped(ServiceEvents.COACH_OBSERVATION_UPDATED, (e) => {
-        if (e.athleteId === athleteId) loadObservations();
+        if (e.athleteId === athleteId) reloadObservations();
       }),
       onTyped(ServiceEvents.COACH_OBSERVATION_DELETED, (e) => {
-        if (e.athleteId === athleteId) loadObservations();
+        if (e.athleteId === athleteId) reloadObservations();
       }),
     ];
     return () => unsubs.forEach((u) => u());
-  }, [athleteId, loadObservations]);
+  }, [athleteId]);
 
-  const showModal = useCallback((observation?: CoachObservation) => {
+  const showModal = (observation?: CoachObservation) => {
     setEditingObservation(observation ?? null);
     setModalVisible(true);
-  }, []);
+  };
 
-  const hideModal = useCallback(() => {
+  const hideModal = () => {
     setModalVisible(false);
     setEditingObservation(null);
-  }, []);
+  };
 
-  const handleSave = useCallback(
-    async (data: { text: string; category: ObservationCategory; isPrivate: boolean }) => {
-      if (!currentUser) return;
-      setSaving(true);
+  const handleSave = async (data: {
+    text: string;
+    category: ObservationCategory;
+    isPrivate: boolean;
+  }) => {
+    if (!currentUser) return;
+    setSaving(true);
 
-      try {
+    return await runAsyncTryCatchFinally(
+      async () => {
         if (editingObservation) {
-          const result = await coachObservationService.updateObservation(editingObservation.id, data);
+          const result = await coachObservationService.updateObservation(
+            editingObservation.id,
+            data,
+          );
           if (!result.success) {
             uiFeedback.showToast('Failed to update observation. Please try again.', 'error');
             return;
@@ -88,34 +94,32 @@ export function useCoachObservations(athleteId: string) {
           }
         }
         hideModal();
-      } catch (error) {
+      },
+      async (error) => {
         logger.error('save_observation_failed', { error });
         uiFeedback.showToast('Something went wrong. Please try again.', 'error');
-      } finally {
+      },
+      () => {
         setSaving(false);
-      }
-    },
-    [athleteId, currentUser, editingObservation, hideModal],
-  );
+      },
+    );
+  };
 
-  const deleteObservation = useCallback(
-    async (observationId: string) => {
-      uiFeedback.alert('Delete Observation', 'Are you sure you want to delete this observation?', [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            const result = await coachObservationService.deleteObservation(observationId);
-            if (!result.success) {
-              uiFeedback.showToast('Failed to delete observation. Please try again.', 'error');
-            }
-          },
+  const deleteObservation = async (observationId: string) => {
+    uiFeedback.alert('Delete Observation', 'Are you sure you want to delete this observation?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          const result = await coachObservationService.deleteObservation(observationId);
+          if (!result.success) {
+            uiFeedback.showToast('Failed to delete observation. Please try again.', 'error');
+          }
         },
-      ]);
-    },
-    [],
-  );
+      },
+    ]);
+  };
 
   return {
     observations,
@@ -128,4 +132,16 @@ export function useCoachObservations(athleteId: string) {
     handleSave,
     deleteObservation,
   };
+}
+
+async function loadCoachObservations(
+  athleteId: string,
+  setObservations: (observations: CoachObservation[]) => void,
+  setLoading: (loading: boolean) => void,
+) {
+  const result = await coachObservationService.getObservations(athleteId);
+  if (result.success) {
+    setObservations(result.data);
+  }
+  setLoading(false);
 }

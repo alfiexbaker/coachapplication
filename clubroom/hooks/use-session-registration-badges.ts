@@ -1,11 +1,3 @@
-/**
- * useSessionRegistrationBadges
- *
- * Maps sessions + children + registrations → badge data per session.
- * Used by the group sessions list to show per-child registration badges.
- */
-
-import { useMemo } from 'react';
 import type { GroupRegistration } from '@/constants/types';
 import type { ChildInfo } from '@/types/child-context';
 import type { SessionBadgeData, SessionChildStatus, ChildRegistrationStatus } from '@/types/session-child-status';
@@ -22,7 +14,7 @@ export function useSessionRegistrationBadges(
   children: ChildInfo[],
   registrations: GroupRegistration[],
 ): Map<string, SessionBadgeData> {
-  return useMemo(() => {
+  return (() => {
     const map = new Map<string, SessionBadgeData>();
     if (children.length === 0 || registrations.length === 0) return map;
 
@@ -80,5 +72,5 @@ export function useSessionRegistrationBadges(
     }
 
     return map;
-  }, [sessions, children, registrations]);
+  })();
 }

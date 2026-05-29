@@ -1,5 +1,4 @@
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -30,11 +29,8 @@ export function AdminUsersScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
-      <ScrollView contentContainerStyle={styles.content}>
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
+      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <ThemedText type="title" style={styles.title}>
             Users
@@ -78,7 +74,7 @@ export function AdminUsersScreen() {
           />
         ) : null}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

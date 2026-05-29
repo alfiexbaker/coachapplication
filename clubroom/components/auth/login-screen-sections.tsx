@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,7 +15,7 @@ export interface SignupCardProps {
   palette: ThemeColors;
 }
 
-export const SignupCard = memo(function SignupCard({ onPress, palette }: SignupCardProps) {
+export const SignupCard = function SignupCard({ onPress, palette }: SignupCardProps) {
   return (
     <Clickable
       style={[
@@ -42,7 +41,7 @@ export const SignupCard = memo(function SignupCard({ onPress, palette }: SignupC
       </Row>
     </Clickable>
   );
-});
+};
 
 /* ---------- InviteCodeCard ---------- */
 
@@ -51,7 +50,7 @@ export interface InviteCodeCardProps {
   palette: ThemeColors;
 }
 
-export const InviteCodeCard = memo(function InviteCodeCard({
+export const InviteCodeCard = function InviteCodeCard({
   onPress,
   palette,
 }: InviteCodeCardProps) {
@@ -80,7 +79,7 @@ export const InviteCodeCard = memo(function InviteCodeCard({
       </Row>
     </Clickable>
   );
-});
+};
 
 /* ---------- DemoAccountsCard ---------- */
 
@@ -90,7 +89,7 @@ export interface DemoAccountsCardProps {
   onSelectUser?: (user: { username: string; password: string; role: string }) => void;
 }
 
-export const DemoAccountsCard = memo(function DemoAccountsCard({
+export const DemoAccountsCard = function DemoAccountsCard({
   users,
   palette,
   onSelectUser,
@@ -132,7 +131,7 @@ export const DemoAccountsCard = memo(function DemoAccountsCard({
       ))}
     </SurfaceCard>
   );
-});
+};
 
 /* ---------- DemoRoleEntryCard ---------- */
 
@@ -150,7 +149,7 @@ export interface DemoRoleEntryCardProps {
   onPress: () => void;
 }
 
-export const DemoRoleEntryCard = memo(function DemoRoleEntryCard({
+export const DemoRoleEntryCard = function DemoRoleEntryCard({
   entry,
   palette,
   onPress,
@@ -185,7 +184,7 @@ export const DemoRoleEntryCard = memo(function DemoRoleEntryCard({
       </View>
     </Clickable>
   );
-});
+};
 
 /* ---------- Styles ---------- */
 
@@ -222,7 +221,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     gap: Spacing.sm,
     borderWidth: 1,
-    shadowOpacity: 0,
   },
   credentialsTitle: {
     textAlign: 'left',

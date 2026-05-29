@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -14,7 +13,7 @@ interface CharacterBarProps {
   universalSkills: UniversalSkillRating[];
 }
 
-export const CharacterBar = memo(function CharacterBar({ universalSkills }: CharacterBarProps) {
+export const CharacterBar = function CharacterBar({ universalSkills }: CharacterBarProps) {
   const { colors } = useTheme();
   if (universalSkills.length === 0) {
     return null;
@@ -78,7 +77,7 @@ export const CharacterBar = memo(function CharacterBar({ universalSkills }: Char
       </Column>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

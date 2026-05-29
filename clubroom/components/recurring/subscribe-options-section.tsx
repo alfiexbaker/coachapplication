@@ -1,7 +1,4 @@
-/**
- * SubscribeOptionsSection — Session type, duration, athlete, location, end date, notes.
- */
-import { memo } from 'react';
+import { useState } from 'react';
 import { StyleSheet, View, TextInput, Platform } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
@@ -56,6 +53,7 @@ function SubscribeOptionsSectionInner({
   onEndDateChange,
 }: Props) {
   const { colors: palette, isDark } = useTheme();
+  const [today] = useState(() => new Date());
 
   return (
     <>
@@ -234,9 +232,9 @@ function SubscribeOptionsSectionInner({
             </Clickable>
             {showEndDatePicker && (
               <DateTimePicker
-                value={endDate || new Date()}
+                value={endDate || today}
                 mode="date"
-                minimumDate={new Date()}
+                minimumDate={today}
                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                 textColor={palette.text}
                 themeVariant={isDark ? 'dark' : 'light'}
@@ -275,7 +273,7 @@ function SubscribeOptionsSectionInner({
   );
 }
 
-export const SubscribeOptionsSection = memo(SubscribeOptionsSectionInner);
+export const SubscribeOptionsSection = SubscribeOptionsSectionInner;
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.sm },

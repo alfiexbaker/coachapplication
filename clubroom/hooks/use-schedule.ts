@@ -9,7 +9,7 @@
  * - Segment switching (sessions | availability)
  */
 
-import { useCallback, useState, useMemo, useEffect } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 import { Platform } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -100,13 +100,15 @@ export function useSchedule() {
   // Sync segment from URL params
   useEffect(() => {
     if (params.segment === 'availability') {
-      setSegment('availability');
+      startTransition(() => {
+        setSegment('availability');
+      });
     }
   }, [params.segment]);
 
   // Load all schedule data through useScreen so schedule follows the standard
   // loading/error/empty/success + refresh contract.
-  const refreshFromServer = useCallback(async () => {
+  const refreshFromServer = async () => {
     try {
       const [templatesData, rulesResult, sessionTemplatesData, overridesData, venuesData] =
         await Promise.all([
@@ -174,7 +176,7 @@ export function useSchedule() {
         serviceError('UNKNOWN', 'Failed to load schedule. Pull down to retry.', loadError),
       );
     }
-  }, [coachId]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<ScheduleLoadData>({
     load: refreshFromServer,
@@ -192,37 +194,48 @@ export function useSchedule() {
 
   useEffect(() => {
     if (!data) return;
-    setTemplates(data.templates);
-    setOfferings(data.offerings);
-    setBookings(data.bookings);
-    setRules(data.rules);
-    setBlockedDates(data.blockedDates);
-    setOverrides(data.overrides);
-    setSessionTemplates(data.sessionTemplates);
-    setVenues(data.venues);
+    startTransition(() => {
+      setTemplates(data.templates);
+    });
+    startTransition(() => {
+      setOfferings(data.offerings);
+    });
+    startTransition(() => {
+      setBookings(data.bookings);
+    });
+    startTransition(() => {
+      setRules(data.rules);
+    });
+    startTransition(() => {
+      setBlockedDates(data.blockedDates);
+    });
+    startTransition(() => {
+      setOverrides(data.overrides);
+    });
+    startTransition(() => {
+      setSessionTemplates(data.sessionTemplates);
+    });
+    startTransition(() => {
+      setVenues(data.venues);
+    });
   }, [data]);
 
-  const loadData = useCallback(
-    async (showSpinner = true) => {
-      if (showSpinner) {
-        retry();
-        return;
-      }
-      onRefresh();
-    },
-    [onRefresh, retry],
-  );
+  const loadData = async (showSpinner = true) => {
+    if (showSpinner) {
+      retry();
+      return;
+    }
+    onRefresh();
+  };
 
-  useFocusEffect(
-    useCallback(() => {
-      if (weekOffset === 0) {
-        setSelectedDayIndex(new Date().getDay());
-      }
-    }, [weekOffset]),
-  );
+  useFocusEffect(() => {
+    if (weekOffset === 0) {
+      setSelectedDayIndex(new Date().getDay());
+    }
+  });
 
   // Build week data
-  const baseWeekData = useMemo((): DayData[] => {
+  const baseWeekData = ((): DayData[] => {
     const today = new Date();
     const todayStr = toDateStr(today);
     const currentDay = today.getDay();
@@ -318,28 +331,24 @@ export function useSchedule() {
         hasOverride,
       };
     });
-  }, [templates, bookings, offerings, blockedDates, overrides, weekOffset]);
+  })();
 
-  const businessCounts = useMemo<Record<CoachBusinessFilter, number>>(() => {
+  const businessCounts = (() => {
     const sessions = baseWeekData.flatMap((day) => day.sessions);
     return {
       all: sessions.length,
       org: sessions.filter((session) => session.businessContext === 'org').length,
       independent: sessions.filter((session) => session.businessContext === 'independent').length,
     };
-  }, [baseWeekData]);
+  })();
 
-  const weekData = useMemo(
-    () =>
-      baseWeekData.map((day) => ({
-        ...day,
-        sessions:
-          businessFilter === 'all'
-            ? day.sessions
-            : day.sessions.filter((session) => session.businessContext === businessFilter),
-      })),
-    [baseWeekData, businessFilter],
-  );
+  const weekData = baseWeekData.map((day) => ({
+    ...day,
+    sessions:
+      businessFilter === 'all'
+        ? day.sessions
+        : day.sessions.filter((session) => session.businessContext === businessFilter),
+  }));
 
   const overallWeekSessionCount = businessCounts.all;
 
@@ -357,327 +366,296 @@ export function useSchedule() {
   const selectedDay = selectedDayIndex !== null ? weekData[selectedDayIndex] : null;
 
   // Handlers
-  const haptic = useCallback(() => {
+  const haptic = () => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, []);
+  };
 
-  const handleDayPress = useCallback(
-    (index: number) => {
-      haptic();
-      setSelectedDayIndex(index);
-    },
-    [haptic],
-  );
+  const handleDayPress = (index: number) => {
+    haptic();
+    setSelectedDayIndex(index);
+  };
 
-  const handleSessionPress = useCallback(
-    (session: SessionData) => {
-      haptic();
-      router.push(Routes.booking(session.id, { returnTo: Routes.SCHEDULE as string }));
-    },
-    [haptic],
-  );
+  const handleSessionPress = (session: SessionData) => {
+    haptic();
+    router.push(Routes.booking(session.id, { returnTo: Routes.SCHEDULE as string }));
+  };
 
-  const handleAdjustDay = useCallback(
-    (dateStr: string) => {
-      const dayOfWeek = new Date(dateStr + 'T00:00:00').getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6;
-      const allForDay = templates.filter((t) => t.dayOfWeek === dayOfWeek);
-      const dayTemplate = allForDay[0] ?? null;
-      const dayOverride = overrides.find((o) => o.date === dateStr) ?? null;
-      setDayEditorConfig({
-        dayOfWeek,
-        dateStr,
-        template: dayTemplate,
-        override: dayOverride,
-        existingTemplatesForDay: allForDay,
-        defaultScope: 'just-this-date',
-      });
-      setDayEditorOpen(true);
-    },
-    [templates, overrides],
-  );
+  const handleAdjustDay = (dateStr: string) => {
+    const dayOfWeek = new Date(dateStr + 'T00:00:00').getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6;
+    const allForDay = templates.filter((t) => t.dayOfWeek === dayOfWeek);
+    const dayTemplate = allForDay[0] ?? null;
+    const dayOverride = overrides.find((o) => o.date === dateStr) ?? null;
+    setDayEditorConfig({
+      dayOfWeek,
+      dateStr,
+      template: dayTemplate,
+      override: dayOverride,
+      existingTemplatesForDay: allForDay,
+      defaultScope: 'just-this-date',
+    });
+    setDayEditorOpen(true);
+  };
 
-  const handleInviteFromSchedule = useCallback((dateStr: string) => {
-    router.push(Routes.sessionsCreateIntent({ intent: 'existing', source: 'schedule', date: dateStr }));
-  }, []);
+  const handleInviteFromSchedule = (dateStr: string) => {
+    router.push(
+      Routes.sessionsCreateIntent({ intent: 'existing', source: 'schedule', date: dateStr }),
+    );
+  };
 
-  const handleOpenSettings = useCallback(() => {
+  const handleOpenSettings = () => {
     haptic();
     setShowRulesModal(true);
-  }, [haptic]);
+  };
 
-  const handleTimeOffPress = useCallback(
-    (dateStr: string, existingOverride?: AvailabilityOverride) => {
-      haptic();
-      setTimeOffConfig({ preselectedDate: dateStr, existingOverride: existingOverride ?? null });
-      setTimeOffOpen(true);
-    },
-    [haptic],
-  );
+  const handleTimeOffPress = (dateStr: string, existingOverride?: AvailabilityOverride) => {
+    haptic();
+    setTimeOffConfig({ preselectedDate: dateStr, existingOverride: existingOverride ?? null });
+    setTimeOffOpen(true);
+  };
 
-  const handleSegmentChange = useCallback(
-    (s: Segment) => {
-      haptic();
-      setSegment(s);
-    },
-    [haptic],
-  );
+  const handleSegmentChange = (s: Segment) => {
+    haptic();
+    setSegment(s);
+  };
 
-  const handleBusinessFilterChange = useCallback(
-    (filter: CoachBusinessFilter) => {
-      haptic();
-      setBusinessFilter(filter);
-    },
-    [haptic],
-  );
+  const handleBusinessFilterChange = (filter: CoachBusinessFilter) => {
+    haptic();
+    setBusinessFilter(filter);
+  };
 
   // Day editor callbacks
-  const handleDayEditorClose = useCallback(() => {
+  const handleDayEditorClose = () => {
     setDayEditorOpen(false);
     setDayEditorConfig(null);
-  }, []);
+  };
 
-  const handleSaveRecurring = useCallback(
-    async (data: { dayOfWeek: number; startTime: string; endTime: string; location?: string }) => {
-      const existing = dayEditorConfig?.template;
-      const saved = await availabilityService.saveTemplate({
-        ...(existing ? { id: existing.id } : {}),
-        coachId,
-        dayOfWeek: data.dayOfWeek as 0 | 1 | 2 | 3 | 4 | 5 | 6,
-        startTime: data.startTime,
-        endTime: data.endTime,
-        isRecurring: true,
-        maxConcurrent: existing?.maxConcurrent ?? 1,
-        bufferMinutes: existing?.bufferMinutes ?? 15,
-        location: data.location,
-      });
-      setTemplates((prev) => {
-        if (existing) return prev.map((t) => (t.id === existing.id ? saved : t));
-        return [...prev, saved];
-      });
-      setDayEditorOpen(false);
-      setDayEditorConfig(null);
-      loadData();
-    },
-    [coachId, dayEditorConfig, loadData],
-  );
+  const handleSaveRecurring = async (data: {
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+    location?: string;
+  }) => {
+    const existing = dayEditorConfig?.template;
+    const saved = await availabilityService.saveTemplate({
+      ...(existing ? { id: existing.id } : {}),
+      coachId,
+      dayOfWeek: data.dayOfWeek as 0 | 1 | 2 | 3 | 4 | 5 | 6,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      isRecurring: true,
+      maxConcurrent: existing?.maxConcurrent ?? 1,
+      bufferMinutes: existing?.bufferMinutes ?? 15,
+      location: data.location,
+    });
+    setTemplates((prev) => {
+      if (existing) return prev.map((t) => (t.id === existing.id ? saved : t));
+      return [...prev, saved];
+    });
+    setDayEditorOpen(false);
+    setDayEditorConfig(null);
+    loadData();
+  };
 
-  const handleSaveOverride = useCallback(
-    async (data: { date: string; startTime: string; endTime: string; location?: string }) => {
-      const saved = await availabilityService.saveOverride({
-        coachId,
-        date: data.date,
-        isBlocked: false,
-        customSlots: [
-          {
-            date: data.date,
-            startTime: data.startTime,
-            endTime: data.endTime,
-            location: data.location,
-          },
-        ],
-      });
-      setOverrides((prev) => {
-        const filtered = prev.filter((o) => !(o.coachId === coachId && o.date === data.date));
-        return [...filtered, saved];
-      });
-      setDayEditorOpen(false);
-      setDayEditorConfig(null);
-      loadData();
-    },
-    [coachId, loadData],
-  );
+  const handleSaveOverride = async (data: {
+    date: string;
+    startTime: string;
+    endTime: string;
+    location?: string;
+  }) => {
+    const saved = await availabilityService.saveOverride({
+      coachId,
+      date: data.date,
+      isBlocked: false,
+      customSlots: [
+        {
+          date: data.date,
+          startTime: data.startTime,
+          endTime: data.endTime,
+          location: data.location,
+        },
+      ],
+    });
+    setOverrides((prev) => {
+      const filtered = prev.filter((o) => !(o.coachId === coachId && o.date === data.date));
+      return [...filtered, saved];
+    });
+    setDayEditorOpen(false);
+    setDayEditorConfig(null);
+    loadData();
+  };
 
-  const handleSaveRepeatedOverride = useCallback(
-    async (data: {
-      date: string;
-      startTime: string;
-      endTime: string;
-      location?: string;
-      repeatWeeks: number;
-    }) => {
-      const startDate = new Date(data.date + 'T12:00:00');
-      const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + (data.repeatWeeks - 1) * 7);
-      const repeatUntil = toDateStr(endDate);
-      await availabilityService.saveRepeatedOverride({
-        coachId,
-        date: data.date,
-        isBlocked: false,
-        customSlots: [
-          {
-            date: data.date,
-            startTime: data.startTime,
-            endTime: data.endTime,
-            location: data.location,
-          },
-        ],
-        repeatUntil,
-      });
-      setDayEditorOpen(false);
-      setDayEditorConfig(null);
-      loadData();
-    },
-    [coachId, loadData],
-  );
+  const handleSaveRepeatedOverride = async (data: {
+    date: string;
+    startTime: string;
+    endTime: string;
+    location?: string;
+    repeatWeeks: number;
+  }) => {
+    const startDate = new Date(data.date + 'T12:00:00');
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + (data.repeatWeeks - 1) * 7);
+    const repeatUntil = toDateStr(endDate);
+    await availabilityService.saveRepeatedOverride({
+      coachId,
+      date: data.date,
+      isBlocked: false,
+      customSlots: [
+        {
+          date: data.date,
+          startTime: data.startTime,
+          endTime: data.endTime,
+          location: data.location,
+        },
+      ],
+      repeatUntil,
+    });
+    setDayEditorOpen(false);
+    setDayEditorConfig(null);
+    loadData();
+  };
 
-  const handleDeleteTemplate = useCallback(
-    async (id: string) => {
-      await availabilityService.deleteTemplate(id);
-      setTemplates((prev) => prev.filter((t) => t.id !== id));
-      setDayEditorOpen(false);
-      setDayEditorConfig(null);
-      loadData();
-    },
-    [loadData],
-  );
+  const handleDeleteTemplate = async (id: string) => {
+    await availabilityService.deleteTemplate(id);
+    setTemplates((prev) => prev.filter((t) => t.id !== id));
+    setDayEditorOpen(false);
+    setDayEditorConfig(null);
+    loadData();
+  };
 
-  const handleAddVenue = useCallback(
-    async (label: string) => {
-      await coachVenueService.saveVenue({ coachId, label });
-      const updated = await coachVenueService.getVenues(coachId);
-      setVenues(updated);
-    },
-    [coachId],
-  );
+  const handleAddVenue = async (label: string) => {
+    await coachVenueService.saveVenue({ coachId, label });
+    const updated = await coachVenueService.getVenues(coachId);
+    setVenues(updated);
+  };
 
   // Time off callbacks
-  const handleTimeOffClose = useCallback(() => {
+  const handleTimeOffClose = () => {
     setTimeOffOpen(false);
     setTimeOffConfig(null);
-  }, []);
+  };
 
-  const handleTimeOffSaved = useCallback(async () => {
+  const handleTimeOffSaved = async () => {
     const freshOverrides = await availabilityService.getOverrides(coachId);
     setOverrides(freshOverrides);
     loadData(false);
-  }, [coachId, loadData]);
+  };
 
   // Week navigation
-  const handlePrevWeek = useCallback(() => {
+  const handlePrevWeek = () => {
     haptic();
     setWeekOffset((prev) => prev - 1);
     setSelectedDayIndex(0);
-  }, [haptic]);
+  };
 
-  const handleNextWeek = useCallback(() => {
+  const handleNextWeek = () => {
     haptic();
     setWeekOffset((prev) => prev + 1);
     setSelectedDayIndex(0);
-  }, [haptic]);
+  };
 
-  const handleGoToThisWeek = useCallback(() => {
+  const handleGoToThisWeek = () => {
     haptic();
     setWeekOffset(0);
     setSelectedDayIndex(new Date().getDay());
-  }, [haptic]);
+  };
 
-  const weekLabel = useMemo(() => {
+  const weekLabel = (() => {
     if (weekOffset === 0) return 'This Week';
     if (weekOffset === -1) return 'Last Week';
     if (weekOffset === 1) return 'Next Week';
     const start = weekData[0];
     const end = weekData[weekData.length - 1];
     if (!start || !end) return '';
-    const fmt = (d: Date) =>
-      d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     return `${fmt(start.date)} – ${fmt(end.date)}`;
-  }, [weekOffset, weekData]);
+  })();
 
   // Session type callbacks
-  const handleSessionTypePress = useCallback((t: SessionTemplate) => {
+  const handleSessionTypePress = (t: SessionTemplate) => {
     setEditingSessionType(t);
     setShowSessionTypeModal(true);
-  }, []);
+  };
 
-  const handleSessionTypeAdd = useCallback(() => {
+  const handleSessionTypeAdd = () => {
     setEditingSessionType(null);
     setShowSessionTypeModal(true);
-  }, []);
+  };
 
-  const handleSessionTypeClose = useCallback(() => {
+  const handleSessionTypeClose = () => {
     setShowSessionTypeModal(false);
     setEditingSessionType(null);
-  }, []);
+  };
 
-  const handleSessionTypeSave = useCallback(
-    async (data: Omit<SessionTemplate, 'id' | 'coachId' | 'createdAt' | 'skillsFocus'>) => {
-      if (editingSessionType) {
-        await sessionTemplateService.saveTemplate({
-          ...data,
-          id: editingSessionType.id,
-          coachId,
-          createdAt: editingSessionType.createdAt,
-          skillsFocus: editingSessionType.skillsFocus,
-        });
-      } else {
-        await sessionTemplateService.saveTemplate({
-          ...data,
-          coachId,
-          skillsFocus: [],
-        });
-      }
-      const updated = await sessionTemplateService.getTemplates(coachId);
-      setSessionTemplates(updated);
-      setShowSessionTypeModal(false);
-      setEditingSessionType(null);
-    },
-    [coachId, editingSessionType],
-  );
+  const handleSessionTypeSave = async (
+    data: Omit<SessionTemplate, 'id' | 'coachId' | 'createdAt' | 'skillsFocus'>,
+  ) => {
+    if (editingSessionType) {
+      await sessionTemplateService.saveTemplate({
+        ...data,
+        id: editingSessionType.id,
+        coachId,
+        createdAt: editingSessionType.createdAt,
+        skillsFocus: editingSessionType.skillsFocus,
+      });
+    } else {
+      await sessionTemplateService.saveTemplate({
+        ...data,
+        coachId,
+        skillsFocus: [],
+      });
+    }
+    const updated = await sessionTemplateService.getTemplates(coachId);
+    setSessionTemplates(updated);
+    setShowSessionTypeModal(false);
+    setEditingSessionType(null);
+  };
 
-  const handleSessionTypeDelete = useCallback(async () => {
+  const handleSessionTypeDelete = async () => {
     if (!editingSessionType) return;
     await sessionTemplateService.deleteTemplate(editingSessionType.id);
     const updated = await sessionTemplateService.getTemplates(coachId);
     setSessionTemplates(updated);
     setShowSessionTypeModal(false);
     setEditingSessionType(null);
-  }, [coachId, editingSessionType]);
+  };
 
   // Rules modal
-  const handleRulesOpen = useCallback(() => {
+  const handleRulesOpen = () => {
     haptic();
     setShowRulesModal(true);
-  }, [haptic]);
+  };
 
-  const handleRulesClose = useCallback(() => {
+  const handleRulesClose = () => {
     setShowRulesModal(false);
-  }, []);
+  };
 
   // Availability day press for WeekPatternGrid
-  const handleAvailabilityDayPress = useCallback(
-    (dow: number, templateId?: string, dateStr?: string) => {
-      const tmpl = templateId ? (templates.find((t) => t.id === templateId) ?? null) : null;
-      const allForDay = templates.filter((t) => t.dayOfWeek === dow);
-      const dayOverride = dateStr ? (overrides.find((o) => o.date === dateStr) ?? null) : null;
-      const isNewBlock = !templateId;
-      setDayEditorConfig({
-        dayOfWeek: dow as 0 | 1 | 2 | 3 | 4 | 5 | 6,
-        dateStr,
-        template: tmpl,
-        override: dayOverride,
-        existingTemplatesForDay: allForDay,
-        defaultScope: isNewBlock ? 'recurring' : dateStr ? 'just-this-date' : 'recurring',
-      });
-      setDayEditorOpen(true);
-    },
-    [templates, overrides],
-  );
+  const handleAvailabilityDayPress = (dow: number, templateId?: string, dateStr?: string) => {
+    const tmpl = templateId ? (templates.find((t) => t.id === templateId) ?? null) : null;
+    const allForDay = templates.filter((t) => t.dayOfWeek === dow);
+    const dayOverride = dateStr ? (overrides.find((o) => o.date === dateStr) ?? null) : null;
+    const isNewBlock = !templateId;
+    setDayEditorConfig({
+      dayOfWeek: dow as 0 | 1 | 2 | 3 | 4 | 5 | 6,
+      dateStr,
+      template: tmpl,
+      override: dayOverride,
+      existingTemplatesForDay: allForDay,
+      defaultScope: isNewBlock ? 'recurring' : dateStr ? 'just-this-date' : 'recurring',
+    });
+    setDayEditorOpen(true);
+  };
 
-  const handleAvailabilitySetupComplete = useCallback(
-    async (newTemplates: AvailabilityTemplate[]) => {
-      for (const t of newTemplates) {
-        await availabilityService.saveTemplate(t);
-      }
-      loadData();
-    },
-    [loadData],
-  );
+  const handleAvailabilitySetupComplete = async (newTemplates: AvailabilityTemplate[]) => {
+    await Promise.all(newTemplates.map((template) => availabilityService.saveTemplate(template)));
+    loadData();
+  };
 
-  const handleTakeTimeOff = useCallback(() => {
+  const handleTakeTimeOff = () => {
     haptic();
     setTimeOffConfig({ preselectedDate: undefined, existingOverride: null });
     setTimeOffOpen(true);
-  }, [haptic]);
+  };
 
   return {
     // State

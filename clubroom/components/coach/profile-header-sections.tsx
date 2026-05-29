@@ -9,7 +9,7 @@
  * EditProfileButton — edit profile CTA for coaches.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { ActivityIndicator, View, type ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -39,7 +39,7 @@ interface CoverSectionProps {
   palette: ThemeColors;
 }
 
-export const CoverSection = memo(function CoverSection({
+export const CoverSection = function CoverSection({
   coverPhotoUrl,
   palette,
 }: CoverSectionProps) {
@@ -52,7 +52,7 @@ export const CoverSection = memo(function CoverSection({
       )}
     </View>
   );
-});
+};
 
 interface AvatarSectionProps {
   profilePhotoUrl?: string;
@@ -61,7 +61,7 @@ interface AvatarSectionProps {
   onEditAvatar?: () => void;
 }
 
-export const AvatarSection = memo(function AvatarSection({
+export const AvatarSection = function AvatarSection({
   profilePhotoUrl,
   userRole,
   palette,
@@ -88,7 +88,7 @@ export const AvatarSection = memo(function AvatarSection({
       )}
     </View>
   );
-});
+};
 
 interface ProfileStatsRowProps {
   totalSessions: number;
@@ -96,7 +96,7 @@ interface ProfileStatsRowProps {
   rating: CoachRating;
 }
 
-export const ProfileStatsRow = memo(function ProfileStatsRow({
+export const ProfileStatsRow = function ProfileStatsRow({
   totalSessions,
   followerCount,
   rating,
@@ -121,7 +121,7 @@ export const ProfileStatsRow = memo(function ProfileStatsRow({
       </View>
     </Row>
   );
-});
+};
 
 interface FollowButtonProps {
   isFollowing: boolean;
@@ -130,7 +130,7 @@ interface FollowButtonProps {
   palette: ThemeColors;
 }
 
-export const FollowButton = memo(function FollowButton({
+export const FollowButton = function FollowButton({
   isFollowing,
   followLoading,
   onFollowToggle,
@@ -170,14 +170,14 @@ export const FollowButton = memo(function FollowButton({
       )}
     </Clickable>
   );
-});
+};
 
 interface BadgesRowProps {
   badges: CoachBadge[];
   palette: ThemeColors;
 }
 
-export const BadgesRow = memo(function BadgesRow({ badges, palette }: BadgesRowProps) {
+export const BadgesRow = function BadgesRow({ badges, palette }: BadgesRowProps) {
   if (badges.length === 0) return null;
 
   return (
@@ -216,13 +216,13 @@ export const BadgesRow = memo(function BadgesRow({ badges, palette }: BadgesRowP
       ))}
     </Row>
   );
-});
+};
 
 interface EditProfileButtonProps {
   palette: ThemeColors;
 }
 
-export const EditProfileButton = memo(function EditProfileButton({
+export const EditProfileButton = function EditProfileButton({
   palette,
 }: EditProfileButtonProps) {
   return (
@@ -235,6 +235,4 @@ export const EditProfileButton = memo(function EditProfileButton({
       </ThemedText>
     </Clickable>
   );
-});
-
-export { styles } from './profile-header-section-styles';
+};

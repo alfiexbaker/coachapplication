@@ -1,9 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState, startTransition } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Row, Column } from '@/components/primitives';
@@ -31,14 +37,19 @@ import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { getRosterAthleteName, getRosterParentName } from '@/utils/roster-display';
 import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
-import type { Academy, AcademyMembership, GroupSession, SessionOffering, TimeSlot } from '@/constants/types';
+import type {
+  Academy,
+  AcademyMembership,
+  GroupSession,
+  SessionOffering,
+  TimeSlot,
+} from '@/constants/types';
 import { uiFeedback } from '@/services/ui-feedback';
 import type { OrganizationCommercialMode } from '@/constants/types';
-
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 type FlowMode = 'choose' | 'new' | 'existing';
 type ExistingSessionSource = 'offering' | 'group';
 type ExistingSessionScope = 'assigned' | 'club';
-
 type ExistingSessionOption = {
   id: string;
   source: ExistingSessionSource;
@@ -52,22 +63,20 @@ type ExistingSessionOption = {
   maxParticipants?: number;
   slot: TimeSlot;
 };
-
 type InviteAthlete = {
   id: string;
   name: string;
   parentId: string;
   parentName: string;
 };
-
 type InviteAssigneeOption = {
   id: string;
   label: string;
   role: AcademyMembership['role'];
 };
-
-type AcademyOption = Academy & { membership: AcademyMembership };
-
+type AcademyOption = Academy & {
+  membership: AcademyMembership;
+};
 const STAFF_ROLE_ORDER: Record<AcademyMembership['role'], number> = {
   OWNER: 0,
   ADMIN: 1,
@@ -76,7 +85,6 @@ const STAFF_ROLE_ORDER: Record<AcademyMembership['role'], number> = {
   ASSISTANT: 4,
   MEMBER: 5,
 };
-
 interface ExistingInviteFlowProps {
   forcedIntent: boolean;
   initialAthleteIds: string[];
@@ -86,19 +94,15 @@ interface ExistingInviteFlowProps {
   initialClubId?: string;
   initialAssigneeCoachId?: string;
 }
-
 function canCreateAsClub(membership: AcademyMembership): boolean {
   return membership.permissions.includes('CREATE_SESSIONS');
 }
-
 function canPostAsClub(membership: AcademyMembership): boolean {
   return membership.permissions.includes('POST_AS_ACADEMY');
 }
-
 function toIsoStart(date: string, time: string): string {
   return `${date}T${time}:00`;
 }
-
 function addMinutesToTime(time: string, minutes: number): string {
   const [h, m] = time.split(':').map(Number);
   const total = h * 60 + m + minutes;
@@ -106,18 +110,14 @@ function addMinutesToTime(time: string, minutes: number): string {
   const outM = total % 60;
   return `${String(outH).padStart(2, '0')}:${String(outM).padStart(2, '0')}`;
 }
-
 function mapOfferingToExisting(offering: SessionOffering): ExistingSessionOption {
   const start = new Date(offering.scheduledAt);
   const safeStart = Number.isNaN(start.getTime()) ? new Date() : start;
   const date = safeStart.toISOString().slice(0, 10);
-  const startTime = `${String(safeStart.getHours()).padStart(2, '0')}:${String(
-    safeStart.getMinutes(),
-  ).padStart(2, '0')}`;
+  const startTime = `${String(safeStart.getHours()).padStart(2, '0')}:${String(safeStart.getMinutes()).padStart(2, '0')}`;
   const duration = offering.duration ?? 60;
   const endTime = addMinutesToTime(startTime, duration);
   const confirmedCount = getSessionOfferingHeadcount(offering);
-
   return {
     id: offering.id,
     source: 'offering',
@@ -137,19 +137,29 @@ function mapOfferingToExisting(offering: SessionOffering): ExistingSessionOption
     },
   };
 }
-
 function mapGroupSessionToExisting(session: GroupSession): ExistingSessionOption | null {
   const now = new Date();
-  const next = [...(session.schedule ?? [])]
-    .map((item) => ({
+  const next = (session.schedule ?? []).reduce<
+    | (NonNullable<GroupSession['schedule']>[number] & {
+        startsAt: string;
+      })
+    | undefined
+  >((earliest, item) => {
+    const candidate = {
       ...item,
       startsAt: toIsoStart(item.date, item.startTime),
-    }))
-    .filter((item) => new Date(item.startsAt) >= now)
-    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())[0];
-
+    };
+    if (new Date(candidate.startsAt) < now) {
+      return earliest;
+    }
+    if (!earliest) {
+      return candidate;
+    }
+    return new Date(candidate.startsAt).getTime() < new Date(earliest.startsAt).getTime()
+      ? candidate
+      : earliest;
+  }, undefined);
   if (!next) return null;
-
   return {
     id: session.id,
     source: 'group',
@@ -169,7 +179,6 @@ function mapGroupSessionToExisting(session: GroupSession): ExistingSessionOption
     },
   };
 }
-
 function ExistingInviteFlow({
   forcedIntent,
   initialAthleteIds,
@@ -182,13 +191,14 @@ function ExistingInviteFlow({
   const { colors } = useTheme();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
-
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [athletes, setAthletes] = useState<InviteAthlete[]>([]);
   const [selectedAthleteIds, setSelectedAthleteIds] = useState<string[]>(initialAthleteIds);
   const [sessions, setSessions] = useState<ExistingSessionOption[]>([]);
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(initialOfferingId ?? null);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
+    initialOfferingId ?? null,
+  );
   const [notes, setNotes] = useState('');
   const [academies, setAcademies] = useState<AcademyOption[]>([]);
   const [assigneeOptions, setAssigneeOptions] = useState<InviteAssigneeOption[]>([]);
@@ -200,27 +210,12 @@ function ExistingInviteFlow({
     initialAssigneeCoachId ?? currentUser?.id ?? null,
   );
   const [sessionScope, setSessionScope] = useState<ExistingSessionScope>('assigned');
-
-  const selectedSession = useMemo(
-    () => sessions.find((session) => session.id === selectedSessionId) ?? null,
-    [sessions, selectedSessionId],
-  );
-
-  const selectedClub = useMemo(
-    () => academies.find((academy) => academy.id === selectedClubId) ?? null,
-    [academies, selectedClubId],
-  );
-
+  const selectedSession = sessions.find((session) => session.id === selectedSessionId) ?? null;
+  const selectedClub = academies.find((academy) => academy.id === selectedClubId) ?? null;
   const ownerCoachId =
-    postingAs === 'club'
-      ? assigneeCoachId ?? currentUser?.id ?? null
-      : currentUser?.id ?? null;
+    postingAs === 'club' ? (assigneeCoachId ?? currentUser?.id ?? null) : (currentUser?.id ?? null);
   const canPostAsSelectedClub = selectedClub ? canPostAsClub(selectedClub.membership) : false;
-  const selectedAssignee = useMemo(
-    () => assigneeOptions.find((option) => option.id === assigneeCoachId) ?? null,
-    [assigneeCoachId, assigneeOptions],
-  );
-
+  const selectedAssignee = assigneeOptions.find((option) => option.id === assigneeCoachId) ?? null;
   const canSend =
     selectedAthleteIds.length > 0 &&
     selectedSession !== null &&
@@ -228,143 +223,150 @@ function ExistingInviteFlow({
     (postingAs === 'self' ||
       (Boolean(selectedClubId) && Boolean(assigneeCoachId) && canPostAsSelectedClub)) &&
     Boolean(ownerCoachId);
-
   useEffect(() => {
     let active = true;
-
     const load = async () => {
       if (!currentUser?.id) return;
-      const useClubScope = postingAs === 'club' && sessionScope === 'club' && Boolean(selectedClubId);
+      const useClubScope =
+        postingAs === 'club' && sessionScope === 'club' && Boolean(selectedClubId);
       const sessionOwnerCoachId = ownerCoachId ?? currentUser.id;
-
       setLoading(true);
-      try {
-        const [roster, offerings, scopedGroupSessions, academyResult] = await Promise.all([
-          rosterService.getRoster(currentUser.id),
-          apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
-          useClubScope && selectedClubId
-            ? groupSessionService.getClubTrainingSessions(selectedClubId)
-            : groupSessionService.getCoachSessions(sessionOwnerCoachId),
-          academyService.getUserAcademies(currentUser.id),
-        ]);
-
-        if (!active) return;
-
-        const athleteRows: InviteAthlete[] = roster.map((entry) => ({
-          id: entry.athleteId,
-          name: getRosterAthleteName(entry),
-          parentId: entry.parentId,
-          parentName: getRosterParentName(entry),
-        }));
-        setAthletes(athleteRows);
-
-        const now = new Date();
-        const filteredOfferings = offerings
-          .filter((offering) => {
-            if (offering.status === 'cancelled') return false;
-            if (!offering.isRecurring && new Date(offering.scheduledAt) < now) return false;
-            if (getSessionOfferingHeadcount(offering) >= offering.maxParticipants) return false;
-            if (useClubScope && selectedClubId) {
-              return offering.actingAs === 'club' && offering.clubId === selectedClubId;
-            }
-            return offering.coachId === sessionOwnerCoachId;
-          })
-          .map(mapOfferingToExisting);
-
-        const filteredGroupSessions = scopedGroupSessions
-          .filter(
-            (session) =>
-              session.status === 'PUBLISHED' &&
-              (session.currentParticipants ?? 0) < (session.maxParticipants ?? 0),
-          )
-          .map(mapGroupSessionToExisting)
-          .filter((session): session is ExistingSessionOption => session !== null);
-
-        const merged = [...filteredOfferings, ...filteredGroupSessions].sort(
-          (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
-        );
-
-        const dateFiltered = initialDate
-          ? merged.filter((session) => session.slot.date === initialDate)
-          : merged;
-        const finalSessions = dateFiltered.length > 0 ? dateFiltered : merged;
-        setSessions(finalSessions);
-
-        setSelectedSessionId((previous) =>
-          previous && finalSessions.some((session) => session.id === previous)
-            ? previous
-            : finalSessions[0]?.id ?? null,
-        );
-
-        if (academyResult.success) {
-          const eligibleAcademies = academyResult.data.filter((academy) =>
-            canCreateAsClub(academy.membership),
-          );
-          setAcademies(eligibleAcademies);
-          setSelectedClubId((previous) => {
-            if (previous && eligibleAcademies.some((academy) => academy.id === previous)) {
-              return previous;
-            }
+      return await runAsyncTryCatchFinally(
+        async () => {
+          const [roster, offerings, scopedGroupSessions, academyResult] = await Promise.all([
+            rosterService.getRoster(currentUser.id),
+            apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
+            useClubScope && selectedClubId
+              ? groupSessionService.getClubTrainingSessions(selectedClubId)
+              : groupSessionService.getCoachSessions(sessionOwnerCoachId),
+            academyService.getUserAcademies(currentUser.id),
+          ]);
+          if (!active) return;
+          const athleteRows: InviteAthlete[] = roster.map((entry) => ({
+            id: entry.athleteId,
+            name: getRosterAthleteName(entry),
+            parentId: entry.parentId,
+            parentName: getRosterParentName(entry),
+          }));
+          setAthletes(athleteRows);
+          const now = new Date();
+          const filteredOfferings = offerings.flatMap((offering) => {
             if (
-              initialClubId &&
-              eligibleAcademies.some((academy) => academy.id === initialClubId)
-            ) {
-              return initialClubId;
-            }
-            return eligibleAcademies[0]?.id ?? null;
+              !(() => {
+                if (offering.status === 'cancelled') return false;
+                if (!offering.isRecurring && new Date(offering.scheduledAt) < now) return false;
+                if (getSessionOfferingHeadcount(offering) >= offering.maxParticipants) return false;
+                if (useClubScope && selectedClubId) {
+                  return offering.actingAs === 'club' && offering.clubId === selectedClubId;
+                }
+                return offering.coachId === sessionOwnerCoachId;
+              })()
+            )
+              return [];
+            return [mapOfferingToExisting(offering)];
           });
-        } else {
-          setAcademies([]);
-        }
-      } catch {
-        uiFeedback.showToast('Failed to load session invite data. Pull to retry.', 'error');
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
+          const filteredGroupSessions = scopedGroupSessions.flatMap((session) => {
+            if (
+              !(
+                session.status === 'PUBLISHED' &&
+                (session.currentParticipants ?? 0) < (session.maxParticipants ?? 0)
+              )
+            )
+              return [];
+            const mapped = mapGroupSessionToExisting(session);
+            return mapped !== null ? [mapped] : [];
+          });
+          const merged = [...filteredOfferings, ...filteredGroupSessions].sort(
+            (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+          );
+          const dateFiltered = initialDate
+            ? merged.filter((session) => session.slot.date === initialDate)
+            : merged;
+          const finalSessions = dateFiltered.length > 0 ? dateFiltered : merged;
+          setSessions(finalSessions);
+          setSelectedSessionId((previous) =>
+            previous && finalSessions.some((session) => session.id === previous)
+              ? previous
+              : (finalSessions[0]?.id ?? null),
+          );
+          if (academyResult.success) {
+            const eligibleAcademies = academyResult.data.filter((academy) =>
+              canCreateAsClub(academy.membership),
+            );
+            setAcademies(eligibleAcademies);
+            setSelectedClubId((previous) => {
+              if (previous && eligibleAcademies.some((academy) => academy.id === previous)) {
+                return previous;
+              }
+              if (
+                initialClubId &&
+                eligibleAcademies.some((academy) => academy.id === initialClubId)
+              ) {
+                return initialClubId;
+              }
+              return eligibleAcademies[0]?.id ?? null;
+            });
+          } else {
+            setAcademies([]);
+          }
+        },
+        async (error) => {
+          uiFeedback.showToast('Failed to load session invite data. Pull to retry.', 'error');
+        },
+        () => {
+          if (active) {
+            setLoading(false);
+          }
+        },
+      );
     };
-
     void load();
-
     return () => {
       active = false;
     };
-  }, [currentUser?.id, initialClubId, initialDate, ownerCoachId, postingAs, selectedClubId, sessionScope]);
-
+  }, [
+    currentUser?.id,
+    initialClubId,
+    initialDate,
+    ownerCoachId,
+    postingAs,
+    selectedClubId,
+    sessionScope,
+  ]);
   useEffect(() => {
     if (postingAs !== 'club') {
-      setAssigneeCoachId(currentUser?.id ?? null);
+      startTransition(() => {
+        setAssigneeCoachId(currentUser?.id ?? null);
+      });
       return;
     }
     if (!assigneeCoachId) {
-      setAssigneeCoachId(currentUser?.id ?? null);
+      startTransition(() => {
+        setAssigneeCoachId(currentUser?.id ?? null);
+      });
     }
   }, [assigneeCoachId, currentUser?.id, postingAs]);
-
   useEffect(() => {
     if (postingAs !== 'club' && sessionScope !== 'assigned') {
-      setSessionScope('assigned');
+      startTransition(() => {
+        setSessionScope('assigned');
+      });
     }
   }, [postingAs, sessionScope]);
-
   useEffect(() => {
     let active = true;
-
     const loadAssignees = async () => {
       if (!selectedClubId) {
         setAssigneeOptions([]);
         setAssigneeCoachId(currentUser?.id ?? null);
         return;
       }
-
       const staffResult = await academyService.getStaff(selectedClubId);
       if (!active) return;
       if (!staffResult.success) {
         setAssigneeOptions([]);
         return;
       }
-
       const staff = staffResult.data.filter((member) => member.status === 'ACTIVE');
       const ids = staff.map((member) => member.userId);
       const usersResult = await userService.getUsersByIds(ids);
@@ -375,7 +377,6 @@ function ExistingInviteFlow({
           nameById.set(user.id, label);
         });
       }
-
       const options = staff
         .map((member) => ({
           id: member.userId,
@@ -383,7 +384,6 @@ function ExistingInviteFlow({
           label: nameById.get(member.userId) ?? member.userId,
         }))
         .sort((a, b) => STAFF_ROLE_ORDER[a.role] - STAFF_ROLE_ORDER[b.role]);
-
       setAssigneeOptions(options);
       setAssigneeCoachId((previous) => {
         if (previous && options.some((option) => option.id === previous)) {
@@ -401,30 +401,26 @@ function ExistingInviteFlow({
         return options[0]?.id ?? null;
       });
     };
-
     void loadAssignees();
     return () => {
       active = false;
     };
   }, [currentUser?.id, initialAssigneeCoachId, selectedClubId]);
-
-  const toggleAthlete = useCallback((athleteId: string) => {
+  const toggleAthlete = (athleteId: string) => {
     setSelectedAthleteIds((previous) =>
       previous.includes(athleteId)
         ? previous.filter((id) => id !== athleteId)
         : [...previous, athleteId],
     );
-  }, []);
-
-  const handleBack = useCallback(() => {
+  };
+  const handleBack = () => {
     if (forcedIntent) {
       router.back();
       return;
     }
     router.replace(Routes.SESSIONS_CREATE);
-  }, [forcedIntent]);
-
-  const handleSubmit = useCallback(async () => {
+  };
+  const handleSubmit = async () => {
     if (!currentUser || !selectedSession) return;
     if (postingAs === 'club' && !selectedClub) {
       uiFeedback.showToast('Choose which club you are posting on behalf of.');
@@ -442,135 +438,135 @@ function ExistingInviteFlow({
       uiFeedback.showToast('Choose a coach owner before sending invites.');
       return;
     }
-
     setSubmitting(true);
-    try {
-      const selectedAthletes = athletes.filter((athlete) => selectedAthleteIds.includes(athlete.id));
-      const groupedByParent = selectedAthletes.reduce<Record<string, InviteAthlete[]>>((acc, athlete) => {
-        if (!acc[athlete.parentId]) {
-          acc[athlete.parentId] = [];
-        }
-        acc[athlete.parentId].push(athlete);
-        return acc;
-      }, {});
-
-      let sentCount = 0;
-      let failedCount = 0;
-      let ownerCoachName = currentUser.name || currentUser.fullName || 'Coach';
-      if (ownerCoachId !== currentUser.id) {
-        const ownerResult = await userService.getUserById(ownerCoachId);
-        if (ownerResult.success) {
-          ownerCoachName = ownerResult.data.name?.trim() || ownerCoachName;
-        }
-      }
-
-      for (const athletesForParent of Object.values(groupedByParent)) {
-        const parentId = athletesForParent[0]?.parentId;
-        if (!parentId) {
-          failedCount += athletesForParent.length;
-          continue;
-        }
-
-        const result = await inviteService.createInvite(
-          athletesForParent.map((athlete) => athlete.id),
-          {
-            coachId: ownerCoachId,
-            coachName: ownerCoachName,
-            parentId,
-            parentName: athletesForParent[0]?.parentName || 'Parent',
-            athleteNames: athletesForParent.map((athlete) => athlete.name),
-            clubName: postingAs === 'club' ? selectedClub?.name : undefined,
-            inviteType: selectedSession.inviteType ?? 'CLOSED',
-            proposedSlots: [selectedSession.slot],
-            sessionType: selectedSession.title,
-            focus: selectedSession.focus ?? 'General',
-            notes: [
-              notes.trim() || `You're invited to join "${selectedSession.title}"`,
-              postingAs === 'club' && selectedClub
-                ? `Created by ${currentUser.name || currentUser.fullName || 'Club staff'} on behalf of ${selectedClub.name}. Session owner: ${ownerCoachName}.`
-                : null,
-            ]
-              .filter(Boolean)
-              .join('\n\n'),
-            price: selectedSession.price,
-            expiresInDays: 7,
-            existingSessionId: selectedSession.id,
-          },
+    await runAsyncTryCatchFinally(
+      async () => {
+        const selectedAthletes = athletes.filter((athlete) =>
+          selectedAthleteIds.includes(athlete.id),
         );
-
-        if (result.success) {
-          sentCount += athletesForParent.length;
-        } else {
-          failedCount += athletesForParent.length;
+        const groupedByParent = selectedAthletes.reduce<Record<string, InviteAthlete[]>>(
+          (acc, athlete) => {
+            if (!acc[athlete.parentId]) {
+              acc[athlete.parentId] = [];
+            }
+            acc[athlete.parentId].push(athlete);
+            return acc;
+          },
+          {},
+        );
+        let sentCount = 0;
+        let failedCount = 0;
+        let ownerCoachName = currentUser.name || currentUser.fullName || 'Coach';
+        if (ownerCoachId !== currentUser.id) {
+          const ownerResult = await userService.getUserById(ownerCoachId);
+          if (ownerResult.success) {
+            ownerCoachName = ownerResult.data.name?.trim() || ownerCoachName;
+          }
         }
-      }
-
-      if (selectedSession.source === 'offering' && sentCount > 0) {
-        const allOfferings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
-        const updated = allOfferings.map((offering) => {
-          if (offering.id !== selectedSession.id) return offering;
-          const ids = new Set(offering.invitedAthleteIds ?? []);
-          const names = new Set(offering.invitedAthleteNames ?? []);
-          athletes
-            .filter((athlete) => selectedAthleteIds.includes(athlete.id))
-            .forEach((athlete) => {
+        const inviteResults = await Promise.all(
+          Object.values(groupedByParent).map(async (athletesForParent) => {
+            const parentId = athletesForParent[0]?.parentId;
+            if (!parentId) {
+              return { sent: 0, failed: athletesForParent.length };
+            }
+            const result = await inviteService.createInvite(
+              athletesForParent.map((athlete) => athlete.id),
+              {
+                coachId: ownerCoachId,
+                coachName: ownerCoachName,
+                parentId,
+                parentName: athletesForParent[0]?.parentName || 'Parent',
+                athleteNames: athletesForParent.map((athlete) => athlete.name),
+                clubName: postingAs === 'club' ? selectedClub?.name : undefined,
+                inviteType: selectedSession.inviteType ?? 'CLOSED',
+                proposedSlots: [selectedSession.slot],
+                sessionType: selectedSession.title,
+                focus: selectedSession.focus ?? 'General',
+                notes: [
+                  notes.trim() || `You're invited to join "${selectedSession.title}"`,
+                  postingAs === 'club' && selectedClub
+                    ? `Created by ${currentUser.name || currentUser.fullName || 'Club staff'} on behalf of ${selectedClub.name}. Session owner: ${ownerCoachName}.`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join('\n\n'),
+                price: selectedSession.price,
+                expiresInDays: 7,
+                existingSessionId: selectedSession.id,
+              },
+            );
+            return result.success
+              ? { sent: athletesForParent.length, failed: 0 }
+              : { sent: 0, failed: athletesForParent.length };
+          }),
+        );
+        for (const result of inviteResults) {
+          sentCount += result.sent;
+          failedCount += result.failed;
+        }
+        if (selectedSession.source === 'offering' && sentCount > 0) {
+          const allOfferings = await apiClient.get<SessionOffering[]>(
+            STORAGE_KEYS.SESSION_OFFERINGS,
+            [],
+          );
+          const updated = allOfferings.map((offering) => {
+            if (offering.id !== selectedSession.id) return offering;
+            const ids = new Set(offering.invitedAthleteIds ?? []);
+            const names = new Set(offering.invitedAthleteNames ?? []);
+            athletes.forEach((athlete) => {
+              if (!selectedAthleteIds.includes(athlete.id)) return;
               ids.add(athlete.id);
               names.add(athlete.name);
             });
-          return {
-            ...offering,
-            invitedAthleteIds: Array.from(ids),
-            invitedAthleteNames: Array.from(names),
-          };
-        });
-        await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updated);
-      }
-
-      showToast(
-        failedCount > 0
-          ? `${sentCount} invite(s) sent, ${failedCount} failed.`
-          : `${sentCount} invite(s) sent successfully.`,
-        failedCount > 0 ? 'warning' : 'success',
-      );
-      if (selectedSession.source === 'group') {
-        router.replace(Routes.groupSession(selectedSession.id));
-      } else {
-        router.replace(Routes.BOOKINGS);
-      }
-    } catch {
-      uiFeedback.showToast('Failed to send invites. Please try again.', 'error');
-    } finally {
-      setSubmitting(false);
-    }
-  }, [
-    athletes,
-    canPostAsSelectedClub,
-    currentUser,
-    notes,
-    assigneeCoachId,
-    ownerCoachId,
-    postingAs,
-    selectedAthleteIds,
-    selectedClub,
-    selectedSession,
-    showToast,
-  ]);
-
+            return {
+              ...offering,
+              invitedAthleteIds: Array.from(ids),
+              invitedAthleteNames: Array.from(names),
+            };
+          });
+          await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updated);
+        }
+        showToast(
+          failedCount > 0
+            ? `${sentCount} invite(s) sent, ${failedCount} failed.`
+            : `${sentCount} invite(s) sent successfully.`,
+          failedCount > 0 ? 'warning' : 'success',
+        );
+        if (selectedSession.source === 'group') {
+          router.replace(Routes.groupSession(selectedSession.id));
+        } else {
+          router.replace(Routes.BOOKINGS);
+        }
+      },
+      async () => {
+        uiFeedback.showToast('Failed to send invites. Please try again.', 'error');
+      },
+      () => {
+        setSubmitting(false);
+      },
+    );
+  };
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+        },
+      ]}
       edges={['top', 'bottom']}
     >
-      <PageHeader
-        title="Add to Session"
-        showBack
-        onBackPress={handleBack}
-        centerTitle
-      />
+      <PageHeader title="Add to Session" showBack onBackPress={handleBack} centerTitle />
 
       {loading ? (
         <View style={styles.loadingState}>
-          <ThemedText style={{ color: colors.muted }}>Loading sessions...</ThemedText>
+          <ThemedText
+            style={{
+              color: colors.muted,
+            }}
+          >
+            Loading sessions…
+          </ThemedText>
         </View>
       ) : (
         <>
@@ -582,7 +578,14 @@ function ExistingInviteFlow({
             <SurfaceCard style={styles.sectionCard}>
               <ThemedText type="defaultSemiBold">Who to invite</ThemedText>
               {athletes.length === 0 ? (
-                <ThemedText style={[styles.helperText, { color: colors.muted }]}>
+                <ThemedText
+                  style={[
+                    styles.helperText,
+                    {
+                      color: colors.muted,
+                    },
+                  ]}
+                >
                   No roster athletes found.
                 </ThemedText>
               ) : (
@@ -601,18 +604,41 @@ function ExistingInviteFlow({
                       ]}
                     >
                       <Row align="center" gap="sm">
-                        <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.12) }]}>
-                          <ThemedText style={[styles.avatarText, { color: colors.tint }]}>
+                        <View
+                          style={[
+                            styles.avatar,
+                            {
+                              backgroundColor: withAlpha(colors.tint, 0.12),
+                            },
+                          ]}
+                        >
+                          <ThemedText
+                            style={[
+                              styles.avatarText,
+                              {
+                                color: colors.tint,
+                              },
+                            ]}
+                          >
                             {athlete.name.charAt(0).toUpperCase()}
                           </ThemedText>
                         </View>
                         <View style={styles.rowText}>
                           <ThemedText style={styles.rowTitle}>{athlete.name}</ThemedText>
-                          <ThemedText style={[styles.rowSub, { color: colors.muted }]}>
+                          <ThemedText
+                            style={[
+                              styles.rowSub,
+                              {
+                                color: colors.muted,
+                              },
+                            ]}
+                          >
                             {athlete.parentName}
                           </ThemedText>
                         </View>
-                        {selected && <Ionicons name="checkmark-circle" size={18} color={colors.tint} />}
+                        {selected && (
+                          <Ionicons name="checkmark-circle" size={18} color={colors.tint} />
+                        )}
                       </Row>
                     </Clickable>
                   );
@@ -623,7 +649,12 @@ function ExistingInviteFlow({
             {academies.length > 0 && (
               <SurfaceCard style={styles.sectionCard}>
                 <ThemedText type="defaultSemiBold">Invite as</ThemedText>
-                <Row gap="sm" style={{ marginTop: Spacing.sm }}>
+                <Row
+                  gap="sm"
+                  style={{
+                    marginTop: Spacing.sm,
+                  }}
+                >
                   <Clickable
                     onPress={() => setPostingAs('self')}
                     style={[
@@ -635,7 +666,11 @@ function ExistingInviteFlow({
                       },
                     ]}
                   >
-                    <ThemedText style={{ color: postingAs === 'self' ? colors.tint : colors.text }}>
+                    <ThemedText
+                      style={{
+                        color: postingAs === 'self' ? colors.tint : colors.text,
+                      }}
+                    >
                       As me
                     </ThemedText>
                   </Clickable>
@@ -650,13 +685,22 @@ function ExistingInviteFlow({
                       },
                     ]}
                   >
-                    <ThemedText style={{ color: postingAs === 'club' ? colors.tint : colors.text }}>
+                    <ThemedText
+                      style={{
+                        color: postingAs === 'club' ? colors.tint : colors.text,
+                      }}
+                    >
                       On behalf of club
                     </ThemedText>
                   </Clickable>
                 </Row>
                 {postingAs === 'club' && (
-                  <Column gap="xs" style={{ marginTop: Spacing.sm }}>
+                  <Column
+                    gap="xs"
+                    style={{
+                      marginTop: Spacing.sm,
+                    }}
+                  >
                     {academies.map((academy) => {
                       const selected = selectedClubId === academy.id;
                       return (
@@ -673,13 +717,24 @@ function ExistingInviteFlow({
                             },
                           ]}
                         >
-                          <ThemedText style={{ color: selected ? colors.success : colors.text }}>
+                          <ThemedText
+                            style={{
+                              color: selected ? colors.success : colors.text,
+                            }}
+                          >
                             {academy.name}
                           </ThemedText>
                         </Clickable>
                       );
                     })}
-                    <ThemedText style={[styles.helperText, { color: colors.muted }]}>
+                    <ThemedText
+                      style={[
+                        styles.helperText,
+                        {
+                          color: colors.muted,
+                        },
+                      ]}
+                    >
                       Assign coach
                     </ThemedText>
                     <Row wrap gap="xs">
@@ -707,14 +762,28 @@ function ExistingInviteFlow({
                             >
                               {assignee.label}
                             </ThemedText>
-                            <ThemedText style={[styles.helperText, { color: colors.muted }]}>
+                            <ThemedText
+                              style={[
+                                styles.helperText,
+                                {
+                                  color: colors.muted,
+                                },
+                              ]}
+                            >
                               {assignee.role.replace('_', ' ')}
                             </ThemedText>
                           </Clickable>
                         );
                       })}
                     </Row>
-                    <ThemedText style={[styles.helperText, { color: colors.muted }]}>
+                    <ThemedText
+                      style={[
+                        styles.helperText,
+                        {
+                          color: colors.muted,
+                        },
+                      ]}
+                    >
                       Session picker scope
                     </ThemedText>
                     <Row gap="xs">
@@ -755,7 +824,9 @@ function ExistingInviteFlow({
                         ]}
                       >
                         <ThemedText
-                          style={{ color: sessionScope === 'club' ? colors.tint : colors.text }}
+                          style={{
+                            color: sessionScope === 'club' ? colors.tint : colors.text,
+                          }}
                         >
                           Club-wide
                         </ThemedText>
@@ -768,19 +839,41 @@ function ExistingInviteFlow({
 
             <SurfaceCard style={styles.sectionCard}>
               <ThemedText type="defaultSemiBold">Ownership summary</ThemedText>
-              <ThemedText style={[styles.helperText, { color: colors.muted }]}>
+              <ThemedText
+                style={[
+                  styles.helperText,
+                  {
+                    color: colors.muted,
+                  },
+                ]}
+              >
                 {postingAs === 'club' && selectedClub
                   ? `Invites are sent on behalf of ${selectedClub.name}.`
                   : 'Invites are sent from your coach profile.'}
               </ThemedText>
               {postingAs === 'club' && (
-                <ThemedText style={[styles.helperText, { color: colors.muted }]}>
+                <ThemedText
+                  style={[
+                    styles.helperText,
+                    {
+                      color: colors.muted,
+                    },
+                  ]}
+                >
                   Session owner: {selectedAssignee?.label || 'Select a coach'}
                 </ThemedText>
               )}
               {postingAs === 'club' && (
-                <ThemedText style={[styles.helperText, { color: colors.muted }]}>
-                  Session picker: {sessionScope === 'club' ? 'Club-wide sessions' : 'Assigned coach sessions'}
+                <ThemedText
+                  style={[
+                    styles.helperText,
+                    {
+                      color: colors.muted,
+                    },
+                  ]}
+                >
+                  Session picker:{' '}
+                  {sessionScope === 'club' ? 'Club-wide sessions' : 'Assigned coach sessions'}
                 </ThemedText>
               )}
             </SurfaceCard>
@@ -788,7 +881,14 @@ function ExistingInviteFlow({
             <SurfaceCard style={styles.sectionCard}>
               <ThemedText type="defaultSemiBold">Choose session</ThemedText>
               {sessions.length === 0 ? (
-                <ThemedText style={[styles.helperText, { color: colors.muted }]}>
+                <ThemedText
+                  style={[
+                    styles.helperText,
+                    {
+                      color: colors.muted,
+                    },
+                  ]}
+                >
                   No upcoming published sessions available.
                 </ThemedText>
               ) : (
@@ -809,12 +909,26 @@ function ExistingInviteFlow({
                       ]}
                     >
                       <Row align="center" gap="sm">
-                        <View style={[styles.sessionIcon, { backgroundColor: withAlpha(colors.success, 0.1) }]}>
+                        <View
+                          style={[
+                            styles.sessionIcon,
+                            {
+                              backgroundColor: withAlpha(colors.success, 0.1),
+                            },
+                          ]}
+                        >
                           <Ionicons name="calendar-outline" size={16} color={colors.success} />
                         </View>
                         <View style={styles.rowText}>
                           <ThemedText style={styles.rowTitle}>{session.title}</ThemedText>
-                          <ThemedText style={[styles.rowSub, { color: colors.muted }]}>
+                          <ThemedText
+                            style={[
+                              styles.rowSub,
+                              {
+                                color: colors.muted,
+                              },
+                            ]}
+                          >
                             {new Date(session.startsAt).toLocaleDateString('en-GB', {
                               weekday: 'short',
                               day: 'numeric',
@@ -838,20 +952,31 @@ function ExistingInviteFlow({
               <TextInput
                 style={[
                   styles.notesInput,
-                  { borderColor: colors.border, color: colors.text, backgroundColor: colors.surface },
+                  {
+                    borderColor: colors.border,
+                    color: colors.text,
+                    backgroundColor: colors.surface,
+                  },
                 ]}
                 placeholder="Add a short context note..."
                 placeholderTextColor={colors.muted}
                 value={notes}
                 onChangeText={setNotes}
                 multiline
-
-            maxLength={500}
-          />
+                maxLength={500}
+              />
             </SurfaceCard>
           </ScrollView>
 
-          <View style={[styles.footer, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
+          <View
+            style={[
+              styles.footer,
+              {
+                borderTopColor: colors.border,
+                backgroundColor: colors.background,
+              },
+            ]}
+          >
             <Clickable
               onPress={handleSubmit}
               disabled={!canSend}
@@ -863,7 +988,14 @@ function ExistingInviteFlow({
                 },
               ]}
             >
-              <ThemedText style={[styles.primaryButtonText, { color: colors.onPrimary }]}>
+              <ThemedText
+                style={[
+                  styles.primaryButtonText,
+                  {
+                    color: colors.onPrimary,
+                  },
+                ]}
+              >
                 {submitting ? 'Sending...' : 'Send invites'}
               </ThemedText>
             </Clickable>
@@ -873,7 +1005,6 @@ function ExistingInviteFlow({
     </SafeAreaView>
   );
 }
-
 export default function CreateSessionScreen() {
   const { colors } = useTheme();
   const state = useCreateSession();
@@ -889,8 +1020,7 @@ export default function CreateSessionScreen() {
     clubId?: string;
     assigneeCoachId?: string;
   }>();
-
-  const normalizedIntent = useMemo(() => {
+  const normalizedIntent = (() => {
     const intent = params.intent;
     const forcedIntent = intent === 'new' || intent === 'existing' || intent === 'invite';
     const mode: FlowMode =
@@ -914,48 +1044,32 @@ export default function CreateSessionScreen() {
       clubId: params.clubId,
       assigneeCoachId: params.assigneeCoachId,
     };
-  }, [
-    params.actingAs,
-    params.assigneeCoachId,
-    params.athleteIds,
-    params.clubId,
-    params.date,
-    params.intent,
-    params.offeringId,
-  ]);
-
+  })();
   const [mode, setMode] = useState<FlowMode>(normalizedIntent.mode);
-
   useEffect(() => {
-    setMode(normalizedIntent.mode);
+    startTransition(() => {
+      setMode(normalizedIntent.mode);
+    });
   }, [normalizedIntent.mode]);
-
   useEffect(() => {
-    stepScrollRef.current?.scrollTo({ y: 0, animated: false });
+    stepScrollRef.current?.scrollTo({
+      y: 0,
+      animated: false,
+    });
   }, [state.step]);
-
-  const handleCancel = useCallback(() => router.back(), []);
-  const startTemplate = useCallback(
-    (template: '1on1' | 'small_group' | 'camp') => {
-      state.setSessionType(template);
-      state.setRecurrence('once');
-      setMode('new');
-    },
-    [state],
-  );
-  const selectedClubName = useMemo(
-    () => state.clubOptions.find((club) => club.id === state.selectedClubId)?.name,
-    [state.clubOptions, state.selectedClubId],
-  );
-  const selectedClubCommercialMode = useMemo<OrganizationCommercialMode | undefined>(
-    () => state.clubOptions.find((club) => club.id === state.selectedClubId)?.commercialMode,
-    [state.clubOptions, state.selectedClubId],
-  );
-  const selectedAssigneeName = useMemo(
-    () => state.assigneeOptions.find((assignee) => assignee.id === state.selectedAssigneeId)?.label,
-    [state.assigneeOptions, state.selectedAssigneeId],
-  );
-
+  const handleCancel = () => router.back();
+  const startTemplate = (template: '1on1' | 'small_group' | 'camp') => {
+    state.setSessionType(template);
+    state.setRecurrence('once');
+    setMode('new');
+  };
+  const selectedClubName = state.clubOptions.find((club) => club.id === state.selectedClubId)?.name;
+  const selectedClubCommercialMode = state.clubOptions.find(
+    (club) => club.id === state.selectedClubId,
+  )?.commercialMode;
+  const selectedAssigneeName = state.assigneeOptions.find(
+    (assignee) => assignee.id === state.selectedAssigneeId,
+  )?.label;
   if (mode === 'existing') {
     return (
       <ExistingInviteFlow
@@ -969,11 +1083,15 @@ export default function CreateSessionScreen() {
       />
     );
   }
-
   if (mode === 'choose') {
     return (
       <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.background,
+          },
+        ]}
         edges={['top', 'bottom']}
       >
         <PageHeader title="Create / Invite Session" showBack centerTitle />
@@ -981,15 +1099,35 @@ export default function CreateSessionScreen() {
         <View style={styles.chooseContent}>
           <Clickable
             onPress={() => setMode('new')}
-            style={[styles.choiceCard, { borderColor: colors.border, backgroundColor: colors.surface }]}
+            style={[
+              styles.choiceCard,
+              {
+                borderColor: colors.border,
+                backgroundColor: colors.surface,
+              },
+            ]}
           >
             <Row gap="sm" align="center">
-              <View style={[styles.choiceIcon, { backgroundColor: withAlpha(colors.tint, 0.1) }]}>
+              <View
+                style={[
+                  styles.choiceIcon,
+                  {
+                    backgroundColor: withAlpha(colors.tint, 0.1),
+                  },
+                ]}
+              >
                 <Ionicons name="add-circle-outline" size={20} color={colors.tint} />
               </View>
               <View style={styles.rowText}>
                 <ThemedText style={styles.rowTitle}>Book New Session</ThemedText>
-                <ThemedText style={[styles.rowSub, { color: colors.muted }]}>
+                <ThemedText
+                  style={[
+                    styles.rowSub,
+                    {
+                      color: colors.muted,
+                    },
+                  ]}
+                >
                   Create a new session and invite athletes in one flow.
                 </ThemedText>
               </View>
@@ -1012,7 +1150,12 @@ export default function CreateSessionScreen() {
               >
                 <Row align="center" gap="xs">
                   <Ionicons name="person-outline" size={14} color={colors.info} />
-                  <ThemedText style={{ color: colors.info, ...Typography.smallSemiBold }}>
+                  <ThemedText
+                    style={{
+                      color: colors.info,
+                      ...Typography.smallSemiBold,
+                    }}
+                  >
                     1-on-1
                   </ThemedText>
                 </Row>
@@ -1030,7 +1173,12 @@ export default function CreateSessionScreen() {
               >
                 <Row align="center" gap="xs">
                   <Ionicons name="people-outline" size={14} color={colors.success} />
-                  <ThemedText style={{ color: colors.success, ...Typography.smallSemiBold }}>
+                  <ThemedText
+                    style={{
+                      color: colors.success,
+                      ...Typography.smallSemiBold,
+                    }}
+                  >
                     Group
                   </ThemedText>
                 </Row>
@@ -1048,28 +1196,60 @@ export default function CreateSessionScreen() {
               >
                 <Row align="center" gap="xs">
                   <Ionicons name="sunny-outline" size={14} color={colors.warning} />
-                  <ThemedText style={{ color: colors.warning, ...Typography.smallSemiBold }}>
+                  <ThemedText
+                    style={{
+                      color: colors.warning,
+                      ...Typography.smallSemiBold,
+                    }}
+                  >
                     Camp
                   </ThemedText>
                 </Row>
               </Clickable>
             </Row>
-            <ThemedText style={[styles.quickStartHint, { color: colors.muted }]}>
+            <ThemedText
+              style={[
+                styles.quickStartHint,
+                {
+                  color: colors.muted,
+                },
+              ]}
+            >
               Pick a template and we prefill the flow.
             </ThemedText>
           </SurfaceCard>
 
           <Clickable
             onPress={() => setMode('existing')}
-            style={[styles.choiceCard, { borderColor: colors.border, backgroundColor: colors.surface }]}
+            style={[
+              styles.choiceCard,
+              {
+                borderColor: colors.border,
+                backgroundColor: colors.surface,
+              },
+            ]}
           >
             <Row gap="sm" align="center">
-              <View style={[styles.choiceIcon, { backgroundColor: withAlpha(colors.success, 0.1) }]}>
+              <View
+                style={[
+                  styles.choiceIcon,
+                  {
+                    backgroundColor: withAlpha(colors.success, 0.1),
+                  },
+                ]}
+              >
                 <Ionicons name="paper-plane-outline" size={20} color={colors.success} />
               </View>
               <View style={styles.rowText}>
                 <ThemedText style={styles.rowTitle}>Add to Existing Session</ThemedText>
-                <ThemedText style={[styles.rowSub, { color: colors.muted }]}>
+                <ThemedText
+                  style={[
+                    styles.rowSub,
+                    {
+                      color: colors.muted,
+                    },
+                  ]}
+                >
                   Pick an upcoming session and send targeted invites.
                 </ThemedText>
               </View>
@@ -1080,7 +1260,6 @@ export default function CreateSessionScreen() {
       </SafeAreaView>
     );
   }
-
   const handleBackFromNew = () => {
     if (!normalizedIntent.forcedIntent && state.step === 'details') {
       setMode('choose');
@@ -1088,10 +1267,14 @@ export default function CreateSessionScreen() {
     }
     state.goBack();
   };
-
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+        },
+      ]}
       edges={['top', 'bottom']}
     >
       <KeyboardAvoidingView
@@ -1109,7 +1292,16 @@ export default function CreateSessionScreen() {
               accessibilityLabel="Cancel session creation"
               style={styles.cancelButton}
             >
-              <ThemedText style={[styles.cancelText, { color: colors.muted }]}>Cancel</ThemedText>
+              <ThemedText
+                style={[
+                  styles.cancelText,
+                  {
+                    color: colors.muted,
+                  },
+                ]}
+              >
+                Cancel
+              </ThemedText>
             </Clickable>
           }
         />
@@ -1149,7 +1341,10 @@ export default function CreateSessionScreen() {
               onToggleFocusArea={state.toggleFocusArea}
               onMaxParticipantsChange={state.setMaxParticipants}
               postingAs={state.postingAs}
-              clubOptions={state.clubOptions.map((club) => ({ id: club.id, name: club.name }))}
+              clubOptions={state.clubOptions.map((club) => ({
+                id: club.id,
+                name: club.name,
+              }))}
               selectedClubId={state.selectedClubId}
               assigneeOptions={state.assigneeOptions.map((assignee) => ({
                 id: assignee.id,
@@ -1251,7 +1446,6 @@ export default function CreateSessionScreen() {
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

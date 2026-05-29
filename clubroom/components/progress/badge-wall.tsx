@@ -1,4 +1,4 @@
-import { memo, useMemo, useState, type ComponentProps } from 'react';
+import { useState, type ComponentProps } from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -42,27 +42,20 @@ const CATEGORY_ICONS: Record<(typeof CATEGORY_ORDER)[number], ComponentProps<typ
 
 // MEANINGFUL_SKILL_BADGE_IDS imported from @/constants/badge-registry
 
-export const BadgeWall = memo(function BadgeWall({ badges, athleteName, onViewFull }: BadgeWallProps) {
+export const BadgeWall = function BadgeWall({ badges, athleteName, onViewFull }: BadgeWallProps) {
   const { colors } = useTheme();
   const [selectedBadge, setSelectedBadge] = useState<AllBadgeWithProgress | null>(null);
   const [showAllBadges, setShowAllBadges] = useState(false);
 
-  const curatedBadges = useMemo(
-    () =>
-      badges.filter((badge) => {
-        if (badge.badgeType === 'skill') {
-          return MEANINGFUL_SKILL_BADGE_IDS.has(badge.id);
-        }
-        return badge.badgeType === 'milestone' || badge.badgeType === 'event';
-      }),
-    [badges],
-  );
-  const visibleBadges = useMemo(
-    () => (showAllBadges ? curatedBadges : curatedBadges.filter((badge) => badge.isUnlocked)),
-    [curatedBadges, showAllBadges],
-  );
+  const curatedBadges = badges.filter((badge) => {
+    if (badge.badgeType === 'skill') {
+      return MEANINGFUL_SKILL_BADGE_IDS.has(badge.id);
+    }
+    return badge.badgeType === 'milestone' || badge.badgeType === 'event';
+  });
+  const visibleBadges = (showAllBadges ? curatedBadges : curatedBadges.filter((badge) => badge.isUnlocked));
 
-  const grouped = useMemo(() => {
+  const grouped = (() => {
     const groups: Record<(typeof CATEGORY_ORDER)[number], AllBadgeWithProgress[]> = {
       technical: [],
       physical: [],
@@ -82,7 +75,7 @@ export const BadgeWall = memo(function BadgeWall({ badges, athleteName, onViewFu
     }
 
     return groups;
-  }, [visibleBadges]);
+  })();
 
   const unlockedCount = curatedBadges.filter((badge) => badge.isUnlocked).length;
 
@@ -187,7 +180,7 @@ export const BadgeWall = memo(function BadgeWall({ badges, athleteName, onViewFu
       />
     </>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

@@ -2,7 +2,7 @@
  * ScheduleTodayCard — Hero card showing today's session count and next session countdown.
  */
 
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -35,7 +35,7 @@ function getTimeUntil(timeStr: string): string {
   return `in ${mins}m`;
 }
 
-export const ScheduleTodayCard = memo(function ScheduleTodayCard({
+export const ScheduleTodayCard = function ScheduleTodayCard({
   todayData,
   todaySessions,
   nextSession,
@@ -43,9 +43,9 @@ export const ScheduleTodayCard = memo(function ScheduleTodayCard({
 }: Props) {
   const { colors } = useTheme();
 
-  const handleNextSessionPress = useCallback(() => {
+  const handleNextSessionPress = () => {
     if (nextSession && onSessionPress) onSessionPress(nextSession);
-  }, [nextSession, onSessionPress]);
+  };
 
   return (
     <Animated.View entering={FadeInDown.delay(100).springify()}>
@@ -107,7 +107,7 @@ export const ScheduleTodayCard = memo(function ScheduleTodayCard({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

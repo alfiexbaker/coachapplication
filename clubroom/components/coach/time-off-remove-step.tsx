@@ -1,7 +1,3 @@
-/**
- * TimeOffRemoveStep — Confirm removal step: summary, warning, actions.
- */
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -63,7 +59,7 @@ function TimeOffRemoveStepInner({
       >
         {removing ? (
           <ThemedText style={[styles.primaryBtnText, { color: palette.onPrimary }]}>
-            Removing...
+            Removing…
           </ThemedText>
         ) : (
           <>
@@ -90,7 +86,7 @@ function TimeOffRemoveStepInner({
   );
 }
 
-export const TimeOffRemoveStep = memo(TimeOffRemoveStepInner);
+export const TimeOffRemoveStep = TimeOffRemoveStepInner;
 
 const styles = StyleSheet.create({
   content: { gap: Spacing.md },

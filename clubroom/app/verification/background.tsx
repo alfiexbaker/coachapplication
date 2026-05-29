@@ -165,9 +165,11 @@ export default function BackgroundCheckScreen() {
               ))}
             </View>
 
-            <Button onPress={handleStartCheck} disabled={submitting}>
-              {submitting ? 'Starting...' : 'Start Background Check'}
-            </Button>
+            <Button
+              onPress={handleStartCheck}
+              disabled={submitting}
+              label={submitting ? 'Starting...' : 'Start Background Check'}
+            />
           </>
         )}
       </ScrollView>

@@ -2,7 +2,7 @@
  * useClubDetail — All state, data loading, and handlers for the ClubDetailScreen.
  * Manages club data, feed, members, club activities, squads, invites, and member removal flow.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState, startTransition } from 'react';
 import { Share } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -29,6 +29,8 @@ import { socialFeedService } from '@/services/social-feed-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { buildClubActivities } from '@/utils/club-activity-projections';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncFinally, runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('ClubDetail');
 
@@ -60,12 +62,9 @@ export function useClubDetail(clubId: string | undefined) {
   const { currentUser, availableUsers } = useAuth();
   const { showUndoToast, showToast } = useToast();
 
-  const userClubs = useMemo(
-    () => (currentUser?.id ? socialFeedService.getUserClubs(currentUser.id) : []),
-    [currentUser?.id],
-  );
+  const userClubs = currentUser?.id ? socialFeedService.getUserClubs(currentUser.id) : [];
 
-  const knownClubs = useMemo(() => {
+  const knownClubs = (() => {
     const deduped = new Map<string, Club>();
     userClubs.forEach((club) => deduped.set(club.id, club));
     availableUsers.forEach((user) => {
@@ -76,7 +75,7 @@ export function useClubDetail(clubId: string | undefined) {
       });
     });
     return Array.from(deduped.values());
-  }, [userClubs, availableUsers]);
+  })();
 
   const [club, setClub] = useState<Club | undefined>();
   const [membership, setMembership] = useState<ClubMembership | undefined>();
@@ -101,12 +100,13 @@ export function useClubDetail(clubId: string | undefined) {
     membership && ['OWNER', 'HEAD_COACH', 'ADMIN', 'COACH'].includes(membership.role);
   const canCreatePosts = !!membership;
   const canRemoveMembers = membership && clubService.canRemoveMembers(membership.role);
-  const clubActivities = useMemo<ClubActivity[]>(
-    () => buildClubActivities({ events: clubEvents, sessions: clubActivitySessions, matches: clubMatches }),
-    [clubEvents, clubActivitySessions, clubMatches],
-  );
+  const clubActivities = buildClubActivities({
+    events: clubEvents,
+    sessions: clubActivitySessions,
+    matches: clubMatches,
+  });
 
-  const loadClubData = useCallback(async ({ showLoading = true }: { showLoading?: boolean } = {}) => {
+  const loadClubData = async ({ showLoading = true }: { showLoading?: boolean } = {}) => {
     if (showLoading) {
       setLoading(true);
     }
@@ -124,29 +124,33 @@ export function useClubDetail(clubId: string | undefined) {
       return;
     }
 
-    try {
-      const clubData = knownClubs.find((candidate) => candidate.id === clubId);
-      setClub(clubData);
+    await runAsyncTryCatchFinally(
+      async () => {
+        const clubData = knownClubs.find((candidate) => candidate.id === clubId);
+        setClub(clubData);
 
-      if (currentUser?.id && userClubs.some((candidate) => candidate.id === clubId)) {
-        setMembership(socialFeedService.getMembership(currentUser.id, clubId));
-      } else {
-        setMembership(undefined);
-      }
+        if (currentUser?.id && userClubs.some((candidate) => candidate.id === clubId)) {
+          setMembership(socialFeedService.getMembership(currentUser.id, clubId));
+        } else {
+          setMembership(undefined);
+        }
 
-      const [clubSquads] = await Promise.all([squadService.getSquads(clubId)]);
-      setSquads(clubSquads);
-      setInvites(buildClubInvites(clubData));
-    } catch (error) {
-      logger.error('Failed to load club detail', error);
-    } finally {
-      if (showLoading) {
-        setLoading(false);
-      }
-    }
-  }, [clubId, knownClubs, currentUser?.id, userClubs]);
+        const [clubSquads] = await Promise.all([squadService.getSquads(clubId)]);
+        setSquads(clubSquads);
+        setInvites(buildClubInvites(clubData));
+      },
+      async (error) => {
+        logger.error('Failed to load club detail', error);
+      },
+      () => {
+        if (showLoading) {
+          setLoading(false);
+        }
+      },
+    );
+  };
 
-  const loadFeed = useCallback(() => {
+  const loadFeed = () => {
     if (!clubId) {
       setFeed([]);
       setAllFeed([]);
@@ -155,9 +159,9 @@ export function useClubDetail(clubId: string | undefined) {
     const nextAllFeed = socialFeedService.getFeed(clubId, 'all');
     setAllFeed(nextAllFeed);
     setFeed(feedFilter === 'all' ? nextAllFeed : socialFeedService.getFeed(clubId, feedFilter));
-  }, [clubId, feedFilter]);
+  };
 
-  const loadMembers = useCallback(async () => {
+  const loadMembers = async () => {
     if (!clubId) return;
     try {
       const memberList = await clubService.getMembers(clubId);
@@ -165,9 +169,9 @@ export function useClubDetail(clubId: string | undefined) {
     } catch (error) {
       logger.error('Failed to load members', error);
     }
-  }, [clubId]);
+  };
 
-  const loadClubActivities = useCallback(async () => {
+  const loadClubActivities = async () => {
     if (!clubId) {
       setClubActivitySessions([]);
       setClubEvents([]);
@@ -190,92 +194,108 @@ export function useClubDetail(clubId: string | undefined) {
       setClubEvents([]);
       setClubMatches([]);
     }
-  }, [clubId]);
+  };
+
+  const loadClubDataRef = useRef(loadClubData);
+  const loadFeedRef = useRef(loadFeed);
+  const loadMembersRef = useRef(loadMembers);
+  const loadClubActivitiesRef = useRef(loadClubActivities);
 
   useEffect(() => {
-    void loadClubData({ showLoading: true });
-  }, [loadClubData]);
+    loadClubDataRef.current = loadClubData;
+    loadFeedRef.current = loadFeed;
+    loadMembersRef.current = loadMembers;
+    loadClubActivitiesRef.current = loadClubActivities;
+  });
+
   useEffect(() => {
-    loadFeed();
-    void loadMembers();
-    void loadClubActivities();
-  }, [loadFeed, loadMembers, loadClubActivities]);
+    startTransition(() => {
+      void loadClubDataRef.current({ showLoading: true });
+    });
+  }, [availableUsers, clubId, currentUser]);
+  useEffect(() => {
+    startTransition(() => {
+      loadFeedRef.current();
+    });
+    startTransition(() => {
+      void loadMembersRef.current();
+    });
+    startTransition(() => {
+      void loadClubActivitiesRef.current();
+    });
+  }, [clubId, feedFilter]);
 
   useEffect(() => {
     const unsub = onTyped(ServiceEvents.CLUB_MEMBER_LEFT, (payload) => {
-      if (payload.clubId === clubId) loadMembers();
+      if (payload.clubId === clubId) void loadMembersRef.current();
     });
     return unsub;
-  }, [clubId, loadMembers]);
+  }, [clubId]);
 
   useEffect(() => {
     const unsub = onTyped(ServiceEvents.OPEN_SESSION_PUBLISHED, () => {
-      void loadClubActivities();
-      loadFeed();
+      void loadClubActivitiesRef.current();
+      loadFeedRef.current();
     });
     return unsub;
-  }, [loadClubActivities, loadFeed]);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      await loadClubData({ showLoading: false });
-      loadFeed();
-      await Promise.all([loadMembers(), loadClubActivities()]);
-    } finally {
-      setRefreshing(false);
-    }
-  }, [loadClubData, loadFeed, loadMembers, loadClubActivities]);
-
-  const handlePinToggle = useCallback(
-    (postId: string) => {
-      if (!currentUser) return;
-      socialFeedService.togglePin(postId, currentUser.id);
-      loadFeed();
-    },
-    [currentUser, loadFeed],
-  );
-
-  const handleLikePost = useCallback(
-    async (postId: string) => {
-      if (!currentUser) return;
-      socialFeedService.toggleReaction(postId, currentUser.id);
-      loadFeed();
-    },
-    [currentUser, loadFeed],
-  );
-
-  const handleCommentPost = useCallback(async (postId: string) => {
-    router.push(Routes.modalPostDetail(postId));
   }, []);
 
-  const handleSharePost = useCallback(
-    async (postId: string) => {
-      const post = feed.find((candidate) => candidate.id === postId);
-      if (!post) return;
+  const onRefresh = async () => {
+    setRefreshing(true);
 
-      await Share.share({
-        title: post.title,
-        message: `${post.title}\n\n${post.body}`,
-      });
-    },
-    [feed],
-  );
+    await runAsyncFinally(
+      async () => {
+        await loadClubData({ showLoading: false });
+        loadFeed();
+        await Promise.all([loadMembers(), loadClubActivities()]);
+      },
+      () => {
+        setRefreshing(false);
+      },
+    );
+  };
 
-  const handleRemoveMember = useCallback((member: ClubMember) => {
+  const handlePinToggle = (postId: string) => {
+    if (!currentUser) return;
+    socialFeedService.togglePin(postId, currentUser.id);
+    loadFeed();
+  };
+
+  const handleLikePost = async (postId: string) => {
+    if (!currentUser) return;
+    socialFeedService.toggleReaction(postId, currentUser.id);
+    loadFeed();
+  };
+
+  const handleCommentPost = async (postId: string) => {
+    router.push(Routes.modalPostDetail(postId));
+  };
+
+  const handleSharePost = async (postId: string) => {
+    const post = feed.find((candidate) => candidate.id === postId);
+    if (!post) return;
+
+    await Share.share({
+      title: post.title,
+      message: `${post.title}\n\n${post.body}`,
+    });
+  };
+
+  const handleRemoveMember = (member: ClubMember) => {
     if (!clubService.canBeRemoved(member.role)) {
       uiFeedback.showToast('The club owner cannot be removed.', 'error');
       return;
     }
     setSelectedMemberForRemoval(member);
     setShowMemberRemovalModal(true);
-  }, []);
+  };
 
-  const handleConfirmMemberRemoval = useCallback(
-    async (reason: MemberRemovalReason, customReason?: string) => {
-      if (!selectedMemberForRemoval || !clubId || !currentUser) return;
-      setIsRemovingMember(true);
-      try {
+  const handleConfirmMemberRemoval = async (reason: MemberRemovalReason, customReason?: string) => {
+    if (!selectedMemberForRemoval || !clubId || !currentUser) return;
+    setIsRemovingMember(true);
+
+    return await runAsyncTryCatchFinally(
+      async () => {
         const result = await clubService.removeMember(
           clubId,
           selectedMemberForRemoval.userId,
@@ -307,17 +327,18 @@ export function useClubDetail(clubId: string | undefined) {
             showToast('Failed to restore member', 'error');
           }
         });
-      } catch (error) {
+      },
+      async (error) => {
         logger.error('Failed to remove member', error);
         showToast('Failed to remove member', 'error');
-      } finally {
+      },
+      () => {
         setIsRemovingMember(false);
-      }
-    },
-    [selectedMemberForRemoval, clubId, currentUser, loadMembers, showUndoToast, showToast],
-  );
+      },
+    );
+  };
 
-  const handleLeaveClub = useCallback(() => {
+  const handleLeaveClub = () => {
     uiFeedback.alert('Leave club', 'Are you sure you want to leave this club?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -332,22 +353,22 @@ export function useClubDetail(clubId: string | undefined) {
         },
       },
     ]);
-  }, [clubId, currentUser?.id]);
+  };
 
-  const handleCloseMemberRemovalModal = useCallback(() => {
+  const handleCloseMemberRemovalModal = () => {
     setShowMemberRemovalModal(false);
     setSelectedMemberForRemoval(null);
-  }, []);
+  };
 
-  const handleToggleMembersSection = useCallback(() => {
+  const handleToggleMembersSection = () => {
     if (canRemoveMembers) setShowMembersSection((prev) => !prev);
-  }, [canRemoveMembers]);
+  };
 
-  const handleUpdatePhotos = useCallback((updates: Partial<Club>) => {
+  const handleUpdatePhotos = (updates: Partial<Club>) => {
     setClub((prev) => (prev ? { ...prev, ...updates } : prev));
-  }, []);
+  };
 
-  const filterCounts = useMemo<Partial<Record<FeedFilter, number>>>(() => {
+  const filterCounts = (() => {
     if (!clubId) return {};
     return {
       all: allFeed.length,
@@ -356,7 +377,7 @@ export function useClubDetail(clubId: string | undefined) {
       video: allFeed.filter((p) => p.postType === 'video').length,
       event: allFeed.filter((p) => p.postType === 'event').length,
     };
-  }, [allFeed, clubId]);
+  })();
 
   return {
     club,

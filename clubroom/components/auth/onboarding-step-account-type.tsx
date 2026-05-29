@@ -1,8 +1,3 @@
-/**
- * StepAccountType — Account type selection step of onboarding.
- */
-
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -129,7 +124,7 @@ function StepAccountTypeInner({ accountType, onSelectAccountType }: StepAccountT
   );
 }
 
-export const StepAccountType = memo(StepAccountTypeInner);
+export const StepAccountType = StepAccountTypeInner;
 
 const styles = StyleSheet.create({
   content: {

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React from 'react';
 import { ActivityIndicator, Pressable, Text, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -45,19 +45,16 @@ function ButtonInner({
   const { colors } = useTheme();
   const isDisabled = disabled || loading;
   const sizeConfig = SIZE_MAP[size];
-  const variantColors = useMemo(
-    () => getVariantColors(variant, isDisabled, colors),
-    [variant, isDisabled, colors],
-  );
+  const variantColors = getVariantColors(variant, isDisabled, colors);
   const scale = useSharedValue(1);
 
-  const handlePressIn = useCallback(() => {
-    scale.value = withSpring(PRESS_SCALE, SPRING_CONFIG);
-  }, [scale]);
+  const handlePressIn = () => {
+    scale.set(withSpring(PRESS_SCALE, SPRING_CONFIG));
+  };
 
-  const handlePressOut = useCallback(() => {
-    scale.value = withSpring(1, SPRING_CONFIG);
-  }, [scale]);
+  const handlePressOut = () => {
+    scale.set(withSpring(1, SPRING_CONFIG));
+  };
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -119,4 +116,4 @@ function ButtonInner({
   );
 }
 
-export const Button = React.memo(ButtonInner);
+export const Button = ButtonInner;

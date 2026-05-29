@@ -1,11 +1,13 @@
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+
+import { runAsyncFinally } from '@/utils/async-control';
 
 interface WaitlistBannerProps {
   waitlistCount: number;
@@ -26,15 +28,16 @@ export function WaitlistBanner({
   const [isJoining, setIsJoining] = useState(false);
   const isLoading = Boolean(loading) || isJoining;
 
-  const handleJoin = useCallback(async () => {
+  const handleJoin = async () => {
     if (isLoading) return;
     setIsJoining(true);
-    try {
+
+    await runAsyncFinally(async () => {
       await Promise.resolve(onJoinWaitlist());
-    } finally {
+    }, () => {
       setIsJoining(false);
-    }
-  }, [isLoading, onJoinWaitlist]);
+    });
+  };
 
   const positionMessage =
     userPosition && userPosition > 0

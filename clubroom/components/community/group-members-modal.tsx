@@ -1,7 +1,6 @@
 import React from 'react';
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { View, StyleSheet, Modal, FlatList } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -13,10 +12,6 @@ import type { GroupMember } from '@/constants/types';
 
 import { MemberRowItem } from './group-members-modal-sections';
 import { Row } from '@/components/primitives';
-
-// Re-export extracted components for backward compat
-export { ROLE_LABELS, getRoleBadgeColor, MemberRowItem } from './group-members-modal-sections';
-export type { MemberRowItemProps } from './group-members-modal-sections';
 
 interface GroupMembersModalProps {
   visible: boolean;
@@ -53,7 +48,7 @@ function GroupMembersModalInner({
     return parts.join(' / ');
   };
 
-  const sortedMembers = [...members].sort(
+  const sortedMembers = Array.from(members).toSorted(
     (a, b) =>
       communityGroupService.getRoleWeight(b.role) - communityGroupService.getRoleWeight(a.role),
   );
@@ -85,7 +80,7 @@ function GroupMembersModalInner({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={[styles.modalContainer, { backgroundColor: palette.background }]}>
+      <View style={[styles.modalContainer, { backgroundColor: palette.background }]}>
         <Row style={[styles.modalHeader, { borderBottomColor: palette.border }]}>
           <ThemedText type="title" style={styles.modalTitle}>
             Members ({members.length})
@@ -116,20 +111,21 @@ function GroupMembersModalInner({
         )}
 
         <FlatList
-        CellRendererComponent={AccessibleListCell}
-        accessibilityRole="list"
+          contentInsetAdjustmentBehavior="automatic"
+          CellRendererComponent={AccessibleListCell}
+          accessibilityRole="list"
           data={sortedMembers}
           keyExtractor={(item) => item.parentId}
           renderItem={renderMemberItem}
           contentContainerStyle={styles.memberListContent}
           showsVerticalScrollIndicator={false}
         />
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }
 
-export const GroupMembersModal = React.memo(GroupMembersModalInner);
+export const GroupMembersModal = GroupMembersModalInner;
 
 const styles = StyleSheet.create({
   modalContainer: { flex: 1 },

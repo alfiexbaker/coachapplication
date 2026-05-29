@@ -1,13 +1,12 @@
 /**
  * Extracted sub-components for CoachSignupScreen.
  *
- * INVITE_CODES — mock invite code data.
  * InviteCodeSection — invite code input + verify button.
  * CoachFormFields — 5 form fields for coach details.
  * SignupSubmitButton — submit button with disabled state.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View, TextInput, Platform } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 
@@ -15,20 +14,6 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-export const INVITE_CODES = [
-  {
-    code: 'clubroom-coach',
-    status: 'active' as const,
-    schoolId: 'school-1',
-    schoolName: 'Southgate Academy',
-    currentUses: 0,
-    maxUses: 10,
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
 
 // ─── InviteCodeSection ────────────────────────────────────────────────────────
 
@@ -42,7 +27,7 @@ interface InviteCodeSectionProps {
   palette: ThemeColors;
 }
 
-export const InviteCodeSection = memo(function InviteCodeSection({
+export const InviteCodeSection = function InviteCodeSection({
   inviteCode,
   onChangeCode,
   onValidate,
@@ -75,7 +60,6 @@ export const InviteCodeSection = memo(function InviteCodeSection({
             returnKeyType="go"
             onSubmitEditing={onValidate}
             editable={!inviteValidated}
-
             maxLength={20}
           />
           <Clickable
@@ -108,7 +92,7 @@ export const InviteCodeSection = memo(function InviteCodeSection({
       </View>
     </View>
   );
-});
+};
 
 // ─── CoachFormFields ──────────────────────────────────────────────────────────
 
@@ -127,7 +111,7 @@ interface CoachFormFieldsProps {
   palette: ThemeColors;
 }
 
-export const CoachFormFields = memo(function CoachFormFields({
+const renderCoachFormFields = function renderCoachFormFields({
   fullName,
   email,
   phone,
@@ -154,9 +138,8 @@ export const CoachFormFields = memo(function CoachFormFields({
           placeholderTextColor={palette.muted}
           style={inputStyle}
           returnKeyType="next"
-
-            maxLength={50}
-          />
+          maxLength={50}
+        />
       </View>
 
       <View style={styles.fieldGroup}>
@@ -170,9 +153,8 @@ export const CoachFormFields = memo(function CoachFormFields({
           placeholderTextColor={palette.muted}
           style={inputStyle}
           returnKeyType="next"
-
-            maxLength={100}
-          />
+          maxLength={100}
+        />
       </View>
 
       <View style={styles.fieldGroup}>
@@ -185,9 +167,8 @@ export const CoachFormFields = memo(function CoachFormFields({
           placeholderTextColor={palette.muted}
           style={inputStyle}
           returnKeyType="next"
-
-            maxLength={20}
-          />
+          maxLength={20}
+        />
       </View>
 
       <View style={styles.fieldGroup}>
@@ -200,9 +181,8 @@ export const CoachFormFields = memo(function CoachFormFields({
           placeholderTextColor={palette.muted}
           style={inputStyle}
           returnKeyType="next"
-
-            maxLength={100}
-          />
+          maxLength={100}
+        />
       </View>
 
       <View style={styles.fieldGroup}>
@@ -216,13 +196,13 @@ export const CoachFormFields = memo(function CoachFormFields({
           style={inputStyle}
           returnKeyType="go"
           onSubmitEditing={onSubmit}
-
-            maxLength={100}
-          />
+          maxLength={100}
+        />
       </View>
     </>
   );
-});
+};
+export const CoachFormFields = renderCoachFormFields;
 
 // ─── SignupSubmitButton ───────────────────────────────────────────────────────
 
@@ -232,7 +212,7 @@ interface SignupSubmitButtonProps {
   palette: ThemeColors;
 }
 
-export const SignupSubmitButton = memo(function SignupSubmitButton({
+const renderSignupSubmitButton = function renderSignupSubmitButton({
   isValid,
   onPress,
   palette,
@@ -255,7 +235,8 @@ export const SignupSubmitButton = memo(function SignupSubmitButton({
       </ThemedText>
     </Clickable>
   );
-});
+};
+export const SignupSubmitButton = renderSignupSubmitButton;
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 

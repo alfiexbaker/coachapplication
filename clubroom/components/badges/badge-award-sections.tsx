@@ -1,8 +1,4 @@
-/**
- * BadgeAwardModal — Sub-components.
- */
-import { memo } from 'react';
-import { View, StyleSheet, TextInput, ScrollView } from 'react-native';
+import { View, StyleSheet, TextInput, FlatList, type ListRenderItemInfo } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -23,7 +19,7 @@ interface AthleteHeaderProps {
   sessionLabel?: string;
   onClose: () => void;
 }
-export const AthleteHeader = memo(function AthleteHeader({
+export const AthleteHeader = function AthleteHeader({
   athleteName,
   athletePhotoUrl,
   sessionLabel,
@@ -60,7 +56,7 @@ export const AthleteHeader = memo(function AthleteHeader({
       </Clickable>
     </Row>
   );
-});
+};
 
 /* ─── Badge Selector ─── */
 interface BadgeSelectorProps {
@@ -68,84 +64,117 @@ interface BadgeSelectorProps {
   selectedBadgeId: string | null;
   onSelect: (id: string) => void;
 }
-export const BadgeSelector = memo(function BadgeSelector({
+export const BadgeSelector = function BadgeSelector({
   definitions,
   selectedBadgeId,
   onSelect,
 }: BadgeSelectorProps) {
   const { colors: palette } = useTheme();
+  const badgeItems = getBadgeSelectorItems(definitions, selectedBadgeId, onSelect, palette);
   return (
     <View style={styles.section}>
       <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
         Choose Badge
       </ThemedText>
-      <ScrollView
+      <FlatList
         horizontal
+        data={badgeItems}
+        keyExtractor={keyBadgeSelectorItem}
+        renderItem={renderBadgeSelectorItem}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.badgeScroll}
-      >
-        {definitions.map((badge, index) => {
-          const isSelected = selectedBadgeId === badge.id;
-          return (
-            <Animated.View key={badge.id} entering={FadeIn.delay(index * 50)}>
-              <Clickable
-                onPress={() => onSelect(badge.id)}
-                accessibilityRole="button"
-                accessibilityLabel={`Select badge ${badge.label}`}
-                accessibilityState={{ selected: isSelected }}
-              >
-                <View
-                  style={[
-                    styles.badgeCard,
-                    {
-                      backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
-                      borderColor: isSelected ? palette.tint : palette.border,
-                    },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.badgeIconCircle,
-                      {
-                        backgroundColor: isSelected
-                          ? withAlpha(palette.tint, 0.12)
-                          : withAlpha(palette.muted, 0.09),
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name={getBadgeIcon(badge) as keyof typeof Ionicons.glyphMap}
-                      size={24}
-                      color={isSelected ? palette.tint : palette.icon}
-                    />
-                  </View>
-                  <ThemedText
-                    style={[styles.badgeLabel, { color: isSelected ? palette.tint : palette.text }]}
-                    numberOfLines={3}
-                  >
-                    {badge.label}
-                  </ThemedText>
-                  {isSelected && (
-                    <View style={[styles.selectedCheck, { backgroundColor: palette.tint }]}>
-                      <Ionicons name="checkmark" size={12} color={palette.onPrimary} />
-                    </View>
-                  )}
-                </View>
-              </Clickable>
-            </Animated.View>
-          );
-        })}
-      </ScrollView>
+      />
     </View>
   );
-});
+};
+
+interface BadgeSelectorItem {
+  key: string;
+  badge: BadgeDefinition;
+  index: number;
+  isSelected: boolean;
+  palette: ReturnType<typeof useTheme>['colors'];
+  onPress: () => void;
+}
+
+function getBadgeSelectorItems(
+  definitions: BadgeDefinition[],
+  selectedBadgeId: string | null,
+  onSelect: (id: string) => void,
+  palette: ReturnType<typeof useTheme>['colors'],
+): BadgeSelectorItem[] {
+  return definitions.map((badge, index) => ({
+    key: badge.id,
+    badge,
+    index,
+    isSelected: selectedBadgeId === badge.id,
+    palette,
+    onPress: () => onSelect(badge.id),
+  }));
+}
+
+function keyBadgeSelectorItem(item: BadgeSelectorItem) {
+  return item.key;
+}
+
+function renderBadgeSelectorItem({ item }: ListRenderItemInfo<BadgeSelectorItem>) {
+  const { badge, palette, isSelected } = item;
+  return (
+    <Animated.View entering={FadeIn.delay(item.index * 50)}>
+      <Clickable
+        onPress={item.onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`Select badge ${badge.label}`}
+        accessibilityState={{ selected: isSelected }}
+      >
+        <View
+          style={[
+            styles.badgeCard,
+            {
+              backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
+              borderColor: isSelected ? palette.tint : palette.border,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.badgeIconCircle,
+              {
+                backgroundColor: isSelected
+                  ? withAlpha(palette.tint, 0.12)
+                  : withAlpha(palette.muted, 0.09),
+              },
+            ]}
+          >
+            <Ionicons
+              name={getBadgeIcon(badge) as keyof typeof Ionicons.glyphMap}
+              size={24}
+              color={isSelected ? palette.tint : palette.icon}
+            />
+          </View>
+          <ThemedText
+            style={[styles.badgeLabel, { color: isSelected ? palette.tint : palette.text }]}
+            numberOfLines={3}
+          >
+            {badge.label}
+          </ThemedText>
+          {isSelected && (
+            <View style={[styles.selectedCheck, { backgroundColor: palette.tint }]}>
+              <Ionicons name="checkmark" size={12} color={palette.onPrimary} />
+            </View>
+          )}
+        </View>
+      </Clickable>
+    </Animated.View>
+  );
+}
 
 /* ─── Reason Selector ─── */
 interface ReasonSelectorProps {
   selectedReason: string;
   onSelect: (reason: string) => void;
 }
-export const ReasonSelector = memo(function ReasonSelector({
+export const ReasonSelector = function ReasonSelector({
   selectedReason,
   onSelect,
 }: ReasonSelectorProps) {
@@ -191,7 +220,7 @@ export const ReasonSelector = memo(function ReasonSelector({
       </Row>
     </View>
   );
-});
+};
 
 /* ─── Note Input ─── */
 interface NoteInputProps {
@@ -199,11 +228,7 @@ interface NoteInputProps {
   onNoteChange: (v: string) => void;
   onQuickNote: (n: string) => void;
 }
-export const NoteInput = memo(function NoteInput({
-  note,
-  onNoteChange,
-  onQuickNote,
-}: NoteInputProps) {
+export const NoteInput = function NoteInput({ note, onNoteChange, onQuickNote }: NoteInputProps) {
   const { colors: palette } = useTheme();
   return (
     <View style={styles.section}>
@@ -250,7 +275,7 @@ export const NoteInput = memo(function NoteInput({
       </ThemedText>
     </View>
   );
-});
+};
 
 /* ─── Preview Section ─── */
 interface PreviewSectionProps {
@@ -259,7 +284,7 @@ interface PreviewSectionProps {
   note: string;
   coachName?: string;
 }
-export const PreviewSection = memo(function PreviewSection({
+export const PreviewSection = function PreviewSection({
   selectedBadge,
   selectedReason,
   note,
@@ -292,13 +317,13 @@ export const PreviewSection = memo(function PreviewSection({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 /* ─── Error Banner ─── */
 interface ErrorBannerProps {
   error: string;
 }
-export const ErrorBanner = memo(function ErrorBanner({ error }: ErrorBannerProps) {
+export const ErrorBanner = function ErrorBanner({ error }: ErrorBannerProps) {
   const { colors: palette } = useTheme();
   return (
     <Row style={[styles.errorBanner, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
@@ -306,7 +331,7 @@ export const ErrorBanner = memo(function ErrorBanner({ error }: ErrorBannerProps
       <ThemedText style={{ color: palette.error, flex: 1 }}>{error}</ThemedText>
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   header: {

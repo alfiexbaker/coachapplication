@@ -5,28 +5,27 @@
  * and suggested coaches. Applies per-child filtering when activeChildId is set.
  */
 
-import { useCallback, useEffect, useRef } from 'react';
-import { router } from 'expo-router';
-import { Routes } from '@/navigation/routes';
-
-import { bookingService } from '@/services/booking';
-import { eventService } from '@/services/event';
-import { inviteService as sessionInviteService } from '@/services/invite';
-import { discoverService } from '@/services/discover-service';
+import { useEffect, useRef } from "react";
+import { router } from "expo-router";
+import { Routes } from "@/navigation/routes";
+import { bookingService } from "@/services/booking";
+import { eventService } from "@/services/event";
+import { inviteService as sessionInviteService } from "@/services/invite";
+import { discoverService } from "@/services/discover-service";
 // Note: discoverService.getSuggestedCoaches() exists but we deliberately
 // don't surface coach rankings — marketplace fairness concern.
-import { apiClient } from '@/services/api-client';
-import { ensureRelationalDemoSeeded } from '@/services/relational-demo-seed-service';
-import { ServiceEvents } from '@/services/event-bus';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { useAuth } from '@/hooks/use-auth';
-import { useChildContext } from '@/hooks/use-child-context';
-import { useScreen } from '@/hooks/use-screen';
-import { useBookingFlow } from '@/context/booking-flow-context';
-import { createLogger } from '@/utils/logger';
-import { getSessionInviteCoachName } from '@/utils/session-invite-display';
-import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
-import { buildBookingDraftPatchFromOffering } from '@/utils/booking-draft-prefill';
+import { apiClient } from "@/services/api-client";
+import { ensureRelationalDemoSeeded } from "@/services/relational-demo-seed-service";
+import { ServiceEvents } from "@/services/event-bus";
+import { STORAGE_KEYS } from "@/constants/storage-keys";
+import { useAuth } from "@/hooks/use-auth";
+import { useChildContext } from "@/hooks/use-child-context";
+import { useScreen } from "@/hooks/use-screen";
+import { useBookingFlow } from "@/context/booking-flow-context";
+import { createLogger } from "@/utils/logger";
+import { getSessionInviteCoachName } from "@/utils/session-invite-display";
+import { getSessionOfferingHeadcount } from "@/utils/session-offering-capacity";
+import { buildBookingDraftPatchFromOffering } from "@/utils/booking-draft-prefill";
 import {
   canViewerSeeEvent,
   extractGroupSessionIdFromOfferingId,
@@ -34,19 +33,17 @@ import {
   mapEventToOffering,
   mapGroupSessionToOffering,
   normalizeSessionOfferingSource,
-} from '@/utils/session-offering-projections';
-import { ok, err, serviceError } from '@/types/result';
+} from "@/utils/session-offering-projections";
+import { ok, err, serviceError } from "@/types/result";
 import type {
   SessionOffering,
   SessionInvite,
   CoachProfile,
   GroupSession,
   GroupRegistration,
-} from '@/constants/types';
-import { uiFeedback } from '@/services/ui-feedback';
-
-const logger = createLogger('useBookingsDiscover');
-
+} from "@/constants/types";
+import { uiFeedback } from "@/services/ui-feedback";
+const logger = createLogger("useBookingsDiscover");
 interface DiscoverData {
   pendingInvites: SessionInvite[];
   thisWeekOfferings: SessionOffering[];
@@ -54,9 +51,7 @@ interface DiscoverData {
   clubSessions: GroupSession[];
   openSessions: SessionOffering[];
 }
-
 let lastDiscoverSnapshot: DiscoverData | null = null;
-
 export interface UseBookingsDiscoverResult {
   pendingInvites: SessionInvite[];
   thisWeekOfferings: SessionOffering[];
@@ -70,7 +65,7 @@ export interface UseBookingsDiscoverResult {
   retry: () => void;
   handleAcceptInvite: (
     invite: SessionInvite,
-    selectedSlot?: SessionInvite['proposedSlots'][0],
+    selectedSlot?: SessionInvite["proposedSlots"][0],
   ) => Promise<void>;
   handleDeclineInvite: (invite: SessionInvite) => void;
   handleCoachPress: (coachId: string) => void;
@@ -78,45 +73,46 @@ export interface UseBookingsDiscoverResult {
   handleGroupSessionPress: (sessionId: string) => void;
   handleFindCoachPress: () => void;
 }
-
 export function useBookingsDiscover(): UseBookingsDiscoverResult {
   const { currentUser } = useAuth();
   const { updateDraft } = useBookingFlow();
   const { children: contextChildren, activeChildId } = useChildContext();
   const seedEnsuredRef = useRef(false);
-
-  const ensureSeedOnce = useCallback(async () => {
+  const ensureSeedOnce = async () => {
     if (seedEnsuredRef.current) {
       return;
     }
     await ensureRelationalDemoSeeded();
     seedEnsuredRef.current = true;
-  }, []);
-
-  const loadData = useCallback(async () => {
+  };
+  const loadData = async () => {
     try {
       await ensureSeedOnce();
-
-      const userId = currentUser?.id ?? '';
+      const userId = currentUser?.id ?? "";
 
       // --- Pending invites ---
       let pendingInvites: SessionInvite[] = [];
-      if (currentUser && currentUser.role !== 'COACH') {
+      if (currentUser && currentUser.role !== "COACH") {
         try {
           pendingInvites = await sessionInviteService.getPendingInvites(userId);
         } catch (e) {
-          logger.error('Failed to load pending invites', e);
+          logger.error("Failed to load pending invites", e);
         }
       }
 
       // --- All session offerings + group projections ---
-      const [storedOfferings, groupSessions, groupRegistrations] = await Promise.all([
-        apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
-        apiClient.get<GroupSession[]>(STORAGE_KEYS.GROUP_SESSIONS, []),
-        apiClient.get<GroupRegistration[]>(STORAGE_KEYS.GROUP_REGISTRATIONS, []),
-      ]);
-      const normalizedStoredOfferings = storedOfferings.map(normalizeSessionOfferingSource);
-
+      const [storedOfferings, groupSessions, groupRegistrations] =
+        await Promise.all([
+          apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
+          apiClient.get<GroupSession[]>(STORAGE_KEYS.GROUP_SESSIONS, []),
+          apiClient.get<GroupRegistration[]>(
+            STORAGE_KEYS.GROUP_REGISTRATIONS,
+            [],
+          ),
+        ]);
+      const normalizedStoredOfferings = storedOfferings.map(
+        normalizeSessionOfferingSource,
+      );
       const scopedChildren = contextChildren.filter(
         (child) => !activeChildId || child.id === activeChildId,
       );
@@ -132,18 +128,20 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
           childClubIds.add(clubId);
         }
       }
-
       const registrationsBySessionId = new Map<string, GroupRegistration[]>();
       for (const registration of groupRegistrations) {
         if (!registrationsBySessionId.has(registration.sessionId)) {
           registrationsBySessionId.set(registration.sessionId, []);
         }
-        registrationsBySessionId.get(registration.sessionId)!.push(registration);
+        registrationsBySessionId
+          .get(registration.sessionId)!
+          .push(registration);
       }
-
-      const isCoachUser = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
+      const isCoachUser =
+        currentUser?.role === "COACH" || currentUser?.role === "ADMIN";
       const relevantGroupSessions = groupSessions.filter((session) => {
-        const sessionRegistrations = registrationsBySessionId.get(session.id) ?? [];
+        const sessionRegistrations =
+          registrationsBySessionId.get(session.id) ?? [];
         return isGroupSessionRelevantToViewer({
           session,
           sessionRegistrations,
@@ -153,17 +151,16 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
           isCoachUser,
         });
       });
-
-      const projectedGroupOfferings = relevantGroupSessions
-        .map((session) =>
-          mapGroupSessionToOffering(
+      const projectedGroupOfferings = relevantGroupSessions.flatMap(
+        (session) => {
+          const mapped = mapGroupSessionToOffering(
             session,
             registrationsBySessionId.get(session.id) ?? [],
             new Date(),
-          ),
-        )
-        .filter((offering): offering is SessionOffering => offering !== null);
-
+          );
+          return mapped !== null ? [mapped] : [];
+        },
+      );
       const eventClubIds = new Set<string>(childClubIds);
       for (const offering of normalizedStoredOfferings) {
         if (offering.clubId) {
@@ -175,7 +172,7 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
           try {
             return await eventService.getAllClubEvents(clubId);
           } catch (eventError) {
-            logger.warn('Failed to load club events for discover', {
+            logger.warn("Failed to load club events for discover", {
               clubId,
               error: eventError,
             });
@@ -185,11 +182,17 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
       );
       const eventOfferings = clubEventsResults
         .flat()
-        .filter((event) =>
-          canViewerSeeEvent(event, viewerIds, isCoachUser, hasChildProfiles, userId),
-        )
-        .map(mapEventToOffering);
-
+        .flatMap((event) =>
+          canViewerSeeEvent(
+            event,
+            viewerIds,
+            isCoachUser,
+            hasChildProfiles,
+            userId,
+          )
+            ? [mapEventToOffering(event)]
+            : [],
+        );
       const allOfferingsById = new Map<string, SessionOffering>();
       for (const offering of normalizedStoredOfferings) {
         allOfferingsById.set(offering.id, offering);
@@ -206,8 +209,8 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
       const bookings = await bookingService.list();
       const familiarCoachIds = new Set<string>();
       for (const booking of bookings) {
-        const athleteId = booking.athleteId ?? booking.athleteIds?.[0] ?? '';
-        const bookedById = booking.bookedById ?? '';
+        const athleteId = booking.athleteId ?? booking.athleteIds?.[0] ?? "";
+        const bookedById = booking.bookedById ?? "";
         if (viewerIds.has(athleteId) || viewerIds.has(bookedById)) {
           if (booking.coachId) familiarCoachIds.add(booking.coachId);
         }
@@ -218,50 +221,53 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
       if (familiarCoachIds.size > 0) {
         const allCoachesResult = await discoverService.getAllCoaches();
         if (allCoachesResult.success) {
-          familiarCoaches = allCoachesResult.data.filter((c) => familiarCoachIds.has(c.id));
+          familiarCoaches = allCoachesResult.data.filter((c) =>
+            familiarCoachIds.has(c.id),
+          );
         }
       }
 
       // --- Filter offerings ---
       const now = new Date();
       const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
       const isEligible = (offering: SessionOffering): boolean => {
-        if (offering.status === 'completed' || offering.status === 'cancelled') return false;
-        if (!offering.isRecurring && new Date(offering.scheduledAt) < now) return false;
-        if (getSessionOfferingHeadcount(offering) >= offering.maxParticipants) return false;
+        if (offering.status === "completed" || offering.status === "cancelled")
+          return false;
+        if (!offering.isRecurring && new Date(offering.scheduledAt) < now)
+          return false;
+        if (getSessionOfferingHeadcount(offering) >= offering.maxParticipants)
+          return false;
         // Age filtering
         if (activeChildId) {
           const child = contextChildren.find((c) => c.id === activeChildId);
           if (child?.age != null) {
-            if (offering.ageMin != null && child.age < offering.ageMin) return false;
-            if (offering.ageMax != null && child.age > offering.ageMax) return false;
+            if (offering.ageMin != null && child.age < offering.ageMin)
+              return false;
+            if (offering.ageMax != null && child.age > offering.ageMax)
+              return false;
           }
         }
         return true;
       };
-
       const thisWeekOfferings = allOfferings.filter((o) => {
         if (!isEligible(o)) return false;
         if (o.isRecurring) return true; // recurring sessions always relevant for "this week"
         const scheduledDate = new Date(o.scheduledAt);
         return scheduledDate >= now && scheduledDate <= weekFromNow;
       });
-
       const openSessions = allOfferings.filter((o) => {
         if (!isEligible(o)) return false;
-        return o.inviteType === 'OPEN';
+        return o.inviteType === "OPEN";
       });
 
       // --- Club sessions (broad scope, not training-only) ---
       const clubSessions = relevantGroupSessions
         .filter((session) => Boolean(session.clubId))
         .sort((a, b) => {
-          const aDate = a.schedule[0]?.date || '';
-          const bDate = b.schedule[0]?.date || '';
+          const aDate = a.schedule[0]?.date || "";
+          const bDate = b.schedule[0]?.date || "";
           return aDate.localeCompare(bDate);
         });
-
       return ok<DiscoverData>({
         pendingInvites,
         thisWeekOfferings,
@@ -270,13 +276,16 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
         openSessions,
       });
     } catch (loadError) {
-      logger.error('Failed to load discover data', loadError);
+      logger.error("Failed to load discover data", loadError);
       return err(
-        serviceError('UNKNOWN', 'Failed to load discover data. Pull down to refresh.', loadError),
+        serviceError(
+          "UNKNOWN",
+          "Failed to load discover data. Pull down to refresh.",
+          loadError,
+        ),
       );
     }
-  }, [currentUser, contextChildren, activeChildId, ensureSeedOnce]);
-
+  };
   const {
     data,
     status,
@@ -300,91 +309,101 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
       value.clubSessions.length === 0 &&
       value.openSessions.length === 0,
     refetchOnFocus: true,
-    loadingStrategy: 'warm-first',
+    loadingStrategy: "warm-first",
   });
-
   useEffect(() => {
     if (data) {
       lastDiscoverSnapshot = data;
     }
   }, [data]);
-
   const resolvedData = data ?? lastDiscoverSnapshot;
   const pendingInvites = resolvedData?.pendingInvites ?? [];
   const thisWeekOfferings = resolvedData?.thisWeekOfferings ?? [];
   const familiarCoaches = resolvedData?.familiarCoaches ?? [];
   const clubSessions = resolvedData?.clubSessions ?? [];
   const openSessions = resolvedData?.openSessions ?? [];
-  const loading = status === 'loading' && resolvedData === null;
+  const loading = status === "loading" && resolvedData === null;
   const error =
-    status === 'error' && resolvedData === null
-      ? (screenError?.message ?? 'Failed to load discover data. Pull down to refresh.')
+    status === "error" && resolvedData === null
+      ? (screenError?.message ??
+        "Failed to load discover data. Pull down to refresh.")
       : null;
 
   // --- Handlers ---
 
-  const handleAcceptInvite = useCallback(
-    async (invite: SessionInvite, selectedSlot?: SessionInvite['proposedSlots'][0]) => {
-      const slot = selectedSlot || invite.proposedSlots[0];
-      const result = await sessionInviteService.respondToInvite({
-        inviteId: invite.id,
-        response: 'ACCEPTED',
-        selectedSlot: slot,
-      });
-      if (result.success) {
-        onRefresh();
-      }
-    },
-    [onRefresh],
-  );
-
-  const handleDeclineInvite = useCallback(
-    (invite: SessionInvite) => {
-      const coachName = getSessionInviteCoachName(invite);
-      uiFeedback.alert('Decline Invite?', `Decline the session invite from ${coachName}?`, [
-        { text: 'Cancel', style: 'cancel' },
+  const handleAcceptInvite = async (
+    invite: SessionInvite,
+    selectedSlot?: SessionInvite["proposedSlots"][0],
+  ) => {
+    const slot = selectedSlot || invite.proposedSlots[0];
+    const result = await sessionInviteService.respondToInvite({
+      inviteId: invite.id,
+      response: "ACCEPTED",
+      selectedSlot: slot,
+    });
+    if (result.success) {
+      onRefresh();
+    }
+  };
+  const handleDeclineInvite = (invite: SessionInvite) => {
+    const coachName = getSessionInviteCoachName(invite);
+    uiFeedback.alert(
+      "Decline Invite?",
+      `Decline the session invite from ${coachName}?`,
+      [
         {
-          text: 'Decline',
-          style: 'destructive',
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Decline",
+          style: "destructive",
           onPress: async () => {
             const result = await sessionInviteService.respondToInvite({
               inviteId: invite.id,
-              response: 'DECLINED',
+              response: "DECLINED",
             });
             if (result.success) {
               onRefresh();
             }
           },
         },
-      ]);
-    },
-    [onRefresh],
-  );
-
-  const handleCoachPress = useCallback((coachId: string) => {
-    logger.press('DiscoverCoachCard', { coachId });
+      ],
+    );
+  };
+  const handleCoachPress = (coachId: string) => {
+    logger.press("DiscoverCoachCard", {
+      coachId,
+    });
     const prefillChild = (() => {
       if (activeChildId) {
-        const activeChild = contextChildren.find((child) => child.id === activeChildId);
+        const activeChild = contextChildren.find(
+          (child) => child.id === activeChildId,
+        );
         if (activeChild) {
-          return { id: activeChild.id, name: activeChild.name };
+          return {
+            id: activeChild.id,
+            name: activeChild.name,
+          };
         }
       }
       if (contextChildren.length === 1) {
-        return { id: contextChildren[0].id, name: contextChildren[0].name };
+        return {
+          id: contextChildren[0].id,
+          name: contextChildren[0].name,
+        };
       }
       if (contextChildren.length === 0 && currentUser?.id) {
         return {
           id: currentUser.id,
-          name: currentUser.name || currentUser.fullName || 'Athlete',
+          name: currentUser.name || currentUser.fullName || "Athlete",
         };
       }
       return null;
     })();
-
     updateDraft({
       coachId,
-      entrySource: 'discover_feed_coach',
+      entrySource: "discover_feed_coach",
       childId: prefillChild?.id,
       athleteName: prefillChild?.name,
       sessionOfferingId: undefined,
@@ -401,29 +420,27 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
       price: undefined,
       participants: undefined,
     });
-
-    logger.debug('Discover coach routing decision', {
+    logger.debug("Discover coach routing decision", {
       coachId,
-      source: 'discover_feed_coach',
-      target: 'session_list_first',
+      source: "discover_feed_coach",
+      target: "session_list_first",
       hasActiveChildId: Boolean(activeChildId),
     });
     router.push(
       Routes.bookCoach(coachId, {
-        source: 'discover_feed_coach',
+        source: "discover_feed_coach",
         childId: activeChildId || undefined,
       }),
     );
-  }, [activeChildId, contextChildren, currentUser?.fullName, currentUser?.id, currentUser?.name, updateDraft]);
-
-  const handleOfferingPress = useCallback((offering: SessionOffering) => {
+  };
+  const handleOfferingPress = (offering: SessionOffering) => {
     const normalizedOffering = normalizeSessionOfferingSource(offering);
-    logger.press('DiscoverOffering', {
+    logger.press("DiscoverOffering", {
       offeringId: normalizedOffering.id,
       coachId: normalizedOffering.coachId,
       source: normalizedOffering.source,
     });
-    if (normalizedOffering.source === 'group') {
+    if (normalizedOffering.source === "group") {
       const groupSessionId =
         normalizedOffering.sourceEntityId ??
         extractGroupSessionIdFromOfferingId(normalizedOffering.id);
@@ -434,18 +451,26 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
     }
     const prefillChild = (() => {
       if (activeChildId) {
-        const activeChild = contextChildren.find((child) => child.id === activeChildId);
+        const activeChild = contextChildren.find(
+          (child) => child.id === activeChildId,
+        );
         if (activeChild) {
-          return { id: activeChild.id, name: activeChild.name };
+          return {
+            id: activeChild.id,
+            name: activeChild.name,
+          };
         }
       }
       if (contextChildren.length === 1) {
-        return { id: contextChildren[0].id, name: contextChildren[0].name };
+        return {
+          id: contextChildren[0].id,
+          name: contextChildren[0].name,
+        };
       }
       if (contextChildren.length === 0 && currentUser?.id) {
         return {
           id: currentUser.id,
-          name: currentUser.name || currentUser.fullName || 'Athlete',
+          name: currentUser.name || currentUser.fullName || "Athlete",
         };
       }
       return null;
@@ -455,28 +480,27 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
         coachId: normalizedOffering.coachId,
         offering: normalizedOffering,
         child: prefillChild,
-        entrySource: 'discover_feed',
+        entrySource: "discover_feed",
       }),
     );
     router.push(
       Routes.bookCoach(normalizedOffering.coachId, {
         offeringId: normalizedOffering.id,
-        source: 'discover_feed',
+        source: "discover_feed",
         childId: activeChildId || undefined,
       }),
     );
-  }, [activeChildId, contextChildren, currentUser?.fullName, currentUser?.id, currentUser?.name, updateDraft]);
-
-  const handleGroupSessionPress = useCallback((sessionId: string) => {
-    logger.press('DiscoverGroupSession', { sessionId });
+  };
+  const handleGroupSessionPress = (sessionId: string) => {
+    logger.press("DiscoverGroupSession", {
+      sessionId,
+    });
     router.push(Routes.groupSession(sessionId));
-  }, []);
-
-  const handleFindCoachPress = useCallback(() => {
-    logger.press('DiscoverFindCoach');
+  };
+  const handleFindCoachPress = () => {
+    logger.press("DiscoverFindCoach");
     router.push(Routes.DISCOVER_MAP);
-  }, []);
-
+  };
   return {
     pendingInvites,
     thisWeekOfferings,

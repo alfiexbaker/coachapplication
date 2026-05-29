@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
@@ -21,7 +21,7 @@ export interface DevSessionVisibilityProps {
   colors: ThemeColors;
 }
 
-export const DevSessionVisibility = memo(function DevSessionVisibility({
+export const DevSessionVisibility = function DevSessionVisibility({
   visibility,
   onVisibilityChange,
   colors,
@@ -63,7 +63,7 @@ export const DevSessionVisibility = memo(function DevSessionVisibility({
       </Row>
     </Column>
   );
-});
+};
 
 const styles = StyleSheet.create({
   option: {

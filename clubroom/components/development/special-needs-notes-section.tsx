@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -12,7 +11,7 @@ interface SpecialNeedsNotesSectionProps {
   childProfile: ChildProfile;
 }
 
-export const SpecialNeedsNotesSection = memo(function SpecialNeedsNotesSection({
+export const SpecialNeedsNotesSection = function SpecialNeedsNotesSection({
   childProfile,
 }: SpecialNeedsNotesSectionProps) {
   const { colors } = useTheme();
@@ -63,9 +62,9 @@ export const SpecialNeedsNotesSection = memo(function SpecialNeedsNotesSection({
                 Allergies
               </ThemedText>
               <Row style={styles.tagList}>
-                {childProfile.allergies.map((allergy, idx) => (
+                {childProfile.allergies.map((allergy) => (
                   <View
-                    key={idx}
+                    key={allergy}
                     style={[styles.tag, { backgroundColor: withAlpha(colors.muted, 0.09) }]}
                   >
                     <ThemedText style={[Typography.caption, { color: colors.text }]}>
@@ -83,9 +82,9 @@ export const SpecialNeedsNotesSection = memo(function SpecialNeedsNotesSection({
                 Medications
               </ThemedText>
               <Row style={styles.tagList}>
-                {childProfile.medications.map((med, idx) => (
+                {childProfile.medications.map((med) => (
                   <View
-                    key={idx}
+                    key={med}
                     style={[styles.tag, { backgroundColor: withAlpha(colors.muted, 0.09) }]}
                   >
                     <ThemedText style={[Typography.caption, { color: colors.text }]}>
@@ -100,7 +99,7 @@ export const SpecialNeedsNotesSection = memo(function SpecialNeedsNotesSection({
       )}
     </>
   );
-});
+};
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.sm },

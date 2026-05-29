@@ -1,7 +1,7 @@
 /**
  * useInviteSessionFlow — Multi-step invite flow state management.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -46,73 +46,76 @@ export function useInviteSessionFlow({
   const [selectedAthletes, setSelectedAthletes] = useState<Athlete[]>([]);
   const [isNewSession, setIsNewSession] = useState(false);
 
-  const loadUpcomingSessions = useCallback(async () => {
-    try {
-      const bookings = await apiClient.get<UpcomingSession[]>('coach_bookings', []);
-      const now = new Date();
-      setUpcomingSessions(
-        bookings
-          .filter((b) => new Date(b.scheduledAt) > now && b.coachId === coachId)
-          .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
-          .slice(0, 10),
-      );
-    } catch (error) {
-      logger.error('Failed to load upcoming sessions', error);
-    }
-  }, [coachId]);
-
   useEffect(() => {
-    if (visible) loadUpcomingSessions();
-  }, [visible, loadUpcomingSessions]);
-
-  const handleChoiceSelect = useCallback(
-    (choice: 'existing' | 'new') => {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      logger.action('InviteChoiceSelected', { choice });
-      if (choice === 'new') {
-        setIsNewSession(true);
-        setStep('select-athletes');
-        return;
+    const loadUpcomingSessions = async () => {
+      try {
+        const bookings = await apiClient.get<UpcomingSession[]>('coach_bookings', []);
+        const now = new Date();
+        setUpcomingSessions(
+          bookings
+            .filter((booking) => new Date(booking.scheduledAt) > now && booking.coachId === coachId)
+            .sort(
+              (left, right) =>
+                new Date(left.scheduledAt).getTime() - new Date(right.scheduledAt).getTime(),
+            )
+            .slice(0, 10),
+        );
+      } catch (error) {
+        logger.error('Failed to load upcoming sessions', error);
       }
-      setIsNewSession(false);
-      if (upcomingSessions.length === 0) {
-        uiFeedback.showToast('No upcoming sessions found. Starting new session invite flow.', 'warning');
-        setIsNewSession(true);
-        setStep('select-athletes');
-      } else {
-        setStep('select-session');
-      }
-    },
-    [upcomingSessions.length],
-  );
+    };
 
-  const handleSessionSelect = useCallback((session: UpcomingSession) => {
+    if (visible)
+      startTransition(() => {
+        void loadUpcomingSessions();
+      });
+  }, [visible, coachId]);
+
+  const handleChoiceSelect = (choice: 'existing' | 'new') => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    logger.action('InviteChoiceSelected', { choice });
+    if (choice === 'new') {
+      setIsNewSession(true);
+      setStep('select-athletes');
+      return;
+    }
+    setIsNewSession(false);
+    if (upcomingSessions.length === 0) {
+      uiFeedback.showToast(
+        'No upcoming sessions found. Starting new session invite flow.',
+        'warning',
+      );
+      setIsNewSession(true);
+      setStep('select-athletes');
+    } else {
+      setStep('select-session');
+    }
+  };
+
+  const handleSessionSelect = (session: UpcomingSession) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedSession(session);
     setStep('select-athletes');
     logger.action('SessionSelected', { sessionId: session.id });
-  }, []);
+  };
 
-  const handleAthletesSelected = useCallback(
-    (selected: Athlete[]) => {
-      setSelectedAthletes(selected);
-      if (isNewSession) {
-        onClose();
-        router.push(
-          Routes.sessionsCreateWith({
-            athleteIds: selected.map((a) => a.id).join(','),
-            athleteNames: selected.map((a) => a.name).join(','),
-          }),
-        );
-        logger.action('NavigateToCreateSession', { athleteCount: selected.length });
-      } else if (selectedSession) {
-        setStep('confirm');
-      }
-    },
-    [isNewSession, selectedSession, onClose],
-  );
+  const handleAthletesSelected = (selected: Athlete[]) => {
+    setSelectedAthletes(selected);
+    if (isNewSession) {
+      onClose();
+      router.push(
+        Routes.sessionsCreateWith({
+          athleteIds: selected.map((a) => a.id).join(','),
+          athleteNames: selected.map((a) => a.name).join(','),
+        }),
+      );
+      logger.action('NavigateToCreateSession', { athleteCount: selected.length });
+    } else if (selectedSession) {
+      setStep('confirm');
+    }
+  };
 
-  const handleConfirm = useCallback(async () => {
+  const handleConfirm = async () => {
     if (!selectedSession || selectedAthletes.length === 0) return;
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     logger.action('InviteConfirmed', {
@@ -139,27 +142,29 @@ export function useInviteSessionFlow({
         athleteIds: selectedAthletes.map((a) => a.id),
         isNew: false,
       });
-      uiFeedback.showToast(`${selectedAthletes.length} athlete${selectedAthletes.length !== 1 ? 's' : ''} added to ${selectedSession.title || 'session'}.`);
+      uiFeedback.showToast(
+        `${selectedAthletes.length} athlete${selectedAthletes.length !== 1 ? 's' : ''} added to ${selectedSession.title || 'session'}.`,
+      );
       handleClose();
     } catch (error) {
       logger.error('Failed to add athletes to session', error);
       uiFeedback.showToast('Failed to add athletes. Please try again.', 'error');
     }
-  }, [selectedSession, selectedAthletes, onComplete]);
+  };
 
-  const handleClose = useCallback(() => {
+  const handleClose = () => {
     setStep('choice');
     setSelectedSession(null);
     setSelectedAthletes([]);
     setIsNewSession(false);
     onClose();
-  }, [onClose]);
+  };
 
-  const handleBack = useCallback(() => {
+  const handleBack = () => {
     if (step === 'confirm') setStep('select-athletes');
     else if (step === 'select-athletes') setStep(isNewSession ? 'choice' : 'select-session');
     else if (step === 'select-session') setStep('choice');
-  }, [step, isNewSession]);
+  };
 
   return {
     step,

@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -28,7 +28,9 @@ function BookingOwnershipBlockInner({ booking, compact = false }: BookingOwnersh
 
   useEffect(() => {
     if (booking.actingAs !== 'club' || !booking.clubId) {
-      setOrganizationLabel(null);
+      startTransition(() => {
+        setOrganizationLabel(null);
+      });
       return;
     }
 
@@ -133,7 +135,7 @@ function BookingOwnershipBlockInner({ booking, compact = false }: BookingOwnersh
   );
 }
 
-export const BookingOwnershipBlock = memo(BookingOwnershipBlockInner);
+export const BookingOwnershipBlock = BookingOwnershipBlockInner;
 
 const styles = StyleSheet.create({
   block: {

@@ -2,7 +2,7 @@
  * EditSpecialtiesSection — Coaching specialty chip selector.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -20,7 +20,7 @@ interface EditSpecialtiesSectionProps {
   onToggleFocus: (focus: FootballObjective) => void;
 }
 
-export const EditSpecialtiesSection = memo(function EditSpecialtiesSection({
+export const EditSpecialtiesSection = function EditSpecialtiesSection({
   colors,
   objectives,
   selectedFocuses,
@@ -57,7 +57,7 @@ export const EditSpecialtiesSection = memo(function EditSpecialtiesSection({
       </Row>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.md },

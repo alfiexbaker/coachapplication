@@ -2,24 +2,26 @@
  * SessionInviteCard — Composition root.
  * Displays a session invite with compact/full variants, slot picker, actions, RSVP.
  */
-import { memo, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Row } from '@/components/primitives/row';
-import { Ionicons } from '@expo/vector-icons';
-
-import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Divider } from '@/components/ui/primitives/Divider';
-import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
-import type { SessionInvite, TimeSlot } from '@/constants/types';
+import { useState } from "react";
+import { View, StyleSheet } from "react-native";
+import { Row } from "@/components/primitives/row";
+import { Ionicons } from "@expo/vector-icons";
+import { SurfaceCard } from "@/components/primitives/surface-card";
+import { Divider } from "@/components/ui/primitives/Divider";
+import { ThemedText } from "@/components/themed-text";
+import { Spacing, Radii, Typography, withAlpha } from "@/constants/theme";
+import { useTheme } from "@/hooks/useTheme";
+import type { SessionInvite, TimeSlot } from "@/constants/types";
 import {
   getSessionInviteAthleteNames,
   getSessionInviteCoachName,
-} from '@/utils/session-invite-display';
-import { DeclineReasonSheet, type DeclineReasonResult } from './decline-reason-sheet';
-import { MultiWeekInviteCard } from './multi-week-invite-card';
-import { getStatusColors } from './session-invite-helpers';
+} from "@/utils/session-invite-display";
+import {
+  DeclineReasonSheet,
+  type DeclineReasonResult,
+} from "./decline-reason-sheet";
+import { MultiWeekInviteCard } from "./multi-week-invite-card";
+import { getStatusColors } from "./session-invite-helpers";
 import {
   InvitationBanner,
   SessionMetaRow,
@@ -31,8 +33,7 @@ import {
   CoverImageHero,
   AvatarStack,
   RsvpButtonGroup,
-} from './session-invite-sections';
-
+} from "./session-invite-sections";
 interface SessionInviteCardProps {
   invite: SessionInvite;
   onPress: () => void;
@@ -42,9 +43,8 @@ interface SessionInviteCardProps {
   showSlotSelector?: boolean;
   slotTakenError?: string | null;
   acceptLoading?: boolean;
-  onRsvp?: (status: 'going' | 'maybe' | 'cant_go') => void;
+  onRsvp?: (status: "going" | "maybe" | "cant_go") => void;
 }
-
 function SessionInviteCardComponent({
   invite,
   onPress,
@@ -56,48 +56,58 @@ function SessionInviteCardComponent({
   onRsvp,
 }: SessionInviteCardProps) {
   const { colors: palette } = useTheme();
-  const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | null>(null);
+  const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | null>(
+    null,
+  );
   const [showDeclineSheet, setShowDeclineSheet] = useState(false);
-
   const statusColors = getStatusColors(palette);
   const isExpired = new Date(invite.expiresAt) < new Date();
-  const isPending = invite.status === 'PENDING';
-  const status = isExpired && isPending ? 'EXPIRED' : isPending ? 'PENDING' : invite.status;
+  const isPending = invite.status === "PENDING";
+  const status =
+    isExpired && isPending ? "EXPIRED" : isPending ? "PENDING" : invite.status;
   const statusConfig = statusColors[status] || statusColors.PENDING;
-  const canRespond = status === 'PENDING';
+  const canRespond = status === "PENDING";
   const coachName = getSessionInviteCoachName(invite);
   const athleteNames = getSessionInviteAthleteNames(invite);
-
   const firstSlot = invite.proposedSlots[0];
   const slotDate = firstSlot
-    ? new Date(firstSlot.date).toLocaleDateString('en-GB', {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'short',
+    ? new Date(firstSlot.date).toLocaleDateString("en-GB", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
       })
-    : '';
+    : "";
   const initials = coachName
-    .split(' ')
+    .split(" ")
     .map((n) => n[0])
-    .join('');
+    .join("");
 
   // Delegate to MultiWeekInviteCard for recurring
-  if (invite.isRecurring && invite.weekSlots && invite.weekSlots.length > 0 && canRespond) {
-    return <MultiWeekInviteCard invite={invite} onResponded={() => onAccept?.()} />;
+  if (
+    invite.isRecurring &&
+    invite.weekSlots &&
+    invite.weekSlots.length > 0 &&
+    canRespond
+  ) {
+    return (
+      <MultiWeekInviteCard invite={invite} onResponded={() => onAccept?.()} />
+    );
   }
-
-  const coachFirstName = coachName.split(' ')[0];
+  const coachFirstName = coachName.split(" ")[0];
   const athleteDisplay =
-    athleteNames.length === 1 ? athleteNames[0] : `${athleteNames.length} athletes`;
+    athleteNames.length === 1
+      ? athleteNames[0]
+      : `${athleteNames.length} athletes`;
   const invitationMessage = invite.clubName
     ? `Coach ${coachFirstName} has invited ${athleteDisplay} to ${invite.clubName}`
     : `Coach ${coachFirstName} has invited ${athleteDisplay} to a ${invite.sessionType.toLowerCase()}`;
-
   const handleAccept = () => {
-    const slot = selectedSlotIndex !== null ? invite.proposedSlots[selectedSlotIndex] : undefined;
+    const slot =
+      selectedSlotIndex !== null
+        ? invite.proposedSlots[selectedSlotIndex]
+        : undefined;
     onAccept?.(slot);
   };
-
   if (compact) {
     return (
       <SurfaceCard
@@ -109,21 +119,52 @@ function SessionInviteCardComponent({
           <Row
             align="center"
             justify="center"
-            style={[styles.compactAvatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
+            style={[
+              styles.compactAvatar,
+              {
+                backgroundColor: withAlpha(palette.tint, 0.06),
+              },
+            ]}
           >
-            <ThemedText style={[styles.compactAvatarText, { color: palette.tint }]}>
+            <ThemedText
+              style={[
+                styles.compactAvatarText,
+                {
+                  color: palette.tint,
+                },
+              ]}
+            >
               {initials}
             </ThemedText>
           </Row>
           <View style={styles.compactInfo}>
-            <ThemedText type="defaultSemiBold" numberOfLines={2} style={styles.invitationText}>
+            <ThemedText
+              type="defaultSemiBold"
+              numberOfLines={2}
+              style={styles.invitationText}
+            >
               {invitationMessage}
             </ThemedText>
-            <ThemedText style={[styles.compactMeta, { color: palette.muted }]} numberOfLines={1}>
+            <ThemedText
+              style={[
+                styles.compactMeta,
+                {
+                  color: palette.muted,
+                },
+              ]}
+              numberOfLines={1}
+            >
               {invite.sessionType} - {slotDate}
             </ThemedText>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
+          <View
+            style={[
+              styles.statusBadge,
+              {
+                backgroundColor: statusConfig.bg,
+              },
+            ]}
+          >
             <Ionicons
               name={statusConfig.icon as keyof typeof Ionicons.glyphMap}
               size={12}
@@ -134,7 +175,6 @@ function SessionInviteCardComponent({
       </SurfaceCard>
     );
   }
-
   return (
     <SurfaceCard
       style={styles.card}
@@ -155,25 +195,67 @@ function SessionInviteCardComponent({
         <Row
           align="center"
           justify="center"
-          style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
+          style={[
+            styles.avatar,
+            {
+              backgroundColor: withAlpha(palette.tint, 0.06),
+            },
+          ]}
         >
-          <ThemedText style={[styles.avatarText, { color: palette.tint }]}>{initials}</ThemedText>
+          <ThemedText
+            style={[
+              styles.avatarText,
+              {
+                color: palette.tint,
+              },
+            ]}
+          >
+            {initials}
+          </ThemedText>
         </Row>
         <View style={styles.headerContent}>
           <ThemedText type="defaultSemiBold" style={styles.coachName}>
             Coach {coachName}
           </ThemedText>
           {invite.clubName && (
-            <ThemedText style={[styles.clubName, { color: palette.tint }]}>
+            <ThemedText
+              style={[
+                styles.clubName,
+                {
+                  color: palette.tint,
+                },
+              ]}
+            >
               {invite.clubName}
             </ThemedText>
           )}
-          <ThemedText style={[styles.sessionType, { color: palette.muted }]}>
+          <ThemedText
+            style={[
+              styles.sessionType,
+              {
+                color: palette.muted,
+              },
+            ]}
+          >
             {invite.sessionType} - {invite.focus}
           </ThemedText>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-          <ThemedText style={[styles.statusText, { color: statusConfig.text }]}>
+        <View
+          style={[
+            styles.statusBadge,
+            {
+              backgroundColor: statusConfig.bg,
+            },
+          ]}
+        >
+          <ThemedText
+            style={[
+              styles.statusText,
+              {
+                color: statusConfig.text,
+              },
+            ]}
+          >
             {status}
           </ThemedText>
         </View>
@@ -187,16 +269,31 @@ function SessionInviteCardComponent({
 
       <Row align="center" gap="xs">
         <Ionicons name="person-outline" size={16} color={palette.muted} />
-        <ThemedText style={[styles.athletes, { color: palette.text }]}>
-          For: {athleteNames.join(', ')}
+        <ThemedText
+          style={[
+            styles.athletes,
+            {
+              color: palette.text,
+            },
+          ]}
+        >
+          For: {athleteNames.join(", ")}
         </ThemedText>
       </Row>
 
       {invite.rsvpCounts && invite.rsvpCounts.going > 0 && (
         <AvatarStack
-          attendees={(invite.rsvpResponses ?? [])
-            .filter((r) => r.status === 'going')
-            .map((r) => ({ id: r.userId, name: r.userName, photoUrl: r.userPhotoUrl }))}
+          attendees={(invite.rsvpResponses ?? []).flatMap((r) =>
+            r.status === "going"
+              ? [
+                  {
+                    id: r.userId,
+                    name: r.userName,
+                    photoUrl: r.userPhotoUrl,
+                  },
+                ]
+              : [],
+          )}
           goingCount={invite.rsvpCounts.going}
           maxVisible={4}
         />
@@ -209,12 +306,26 @@ function SessionInviteCardComponent({
           <View
             style={[
               styles.slotExplainer,
-              { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: withAlpha(palette.tint, 0.18) },
+              {
+                backgroundColor: withAlpha(palette.tint, 0.06),
+                borderColor: withAlpha(palette.tint, 0.18),
+              },
             ]}
           >
             <Row align="center" gap="xs">
-              <Ionicons name="information-circle-outline" size={16} color={palette.tint} />
-              <ThemedText style={[styles.slotExplainerText, { color: palette.muted }]}>
+              <Ionicons
+                name="information-circle-outline"
+                size={16}
+                color={palette.tint}
+              />
+              <ThemedText
+                style={[
+                  styles.slotExplainerText,
+                  {
+                    color: palette.muted,
+                  },
+                ]}
+              >
                 Select one proposed time slot to accept this invite.
               </ThemedText>
             </Row>
@@ -225,7 +336,14 @@ function SessionInviteCardComponent({
             onSelect={setSelectedSlotIndex}
           />
           {selectedSlotIndex === null && (
-            <ThemedText style={[styles.slotSelectionHint, { color: palette.muted }]}>
+            <ThemedText
+              style={[
+                styles.slotSelectionHint,
+                {
+                  color: palette.muted,
+                },
+              ]}
+            >
               Choose a slot to enable the Accept button.
             </ThemedText>
           )}
@@ -236,14 +354,22 @@ function SessionInviteCardComponent({
 
       {slotTakenError && <SlotTakenBanner message={slotTakenError} />}
       {invite.notes && (
-        <ThemedText style={[styles.notes, { color: palette.muted }]} numberOfLines={2}>
+        <ThemedText
+          style={[
+            styles.notes,
+            {
+              color: palette.muted,
+            },
+          ]}
+          numberOfLines={2}
+        >
           &quot;{invite.notes}&quot;
         </ThemedText>
       )}
 
-      {(canRespond || status === 'MAYBE') && onRsvp && (
+      {(canRespond || status === "MAYBE") && onRsvp && (
         <RsvpButtonGroup
-          currentStatus={status === 'MAYBE' ? 'maybe' : null}
+          currentStatus={status === "MAYBE" ? "maybe" : null}
           onRespond={onRsvp}
           compact
         />
@@ -253,7 +379,9 @@ function SessionInviteCardComponent({
         <InviteActions
           onAccept={handleAccept}
           onDecline={() => setShowDeclineSheet(true)}
-          acceptDisabled={invite.proposedSlots.length > 1 && selectedSlotIndex === null}
+          acceptDisabled={
+            invite.proposedSlots.length > 1 && selectedSlotIndex === null
+          }
           acceptLoading={acceptLoading}
         />
       )}
@@ -272,37 +400,81 @@ function SessionInviteCardComponent({
     </SurfaceCard>
   );
 }
-
-export const SessionInviteCard = memo(SessionInviteCardComponent);
-
+export const SessionInviteCard = SessionInviteCardComponent;
 const styles = StyleSheet.create({
-  card: { padding: Spacing.md, gap: Spacing.sm },
-  compactCard: { padding: Spacing.md },
-  compactAvatar: { width: 36, height: 36, borderRadius: Radii.xl },
-  compactAvatarText: { ...Typography.bodySmallSemiBold },
-  compactInfo: { flex: 1 },
-  compactMeta: { ...Typography.caption },
-  invitationText: { ...Typography.bodySmall },
-  avatar: { width: 48, height: 48, borderRadius: Radii.xl },
-  avatarText: { ...Typography.heading },
-  headerContent: { flex: 1, gap: Spacing.micro },
-  coachName: { ...Typography.subheading },
-  clubName: { ...Typography.smallSemiBold },
-  sessionType: { ...Typography.small },
+  card: {
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  compactCard: {
+    padding: Spacing.md,
+  },
+  compactAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+  },
+  compactAvatarText: {
+    ...Typography.bodySmallSemiBold,
+  },
+  compactInfo: {
+    flex: 1,
+  },
+  compactMeta: {
+    ...Typography.caption,
+  },
+  invitationText: {
+    ...Typography.bodySmall,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: Radii.xl,
+  },
+  avatarText: {
+    ...Typography.heading,
+  },
+  headerContent: {
+    flex: 1,
+    gap: Spacing.micro,
+  },
+  coachName: {
+    ...Typography.subheading,
+  },
+  clubName: {
+    ...Typography.smallSemiBold,
+  },
+  sessionType: {
+    ...Typography.small,
+  },
   statusBadge: {
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
-  statusText: { ...Typography.caption, textTransform: 'uppercase' },
-  athletes: { ...Typography.small },
-  notes: { ...Typography.small, fontStyle: 'italic' },
+  statusText: {
+    ...Typography.caption,
+    textTransform: "uppercase",
+  },
+  athletes: {
+    ...Typography.small,
+  },
+  notes: {
+    ...Typography.small,
+    fontStyle: "italic",
+  },
   slotExplainer: {
     borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
   },
-  slotExplainerText: { ...Typography.caption, flex: 1 },
-  slotSelectionHint: { ...Typography.caption, marginTop: -Spacing.xxs },
+  slotExplainerText: {
+    ...Typography.caption,
+    flex: 1,
+  },
+  slotSelectionHint: {
+    ...Typography.caption,
+    marginTop: -Spacing.xxs,
+  },
 });

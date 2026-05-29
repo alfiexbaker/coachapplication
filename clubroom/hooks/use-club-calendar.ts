@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 
 import { clubService, type CalendarEvent } from '@/services/club-service';
@@ -69,12 +69,12 @@ export function useClubCalendar(): UseClubCalendarResult {
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
 
   const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth());
-  const [selectedDay, setSelectedDay] = useState<number | null>(now.getDate());
+  const [year, setYear] = useState(() => now.getFullYear());
+  const [month, setMonth] = useState(() => now.getMonth());
+  const [selectedDay, setSelectedDay] = useState<number | null>(() => now.getDate());
   const [squadFilter, setSquadFilter] = useState<string | null>(null);
 
-  const loadCalendar = useCallback(async () => {
+  const loadCalendar = async () => {
     if (!clubId) {
       return ok<ClubCalendarData>({
         events: [],
@@ -98,7 +98,7 @@ export function useClubCalendar(): UseClubCalendarResult {
         serviceError('UNKNOWN', 'Failed to load club calendar. Pull down to refresh.', loadError),
       );
     }
-  }, [clubId, year, month, squadFilter]);
+  };
 
   const calendarDataKey = `${clubId ?? 'missing'}:${year}-${month}:${squadFilter ?? 'all'}`;
   const {
@@ -122,14 +122,14 @@ export function useClubCalendar(): UseClubCalendarResult {
   const squads = data?.squads ?? [];
   const loading = status === 'loading';
 
-  const eventsByDate = useMemo(() => {
+  const eventsByDate = (() => {
     const map: Record<string, CalendarEvent[]> = {};
     for (const event of events) {
       if (!map[event.date]) map[event.date] = [];
       map[event.date].push(event);
     }
     return map;
-  }, [events]);
+  })();
 
   const selectedDateKey = selectedDay !== null ? formatDateKey(year, month, selectedDay) : null;
   const selectedEvents = selectedDateKey ? (eventsByDate[selectedDateKey] ?? []) : [];
@@ -148,13 +148,10 @@ export function useClubCalendar(): UseClubCalendarResult {
     weeks.push(calendarCells.slice(i, i + 7));
   }
 
-  const isToday = useCallback(
-    (day: number) =>
-      year === now.getFullYear() && month === now.getMonth() && day === now.getDate(),
-    [year, month],
-  );
+  const isToday = (day: number) =>
+    year === now.getFullYear() && month === now.getMonth() && day === now.getDate();
 
-  const handlePrevMonth = useCallback(() => {
+  const handlePrevMonth = () => {
     setSelectedDay(null);
     if (month === 0) {
       setYear((y) => y - 1);
@@ -162,9 +159,9 @@ export function useClubCalendar(): UseClubCalendarResult {
     } else {
       setMonth((m) => m - 1);
     }
-  }, [month]);
+  };
 
-  const handleNextMonth = useCallback(() => {
+  const handleNextMonth = () => {
     setSelectedDay(null);
     if (month === 11) {
       setYear((y) => y + 1);
@@ -172,7 +169,7 @@ export function useClubCalendar(): UseClubCalendarResult {
     } else {
       setMonth((m) => m + 1);
     }
-  }, [month]);
+  };
 
   return {
     year,

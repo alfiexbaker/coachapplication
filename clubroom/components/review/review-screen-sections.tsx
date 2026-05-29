@@ -15,11 +15,7 @@ type HeaderProps = {
   onBack: () => void;
 };
 
-export const ReviewHeader = React.memo(function ReviewHeader({
-  colors,
-  submitted,
-  onBack,
-}: HeaderProps) {
+export const ReviewHeader = function ReviewHeader({ colors, submitted, onBack }: HeaderProps) {
   return (
     <Row align="center" justify="space-between" style={styles.header}>
       <Clickable onPress={onBack} style={styles.backButton} accessibilityLabel="Go back">
@@ -29,7 +25,7 @@ export const ReviewHeader = React.memo(function ReviewHeader({
       <View style={styles.headerSpacer} />
     </Row>
   );
-});
+};
 
 type SessionCardProps = {
   colors: ThemeColors;
@@ -39,7 +35,7 @@ type SessionCardProps = {
   formatDate: (value?: string) => string;
 };
 
-export const ReviewSessionCard = React.memo(function ReviewSessionCard({
+const renderReviewSessionCard = function renderReviewSessionCard({
   colors,
   coachName,
   service,
@@ -61,7 +57,8 @@ export const ReviewSessionCard = React.memo(function ReviewSessionCard({
       </Row>
     </SurfaceCard>
   );
-});
+};
+export const ReviewSessionCard = renderReviewSessionCard;
 
 type SuccessProps = {
   colors: ThemeColors;
@@ -70,7 +67,7 @@ type SuccessProps = {
   onDone: () => void;
 };
 
-export const ReviewSuccessState = React.memo(function ReviewSuccessState({
+const renderReviewSuccessState = function renderReviewSuccessState({
   colors,
   coachName,
   submittedRating,
@@ -87,7 +84,8 @@ export const ReviewSuccessState = React.memo(function ReviewSuccessState({
       <ThemedText style={[styles.successText, { color: colors.muted }]}>
         Your {submittedRating}-star review has been submitted.
         {coachName ? ` ${coachName} will appreciate your feedback.` : ''}
-        {'\n\n'}• It will appear on their profile within 24 hours{'\n'}• You can edit or delete it from your bookings{'\n'}• The coach has been notified
+        {'\n\n'}• It will appear on their profile within 24 hours{'\n'}• You can edit or delete it
+        from your bookings{'\n'}• The coach has been notified
       </ThemedText>
 
       <Clickable onPress={onDone} style={[styles.doneButton, { backgroundColor: colors.tint }]}>
@@ -95,7 +93,8 @@ export const ReviewSuccessState = React.memo(function ReviewSuccessState({
       </Clickable>
     </View>
   );
-});
+};
+export const ReviewSuccessState = renderReviewSuccessState;
 
 const styles = StyleSheet.create({
   header: {

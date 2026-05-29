@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Clickable } from '@/components/primitives/clickable';
@@ -15,6 +15,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { Row } from '@/components/primitives';
 import { Column } from '@/components/primitives/column';
 import { socialFeedService } from '@/services/social-feed-service';
+
+import { runAsyncFinally, runAsyncTryCatchFinally } from '@/utils/async-control';
 
 export interface FeedPostProps {
   post: ClubFeedPost;
@@ -36,19 +38,11 @@ export function FeedPost({ post, canPin, onPinToggle, onLike, onComment, onShare
   const initials = post.postAs === 'club' ? 'CL' : authorLabel.slice(0, 2).toUpperCase() || 'ME';
   const showActions = !!(onLike || onComment || onShare);
   const baseReactionCount = post.reactionCount ?? 0;
-  const hasUserReacted = useMemo(
-    () => (currentUser?.id ? socialFeedService.hasUserReacted(post.id, currentUser.id) : false),
-    [currentUser?.id, post.id, post.reactionCount],
-  );
+  const hasUserReacted = currentUser?.id
+    ? socialFeedService.hasUserReacted(post.id, currentUser.id)
+    : false;
   const liked = optimisticLiked ?? hasUserReacted;
   const reactionCount = optimisticReactionCount ?? baseReactionCount;
-
-  useEffect(() => {
-    if (!isLiking) {
-      setOptimisticLiked(null);
-      setOptimisticReactionCount(null);
-    }
-  }, [isLiking, post.reactionCount]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -75,24 +69,34 @@ export function FeedPost({ post, canPin, onPinToggle, onLike, onComment, onShare
     setIsLiking(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
 
-    try {
-      await Promise.resolve(onLike(post.id));
-    } catch {
-      setOptimisticLiked(previousLiked);
-      setOptimisticReactionCount(previousCount);
-    } finally {
-      setIsLiking(false);
-    }
+    await runAsyncTryCatchFinally(
+      async () => {
+        await Promise.resolve(onLike(post.id));
+      },
+      async (error) => {
+        setOptimisticLiked(previousLiked);
+        setOptimisticReactionCount(previousCount);
+      },
+      () => {
+        setIsLiking(false);
+        setOptimisticLiked(null);
+        setOptimisticReactionCount(null);
+      },
+    );
   };
 
   const handleCommentPress = async () => {
     if (!onComment || isCommenting) return;
     setIsCommenting(true);
-    try {
-      await Promise.resolve(onComment(post.id));
-    } finally {
-      setIsCommenting(false);
-    }
+
+    await runAsyncFinally(
+      async () => {
+        await Promise.resolve(onComment(post.id));
+      },
+      () => {
+        setIsCommenting(false);
+      },
+    );
   };
 
   return (
@@ -193,14 +197,14 @@ export function FeedPost({ post, canPin, onPinToggle, onLike, onComment, onShare
       )}
 
       {/* Badge awarded */}
-      {post.badgeAwarded && <Chip active>{post.badgeAwarded}</Chip>}
+      {post.badgeAwarded && <Chip active label={post.badgeAwarded} />}
 
       {/* Attachments */}
       {post.attachments && post.attachments.length > 0 && (
         <Row style={styles.attachments}>
-          {post.attachments.map((attachment, idx) => (
+          {post.attachments.map((attachment) => (
             <Row
-              key={idx}
+              key={attachment}
               style={[
                 styles.attachmentChip,
                 { backgroundColor: palette.surface, borderColor: palette.border },
@@ -234,7 +238,9 @@ export function FeedPost({ post, canPin, onPinToggle, onLike, onComment, onShare
                   color={liked ? palette.error : palette.muted}
                 />
               )}
-              <ThemedText style={{ ...Typography.small, color: liked ? palette.error : palette.muted }}>
+              <ThemedText
+                style={{ ...Typography.small, color: liked ? palette.error : palette.muted }}
+              >
                 {reactionCount}
               </ThemedText>
             </Clickable>

@@ -13,6 +13,7 @@ import React from 'react';
  * Platform-compatible clickable component that avoids web-only handlers during scoped type checks.
  */
 export interface ClickableProps {
+  ref?: React.Ref<React.ComponentRef<typeof Pressable>>;
   onPress?: (event: GestureResponderEvent) => void;
   onLongPress?: (event: GestureResponderEvent) => void;
   onPressIn?: (event: GestureResponderEvent) => void;
@@ -28,25 +29,22 @@ export interface ClickableProps {
   accessibilityState?: AccessibilityState;
 }
 
-export const Clickable = React.forwardRef<React.ComponentRef<typeof Pressable>, ClickableProps>(
-  function Clickable(
-    {
-      onPress,
-      onLongPress,
-      onPressIn,
-      onPressOut,
-      delayLongPress,
-      style,
-      children,
-      disabled,
-      hitSlop,
-      accessibilityLabel,
-      accessibilityHint,
-      accessibilityRole,
-      accessibilityState,
-    }: ClickableProps,
-    ref,
-  ) {
+export function Clickable({
+  ref,
+  onPress,
+  onLongPress,
+  onPressIn,
+  onPressOut,
+  delayLongPress,
+  style,
+  children,
+  disabled,
+  hitSlop,
+  accessibilityLabel,
+  accessibilityHint,
+  accessibilityRole,
+  accessibilityState,
+}: ClickableProps) {
     const handlePress = disabled ? undefined : onPress;
     const handleLongPress = disabled ? undefined : onLongPress;
     const handlePressIn = disabled ? undefined : onPressIn;
@@ -78,7 +76,6 @@ export const Clickable = React.forwardRef<React.ComponentRef<typeof Pressable>, 
         {children}
       </Pressable>
     );
-  },
-);
+}
 
 Clickable.displayName = 'Clickable';

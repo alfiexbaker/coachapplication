@@ -168,9 +168,11 @@ export default function IdUploadScreen() {
               ))}
             </View>
 
-            <Button onPress={handleSubmit} disabled={!selectedType || !uploaded || submitting}>
-              {submitting ? 'Submitting...' : 'Submit for Verification'}
-            </Button>
+            <Button
+              onPress={handleSubmit}
+              disabled={!selectedType || !uploaded || submitting}
+              label={submitting ? 'Submitting...' : 'Submit for Verification'}
+            />
           </>
         )}
       </ScrollView>

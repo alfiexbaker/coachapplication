@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,7 +15,7 @@ interface MediaCaptureButtonProps {
   onPress: () => void;
 }
 
-export const MediaCaptureButton = memo(function MediaCaptureButton({
+export const MediaCaptureButton = function MediaCaptureButton({
   mode,
   disabled,
   countLabel,
@@ -52,7 +52,7 @@ export const MediaCaptureButton = memo(function MediaCaptureButton({
       </Row>
     </Clickable>
   );
-});
+};
 
 const styles = StyleSheet.create({
   button: {

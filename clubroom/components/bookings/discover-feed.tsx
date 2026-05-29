@@ -1,11 +1,3 @@
-/**
- * DiscoverFeed — Main composition for the Discover tab within the Bookings screen.
- *
- * Scrollable feed with curated sections: invites, this week, your coaches,
- * club training, open sessions, and recommended coaches.
- */
-
-import { memo, useCallback } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -28,7 +20,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useChildContext } from '@/hooks/use-child-context';
 import { useBookingsDiscover } from '@/hooks/use-bookings-discover';
 
-export const DiscoverFeed = memo(function DiscoverFeed() {
+export const DiscoverFeed = function DiscoverFeed() {
   const { colors: palette } = useTheme();
   const {
     children: contextChildren,
@@ -57,17 +49,14 @@ export const DiscoverFeed = memo(function DiscoverFeed() {
     handleFindCoachPress,
   } = useBookingsDiscover();
 
-  const handleChildSelect = useCallback(
-    (childId: string) => {
-      // Toggle "All" if re-selecting the same child
-      if (childId === activeChildId) {
-        void setActiveChildId(null);
-      } else {
-        void setActiveChildId(childId);
-      }
-    },
-    [activeChildId, setActiveChildId],
-  );
+  const handleChildSelect = (childId: string) => {
+    // Toggle "All" if re-selecting the same child
+    if (childId === activeChildId) {
+      void setActiveChildId(null);
+    } else {
+      void setActiveChildId(childId);
+    }
+  };
 
   // --- Error ---
   if (error) {
@@ -170,9 +159,9 @@ export const DiscoverFeed = memo(function DiscoverFeed() {
       </Column>
     </ScrollView>
   );
-});
+};
 
-const MapDiscoveryHero = memo(function MapDiscoveryHero({ onPress }: { onPress: () => void }) {
+const MapDiscoveryHero = function MapDiscoveryHero({ onPress }: { onPress: () => void }) {
   const { colors: palette } = useTheme();
 
   return (
@@ -208,7 +197,7 @@ const MapDiscoveryHero = memo(function MapDiscoveryHero({ onPress }: { onPress: 
       </Row>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   scroll: {

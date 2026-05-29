@@ -1,31 +1,37 @@
-import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
-import { z } from 'zod';
-import { getClubGovernanceSnapshot, parseOrganizationRole } from '@clubroom/shared-contracts';
-import { recordAuditEvent } from '../../lib/audit-runtime.js';
-import { canUseStaffInviteLinks, isPrivilegedAdminAuth } from '../../lib/authz.js';
-import { ApiProblemError, forbidden, notFound } from '../../lib/http-errors.js';
-import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
+import type { FastifyPluginAsync, FastifyRequest } from "fastify";
+import { z } from "zod";
+import {
+  getClubGovernanceSnapshot,
+  parseOrganizationRole,
+} from "@clubroom/shared-contracts";
+import { recordAuditEvent } from "../../lib/audit-runtime.js";
+import {
+  canUseStaffInviteLinks,
+  isPrivilegedAdminAuth,
+} from "../../lib/authz.js";
+import { ApiProblemError, forbidden, notFound } from "../../lib/http-errors.js";
+import { getMarketplaceSeedStore } from "../../lib/marketplace-seed-store.js";
 import {
   resetClubAuthorityRepositoryForTests,
   resolveClubAuthorityRepository,
-} from '../../repositories/p0/club-authority-repository.js';
-import { resolveCoachFavouriteRepository } from '../../repositories/p0/coach-favourite-repository.js';
-import { resolveCoachSelfRepository } from '../../repositories/p0/coach-self-repository.js';
+} from "../../repositories/p0/club-authority-repository.js";
+import { resolveCoachFavouriteRepository } from "../../repositories/p0/coach-favourite-repository.js";
+import { resolveCoachSelfRepository } from "../../repositories/p0/coach-self-repository.js";
 import {
   parseAvailabilitySlotQuery,
   resolveCoachAvailabilityTables,
   resolveCoachAvailabilitySlots,
-} from './availability.js';
-import { buildClubScheduleActivities, findClubScheduleActivity } from './schedule.js';
-
+} from "./availability.js";
+import {
+  buildClubScheduleActivities,
+  findClubScheduleActivity,
+} from "./schedule.js";
 type SeedRow = Record<string, unknown>;
-
 interface RefundTier {
   hoursBeforeSession: number;
   refundPercentage: number;
   description: string;
 }
-
 interface CancellationPolicyPayload {
   name: string;
   description: string;
@@ -34,7 +40,6 @@ interface CancellationPolicyPayload {
   allowCancellations: boolean;
   isDefault: boolean;
 }
-
 interface SchedulingRulesPatchBody {
   minimumAdvanceBookingHours?: number;
   maxAdvanceBookingDays?: number;
@@ -43,36 +48,33 @@ interface SchedulingRulesPatchBody {
   allowSameDayBookings?: boolean;
   cancellationPolicy?: CancellationPolicyPayload | null;
 }
-
 const favouriteCoachParamsSchema = z.object({
   coachId: z.string().min(1),
 });
-
-const favouriteCoachBodySchema = z.object({
-  note: z.string().max(500).nullable().optional(),
-  userId: z.string().optional(),
-}).passthrough();
-
-const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
+const favouriteCoachBodySchema = z
+  .object({
+    note: z.string().max(500).nullable().optional(),
+    userId: z.string().optional(),
+  })
+  .passthrough();
+const asRows = (value: unknown): SeedRow[] =>
+  Array.isArray(value) ? (value as SeedRow[]) : [];
 const asString = (value: unknown): string | undefined =>
-  typeof value === 'string' ? value : undefined;
-
+  typeof value === "string" ? value : undefined;
 export function resetCoachClubRouteStateForTests(): void {
   resetClubAuthorityRepositoryForTests();
 }
-
 function toContractRole(role: string | undefined): string {
-  return parseOrganizationRole(role) ?? 'MEMBER';
+  return parseOrganizationRole(role) ?? "MEMBER";
 }
-
 function getActiveMemberships(clubMemberships: SeedRow[]): SeedRow[] {
-  return clubMemberships.filter((row) => row.active !== false && !asString(row.deletedAt));
+  return clubMemberships.filter(
+    (row) => row.active !== false && !asString(row.deletedAt),
+  );
 }
-
 function getActiveRows(rows: SeedRow[]): SeedRow[] {
   return rows.filter((row) => row.active !== false && !asString(row.deletedAt));
 }
-
 function getViewerMembership(
   clubMemberships: SeedRow[],
   clubId: string,
@@ -80,51 +82,47 @@ function getViewerMembership(
 ): SeedRow | null {
   return (
     getActiveMemberships(clubMemberships).find(
-      (row) => asString(row.clubId) === clubId && asString(row.userId) === userId,
+      (row) =>
+        asString(row.clubId) === clubId && asString(row.userId) === userId,
     ) ?? null
   );
 }
-
 function requireAuthUserId(authUserId: string | undefined): string {
   if (!authUserId) {
-    throw forbidden('Authenticated user is required');
+    throw forbidden("Authenticated user is required");
   }
   return authUserId;
 }
-
 async function recordCoachFavouriteAudit(params: {
   request: FastifyRequest;
   action: string;
   coachId: string;
-  result: 'SUCCESS' | 'DENY' | 'ERROR';
+  result: "SUCCESS" | "DENY" | "ERROR";
   metadata?: Record<string, unknown>;
 }): Promise<void> {
   await recordAuditEvent({
     request: params.request,
     action: params.action,
-    resourceType: 'coach_favourite',
+    resourceType: "coach_favourite",
     resourceId: params.coachId,
     subjectUserId: params.request.auth?.userId ?? null,
     result: params.result,
     metadata: params.metadata,
   });
 }
-
 function toDateOnly(value: string | undefined): string {
   if (!value) {
-    return '';
+    return "";
   }
-  return value.includes('T') ? value.slice(0, 10) : value;
+  return value.includes("T") ? value.slice(0, 10) : value;
 }
-
 function normalizeTime(value: string | undefined): string {
-  return value?.slice(0, 5) ?? '00:00';
+  return value?.slice(0, 5) ?? "00:00";
 }
-
 function mapAvailabilityTemplate(row: SeedRow) {
   return {
-    id: asString(row.id) ?? '',
-    coachId: asString(row.coachUserId) ?? '',
+    id: asString(row.id) ?? "",
+    coachId: asString(row.coachUserId) ?? "",
     dayOfWeek: Number(row.dayOfWeek ?? 0) as 0 | 1 | 2 | 3 | 4 | 5 | 6,
     startTime: normalizeTime(asString(row.startTimeLocal)),
     endTime: normalizeTime(asString(row.endTimeLocal)),
@@ -135,14 +133,13 @@ function mapAvailabilityTemplate(row: SeedRow) {
     sessionTemplateId: asString(row.sessionTemplateId),
   };
 }
-
 function mapAvailabilityOverride(row: SeedRow) {
   const startTime = asString(row.startTimeLocal);
   const endTime = asString(row.endTimeLocal);
   const location = asString(row.location);
   return {
-    id: asString(row.id) ?? '',
-    coachId: asString(row.coachUserId) ?? '',
+    id: asString(row.id) ?? "",
+    coachId: asString(row.coachUserId) ?? "",
     date: toDateOnly(asString(row.overrideDate)),
     isBlocked: row.isBlocked === true,
     reason: asString(row.reason),
@@ -159,14 +156,16 @@ function mapAvailabilityOverride(row: SeedRow) {
         : undefined,
     repeatUntil: toDateOnly(asString(row.repeatUntil)),
     repeatDayOfWeek:
-      typeof row.repeatDayOfWeek === 'number'
+      typeof row.repeatDayOfWeek === "number"
         ? (row.repeatDayOfWeek as 0 | 1 | 2 | 3 | 4 | 5 | 6)
         : undefined,
     repeatGroupId: asString(row.repeatGroupId),
   };
 }
-
-function mapCoachSchedulingRules(row: SeedRow | undefined, coachUserId: string) {
+function mapCoachSchedulingRules(
+  row: SeedRow | undefined,
+  coachUserId: string,
+) {
   const now = new Date().toISOString();
   return {
     id: asString(row?.id) ?? `rules_${coachUserId}`,
@@ -181,21 +180,23 @@ function mapCoachSchedulingRules(row: SeedRow | undefined, coachUserId: string) 
     updatedAt: asString(row?.updatedAt) ?? now,
   };
 }
-
 function mapCancellationPolicy(rows: SeedRow[], coachUserId: string) {
   const activeRows = getActiveRows(rows)
     .filter((row) => asString(row.coachUserId) === coachUserId)
-    .sort((left, right) => Number(left.sortOrder ?? 0) - Number(right.sortOrder ?? 0));
+    .sort(
+      (left, right) =>
+        Number(left.sortOrder ?? 0) - Number(right.sortOrder ?? 0),
+    );
   if (activeRows.length === 0) {
     return null;
   }
-
   const first = activeRows[0];
   return {
     id: asString(first.id) ?? `policy_${coachUserId}`,
     coachId: coachUserId,
-    name: asString(first.name) ?? 'Cancellation policy',
-    description: asString(first.description) ?? 'Coach-defined cancellation policy',
+    name: asString(first.name) ?? "Cancellation policy",
+    description:
+      asString(first.description) ?? "Coach-defined cancellation policy",
     tiers: activeRows
       .map((row) => ({
         hoursBeforeSession: Number(row.noticeHoursMin ?? 0),
@@ -204,16 +205,23 @@ function mapCancellationPolicy(rows: SeedRow[], coachUserId: string) {
           asString(row.description) ??
           `${Number(row.refundPercent ?? 0)}% refund if cancelled ${Number(row.noticeHoursMin ?? 0)}+ hours before`,
       }))
-      .sort((left, right) => right.hoursBeforeSession - left.hoursBeforeSession),
-    minimumNoticeHours: Math.min(...activeRows.map((row) => Number(row.noticeHoursMin ?? 0))),
+      .sort(
+        (left, right) => right.hoursBeforeSession - left.hoursBeforeSession,
+      ),
+    minimumNoticeHours: Math.min(
+      ...activeRows.map((row) => Number(row.noticeHoursMin ?? 0)),
+    ),
     allowCancellations:
-      activeRows.some((row) => Number(row.refundPercent ?? 0) > 0) || activeRows.length > 0,
+      activeRows.some((row) => Number(row.refundPercent ?? 0) > 0) ||
+      activeRows.length > 0,
     isDefault: activeRows[0]?.isDefault === true,
     createdAt: asString(first.createdAt) ?? new Date().toISOString(),
-    updatedAt: asString(first.updatedAt) ?? asString(first.createdAt) ?? new Date().toISOString(),
+    updatedAt:
+      asString(first.updatedAt) ??
+      asString(first.createdAt) ??
+      new Date().toISOString(),
   };
 }
-
 function canViewClubSchedule(params: {
   club: SeedRow;
   viewerMembership: SeedRow | null;
@@ -222,10 +230,8 @@ function canViewClubSchedule(params: {
   if (params.isPrivilegedAdmin || params.viewerMembership) {
     return true;
   }
-
-  return asString(params.club.visibility) === 'public';
+  return asString(params.club.visibility) === "public";
 }
-
 function requireClubScheduleAccess(params: {
   clubId: string | undefined;
   authUserId: string;
@@ -233,32 +239,38 @@ function requireClubScheduleAccess(params: {
   store: ReturnType<typeof getMarketplaceSeedStore>;
 }) {
   if (!params.clubId) {
-    throw notFound('Club not found');
+    throw notFound("Club not found");
   }
-
   const clubs = asRows(params.store.tables.clubs);
   const clubMemberships = asRows(params.store.tables.clubMemberships);
   const club = clubs.find((row) => asString(row.id) === params.clubId);
   if (!club) {
-    throw notFound('Club not found');
+    throw notFound("Club not found");
   }
-
-  const viewerMembership = getViewerMembership(clubMemberships, params.clubId, params.authUserId);
+  const viewerMembership = getViewerMembership(
+    clubMemberships,
+    params.clubId,
+    params.authUserId,
+  );
   if (
-    !canViewClubSchedule({ club, viewerMembership, isPrivilegedAdmin: params.isPrivilegedAdmin })
+    !canViewClubSchedule({
+      club,
+      viewerMembership,
+      isPrivilegedAdmin: params.isPrivilegedAdmin,
+    })
   ) {
-    throw forbidden('You do not have permission to view this club schedule');
+    throw forbidden("You do not have permission to view this club schedule");
   }
-
-  return { club, viewerMembership };
+  return {
+    club,
+    viewerMembership,
+  };
 }
-
 const coachClubRoutes: FastifyPluginAsync = async (app) => {
-  app.get('/coaches/me/profile', async (request, reply) => {
+  app.get("/coaches/me/profile", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const repository = resolveCoachSelfRepository();
     const result = await repository.getProfileBundle(authUserId);
-
     return reply.send({
       profile: result.profile,
       locations: result.locations,
@@ -270,12 +282,10 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
-  app.get('/coaches/me/offerings', async (request, reply) => {
+  app.get("/coaches/me/offerings", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const repository = resolveCoachSelfRepository();
     const result = await repository.listOfferings(authUserId);
-
     return reply.send({
       offerings: result.offerings,
       total: result.offerings.length,
@@ -283,12 +293,10 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
-  app.get('/coaches/offerings', async (request, reply) => {
+  app.get("/coaches/offerings", async (request, reply) => {
     requireAuthUserId(request.auth?.userId);
     const repository = resolveCoachSelfRepository();
     const result = await repository.listPublicOfferingIndex();
-
     return reply.send({
       offerings: result.offerings,
       total: result.offerings.length,
@@ -296,13 +304,11 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
-  app.get('/coaches/:coachId/offerings', async (request, reply) => {
+  app.get("/coaches/:coachId/offerings", async (request, reply) => {
     requireAuthUserId(request.auth?.userId);
     const { coachId } = favouriteCoachParamsSchema.parse(request.params);
     const repository = resolveCoachSelfRepository();
     const result = await repository.listPublicOfferings(coachId);
-
     return reply.send({
       coachId,
       offerings: result.offerings,
@@ -311,12 +317,10 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
-  app.get('/me/favourite-coaches', async (request, reply) => {
+  app.get("/me/favourite-coaches", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const repository = resolveCoachFavouriteRepository();
     const result = await repository.listForUser(authUserId);
-
     return reply.send({
       favourites: result.favourites,
       total: result.favourites.length,
@@ -324,13 +328,11 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
-  app.get('/me/favourite-coaches/:coachId', async (request, reply) => {
+  app.get("/me/favourite-coaches/:coachId", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const { coachId } = favouriteCoachParamsSchema.parse(request.params);
     const repository = resolveCoachFavouriteRepository();
     const result = await repository.getStatus(authUserId, coachId);
-
     return reply.send({
       coachId,
       isFavourite: result.isFavourite,
@@ -338,18 +340,15 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
-  app.post('/me/favourite-coaches/:coachId', async (request, reply) => {
+  app.post("/me/favourite-coaches/:coachId", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const { coachId } = favouriteCoachParamsSchema.parse(request.params);
     const body = favouriteCoachBodySchema.parse(request.body ?? {});
     const repository = resolveCoachFavouriteRepository();
-
     try {
       if (coachId === authUserId) {
-        throw forbidden('You cannot save your own coach profile');
+        throw forbidden("You cannot save your own coach profile");
       }
-
       const favourite = await repository.saveForUser({
         userId: authUserId,
         coachUserId: coachId,
@@ -357,14 +356,13 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       });
       await recordCoachFavouriteAudit({
         request,
-        action: 'coach_favourite.save',
+        action: "coach_favourite.save",
         coachId,
-        result: 'SUCCESS',
+        result: "SUCCESS",
         metadata: {
           ignoredBodyUserId: body.userId ?? null,
         },
       });
-
       return reply.code(201).send({
         favourite,
         isFavourite: true,
@@ -373,32 +371,33 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     } catch (error) {
       await recordCoachFavouriteAudit({
         request,
-        action: 'coach_favourite.save',
+        action: "coach_favourite.save",
         coachId,
-        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        result:
+          error instanceof ApiProblemError && error.status < 500
+            ? "DENY"
+            : "ERROR",
         metadata: {
           ignoredBodyUserId: body.userId ?? null,
-          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          errorCode:
+            error instanceof ApiProblemError ? error.code : "INTERNAL_ERROR",
         },
       });
       throw error;
     }
   });
-
-  app.delete('/me/favourite-coaches/:coachId', async (request, reply) => {
+  app.delete("/me/favourite-coaches/:coachId", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const { coachId } = favouriteCoachParamsSchema.parse(request.params);
     const repository = resolveCoachFavouriteRepository();
-
     try {
       const favourite = await repository.removeForUser(authUserId, coachId);
       await recordCoachFavouriteAudit({
         request,
-        action: 'coach_favourite.remove',
+        action: "coach_favourite.remove",
         coachId,
-        result: 'SUCCESS',
+        result: "SUCCESS",
       });
-
       return reply.send({
         favourite,
         isFavourite: false,
@@ -407,23 +406,25 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
     } catch (error) {
       await recordCoachFavouriteAudit({
         request,
-        action: 'coach_favourite.remove',
+        action: "coach_favourite.remove",
         coachId,
-        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        result:
+          error instanceof ApiProblemError && error.status < 500
+            ? "DENY"
+            : "ERROR",
         metadata: {
-          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          errorCode:
+            error instanceof ApiProblemError ? error.code : "INTERNAL_ERROR",
         },
       });
       throw error;
     }
   });
-
-  app.get('/coaches/me/availability/templates', async (request, reply) => {
+  app.get("/coaches/me/availability/templates", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const repository = resolveCoachSelfRepository();
     const result = await repository.listAvailabilityTemplateRows(authUserId);
     const templates = result.templates.map(mapAvailabilityTemplate);
-
     return reply.send({
       templates,
       total: templates.length,
@@ -431,8 +432,7 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
-  app.post('/coaches/me/availability/templates', async (request, reply) => {
+  app.post("/coaches/me/availability/templates", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const body = request.body as {
       id?: string;
@@ -446,52 +446,80 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       sessionTemplateId?: string;
     };
     const repository = resolveCoachSelfRepository();
-    const { row, dataVersion } = await repository.createAvailabilityTemplate(authUserId, body);
-
+    const { row, dataVersion } = await repository.createAvailabilityTemplate(
+      authUserId,
+      body,
+    );
     return reply.code(201).send({
       ...mapAvailabilityTemplate(row),
       seedVersion: dataVersion,
     });
   });
-
-  app.patch('/coaches/me/availability/templates/:templateId', async (request, reply) => {
+  app.patch(
+    "/coaches/me/availability/templates/:templateId",
+    async (request, reply) => {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const templateId =
+        asString(
+          (
+            request.params as {
+              templateId?: string;
+            }
+          ).templateId,
+        ) ?? "";
+      const body = request.body as {
+        dayOfWeek?: number;
+        startTime?: string;
+        endTime?: string;
+        maxConcurrent?: number;
+        bufferMinutes?: number;
+        location?: string;
+        sessionTemplateId?: string;
+      };
+      const repository = resolveCoachSelfRepository();
+      const { row } = await repository.updateAvailabilityTemplate(
+        authUserId,
+        templateId,
+        body,
+      );
+      return reply.send(mapAvailabilityTemplate(row));
+    },
+  );
+  app.delete(
+    "/coaches/me/availability/templates/:templateId",
+    async (request, reply) => {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const templateId =
+        asString(
+          (
+            request.params as {
+              templateId?: string;
+            }
+          ).templateId,
+        ) ?? "";
+      const repository = resolveCoachSelfRepository();
+      await repository.deleteAvailabilityTemplate(authUserId, templateId);
+      return reply.code(204).send();
+    },
+  );
+  app.get("/coaches/me/availability/overrides", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
-    const templateId = asString((request.params as { templateId?: string }).templateId) ?? '';
-    const body = request.body as {
-      dayOfWeek?: number;
-      startTime?: string;
-      endTime?: string;
-      maxConcurrent?: number;
-      bufferMinutes?: number;
-      location?: string;
-      sessionTemplateId?: string;
+    const query = request.query as {
+      start?: string;
+      end?: string;
     };
     const repository = resolveCoachSelfRepository();
-    const { row } = await repository.updateAvailabilityTemplate(authUserId, templateId, body);
-
-    return reply.send(mapAvailabilityTemplate(row));
-  });
-
-  app.delete('/coaches/me/availability/templates/:templateId', async (request, reply) => {
-    const authUserId = requireAuthUserId(request.auth?.userId);
-    const templateId = asString((request.params as { templateId?: string }).templateId) ?? '';
-    const repository = resolveCoachSelfRepository();
-    await repository.deleteAvailabilityTemplate(authUserId, templateId);
-
-    return reply.code(204).send();
-  });
-
-  app.get('/coaches/me/availability/overrides', async (request, reply) => {
-    const authUserId = requireAuthUserId(request.auth?.userId);
-    const query = request.query as { start?: string; end?: string };
-    const repository = resolveCoachSelfRepository();
-    const result = await repository.listAvailabilityOverrideRows(authUserId, query);
-    const overrides = result.overrides
-      .map(mapAvailabilityOverride)
-      .filter(
-        (row) => (!query.start || row.date >= query.start) && (!query.end || row.date <= query.end),
-      );
-
+    const result = await repository.listAvailabilityOverrideRows(
+      authUserId,
+      query,
+    );
+    const overrides = result.overrides.flatMap((item) => {
+      const mapped = mapAvailabilityOverride(item);
+      return (!query.start || mapped.date >= query.start) &&
+        (!query.end || mapped.date <= query.end)
+        ? [mapped]
+        : [];
+    });
     return reply.send({
       overrides,
       total: overrides.length,
@@ -499,58 +527,85 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
-  app.post('/coaches/me/availability/overrides', async (request, reply) => {
+  app.post("/coaches/me/availability/overrides", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const body = request.body as {
       id?: string;
       date: string;
       isBlocked: boolean;
       reason?: string;
-      customSlots?: Array<{ startTime: string; endTime: string; location?: string }>;
+      customSlots?: Array<{
+        startTime: string;
+        endTime: string;
+        location?: string;
+      }>;
       repeatUntil?: string;
       repeatDayOfWeek?: number;
       repeatGroupId?: string;
     };
     const repository = resolveCoachSelfRepository();
-    const { row } = await repository.createAvailabilityOverride(authUserId, body);
-
+    const { row } = await repository.createAvailabilityOverride(
+      authUserId,
+      body,
+    );
     return reply.code(201).send(mapAvailabilityOverride(row));
   });
-
-  app.patch('/coaches/me/availability/overrides/:overrideId', async (request, reply) => {
-    const authUserId = requireAuthUserId(request.auth?.userId);
-    const overrideId = asString((request.params as { overrideId?: string }).overrideId) ?? '';
-    const body = request.body as {
-      date?: string;
-      isBlocked?: boolean;
-      reason?: string;
-      customSlots?: Array<{ startTime: string; endTime: string; location?: string }>;
-      repeatUntil?: string;
-      repeatDayOfWeek?: number;
-      repeatGroupId?: string;
-    };
-    const repository = resolveCoachSelfRepository();
-    const { row } = await repository.updateAvailabilityOverride(authUserId, overrideId, body);
-
-    return reply.send(mapAvailabilityOverride(row));
-  });
-
-  app.delete('/coaches/me/availability/overrides/:overrideId', async (request, reply) => {
-    const authUserId = requireAuthUserId(request.auth?.userId);
-    const overrideId = asString((request.params as { overrideId?: string }).overrideId) ?? '';
-    const repository = resolveCoachSelfRepository();
-    await repository.deleteAvailabilityOverride(authUserId, overrideId);
-
-    return reply.code(204).send();
-  });
-
-  app.get('/coaches/me/scheduling-rules', async (request, reply) => {
+  app.patch(
+    "/coaches/me/availability/overrides/:overrideId",
+    async (request, reply) => {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const overrideId =
+        asString(
+          (
+            request.params as {
+              overrideId?: string;
+            }
+          ).overrideId,
+        ) ?? "";
+      const body = request.body as {
+        date?: string;
+        isBlocked?: boolean;
+        reason?: string;
+        customSlots?: Array<{
+          startTime: string;
+          endTime: string;
+          location?: string;
+        }>;
+        repeatUntil?: string;
+        repeatDayOfWeek?: number;
+        repeatGroupId?: string;
+      };
+      const repository = resolveCoachSelfRepository();
+      const { row } = await repository.updateAvailabilityOverride(
+        authUserId,
+        overrideId,
+        body,
+      );
+      return reply.send(mapAvailabilityOverride(row));
+    },
+  );
+  app.delete(
+    "/coaches/me/availability/overrides/:overrideId",
+    async (request, reply) => {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const overrideId =
+        asString(
+          (
+            request.params as {
+              overrideId?: string;
+            }
+          ).overrideId,
+        ) ?? "";
+      const repository = resolveCoachSelfRepository();
+      await repository.deleteAvailabilityOverride(authUserId, overrideId);
+      return reply.code(204).send();
+    },
+  );
+  app.get("/coaches/me/scheduling-rules", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const repository = resolveCoachSelfRepository();
     const result = await repository.getSchedulingRows(authUserId);
     const policy = mapCancellationPolicy(result.policyRows, authUserId);
-
     return reply.send({
       rules: mapCoachSchedulingRules(result.rulesRow, authUserId),
       cancellationPolicy: policy,
@@ -558,13 +613,11 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
-  app.patch('/coaches/me/scheduling-rules', async (request, reply) => {
+  app.patch("/coaches/me/scheduling-rules", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const body = (request.body as SchedulingRulesPatchBody) ?? {};
     const repository = resolveCoachSelfRepository();
     const result = await repository.patchSchedulingRows(authUserId, body);
-
     return reply.send({
       rules: mapCoachSchedulingRules(result.rulesRow, authUserId),
       cancellationPolicy: mapCancellationPolicy(result.policyRows, authUserId),
@@ -572,61 +625,77 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
-  app.get('/coaches/me/verifications/:type/documents', async (request, reply) => {
-    const authUserId = requireAuthUserId(request.auth?.userId);
-
-    const requestedType = asString((request.params as { type?: string }).type)?.toLowerCase();
-    if (!requestedType) {
-      throw notFound('Verification type is required');
-    }
-
-    const store = getMarketplaceSeedStore();
-    const coachVerifications = asRows(store.tables.coachVerifications).filter((row) => {
-      const owner = asString(row.coachUserId);
-      const verificationType = asString(row.verificationType)?.toLowerCase();
-      return owner === authUserId && verificationType === requestedType;
-    });
-
-    const verificationDocuments = asRows(store.tables.verificationDocuments);
-    const mediaObjects = asRows(store.tables.mediaObjects);
-
-    const documents = coachVerifications.map((verification) => {
-      const verificationId = asString(verification.id);
-      const linkedDocuments = verificationDocuments
-        .filter((row) => asString(row.coachVerificationId) === verificationId)
-        .map((row) => {
+  app.get(
+    "/coaches/me/verifications/:type/documents",
+    async (request, reply) => {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const requestedType = asString(
+        (
+          request.params as {
+            type?: string;
+          }
+        ).type,
+      )?.toLowerCase();
+      if (!requestedType) {
+        throw notFound("Verification type is required");
+      }
+      const store = getMarketplaceSeedStore();
+      const coachVerifications = asRows(store.tables.coachVerifications).filter(
+        (row) => {
+          const owner = asString(row.coachUserId);
+          const verificationType = asString(
+            row.verificationType,
+          )?.toLowerCase();
+          return owner === authUserId && verificationType === requestedType;
+        },
+      );
+      const verificationDocuments = asRows(store.tables.verificationDocuments);
+      const mediaObjects = asRows(store.tables.mediaObjects);
+      const documents = coachVerifications.map((verification) => {
+        const verificationId = asString(verification.id);
+        const linkedDocuments = verificationDocuments.flatMap((row) => {
+          if (!(asString(row.coachVerificationId) === verificationId))
+            return [];
           const mediaObjectId = asString(row.mediaObjectId);
-          const media = mediaObjects.find((item) => asString(item.id) === mediaObjectId) ?? null;
-          return {
-            ...row,
-            mediaObject: media,
-          };
+          const media =
+            mediaObjects.find((item) => asString(item.id) === mediaObjectId) ??
+            null;
+          return [
+            {
+              ...row,
+              mediaObject: media,
+            },
+          ];
         });
-
-      return {
-        verification,
-        documents: linkedDocuments,
-      };
-    });
-
-    return reply.send({
-      type: requestedType,
-      items: documents,
-      total: documents.length,
-      seedVersion: store.version,
-      requestId: request.requestId,
-    });
-  });
-
-  app.get('/coaches/:coachId/availability/slots', async (request, reply) => {
+        return {
+          verification,
+          documents: linkedDocuments,
+        };
+      });
+      return reply.send({
+        type: requestedType,
+        items: documents,
+        total: documents.length,
+        seedVersion: store.version,
+        requestId: request.requestId,
+      });
+    },
+  );
+  app.get("/coaches/:coachId/availability/slots", async (request, reply) => {
     requireAuthUserId(request.auth?.userId);
-    const coachUserId = asString((request.params as { coachId?: string }).coachId);
+    const coachUserId = asString(
+      (
+        request.params as {
+          coachId?: string;
+        }
+      ).coachId,
+    );
     if (!coachUserId) {
-      throw notFound('Coach not found');
+      throw notFound("Coach not found");
     }
-
-    const query = parseAvailabilitySlotQuery(request.query as Record<string, unknown>);
+    const query = parseAvailabilitySlotQuery(
+      request.query as Record<string, unknown>,
+    );
     const availability = await resolveCoachAvailabilityTables(coachUserId);
     const slots = resolveCoachAvailabilitySlots({
       tables: availability.tables,
@@ -638,7 +707,6 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       excludePendingInvites: query.excludePendingInvites,
       applySchedulingRules: query.applySchedulingRules,
     });
-
     return reply.send({
       coachId: coachUserId,
       slots,
@@ -647,36 +715,48 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
-  app.get('/clubs', async (request, reply) => {
+  app.get("/clubs", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
     const repository = resolveClubAuthorityRepository();
-    const clubs = await repository.listVisibleClubs({ authUserId, isPrivilegedAdmin });
+    const clubs = await repository.listVisibleClubs({
+      authUserId,
+      isPrivilegedAdmin,
+    });
     const payload = clubs.map((club) => ({
       ...club,
       viewerGovernance: getClubGovernanceSnapshot(
         parseOrganizationRole(club.viewerMembership?.role),
       ),
     }));
-
     return reply.send({
       clubs: payload,
       total: payload.length,
       requestId: request.requestId,
     });
   });
-
-  app.get('/clubs/:clubId/schedule', async (request, reply) => {
+  app.get("/clubs/:clubId/schedule", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
-    const clubId = asString((request.params as { clubId?: string }).clubId);
+    const clubId = asString(
+      (
+        request.params as {
+          clubId?: string;
+        }
+      ).clubId,
+    );
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
     const store = getMarketplaceSeedStore();
-    requireClubScheduleAccess({ clubId, authUserId, isPrivilegedAdmin, store });
+    requireClubScheduleAccess({
+      clubId,
+      authUserId,
+      isPrivilegedAdmin,
+      store,
+    });
     const resolvedClubId = clubId as string;
-
-    const activities = buildClubScheduleActivities(store.tables, resolvedClubId);
-
+    const activities = buildClubScheduleActivities(
+      store.tables,
+      resolvedClubId,
+    );
     return reply.send({
       clubId: resolvedClubId,
       activities,
@@ -685,22 +765,30 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
-  app.get('/clubs/:clubId/schedule/:activityId', async (request, reply) => {
+  app.get("/clubs/:clubId/schedule/:activityId", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
-    const { clubId, activityId } = request.params as { clubId?: string; activityId?: string };
+    const { clubId, activityId } = request.params as {
+      clubId?: string;
+      activityId?: string;
+    };
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
     const store = getMarketplaceSeedStore();
-    requireClubScheduleAccess({ clubId, authUserId, isPrivilegedAdmin, store });
+    requireClubScheduleAccess({
+      clubId,
+      authUserId,
+      isPrivilegedAdmin,
+      store,
+    });
     const resolvedClubId = clubId as string;
-
     const activity = activityId
       ? findClubScheduleActivity(store.tables, resolvedClubId, activityId)
       : null;
     if (!activity) {
-      throw notFound('Club activity not found', { clubId: resolvedClubId, activityId });
+      throw notFound("Club activity not found", {
+        clubId: resolvedClubId,
+        activityId,
+      });
     }
-
     return reply.send({
       clubId: resolvedClubId,
       activity,
@@ -708,108 +796,168 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
-
-  app.get('/clubs/:clubId/invite-codes', async (request, reply) => {
+  app.get("/clubs/:clubId/invite-codes", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
-    const clubId = asString((request.params as { clubId?: string }).clubId);
+    const clubId = asString(
+      (
+        request.params as {
+          clubId?: string;
+        }
+      ).clubId,
+    );
     if (!clubId) {
-      throw notFound('Club not found');
+      throw notFound("Club not found");
     }
     const repository = resolveClubAuthorityRepository();
-    const inviteCodes = await repository.listInviteCodes({ clubId, authUserId });
-
+    const inviteCodes = await repository.listInviteCodes({
+      clubId,
+      authUserId,
+    });
     return reply.send({
       inviteCodes,
       requestId: request.requestId,
     });
   });
-
-  app.post('/clubs/:clubId/invite-codes', async (request, reply) => {
+  app.post("/clubs/:clubId/invite-codes", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
-    const clubId = asString((request.params as { clubId?: string }).clubId);
-    const role = toContractRole(asString((request.body as { role?: string }).role));
+    const clubId = asString(
+      (
+        request.params as {
+          clubId?: string;
+        }
+      ).clubId,
+    );
+    const role = toContractRole(
+      asString(
+        (
+          request.body as {
+            role?: string;
+          }
+        ).role,
+      ),
+    );
     if (!clubId) {
-      throw notFound('Club not found');
+      throw notFound("Club not found");
     }
     const repository = resolveClubAuthorityRepository();
-    const inviteCode = await repository.createInviteCode({ clubId, authUserId, role });
-
+    const inviteCode = await repository.createInviteCode({
+      clubId,
+      authUserId,
+      role,
+    });
     return reply.code(201).send({
       inviteCode,
       requestId: request.requestId,
     });
   });
-
-  app.delete('/clubs/:clubId/invite-codes/:code', async (request, reply) => {
+  app.delete("/clubs/:clubId/invite-codes/:code", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
-    const params = request.params as { clubId?: string; code?: string };
+    const params = request.params as {
+      clubId?: string;
+      code?: string;
+    };
     const clubId = asString(params.clubId);
-    const code = asString(params.code) ?? '';
+    const code = asString(params.code) ?? "";
     if (!clubId || !code) {
-      throw notFound('Invite code not found');
+      throw notFound("Invite code not found");
     }
     const repository = resolveClubAuthorityRepository();
-    await repository.deleteInviteCode({ clubId, authUserId, code });
-
+    await repository.deleteInviteCode({
+      clubId,
+      authUserId,
+      code,
+    });
     return reply.code(204).send();
   });
-
-  app.get('/clubs/join/resolve', async (request, reply) => {
+  app.get("/clubs/join/resolve", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
-    const code = asString((request.query as { code?: string }).code) ?? '';
+    const code =
+      asString(
+        (
+          request.query as {
+            code?: string;
+          }
+        ).code,
+      ) ?? "";
     const repository = resolveClubAuthorityRepository();
-    const preview = await repository.resolveJoinCode({ authUserId, code });
-
+    const preview = await repository.resolveJoinCode({
+      authUserId,
+      code,
+    });
     return reply.send({
       preview,
       requestId: request.requestId,
     });
   });
-
-  app.post('/clubs/join', async (request, reply) => {
+  app.post("/clubs/join", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
-    const code = asString((request.body as { code?: string }).code) ?? '';
+    const code =
+      asString(
+        (
+          request.body as {
+            code?: string;
+          }
+        ).code,
+      ) ?? "";
     const repository = resolveClubAuthorityRepository();
     const result = await repository.joinWithCode({
       authUserId,
       code,
       actingAuthCanUseStaffLinks: canUseStaffInviteLinks(request.auth),
     });
-
     return reply
-      .code(result.outcome === 'invite_pending' ? 202 : result.outcome === 'joined' ? 201 : 200)
+      .code(
+        result.outcome === "invite_pending"
+          ? 202
+          : result.outcome === "joined"
+            ? 201
+            : 200,
+      )
       .send({
         ...result,
         requestId: request.requestId,
       });
   });
-
-  app.get('/clubs/invites', async (request, reply) => {
+  app.get("/clubs/invites", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const repository = resolveClubAuthorityRepository();
-    const invites = await repository.listPendingInvites({ authUserId });
-
+    const invites = await repository.listPendingInvites({
+      authUserId,
+    });
     return reply.send({
       invites,
       requestId: request.requestId,
     });
   });
-
-  app.post('/clubs/invites/:inviteId/respond', async (request, reply) => {
+  app.post("/clubs/invites/:inviteId/respond", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
-    const inviteId = asString((request.params as { inviteId?: string }).inviteId);
-    const response = asString((request.body as { response?: string }).response)?.toLowerCase();
-    if (!inviteId || (response !== 'accepted' && response !== 'declined')) {
-      throw notFound('Club invite not found');
+    const inviteId = asString(
+      (
+        request.params as {
+          inviteId?: string;
+        }
+      ).inviteId,
+    );
+    const response = asString(
+      (
+        request.body as {
+          response?: string;
+        }
+      ).response,
+    )?.toLowerCase();
+    if (!inviteId || (response !== "accepted" && response !== "declined")) {
+      throw notFound("Club invite not found");
     }
     const repository = resolveClubAuthorityRepository();
-    const result = await repository.respondToInvite({ authUserId, inviteId, response });
-
+    const result = await repository.respondToInvite({
+      authUserId,
+      inviteId,
+      response,
+    });
     return reply.send({
       ...result,
       requestId: request.requestId,
     });
   });
 };
-
 export default coachClubRoutes;

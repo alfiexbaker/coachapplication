@@ -10,7 +10,7 @@
  *   <StatusBanner message="Your profile is incomplete" variant="warning" icon="alert-circle" onDismiss={dismiss} />
  */
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
@@ -88,7 +88,7 @@ function getVariantConfig(variant: StatusBannerVariant, palette: ThemeColors): V
 
 function StatusBannerInner({ message, variant = 'info', icon, action, onDismiss }: StatusBannerProps) {
   const { colors } = useTheme();
-  const config = useMemo(() => getVariantConfig(variant, colors), [variant, colors]);
+  const config = getVariantConfig(variant, colors);
   const iconName = icon ?? config.icon;
 
   return (
@@ -125,7 +125,7 @@ function StatusBannerInner({ message, variant = 'info', icon, action, onDismiss 
   );
 }
 
-export const StatusBanner = React.memo(StatusBannerInner);
+export const StatusBanner = StatusBannerInner;
 
 // ---------------------------------------------------------------------------
 // Styles

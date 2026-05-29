@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,7 +13,7 @@ interface PublicProfileCredentialsProps {
   coach: Coach;
 }
 
-export const PublicProfileCredentials = memo(function PublicProfileCredentials({
+export const PublicProfileCredentials = function PublicProfileCredentials({
   coach,
 }: PublicProfileCredentialsProps) {
   const { colors: palette } = useTheme();
@@ -23,8 +23,8 @@ export const PublicProfileCredentials = memo(function PublicProfileCredentials({
       {coach.experiences && coach.experiences.length > 0 ? (
         <SurfaceCard style={styles.section}>
           <ThemedText style={[Typography.heading, { color: palette.text }]}>Experience</ThemedText>
-          {coach.experiences.map((exp, i) => (
-            <Row key={i} style={styles.expItem}>
+          {coach.experiences.map((exp) => (
+            <Row key={`${exp.title}:${exp.organization}:${exp.startDate}`} style={styles.expItem}>
               <View style={[styles.expDot, { backgroundColor: palette.tint }]} />
               <Column flex>
                 <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
@@ -56,8 +56,8 @@ export const PublicProfileCredentials = memo(function PublicProfileCredentials({
           <ThemedText style={[Typography.heading, { color: palette.text }]}>
             Certifications
           </ThemedText>
-          {coach.certifications.map((cert, i) => (
-            <Row key={i} style={styles.certItem}>
+          {coach.certifications.map((cert) => (
+            <Row key={`${cert.name}:${cert.issuer}:${cert.issueDate}`} style={styles.certItem}>
               <View style={[styles.certIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <Ionicons name="ribbon-outline" size={Components.icon.md} color={palette.tint} />
               </View>
@@ -75,7 +75,7 @@ export const PublicProfileCredentials = memo(function PublicProfileCredentials({
       ) : null}
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: { padding: Spacing.md, gap: Spacing.md },

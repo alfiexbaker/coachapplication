@@ -101,7 +101,7 @@ export function ReviewQuote({ quote, author }: ReviewQuoteProps) {
           &ldquo;{quote}&rdquo;
         </ThemedText>
         {author && (
-          <ThemedText style={[styles.quoteAuthor, { color: palette.muted }]}>— {author}</ThemedText>
+          <ThemedText style={[styles.quoteAuthor, { color: palette.muted }]}>By {author}</ThemedText>
         )}
       </View>
     </Row>

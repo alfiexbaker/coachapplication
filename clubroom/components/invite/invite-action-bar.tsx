@@ -5,7 +5,7 @@
  * or RSVP buttons for non-recipient observers.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -28,7 +28,7 @@ interface InviteActionBarProps {
   onRsvp: (status: 'going' | 'maybe' | 'cant_go') => void;
 }
 
-export const InviteActionBar = memo(function InviteActionBar({
+export const InviteActionBar = function InviteActionBar({
   canRespond,
   isOwner,
   status,
@@ -90,7 +90,7 @@ export const InviteActionBar = memo(function InviteActionBar({
   }
 
   return null;
-});
+};
 
 const styles = StyleSheet.create({
   footer: {

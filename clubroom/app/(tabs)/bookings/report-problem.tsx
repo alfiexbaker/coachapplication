@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
@@ -21,6 +20,8 @@ import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
 import { getBookingRelationshipContext } from '@/utils/booking-display';
 import { bookingCommunicationsService } from '@/services/booking-communications-service';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('ReportProblem');
 
@@ -54,7 +55,9 @@ export default function ReportProblemScreen() {
 
   useEffect(() => {
     if (!bookingId) {
-      setSupportContext(null);
+      startTransition(() => {
+        setSupportContext(null);
+      });
       return;
     }
 
@@ -79,7 +82,8 @@ export default function ReportProblemScreen() {
 
       if (cancelled) return;
 
-      const deliveryLabel = booking.coachName || booking.assigneeCoachId || booking.coachId || 'Coach';
+      const deliveryLabel =
+        booking.coachName || booking.assigneeCoachId || booking.coachId || 'Coach';
       const relationshipContext = getBookingRelationshipContext({
         actingAs: booking.actingAs,
         organizationLabel,
@@ -92,7 +96,8 @@ export default function ReportProblemScreen() {
         supportLabel: relationshipContext.supportLabel,
         helperText: relationshipContext.supportSummary,
         reviewCopy:
-          relationshipContext.organizationLabel && relationshipContext.commercialMode === 'ORG_OWNED'
+          relationshipContext.organizationLabel &&
+          relationshipContext.commercialMode === 'ORG_OWNED'
             ? `${relationshipContext.supportLabel} will review this report and coordinate the follow-up.`
             : `${relationshipContext.supportLabel} will review this report and handle the next step with you.`,
       });
@@ -103,12 +108,12 @@ export default function ReportProblemScreen() {
     };
   }, [bookingId]);
 
-  const headerCopy = useMemo(() => {
+  const headerCopy = (() => {
     if (!supportContext) {
       return 'Help us improve by reporting any issues with your session';
     }
     return `Report a session issue to ${supportContext.supportLabel}`;
-  }, [supportContext]);
+  })();
 
   const handleSubmit = async () => {
     if (!selectedCategory || !description.trim()) {
@@ -122,85 +127,92 @@ export default function ReportProblemScreen() {
     }
 
     setSubmitting(true);
-    try {
-      const booking = bookingId ? await bookingService.getBooking(bookingId) : null;
-      let incidentId: string | undefined;
 
-      if (selectedCategory === 'safety' && !apiClient.isMockMode) {
-        const incidentResult = await safeguardingService.createIncident({
-          athleteId: booking?.athleteIds?.[0] ?? booking?.athleteId,
-          bookingId: bookingId || booking?.id,
-          category: 'booking_issue_safety',
-          severity: 'high',
-          summary: booking?.service || booking?.serviceType
-            ? `Safety concern reported for ${booking.service || booking.serviceType}`
-            : 'Safety concern reported from booking support flow',
-          details: description.trim(),
-        });
+    return await runAsyncTryCatchFinally(
+      async () => {
+        const booking = bookingId ? await bookingService.getBooking(bookingId) : null;
+        let incidentId: string | undefined;
 
-        if (!incidentResult.success) {
-          uiFeedback.showToast(incidentResult.error.message, 'error');
-          return;
+        if (selectedCategory === 'safety' && !apiClient.isMockMode) {
+          const incidentResult = await safeguardingService.createIncident({
+            athleteId: booking?.athleteIds?.[0] ?? booking?.athleteId,
+            bookingId: bookingId || booking?.id,
+            category: 'booking_issue_safety',
+            severity: 'high',
+            summary:
+              booking?.service || booking?.serviceType
+                ? `Safety concern reported for ${booking.service || booking.serviceType}`
+                : 'Safety concern reported from booking support flow',
+            details: description.trim(),
+          });
+
+          if (!incidentResult.success) {
+            uiFeedback.showToast(incidentResult.error.message, 'error');
+            return;
+          }
+
+          incidentId = incidentResult.data.id;
         }
 
-        incidentId = incidentResult.data.id;
-      }
+        // Save report to storage
+        const reports = await apiClient.get<Record<string, unknown>[]>(
+          STORAGE_KEYS.PROBLEM_REPORTS,
+          [],
+        );
 
-      // Save report to storage
-      const reports = await apiClient.get<Record<string, unknown>[]>(
-        STORAGE_KEYS.PROBLEM_REPORTS,
-        [],
-      );
-
-      const newReport = {
-        id: `report_${Date.now()}`,
-        bookingId: bookingId || 'unknown',
-        category: selectedCategory,
-        description: description.trim(),
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-        ...(incidentId ? { incidentId } : {}),
-      };
-
-      reports.push(newReport);
-      await apiClient.set(STORAGE_KEYS.PROBLEM_REPORTS, reports);
-      emitTyped(ServiceEvents.PROBLEM_REPORT_CREATED, {
-        reportId: newReport.id,
-        bookingId: newReport.bookingId,
-        clubId: booking?.clubId,
-      });
-
-      if (booking) {
-        await bookingCommunicationsService.notifySupportIssueReported({
-          booking,
+        const newReport = {
+          id: `report_${Date.now()}`,
+          bookingId: bookingId || 'unknown',
           category: selectedCategory,
           description: description.trim(),
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+          ...(incidentId ? { incidentId } : {}),
+        };
+
+        reports.push(newReport);
+        await apiClient.set(STORAGE_KEYS.PROBLEM_REPORTS, reports);
+        emitTyped(ServiceEvents.PROBLEM_REPORT_CREATED, {
+          reportId: newReport.id,
+          bookingId: newReport.bookingId,
+          clubId: booking?.clubId,
         });
-      }
 
-      logger.info('Report submitted', { category: selectedCategory, bookingId });
+        if (booking) {
+          await bookingCommunicationsService.notifySupportIssueReported({
+            booking,
+            category: selectedCategory,
+            description: description.trim(),
+          });
+        }
 
-      uiFeedback.showToast(
-        supportContext
-          ? `Thanks. ${supportContext.supportLabel} will review your report within 24 hours.`
-          : 'Thank you for your feedback. We will review your report within 24 hours.',
-        'success',
-      );
-      router.back();
-    } catch (error) {
-      logger.error('Failed to submit report', error);
-      uiFeedback.showToast('Failed to submit report. Please try again.', 'error');
-    } finally {
-      setSubmitting(false);
-    }
+        logger.info('Report submitted', { category: selectedCategory, bookingId });
+
+        uiFeedback.showToast(
+          supportContext
+            ? `Thanks. ${supportContext.supportLabel} will review your report within 24 hours.`
+            : 'Thank you for your feedback. We will review your report within 24 hours.',
+          'success',
+        );
+        router.back();
+      },
+      async (error) => {
+        logger.error('Failed to submit report', error);
+        uiFeedback.showToast('Failed to submit report. Please try again.', 'error');
+      },
+      () => {
+        setSubmitting(false);
+      },
+    );
   };
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['bottom']}
-    >
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Header */}
         <ThemedView style={styles.header}>
           <ThemedText type="subtitle" style={styles.subtitle}>
@@ -313,7 +325,7 @@ export default function ReportProblemScreen() {
           </ThemedText>
         </Clickable>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

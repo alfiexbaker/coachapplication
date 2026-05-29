@@ -6,7 +6,7 @@
  * and a progress indicator showing confirmation rate.
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
@@ -16,12 +16,14 @@ import { useTheme } from '@/hooks/useTheme';
 import { rsvpService } from '@/services/rsvp-service';
 import type { SessionRsvp } from '@/constants/types';
 import {
-  computeRSVPNames,
   CountBadge,
   ExpandableList,
   ProgressIndicator,
   ReminderButton,
 } from './rsvp-summary-sections';
+import { computeRSVPNames } from './rsvp-summary-helpers';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -37,24 +39,29 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
   const [counts, setCounts] = useState({ going: 0, notGoing: 0, maybe: 0, pending: 0 });
   const [loading, setLoading] = useState(true);
 
-  const loadData = useCallback(async () => {
-    try {
-      const [sessionRsvps, sessionCounts] = await Promise.all([
-        rsvpService.getForSession(sessionId),
-        rsvpService.getSessionCounts(sessionId),
-      ]);
-      setRsvps(sessionRsvps);
-      setCounts(sessionCounts);
-    } catch {
-      // Fail silently, show empty state
-    } finally {
-      setLoading(false);
-    }
-  }, [sessionId]);
-
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    const loadData = async () => {
+      setLoading(true);
+      await runAsyncTryCatchFinally(
+        async () => {
+          const [sessionRsvps, sessionCounts] = await Promise.all([
+            rsvpService.getForSession(sessionId),
+            rsvpService.getSessionCounts(sessionId),
+          ]);
+          setRsvps(sessionRsvps);
+          setCounts(sessionCounts);
+        },
+        async () => {
+          // Fail silently, show empty state
+        },
+        () => {
+          setLoading(false);
+        },
+      );
+    };
+
+    void loadData();
+  }, [sessionId]);
 
   const total = counts.going + counts.notGoing + counts.maybe + counts.pending;
   const confirmed = counts.going + counts.notGoing + counts.maybe;

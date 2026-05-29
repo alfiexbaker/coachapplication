@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AccessibilityInfo } from 'react-native';
 import { FadeInDown, FadeOut } from 'react-native-reanimated';
 
@@ -17,30 +17,21 @@ export function useResultsProgramMotion() {
       }
     });
 
-    const subscription = AccessibilityInfo.addEventListener?.('reduceMotionChanged', setReduceMotion);
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
 
     return () => {
       mounted = false;
-      subscription?.remove?.();
+      subscription.remove();
     };
   }, []);
 
-  const getDelay = useCallback(
-    (index: number, start = 0) =>
-      reduceMotion ? 0 : start + Math.min(index, 9) * STAGGER_STEP_MS,
-    [reduceMotion],
-  );
+  const getDelay = (index: number, start = 0) =>
+    reduceMotion ? 0 : start + Math.min(index, 9) * STAGGER_STEP_MS;
 
-  const getEnter = useCallback(
-    (index: number, start = 0) =>
-      FadeInDown.duration(reduceMotion ? 0 : DEFAULT_ENTER_DURATION).delay(getDelay(index, start)),
-    [getDelay, reduceMotion],
-  );
+  const getEnter = (index: number, start = 0) =>
+    FadeInDown.duration(reduceMotion ? 0 : DEFAULT_ENTER_DURATION).delay(getDelay(index, start));
 
-  const getExit = useCallback(
-    () => FadeOut.duration(reduceMotion ? 0 : DEFAULT_EXIT_DURATION),
-    [reduceMotion],
-  );
+  const getExit = () => FadeOut.duration(reduceMotion ? 0 : DEFAULT_EXIT_DURATION);
 
   return {
     reduceMotion,

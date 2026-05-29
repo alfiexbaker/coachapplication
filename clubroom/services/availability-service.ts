@@ -32,7 +32,6 @@ import { ok, err, storageError } from '@/types/result';
 import { userService } from './user-service';
 import { emitTyped, ServiceEvents } from './event-bus';
 import { isSignedInCoachSelf } from './coach-self-api-support';
-
 const logger = createLogger('AvailabilityService');
 const USE_MOCK = api.useMock;
 
@@ -55,15 +54,12 @@ async function loadSessionOfferings(): Promise<SessionOffering[]> {
   }
   return [];
 }
-
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
   const userResult = await userService.getUserById(userId);
   if (!userResult.success) return fallback;
-
   const name = userResult.data.name?.trim();
   return name || fallback;
 }
-
 async function resolveBookingAthleteName(booking: Booking): Promise<string | undefined> {
   const athleteId = booking.athleteIds?.[0] ?? booking.athleteId;
   if (!athleteId) return undefined;
@@ -76,7 +72,8 @@ const MOCK_TEMPLATES: AvailabilityTemplate[] = [
   {
     id: 'tmpl_1',
     coachId: 'coach1',
-    dayOfWeek: 1, // Monday
+    dayOfWeek: 1,
+    // Monday
     startTime: '16:00',
     endTime: '19:00',
     isRecurring: true,
@@ -87,7 +84,8 @@ const MOCK_TEMPLATES: AvailabilityTemplate[] = [
   {
     id: 'tmpl_2',
     coachId: 'coach1',
-    dayOfWeek: 3, // Wednesday
+    dayOfWeek: 3,
+    // Wednesday
     startTime: '16:00',
     endTime: '19:00',
     isRecurring: true,
@@ -98,7 +96,8 @@ const MOCK_TEMPLATES: AvailabilityTemplate[] = [
   {
     id: 'tmpl_3',
     coachId: 'coach1',
-    dayOfWeek: 5, // Friday
+    dayOfWeek: 5,
+    // Friday
     startTime: '15:00',
     endTime: '18:00',
     isRecurring: true,
@@ -109,7 +108,8 @@ const MOCK_TEMPLATES: AvailabilityTemplate[] = [
   {
     id: 'tmpl_4',
     coachId: 'coach1',
-    dayOfWeek: 6, // Saturday
+    dayOfWeek: 6,
+    // Saturday
     startTime: '09:00',
     endTime: '13:00',
     isRecurring: true,
@@ -121,7 +121,8 @@ const MOCK_TEMPLATES: AvailabilityTemplate[] = [
   {
     id: 'tmpl_5',
     coachId: 'coach2',
-    dayOfWeek: 2, // Tuesday
+    dayOfWeek: 2,
+    // Tuesday
     startTime: '17:00',
     endTime: '20:00',
     isRecurring: true,
@@ -132,7 +133,8 @@ const MOCK_TEMPLATES: AvailabilityTemplate[] = [
   {
     id: 'tmpl_6',
     coachId: 'coach2',
-    dayOfWeek: 4, // Thursday
+    dayOfWeek: 4,
+    // Thursday
     startTime: '17:00',
     endTime: '20:00',
     isRecurring: true,
@@ -143,7 +145,8 @@ const MOCK_TEMPLATES: AvailabilityTemplate[] = [
   {
     id: 'tmpl_7',
     coachId: 'coach2',
-    dayOfWeek: 6, // Saturday
+    dayOfWeek: 6,
+    // Saturday
     startTime: '10:00',
     endTime: '14:00',
     isRecurring: true,
@@ -155,7 +158,8 @@ const MOCK_TEMPLATES: AvailabilityTemplate[] = [
   {
     id: 'tmpl_8',
     coachId: 'coach3',
-    dayOfWeek: 1, // Monday
+    dayOfWeek: 1,
+    // Monday
     startTime: '16:30',
     endTime: '19:30',
     isRecurring: true,
@@ -166,7 +170,8 @@ const MOCK_TEMPLATES: AvailabilityTemplate[] = [
   {
     id: 'tmpl_9',
     coachId: 'coach3',
-    dayOfWeek: 3, // Wednesday
+    dayOfWeek: 3,
+    // Wednesday
     startTime: '16:30',
     endTime: '19:30',
     isRecurring: true,
@@ -177,7 +182,8 @@ const MOCK_TEMPLATES: AvailabilityTemplate[] = [
   {
     id: 'tmpl_10',
     coachId: 'coach3',
-    dayOfWeek: 0, // Sunday
+    dayOfWeek: 0,
+    // Sunday
     startTime: '09:00',
     endTime: '12:00',
     isRecurring: true,
@@ -186,7 +192,6 @@ const MOCK_TEMPLATES: AvailabilityTemplate[] = [
     location: 'Battersea Park',
   },
 ];
-
 const MOCK_OVERRIDES: AvailabilityOverride[] = [
   {
     id: 'ovr_1',
@@ -196,22 +201,17 @@ const MOCK_OVERRIDES: AvailabilityOverride[] = [
     reason: 'Personal appointment',
   },
 ];
-
 let templatesCache: AvailabilityTemplate[] = [...MOCK_TEMPLATES];
 let overridesCache: AvailabilityOverride[] = [...MOCK_OVERRIDES];
-
 interface ApiAvailabilityTemplatesResponse {
   templates: AvailabilityTemplate[];
 }
-
 interface ApiAvailabilityOverridesResponse {
   overrides: AvailabilityOverride[];
 }
-
 interface ApiAvailabilitySlotsResponse {
   slots: AvailabilitySlot[];
 }
-
 async function loadAuthoritativeAvailabilitySlots(params: {
   coachId: string;
   startDate: string;
@@ -235,17 +235,17 @@ async function loadAuthoritativeAvailabilitySlots(params: {
   if (params.applySchedulingRules) {
     searchParams.set('applySchedulingRules', 'true');
   }
-
   const result = await apiFetch<ApiAvailabilitySlotsResponse>(
     `/v1/coaches/${params.coachId}/availability/slots?${searchParams.toString()}`,
-    { method: 'GET' },
+    {
+      method: 'GET',
+    },
   );
   if (!result.success) {
     throw new Error(result.error.message);
   }
   return result.data.slots;
 }
-
 async function loadTemplates(): Promise<AvailabilityTemplate[]> {
   try {
     const stored = await apiClient.get<AvailabilityTemplate[] | null>(
@@ -258,7 +258,6 @@ async function loadTemplates(): Promise<AvailabilityTemplate[]> {
   }
   return [...MOCK_TEMPLATES];
 }
-
 async function saveTemplates(
   templates: AvailabilityTemplate[],
 ): Promise<Result<void, ServiceError>> {
@@ -270,7 +269,6 @@ async function saveTemplates(
     return err(storageError(`Failed to save templates: ${String(error)}`));
   }
 }
-
 async function loadOverrides(): Promise<AvailabilityOverride[]> {
   try {
     const stored = await apiClient.get<AvailabilityOverride[] | null>(
@@ -283,7 +281,6 @@ async function loadOverrides(): Promise<AvailabilityOverride[]> {
   }
   return [...MOCK_OVERRIDES];
 }
-
 async function saveOverrides(
   overrides: AvailabilityOverride[],
 ): Promise<Result<void, ServiceError>> {
@@ -295,7 +292,6 @@ async function saveOverrides(
     return err(storageError(`Failed to save overrides: ${String(error)}`));
   }
 }
-
 export const availabilityService = {
   isUsingMockData(): boolean {
     return USE_MOCK;
@@ -308,11 +304,12 @@ export const availabilityService = {
       templatesCache = await loadTemplates();
       return templatesCache.filter((t) => t.coachId === coachId);
     }
-
     if (await isSignedInCoachSelf(coachId)) {
       const result = await apiFetch<ApiAvailabilityTemplatesResponse>(
         '/v1/coaches/me/availability/templates',
-        { method: 'GET' },
+        {
+          method: 'GET',
+        },
       );
       if (result.success) {
         return result.data.templates;
@@ -322,35 +319,31 @@ export const availabilityService = {
         error: result.error.message,
       });
     }
-
     return (await loadTemplates()).filter((template) => template.coachId === coachId);
   },
-
   /**
    * Create or update a template
    */
   async saveTemplate(
-    template: Omit<AvailabilityTemplate, 'id'> & { id?: string },
+    template: Omit<AvailabilityTemplate, 'id'> & {
+      id?: string;
+    },
   ): Promise<AvailabilityTemplate> {
     const savedTemplate: AvailabilityTemplate = {
       ...template,
       id: template.id || apiClient.generateId('tmpl'),
     };
-
     if (USE_MOCK) {
       templatesCache = await loadTemplates();
       const existingIndex = templatesCache.findIndex((t) => t.id === savedTemplate.id);
-
       if (existingIndex >= 0) {
         templatesCache[existingIndex] = savedTemplate;
       } else {
         templatesCache.push(savedTemplate);
       }
-
       await saveTemplates(templatesCache);
       return savedTemplate;
     }
-
     if (await isSignedInCoachSelf(savedTemplate.coachId)) {
       const result = await apiFetch<AvailabilityTemplate>(
         template.id
@@ -366,7 +359,6 @@ export const availabilityService = {
       }
       throw new Error(result.error.message);
     }
-
     templatesCache = await loadTemplates();
     const existingIndex = templatesCache.findIndex((entry) => entry.id === savedTemplate.id);
     if (existingIndex >= 0) {
@@ -377,7 +369,6 @@ export const availabilityService = {
     await saveTemplates(templatesCache);
     return savedTemplate;
   },
-
   /**
    * Delete a template
    */
@@ -393,11 +384,9 @@ export const availabilityService = {
       });
       return;
     }
-
     const templates = await loadTemplates();
     const existing = templates.find((template) => template.id === templateId);
-
-    if (existing && await isSignedInCoachSelf(existing.coachId)) {
+    if (existing && (await isSignedInCoachSelf(existing.coachId))) {
       const result = await apiFetch<void>(`/v1/coaches/me/availability/templates/${templateId}`, {
         method: 'DELETE',
       });
@@ -410,7 +399,6 @@ export const availabilityService = {
       });
       return;
     }
-
     templatesCache = templates.filter((template) => template.id !== templateId);
     await saveTemplates(templatesCache);
     emitTyped(ServiceEvents.AVAILABILITY_TEMPLATE_DELETED, {
@@ -418,7 +406,6 @@ export const availabilityService = {
       coachId: existing?.coachId,
     });
   },
-
   /**
    * Get all overrides for a coach within a date range
    */
@@ -430,24 +417,23 @@ export const availabilityService = {
     if (USE_MOCK) {
       overridesCache = await loadOverrides();
       let filtered = overridesCache.filter((o) => o.coachId === coachId);
-
       if (startDate) {
         filtered = filtered.filter((o) => o.date >= startDate);
       }
       if (endDate) {
         filtered = filtered.filter((o) => o.date <= endDate);
       }
-
       return filtered;
     }
-
     if (await isSignedInCoachSelf(coachId)) {
       const params = new URLSearchParams();
       if (startDate) params.append('start', startDate);
       if (endDate) params.append('end', endDate);
       const result = await apiFetch<ApiAvailabilityOverridesResponse>(
         `/v1/coaches/me/availability/overrides${params.size ? `?${params.toString()}` : ''}`,
-        { method: 'GET' },
+        {
+          method: 'GET',
+        },
       );
       if (result.success) {
         return result.data.overrides;
@@ -457,7 +443,6 @@ export const availabilityService = {
         error: result.error.message,
       });
     }
-
     let filtered = (await loadOverrides()).filter((override) => override.coachId === coachId);
     if (startDate) {
       filtered = filtered.filter((override) => override.date >= startDate);
@@ -467,18 +452,18 @@ export const availabilityService = {
     }
     return filtered;
   },
-
   /**
    * Create or update an override
    */
   async saveOverride(
-    override: Omit<AvailabilityOverride, 'id'> & { id?: string },
+    override: Omit<AvailabilityOverride, 'id'> & {
+      id?: string;
+    },
   ): Promise<AvailabilityOverride> {
     const savedOverride: AvailabilityOverride = {
       ...override,
       id: override.id || apiClient.generateId('ovr'),
     };
-
     if (USE_MOCK) {
       overridesCache = await loadOverrides();
 
@@ -486,12 +471,10 @@ export const availabilityService = {
       overridesCache = overridesCache.filter(
         (o) => !(o.coachId === savedOverride.coachId && o.date === savedOverride.date),
       );
-
       overridesCache.push(savedOverride);
       await saveOverrides(overridesCache);
       return savedOverride;
     }
-
     if (await isSignedInCoachSelf(savedOverride.coachId)) {
       const result = await apiFetch<AvailabilityOverride>(
         override.id
@@ -507,7 +490,6 @@ export const availabilityService = {
       }
       throw new Error(result.error.message);
     }
-
     overridesCache = await loadOverrides();
     overridesCache = overridesCache.filter(
       (entry) => !(entry.coachId === savedOverride.coachId && entry.date === savedOverride.date),
@@ -516,7 +498,6 @@ export const availabilityService = {
     await saveOverrides(overridesCache);
     return savedOverride;
   },
-
   /**
    * Delete an override
    */
@@ -533,11 +514,9 @@ export const availabilityService = {
       });
       return;
     }
-
     const overrides = await loadOverrides();
     const existing = overrides.find((override) => override.id === overrideId);
-
-    if (existing && await isSignedInCoachSelf(existing.coachId)) {
+    if (existing && (await isSignedInCoachSelf(existing.coachId))) {
       const result = await apiFetch<void>(`/v1/coaches/me/availability/overrides/${overrideId}`, {
         method: 'DELETE',
       });
@@ -551,7 +530,6 @@ export const availabilityService = {
       });
       return;
     }
-
     overridesCache = overrides.filter((override) => override.id !== overrideId);
     await saveOverrides(overridesCache);
     emitTyped(ServiceEvents.AVAILABILITY_OVERRIDE_DELETED, {
@@ -560,7 +538,6 @@ export const availabilityService = {
       date: existing?.date,
     });
   },
-
   /**
    * Block a specific date
    */
@@ -572,7 +549,6 @@ export const availabilityService = {
       reason,
     });
   },
-
   /**
    * Unblock a specific date.
    * Removes both the modern override AND any legacy blocked-date range entry.
@@ -595,14 +571,12 @@ export const availabilityService = {
       await this.removeLegacyBlockedDate(coachId, date);
       return;
     }
-
     const overrides = await this.getOverrides(coachId);
     const override = overrides.find((o) => o.date === date);
     if (override) {
       await this.deleteOverride(override.id);
     }
   },
-
   /**
    * Remove a date from the legacy BLOCKED_DATES storage key.
    * Handles single-day ranges (remove entirely) and multi-day ranges (split).
@@ -621,7 +595,6 @@ export const availabilityService = {
         }>
       > | null>(STORAGE_KEYS.BLOCKED_DATES, null);
       if (!allBlocked?.[coachId]?.length) return;
-
       const cleaned: (typeof allBlocked)[string] = [];
       for (const bd of allBlocked[coachId]) {
         if (date < bd.startDate || date > bd.endDate) {
@@ -634,12 +607,20 @@ export const availabilityService = {
           if (bd.startDate < date) {
             const prevDay = new Date(date + 'T12:00:00');
             prevDay.setDate(prevDay.getDate() - 1);
-            cleaned.push({ ...bd, endDate: toDateStr(prevDay), id: `${bd.id}_l` });
+            cleaned.push({
+              ...bd,
+              endDate: toDateStr(prevDay),
+              id: `${bd.id}_l`,
+            });
           }
           if (bd.endDate > date) {
             const nextDay = new Date(date + 'T12:00:00');
             nextDay.setDate(nextDay.getDate() + 1);
-            cleaned.push({ ...bd, startDate: toDateStr(nextDay), id: `${bd.id}_r` });
+            cleaned.push({
+              ...bd,
+              startDate: toDateStr(nextDay),
+              id: `${bd.id}_r`,
+            });
           }
         }
       }
@@ -649,7 +630,6 @@ export const availabilityService = {
       logger.error('Failed to clean legacy blocked dates', err);
     }
   },
-
   /**
    * Get available slots for a date range (used by booking system)
    * Now checks against existing bookings to show only truly available slots
@@ -672,13 +652,12 @@ export const availabilityService = {
         applySchedulingRules: options?.applySchedulingRules,
       });
     }
-
-    const templates = await this.getTemplates(coachId);
-    const overrides = await this.getOverrides(coachId, startDate, endDate);
-
-    // Load existing bookings to check availability
-    const existingBookings = await loadBookings();
-    const sessionOfferings = await loadSessionOfferings();
+    const [templates, overrides, existingBookings, sessionOfferings] = await Promise.all([
+      this.getTemplates(coachId),
+      this.getOverrides(coachId, startDate, endDate),
+      loadBookings(),
+      loadSessionOfferings(),
+    ]);
 
     // Filter bookings for this coach in the date range
     const coachBookings = existingBookings.filter((booking) => {
@@ -695,10 +674,19 @@ export const availabilityService = {
       const offeringDate = offering.scheduledAt?.split('T')[0];
       return offeringDate >= startDate && offeringDate <= endDate;
     });
-
     const slots: AvailabilitySlot[] = [];
     const start = new Date(startDate);
     const end = new Date(endDate);
+    const overrideByDate = new Map(overrides.map((override) => [override.date, override]));
+    const templateByDayOfWeek = new Map<
+      (typeof templates)[number]['dayOfWeek'],
+      (typeof templates)[number]
+    >();
+    for (const template of templates) {
+      if (!templateByDayOfWeek.has(template.dayOfWeek)) {
+        templateByDayOfWeek.set(template.dayOfWeek, template);
+      }
+    }
 
     // Iterate through each day in range
     for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
@@ -706,18 +694,15 @@ export const availabilityService = {
       const dayOfWeek = date.getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
       // Check for override on this date
-      const override = overrides.find((o) => o.date === dateStr);
-
+      const override = overrideByDate.get(dateStr);
       if (override?.isBlocked) {
         // Date is blocked, skip
         continue;
       }
-
       if (override?.customSlots) {
         // Use custom slots for this date
-        const dayTemplate = templates.find((t) => t.dayOfWeek === dayOfWeek);
+        const dayTemplate = templateByDayOfWeek.get(dayOfWeek);
         const fallbackLocation = dayTemplate?.location;
-
         for (const customSlot of override.customSlots) {
           const bookedCount = this.countBookingsForSlot(
             coachBookings,
@@ -725,7 +710,6 @@ export const availabilityService = {
             dateStr,
             customSlot.startTime,
           );
-
           slots.push({
             date: dateStr,
             startTime: customSlot.startTime,
@@ -741,15 +725,12 @@ export const availabilityService = {
 
       // Use template for this day
       const dayTemplates = templates.filter((t) => t.dayOfWeek === dayOfWeek);
-
       for (const template of dayTemplates) {
         // Generate time slots based on template
         const [startHour, startMin] = template.startTime.split(':').map(Number);
         const [endHour, endMin] = template.endTime.split(':').map(Number);
-
         const templateStartMinutes = startHour * 60 + startMin;
         const templateEndMinutes = endHour * 60 + endMin;
-
         for (
           let slotStart = templateStartMinutes;
           slotStart + sessionDurationMinutes <= templateEndMinutes;
@@ -760,17 +741,14 @@ export const availabilityService = {
           const slotEndMinutes = slotStart + sessionDurationMinutes;
           const slotEndHour = Math.floor(slotEndMinutes / 60);
           const slotEndMin = slotEndMinutes % 60;
-
           const slotStartTime = `${slotStartHour.toString().padStart(2, '0')}:${slotStartMin.toString().padStart(2, '0')}`;
           const slotEndTime = `${slotEndHour.toString().padStart(2, '0')}:${slotEndMin.toString().padStart(2, '0')}`;
-
           const bookedCount = this.countBookingsForSlot(
             coachBookings,
             coachOfferings,
             dateStr,
             slotStartTime,
           );
-
           slots.push({
             date: dateStr,
             startTime: slotStartTime,
@@ -783,14 +761,12 @@ export const availabilityService = {
         }
       }
     }
-
     return slots.sort((a, b) => {
       const dateCompare = a.date.localeCompare(b.date);
       if (dateCompare !== 0) return dateCompare;
       return a.startTime.localeCompare(b.startTime);
     });
   },
-
   /**
    * Count bookings for a specific slot
    */
@@ -820,16 +796,13 @@ export const availabilityService = {
         count += getSessionOfferingHeadcount(offering) || 1;
       }
     }
-
     return count;
   },
-
   /**
    * Get bookings for a coach within a date range
    */
   async getCoachBookings(coachId: string, startDate: string, endDate: string) {
-    const bookings = await loadBookings();
-    const offerings = await loadSessionOfferings();
+    const [bookings, offerings] = await Promise.all([loadBookings(), loadSessionOfferings()]);
 
     // Filter bookings for this coach
     const coachBookings = bookings.filter((booking) => {
@@ -840,32 +813,32 @@ export const availabilityService = {
 
     // Get registrations from offerings
     const coachOfferingBookings = await Promise.all(
-      offerings
-        .filter((offering) => offering.coachId === coachId)
-        .filter((offering) => {
-          const offeringDate = offering.scheduledAt?.split('T')[0];
-          return offeringDate >= startDate && offeringDate <= endDate;
-        })
-        .map(async (offering) => ({
-          id: offering.id,
-          coachId: offering.coachId,
-          coachName: await resolveUserName(offering.coachId, 'Coach'),
-          scheduledAt: offering.scheduledAt,
-          service: offering.title,
-          location: offering.location,
-          status: (offering.status === 'active'
-            ? 'CONFIRMED'
-            : offering.status?.toUpperCase()) as BookingStatus,
-          isGroupSession: offering.sessionType === 'group',
-          maxParticipants: offering.maxParticipants,
-          currentParticipants: getSessionOfferingHeadcount(offering),
-          registrations: offering.registrations,
-        })),
+      offerings.flatMap((offering) => {
+        const offeringDate = offering.scheduledAt?.split('T')[0];
+        if (offering.coachId !== coachId || offeringDate < startDate || offeringDate > endDate) {
+          return [];
+        }
+        return [
+          (async () => ({
+            id: offering.id,
+            coachId: offering.coachId,
+            coachName: await resolveUserName(offering.coachId, 'Coach'),
+            scheduledAt: offering.scheduledAt,
+            service: offering.title,
+            location: offering.location,
+            status: (offering.status === 'active'
+              ? 'CONFIRMED'
+              : offering.status?.toUpperCase()) as BookingStatus,
+            isGroupSession: offering.sessionType === 'group',
+            maxParticipants: offering.maxParticipants,
+            currentParticipants: getSessionOfferingHeadcount(offering),
+            registrations: offering.registrations,
+          }))(),
+        ];
+      }),
     );
-
     return [...coachBookings, ...coachOfferingBookings];
   },
-
   /**
    * Get slots that a coach can invite someone to.
    * Respects availability, existing bookings, session type tagging, AND pending invite holds.
@@ -884,7 +857,6 @@ export const availabilityService = {
         duration = template.duration;
       }
     }
-
     if (!USE_MOCK) {
       const slots = await loadAuthoritativeAvailabilitySlots({
         coachId,
@@ -939,28 +911,26 @@ export const availabilityService = {
         );
       });
     }
-
     return invitable;
   },
-
   /**
    * Save a repeated override — generates individual overrides for each week
    * from the override's date through repeatUntil, all sharing the same repeatGroupId.
    */
   async saveRepeatedOverride(
-    override: Omit<AvailabilityOverride, 'id'> & { repeatUntil: string },
+    override: Omit<AvailabilityOverride, 'id'> & {
+      repeatUntil: string;
+    },
   ): Promise<AvailabilityOverride[]> {
     const groupId = apiClient.generateId('rpg');
     const startDate = new Date(override.date + 'T00:00:00');
     const endDate = new Date(override.repeatUntil + 'T00:00:00');
-    const results: AvailabilityOverride[] = [];
-
+    const overrides: AvailabilityOverride[] = [];
     let current = new Date(startDate);
     let index = 0;
-
     while (current <= endDate) {
       const dateStr = toDateStr(current);
-      const saved = await this.saveOverride({
+      overrides.push({
         ...override,
         date: dateStr,
         id: apiClient.generateId(`ovr_${index}`),
@@ -968,9 +938,21 @@ export const availabilityService = {
         repeatDayOfWeek: current.getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6,
         repeatUntil: override.repeatUntil,
       });
-      results.push(saved);
       current.setDate(current.getDate() + 7);
       index++;
+    }
+
+    let results: AvailabilityOverride[];
+    if (!USE_MOCK && (await isSignedInCoachSelf(override.coachId))) {
+      results = await Promise.all(overrides.map((entry) => this.saveOverride(entry)));
+    } else {
+      const repeatedDates = new Set(overrides.map((entry) => entry.date));
+      overridesCache = (await loadOverrides()).filter(
+        (entry) => !(entry.coachId === override.coachId && repeatedDates.has(entry.date)),
+      );
+      overridesCache.push(...overrides);
+      await saveOverrides(overridesCache);
+      results = overrides;
     }
 
     logger.info('Saved repeated overrides', {
@@ -979,10 +961,8 @@ export const availabilityService = {
       from: override.date,
       until: override.repeatUntil,
     });
-
     return results;
   },
-
   /**
    * Get a summary of availability for display
    */
@@ -996,15 +976,15 @@ export const availabilityService = {
     // Calculate weekly hours
     let weeklyMinutes = 0;
     const daysAvailable: string[] = [];
-
+    const daysAvailableSet = new Set<string>();
     for (const template of templates) {
       const [startHour, startMin] = template.startTime.split(':').map(Number);
       const [endHour, endMin] = template.endTime.split(':').map(Number);
       const duration = endHour * 60 + endMin - (startHour * 60 + startMin);
       weeklyMinutes += duration;
-
       const dayName = DAY_NAMES[template.dayOfWeek];
-      if (!daysAvailable.includes(dayName)) {
+      if (!daysAvailableSet.has(dayName)) {
+        daysAvailableSet.add(dayName);
         daysAvailable.push(dayName);
       }
     }
@@ -1015,14 +995,12 @@ export const availabilityService = {
     twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
     const slots = await this.getAvailableSlots(coachId, today, toDateStr(twoWeeksLater));
     const nextAvailableSlot = slots.find((s) => s.isAvailable);
-
     return {
       weeklyHours: Math.round((weeklyMinutes / 60) * 10) / 10,
       daysAvailable,
       nextAvailableSlot,
     };
   },
-
   /**
    * Check for conflicts before blocking/removing availability.
    * Returns bookings and pending invite holds that fall on the given date(s).
@@ -1033,41 +1011,73 @@ export const availabilityService = {
   ): Promise<{
     bookingCount: number;
     holdCount: number;
-    bookings: { id: string; date: string; time: string; location?: string; athleteName?: string }[];
-    holds: { date: string; time: string; inviteId: string }[];
+    bookings: {
+      id: string;
+      date: string;
+      time: string;
+      location?: string;
+      athleteName?: string;
+    }[];
+    holds: {
+      date: string;
+      time: string;
+      inviteId: string;
+    }[];
   }> {
-    if (dates.length === 0) return { bookingCount: 0, holdCount: 0, bookings: [], holds: [] };
-
-    const startDate = dates.sort()[0];
-    const endDate = dates.sort()[dates.length - 1];
+    if (dates.length === 0)
+      return {
+        bookingCount: 0,
+        holdCount: 0,
+        bookings: [],
+        holds: [],
+      };
+    let startDate = dates[0];
+    let endDate = dates[0];
+    for (const date of dates) {
+      if (date < startDate) {
+        startDate = date;
+      }
+      if (date > endDate) {
+        endDate = date;
+      }
+    }
     const dateSet = new Set(dates);
 
     // Check bookings
     const allBookings = await loadBookings();
-    const conflictBookings = allBookings
-      .filter((b) => {
-        if (b.coachId !== coachId || b.status === 'CANCELLED') return false;
-        const bookingDate = b.scheduledAt?.split('T')[0];
-        return bookingDate ? dateSet.has(bookingDate) : false;
-      })
-      .map((b) => ({
-        id: b.id,
-        date: b.scheduledAt?.split('T')[0] || '',
-        time: b.scheduledAt?.split('T')[1]?.substring(0, 5) || '',
-        location: b.location,
-        athleteName: (b as unknown as Record<string, unknown>).athleteName as string | undefined,
-      }));
+    const conflictBookings = allBookings.flatMap((b) => {
+      if (
+        !(() => {
+          if (b.coachId !== coachId || b.status === 'CANCELLED') return false;
+          const bookingDate = b.scheduledAt?.split('T')[0];
+          return bookingDate ? dateSet.has(bookingDate) : false;
+        })()
+      )
+        return [];
+      return [
+        {
+          id: b.id,
+          date: b.scheduledAt?.split('T')[0] || '',
+          time: b.scheduledAt?.split('T')[1]?.substring(0, 5) || '',
+          location: b.location,
+          athleteName: (b as unknown as Record<string, unknown>).athleteName as string | undefined,
+        },
+      ];
+    });
 
     // Check pending invite holds
     const activeHolds = await inviteHoldService.getActiveHolds(coachId);
-    const conflictHolds = activeHolds
-      .filter((h) => dateSet.has(h.slotDate))
-      .map((h) => ({
-        date: h.slotDate,
-        time: h.slotStartTime,
-        inviteId: h.inviteId,
-      }));
-
+    const conflictHolds = activeHolds.flatMap((h) =>
+      dateSet.has(h.slotDate)
+        ? [
+            {
+              date: h.slotDate,
+              time: h.slotStartTime,
+              inviteId: h.inviteId,
+            },
+          ]
+        : [],
+    );
     return {
       bookingCount: conflictBookings.length,
       holdCount: conflictHolds.length,
@@ -1075,7 +1085,6 @@ export const availabilityService = {
       holds: conflictHolds,
     };
   },
-
   /**
    * Check conflicts for a specific day of week (recurring template removal).
    * Looks 4 weeks ahead to find affected bookings/holds.
@@ -1099,7 +1108,6 @@ export const availabilityService = {
         dates.push(toDateStr(d));
       }
     }
-
     const result = await this.checkConflicts(coachId, dates);
     return {
       bookingCount: result.bookingCount,
@@ -1107,16 +1115,16 @@ export const availabilityService = {
       affectedDates: dates,
     };
   },
-
   /**
    * Bulk-update the location field on a list of bookings.
    */
   async updateBookingLocations(bookingIds: string[], newLocation: string): Promise<void> {
     if (bookingIds.length === 0) return;
     const allBookings = await loadBookings();
+    const bookingIdSet = new Set(bookingIds);
     let changed = false;
     for (const booking of allBookings) {
-      if (bookingIds.includes(booking.id)) {
+      if (bookingIdSet.has(booking.id)) {
         booking.location = newLocation;
         changed = true;
       }
@@ -1125,7 +1133,6 @@ export const availabilityService = {
       await apiClient.set(STORAGE_KEYS.BOOKINGS, allBookings);
     }
   },
-
   /**
    * Check if future bookings on a given day-of-week have a different location.
    * Looks 4 weeks ahead. Used when editing a recurring template's location.
@@ -1153,28 +1160,33 @@ export const availabilityService = {
         dates.push(toDateStr(d));
       }
     }
-    if (dates.length === 0) return { affectedBookings: [], affectedCount: 0 };
-
+    if (dates.length === 0)
+      return {
+        affectedBookings: [],
+        affectedCount: 0,
+      };
     const dateSet = new Set(dates);
     const allBookings = await loadBookings();
-
     const affected = await Promise.all(
-      allBookings
-        .filter((b) => {
-          if (b.coachId !== coachId || b.status === 'CANCELLED') return false;
-          const bookingDate = b.scheduledAt?.split('T')[0];
-          if (!bookingDate || !dateSet.has(bookingDate)) return false;
-          return b.location !== undefined && b.location !== newLocation;
-        })
-        .map(async (b) => ({
-          id: b.id,
-          date: b.scheduledAt?.split('T')[0] || '',
-          time: b.scheduledAt?.split('T')[1]?.substring(0, 5) || '',
-          location: b.location || '',
-          athleteName: await resolveBookingAthleteName(b),
-        })),
+      allBookings.flatMap((b) => {
+        if (b.coachId !== coachId || b.status === 'CANCELLED') return [];
+        const bookingDate = b.scheduledAt?.split('T')[0];
+        if (!bookingDate || !dateSet.has(bookingDate)) return [];
+        if (b.location === undefined || b.location === newLocation) return [];
+        return [
+          (async () => ({
+            id: b.id,
+            date: b.scheduledAt?.split('T')[0] || '',
+            time: b.scheduledAt?.split('T')[1]?.substring(0, 5) || '',
+            location: b.location || '',
+            athleteName: await resolveBookingAthleteName(b),
+          }))(),
+        ];
+      }),
     );
-
-    return { affectedBookings: affected, affectedCount: affected.length };
+    return {
+      affectedBookings: affected,
+      affectedCount: affected.length,
+    };
   },
 };

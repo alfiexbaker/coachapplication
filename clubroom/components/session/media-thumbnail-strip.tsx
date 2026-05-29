@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,7 +17,7 @@ interface MediaThumbnailStripProps {
   onRemove: (uri: string) => void;
 }
 
-export const MediaThumbnailStrip = memo(function MediaThumbnailStrip({
+export const MediaThumbnailStrip = function MediaThumbnailStrip({
   photos,
   video,
   onRemove,
@@ -68,7 +68,7 @@ export const MediaThumbnailStrip = memo(function MediaThumbnailStrip({
       </ScrollView>
     </Column>
   );
-});
+};
 
 const styles = StyleSheet.create({
   label: {

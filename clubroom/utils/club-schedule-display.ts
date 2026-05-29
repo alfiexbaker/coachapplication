@@ -34,7 +34,7 @@ function sortActivitiesForFilter(
   now: Date,
 ): ClubActivity[] {
   if (filter === 'completed') {
-    return [...activities].sort(
+    return Array.from(activities).toSorted(
       (left, right) => new Date(right.startsAt).getTime() - new Date(left.startsAt).getTime(),
     );
   }
@@ -52,7 +52,7 @@ function sortActivitiesForFilter(
     return [...upcoming, ...completed, ...cancelled];
   }
 
-  return [...activities].sort(
+  return Array.from(activities).toSorted(
     (left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime(),
   );
 }

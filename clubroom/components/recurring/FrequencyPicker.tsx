@@ -9,10 +9,10 @@ import { RecurrenceFrequency } from '@/constants/types';
 import { getFrequencyLabel } from '@/services/recurring-booking-service';
 import { useTheme } from '@/hooks/useTheme';
 import {
-  FREQUENCY_OPTIONS,
   FrequencyCardOption,
   FrequencyPillOption,
 } from './frequency-picker-sections';
+import { FREQUENCY_OPTIONS } from './frequency-picker-helpers';
 
 // ─── FrequencyPicker ──────────────────────────────────────────────────────────
 

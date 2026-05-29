@@ -7,7 +7,6 @@
 
 import { useRef } from 'react';
 import { View, StyleSheet, TextInput, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -30,13 +29,12 @@ export default function CreateSquadScreen() {
 
   if (!c.club) {
     return (
-      <SafeAreaView
+      <View
         ref={modalRef}
         accessible
         accessibilityViewIsModal
         accessibilityRole="none"
         style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
       >
         <PageHeader
           title="Create Squad"
@@ -49,18 +47,17 @@ export default function CreateSquadScreen() {
         <View style={styles.errorContent}>
           <ThemedText style={{ color: palette.error }}>Club not found</ThemedText>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView
+    <View
       ref={modalRef}
       accessible
       accessibilityViewIsModal
       accessibilityRole="none"
       style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
     >
       <PageHeader
         title="Create Squad"
@@ -91,7 +88,11 @@ export default function CreateSquadScreen() {
         }
       />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.section}>
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
             Squad Name
@@ -109,7 +110,6 @@ export default function CreateSquadScreen() {
                 color: palette.text,
               },
             ]}
-
             maxLength={50}
           />
         </View>
@@ -194,7 +194,6 @@ export default function CreateSquadScreen() {
                 color: palette.text,
               },
             ]}
-
             maxLength={100}
           />
         </View>
@@ -296,7 +295,7 @@ export default function CreateSquadScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

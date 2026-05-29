@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,7 +21,7 @@ export interface ClubStatsRowProps {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export const ClubStatsRow = memo(function ClubStatsRow({
+export const ClubStatsRow = function ClubStatsRow({
   memberCount,
   squadCount,
   activityCount,
@@ -76,7 +75,7 @@ export const ClubStatsRow = memo(function ClubStatsRow({
       </View>
     </Row>
   );
-});
+};
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 

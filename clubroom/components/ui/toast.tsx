@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useEffect, useRef, useState, use } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
@@ -43,91 +43,126 @@ interface QueuedToast {
   duration: number;
 }
 
+interface ToastQueueController {
+  queueRef: React.MutableRefObject<QueuedToast[]>;
+  currentRef: React.MutableRefObject<QueuedToast | null>;
+  timeoutRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>;
+  setCurrent: React.Dispatch<React.SetStateAction<QueuedToast | null>>;
+}
+
+function displayNextQueuedToast(controller: ToastQueueController) {
+  const { queueRef, currentRef, timeoutRef, setCurrent } = controller;
+  if (currentRef.current || queueRef.current.length === 0) {
+    return;
+  }
+  const next = queueRef.current.shift();
+  if (!next) {
+    return;
+  }
+  currentRef.current = next;
+  setCurrent(next);
+  timeoutRef.current = setTimeout(() => {
+    timeoutRef.current = null;
+    currentRef.current = null;
+    setCurrent(null);
+    displayNextQueuedToast(controller);
+  }, next.duration);
+}
+
+function hideQueuedToast(controller: ToastQueueController) {
+  const { currentRef, timeoutRef, setCurrent } = controller;
+  if (timeoutRef.current) {
+    clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
+  }
+  currentRef.current = null;
+  setCurrent(null);
+  displayNextQueuedToast(controller);
+}
+
+function enqueueQueuedToast(
+  message: string,
+  options: ToastOptions | 'default' | 'success' | 'error' | 'warning' | undefined,
+  idCounter: React.MutableRefObject<number>,
+  controller: ToastQueueController,
+) {
+  const resolvedOptions: ToastOptions =
+    typeof options === 'string' ? { tone: options } : options || {};
+
+  const { tone = 'default', action, duration } = resolvedOptions;
+  const effectiveDuration = duration ?? DEFAULT_TOAST_DURATION;
+
+  idCounter.current += 1;
+  const newToast: QueuedToast = {
+    id: idCounter.current,
+    message,
+    tone,
+    action,
+    duration: effectiveDuration,
+  };
+
+  controller.queueRef.current.push(newToast);
+  displayNextQueuedToast(controller);
+}
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [queue, setQueue] = useState<QueuedToast[]>([]);
   const [current, setCurrent] = useState<QueuedToast | null>(null);
+  const queueRef = useRef<QueuedToast[]>([]);
+  const currentRef = useRef<QueuedToast | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const idCounter = useRef(0);
+  const queueController: ToastQueueController = {
+    queueRef,
+    currentRef,
+    timeoutRef,
+    setCurrent,
+  };
 
-  const hideToast = useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    setCurrent(null);
-  }, []);
+  const hideToast = () => {
+    hideQueuedToast(queueController);
+  };
 
-  // Process queue — show next toast when current dismisses
-  React.useEffect(() => {
-    if (current || queue.length === 0) return;
+  const showToast = (
+    message: string,
+    options?: ToastOptions | 'default' | 'success' | 'error' | 'warning',
+  ) => {
+    enqueueQueuedToast(message, options, idCounter, queueController);
+  };
 
-    const [next, ...rest] = queue;
-    setCurrent(next);
-    setQueue(rest);
-
-    timeoutRef.current = setTimeout(() => {
-      setCurrent(null);
-    }, next.duration);
-
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    };
-  }, [current, queue]);
-
-  const showToast = useCallback(
-    (message: string, options?: ToastOptions | 'default' | 'success' | 'error' | 'warning') => {
-      const resolvedOptions: ToastOptions =
-        typeof options === 'string' ? { tone: options } : options || {};
-
-      const { tone = 'default', action, duration } = resolvedOptions;
-      const effectiveDuration = duration ?? DEFAULT_TOAST_DURATION;
-
-      idCounter.current += 1;
-      const newToast: QueuedToast = {
-        id: idCounter.current,
-        message,
-        tone,
-        action,
-        duration: effectiveDuration,
-      };
-
-      setQueue(prev => [...prev, newToast]);
-    },
-    [],
-  );
-
-  const showUndoToast = useCallback(
-    (message: string, onUndo: () => void) => {
-      showToast(message, {
-        tone: 'success',
-        action: {
-          label: 'Undo',
-          onPress: () => {
-            onUndo();
-            hideToast();
-          },
+  const showUndoToast = (message: string, onUndo: () => void) => {
+    showToast(message, {
+      tone: 'success',
+      action: {
+        label: 'Undo',
+        onPress: () => {
+          onUndo();
+          hideToast();
         },
-        duration: UNDO_DURATION,
-      });
-    },
-    [showToast, hideToast],
-  );
+      },
+      duration: UNDO_DURATION,
+    });
+  };
 
-  const value = useMemo(
-    () => ({ showToast, showUndoToast, hideToast }),
-    [showToast, showUndoToast, hideToast],
-  );
+  const value = {
+    showToast,
+    showUndoToast,
+    hideToast,
+  };
 
   useEffect(() => {
+    const presenterQueueController: ToastQueueController = {
+      queueRef,
+      currentRef,
+      timeoutRef,
+      setCurrent,
+    };
+
     return registerToastPresenter({
       showToast: (message, tone = 'default') => {
-        showToast(message, tone);
+        enqueueQueuedToast(message, tone, idCounter, presenterQueueController);
       },
     });
-  }, [showToast]);
+  }, []);
 
   return (
     <ToastContext.Provider value={value}>
@@ -147,7 +182,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useToast() {
-  const ctx = useContext(ToastContext);
+  const ctx = use(ToastContext);
   if (!ctx) {
     throw new Error('useToast must be used within a ToastProvider');
   }

@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -12,7 +11,7 @@ interface SpecialNeedsDisabilitiesProps {
   disabilities: ChildProfile['disabilities'];
 }
 
-export const SpecialNeedsDisabilities = memo(function SpecialNeedsDisabilities({
+export const SpecialNeedsDisabilities = function SpecialNeedsDisabilities({
   disabilities,
 }: SpecialNeedsDisabilitiesProps) {
   const { colors } = useTheme();
@@ -54,20 +53,26 @@ export const SpecialNeedsDisabilities = memo(function SpecialNeedsDisabilities({
             </View>
           )}
 
-          {disability.communicationPreferences && disability.communicationPreferences.length > 0 && (
-            <View style={styles.detailBlock}>
-              <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-                Communication
-              </ThemedText>
-              <Row style={styles.tagList}>
-                {disability.communicationPreferences.map((tag, idx) => (
-                  <View key={idx} style={[styles.tag, { backgroundColor: withAlpha(colors.muted, 0.09) }]}>
-                    <ThemedText style={[Typography.caption, { color: colors.text }]}>{tag}</ThemedText>
-                  </View>
-                ))}
-              </Row>
-            </View>
-          )}
+          {disability.communicationPreferences &&
+            disability.communicationPreferences.length > 0 && (
+              <View style={styles.detailBlock}>
+                <ThemedText style={[Typography.caption, { color: colors.muted }]}>
+                  Communication
+                </ThemedText>
+                <Row style={styles.tagList}>
+                  {disability.communicationPreferences.map((tag) => (
+                    <View
+                      key={tag}
+                      style={[styles.tag, { backgroundColor: withAlpha(colors.muted, 0.09) }]}
+                    >
+                      <ThemedText style={[Typography.caption, { color: colors.text }]}>
+                        {tag}
+                      </ThemedText>
+                    </View>
+                  ))}
+                </Row>
+              </View>
+            )}
 
           {disability.triggers && disability.triggers.length > 0 && (
             <View style={styles.detailBlock}>
@@ -75,9 +80,14 @@ export const SpecialNeedsDisabilities = memo(function SpecialNeedsDisabilities({
                 Triggers to Avoid
               </ThemedText>
               <Row style={styles.tagList}>
-                {disability.triggers.map((tag, idx) => (
-                  <View key={idx} style={[styles.tag, { backgroundColor: withAlpha(colors.muted, 0.09) }]}>
-                    <ThemedText style={[Typography.caption, { color: colors.text }]}>{tag}</ThemedText>
+                {disability.triggers.map((tag) => (
+                  <View
+                    key={tag}
+                    style={[styles.tag, { backgroundColor: withAlpha(colors.muted, 0.09) }]}
+                  >
+                    <ThemedText style={[Typography.caption, { color: colors.text }]}>
+                      {tag}
+                    </ThemedText>
                   </View>
                 ))}
               </Row>
@@ -90,9 +100,14 @@ export const SpecialNeedsDisabilities = memo(function SpecialNeedsDisabilities({
                 Calming Strategies
               </ThemedText>
               <Row style={styles.tagList}>
-                {disability.calmingStrategies.map((tag, idx) => (
-                  <View key={idx} style={[styles.tag, { backgroundColor: withAlpha(colors.muted, 0.09) }]}>
-                    <ThemedText style={[Typography.caption, { color: colors.text }]}>{tag}</ThemedText>
+                {disability.calmingStrategies.map((tag) => (
+                  <View
+                    key={tag}
+                    style={[styles.tag, { backgroundColor: withAlpha(colors.muted, 0.09) }]}
+                  >
+                    <ThemedText style={[Typography.caption, { color: colors.text }]}>
+                      {tag}
+                    </ThemedText>
                   </View>
                 ))}
               </Row>
@@ -102,7 +117,7 @@ export const SpecialNeedsDisabilities = memo(function SpecialNeedsDisabilities({
       ))}
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.sm },

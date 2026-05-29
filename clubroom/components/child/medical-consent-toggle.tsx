@@ -1,4 +1,3 @@
-import { memo, useCallback } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,14 +27,14 @@ interface MedicalConsentToggleProps {
   onToggle: (type: ConsentType, granted: boolean) => void;
 }
 
-export const MedicalConsentToggle = memo(function MedicalConsentToggle({
+export const MedicalConsentToggle = function MedicalConsentToggle({
   consent,
   onToggle,
 }: MedicalConsentToggleProps) {
   const { colors } = useTheme();
   const info = CONSENT_LABELS[consent.type];
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     const newValue = !consent.granted;
 
     // Confirmation dialog when toggling OFF emergency treatment
@@ -60,7 +59,7 @@ export const MedicalConsentToggle = memo(function MedicalConsentToggle({
 
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onToggle(consent.type, newValue);
-  }, [consent.type, consent.granted, onToggle]);
+  };
 
   return (
     <Column>
@@ -114,7 +113,7 @@ export const MedicalConsentToggle = memo(function MedicalConsentToggle({
       )}
     </Column>
   );
-});
+};
 
 const styles = StyleSheet.create({
   row: { alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.sm },

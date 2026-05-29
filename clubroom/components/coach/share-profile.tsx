@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Modal, Share, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
@@ -27,12 +27,12 @@ export function ShareProfile({ coachId, coachName, profileUrl, onClose }: ShareP
   const { colors: palette } = useTheme();
 
   const [copied, setCopied] = useState(false);
-  const [slug, setSlug] = useState(coachId);
+  const [slug, setSlug] = useState(() => coachId);
   const [editingSlug, setEditingSlug] = useState(false);
 
   const shareUrl = `https://clubroom.app/coach/${slug}`;
 
-  const handleCopyLink = useCallback(async () => {
+  const handleCopyLink = async () => {
     try {
       await Clipboard.setStringAsync(shareUrl);
       setCopied(true);
@@ -40,9 +40,9 @@ export function ShareProfile({ coachId, coachName, profileUrl, onClose }: ShareP
     } catch {
       // Clipboard not available
     }
-  }, [shareUrl]);
+  };
 
-  const handleNativeShare = useCallback(async () => {
+  const handleNativeShare = async () => {
     try {
       await Share.share({
         message: `Check out ${coachName} on Clubroom! ${shareUrl}`,
@@ -52,20 +52,20 @@ export function ShareProfile({ coachId, coachName, profileUrl, onClose }: ShareP
     } catch {
       // User cancelled
     }
-  }, [coachName, shareUrl]);
+  };
 
-  const handleSlugSave = useCallback(() => {
+  const handleSlugSave = () => {
     setEditingSlug(false);
-  }, []);
+  };
 
-  const handleSlugChange = useCallback((text: string) => {
+  const handleSlugChange = (text: string) => {
     setSlug(text.toLowerCase().replace(/[^a-z0-9-]/g, ''));
-  }, []);
+  };
 
-  const handleSlugCancel = useCallback(() => {
+  const handleSlugCancel = () => {
     setSlug(coachId);
     setEditingSlug(false);
-  }, [coachId]);
+  };
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { View, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/useTheme';
@@ -12,8 +11,8 @@ import {
   AnalyticsStatCard,
   TopSkillsSection,
   ScheduleInsightsSection,
-  styles,
 } from './analytics-screen-sections';
+import { styles } from './analytics-screen-styles';
 
 type AnalyticsViewModel = {
   sessionsCount: number;
@@ -88,11 +87,8 @@ export function CoachAnalyticsScreen() {
   }
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
-      <ScrollView contentContainerStyle={styles.content}>
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
+      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <ThemedText type="title" style={styles.title}>
             Analytics
@@ -144,6 +140,6 @@ export function CoachAnalyticsScreen() {
         <TopSkillsSection topSkills={analytics.topSkills} palette={palette} />
         <ScheduleInsightsSection busiestDay={analytics.busiestDay} palette={palette} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

@@ -3,7 +3,15 @@
  * Sub-components: DayEditorExistingBlocks, DayEditorTimeSection, DayEditorVenueSection
  * Hook: useDayEditor
  */
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Modal } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Modal,
+  useWindowDimensions,
+} from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,7 +21,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha, Components } from '@/constants/theme';
 import type { AvailabilityTemplate, AvailabilityOverride, CoachVenue } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
-import { useDayEditor, SHEET_FOOTER_HEIGHT, SHEET_MAX_HEIGHT } from '@/hooks/use-day-editor';
+import { useDayEditor, SHEET_FOOTER_HEIGHT } from '@/hooks/use-day-editor';
 import { DayEditorExistingBlocks } from '@/components/availability/day-editor-existing-blocks';
 import { DayEditorTimeSection } from '@/components/availability/day-editor-time-section';
 import { DayEditorVenueSection } from '@/components/availability/day-editor-venue-section';
@@ -73,6 +81,8 @@ export function DayEditorSheet({
 }: DayEditorSheetProps) {
   const { colors: palette } = useTheme();
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  const sheetMaxHeight = Math.min(height * 0.84, height - 40);
   const ed = useDayEditor({
     visible,
     onClose,
@@ -119,7 +129,7 @@ export function DayEditorSheet({
         <Animated.View
           style={[
             styles.sheet,
-            { backgroundColor: palette.surface, height: SHEET_MAX_HEIGHT },
+            { backgroundColor: palette.surface, height: sheetMaxHeight },
             sheetAnimStyle,
           ]}
         >
@@ -174,7 +184,9 @@ export function DayEditorSheet({
                       styles.scopePill,
                       {
                         backgroundColor:
-                          ed.scope === 'recurring' ? withAlpha(palette.tint, 0.12) : palette.background,
+                          ed.scope === 'recurring'
+                            ? withAlpha(palette.tint, 0.12)
+                            : palette.background,
                         borderColor: ed.scope === 'recurring' ? palette.tint : palette.border,
                       },
                     ]}
@@ -200,7 +212,8 @@ export function DayEditorSheet({
                               ed.scope === 'just-this-date'
                                 ? withAlpha(palette.tint, 0.12)
                                 : palette.background,
-                            borderColor: ed.scope === 'just-this-date' ? palette.tint : palette.border,
+                            borderColor:
+                              ed.scope === 'just-this-date' ? palette.tint : palette.border,
                           },
                         ]}
                       >
@@ -224,7 +237,8 @@ export function DayEditorSheet({
                               ed.scope === 'next-n-weeks'
                                 ? withAlpha(palette.tint, 0.12)
                                 : palette.background,
-                            borderColor: ed.scope === 'next-n-weeks' ? palette.tint : palette.border,
+                            borderColor:
+                              ed.scope === 'next-n-weeks' ? palette.tint : palette.border,
                           },
                         ]}
                       >

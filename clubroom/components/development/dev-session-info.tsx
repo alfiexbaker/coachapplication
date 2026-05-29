@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
@@ -17,7 +17,7 @@ export interface DevSessionInfoProps {
   colors: ThemeColors;
 }
 
-export const DevSessionInfo = memo(function DevSessionInfo({
+export const DevSessionInfo = function DevSessionInfo({
   athleteName,
   avatar,
   sessionDate,
@@ -56,7 +56,7 @@ export const DevSessionInfo = memo(function DevSessionInfo({
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.sm },

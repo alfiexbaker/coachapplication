@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SessionOfferingCard } from '@/components/sessions/session-offering-card';
@@ -45,15 +45,14 @@ export function SessionTypeSelector({
   if (loading) {
     return (
       <View style={styles.catalog}>
-        <ScrollView
+        <FlatList
           horizontal
+          data={FILTER_SKELETON_KEYS}
+          keyExtractor={keyFilterSkeleton}
+          renderItem={renderFilterSkeleton}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterScrollContent}
-        >
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} width={110} height={38} radius={Radii.pill} />
-          ))}
-        </ScrollView>
+        />
         <View style={styles.list}>
           {Array.from({ length: 3 }).map((_, index) => (
             <SurfaceCard key={index} loading style={styles.loadingCard} tactile={false}>
@@ -74,61 +73,18 @@ export function SessionTypeSelector({
       </View>
     );
   }
+  const filterItems = getSessionTypeFilterItems(filters, activeFilter, onChangeFilter, palette);
 
   return (
     <View style={styles.catalog}>
-      <ScrollView
+      <FlatList
         horizontal
+        data={filterItems}
+        keyExtractor={keySessionTypeFilterItem}
+        renderItem={renderSessionTypeFilterItem}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.filterScrollContent}
-      >
-        {filters.map((filter) => {
-          const active = filter.id === activeFilter;
-          return (
-            <Clickable
-              key={filter.id}
-              onPress={() => onChangeFilter(filter.id)}
-              style={[
-                styles.filterChip,
-                {
-                  borderColor: active ? palette.tint : palette.border,
-                  backgroundColor: active ? palette.tint : palette.surface,
-                },
-              ]}
-              accessibilityLabel={`${filter.label}, ${filter.count} sessions`}
-              accessibilityState={{ selected: active }}
-            >
-              <ThemedText
-                style={[
-                  styles.filterChipText,
-                  { color: active ? palette.onPrimary : palette.text },
-                ]}
-              >
-                {filter.label}
-              </ThemedText>
-              <View
-                style={[
-                  styles.filterCount,
-                  {
-                    backgroundColor: active
-                      ? withAlpha(palette.onPrimary, 0.16)
-                      : withAlpha(palette.muted, 0.18),
-                  },
-                ]}
-              >
-                <ThemedText
-                  style={[
-                    styles.filterCountText,
-                    { color: active ? palette.onPrimary : palette.muted },
-                  ]}
-                >
-                  {filter.count}
-                </ThemedText>
-              </View>
-            </Clickable>
-          );
-        })}
-      </ScrollView>
+      />
 
       {offerings.length === 0 ? (
         <SurfaceCard style={styles.emptyCard} tactile={false}>
@@ -180,6 +136,83 @@ export function SessionTypeSelector({
         </View>
       )}
     </View>
+  );
+}
+
+const FILTER_SKELETON_KEYS = ['filter-0', 'filter-1', 'filter-2', 'filter-3'];
+
+function keyFilterSkeleton(key: string) {
+  return key;
+}
+
+function renderFilterSkeleton() {
+  return <Skeleton width={110} height={38} radius={Radii.pill} />;
+}
+
+interface SessionTypeFilterItem {
+  key: string;
+  filter: SessionTypeFilterOption;
+  active: boolean;
+  palette: ReturnType<typeof useTheme>['colors'];
+  onPress: () => void;
+}
+
+function getSessionTypeFilterItems(
+  filters: SessionTypeFilterOption[],
+  activeFilter: string,
+  onChangeFilter: (id: string) => void,
+  palette: ReturnType<typeof useTheme>['colors'],
+): SessionTypeFilterItem[] {
+  return filters.map((filter) => ({
+    key: filter.id,
+    filter,
+    active: filter.id === activeFilter,
+    palette,
+    onPress: () => onChangeFilter(filter.id),
+  }));
+}
+
+function keySessionTypeFilterItem(item: SessionTypeFilterItem) {
+  return item.key;
+}
+
+function renderSessionTypeFilterItem({ item }: ListRenderItemInfo<SessionTypeFilterItem>) {
+  const { filter, palette, active } = item;
+  return (
+    <Clickable
+      onPress={item.onPress}
+      style={[
+        styles.filterChip,
+        {
+          borderColor: active ? palette.tint : palette.border,
+          backgroundColor: active ? palette.tint : palette.surface,
+        },
+      ]}
+      accessibilityLabel={`${filter.label}, ${filter.count} sessions`}
+      accessibilityState={{ selected: active }}
+    >
+      <ThemedText
+        style={[styles.filterChipText, { color: active ? palette.onPrimary : palette.text }]}
+      >
+        {filter.label}
+      </ThemedText>
+      <View
+        style={[
+          styles.filterCount,
+          {
+            backgroundColor: active
+              ? withAlpha(palette.onPrimary, 0.16)
+              : withAlpha(palette.muted, 0.18),
+          },
+        ]}
+      >
+        <ThemedText
+          style={[styles.filterCountText, { color: active ? palette.onPrimary : palette.muted }]}
+        >
+          {filter.count}
+        </ThemedText>
+      </View>
+    </Clickable>
   );
 }
 

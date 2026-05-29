@@ -149,8 +149,8 @@ async function getAthleteProgress(
 
   // Deduplicate feedback by session+athlete and keep newest record.
   const feedbackBySession = new Map<string, SessionFeedback>();
-  [...feedback]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  Array.from(feedback)
+    .toSorted((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .forEach((entry) => {
       const key = `${entry.athleteId}:${entry.sessionId}`;
       if (!feedbackBySession.has(key)) {

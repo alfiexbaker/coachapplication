@@ -1,6 +1,6 @@
 /** InviteChildHeader — shows which child(ren) an invite is for (multi-child parents only). */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -19,7 +19,7 @@ interface InviteChildHeaderProps {
   isMultiChild: boolean;
 }
 
-export const InviteChildHeader = memo(function InviteChildHeader({
+export const InviteChildHeader = function InviteChildHeader({
   childIds,
   getChildById,
   isMultiChild,
@@ -62,7 +62,7 @@ export const InviteChildHeader = memo(function InviteChildHeader({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 const s = StyleSheet.create({
   card: { padding: Spacing.md },

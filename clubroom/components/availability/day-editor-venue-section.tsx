@@ -2,8 +2,17 @@
  * DayEditorVenueSection — Venue chips with map-based add-location modal.
  * Reuses the same AddLocationPicker flow used in session creation.
  */
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { Keyboard, Modal, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  FlatList,
+  Keyboard,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+  type ListRenderItemInfo,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -75,7 +84,7 @@ function DayEditorVenueSectionInner({
     void loadSavedLocations();
   }, []);
 
-  const persistLocationPreset = useCallback(async (payload: SaveLocationPresetPayload) => {
+  const persistLocationPreset = async (payload: SaveLocationPresetPayload) => {
     const preset = createLocationPreset({
       label: payload.label,
       address: payload.address.trim(),
@@ -90,38 +99,43 @@ function DayEditorVenueSectionInner({
       });
       return updated;
     });
-  }, []);
+  };
 
-  const closeAddVenueModal = useCallback(() => {
+  const closeAddVenueModal = () => {
     Keyboard.dismiss();
     if (showAddVenueInput) onToggleAddInput();
-  }, [onToggleAddInput, showAddVenueInput]);
+  };
 
-  const openAddVenueModal = useCallback(() => {
+  const openAddVenueModal = () => {
     if (showAddVenueInput) return;
     setLocationSearchValue('');
     setLocationCoordinates(null);
     onNewVenueLabelChange('');
     onToggleAddInput();
-  }, [onNewVenueLabelChange, onToggleAddInput, showAddVenueInput]);
+  };
 
-  const handleSelectSavedLocation = useCallback(
-    (preset: CoachLocationPreset) => {
-      setLocationSearchValue(preset.address);
-      setLocationCoordinates(preset.coordinates ?? null);
-      if (!newVenueLabel.trim()) {
-        onNewVenueLabelChange(preset.label);
-      }
-    },
-    [newVenueLabel, onNewVenueLabelChange],
-  );
+  const handleSelectSavedLocation = (preset: CoachLocationPreset) => {
+    setLocationSearchValue(preset.address);
+    setLocationCoordinates(preset.coordinates ?? null);
+    if (!newVenueLabel.trim()) {
+      onNewVenueLabelChange(preset.label);
+    }
+  };
 
-  const canConfirmLocation = useMemo(() => {
+  const canConfirmLocation = (() => {
     const derived = deriveLocationLabel(locationSearchValue).trim();
     return Boolean(newVenueLabel.trim() || derived);
-  }, [locationSearchValue, newVenueLabel]);
+  })();
+  const venueItems = getVenueItems(
+    venues,
+    location,
+    showAddVenueInput,
+    palette,
+    onSelectVenue,
+    openAddVenueModal,
+  );
 
-  const handleConfirmAddVenue = useCallback(() => {
+  const handleConfirmAddVenue = () => {
     const normalizedAddress = locationSearchValue.trim();
     const fallbackLabel = deriveLocationLabel(normalizedAddress).trim();
     const venueLabel = (newVenueLabel.trim() || fallbackLabel).trim();
@@ -142,87 +156,21 @@ function DayEditorVenueSectionInner({
     onAddVenue(venueLabel);
     onSelectVenue(venueLabel);
     closeAddVenueModal();
-  }, [
-    closeAddVenueModal,
-    locationCoordinates,
-    locationSearchValue,
-    newVenueLabel,
-    onAddVenue,
-    onSelectVenue,
-    persistLocationPreset,
-  ]);
+  };
 
   return (
     <>
       <View style={styles.section}>
         <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Location</ThemedText>
-        <ScrollView
+        <FlatList
+          contentInsetAdjustmentBehavior="automatic"
           horizontal
+          data={venueItems}
+          keyExtractor={keyVenueItem}
+          renderItem={renderVenueItem}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipsScroll}
-        >
-          {venues.map((v) => {
-            const isSelected = location === v.label;
-            return (
-              <Clickable
-                key={v.id}
-                onPress={() => {
-                  if (Platform.OS !== 'web')
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  onSelectVenue(isSelected ? '' : v.label);
-                }}
-                accessibilityLabel={`Venue: ${v.label}`}
-                style={[
-                  styles.chip,
-                  {
-                    backgroundColor: isSelected
-                      ? withAlpha(palette.tint, 0.12)
-                      : palette.background,
-                    borderColor: isSelected ? palette.tint : palette.border,
-                  },
-                ]}
-              >
-                {v.icon && (
-                  <Ionicons
-                    name={(v.icon as keyof typeof Ionicons.glyphMap) || 'location-outline'}
-                    size={14}
-                    color={isSelected ? palette.tint : palette.muted}
-                  />
-                )}
-                <ThemedText
-                  style={[styles.chipText, { color: isSelected ? palette.tint : palette.text }]}
-                  numberOfLines={1}
-                >
-                  {v.label}
-                </ThemedText>
-              </Clickable>
-            );
-          })}
-          <Clickable
-            onPress={openAddVenueModal}
-            accessibilityLabel="Add new venue"
-            style={[
-              styles.chip,
-              {
-                backgroundColor: showAddVenueInput
-                  ? withAlpha(palette.tint, 0.12)
-                  : palette.background,
-                borderColor: showAddVenueInput ? palette.tint : palette.border,
-              },
-            ]}
-          >
-            <Ionicons
-              name="add"
-              size={14}
-              color={showAddVenueInput ? palette.tint : palette.muted}
-            />
-            <ThemedText
-              style={[styles.chipText, { color: showAddVenueInput ? palette.tint : palette.muted }]}
-            >
-              Add
-            </ThemedText>
-          </Clickable>
-        </ScrollView>
+        />
       </View>
 
       <Modal
@@ -231,10 +179,7 @@ function DayEditorVenueSectionInner({
         presentationStyle="fullScreen"
         onRequestClose={closeAddVenueModal}
       >
-        <SafeAreaView
-          style={[styles.modalContainer, { backgroundColor: palette.background }]}
-          edges={['top', 'bottom']}
-        >
+        <View style={[styles.modalContainer, { backgroundColor: palette.background }]}>
           <Row align="center" justify="space-between" style={styles.modalHeader}>
             <ThemedText type="subtitle">Add Location</ThemedText>
             <Clickable
@@ -247,6 +192,7 @@ function DayEditorVenueSectionInner({
           </Row>
 
           <ScrollView
+            contentInsetAdjustmentBehavior="automatic"
             style={styles.modalScroll}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -320,13 +266,98 @@ function DayEditorVenueSectionInner({
               </ThemedText>
             </Clickable>
           </Row>
-        </SafeAreaView>
+        </View>
       </Modal>
     </>
   );
 }
 
-export const DayEditorVenueSection = memo(DayEditorVenueSectionInner);
+export const DayEditorVenueSection = DayEditorVenueSectionInner;
+
+type VenueListItem =
+  | {
+      kind: 'venue';
+      key: string;
+      label: string;
+      icon?: string;
+      isSelected: boolean;
+      palette: ReturnType<typeof useTheme>['colors'];
+      onPress: () => void;
+    }
+  | {
+      kind: 'add';
+      key: string;
+      isSelected: boolean;
+      palette: ReturnType<typeof useTheme>['colors'];
+      onPress: () => void;
+    };
+
+function getVenueItems(
+  venues: CoachVenue[],
+  location: string,
+  showAddVenueInput: boolean,
+  palette: ReturnType<typeof useTheme>['colors'],
+  onSelectVenue: (label: string) => void,
+  openAddVenueModal: () => void,
+): VenueListItem[] {
+  return [
+    ...venues.map((venue) => {
+      const isSelected = location === venue.label;
+      return {
+        kind: 'venue' as const,
+        key: venue.id,
+        label: venue.label,
+        icon: venue.icon,
+        isSelected,
+        palette,
+        onPress: () => {
+          if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onSelectVenue(isSelected ? '' : venue.label);
+        },
+      };
+    }),
+    {
+      kind: 'add' as const,
+      key: 'add-venue',
+      isSelected: showAddVenueInput,
+      palette,
+      onPress: openAddVenueModal,
+    },
+  ];
+}
+
+function keyVenueItem(item: VenueListItem) {
+  return item.key;
+}
+
+function renderVenueItem({ item }: ListRenderItemInfo<VenueListItem>) {
+  const { palette, isSelected } = item;
+  const backgroundColor = isSelected ? withAlpha(palette.tint, 0.12) : palette.background;
+  const borderColor = isSelected ? palette.tint : palette.border;
+  const textColor = isSelected ? palette.tint : item.kind === 'add' ? palette.muted : palette.text;
+  const iconColor = isSelected ? palette.tint : palette.muted;
+
+  return (
+    <Clickable
+      onPress={item.onPress}
+      accessibilityLabel={item.kind === 'add' ? 'Add new venue' : `Venue: ${item.label}`}
+      style={[styles.chip, { backgroundColor, borderColor }]}
+    >
+      {item.kind === 'add' ? (
+        <Ionicons name="add" size={14} color={iconColor} />
+      ) : item.icon ? (
+        <Ionicons
+          name={(item.icon as keyof typeof Ionicons.glyphMap) || 'location-outline'}
+          size={14}
+          color={iconColor}
+        />
+      ) : null}
+      <ThemedText style={[styles.chipText, { color: textColor }]} numberOfLines={1}>
+        {item.kind === 'add' ? 'Add' : item.label}
+      </ThemedText>
+    </Clickable>
+  );
+}
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.sm },

@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -58,7 +58,7 @@ function getStatusColor(status: AttendanceStatus, colors: ThemeColors) {
   }
 }
 
-export const GroupCompletionBoard = memo(function GroupCompletionBoard({
+export const GroupCompletionBoard = function GroupCompletionBoard({
   colors,
   athletes,
   parentNameByRegistration,
@@ -105,7 +105,10 @@ export const GroupCompletionBoard = memo(function GroupCompletionBoard({
           {athletes.map((athlete) => (
             <View
               key={athlete.registrationId}
-              style={[styles.athleteRowCard, { borderColor: colors.border, backgroundColor: colors.surface }]}
+              style={[
+                styles.athleteRowCard,
+                { borderColor: colors.border, backgroundColor: colors.surface },
+              ]}
             >
               <Row align="center" justify="space-between" style={styles.rowHeader}>
                 <Row align="center" gap="xs" style={styles.identityCluster}>
@@ -118,7 +121,10 @@ export const GroupCompletionBoard = memo(function GroupCompletionBoard({
                     <ThemedText type="defaultSemiBold" numberOfLines={1}>
                       {athlete.userName}
                     </ThemedText>
-                    <ThemedText style={[styles.parentLabel, { color: colors.muted }]} numberOfLines={1}>
+                    <ThemedText
+                      style={[styles.parentLabel, { color: colors.muted }]}
+                      numberOfLines={1}
+                    >
                       {parentNameByRegistration[athlete.registrationId]
                         ? `Parent: ${parentNameByRegistration[athlete.registrationId]}`
                         : 'No parent link'}
@@ -206,7 +212,6 @@ export const GroupCompletionBoard = memo(function GroupCompletionBoard({
             </View>
           ))}
         </View>
-
       </SurfaceCard>
 
       <SurfaceCard style={styles.sectionCard}>
@@ -263,9 +268,9 @@ export const GroupCompletionBoard = memo(function GroupCompletionBoard({
           </View>
         ) : (
           <View style={styles.mediaList}>
-            {videoUrls.map((_, index) => (
+            {videoUrls.map((videoUrl, index) => (
               <Row
-                key={`video-${index}`}
+                key={videoUrl}
                 align="center"
                 justify="space-between"
                 style={[styles.mediaRow, { borderColor: colors.border }]}
@@ -283,9 +288,9 @@ export const GroupCompletionBoard = memo(function GroupCompletionBoard({
               </Row>
             ))}
 
-            {imageUrls.map((_, index) => (
+            {imageUrls.map((imageUrl, index) => (
               <Row
-                key={`image-${index}`}
+                key={imageUrl}
                 align="center"
                 justify="space-between"
                 style={[styles.mediaRow, { borderColor: colors.border }]}
@@ -325,9 +330,8 @@ export const GroupCompletionBoard = memo(function GroupCompletionBoard({
               backgroundColor: withAlpha(colors.surface, 0.6),
             },
           ]}
-
-            maxLength={500}
-          />
+          maxLength={500}
+        />
         <Clickable
           style={[
             styles.sendButton,
@@ -346,7 +350,7 @@ export const GroupCompletionBoard = memo(function GroupCompletionBoard({
       </SurfaceCard>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: {

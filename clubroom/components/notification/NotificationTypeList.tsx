@@ -11,14 +11,11 @@ import { Spacing } from '@/constants/theme';
 import type { NotificationType, TypeNotificationPreference } from '@/constants/types';
 import { NOTIFICATION_CATEGORIES } from '@/constants/types';
 
-import { getTypesForCategory, CategorySection } from './notification-type-list-sections';
+import { CategorySection } from './notification-type-list-sections';
+import { getTypesForCategory } from './notification-type-list-helpers';
 
 // Re-export extracted components for backward compat
-export {
-  NOTIFICATION_TYPE_LABELS,
-  getTypesForCategory,
-  CategorySection,
-} from './notification-type-list-sections';
+export { CategorySection } from './notification-type-list-sections';
 export type { CategorySectionProps } from './notification-type-list-sections';
 
 export interface NotificationTypeListProps {

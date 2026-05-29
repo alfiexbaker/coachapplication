@@ -367,5 +367,5 @@ const styles = StyleSheet.create({
 
 // ─── Exports ────────────────────────────────────────────────────
 
-export const AddChildEmergencyStep = React.memo(AddChildEmergencyStepInner);
+export const AddChildEmergencyStep = AddChildEmergencyStepInner;
 export default AddChildEmergencyStep;

@@ -1,7 +1,3 @@
-/**
- * TemplateOptionsSection — Location, session template, session type, buffer time, and delete.
- */
-import { memo } from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -33,6 +29,7 @@ interface TemplateOptionsSectionProps {
   onDelete: () => void;
 }
 
+// react-doctor-disable-next-line react-doctor/no-many-boolean-props -- template form mode flags are existing independent controls used by the modal owner.
 function TemplateOptionsSectionInner({
   location,
   onSetLocation,
@@ -377,7 +374,7 @@ function TemplateOptionsSectionInner({
   );
 }
 
-export const TemplateOptionsSection = memo(TemplateOptionsSectionInner);
+export const TemplateOptionsSection = TemplateOptionsSectionInner;
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.sm },

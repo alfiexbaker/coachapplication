@@ -1,8 +1,4 @@
-/**
- * BadgesSection — Recent badges horizontal scroll for progress dashboard.
- */
-import { memo } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { View, FlatList, StyleSheet, type ListRenderItemInfo } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -30,41 +26,90 @@ function BadgesSectionInner({
       </SurfaceCard>
     );
   }
+  const badgeItems = getBadgeItems(badges, onViewAll, palette);
 
   return (
-    <ScrollView
+    <FlatList
       horizontal
+      data={badgeItems}
+      keyExtractor={keyBadgeItem}
+      renderItem={renderBadgeItem}
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.scroll}
-    >
-      {badges.map((badge) => (
-        <View
-          key={badge.id}
-          style={[styles.badgeCard, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
-        >
-          <Ionicons name="ribbon" size={20} color={palette.tint} />
-          <ThemedText style={styles.badgeLabel} numberOfLines={1}>
-            {badge.label}
-          </ThemedText>
-          <ThemedText style={[styles.badgeDate, { color: palette.muted }]}>
-            {new Date(badge.awardedAt).toLocaleDateString('en-GB', {
-              month: 'short',
-              day: 'numeric',
-            })}
-          </ThemedText>
-        </View>
-      ))}
-      {onViewAll && badges.length >= 5 && (
-        <SurfaceCard style={styles.viewAllCard} onPress={onViewAll} tactile>
-          <Ionicons name="arrow-forward" size={20} color={palette.tint} />
-          <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>View All</ThemedText>
-        </SurfaceCard>
-      )}
-    </ScrollView>
+    />
   );
 }
 
-export const BadgesSection = memo(BadgesSectionInner);
+export const BadgesSection = BadgesSectionInner;
+
+type BadgeItem =
+  | {
+      kind: 'badge';
+      key: string;
+      label: string;
+      awardedAt: string;
+      tint: string;
+      muted: string;
+      backgroundColor: string;
+    }
+  | {
+      kind: 'viewAll';
+      key: string;
+      tint: string;
+      onPress: () => void;
+    };
+
+function getBadgeItems(
+  badges: AthleteProgress['recentBadges'],
+  onViewAll: (() => void) | undefined,
+  palette: ReturnType<typeof useTheme>['colors'],
+): BadgeItem[] {
+  const items: BadgeItem[] = badges.map((badge) => ({
+    kind: 'badge',
+    key: badge.id,
+    label: badge.label,
+    awardedAt: badge.awardedAt,
+    tint: palette.tint,
+    muted: palette.muted,
+    backgroundColor: withAlpha(palette.tint, 0.06),
+  }));
+
+  if (onViewAll && badges.length >= 5) {
+    items.push({ kind: 'viewAll', key: 'view-all', tint: palette.tint, onPress: onViewAll });
+  }
+
+  return items;
+}
+
+function keyBadgeItem(item: BadgeItem) {
+  return item.key;
+}
+
+function renderBadgeItem({ item }: ListRenderItemInfo<BadgeItem>) {
+  if (item.kind === 'viewAll') {
+    return (
+      <SurfaceCard style={styles.viewAllCard} onPress={item.onPress} tactile>
+        <Ionicons name="arrow-forward" size={20} color={item.tint} />
+        <ThemedText style={[styles.viewAllText, { color: item.tint }]}>View All</ThemedText>
+      </SurfaceCard>
+    );
+  }
+
+  return (
+    <View style={[styles.badgeCard, { backgroundColor: item.backgroundColor }]}>
+      <Ionicons name="ribbon" size={20} color={item.tint} />
+      <ThemedText style={styles.badgeLabel} numberOfLines={1}>
+        {item.label}
+      </ThemedText>
+      <ThemedText style={[styles.badgeDate, { color: item.muted }]}>
+        {new Date(item.awardedAt).toLocaleDateString('en-GB', {
+          month: 'short',
+          day: 'numeric',
+        })}
+      </ThemedText>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   scroll: { gap: Spacing.sm, paddingRight: Spacing.md },

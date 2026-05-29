@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -31,7 +31,7 @@ export default function InvoicesScreen() {
 
   const [filter, setFilter] = useState<InvoiceFilter>({});
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     if (!currentUser?.id) {
       return ok<{ invoices: Invoice[]; summary: InvoiceSummary | null }>({
         invoices: [],
@@ -53,7 +53,7 @@ export default function InvoicesScreen() {
       logger.error('Failed to load invoices', error);
       return err(serviceError('UNKNOWN', 'Failed to load invoices.', error));
     }
-  }, [currentUser?.id, filter]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<{
     invoices: Invoice[];

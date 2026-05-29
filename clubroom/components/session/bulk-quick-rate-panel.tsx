@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -38,7 +38,7 @@ function hasMeaningfulRating(input: QuickRateInput | undefined): boolean {
   return skills.some((entry) => entry.rating !== 3) || input.effort !== 3 || Boolean(input.badgeId);
 }
 
-export const BulkQuickRatePanel = memo(function BulkQuickRatePanel({
+export const BulkQuickRatePanel = function BulkQuickRatePanel({
   athletes,
   ratingsByAthleteId,
   isPrefilling,
@@ -49,13 +49,9 @@ export const BulkQuickRatePanel = memo(function BulkQuickRatePanel({
 }: BulkQuickRatePanelProps) {
   const { colors } = useTheme();
 
-  const ratedCount = useMemo(
-    () =>
-      athletes.reduce(
-        (count, athlete) => count + (hasMeaningfulRating(ratingsByAthleteId[athlete.athleteId]) ? 1 : 0),
-        0,
-      ),
-    [athletes, ratingsByAthleteId],
+  const ratedCount = athletes.reduce(
+    (count, athlete) => count + (hasMeaningfulRating(ratingsByAthleteId[athlete.athleteId]) ? 1 : 0),
+    0,
   );
 
   if (athletes.length === 0) {
@@ -77,7 +73,7 @@ export const BulkQuickRatePanel = memo(function BulkQuickRatePanel({
             </ThemedText>
           </Column>
           {isPrefilling ? (
-            <ThemedText style={[styles.prefillLabel, { color: colors.muted }]}>Loading previous ratings...</ThemedText>
+            <ThemedText style={[styles.prefillLabel, { color: colors.muted }]}>Loading previous ratings…</ThemedText>
           ) : null}
         </Row>
 
@@ -176,7 +172,7 @@ export const BulkQuickRatePanel = memo(function BulkQuickRatePanel({
       </Column>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

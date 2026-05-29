@@ -5,7 +5,6 @@
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { Row } from '@/components/primitives/row';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -40,6 +39,7 @@ import {
   ClubHighlightsSection,
 } from './home-screen-sections';
 
+// react-doctor-disable-next-line react-doctor/no-many-boolean-props -- skeleton section toggles mirror independently optional dashboard regions.
 function HomeDataSkeleton({
   showProgress,
   showStreak,
@@ -58,7 +58,11 @@ function HomeDataSkeleton({
   const { colors: palette } = useTheme();
 
   return (
-    <SkeletonCluster gap={Spacing.sm} style={styles.skeletonStack} accessibilityLabel="Loading home sections">
+    <SkeletonCluster
+      gap={Spacing.sm}
+      style={styles.skeletonStack}
+      accessibilityLabel="Loading home sections"
+    >
       {showProgress ? (
         <SubmitProgressState label="Switching profile" style={styles.progressState} />
       ) : null}
@@ -70,8 +74,16 @@ function HomeDataSkeleton({
               <Row align="center" gap="xs">
                 <SkeletonCircle size={36} accessibilityLabel={`Loading stat icon ${index + 1}`} />
                 <View style={styles.skeletonStatText}>
-                  <Skeleton width={40} height={18} accessibilityLabel={`Loading stat value ${index + 1}`} />
-                  <Skeleton width={52} height={11} accessibilityLabel={`Loading stat label ${index + 1}`} />
+                  <Skeleton
+                    width={40}
+                    height={18}
+                    accessibilityLabel={`Loading stat value ${index + 1}`}
+                  />
+                  <Skeleton
+                    width={52}
+                    height={11}
+                    accessibilityLabel={`Loading stat label ${index + 1}`}
+                  />
                 </View>
               </Row>
             </View>
@@ -117,18 +129,38 @@ function HomeDataSkeleton({
         <SurfaceCard style={styles.skeletonCard}>
           <SkeletonCluster gap={Spacing.sm} accessibilityLabel="Loading recent results">
             <View style={styles.skeletonSectionHeader}>
-              <Skeleton width="34%" height={16} accessibilityLabel="Loading recent results heading" />
+              <Skeleton
+                width="34%"
+                height={16}
+                accessibilityLabel="Loading recent results heading"
+              />
               <Skeleton width={64} height={12} accessibilityLabel="Loading recent results action" />
             </View>
             {Array.from({ length: 2 }).map((_, index) => (
               <Row key={index} align="center" gap="sm">
                 <View style={styles.flex}>
-                  <Skeleton width="62%" height={14} accessibilityLabel={`Loading result title ${index + 1}`} />
-                  <Skeleton width="54%" height={11} accessibilityLabel={`Loading result meta ${index + 1}`} />
+                  <Skeleton
+                    width="62%"
+                    height={14}
+                    accessibilityLabel={`Loading result title ${index + 1}`}
+                  />
+                  <Skeleton
+                    width="54%"
+                    height={11}
+                    accessibilityLabel={`Loading result meta ${index + 1}`}
+                  />
                 </View>
                 <View style={styles.skeletonScoreBlock}>
-                  <Skeleton width={42} height={16} accessibilityLabel={`Loading result score ${index + 1}`} />
-                  <Skeleton width={14} height={11} accessibilityLabel={`Loading result outcome ${index + 1}`} />
+                  <Skeleton
+                    width={42}
+                    height={16}
+                    accessibilityLabel={`Loading result score ${index + 1}`}
+                  />
+                  <Skeleton
+                    width={14}
+                    height={11}
+                    accessibilityLabel={`Loading result outcome ${index + 1}`}
+                  />
                 </View>
               </Row>
             ))}
@@ -140,16 +172,35 @@ function HomeDataSkeleton({
         <SurfaceCard style={styles.skeletonCard}>
           <SkeletonCluster gap={Spacing.sm} accessibilityLabel="Loading club highlights">
             <View style={styles.skeletonSectionHeader}>
-              <Skeleton width="30%" height={16} accessibilityLabel="Loading club highlights heading" />
-              <Skeleton width={60} height={12} accessibilityLabel="Loading club highlights action" />
+              <Skeleton
+                width="30%"
+                height={16}
+                accessibilityLabel="Loading club highlights heading"
+              />
+              <Skeleton
+                width={60}
+                height={12}
+                accessibilityLabel="Loading club highlights action"
+              />
             </View>
             {Array.from({ length: 2 }).map((_, index) => (
               <View key={index} style={styles.skeletonHighlightCard}>
                 <Row align="center" gap="xs">
-                  <SkeletonCircle size={20} accessibilityLabel={`Loading highlight icon ${index + 1}`} />
-                  <Skeleton width="48%" height={11} accessibilityLabel={`Loading highlight meta ${index + 1}`} />
+                  <SkeletonCircle
+                    size={20}
+                    accessibilityLabel={`Loading highlight icon ${index + 1}`}
+                  />
+                  <Skeleton
+                    width="48%"
+                    height={11}
+                    accessibilityLabel={`Loading highlight meta ${index + 1}`}
+                  />
                 </Row>
-                <Skeleton width="56%" height={14} accessibilityLabel={`Loading highlight title ${index + 1}`} />
+                <Skeleton
+                  width="56%"
+                  height={14}
+                  accessibilityLabel={`Loading highlight title ${index + 1}`}
+                />
                 <SkeletonText
                   lines={2}
                   widths={['100%', '74%']}
@@ -171,9 +222,20 @@ function HomeDataSkeleton({
             <Row gap="sm">
               {Array.from({ length: 2 }).map((_, index) => (
                 <View key={index} style={styles.skeletonBadgeCard}>
-                  <SkeletonCircle size={34} accessibilityLabel={`Loading badge icon ${index + 1}`} />
-                  <Skeleton width="82%" height={12} accessibilityLabel={`Loading badge title ${index + 1}`} />
-                  <SkeletonPill width={58} height={18} accessibilityLabel={`Loading badge tag ${index + 1}`} />
+                  <SkeletonCircle
+                    size={34}
+                    accessibilityLabel={`Loading badge icon ${index + 1}`}
+                  />
+                  <Skeleton
+                    width="82%"
+                    height={12}
+                    accessibilityLabel={`Loading badge title ${index + 1}`}
+                  />
+                  <SkeletonPill
+                    width={58}
+                    height={18}
+                    accessibilityLabel={`Loading badge tag ${index + 1}`}
+                  />
                 </View>
               ))}
             </Row>
@@ -274,11 +336,9 @@ export function UserHomeScreen() {
       : 'Child profile';
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl
@@ -314,7 +374,10 @@ export function UserHomeScreen() {
                   <ThemedText type="defaultSemiBold" numberOfLines={1}>
                     {profileName}
                   </ThemedText>
-                  <ThemedText style={[styles.singleChildMeta, { color: palette.muted }]} numberOfLines={1}>
+                  <ThemedText
+                    style={[styles.singleChildMeta, { color: palette.muted }]}
+                    numberOfLines={1}
+                  >
                     {profileMeta}
                   </ThemedText>
                 </Column>
@@ -324,15 +387,18 @@ export function UserHomeScreen() {
                   onPress={handleToggleSelfChildProfile}
                   accessibilityLabel="Switch between your profile and active child"
                   disabled={isProfileTransitionPending}
-                  style={[styles.addChildMiniButton, { backgroundColor: withAlpha(palette.tint, 0.08) }]}
+                  style={[
+                    styles.addChildMiniButton,
+                    { backgroundColor: withAlpha(palette.tint, 0.08) },
+                  ]}
                 >
                   <Ionicons name="swap-horizontal-outline" size={16} color={palette.tint} />
                   <ThemedText style={[styles.addChildMiniLabel, { color: palette.tint }]}>
                     {isProfileTransitionPending
                       ? profileTransitionLabel
                       : isViewingSelfProfile
-                      ? `Switch to ${selectedChild.name}`
-                      : `Switch to ${(currentUser.name || currentUser.fullName || 'You').split(' ')[0]}`}
+                        ? `Switch to ${selectedChild.name}`
+                        : `Switch to ${(currentUser.name || currentUser.fullName || 'You').split(' ')[0]}`}
                   </ThemedText>
                 </Clickable>
               )}
@@ -426,7 +492,7 @@ export function UserHomeScreen() {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

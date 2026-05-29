@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -6,23 +5,9 @@ import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { useTheme } from '@/hooks/useTheme';
+import { formatDate } from './feed-post-card-helpers';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
-
-// ─── Helpers ────────────────────────────────────────────────────
-
-export function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffHours < 1) return 'Just now';
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
-}
 
 // ─── PostHeader ─────────────────────────────────────────────────
 
@@ -36,7 +21,7 @@ export interface PostHeaderProps {
   palette: ThemeColors;
 }
 
-export const PostHeader = memo(function PostHeader({
+export const PostHeader = function PostHeader({
   initials,
   authorName,
   postAs,
@@ -78,7 +63,7 @@ export const PostHeader = memo(function PostHeader({
       </View>
     </Row>
   );
-});
+};
 
 // ─── EventDetailsCard ───────────────────────────────────────────
 
@@ -88,7 +73,7 @@ export interface EventDetailsCardProps {
   palette: ThemeColors;
 }
 
-export const EventDetailsCard = memo(function EventDetailsCard({
+const renderEventDetailsCard = function renderEventDetailsCard({
   eventDate,
   eventLocation,
   palette,
@@ -118,7 +103,8 @@ export const EventDetailsCard = memo(function EventDetailsCard({
       )}
     </View>
   );
-});
+};
+export const EventDetailsCard = renderEventDetailsCard;
 
 // ─── AttachmentChips ────────────────────────────────────────────
 
@@ -127,7 +113,7 @@ export interface AttachmentChipsProps {
   palette: ThemeColors;
 }
 
-export const AttachmentChips = memo(function AttachmentChips({
+const renderAttachmentChips = function renderAttachmentChips({
   attachments,
   palette,
 }: AttachmentChipsProps) {
@@ -153,7 +139,8 @@ export const AttachmentChips = memo(function AttachmentChips({
       ))}
     </Row>
   );
-});
+};
+export const AttachmentChips = renderAttachmentChips;
 
 // ─── Styles ─────────────────────────────────────────────────────
 

@@ -14,6 +14,11 @@ import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
 
+export { CoachAvatar } from './coach-avatar';
+export type { CoachAvatarProps } from './coach-avatar';
+export { CoachNameRow } from './coach-name-row';
+export type { CoachNameRowProps } from './coach-name-row';
+
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -91,71 +96,6 @@ export function CoachCardHeader({
 }
 
 // -----------------------------------------------------------------------------
-// Avatar-only export for use in other layouts
-// -----------------------------------------------------------------------------
-
-export interface CoachAvatarProps {
-  profilePhotoUrl?: string;
-  trialAvailable?: boolean;
-  size?: 'md' | 'lg';
-}
-
-export function CoachAvatar({
-  profilePhotoUrl,
-  trialAvailable = false,
-  size = 'lg',
-}: CoachAvatarProps) {
-  const { colors: palette } = useTheme();
-
-  const avatarDimension = size === 'lg' ? Components.avatar.lg : Components.avatar.md;
-
-  return (
-    <View style={styles.avatarContainer}>
-      <SafeImage
-        source={{ uri: profilePhotoUrl }}
-        fallbackIcon="person-circle-outline"
-        fallbackIconSize={avatarDimension * 0.5}
-        style={[styles.avatar, { width: avatarDimension, height: avatarDimension }]}
-        contentFit="cover"
-      />
-      {trialAvailable && (
-        <View style={[styles.trialBadge, { backgroundColor: palette.success }]}>
-          <ThemedText style={[styles.trialText, { color: palette.onSuccess }]}>TRIAL</ThemedText>
-        </View>
-      )}
-    </View>
-  );
-}
-
-// -----------------------------------------------------------------------------
-// Name row export for flexible composition
-// -----------------------------------------------------------------------------
-
-export interface CoachNameRowProps {
-  fullName: string;
-  verified?: boolean;
-  rightContent?: React.ReactNode;
-}
-
-export function CoachNameRow({ fullName, verified = false, rightContent }: CoachNameRowProps) {
-  const { colors: palette } = useTheme();
-
-  return (
-    <Row style={styles.nameRowSpaceBetween}>
-      <Row style={styles.nameRow}>
-        <ThemedText type="subtitle" style={styles.coachNameSubtitle} numberOfLines={1}>
-          {fullName}
-        </ThemedText>
-        {verified && (
-          <Ionicons name="checkmark-circle" size={Components.icon.md} color={palette.tint} />
-        )}
-      </Row>
-      {rightContent}
-    </Row>
-  );
-}
-
-// -----------------------------------------------------------------------------
 // Styles
 // -----------------------------------------------------------------------------
 
@@ -196,16 +136,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xs / 2,
     flex: 1,
   },
-  nameRowSpaceBetween: {
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.xs,
-  },
   coachName: {
     ...Typography.heading,
     flexShrink: 1,
   },
-  coachNameSubtitle: { ...Typography.heading, letterSpacing: -0.2, flex: 1 },
 });
 
 export default CoachCardHeader;

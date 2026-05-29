@@ -1,14 +1,4 @@
-/**
- * Extracted sub-components for AddChildBasicStep.
- *
- * GENDERS, RELATIONSHIPS — option constants.
- * PhotoUploadSection — photo picker with edit badge.
- * NameFieldsRow — first/last name + nickname inputs.
- * DateOfBirthField — date picker trigger + DateTimePicker.
- * OptionChipGrid — reusable chip grid for gender/relationship.
- */
-
-import { memo } from 'react';
+import { useState } from 'react';
 import { Platform, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,23 +14,6 @@ import type { PositionRole } from '@/types/progress-types';
 import { Row } from '@/components/primitives';
 import { styles } from './add-child-basic-step-styles';
 
-// ─── Constants ───────────────────────────────────────────────────────────────
-
-export const GENDERS: { id: Gender; label: string }[] = [
-  { id: 'MALE', label: 'Male' },
-  { id: 'FEMALE', label: 'Female' },
-  { id: 'OTHER', label: 'Other' },
-  { id: 'PREFER_NOT_TO_SAY', label: 'Prefer not to say' },
-];
-
-export const RELATIONSHIPS: { id: Relationship; label: string }[] = [
-  { id: 'SON', label: 'Son' },
-  { id: 'DAUGHTER', label: 'Daughter' },
-  { id: 'WARD', label: 'Ward' },
-  { id: 'GRANDCHILD', label: 'Grandchild' },
-  { id: 'OTHER', label: 'Other' },
-];
-
 // ─── PhotoUploadSection ──────────────────────────────────────────────────────
 
 interface PhotoUploadSectionProps {
@@ -49,7 +22,7 @@ interface PhotoUploadSectionProps {
   palette: ThemeColors;
 }
 
-export const PhotoUploadSection = memo(function PhotoUploadSection({
+export const PhotoUploadSection = function PhotoUploadSection({
   photoUri,
   onPickImage,
   palette,
@@ -79,7 +52,7 @@ export const PhotoUploadSection = memo(function PhotoUploadSection({
       </ThemedText>
     </View>
   );
-});
+};
 
 // ─── NameFieldsRow ───────────────────────────────────────────────────────────
 
@@ -93,7 +66,7 @@ interface NameFieldsRowProps {
   palette: ThemeColors;
 }
 
-export const NameFieldsRow = memo(function NameFieldsRow({
+export const NameFieldsRow = function NameFieldsRow({
   firstName,
   lastName,
   nickname,
@@ -147,7 +120,7 @@ export const NameFieldsRow = memo(function NameFieldsRow({
       </View>
     </>
   );
-});
+};
 
 // ─── DateOfBirthField ────────────────────────────────────────────────────────
 
@@ -160,7 +133,7 @@ interface DateOfBirthFieldProps {
   isDark: boolean;
 }
 
-export const DateOfBirthField = memo(function DateOfBirthField({
+export const DateOfBirthField = function DateOfBirthField({
   dateOfBirth,
   showDatePicker,
   onDateOfBirthChange,
@@ -168,6 +141,7 @@ export const DateOfBirthField = memo(function DateOfBirthField({
   palette,
   isDark,
 }: DateOfBirthFieldProps) {
+  const [today] = useState(() => new Date());
   return (
     <View style={styles.field}>
       <ThemedText style={styles.label}>Date of Birth (optional)</ThemedText>
@@ -193,7 +167,7 @@ export const DateOfBirthField = memo(function DateOfBirthField({
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           textColor={palette.text}
           themeVariant={isDark ? 'dark' : 'light'}
-          maximumDate={new Date()}
+          maximumDate={today}
           minimumDate={new Date(2000, 0, 1)}
           onChange={(event, selectedDate) => {
             onShowDatePicker(Platform.OS === 'ios');
@@ -203,7 +177,7 @@ export const DateOfBirthField = memo(function DateOfBirthField({
       )}
     </View>
   );
-});
+};
 
 // ─── OptionChipGrid ──────────────────────────────────────────────────────────
 
@@ -215,7 +189,7 @@ interface OptionChipGridProps<T extends string> {
   palette: ThemeColors;
 }
 
-export const OptionChipGrid = memo(function OptionChipGrid<T extends string>({
+export const OptionChipGrid = function OptionChipGrid<T extends string>({
   label,
   options,
   selected,
@@ -251,7 +225,7 @@ export const OptionChipGrid = memo(function OptionChipGrid<T extends string>({
       </Row>
     </View>
   );
-}) as <T extends string>(props: OptionChipGridProps<T>) => React.ReactElement;
+} as <T extends string>(props: OptionChipGridProps<T>) => React.ReactElement;
 
 interface PositionOptionGridProps {
   selected: PositionRole | null;
@@ -259,7 +233,7 @@ interface PositionOptionGridProps {
   palette: ThemeColors;
 }
 
-export const PositionOptionGrid = memo(function PositionOptionGrid({
+export const PositionOptionGrid = function PositionOptionGrid({
   selected,
   onSelect,
   palette,
@@ -319,6 +293,4 @@ export const PositionOptionGrid = memo(function PositionOptionGrid({
       </ThemedText>
     </View>
   );
-});
-
-export { styles };
+};

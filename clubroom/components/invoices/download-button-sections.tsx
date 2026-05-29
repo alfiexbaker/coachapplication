@@ -1,12 +1,11 @@
 /**
  * Extracted sub-components for DownloadButton.
  *
- * getButtonSize / getIconSize / getFontSize — size config helpers.
  * DownloadOnlyButtonInner — single download icon button (accepts palette).
  * ShareOnlyButtonInner — single share icon button (accepts palette).
  */
 
-import React, { memo, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, ActivityIndicator } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,40 +16,8 @@ import { invoiceService } from '@/services/invoice-service';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { uiFeedback } from '@/services/ui-feedback';
 
-// ─── Size Helpers ────────────────────────────────────────────────────────────
-
-export function getButtonSize(size: 'small' | 'medium' | 'large') {
-  switch (size) {
-    case 'small':
-      return { paddingVertical: Spacing.xs, paddingHorizontal: Spacing.xs + Spacing.xxs };
-    case 'large':
-      return { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md };
-    default:
-      return { paddingVertical: Spacing.xs + Spacing.xxs, paddingHorizontal: Spacing.sm };
-  }
-}
-
-export function getIconSize(size: 'small' | 'medium' | 'large') {
-  switch (size) {
-    case 'small':
-      return 16;
-    case 'large':
-      return 24;
-    default:
-      return 20;
-  }
-}
-
-export function getFontSize(size: 'small' | 'medium' | 'large') {
-  switch (size) {
-    case 'small':
-      return 13;
-    case 'large':
-      return 17;
-    default:
-      return 15;
-  }
-}
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
+import { getIconSize } from './download-button-helpers';
 
 // ─── DownloadOnlyButtonInner ─────────────────────────────────────────────────
 
@@ -60,30 +27,30 @@ interface SingleButtonInnerProps {
   palette: ThemeColors;
 }
 
-export const DownloadOnlyButtonInner = memo(function DownloadOnlyButtonInner({
+export const DownloadOnlyButtonInner = function DownloadOnlyButtonInner({
   invoice,
   size = 'medium',
   palette,
 }: SingleButtonInnerProps) {
   const [downloading, setDownloading] = useState(false);
 
-  const handleDownload = useCallback(async () => {
+  const handleDownload = async () => {
     if (downloading) return;
     setDownloading(true);
 
-    try {
+    await runAsyncTryCatchFinally(async () => {
       const result = await invoiceService.downloadInvoice(invoice.id);
       if (result) {
         uiFeedback.showToast(`${invoice.invoiceNumber} saved.`);
       } else {
         uiFeedback.showToast('Could not download the invoice. Please try again.', 'error');
       }
-    } catch {
+    }, async error => {
       uiFeedback.showToast('Something went wrong. Check your connection and try again.', 'error');
-    } finally {
+    }, () => {
       setDownloading(false);
-    }
-  }, [downloading, invoice.id, invoice.invoiceNumber]);
+    });
+  };
 
   const iconSz = getIconSize(size);
 
@@ -100,29 +67,29 @@ export const DownloadOnlyButtonInner = memo(function DownloadOnlyButtonInner({
       )}
     </Clickable>
   );
-});
+};
 
 // ─── ShareOnlyButtonInner ────────────────────────────────────────────────────
 
-export const ShareOnlyButtonInner = memo(function ShareOnlyButtonInner({
+export const ShareOnlyButtonInner = function ShareOnlyButtonInner({
   invoice,
   size = 'medium',
   palette,
 }: SingleButtonInnerProps) {
   const [sharing, setSharing] = useState(false);
 
-  const handleShare = useCallback(async () => {
+  const handleShare = async () => {
     if (sharing) return;
     setSharing(true);
 
-    try {
+    await runAsyncTryCatchFinally(async () => {
       await invoiceService.shareInvoice(invoice.id);
-    } catch {
+    }, async error => {
       uiFeedback.showToast('Could not share the invoice.', 'error');
-    } finally {
+    }, () => {
       setSharing(false);
-    }
-  }, [sharing, invoice.id]);
+    });
+  };
 
   const iconSz = getIconSize(size);
 
@@ -143,7 +110,7 @@ export const ShareOnlyButtonInner = memo(function ShareOnlyButtonInner({
       )}
     </Clickable>
   );
-});
+};
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 

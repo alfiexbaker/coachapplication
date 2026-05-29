@@ -6,7 +6,7 @@
  * SignOutButton — destructive sign-out action.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { Switch, View } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,7 +39,7 @@ interface GoLiveCardProps {
   palette: ThemeColors;
 }
 
-export const GoLiveCard = memo(function GoLiveCard({
+export const GoLiveCard = function GoLiveCard({
   isLive,
   liveLoading,
   completionPercentage,
@@ -104,8 +104,8 @@ export const GoLiveCard = memo(function GoLiveCard({
 
         {!canGoLive && (
           <View style={styles.checklistSection}>
-            {completionChecks.map((check, index) => (
-              <Row key={index} style={styles.checklistItem}>
+            {completionChecks.map((check) => (
+              <Row key={check.label} style={styles.checklistItem}>
                 <Ionicons
                   name={check.done ? 'checkmark-circle' : 'ellipse-outline'}
                   size={18}
@@ -126,7 +126,7 @@ export const GoLiveCard = memo(function GoLiveCard({
       </SurfaceCard>
     </View>
   );
-});
+};
 
 // ─── QuickAccessItem ──────────────────────────────────────────────────────────
 
@@ -139,7 +139,7 @@ interface QuickAccessItemProps {
   palette: ThemeColors;
 }
 
-export const QuickAccessItem = memo(function QuickAccessItem({
+const renderQuickAccessItem = function renderQuickAccessItem({
   route,
   icon,
   iconColor,
@@ -163,7 +163,8 @@ export const QuickAccessItem = memo(function QuickAccessItem({
       </Row>
     </SurfaceCard>
   );
-});
+};
+export const QuickAccessItem = renderQuickAccessItem;
 
 // ─── SignOutButton ────────────────────────────────────────────────────────────
 
@@ -172,7 +173,7 @@ interface SignOutButtonProps {
   palette: ThemeColors;
 }
 
-export const SignOutButton = memo(function SignOutButton({
+const renderSignOutButton = function renderSignOutButton({
   onSignOut,
   palette,
 }: SignOutButtonProps) {
@@ -182,6 +183,5 @@ export const SignOutButton = memo(function SignOutButton({
       <ThemedText style={[styles.signOutText, { color: palette.error }]}>Sign Out</ThemedText>
     </Clickable>
   );
-});
-
-export { styles };
+};
+export const SignOutButton = renderSignOutButton;

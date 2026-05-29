@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -43,7 +43,7 @@ interface SquadMembersCardProps {
   onRemove: (member: ClubMember) => void;
 }
 
-export const SquadMembersCard = memo(function SquadMembersCard({
+export const SquadMembersCard = function SquadMembersCard({
   members,
   clubId,
   showAddMembers,
@@ -52,7 +52,7 @@ export const SquadMembersCard = memo(function SquadMembersCard({
   onToggleAdd,
   onRemove,
 }: SquadMembersCardProps) {
-  const handleRemove = useCallback((member: ClubMember) => {
+  const handleRemove = (member: ClubMember) => {
     uiFeedback.alert(
       'Remove Squad Member',
       `Remove ${member.userName} from this squad?`,
@@ -65,7 +65,7 @@ export const SquadMembersCard = memo(function SquadMembersCard({
         },
       ],
     );
-  }, [onRemove]);
+  };
 
   return (
     <SurfaceCard style={styles.card}>
@@ -144,7 +144,7 @@ export const SquadMembersCard = memo(function SquadMembersCard({
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },

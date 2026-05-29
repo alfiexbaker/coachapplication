@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { Linking, View, StyleSheet } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -114,15 +114,15 @@ export function VideoUpload({
     }
   };
 
-  const handleSelectVideo = useCallback(async () => {
+  const handleSelectVideo = async () => {
     if (!selectedVideo) return;
     onSelect(selectedVideo);
     setSelectedVideo(null);
-  }, [onSelect, selectedVideo]);
+  };
 
-  const clearSelection = useCallback(() => {
+  const clearSelection = () => {
     setSelectedVideo(null);
-  }, []);
+  };
 
   return (
     <View style={styles.container}>
@@ -134,13 +134,13 @@ export function VideoUpload({
           disabled={disabled}
         />
       ) : (
-        <VideoPreviewCard
-          video={selectedVideo}
-          onClear={clearSelection}
-          onUseVideo={handleSelectVideo}
-          palette={palette}
-          disabled={disabled}
-        />
+          <VideoPreviewCard
+            video={selectedVideo}
+            onClear={clearSelection}
+            onSelectVideo={handleSelectVideo}
+            palette={palette}
+            disabled={disabled}
+          />
       )}
       {permissionMessage ? (
         <StatusBanner

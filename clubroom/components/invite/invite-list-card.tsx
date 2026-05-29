@@ -1,6 +1,6 @@
 /** InviteListCard — Memoized invite card for the invites list screen. */
 
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -79,7 +79,7 @@ function getRecurringSummary(invite: SessionInvite): {
 } | null {
   if (!invite.isRecurring) return null;
 
-  const sortedSlots = [...invite.proposedSlots].sort((a, b) => {
+  const sortedSlots = Array.from(invite.proposedSlots).toSorted((a, b) => {
     const aKey = `${a.date}T${a.startTime}`;
     const bKey = `${b.date}T${b.startTime}`;
     return aKey.localeCompare(bKey);
@@ -110,7 +110,7 @@ function getRecurringSummary(invite: SessionInvite): {
   };
 }
 
-export const InviteListCard = memo(function InviteListCard({
+export const InviteListCard = function InviteListCard({
   invite,
   index,
   mode,
@@ -121,7 +121,7 @@ export const InviteListCard = memo(function InviteListCard({
   onCancel,
   onDismiss,
 }: InviteListCardProps) {
-  const handleCancel = useCallback(() => {
+  const handleCancel = () => {
     const recipientName = getSessionInviteAthleteNames(invite).join(', ') || 'recipient';
     uiFeedback.alert(
       'Cancel Invite',
@@ -135,9 +135,9 @@ export const InviteListCard = memo(function InviteListCard({
         },
       ],
     );
-  }, [invite, onCancel]);
+  };
 
-  const handleDismiss = useCallback(() => {
+  const handleDismiss = () => {
     uiFeedback.alert(
       'Remove Invite',
       'Remove this invite from your list?',
@@ -150,7 +150,7 @@ export const InviteListCard = memo(function InviteListCard({
         },
       ],
     );
-  }, [onDismiss]);
+  };
 
   const expired = new Date(invite.expiresAt) < new Date();
   const isPending = invite.status === 'PENDING';
@@ -372,7 +372,7 @@ export const InviteListCard = memo(function InviteListCard({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 const st = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.sm },

@@ -5,7 +5,7 @@
  * Used by app/availability/edit-template.tsx
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 
 import { router } from 'expo-router';
 
@@ -16,6 +16,8 @@ import type { AvailabilityTemplate } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('useEditTemplate');
 
@@ -51,7 +53,7 @@ export function useEditTemplate(id: string | undefined) {
   const [maxSlots, setMaxSlots] = useState(1);
   const [bufferMinutes, setBufferMinutes] = useState(15);
 
-  const loadTemplate = useCallback(async () => {
+  const loadTemplate = async () => {
     if (!id || !currentUser?.id) {
       return ok<AvailabilityTemplate | null>(null);
     }
@@ -63,7 +65,7 @@ export function useEditTemplate(id: string | undefined) {
       logger.error('Failed to load template', error);
       return err(serviceError('UNKNOWN', 'Failed to load availability template.', error));
     }
-  }, [id, currentUser?.id]);
+  };
 
   const {
     data: template,
@@ -81,43 +83,65 @@ export function useEditTemplate(id: string | undefined) {
 
   useEffect(() => {
     if (!template) return;
-    setDayOfWeek(template.dayOfWeek);
-    setStartTime(template.startTime);
-    setEndTime(template.endTime);
-    setMaxSlots(template.maxConcurrent);
-    setBufferMinutes(template.bufferMinutes);
-  }, [template?.id]);
+    startTransition(() => {
+      setDayOfWeek(template.dayOfWeek);
+    });
+    startTransition(() => {
+      setStartTime(template.startTime);
+    });
+    startTransition(() => {
+      setEndTime(template.endTime);
+    });
+    startTransition(() => {
+      setMaxSlots(template.maxConcurrent);
+    });
+    startTransition(() => {
+      setBufferMinutes(template.bufferMinutes);
+    });
+  }, [
+    template,
+    template?.dayOfWeek,
+    template?.startTime,
+    template?.endTime,
+    template?.maxConcurrent,
+    template?.bufferMinutes,
+  ]);
 
-  const handleSave = useCallback(async () => {
+  const handleSave = async () => {
     if (!currentUser?.id || !template) return;
     if (startTime >= endTime) {
       uiFeedback.showToast('End time must be after start time', 'error');
       return;
     }
     setSaving(true);
-    try {
-      await availabilityService.saveTemplate({
-        id: template.id,
-        coachId: template.coachId,
-        dayOfWeek,
-        startTime,
-        endTime,
-        isRecurring: true,
-        maxConcurrent: maxSlots,
-        bufferMinutes,
-      });
-      uiFeedback.showToast('Your availability has been updated', 'success');
-router.back();
-      logger.success('TemplateUpdated', { templateId: template.id });
-    } catch (error) {
-      logger.error('Failed to update template', error);
-      uiFeedback.showToast('Failed to update template', 'error');
-    } finally {
-      setSaving(false);
-    }
-  }, [currentUser?.id, template, dayOfWeek, startTime, endTime, maxSlots, bufferMinutes]);
 
-  const handleDelete = useCallback(() => {
+    await runAsyncTryCatchFinally(
+      async () => {
+        await availabilityService.saveTemplate({
+          id: template.id,
+          coachId: template.coachId,
+          dayOfWeek,
+          startTime,
+          endTime,
+          isRecurring: true,
+          maxConcurrent: maxSlots,
+          bufferMinutes,
+        });
+        uiFeedback.showToast('Your availability has been updated', 'success');
+        router.back();
+        logger.success('TemplateUpdated', { templateId: template.id });
+      },
+      async (error) => {
+        logger.error('Failed to update template', error);
+        uiFeedback.showToast('Failed to update template', 'error');
+      },
+      () => {
+        setSaving(false);
+      },
+    );
+  };
+
+  const handleDelete = () => {
     if (!template) return;
     uiFeedback.alert('Delete Template', 'Are you sure you want to delete this availability slot?', [
       { text: 'Cancel', style: 'cancel' },
@@ -135,7 +159,7 @@ router.back();
         },
       },
     ]);
-  }, [template]);
+  };
 
   return {
     status,

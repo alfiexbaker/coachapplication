@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -139,7 +138,7 @@ function SessionOwnershipSectionInner({
   );
 }
 
-export const SessionOwnershipSection = memo(SessionOwnershipSectionInner);
+export const SessionOwnershipSection = SessionOwnershipSectionInner;
 
 const styles = StyleSheet.create({
   card: {

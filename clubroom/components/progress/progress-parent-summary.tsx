@@ -1,7 +1,3 @@
-/**
- * ParentProgressSummary — Compact progress card for parent view.
- */
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -111,7 +107,7 @@ function ParentProgressSummaryInner({
   );
 }
 
-export const ParentProgressSummary = memo(ParentProgressSummaryInner);
+export const ParentProgressSummary = ParentProgressSummaryInner;
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.sm, position: 'relative' },

@@ -4,7 +4,7 @@
  * Allows selecting a school, setting custom code text, and max uses.
  */
 
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { Modal, StyleSheet, TextInput, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -29,7 +29,7 @@ interface CreateCodeModalProps {
   onGenerate: () => void;
 }
 
-export const CreateCodeModal = memo(function CreateCodeModal({
+export const CreateCodeModal = function CreateCodeModal({
   visible,
   selectedSchool,
   newCodeText,
@@ -43,10 +43,7 @@ export const CreateCodeModal = memo(function CreateCodeModal({
   const { colors: palette } = useTheme();
   const currentYear = new Date().getFullYear();
 
-  const handleCodeTextChange = useCallback(
-    (text: string) => onChangeCodeText(text.toUpperCase()),
-    [onChangeCodeText],
-  );
+  const handleCodeTextChange = (text: string) => onChangeCodeText(text.toUpperCase());
 
   return (
     <Modal
@@ -188,7 +185,7 @@ export const CreateCodeModal = memo(function CreateCodeModal({
       </SafeAreaView>
     </Modal>
   );
-});
+};
 
 const styles = StyleSheet.create({
   modalContainer: {

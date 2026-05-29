@@ -5,7 +5,7 @@
  * pick athletes to invite for closed sessions.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInRight } from 'react-native-reanimated';
@@ -38,7 +38,7 @@ interface CreateInviteStepProps {
 // COMPONENT
 // ============================================================================
 
-export const CreateInviteStep = memo(function CreateInviteStep({
+export const CreateInviteStep = function CreateInviteStep({
   colors,
   inviteType,
   allowedInviteTypes,
@@ -217,7 +217,7 @@ export const CreateInviteStep = memo(function CreateInviteStep({
       </Column>
     </Animated.View>
   );
-});
+};
 
 // ============================================================================
 // STYLES

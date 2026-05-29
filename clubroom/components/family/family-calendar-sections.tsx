@@ -1,5 +1,4 @@
-import { memo } from 'react';
-import { StyleSheet, View, ScrollView, ViewStyle } from 'react-native';
+import { StyleSheet, View, FlatList, ViewStyle, type ListRenderItemInfo } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -11,24 +10,6 @@ import { Row } from '@/components/primitives';
 // Re-export EventListSection for backward compat
 export { EventListSection } from './event-list-section';
 
-// ─── Constants ──────────────────────────────────────────────────────────────
-
-export const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-export const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
-
 // ─── ChildFilterRow ─────────────────────────────────────────────────────────
 
 type ChildFilterRowProps = {
@@ -38,77 +19,122 @@ type ChildFilterRowProps = {
   palette: ThemeColors;
 };
 
-export const ChildFilterRow = memo(function ChildFilterRow({
+export const ChildFilterRow = function ChildFilterRow({
   members,
   selectedChildId,
   onChildFilterChange,
   palette,
 }: ChildFilterRowProps) {
   if (members.length <= 1) return null;
+  const filterItems = getChildFilterItems(members, selectedChildId, onChildFilterChange, palette);
 
   return (
-    <ScrollView
+    <FlatList
       horizontal
+      data={filterItems}
+      keyExtractor={keyChildFilterItem}
+      renderItem={renderChildFilterItem}
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.filterRow}
-    >
-      <Clickable
-        onPress={() => onChildFilterChange?.(null)}
-        style={
-          [
-            styles.filterChip,
-            { borderColor: palette.border },
-            selectedChildId === null
-              ? { backgroundColor: palette.tint, borderColor: palette.tint }
-              : undefined,
-          ].filter(Boolean) as ViewStyle[]
-        }
-      >
-        <ThemedText
-          style={[
-            styles.filterChipText,
-            selectedChildId === null ? { color: palette.onPrimary } : undefined,
-          ]}
-        >
-          All Children
-        </ThemedText>
-      </Clickable>
-      {members.map((member) => (
-        <Clickable
-          key={member.id}
-          onPress={() => onChildFilterChange?.(member.id)}
-          style={
-            [
-              styles.filterChip,
-              { borderColor: member.colorCode },
-              selectedChildId === member.id ? { backgroundColor: member.colorCode } : undefined,
-            ].filter(Boolean) as ViewStyle[]
-          }
-        >
-          <View
-            style={[
-              styles.filterDot,
-              { backgroundColor: member.colorCode },
-              selectedChildId === member.id ? { backgroundColor: palette.surface } : undefined,
-            ]}
-          />
-          <ThemedText
-            style={[
-              styles.filterChipText,
-              selectedChildId === member.id ? { color: palette.onPrimary } : undefined,
-            ]}
-          >
-            {member.name.split(' ')[0]}
-          </ThemedText>
-        </Clickable>
-      ))}
-    </ScrollView>
+    />
   );
-});
+};
+
+interface ChildFilterItem {
+  key: string;
+  label: string;
+  colorCode: string;
+  selected: boolean;
+  isAll: boolean;
+  palette: ThemeColors;
+  onPress: () => void;
+}
+
+function getChildFilterItems(
+  members: FamilyMember[],
+  selectedChildId: string | null,
+  onChildFilterChange: ((childId: string | null) => void) | undefined,
+  palette: ThemeColors,
+): ChildFilterItem[] {
+  return [
+    {
+      key: 'all',
+      label: 'All Children',
+      colorCode: palette.border,
+      selected: selectedChildId === null,
+      isAll: true,
+      palette,
+      onPress: () => onChildFilterChange?.(null),
+    },
+    ...members.map((member) => ({
+      key: member.id,
+      label: member.name.split(' ')[0],
+      colorCode: member.colorCode,
+      selected: selectedChildId === member.id,
+      isAll: false,
+      palette,
+      onPress: () => onChildFilterChange?.(member.id),
+    })),
+  ];
+}
+
+function keyChildFilterItem(item: ChildFilterItem) {
+  return item.key;
+}
+
+function renderChildFilterItem({ item }: ListRenderItemInfo<ChildFilterItem>) {
+  return (
+    <Clickable
+      onPress={item.onPress}
+      style={
+        [
+          styles.filterChip,
+          { borderColor: item.isAll ? item.palette.border : item.colorCode },
+          item.selected
+            ? {
+                backgroundColor: item.isAll ? item.palette.tint : item.colorCode,
+                borderColor: item.isAll ? item.palette.tint : item.colorCode,
+              }
+            : undefined,
+        ].filter(Boolean) as ViewStyle[]
+      }
+    >
+      {!item.isAll && (
+        <View
+          style={[
+            styles.filterDot,
+            { backgroundColor: item.colorCode },
+            item.selected ? { backgroundColor: item.palette.surface } : undefined,
+          ]}
+        />
+      )}
+      <ThemedText
+        style={[
+          styles.filterChipText,
+          item.selected ? { color: item.palette.onPrimary } : undefined,
+        ]}
+      >
+        {item.label}
+      </ThemedText>
+    </Clickable>
+  );
+}
 
 // ─── CalendarDayGrid ────────────────────────────────────────────────────────
 
 type CalendarDay = { date: Date | null; isCurrentMonth: boolean };
+
+function getCalendarDayKey(calendarData: CalendarDay[], item: CalendarDay, dayIndex: number) {
+  if (item.date) {
+    return item.date.toISOString();
+  }
+
+  const nearestDayIndex = calendarData.findIndex((candidate) => candidate.date);
+  const nearestDate = calendarData[nearestDayIndex]?.date ?? new Date(0);
+  const placeholderDate = new Date(nearestDate);
+  placeholderDate.setDate(nearestDate.getDate() + dayIndex - nearestDayIndex);
+  return `empty-${placeholderDate.toISOString()}`;
+}
 
 type CalendarDayGridProps = {
   calendarData: CalendarDay[];
@@ -120,7 +146,7 @@ type CalendarDayGridProps = {
   hasConflictsForDate: (date: Date | null) => boolean;
 };
 
-export const CalendarDayGrid = memo(function CalendarDayGrid({
+export const CalendarDayGrid = function CalendarDayGrid({
   calendarData,
   getEventsForDate,
   isSelected,
@@ -139,7 +165,7 @@ export const CalendarDayGrid = memo(function CalendarDayGrid({
 
         return (
           <Clickable
-            key={index}
+            key={getCalendarDayKey(calendarData, item, index)}
             onPress={() => item.date && onDateSelect?.(item.date)}
             disabled={!item.date}
             style={styles.dayCell}
@@ -165,8 +191,11 @@ export const CalendarDayGrid = memo(function CalendarDayGrid({
             </View>
             {hasEvents && (
               <Row style={styles.eventDots}>
-                {dateEvents.slice(0, 3).map((event, i) => (
-                  <View key={i} style={[styles.eventDot, { backgroundColor: event.colorCode }]} />
+                {dateEvents.slice(0, 3).map((event) => (
+                  <View
+                    key={event.id}
+                    style={[styles.eventDot, { backgroundColor: event.colorCode }]}
+                  />
                 ))}
                 {hasConflictsForDate(item.date) && (
                   <View style={[styles.conflictDot, { backgroundColor: palette.warning }]} />
@@ -178,7 +207,7 @@ export const CalendarDayGrid = memo(function CalendarDayGrid({
       })}
     </Row>
   );
-});
+};
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -210,7 +239,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dayText: { ...Typography.bodySmallSemiBold },
-  eventDots: { gap: Spacing.micro, marginTop: Spacing.micro, position: 'absolute', bottom: Spacing.xxs },
+  eventDots: {
+    gap: Spacing.micro,
+    marginTop: Spacing.micro,
+    position: 'absolute',
+    bottom: Spacing.xxs,
+  },
   eventDot: { width: 4, height: 4, borderRadius: Radii.xs },
   conflictDot: { width: 6, height: 6, borderRadius: Radii.xs },
 });

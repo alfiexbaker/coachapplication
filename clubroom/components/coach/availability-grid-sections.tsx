@@ -2,10 +2,9 @@
  * Extracted sub-components for availability-grid.
  *
  * DayScheduleView — detailed day view with slot cards (edit/delete).
- * Constants — DAYS, FULL_DAYS, HOURS.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,20 +14,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { AvailabilityTemplate } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
-
-// ─── Constants ──────────────────────────────────────────────────────────────
-
-export const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-export const FULL_DAYS = [
-  'Sunday',
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-];
-export const HOURS = Array.from({ length: 15 }, (_, i) => i + 6); // 6am to 8pm
+import { FULL_DAYS } from './availability-grid-helpers';
 
 // ─── SlotCard ───────────────────────────────────────────────────────────────
 
@@ -38,7 +24,7 @@ interface SlotCardProps {
   onDelete: (templateId: string) => void;
 }
 
-const SlotCard = memo(function SlotCard({ template, onEdit, onDelete }: SlotCardProps) {
+const SlotCard = function SlotCard({ template, onEdit, onDelete }: SlotCardProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -95,7 +81,7 @@ const SlotCard = memo(function SlotCard({ template, onEdit, onDelete }: SlotCard
       </Row>
     </Row>
   );
-});
+};
 
 // ─── DayScheduleView ────────────────────────────────────────────────────────
 

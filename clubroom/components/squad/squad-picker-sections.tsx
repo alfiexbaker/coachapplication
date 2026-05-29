@@ -2,11 +2,8 @@
  * Extracted sub-components for SquadPicker.
  *
  * SquadPickerItem — single squad selection row with checkbox.
- * QuickActionBar — select all / clear buttons for multi-select.
- * SelectedBanner — summary banner showing selection count.
  */
 
-import React, { useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -18,6 +15,11 @@ import { useTheme } from '@/hooks/useTheme';
 import { squadService } from '@/services/squad-service';
 import type { ClubSquad } from '@/constants/types';
 
+export { QuickActionBar } from './squad-picker-quick-action-bar';
+export type { QuickActionBarProps } from './squad-picker-quick-action-bar';
+export { SelectedBanner } from './squad-picker-selected-banner';
+export type { SelectedBannerProps } from './squad-picker-selected-banner';
+
 // ============================================================================
 // SQUAD PICKER ITEM
 // ============================================================================
@@ -28,7 +30,7 @@ interface SquadPickerItemProps {
   onToggle: (squadId: string) => void;
 }
 
-export const SquadPickerItem = React.memo(function SquadPickerItem({
+export const SquadPickerItem = function SquadPickerItem({
   squad,
   isSelected,
   onToggle,
@@ -36,9 +38,9 @@ export const SquadPickerItem = React.memo(function SquadPickerItem({
   const { colors: palette } = useTheme();
   const ageGroup = squadService.getAgeGroupLabel(squad);
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     onToggle(squad.id);
-  }, [squad.id, onToggle]);
+  };
 
   return (
     <Clickable
@@ -87,99 +89,13 @@ export const SquadPickerItem = React.memo(function SquadPickerItem({
       </Row>
     </Clickable>
   );
-});
-
-// ============================================================================
-// QUICK ACTION BAR
-// ============================================================================
-
-interface QuickActionBarProps {
-  onSelectAll: () => void;
-  onClear: () => void;
-}
-
-export const QuickActionBar = React.memo(function QuickActionBar({
-  onSelectAll,
-  onClear,
-}: QuickActionBarProps) {
-  const { colors: palette } = useTheme();
-
-  return (
-    <Row gap="xs" style={styles.quickActions}>
-      <Clickable
-        onPress={onSelectAll}
-        style={[styles.quickActionButton, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
-      >
-        <Row align="center" gap="xs">
-          <Ionicons name="checkmark-done" size={14} color={palette.tint} />
-          <ThemedText style={{ color: palette.tint, ...Typography.caption }}>Select All</ThemedText>
-        </Row>
-      </Clickable>
-      <Clickable
-        onPress={onClear}
-        style={[
-          styles.quickActionButton,
-          { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 },
-        ]}
-      >
-        <ThemedText style={{ ...Typography.caption, color: palette.text }}>Clear</ThemedText>
-      </Clickable>
-    </Row>
-  );
-});
-
-// ============================================================================
-// SELECTED BANNER
-// ============================================================================
-
-interface SelectedBannerProps {
-  selectedCount: number;
-  totalMembers: number;
-}
-
-export const SelectedBanner = React.memo(function SelectedBanner({
-  selectedCount,
-  totalMembers,
-}: SelectedBannerProps) {
-  const { colors: palette } = useTheme();
-
-  if (selectedCount === 0) return null;
-
-  return (
-    <Row
-      align="center"
-      gap="sm"
-      style={[styles.selectedBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
-    >
-      <Ionicons name="people" size={18} color={palette.tint} />
-      <ThemedText style={{ color: palette.tint, fontWeight: '600', flex: 1 }}>
-        {selectedCount} squad{selectedCount !== 1 ? 's' : ''} selected
-        {totalMembers > 0 && ` (${totalMembers} athletes)`}
-      </ThemedText>
-    </Row>
-  );
-});
+};
 
 // ============================================================================
 // STYLES
 // ============================================================================
 
 const styles = StyleSheet.create({
-  quickActions: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-  },
-  quickActionButton: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.md,
-  },
-  selectedBanner: {
-    marginHorizontal: Spacing.lg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-  },
   squadItem: {
     padding: Spacing.md,
     borderRadius: Radii.md,

@@ -1,7 +1,3 @@
-/**
- * SessionInstanceManager — Coach view: manage upcoming recurring instances + end series.
- */
-import { memo, useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
@@ -31,7 +27,7 @@ function SessionInstanceManagerInner({
 }: SessionInstanceManagerProps) {
   const { colors: palette } = useTheme();
 
-  const handleCancelInstance = useCallback((instance: Date) => {
+  const handleCancelInstance = (instance: Date) => {
     const dateStr = instance.toLocaleDateString('en-GB', {
       weekday: 'short',
       day: 'numeric',
@@ -49,9 +45,9 @@ function SessionInstanceManagerInner({
         },
       ],
     );
-  }, [onCancelInstance]);
+  };
 
-  const handleEndSeries = useCallback(() => {
+  const handleEndSeries = () => {
     uiFeedback.alert(
       'End Recurring Series',
       `This will cancel all ${upcomingInstances.length} upcoming session${upcomingInstances.length !== 1 ? 's' : ''} in this series. This cannot be undone.`,
@@ -64,7 +60,7 @@ function SessionInstanceManagerInner({
         },
       ],
     );
-  }, [upcomingInstances.length, onEndSeries]);
+  };
 
   return (
     <SurfaceCard style={styles.card}>
@@ -93,9 +89,9 @@ function SessionInstanceManagerInner({
           {upcomingInstances.length === 0 ? (
             <ThemedText style={styles.emptyText}>No upcoming sessions</ThemedText>
           ) : (
-            upcomingInstances.map((instance, index) => (
+            upcomingInstances.map((instance) => (
               <Row
-                key={`instance-${index}`}
+                key={instance.toISOString()}
                 align="center"
                 justify="between"
                 style={[styles.row, { borderBottomColor: palette.border }]}
@@ -142,7 +138,7 @@ function SessionInstanceManagerInner({
   );
 }
 
-export const SessionInstanceManager = memo(SessionInstanceManagerInner);
+export const SessionInstanceManager = SessionInstanceManagerInner;
 
 const styles = StyleSheet.create({
   card: { marginBottom: Spacing.sm, padding: Spacing.md, gap: Spacing.sm },
@@ -168,6 +164,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  endSeriesButton: { paddingVertical: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, marginTop: Spacing.xs },
+  endSeriesButton: {
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    marginTop: Spacing.xs,
+  },
   endSeriesText: { fontSize: scaleFont(15), fontWeight: '600' },
 });

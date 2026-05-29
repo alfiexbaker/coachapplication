@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 
@@ -14,7 +13,7 @@ export interface AttendeeRowProps {
   response: InviteRsvpResponse;
 }
 
-export const AttendeeRow = memo(function AttendeeRow({ response }: AttendeeRowProps) {
+export const AttendeeRow = function AttendeeRow({ response }: AttendeeRowProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -48,7 +47,7 @@ export const AttendeeRow = memo(function AttendeeRow({ response }: AttendeeRowPr
       </View>
     </Row>
   );
-});
+};
 
 // ─── Styles ─────────────────────────────────────────────────────
 

@@ -40,7 +40,7 @@ const renderRoleBreakdown = (roleBreakdown: RoleBreakdown | null) => {
   return parts.join(' / ');
 };
 
-export const GroupChatHeader = React.memo(function GroupChatHeader({
+export const GroupChatHeader = function GroupChatHeader({
   colors,
   group,
   roleBreakdown,
@@ -85,7 +85,7 @@ export const GroupChatHeader = React.memo(function GroupChatHeader({
       )}
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   header: {

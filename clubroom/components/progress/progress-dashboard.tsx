@@ -80,7 +80,7 @@ export function ProgressDashboard({
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
             Active Goals
           </ThemedText>
-          <Chip dense>{progress.activeGoals.length} active</Chip>
+          <Chip dense label={`${progress.activeGoals.length} active`} />
         </Row>
         <GoalsSection goals={progress.activeGoals} onViewGoal={onViewGoal} />
       </View>
@@ -91,7 +91,7 @@ export function ProgressDashboard({
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
             Recent Badges
           </ThemedText>
-          <Chip dense>{progress.totalBadges} earned</Chip>
+          <Chip dense label={`${progress.totalBadges} earned`} />
         </Row>
         <BadgesSection badges={progress.recentBadges} onViewAll={onViewBadges} />
       </View>

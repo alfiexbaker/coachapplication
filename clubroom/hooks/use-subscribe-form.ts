@@ -1,7 +1,7 @@
 /**
  * useSubscribeForm — State, computed values, and handlers for SubscribeForm.
  */
-import { useState, useMemo, useCallback } from 'react';
+import { useState } from 'react';
 import { Platform } from 'react-native';
 import { RecurrenceFrequency, CreateRecurringBookingParams } from '@/constants/types';
 
@@ -96,34 +96,34 @@ export function useSubscribeForm({
   const sessionTypes = coach.sessionTypes ?? DEFAULT_SESSION_TYPES;
   const selectedAthlete = athletes?.find((a) => a.id === selectedAthleteId);
 
-  const monthlyEstimate = useMemo(() => {
+  const monthlyEstimate = (() => {
     if (!coach.pricePerSession) return null;
     const sessionsPerMonth = frequency === 'WEEKLY' ? 4 : frequency === 'BIWEEKLY' ? 2 : 1;
     return coach.pricePerSession * sessionsPerMonth;
-  }, [coach.pricePerSession, frequency]);
+  })();
 
-  const timeDate = useMemo(() => {
+  const timeDate = (() => {
     const [hours, minutes] = time.split(':').map(Number);
     const date = new Date();
     date.setHours(hours, minutes, 0, 0);
     return date;
-  }, [time]);
+  })();
 
-  const handleTimeChange = useCallback((event: unknown, selectedDate?: Date) => {
+  const handleTimeChange = (event: unknown, selectedDate?: Date) => {
     setShowTimePicker(Platform.OS === 'ios');
     if (selectedDate) {
       const hours = selectedDate.getHours().toString().padStart(2, '0');
       const minutes = selectedDate.getMinutes().toString().padStart(2, '0');
       setTime(`${hours}:${minutes}`);
     }
-  }, []);
+  };
 
-  const handleEndDateChange = useCallback((event: unknown, selectedDate?: Date) => {
+  const handleEndDateChange = (event: unknown, selectedDate?: Date) => {
     setShowEndDatePicker(Platform.OS === 'ios');
     if (selectedDate) setEndDate(selectedDate);
-  }, []);
+  };
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = async () => {
     const startDate = new Date();
     while (startDate.getDay() !== dayOfWeek) {
       startDate.setDate(startDate.getDate() + 1);
@@ -144,23 +144,9 @@ export function useSubscribeForm({
       notes: notes.trim() || undefined,
     };
     await onSubmit(params);
-  }, [
-    userId,
-    coach,
-    selectedAthleteId,
-    dayOfWeek,
-    time,
-    duration,
-    location,
-    sessionType,
-    frequency,
-    hasEndDate,
-    endDate,
-    notes,
-    onSubmit,
-  ]);
+  };
 
-  const toggleEndDate = useCallback(() => setHasEndDate((v) => !v), []);
+  const toggleEndDate = () => setHasEndDate((v) => !v);
   const isValid = location.trim().length > 0;
 
   return {

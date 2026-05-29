@@ -5,12 +5,11 @@
  * Category picker + text input + private toggle.
  */
 
-import { memo, useState, useCallback, useEffect, useMemo, type ComponentProps } from 'react';
+import { useState, useEffect, useRef, type ComponentProps, startTransition } from 'react';
 import { View, StyleSheet, TextInput, Modal, ScrollView, Switch, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
@@ -32,7 +31,7 @@ interface CoachObservationModalProps {
   saving?: boolean;
 }
 
-export const CoachObservationModal = memo(function CoachObservationModal({
+export const CoachObservationModal = function CoachObservationModal({
   visible,
   observation,
   onSave,
@@ -45,7 +44,7 @@ export const CoachObservationModal = memo(function CoachObservationModal({
   const [text, setText] = useState('');
   const [category, setCategory] = useState<ObservationCategory>('OTHER');
   const [isPrivate, setIsPrivate] = useState(false);
-  const [initialState, setInitialState] = useState({
+  const initialStateRef = useRef({
     text: '',
     category: 'OTHER' as ObservationCategory,
     isPrivate: false,
@@ -56,35 +55,48 @@ export const CoachObservationModal = memo(function CoachObservationModal({
       const nextText = observation?.text ?? '';
       const nextCategory = observation?.category ?? 'OTHER';
       const nextPrivate = observation?.isPrivate ?? false;
-      setText(nextText);
-      setCategory(nextCategory);
-      setIsPrivate(nextPrivate);
-      setInitialState({ text: nextText, category: nextCategory, isPrivate: nextPrivate });
+      startTransition(() => {
+        setText(nextText);
+      });
+      startTransition(() => {
+        setCategory(nextCategory);
+      });
+      startTransition(() => {
+        setIsPrivate(nextPrivate);
+      });
+      startTransition(() => {
+        initialStateRef.current = {
+          text: nextText,
+          category: nextCategory,
+          isPrivate: nextPrivate,
+        };
+      });
     }
   }, [visible, observation]);
 
   const canSave = text.trim().length > 0 && !saving;
-  const hasUnsavedChanges = useMemo(
-    () =>
+  const getHasUnsavedChanges = () => {
+    const initialState = initialStateRef.current;
+    return (
       text.trim() !== initialState.text.trim() ||
       category !== initialState.category ||
-      isPrivate !== initialState.isPrivate,
-    [text, category, isPrivate, initialState],
-  );
+      isPrivate !== initialState.isPrivate
+    );
+  };
 
-  const handleSave = useCallback(() => {
+  const handleSave = () => {
     if (!canSave) return;
     Keyboard.dismiss();
     onSave({ text: text.trim(), category, isPrivate });
-  }, [canSave, text, category, isPrivate, onSave]);
+  };
 
-  const closeNow = useCallback(() => {
+  const closeNow = () => {
     Keyboard.dismiss();
     onClose();
-  }, [onClose]);
+  };
 
-  const handleClose = useCallback(() => {
-    if (!hasUnsavedChanges || saving) {
+  const handleClose = () => {
+    if (!getHasUnsavedChanges() || saving) {
       closeNow();
       return;
     }
@@ -96,7 +108,7 @@ export const CoachObservationModal = memo(function CoachObservationModal({
         { text: 'Discard', style: 'destructive', onPress: closeNow },
       ],
     );
-  }, [hasUnsavedChanges, saving, closeNow]);
+  };
 
   return (
     <Modal
@@ -105,13 +117,9 @@ export const CoachObservationModal = memo(function CoachObservationModal({
       animationType="slide"
       onRequestClose={handleClose}
     >
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <Row align="center" justify="space-between" style={styles.header}>
-          <Clickable
-            onPress={handleClose}
-            accessibilityLabel="Close"
-            style={styles.headerButton}
-          >
+          <Clickable onPress={handleClose} accessibilityLabel="Close" style={styles.headerButton}>
             <ThemedText style={[Typography.body, { color: colors.muted }]}>Cancel</ThemedText>
           </Clickable>
           <ThemedText type="heading">
@@ -129,7 +137,10 @@ export const CoachObservationModal = memo(function CoachObservationModal({
           </Clickable>
         </Row>
 
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={styles.content}
+        >
           <View style={styles.field}>
             <ThemedText style={[Typography.caption, { color: colors.muted }]}>Category</ThemedText>
             <Row style={styles.categoryRow}>
@@ -156,10 +167,7 @@ export const CoachObservationModal = memo(function CoachObservationModal({
                       color={isActive ? colors.tint : colors.muted}
                     />
                     <ThemedText
-                      style={[
-                        Typography.caption,
-                        { color: isActive ? colors.tint : colors.muted },
-                      ]}
+                      style={[Typography.caption, { color: isActive ? colors.tint : colors.muted }]}
                     >
                       {cat.label}
                     </ThemedText>
@@ -189,7 +197,12 @@ export const CoachObservationModal = memo(function CoachObservationModal({
               ]}
               maxLength={2000}
             />
-            <ThemedText style={[Typography.micro, { color: colors.muted, textTransform: 'none', alignSelf: 'flex-end' }]}>
+            <ThemedText
+              style={[
+                Typography.micro,
+                { color: colors.muted, textTransform: 'none', alignSelf: 'flex-end' },
+              ]}
+            >
               {text.length}/2000
             </ThemedText>
           </View>
@@ -211,10 +224,10 @@ export const CoachObservationModal = memo(function CoachObservationModal({
             />
           </Row>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1 },

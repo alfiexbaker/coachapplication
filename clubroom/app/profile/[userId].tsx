@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import { FlatList, RefreshControl, Share, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -28,7 +28,52 @@ import type { User } from '@/constants/types';
 import { err, ok, serviceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
 
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
+
 type ConnectionState = 'self' | 'none' | 'outgoing_pending' | 'incoming_pending' | 'connected';
+type ConnectionSnapshot = { connectionState: ConnectionState; incomingRequestId: string | null };
+
+async function getConnectionSnapshot(
+  currentUserId: string | undefined,
+  targetId: string,
+): Promise<ConnectionSnapshot> {
+  if (!currentUserId || currentUserId === targetId) {
+    return { connectionState: 'self', incomingRequestId: null };
+  }
+
+  const [isFriends, requestsForTarget, requestsForCurrent] = await Promise.all([
+    followService.areFriends(currentUserId, targetId),
+    followService.getPendingRequests(targetId),
+    followService.getPendingRequests(currentUserId),
+  ]);
+
+  if (isFriends) {
+    return { connectionState: 'connected', incomingRequestId: null };
+  }
+
+  const incomingRequest = requestsForCurrent.find((request) => request.requesterId === targetId);
+  if (incomingRequest) {
+    return { connectionState: 'incoming_pending', incomingRequestId: incomingRequest.id };
+  }
+
+  const hasOutgoingRequest = requestsForTarget.some(
+    (request) => request.requesterId === currentUserId,
+  );
+  if (hasOutgoingRequest) {
+    return { connectionState: 'outgoing_pending', incomingRequestId: null };
+  }
+
+  return { connectionState: 'none', incomingRequestId: null };
+}
+
+function applyConnectionSnapshot(
+  snapshot: ConnectionSnapshot,
+  setConnectionState: (state: ConnectionState) => void,
+  setIncomingRequestId: (requestId: string | null) => void,
+) {
+  setConnectionState(snapshot.connectionState);
+  setIncomingRequestId(snapshot.incomingRequestId);
+}
 
 export default function ProfileScreen() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
@@ -37,37 +82,29 @@ export default function ProfileScreen() {
   const [incomingRequestId, setIncomingRequestId] = useState<string | null>(null);
   const [connectionActionLoading, setConnectionActionLoading] = useState(false);
 
-  const {
-    data,
-    status,
-    error,
-    retry,
-    refreshing,
-    onRefresh,
-    colors,
-    showLoadingState,
-  } = useScreen<User | null>({
-    load: async () => {
-      if (!userId) {
-        return err(serviceError('VALIDATION', 'Missing user id.'));
-      }
-
-      const result = await userService.getUserById(userId);
-      if (!result.success) {
-        if (result.error.code === 'NOT_FOUND') {
-          return ok<User | null>(null);
+  const { data, status, error, retry, refreshing, onRefresh, colors, showLoadingState } =
+    useScreen<User | null>({
+      load: async () => {
+        if (!userId) {
+          return err(serviceError('VALIDATION', 'Missing user id.'));
         }
-        return err(result.error);
-      }
 
-      return ok<User | null>(result.data);
-    },
-    deps: [userId],
-    isEmpty: (value) => value === null,
-    refetchOnFocus: true,
-    loadingStrategy: 'section-skeleton',
-    dataKey: userId ?? null,
-  });
+        const result = await userService.getUserById(userId);
+        if (!result.success) {
+          if (result.error.code === 'NOT_FOUND') {
+            return ok<User | null>(null);
+          }
+          return err(result.error);
+        }
+
+        return ok<User | null>(result.data);
+      },
+      deps: [userId],
+      isEmpty: (value) => value === null,
+      refetchOnFocus: true,
+      loadingStrategy: 'section-skeleton',
+      dataKey: userId ?? null,
+    });
   const {
     data: postsData,
     status: postsStatus,
@@ -102,68 +139,33 @@ export default function ProfileScreen() {
   const canOpenCoachProfile = data?.role === 'COACH';
   const canManageConnection = Boolean(currentUser?.id && data?.id && currentUser.id !== data.id);
   const canMessage = Boolean(currentUser?.id && data?.id && currentUser.id !== data.id);
-  const posts = useMemo(() => postsData ?? [], [postsData]);
-
-  const loadConnectionState = useCallback(
-    async (targetId: string) => {
-      if (!currentUser?.id || currentUser.id === targetId) {
-        setConnectionState('self');
-        setIncomingRequestId(null);
-        return;
-      }
-
-      const [isFriends, requestsForTarget, requestsForCurrent] = await Promise.all([
-        followService.areFriends(currentUser.id, targetId),
-        followService.getPendingRequests(targetId),
-        followService.getPendingRequests(currentUser.id),
-      ]);
-
-      if (isFriends) {
-        setConnectionState('connected');
-        setIncomingRequestId(null);
-        return;
-      }
-
-      const incomingRequest = requestsForCurrent.find(
-        (request) => request.requesterId === targetId,
-      );
-      if (incomingRequest) {
-        setConnectionState('incoming_pending');
-        setIncomingRequestId(incomingRequest.id);
-        return;
-      }
-
-      const hasOutgoingRequest = requestsForTarget.some(
-        (request) => request.requesterId === currentUser.id,
-      );
-      if (hasOutgoingRequest) {
-        setConnectionState('outgoing_pending');
-        setIncomingRequestId(null);
-        return;
-      }
-
-      setConnectionState('none');
-      setIncomingRequestId(null);
-    },
-    [currentUser?.id],
-  );
+  const posts = postsData ?? [];
 
   useEffect(() => {
     if (!data?.id || status !== 'success') return;
 
-    void loadConnectionState(data.id).catch(() => {
-      setConnectionState('none');
-      setIncomingRequestId(null);
+    startTransition(() => {
+      void getConnectionSnapshot(currentUser?.id, data.id)
+        .then((snapshot) => {
+          applyConnectionSnapshot(snapshot, setConnectionState, setIncomingRequestId);
+        })
+        .catch(() => {
+          applyConnectionSnapshot(
+            { connectionState: 'none', incomingRequestId: null },
+            setConnectionState,
+            setIncomingRequestId,
+          );
+        });
     });
-  }, [data?.id, loadConnectionState, status]);
+  }, [currentUser?.id, data?.id, status]);
 
-  const connectionButtonLabel = useMemo(() => {
+  const connectionButtonLabel = (() => {
     if (connectionActionLoading) return 'Updating...';
     if (connectionState === 'connected') return 'Connected';
     if (connectionState === 'outgoing_pending') return 'Request sent';
     if (connectionState === 'incoming_pending') return 'Review request';
     return 'Connect';
-  }, [connectionActionLoading, connectionState]);
+  })();
 
   const canTriggerConnectionAction =
     !connectionActionLoading &&
@@ -171,177 +173,147 @@ export default function ProfileScreen() {
     (connectionState === 'none' ||
       (connectionState === 'incoming_pending' && Boolean(incomingRequestId)));
 
-  const handleConnectionAction = useCallback(async () => {
+  const handleConnectionAction = async () => {
     if (!currentUser?.id || !data?.id || !canManageConnection || connectionActionLoading) return;
 
     setConnectionActionLoading(true);
-    try {
-      if (connectionState === 'incoming_pending' && incomingRequestId) {
-        await followService.respondToRequest(incomingRequestId, 'ACCEPTED');
-      } else if (connectionState === 'none') {
-        await followService.sendFollowRequest({
-          requesterId: currentUser.id,
-          requesterName: currentUser.fullName || currentUser.name || currentUser.username || 'User',
-          targetId: data.id,
-          targetName: data.name || 'User',
-        });
-      } else {
-        return;
-      }
 
-      await loadConnectionState(data.id);
-    } catch {
-      uiFeedback.showToast('Please try again in a moment.', 'error');
-    } finally {
-      setConnectionActionLoading(false);
-    }
-  }, [
-    canManageConnection,
-    currentUser?.fullName,
-    currentUser?.id,
-    currentUser?.name,
-    currentUser?.username,
-    data?.id,
-    data?.name,
-    connectionActionLoading,
-    connectionState,
-    incomingRequestId,
-    loadConnectionState,
-  ]);
+    return await runAsyncTryCatchFinally(
+      async () => {
+        if (connectionState === 'incoming_pending' && incomingRequestId) {
+          await followService.respondToRequest(incomingRequestId, 'ACCEPTED');
+        } else if (connectionState === 'none') {
+          await followService.sendFollowRequest({
+            requesterId: currentUser.id,
+            requesterName:
+              currentUser.fullName || currentUser.name || currentUser.username || 'User',
+            targetId: data.id,
+            targetName: data.name || 'User',
+          });
+        } else {
+          return;
+        }
 
-  const handleRefresh = useCallback(() => {
+        const snapshot = await getConnectionSnapshot(currentUser.id, data.id);
+        applyConnectionSnapshot(snapshot, setConnectionState, setIncomingRequestId);
+      },
+      async (error) => {
+        uiFeedback.showToast('Please try again in a moment.', 'error');
+      },
+      () => {
+        setConnectionActionLoading(false);
+      },
+    );
+  };
+
+  const handleRefresh = () => {
     onRefresh();
     onRefreshPosts();
-  }, [onRefresh, onRefreshPosts]);
+  };
 
-  const handleLikePost = useCallback(
-    (postId: string) => {
-      if (!currentUser?.id) return;
-      socialFeedService.toggleReaction(postId, currentUser.id);
-      onRefreshPosts();
-    },
-    [currentUser?.id, onRefreshPosts],
-  );
+  const handleLikePost = (postId: string) => {
+    if (!currentUser?.id) return;
+    socialFeedService.toggleReaction(postId, currentUser.id);
+    onRefreshPosts();
+  };
 
-  const handleCommentPost = useCallback((postId: string) => {
+  const handleCommentPost = (postId: string) => {
     router.push(Routes.modalPostDetail(postId));
-  }, []);
+  };
 
-  const handleSharePost = useCallback(
-    async (postId: string) => {
-      const post = posts.find((candidate) => candidate.id === postId);
-      if (!post) return;
+  const handleSharePost = async (postId: string) => {
+    const post = posts.find((candidate) => candidate.id === postId);
+    if (!post) return;
 
-      try {
-        await Share.share({
-          title: post.title,
-          message: `${post.title}\n\n${post.body}`,
-        });
-      } catch {
-        uiFeedback.showToast('Try again in a moment.', 'error');
-      }
-    },
-    [posts],
-  );
+    try {
+      await Share.share({
+        title: post.title,
+        message: `${post.title}\n\n${post.body}`,
+      });
+    } catch {
+      uiFeedback.showToast('Try again in a moment.', 'error');
+    }
+  };
 
-  const renderUpdatesHeader = useCallback(
-    () => (
-      <>
-        <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-          <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.12) }]}>
-            <ThemedText style={[styles.avatarText, { color: colors.tint }]}>
-              {(data?.name || 'U').slice(0, 1).toUpperCase()}
-            </ThemedText>
-          </View>
-          <ThemedText type="heading">{data?.name}</ThemedText>
-          <ThemedText style={[styles.role, { color: colors.muted }]}>{data?.role}</ThemedText>
-
-          <View style={styles.meta}>
-            <Row align="center" gap="xs">
-              <Ionicons name="mail-outline" size={16} color={colors.muted} />
-              <ThemedText style={[styles.metaText, { color: colors.text }]}>
-                {data?.email || 'No email provided'}
-              </ThemedText>
-            </Row>
-            <Row align="center" gap="xs">
-              <Ionicons name="location-outline" size={16} color={colors.muted} />
-              <ThemedText style={[styles.metaText, { color: colors.text }]}>
-                {data?.postcode || 'No location provided'}
-              </ThemedText>
-            </Row>
-          </View>
-        </View>
-
-        <View style={styles.actions}>
-          {canManageConnection && (
-            <Button
-              onPress={handleConnectionAction}
-              disabled={!canTriggerConnectionAction}
-              variant={connectionState === 'none' ? 'outline' : 'secondary'}
-              accessibilityLabel={connectionButtonLabel}
-            >
-              {connectionButtonLabel}
-            </Button>
-          )}
-          {canMessage ? (
-            <Button onPress={() => router.push(Routes.chat(data!.id))}>Message</Button>
-          ) : null}
-          {canOpenCoachProfile && (
-            <Button onPress={() => router.push(Routes.coachPublic(data!.id))} variant="secondary">
-              View Coach Profile
-            </Button>
-          )}
-        </View>
-
-        <View style={styles.updatesHeader}>
-          <ThemedText type="defaultSemiBold" style={styles.updatesTitle}>
-            Updates
+  const renderUpdatesHeader = () => (
+    <>
+      <View style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+        <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.12) }]}>
+          <ThemedText style={[styles.avatarText, { color: colors.tint }]}>
+            {(data?.name || 'U').slice(0, 1).toUpperCase()}
           </ThemedText>
         </View>
-        {postsRefreshing ? (
-          <SubmitProgressState label="Refreshing updates" style={styles.pendingState} />
+        <ThemedText type="heading">{data?.name}</ThemedText>
+        <ThemedText style={[styles.role, { color: colors.muted }]}>{data?.role}</ThemedText>
+
+        <View style={styles.meta}>
+          <Row align="center" gap="xs">
+            <Ionicons name="mail-outline" size={16} color={colors.muted} />
+            <ThemedText style={[styles.metaText, { color: colors.text }]}>
+              {data?.email || 'No email provided'}
+            </ThemedText>
+          </Row>
+          <Row align="center" gap="xs">
+            <Ionicons name="location-outline" size={16} color={colors.muted} />
+            <ThemedText style={[styles.metaText, { color: colors.text }]}>
+              {data?.postcode || 'No location provided'}
+            </ThemedText>
+          </Row>
+        </View>
+      </View>
+
+      <View style={styles.actions}>
+        {canManageConnection && (
+          <Button
+            onPress={handleConnectionAction}
+            disabled={!canTriggerConnectionAction}
+            variant={connectionState === 'none' ? 'outline' : 'secondary'}
+            accessibilityLabel={connectionButtonLabel}
+            label={connectionButtonLabel}
+          />
+        )}
+        {canMessage ? (
+          <Button onPress={() => router.push(Routes.chat(data!.id))} label="Message" />
         ) : null}
-      </>
-    ),
-    [
-      canManageConnection,
-      canMessage,
-      canOpenCoachProfile,
-      canTriggerConnectionAction,
-      colors.border,
-      colors.muted,
-      colors.surface,
-      colors.text,
-      colors.tint,
-      connectionButtonLabel,
-      connectionState,
-      data,
-      handleConnectionAction,
-    ],
+        {canOpenCoachProfile && (
+          <Button
+            onPress={() => router.push(Routes.coachPublic(data!.id))}
+            variant="secondary"
+            label="View Coach Profile"
+          />
+        )}
+      </View>
+
+      <View style={styles.updatesHeader}>
+        <ThemedText type="defaultSemiBold" style={styles.updatesTitle}>
+          Updates
+        </ThemedText>
+      </View>
+      {postsRefreshing ? (
+        <SubmitProgressState label="Refreshing updates" style={styles.pendingState} />
+      ) : null}
+    </>
   );
 
-  const renderPost = useCallback(
-    ({ item }: { item: AggregatedFeedPost }) => (
-      <View style={styles.postItem}>
-        <ProfilePostCard
-          post={{
-            id: item.id,
-            content: item.body,
-            createdAt: item.createdAt,
-            likes: item.reactionCount ?? 0,
-            comments: item.commentCount ?? 0,
-            mediaUrls: item.imageUrl ? [item.imageUrl] : undefined,
-            mediaType: item.imageUrl ? 'photo' : undefined,
-          }}
-          coachName={data?.name || 'User'}
-          contextLabel={item.clubName}
-          onLikePress={handleLikePost}
-          onCommentPress={handleCommentPost}
-          onSharePress={handleSharePost}
-        />
-      </View>
-    ),
-    [data?.name, handleCommentPost, handleLikePost, handleSharePost],
+  const renderPost = ({ item }: { item: AggregatedFeedPost }) => (
+    <View style={styles.postItem}>
+      <ProfilePostCard
+        post={{
+          id: item.id,
+          content: item.body,
+          createdAt: item.createdAt,
+          likes: item.reactionCount ?? 0,
+          comments: item.commentCount ?? 0,
+          mediaUrls: item.imageUrl ? [item.imageUrl] : undefined,
+          mediaType: item.imageUrl ? 'photo' : undefined,
+        }}
+        coachName={data?.name || 'User'}
+        contextLabel={item.clubName}
+        onLikePress={handleLikePost}
+        onCommentPress={handleCommentPost}
+        onSharePress={handleSharePost}
+      />
+    </View>
   );
 
   if (showLoadingState) {

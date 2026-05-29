@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
@@ -23,7 +23,7 @@ export interface DevAthleteHeroProps {
   colors: ThemeColors;
 }
 
-export const DevAthleteHero = memo(function DevAthleteHero({
+export const DevAthleteHero = function DevAthleteHero({
   athleteName,
   avatar,
   sessions,
@@ -102,7 +102,7 @@ export const DevAthleteHero = memo(function DevAthleteHero({
       </Row>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   heroCard: {

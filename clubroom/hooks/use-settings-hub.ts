@@ -1,5 +1,3 @@
-import { useCallback } from 'react';
-
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { isCoach as checkIsCoach } from '@/utils/user-helpers';
@@ -15,7 +13,7 @@ export function useSettingsHub() {
   const { children } = useChildContext();
   const childCount = children.length;
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = () => {
     uiFeedback.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -28,7 +26,7 @@ export function useSettingsHub() {
         },
       },
     ]);
-  }, [currentUser, logout]);
+  };
 
   return { currentUser, isCoach, childCount, handleLogout };
 }

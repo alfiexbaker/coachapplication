@@ -6,10 +6,12 @@
  * Subscribes to event bus for queue updates.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { getQueueSize, flushQueue } from '@/services/offline-queue';
 import { createLogger } from '@/utils/logger';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('useOfflineQueue');
 
@@ -80,24 +82,24 @@ export function useOfflineQueue(): UseOfflineQueueReturn {
   }, []);
 
   // Manual flush for retry button
-  const manualFlush = useCallback(async () => {
+  const manualFlush = async () => {
     if (isFlushingRef.current) return;
 
     isFlushingRef.current = true;
     setIsFlushing(true);
 
-    try {
+    await runAsyncTryCatchFinally(async () => {
       const result = await flushQueue();
       if (result.success && result.data.processed > 0) {
         logger.info(`Manual flush processed ${result.data.processed} actions`);
       }
-    } catch (error) {
+    }, async error => {
       logger.error('Manual flush failed', error);
-    } finally {
+    }, () => {
       isFlushingRef.current = false;
       setIsFlushing(false);
-    }
-  }, []);
+    });
+  };
 
   return { queueSize, isFlushing, lastFlushResult, manualFlush };
 }

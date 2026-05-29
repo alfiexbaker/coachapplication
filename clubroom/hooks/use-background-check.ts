@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { router } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
@@ -7,6 +7,8 @@ import { verificationService } from '@/services/verification-service';
 import { createLogger } from '@/utils/logger';
 import type { VerificationStatus } from '@/constants/types';
 import { err, serviceError, type ServiceError } from '@/types/result';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('useBackgroundCheck');
 
@@ -45,7 +47,7 @@ export function useBackgroundCheck() {
   const coachId = currentUser?.id ?? null;
   const [submitting, setSubmitting] = useState(false);
 
-  const loadStatus = useCallback(async () => {
+  const loadStatus = async () => {
     if (!coachId) {
       return err(serviceError('UNAUTHORIZED', 'Sign in as a coach to view verification status.'));
     }
@@ -55,7 +57,7 @@ export function useBackgroundCheck() {
       logger.error('Failed to load verification status:', result.error);
     }
     return result;
-  }, [coachId]);
+  };
 
   const {
     data: status,
@@ -75,29 +77,31 @@ export function useBackgroundCheck() {
 
   const loading = screenStatus === 'loading';
 
-  const handleStartCheck = useCallback(async () => {
+  const handleStartCheck = async () => {
     if (!coachId) return;
 
     setSubmitting(true);
-    try {
+
+    await runAsyncTryCatchFinally(async () => {
       const result = await verificationService.startBackgroundCheck(coachId);
       if (result.success) {
         onRefresh();
       } else {
         logger.error('Failed to start background check:', result.error);
       }
-    } catch (error) {
+    }, async error => {
       logger.error('Failed to start background check:', error);
-    } finally {
+    }, () => {
       setSubmitting(false);
-    }
-  }, [coachId, onRefresh]);
+    });
+  };
 
-  const handleMockApprove = useCallback(async () => {
+  const handleMockApprove = async () => {
     if (!coachId) return;
 
     setSubmitting(true);
-    try {
+
+    await runAsyncTryCatchFinally(async () => {
       const result = await verificationService.mockApproveVerification(coachId, 'backgroundCheck');
       if (result.success) {
         onRefresh();
@@ -105,12 +109,12 @@ export function useBackgroundCheck() {
       } else {
         logger.error('Failed to approve:', result.error);
       }
-    } catch (error) {
+    }, async error => {
       logger.error('Failed to approve:', error);
-    } finally {
+    }, () => {
       setSubmitting(false);
-    }
-  }, [coachId, onRefresh]);
+    });
+  };
 
   const isVerified = status?.backgroundCheck.status === 'VERIFIED';
   const isPending = status?.backgroundCheck.status === 'PENDING';

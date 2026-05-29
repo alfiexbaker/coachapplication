@@ -412,31 +412,40 @@ async function migrateLegacyTrustData(children: ChildProfile[]): Promise<ChildPr
   const nextChildren = [...children];
   let mutated = false;
 
-  for (let index = 0; index < nextChildren.length; index += 1) {
-    const child = nextChildren[index];
-    if (!hasLegacyTrustSensitiveData(child)) {
+  const migrationResults = await Promise.all(
+    nextChildren.map(async (child, index) => {
+      if (!hasLegacyTrustSensitiveData(child)) {
+        return { index, child, result: null };
+      }
+
+      const result = await syncTrustSensitiveChildData(child.id, {
+        allergies: child.allergies,
+        medicalConditions: child.medicalConditions,
+        medications: child.medications,
+        emergencyContactName: child.emergencyContactName,
+        emergencyContactPhone: child.emergencyContactPhone,
+        emergencyContactRelation: child.emergencyContactRelation,
+        secondaryEmergencyName: child.secondaryEmergencyName,
+        secondaryEmergencyPhone: child.secondaryEmergencyPhone,
+        photoConsent: child.photoConsent,
+        videoConsent: child.videoConsent,
+        socialMediaConsent: child.socialMediaConsent,
+        emergencyTreatmentConsent: child.emergencyTreatmentConsent,
+      });
+
+      return { index, child, result };
+    }),
+  );
+
+  for (const { index, child, result } of migrationResults) {
+    if (!result) {
       continue;
     }
 
-    const result = await syncTrustSensitiveChildData(child.id, {
-      allergies: child.allergies,
-      medicalConditions: child.medicalConditions,
-      medications: child.medications,
-      emergencyContactName: child.emergencyContactName,
-      emergencyContactPhone: child.emergencyContactPhone,
-      emergencyContactRelation: child.emergencyContactRelation,
-      secondaryEmergencyName: child.secondaryEmergencyName,
-      secondaryEmergencyPhone: child.secondaryEmergencyPhone,
-      photoConsent: child.photoConsent,
-      videoConsent: child.videoConsent,
-      socialMediaConsent: child.socialMediaConsent,
-      emergencyTreatmentConsent: child.emergencyTreatmentConsent,
-    });
-
-    if (!result || !result.success) {
+    if (!result.success) {
       logger.warn('Failed to migrate legacy child trust data', {
         childId: child.id,
-        error: result?.success === false ? result.error.message : 'unknown',
+        error: result.error.message,
       });
       continue;
     }
@@ -746,7 +755,9 @@ function toApiAthletePayload(input: Partial<CreateChildInput>): Record<string, u
     ...(input.photoUrl !== undefined ? { photoUrl: input.photoUrl } : {}),
     ...(input.disabilities !== undefined ? { disabilities: input.disabilities } : {}),
     ...(input.specialNeeds !== undefined ? { specialNeeds: input.specialNeeds } : {}),
-    ...(input.communicationNotes !== undefined ? { communicationNotes: input.communicationNotes } : {}),
+    ...(input.communicationNotes !== undefined
+      ? { communicationNotes: input.communicationNotes }
+      : {}),
     ...(input.behavioralNotes !== undefined ? { behavioralNotes: input.behavioralNotes } : {}),
   };
 }
@@ -768,15 +779,24 @@ export const childService = {
 
     const contextResult = await resolveFamilyAuthorityContext('Sign in to view child profiles.');
     if (!contextResult.success) {
-      logger.error('Failed to resolve family authority context', { parentId, error: contextResult.error.message });
+      logger.error('Failed to resolve family authority context', {
+        parentId,
+        error: contextResult.error.message,
+      });
       return [];
     }
 
-    const familyResult = await apiFetch<ApiFamilyResponse>(`/v1/families/${contextResult.data.familyId}`, {
-      method: 'GET',
-    });
+    const familyResult = await apiFetch<ApiFamilyResponse>(
+      `/v1/families/${contextResult.data.familyId}`,
+      {
+        method: 'GET',
+      },
+    );
     if (!familyResult.success) {
-      logger.error('Failed to load children via API', { parentId, error: familyResult.error.message });
+      logger.error('Failed to load children via API', {
+        parentId,
+        error: familyResult.error.message,
+      });
       return [];
     }
 
@@ -996,9 +1016,11 @@ export const childService = {
       childrenCache = await loadFromStorage();
       const deletedChild = childrenCache.find((c) => c.id === childId);
       childrenCache = childrenCache.filter((c) => c.id !== childId);
-      await saveToStorage(childrenCache);
-      await removeGeneratedChildUserRecord(childId);
-      await removeChildTrustData(childId);
+      await Promise.all([
+        saveToStorage(childrenCache),
+        removeGeneratedChildUserRecord(childId),
+        removeChildTrustData(childId),
+      ]);
       if (deletedChild) {
         emitTyped(ServiceEvents.CHILD_PROFILES_UPDATED, {
           parentId: deletedChild.parentId,

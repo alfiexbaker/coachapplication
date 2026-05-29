@@ -5,10 +5,9 @@
  * season record stats, and grouped match cards.
  */
 
-import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
+import { FlatList, StyleSheet, View, RefreshControl, type ListRenderItemInfo } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router, Stack } from 'expo-router';
-import { Routes } from '@/navigation/routes';
+import { Stack } from 'expo-router';
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
@@ -20,7 +19,9 @@ import { MatchCard } from '@/components/match/match-card';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { useMatchesScreen, MATCH_FILTERS } from '@/hooks/use-matches-screen';
+import type { ThemeColors } from '@/hooks/useTheme';
+import { useMatchesScreen, MATCH_FILTERS, type MatchFilter } from '@/hooks/use-matches-screen';
+import type { Match } from '@/constants/types';
 
 export default function MatchesScreen() {
   const { colors: palette } = useTheme();
@@ -38,6 +39,58 @@ export default function MatchesScreen() {
     groupedMatches,
     handleCreateMatch,
   } = useMatchesScreen();
+  const matchFilterItems = getMatchFilterItems(filter, palette, setFilter);
+  const matchGroupItems = getMatchGroupItems(groupedMatches, isCoach, palette);
+  const listHeader = (
+    <>
+      {filter === 'past' && stats.total > 0 ? (
+        <SurfaceCard style={styles.statsCard}>
+          <ThemedText type="defaultSemiBold" style={styles.statsTitle}>
+            Season Record
+          </ThemedText>
+          <Row align="center" style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <ThemedText type="title" style={[Typography.display, { color: palette.success }]}>
+                {stats.wins}
+              </ThemedText>
+              <ThemedText style={[Typography.caption, { color: palette.muted }]}>Wins</ThemedText>
+            </View>
+            <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
+            <View style={styles.statItem}>
+              <ThemedText type="title" style={[Typography.display, { color: palette.warning }]}>
+                {stats.draws}
+              </ThemedText>
+              <ThemedText style={[Typography.caption, { color: palette.muted }]}>Draws</ThemedText>
+            </View>
+            <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
+            <View style={styles.statItem}>
+              <ThemedText type="title" style={[Typography.display, { color: palette.error }]}>
+                {stats.losses}
+              </ThemedText>
+              <ThemedText style={[Typography.caption, { color: palette.muted }]}>Losses</ThemedText>
+            </View>
+            <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
+            <View style={styles.statItem}>
+              <ThemedText type="title" style={Typography.display}>
+                {stats.total}
+              </ThemedText>
+              <ThemedText style={[Typography.caption, { color: palette.muted }]}>Played</ThemedText>
+            </View>
+          </Row>
+        </SurfaceCard>
+      ) : null}
+
+      <FlatList
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterScroll}
+        contentContainerStyle={styles.filterContainer}
+        data={matchFilterItems}
+        keyExtractor={keyMatchFilterItem}
+        renderItem={renderMatchFilterItem}
+      />
+    </>
+  );
 
   if (status === 'loading') {
     return (
@@ -100,101 +153,16 @@ export default function MatchesScreen() {
         gap={0}
         horizontalSpacing={0}
       >
-        <ScrollView
+        <FlatList
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        >
-          {/* Stats card for past matches */}
-          {filter === 'past' && stats.total > 0 && (
-            <SurfaceCard style={styles.statsCard}>
-              <ThemedText type="defaultSemiBold" style={styles.statsTitle}>
-                Season Record
-              </ThemedText>
-              <Row align="center" style={styles.statsRow}>
-                <View style={styles.statItem}>
-                  <ThemedText type="title" style={[Typography.display, { color: palette.success }]}>
-                    {stats.wins}
-                  </ThemedText>
-                  <ThemedText style={[Typography.caption, { color: palette.muted }]}>
-                    Wins
-                  </ThemedText>
-                </View>
-                <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
-                <View style={styles.statItem}>
-                  <ThemedText type="title" style={[Typography.display, { color: palette.warning }]}>
-                    {stats.draws}
-                  </ThemedText>
-                  <ThemedText style={[Typography.caption, { color: palette.muted }]}>
-                    Draws
-                  </ThemedText>
-                </View>
-                <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
-                <View style={styles.statItem}>
-                  <ThemedText type="title" style={[Typography.display, { color: palette.error }]}>
-                    {stats.losses}
-                  </ThemedText>
-                  <ThemedText style={[Typography.caption, { color: palette.muted }]}>
-                    Losses
-                  </ThemedText>
-                </View>
-                <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
-                <View style={styles.statItem}>
-                  <ThemedText type="title" style={Typography.display}>
-                    {stats.total}
-                  </ThemedText>
-                  <ThemedText style={[Typography.caption, { color: palette.muted }]}>
-                    Played
-                  </ThemedText>
-                </View>
-              </Row>
-            </SurfaceCard>
-          )}
-
-          {/* Filter tabs */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.filterScroll}
-            contentContainerStyle={styles.filterContainer}
-          >
-            {MATCH_FILTERS.map((f) => (
-              <Clickable
-                key={f.key}
-                style={[
-                  styles.filterTab,
-                  filter === f.key
-                    ? { backgroundColor: withAlpha(palette.tint, 0.09), borderColor: palette.tint }
-                    : { borderColor: palette.border },
-                ]}
-                onPress={() => setFilter(f.key)}
-                accessibilityRole="tab"
-                accessibilityLabel={`${f.label} matches`}
-                accessibilityState={{ selected: filter === f.key }}
-              >
-                <Row align="center" gap="xs">
-                  <Ionicons
-                    name={f.icon as keyof typeof Ionicons.glyphMap}
-                    size={16}
-                    color={filter === f.key ? palette.tint : palette.muted}
-                  />
-                  <ThemedText
-                    style={[
-                      Typography.smallSemiBold,
-                      { color: filter === f.key ? palette.tint : palette.muted },
-                    ]}
-                  >
-                    {f.label}
-                  </ThemedText>
-                </Row>
-              </Clickable>
-            ))}
-          </ScrollView>
-
-          {/* Matches list */}
-          <View style={styles.matchesList}>
-            {matches.length === 0 ? (
+          data={matchGroupItems}
+          keyExtractor={keyMatchGroupItem}
+          renderItem={renderMatchGroupItem}
+          ListHeaderComponent={listHeader}
+          ListEmptyComponent={
+            <View style={styles.matchesList}>
               <EmptyState
                 icon={filter === 'upcoming' ? 'calendar-outline' : 'trophy-outline'}
                 title={
@@ -210,31 +178,117 @@ export default function MatchesScreen() {
                     : 'Check back later for scheduled fixtures'
                 }
                 actionLabel={isCoach && filter === 'upcoming' ? 'Create Match' : undefined}
-                onPressAction={
-                  isCoach && filter === 'upcoming'
-                    ? () => router.push(Routes.MATCHES_CREATE)
-                    : undefined
-                }
+                onPressAction={isCoach && filter === 'upcoming' ? handleCreateMatch : undefined}
               />
-            ) : (
-              groupedMatches.map(([month, monthMatches]) => (
-                <View key={month} style={styles.monthGroup}>
-                  <ThemedText
-                    type="defaultSemiBold"
-                    style={[styles.monthHeader, { color: palette.muted }]}
-                  >
-                    {month}
-                  </ThemedText>
-                  {monthMatches.map((match) => (
-                    <MatchCard key={match.id} match={match} isCoach={isCoach} />
-                  ))}
-                </View>
-              ))
-            )}
-          </View>
-        </ScrollView>
+            </View>
+          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        />
       </PageContainer>
     </>
+  );
+}
+
+interface MatchFilterItem {
+  key: MatchFilter;
+  label: string;
+  icon: string;
+  isActive: boolean;
+  palette: ThemeColors;
+  onPress: () => void;
+}
+
+function getMatchFilterItems(
+  selectedFilter: MatchFilter,
+  palette: ThemeColors,
+  onSelectFilter: (filter: MatchFilter) => void,
+): MatchFilterItem[] {
+  return MATCH_FILTERS.map((filter) => ({
+    key: filter.key,
+    label: filter.label,
+    icon: filter.icon,
+    isActive: selectedFilter === filter.key,
+    palette,
+    onPress: () => onSelectFilter(filter.key),
+  }));
+}
+
+function keyMatchFilterItem(item: MatchFilterItem): string {
+  return item.key;
+}
+
+function renderMatchFilterItem({ item }: ListRenderItemInfo<MatchFilterItem>) {
+  return (
+    <Clickable
+      style={[
+        styles.filterTab,
+        item.isActive
+          ? { backgroundColor: withAlpha(item.palette.tint, 0.09), borderColor: item.palette.tint }
+          : { borderColor: item.palette.border },
+      ]}
+      onPress={item.onPress}
+      accessibilityRole="tab"
+      accessibilityLabel={`${item.label} matches`}
+      accessibilityState={{ selected: item.isActive }}
+    >
+      <Row align="center" gap="xs">
+        <Ionicons
+          name={item.icon as keyof typeof Ionicons.glyphMap}
+          size={16}
+          color={item.isActive ? item.palette.tint : item.palette.muted}
+        />
+        <ThemedText
+          style={[
+            Typography.smallSemiBold,
+            { color: item.isActive ? item.palette.tint : item.palette.muted },
+          ]}
+        >
+          {item.label}
+        </ThemedText>
+      </Row>
+    </Clickable>
+  );
+}
+
+interface MatchGroupItem {
+  key: string;
+  month: string;
+  matches: Match[];
+  isCoach: boolean;
+  palette: ThemeColors;
+}
+
+function getMatchGroupItems(
+  groupedMatches: [string, Match[]][],
+  isCoach: boolean,
+  palette: ThemeColors,
+): MatchGroupItem[] {
+  return groupedMatches.map(([month, monthMatches]) => ({
+    key: month,
+    month,
+    matches: monthMatches,
+    isCoach,
+    palette,
+  }));
+}
+
+function keyMatchGroupItem(item: MatchGroupItem): string {
+  return item.key;
+}
+
+function renderMatchGroupItem({ item }: ListRenderItemInfo<MatchGroupItem>) {
+  return (
+    <View style={styles.monthGroup}>
+      <ThemedText
+        type="defaultSemiBold"
+        style={[styles.monthHeader, { color: item.palette.muted }]}
+      >
+        {item.month}
+      </ThemedText>
+      {item.matches.map((match) => (
+        <MatchCard key={match.id} match={match} isCoach={item.isCoach} />
+      ))}
+    </View>
   );
 }
 

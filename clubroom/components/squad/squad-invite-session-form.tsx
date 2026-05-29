@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
 import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
@@ -33,7 +33,7 @@ interface SquadInviteSessionFormProps {
   onRemoveSlot: (index: number) => void;
 }
 
-export const SquadInviteSessionForm = memo(function SquadInviteSessionForm({
+export const SquadInviteSessionForm = function SquadInviteSessionForm({
   sessionTitle,
   sessionType,
   focus,
@@ -69,7 +69,6 @@ export const SquadInviteSessionForm = memo(function SquadInviteSessionForm({
             placeholderTextColor={palette.muted}
             value={sessionTitle}
             onChangeText={onTitleChange}
-
             maxLength={100}
           />
         </View>
@@ -168,9 +167,8 @@ export const SquadInviteSessionForm = memo(function SquadInviteSessionForm({
                 placeholderTextColor={palette.muted}
                 value={slotLocation}
                 onChangeText={onSlotLocationChange}
-
-            maxLength={100}
-          />
+                maxLength={100}
+              />
             </Column>
             <Clickable
               accessibilityLabel="Add time slot"
@@ -186,7 +184,9 @@ export const SquadInviteSessionForm = memo(function SquadInviteSessionForm({
           <View style={styles.slotsList}>
             {proposedSlots.map((slot, index) => (
               <Row
-                key={index}
+                key={
+                  slot.id ?? `${slot.date}:${slot.startTime}:${slot.endTime}:${slot.location ?? ''}`
+                }
                 align="center"
                 style={[
                   styles.slotItem,
@@ -219,7 +219,7 @@ export const SquadInviteSessionForm = memo(function SquadInviteSessionForm({
       </Animated.View>
     </>
   );
-});
+};
 
 const styles = StyleSheet.create({
   section: { marginBottom: Spacing.lg, gap: Spacing.sm },

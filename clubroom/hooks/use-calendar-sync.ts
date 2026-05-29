@@ -5,7 +5,7 @@
  * Used by app/settings/calendar-sync.tsx
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
@@ -18,7 +18,13 @@ import type { CalendarSyncSettings, CalendarProvider, CalendarEvent } from '@/co
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
 
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
+
 const logger = createLogger('useCalendarSync');
+
+function loadExpoSharing() {
+  return import('expo-sharing');
+}
 
 export function useCalendarSync() {
   const { currentUser } = useAuth();
@@ -29,15 +35,12 @@ export function useCalendarSync() {
   const [settingsOverride, setSettingsOverride] = useState<CalendarSyncSettings | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const defaultSettings = useMemo<CalendarSyncSettings>(
-    () => ({
-      ...calendarService.getDefaultSettings(),
-      userId,
-    }),
-    [userId],
-  );
+  const defaultSettings = ({
+    ...calendarService.getDefaultSettings(),
+    userId,
+  });
 
-  const loadSettings = useCallback(async () => {
+  const loadSettings = async () => {
     try {
       const existingSettings = await calendarService.getSyncSettings(userId);
       return ok<CalendarSyncSettings>(existingSettings ?? defaultSettings);
@@ -45,7 +48,7 @@ export function useCalendarSync() {
       logger.error('Failed to load calendar settings', loadError);
       return err(serviceError('UNKNOWN', 'Failed to load calendar settings.', loadError));
     }
-  }, [defaultSettings, userId]);
+  };
 
   const {
     data,
@@ -65,72 +68,54 @@ export function useCalendarSync() {
 
   useEffect(() => {
     if (data) {
-      setSettingsOverride(data);
+      startTransition(() => {
+        setSettingsOverride(data);
+      });
     }
   }, [data]);
 
   const settings = settingsOverride ?? data ?? defaultSettings;
 
-  const saveSettings = useCallback(
-    async (updates: Partial<CalendarSyncSettings>) => {
-      const previousSettings = settings;
-      const nextSettings: CalendarSyncSettings = { ...previousSettings, ...updates, userId };
+  const saveSettings = async (updates: Partial<CalendarSyncSettings>) => {
+    const previousSettings = settings;
+    const nextSettings: CalendarSyncSettings = { ...previousSettings, ...updates, userId };
 
-      setIsSaving(true);
-      setSettingsOverride(nextSettings);
-      setActionError(null);
+    setIsSaving(true);
+    setSettingsOverride(nextSettings);
+    setActionError(null);
 
-      try {
-        const result = await calendarService.updateSyncSettings(userId, nextSettings);
-        if (result.success && result.settings) {
-          setSettingsOverride(result.settings);
-        } else {
-          setSettingsOverride(previousSettings);
-          const message = result.error || 'Failed to save settings';
-          setActionError(message);
-          uiFeedback.showToast(message, 'error');
-        }
-      } catch (saveError) {
-        logger.error('Failed to save settings', saveError);
+    await runAsyncTryCatchFinally(async () => {
+      const result = await calendarService.updateSyncSettings(userId, nextSettings);
+      if (result.success && result.settings) {
+        setSettingsOverride(result.settings);
+      } else {
         setSettingsOverride(previousSettings);
-        setActionError('Failed to save settings. Please try again.');
-        uiFeedback.showToast('Failed to save settings. Please try again.', 'error');
-      } finally {
-        setIsSaving(false);
+        const message = result.error || 'Failed to save settings';
+        setActionError(message);
+        uiFeedback.showToast(message, 'error');
       }
-    },
-    [settings, userId],
-  );
+    }, async saveError => {
+      logger.error('Failed to save settings', saveError);
+      setSettingsOverride(previousSettings);
+      setActionError('Failed to save settings. Please try again.');
+      uiFeedback.showToast('Failed to save settings. Please try again.', 'error');
+    }, () => {
+      setIsSaving(false);
+    });
+  };
 
-  const handleToggleEnabled = useCallback(
-    (enabled: boolean) => saveSettings({ enabled }),
-    [saveSettings],
-  );
-  const handleToggleAutoSync = useCallback(
-    (autoSync: boolean) => saveSettings({ autoSync }),
-    [saveSettings],
-  );
-  const handleToggleLocation = useCallback(
-    (includeLocation: boolean) => saveSettings({ includeLocation }),
-    [saveSettings],
-  );
-  const handleToggleNotes = useCallback(
-    (includeNotes: boolean) => saveSettings({ includeNotes }),
-    [saveSettings],
-  );
-  const handleProviderChange = useCallback(
-    (provider: CalendarProvider) => saveSettings({ provider }),
-    [saveSettings],
-  );
-  const handleReminderChange = useCallback(
-    (reminderMinutes: number) => saveSettings({ reminderMinutes }),
-    [saveSettings],
-  );
+  const handleToggleEnabled = (enabled: boolean) => saveSettings({ enabled });
+  const handleToggleAutoSync = (autoSync: boolean) => saveSettings({ autoSync });
+  const handleToggleLocation = (includeLocation: boolean) => saveSettings({ includeLocation });
+  const handleToggleNotes = (includeNotes: boolean) => saveSettings({ includeNotes });
+  const handleProviderChange = (provider: CalendarProvider) => saveSettings({ provider });
+  const handleReminderChange = (reminderMinutes: number) => saveSettings({ reminderMinutes });
 
-  const handleExportAllSessions = useCallback(async () => {
+  const handleExportAllSessions = async () => {
     setIsExporting(true);
     setActionError(null);
-    try {
+
+    return await runAsyncTryCatchFinally(async () => {
       const now = new Date();
       const allEvents: CalendarEvent[] = [];
 
@@ -174,28 +159,27 @@ export function useCalendarSync() {
         return;
       }
 
-      const isAvailable = await (await import('expo-sharing')).isAvailableAsync();
+      const Sharing = await loadExpoSharing();
+      const isAvailable = await Sharing.isAvailableAsync();
       if (!isAvailable) {
         setActionError('Sharing is not available on this device');
         uiFeedback.showToast('Sharing is not available on this device', 'error');
         return;
       }
 
-      await (
-        await import('expo-sharing')
-      ).shareAsync(result.filePath, {
+      await Sharing.shareAsync(result.filePath, {
         mimeType: 'text/calendar',
         dialogTitle: 'Export All Sessions',
         UTI: 'public.calendar-event',
       });
-    } catch (exportError) {
+    }, async exportError => {
       logger.error('Failed to export sessions', exportError);
       setActionError('Failed to export sessions. Please try again.');
       uiFeedback.showToast('Failed to export sessions. Please try again.', 'error');
-    } finally {
+    }, () => {
       setIsExporting(false);
-    }
-  }, [userId]);
+    });
+  };
 
   const error =
     actionError ??

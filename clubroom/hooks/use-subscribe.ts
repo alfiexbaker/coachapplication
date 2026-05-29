@@ -3,8 +3,7 @@
  * Manages coach selection, athlete resolution, and subscription creation.
  */
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-
+import { useState, useEffect, startTransition } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
@@ -16,9 +15,9 @@ import { createLogger } from '@/utils/logger';
 import type { CreateRecurringBookingParams, CoachProfile } from '@/constants/types';
 import { ok } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
-
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 const logger = createLogger('SubscribeScreen');
-
+const EMPTY_COACHES: CoachOption[] = [];
 export interface CoachOption {
   id: string;
   name: string;
@@ -29,7 +28,6 @@ export interface CoachOption {
   rating: number;
   totalSessions: number;
 }
-
 const mapCoachProfileToOption = (coach: CoachProfile): CoachOption => ({
   id: coach.id,
   name: coach.fullName,
@@ -40,37 +38,37 @@ const mapCoachProfileToOption = (coach: CoachProfile): CoachOption => ({
   rating: coach.rating.average,
   totalSessions: coach.totalSessions,
 });
-
 export function useSubscribe() {
   const { currentUser, availableUsers } = useAuth();
   const { children: contextChildren, isParent } = useChildContext();
-  const params = useLocalSearchParams<{ coachId?: string }>();
-
+  const params = useLocalSearchParams<{
+    coachId?: string;
+  }>();
   const [selectedCoach, setSelectedCoach] = useState<CoachOption | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  const loadCoaches = useCallback(async () => {
+  const loadCoaches = async () => {
     const result = await discoverService.getAllCoaches();
     if (result.success && result.data.length > 0) {
       return ok(result.data.map(mapCoachProfileToOption));
     }
-
-    const fallbackCoaches = availableUsers
-      .filter((user) => user.role === 'COACH')
-      .map((coach) => ({
-        id: coach.id,
-        name: coach.name || coach.fullName || 'Coach',
-        photoUrl: coach.avatar,
-        sessionTypes: ['1-on-1 Training'],
-        pricePerSession: 50,
-        location: coach.postcode || 'TBD',
-        rating: 4.5,
-        totalSessions: 0,
-      }));
-
+    const fallbackCoaches = availableUsers.flatMap((user) =>
+      user.role === 'COACH'
+        ? [
+            {
+              id: user.id,
+              name: user.name || user.fullName || 'Coach',
+              photoUrl: user.avatar,
+              sessionTypes: ['1-on-1 Training'],
+              pricePerSession: 50,
+              location: user.postcode || 'TBD',
+              rating: 4.5,
+              totalSessions: 0,
+            },
+          ]
+        : [],
+    );
     return ok(fallbackCoaches);
-  }, [availableUsers]);
-
+  };
   const {
     data: coachesData,
     status,
@@ -85,44 +83,54 @@ export function useSubscribe() {
     isEmpty: (list) => list.length === 0,
     refetchOnFocus: true,
   });
-  const coaches = coachesData ?? [];
-
-  const athletes = useMemo(() => {
+  const coaches = coachesData ?? EMPTY_COACHES;
+  const athletes = (() => {
     if (!currentUser?.id || currentUser.role === 'COACH') return undefined;
     if (isParent) {
-      return contextChildren.map((c) => ({ id: c.id, name: c.name }));
+      return contextChildren.map((c) => ({
+        id: c.id,
+        name: c.name,
+      }));
     }
-    return [{ id: currentUser.id, name: currentUser.fullName || 'Me' }];
-  }, [currentUser, isParent, contextChildren]);
-
+    return [
+      {
+        id: currentUser.id,
+        name: currentUser.fullName || 'Me',
+      },
+    ];
+  })();
   useEffect(() => {
     if (params.coachId) {
       const coach = coaches.find((c) => c.id === params.coachId);
-      if (coach) setSelectedCoach(coach);
+      if (coach)
+        startTransition(() => {
+          setSelectedCoach(coach);
+        });
     }
   }, [params.coachId, coaches]);
-
-  const handleSubmit = useCallback(async (formParams: CreateRecurringBookingParams) => {
+  const handleSubmit = async (formParams: CreateRecurringBookingParams) => {
     setSubmitting(true);
-    try {
-      const result = await recurringBookingService.createRecurring(formParams);
-      if (result.success) {
-        uiFeedback.showToast('Your recurring sessions are on your schedule.', 'success');
-router.replace(Routes.SCHEDULE);
-      } else {
-        uiFeedback.showToast(result.error?.message || 'Failed to create subscription.', 'error');
-      }
-    } catch (error) {
-      logger.error('Failed to create subscription', error);
-      uiFeedback.showToast('An unexpected error occurred. Please try again.', 'error');
-    } finally {
-      setSubmitting(false);
-    }
-  }, []);
-
-  const handleCancel = useCallback(() => router.back(), []);
-  const clearCoach = useCallback(() => setSelectedCoach(null), []);
-
+    await runAsyncTryCatchFinally(
+      async () => {
+        const result = await recurringBookingService.createRecurring(formParams);
+        if (result.success) {
+          uiFeedback.showToast('Your recurring sessions are on your schedule.', 'success');
+          router.replace(Routes.SCHEDULE);
+        } else {
+          uiFeedback.showToast(result.error?.message || 'Failed to create subscription.', 'error');
+        }
+      },
+      async (error) => {
+        logger.error('Failed to create subscription', error);
+        uiFeedback.showToast('An unexpected error occurred. Please try again.', 'error');
+      },
+      () => {
+        setSubmitting(false);
+      },
+    );
+  };
+  const handleCancel = () => router.back();
+  const clearCoach = () => setSelectedCoach(null);
   return {
     currentUser,
     selectedCoach,

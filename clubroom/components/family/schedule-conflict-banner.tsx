@@ -1,14 +1,3 @@
-/**
- * ScheduleConflictBanner — Amber dismissible banner shown when children have
- * overlapping sessions with different coaches.
- *
- * Warnings only — never blocks navigation, booking, or RSVP.
- * "Got it" dismisses for the current day (session-scoped).
- *
- * Phase 5, Multi-Child Sprint.
- */
-
-import { memo, useCallback } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,16 +24,16 @@ interface ScheduleConflictBannerProps {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export const ScheduleConflictBanner = memo(function ScheduleConflictBanner({
+export const ScheduleConflictBanner = function ScheduleConflictBanner({
   conflicts,
   getChildById,
   onDismiss,
 }: ScheduleConflictBannerProps) {
   const { colors: palette } = useTheme();
 
-  const handleDismiss = useCallback(() => {
+  const handleDismiss = () => {
     onDismiss();
-  }, [onDismiss]);
+  };
 
   if (conflicts.length === 0) return null;
 
@@ -96,7 +85,7 @@ export const ScheduleConflictBanner = memo(function ScheduleConflictBanner({
       </Row>
     </Animated.View>
   );
-});
+};
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 

@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useEffect, useState, startTransition } from 'react';
+import { View, RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -75,10 +74,10 @@ export default function SessionDetailScreen() {
   const bookingIdParam = useRequiredParam('id');
   const bookingId = bookingIdParam.valid ? bookingIdParam.value : '';
   const detailParams = useLocalSearchParams<{ returnTo?: string }>();
-  const safeReturnTo = useMemo(() => {
+  const safeReturnTo = (() => {
     const raw = typeof detailParams.returnTo === 'string' ? detailParams.returnTo.trim() : '';
     return resolveAllowedReturnTo(raw);
-  }, [detailParams.returnTo]);
+  })();
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const {
@@ -99,8 +98,12 @@ export default function SessionDetailScreen() {
   } = useBookingDetail(bookingId);
   const coachName = booking ? getBookingSummaryCoachName(booking) : 'Coach';
   const childName = booking ? getBookingSummaryClientName(booking) : 'Athlete';
-  const statusLabel = booking ? getBookingStatusLabel(booking.status, { isCoachView: isCoach }) : '';
-  const [cancellationPolicy, setCancellationPolicy] = useState<import('@/constants/types').CancellationPolicy | null>(null);
+  const statusLabel = booking
+    ? getBookingStatusLabel(booking.status, { isCoachView: isCoach })
+    : '';
+  const [cancellationPolicy, setCancellationPolicy] = useState<
+    import('@/constants/types').CancellationPolicy | null
+  >(null);
   const [hasSubmittedReview, setHasSubmittedReview] = useState(false);
   const [organizationLabel, setOrganizationLabel] = useState<string | null>(null);
   const [paymentSnapshot, setPaymentSnapshot] = useState<PaymentSnapshot>({
@@ -108,7 +111,7 @@ export default function SessionDetailScreen() {
     invoiceStatus: 'NONE',
   });
 
-  const handleGoBack = useCallback(() => {
+  const handleGoBack = () => {
     if (safeReturnTo) {
       router.replace(safeReturnTo);
       return;
@@ -118,7 +121,7 @@ export default function SessionDetailScreen() {
       return;
     }
     router.replace(Routes.BOOKINGS);
-  }, [safeReturnTo]);
+  };
 
   useEffect(() => {
     if (!booking?.coachId) return;
@@ -140,7 +143,9 @@ export default function SessionDetailScreen() {
   useEffect(() => {
     const fallbackAmount = typeof booking?.price === 'number' ? booking.price : null;
     if (!booking?.id) {
-      setPaymentSnapshot({ amount: fallbackAmount, invoiceStatus: 'NONE' });
+      startTransition(() => {
+        setPaymentSnapshot({ amount: fallbackAmount, invoiceStatus: 'NONE' });
+      });
       return;
     }
 
@@ -172,7 +177,9 @@ export default function SessionDetailScreen() {
 
   useEffect(() => {
     if (booking?.actingAs !== 'club' || !booking.clubId) {
-      setOrganizationLabel(null);
+      startTransition(() => {
+        setOrganizationLabel(null);
+      });
       return;
     }
 
@@ -187,7 +194,7 @@ export default function SessionDetailScreen() {
     };
   }, [booking?.actingAs, booking?.clubId]);
 
-  const loadReviewStatus = useCallback(async () => {
+  const loadReviewStatus = async () => {
     if (!bookingId || isCoach || booking?.status !== 'Completed') {
       setHasSubmittedReview(false);
       return;
@@ -219,19 +226,17 @@ export default function SessionDetailScreen() {
     } catch {
       setHasSubmittedReview(false);
     }
-  }, [booking, bookingId, currentUser, isCoach]);
+  };
 
-  useFocusEffect(
-    useCallback(() => {
-      void loadReviewStatus();
-    }, [loadReviewStatus]),
-  );
+  useFocusEffect(() => {
+    void loadReviewStatus();
+  });
 
-  const handleReviewCoach = useCallback(() => {
+  const handleReviewCoach = () => {
     if (!bookingId || isCoach) return;
     router.push(Routes.review(bookingId));
-  }, [bookingId, isCoach]);
-  const relationshipContext = useMemo(() => {
+  };
+  const relationshipContext = (() => {
     if (!booking) return null;
     return getBookingRelationshipContext({
       actingAs: booking.actingAs,
@@ -240,41 +245,34 @@ export default function SessionDetailScreen() {
       deliveredByLabel: booking.assigneeCoachName || coachName,
       commercialMode: booking.commercialMode,
     });
-  }, [booking, coachName, organizationLabel]);
-  const paymentHelperText = useMemo(() => {
+  })();
+  const paymentHelperText = (() => {
     if (!relationshipContext) return undefined;
     if (isCoach) {
       return `Billing is handled by ${relationshipContext.billingLabel} outside the app. Track invoice status in your reconciler.`;
     }
     return relationshipContext.paymentSummary;
-  }, [isCoach, relationshipContext]);
-  const deliverySummary = useMemo(
-    () =>
-      buildBookingDeliverySummary({
-        feedback: deliveryFeedback,
-        note: sessionNote.note,
-      }),
-    [deliveryFeedback, sessionNote.note],
-  );
-  const handleOpenChildProgress = useCallback(() => {
+  })();
+  const deliverySummary = buildBookingDeliverySummary({
+    feedback: deliveryFeedback,
+    note: sessionNote.note,
+  });
+  const handleOpenChildProgress = () => {
     if (!booking?.clientId) return;
     router.push(Routes.developmentChildProgress(booking.clientId, { tab: 'feedback' }));
-  }, [booking?.clientId]);
+  };
 
   if (status === 'loading' && !booking) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
         <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
           <ThemedView style={styles.headerSection}>
             <Row gap="sm" align="center" style={styles.backRow}>
-              <Clickable
-                onPress={handleGoBack}
-                accessibilityLabel="Go back"
-                style={styles.backBtn}
-              >
+              <Clickable onPress={handleGoBack} accessibilityLabel="Go back" style={styles.backBtn}>
                 <Ionicons name="chevron-back" size={24} color={palette.text} />
               </Clickable>
               <ThemedText type="title" style={styles.flex1} numberOfLines={1}>
@@ -285,41 +283,32 @@ export default function SessionDetailScreen() {
           <SectionSkeleton variant="hero" titleWidth="34%" />
           <SectionSkeleton variant="list" titleWidth="28%" />
         </ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (!bookingIdParam.valid) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
         <ErrorState
           message="Invalid link. The booking you are trying to open could not be found."
           onRetry={handleGoBack}
         />
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (status === 'error' && !booking) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
         <ErrorState message={error?.message ?? 'Failed to load booking details.'} onRetry={retry} />
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (status === 'empty' || !booking || !formatted) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
         <EmptyState
           icon="warning"
           title="Booking not found"
@@ -327,16 +316,14 @@ export default function SessionDetailScreen() {
           actionLabel="Back to bookings"
           onPressAction={handleGoBack}
         />
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['bottom']}
-    >
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -346,11 +333,7 @@ export default function SessionDetailScreen() {
         {/* Header */}
         <ThemedView style={styles.headerSection}>
           <Row gap="sm" align="center" style={styles.backRow}>
-            <Clickable
-              onPress={handleGoBack}
-              accessibilityLabel="Go back"
-              style={styles.backBtn}
-            >
+            <Clickable onPress={handleGoBack} accessibilityLabel="Go back" style={styles.backBtn}>
               <Ionicons name="chevron-back" size={24} color={palette.text} />
             </Clickable>
             <ThemedText type="title" style={styles.flex1} numberOfLines={1}>
@@ -377,7 +360,10 @@ export default function SessionDetailScreen() {
           helperTextOverride={paymentHelperText}
         />
         {booking.coachId && (
-          <CancellationPolicyCard coachId={booking.coachId} policy={cancellationPolicy ?? undefined} />
+          <CancellationPolicyCard
+            coachId={booking.coachId}
+            policy={cancellationPolicy ?? undefined}
+          />
         )}
         {!isCoach && booking.status === 'Confirmed' && !canCancelBooking ? (
           <ThemedView
@@ -392,8 +378,8 @@ export default function SessionDetailScreen() {
             <Row align="start" gap="xs">
               <Ionicons name="information-circle-outline" size={18} color={palette.warning} />
               <ThemedText style={[styles.noticeText, { color: palette.text }]}>
-                Free cancellation is unavailable within 24 hours of the session.{' '}
-                Contact {relationshipContext?.supportLabel || 'support'} to discuss options.
+                Free cancellation is unavailable within 24 hours of the session. Contact{' '}
+                {relationshipContext?.supportLabel || 'support'} to discuss options.
               </ThemedText>
             </Row>
           </ThemedView>
@@ -405,7 +391,9 @@ export default function SessionDetailScreen() {
           coachPhotoUrl={formatted.coachPhotoUrl}
         />
         <BookingOwnershipCard booking={booking} coachLabel={coachName} showAuditTrail={isCoach} />
-        {!isCoach && relationshipContext ? <BookingTrustCard relationshipContext={relationshipContext} /> : null}
+        {!isCoach && relationshipContext ? (
+          <BookingTrustCard relationshipContext={relationshipContext} />
+        ) : null}
         {/* Athlete Card (coach view, 1-on-1 sessions) */}
         {!booking.isGroupSession && booking.clientId && isCoach && (
           <BookingAthleteCard
@@ -416,15 +404,18 @@ export default function SessionDetailScreen() {
         )}
 
         {/* Participants (group sessions) */}
-        {isCoach && booking.isGroupSession && booking.participants && booking.participants.length > 0 && (
-          <BookingParticipantsCard
-            participants={booking.participants}
-            currentParticipants={booking.currentParticipants}
-            maxParticipants={booking.maxParticipants}
-            coachId={booking.coachId}
-            isCoach={isCoach}
-          />
-        )}
+        {isCoach &&
+          booking.isGroupSession &&
+          booking.participants &&
+          booking.participants.length > 0 && (
+            <BookingParticipantsCard
+              participants={booking.participants}
+              currentParticipants={booking.currentParticipants}
+              maxParticipants={booking.maxParticipants}
+              coachId={booking.coachId}
+              isCoach={isCoach}
+            />
+          )}
 
         {/* Session Notes */}
         <BookingNotesCard
@@ -453,7 +444,10 @@ export default function SessionDetailScreen() {
                 <Row
                   align="center"
                   gap="xxs"
-                  style={[styles.reviewStatusPill, { backgroundColor: withAlpha(palette.success, 0.1) }]}
+                  style={[
+                    styles.reviewStatusPill,
+                    { backgroundColor: withAlpha(palette.success, 0.1) },
+                  ]}
                 >
                   <Ionicons name="checkmark-circle" size={14} color={palette.success} />
                   <ThemedText style={[styles.reviewStatusText, { color: palette.success }]}>
@@ -517,9 +511,7 @@ export default function SessionDetailScreen() {
             onReportProblem={handlers.reportProblem}
             onReopenBooking={canReopenBooking ? handlers.reopenBooking : undefined}
             onRebook={handlers.rebook}
-            onManageRecurring={
-              booking.recurringBookingId ? handlers.manageRecurring : undefined
-            }
+            onManageRecurring={booking.recurringBookingId ? handlers.manageRecurring : undefined}
             canCancelBooking={canCancelBooking}
             messageLabel="Message delivery coach"
             reportProblemLabel={relationshipContext?.reportProblemLabel}
@@ -534,7 +526,7 @@ export default function SessionDetailScreen() {
           />
         ) : null}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

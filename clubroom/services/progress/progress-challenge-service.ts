@@ -25,15 +25,12 @@ import {
 } from '@/constants/challenge-definitions';
 import type { BadgeAward } from '@/constants/types';
 import type { BadgeCategory } from '@/constants/user-types';
-import {
-  err,
-  notFound,
-  ok,
-  serviceError,
-  type Result,
-  type ServiceError,
-} from '@/types/result';
-import type { FourCornerRatings, ProgressChallenge, ProgressChallengeType } from '@/types/progress-types';
+import { err, notFound, ok, serviceError, type Result, type ServiceError } from '@/types/result';
+import type {
+  FourCornerRatings,
+  ProgressChallenge,
+  ProgressChallengeType,
+} from '@/types/progress-types';
 import { createLogger } from '@/utils/logger';
 import { progressFeedbackService } from './progress-feedback-service';
 import { progressReportService } from './progress-report-service';
@@ -45,21 +42,21 @@ interface JournalEntryRecord {
   createdAt: string;
 }
 
-const CATEGORY_ORDER: BadgeCategory[] = [
-  'technical',
-  'physical',
-  'psychological',
-  'social',
-];
+const CATEGORY_ORDER: BadgeCategory[] = ['technical', 'physical', 'psychological', 'social'];
 
 let eventHandlersRegistered = false;
 const eventUpdateLocks = new Set<string>();
 
 async function getActiveChallengeMap(): Promise<Record<string, ProgressChallenge>> {
-  return apiClient.get<Record<string, ProgressChallenge>>(STORAGE_KEYS.PROGRESS_ACTIVE_CHALLENGE, {});
+  return apiClient.get<Record<string, ProgressChallenge>>(
+    STORAGE_KEYS.PROGRESS_ACTIVE_CHALLENGE,
+    {},
+  );
 }
 
-async function saveActiveChallengeMap(challenges: Record<string, ProgressChallenge>): Promise<void> {
+async function saveActiveChallengeMap(
+  challenges: Record<string, ProgressChallenge>,
+): Promise<void> {
   await apiClient.set(STORAGE_KEYS.PROGRESS_ACTIVE_CHALLENGE, challenges);
 }
 
@@ -151,7 +148,8 @@ function weakestCornerFromSkills(
         : 1,
     psychological:
       buckets.psychological.length > 0
-        ? buckets.psychological.reduce((sum, value) => sum + value, 0) / buckets.psychological.length
+        ? buckets.psychological.reduce((sum, value) => sum + value, 0) /
+          buckets.psychological.length
         : 1,
     social:
       buckets.social.length > 0
@@ -245,13 +243,20 @@ async function buildMetricsSnapshot(
       }
     }
 
-    const latestWithCorners = [...feedback]
-      .filter((entry) => entry.fourCorners)
-      .sort((left, right) => {
-        const leftTime = toTimestamp(left.createdAt) ?? 0;
-        const rightTime = toTimestamp(right.createdAt) ?? 0;
-        return rightTime - leftTime;
-      })[0];
+    const latestWithCorners = feedback.reduce<(typeof feedback)[number] | undefined>(
+      (latest, entry) => {
+        if (!entry.fourCorners) {
+          return latest;
+        }
+        if (!latest) {
+          return entry;
+        }
+        const entryTime = toTimestamp(entry.createdAt) ?? 0;
+        const latestTime = toTimestamp(latest.createdAt) ?? 0;
+        return entryTime > latestTime ? entry : latest;
+      },
+      undefined,
+    );
 
     const weakestCorner = latestWithCorners?.fourCorners
       ? weakestCornerFromRatings(latestWithCorners.fourCorners)
@@ -549,15 +554,17 @@ async function updateProgress(
 
   const activeMap = await getActiveChallengeMap();
   activeMap[athleteId] = updatedChallenge;
-  await saveActiveChallengeMap(activeMap);
 
   if (updatedChallenge.progress >= 100) {
+    await saveActiveChallengeMap(activeMap);
     const completionResult = await completeChallenge(updatedChallenge.id);
     if (!completionResult.success) {
       return completionResult;
     }
     return ok(completionResult.data.nextChallenge);
   }
+
+  await saveActiveChallengeMap(activeMap);
 
   logger.info('progress_challenge_updated', {
     athleteId,
@@ -603,17 +610,18 @@ async function checkExpired(
       });
     }
 
-    await Promise.all([
-      saveActiveChallengeMap(activeMap),
-      saveChallengeHistoryRecords(history),
-    ]);
+    await Promise.all([saveActiveChallengeMap(activeMap), saveChallengeHistoryRecords(history)]);
 
-    for (const reassign of reassignQueue) {
-      const assignedResult = await assignNextChallenge(reassign.athleteId, reassign.lastType);
-      if (!assignedResult.success) {
-        logger.error('Failed to assign replacement challenge after expiry', assignedResult.error);
+    const reassignResults = await Promise.all(
+      reassignQueue.map(async (reassign) => ({
+        result: await assignNextChallenge(reassign.athleteId, reassign.lastType),
+      })),
+    );
+    reassignResults.forEach(({ result }) => {
+      if (!result.success) {
+        logger.error('Failed to assign replacement challenge after expiry', result.error);
       }
-    }
+    });
 
     return ok(expired);
   } catch (error) {

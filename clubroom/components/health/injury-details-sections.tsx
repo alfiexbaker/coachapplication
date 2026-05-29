@@ -27,7 +27,7 @@ interface InjurySummaryCardProps {
   severity: InjurySeverity | null;
 }
 
-export const InjurySummaryCard = React.memo(function InjurySummaryCard({
+export const InjurySummaryCard = function InjurySummaryCard({
   bodyPart,
   severity,
 }: InjurySummaryCardProps) {
@@ -54,7 +54,7 @@ export const InjurySummaryCard = React.memo(function InjurySummaryCard({
       </Row>
     </View>
   );
-});
+};
 
 // ============================================================================
 // SHARE WITH COACH TOGGLE
@@ -65,7 +65,7 @@ interface ShareWithCoachToggleProps {
   onToggle: (value: boolean) => void;
 }
 
-export const ShareWithCoachToggle = React.memo(function ShareWithCoachToggle({
+export const ShareWithCoachToggle = function ShareWithCoachToggle({
   sharedWithCoach,
   onToggle,
 }: ShareWithCoachToggleProps) {
@@ -92,7 +92,7 @@ export const ShareWithCoachToggle = React.memo(function ShareWithCoachToggle({
       </Row>
     </SurfaceCard>
   );
-});
+};
 
 // ============================================================================
 // STYLES

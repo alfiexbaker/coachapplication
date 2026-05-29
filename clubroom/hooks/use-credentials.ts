@@ -5,7 +5,7 @@
  * Used by app/verification/credentials.tsx
  */
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
@@ -13,6 +13,8 @@ import { verificationService } from '@/services/verification-service';
 import type { VerificationStatus } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { err, serviceError, type ServiceError } from '@/types/result';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('useCredentials');
 
@@ -58,7 +60,7 @@ export function useCredentials() {
   const [customName, setCustomName] = useState('');
   const [uploaded, setUploaded] = useState(false);
 
-  const loadStatus = useCallback(async () => {
+  const loadStatus = async () => {
     if (!coachId) {
       return err(serviceError('UNAUTHORIZED', 'Sign in as a coach to view verification status.'));
     }
@@ -68,7 +70,7 @@ export function useCredentials() {
       logger.error('Failed to load verification status:', result.error);
     }
     return result;
-  }, [coachId]);
+  };
 
   const {
     data: status,
@@ -88,11 +90,11 @@ export function useCredentials() {
 
   const loading = screenStatus === 'loading';
 
-  const handleUpload = useCallback(async () => {
+  const handleUpload = async () => {
     setUploaded(true);
-  }, []);
+  };
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = async () => {
     if (!selectedType || !uploaded || !coachId) return;
 
     const credentialLabel =
@@ -101,7 +103,8 @@ export function useCredentials() {
         : CREDENTIAL_TYPES.find((t) => t.id === selectedType)?.label || 'Credential';
 
     setSubmitting(true);
-    try {
+
+    await runAsyncTryCatchFinally(async () => {
       const result = await verificationService.submitCredential(
         coachId,
         `mock://credential-${selectedType}.pdf`,
@@ -116,19 +119,19 @@ export function useCredentials() {
       } else {
         logger.error('Failed to submit credential:', result.error);
       }
-    } catch (error) {
+    }, async error => {
       logger.error('Failed to submit credential:', error);
-    } finally {
+    }, () => {
       setSubmitting(false);
-    }
-  }, [coachId, selectedType, uploaded, customName, onRefresh]);
+    });
+  };
 
-  const resetForm = useCallback(() => {
+  const resetForm = () => {
     setShowForm(false);
     setSelectedType(null);
     setCustomName('');
     setUploaded(false);
-  }, []);
+  };
 
   const credentials = status?.credentials ?? [];
   const verifiedCount = credentials.filter((c) => c.status === 'VERIFIED').length;

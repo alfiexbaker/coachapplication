@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -41,7 +40,7 @@ function buildSubtitle(coach: CoachBadgeData): string {
   return 'Qualified coach';
 }
 
-export const CoachBadge = memo(function CoachBadge({ coach }: CoachBadgeProps) {
+export const CoachBadge = function CoachBadge({ coach }: CoachBadgeProps) {
   const { colors } = useTheme();
   const subtitle = buildSubtitle(coach);
 
@@ -64,7 +63,7 @@ export const CoachBadge = memo(function CoachBadge({ coach }: CoachBadgeProps) {
       ) : null}
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   label: {

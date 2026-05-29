@@ -1,7 +1,3 @@
-/**
- * TimeOffFormStep — Form step: mode toggle, quick dates, date selector, reason pills, actions.
- */
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -270,7 +266,7 @@ function TimeOffFormStepInner({
   );
 }
 
-export const TimeOffFormStep = memo(TimeOffFormStepInner);
+export const TimeOffFormStep = TimeOffFormStepInner;
 
 const styles = StyleSheet.create({
   content: { gap: Spacing.md },

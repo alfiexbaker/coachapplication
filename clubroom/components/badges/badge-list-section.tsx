@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -27,7 +26,7 @@ function formatDate(date: Date | string): string {
   return parsed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export const BadgeListSection = memo(function BadgeListSection({
+export const BadgeListSection = function BadgeListSection({
   activeTab,
   visibleBadges,
   selectedSession,
@@ -117,7 +116,7 @@ export const BadgeListSection = memo(function BadgeListSection({
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm, padding: Spacing.sm },

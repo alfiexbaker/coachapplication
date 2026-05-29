@@ -1,5 +1,3 @@
-import { useMemo } from 'react';
-
 import type { MonthSummary, SessionMedia } from '@/types/progress-types';
 import type { AthleteProgress, SessionFeedback } from '@/services/progress-service';
 import type { BadgeAward } from '@/constants/types';
@@ -31,7 +29,7 @@ export function useMonthSummary({
   badges,
   media,
 }: UseMonthSummaryParams): MonthSummary {
-  return useMemo(() => {
+  return (() => {
     const sessionsAttended = progress?.sessionsThisMonth ?? 0;
     const feedbackCount = feedback.filter((entry) => isCurrentMonth(entry.createdAt)).length;
     const skillsImproved = (progress?.skills ?? []).filter((skill) => skill.trend === 'improving').length;
@@ -52,5 +50,5 @@ export function useMonthSummary({
       photosCount,
       videosCount,
     };
-  }, [badges, feedback, media, progress]);
+  })();
 }

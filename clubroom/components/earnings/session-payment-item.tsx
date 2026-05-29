@@ -5,7 +5,7 @@
  * Expandable: tap to reveal tab-specific actions with confirmation alerts.
  */
 
-import { memo, useState, useCallback, useMemo } from 'react';
+import { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -46,11 +46,11 @@ function SessionPaymentItemInner({
 
   const amount = `\u00A3${invoice.total.toFixed(2)}`;
 
-  const handleToggle = useCallback(() => {
+  const handleToggle = () => {
     setExpanded((prev) => !prev);
-  }, []);
+  };
 
-  const handleMarkPaid = useCallback(() => {
+  const handleMarkPaid = () => {
     uiFeedback.alert(
       'Confirm payment',
       `Mark ${amount} from ${athleteName} as paid?`,
@@ -65,9 +65,9 @@ function SessionPaymentItemInner({
         },
       ],
     );
-  }, [onMarkPaid, invoice.id, amount, athleteName]);
+  };
 
-  const handleMarkUnpaid = useCallback(() => {
+  const handleMarkUnpaid = () => {
     uiFeedback.alert(
       'Undo payment?',
       `Move ${amount} from ${athleteName} back to owed?`,
@@ -83,9 +83,9 @@ function SessionPaymentItemInner({
         },
       ],
     );
-  }, [onMarkUnpaid, invoice.id, amount, athleteName]);
+  };
 
-  const handleWriteOff = useCallback(() => {
+  const handleWriteOff = () => {
     uiFeedback.alert(
       'Write off payment?',
       `Stop chasing ${amount} from ${athleteName}? You can restore this later.`,
@@ -101,17 +101,17 @@ function SessionPaymentItemInner({
         },
       ],
     );
-  }, [onWriteOff, invoice.id, amount, athleteName]);
+  };
 
-  const handleRestore = useCallback(() => {
+  const handleRestore = () => {
     onRestore?.(invoice.id);
     setExpanded(false);
-  }, [onRestore, invoice.id]);
+  };
 
-  const handleRemind = useCallback(() => {
+  const handleRemind = () => {
     onSendReminder?.(item);
     setExpanded(false);
-  }, [onSendReminder, item]);
+  };
 
   const sessionDate = new Date(booking.scheduledAt);
   const dateLabel = sessionDate.toLocaleDateString('en-GB', {
@@ -125,6 +125,7 @@ function SessionPaymentItemInner({
   });
 
   const isOverdue = item.isOverdue ?? false;
+  const [nowMs] = useState(() => Date.now());
 
   const iconName = tab === 'paid'
     ? 'checkmark-circle'
@@ -141,13 +142,13 @@ function SessionPaymentItemInner({
         ? colors.error
         : colors.warning;
 
-  const daysOverdue = useMemo(() => {
+  const daysOverdue = (() => {
     if (!isOverdue) return 0;
     const due = invoice.dueDate
       ? new Date(invoice.dueDate).getTime()
       : new Date(booking.scheduledAt).getTime() + 14 * 24 * 60 * 60 * 1000;
-    return Math.max(0, Math.floor((Date.now() - due) / (1000 * 60 * 60 * 24)));
-  }, [isOverdue, invoice.dueDate, booking.scheduledAt]);
+    return Math.max(0, Math.floor((nowMs - due) / (1000 * 60 * 60 * 24)));
+  })();
 
   return (
     <Column>
@@ -245,25 +246,22 @@ function SessionPaymentItemInner({
             variant="primary"
             style={styles.actionButton}
             accessibilityLabel="Mark as paid"
-          >
-            Mark Paid
-          </Button>
+            label="Mark Paid"
+          />
           <Button
             onPress={handleWriteOff}
             variant="outline"
             style={styles.actionButton}
             accessibilityLabel="Write off this payment"
-          >
-            Write Off
-          </Button>
+            label="Write Off"
+          />
           <Button
             onPress={handleRemind}
             variant="outline"
             style={styles.actionButton}
             accessibilityLabel="Send payment reminder"
-          >
-            Remind
-          </Button>
+            label="Remind"
+          />
         </Row>
       )}
 
@@ -274,9 +272,8 @@ function SessionPaymentItemInner({
             variant="outline"
             style={styles.actionButton}
             accessibilityLabel="Mark as unpaid"
-          >
-            Mark Unpaid
-          </Button>
+            label="Mark Unpaid"
+          />
         </Row>
       )}
 
@@ -287,16 +284,15 @@ function SessionPaymentItemInner({
             variant="outline"
             style={styles.actionButton}
             accessibilityLabel="Restore to owed"
-          >
-            Restore
-          </Button>
+            label="Restore"
+          />
         </Row>
       )}
     </Column>
   );
 }
 
-export const SessionPaymentItem = memo(SessionPaymentItemInner);
+export const SessionPaymentItem = SessionPaymentItemInner;
 
 const styles = StyleSheet.create({
   container: {

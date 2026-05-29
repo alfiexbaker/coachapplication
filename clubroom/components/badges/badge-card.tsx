@@ -8,13 +8,13 @@ import { TierNames, CategoryInfo } from '@/constants/progression';
 import type { AllBadgeWithProgress } from '@/services/badge-service';
 import { useTheme } from '@/hooks/useTheme';
 
+import { CompactBadgeCardInner } from './badge-card-sections';
 import {
   BADGE_TYPE_ICONS,
   CATEGORY_ICONS,
   getTierColor,
   formatBadgeDate,
-  CompactBadgeCardInner,
-} from './badge-card-sections';
+} from './badge-card-helpers';
 import { Row } from '@/components/primitives';
 
 interface BadgeCardProps {

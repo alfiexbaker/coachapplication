@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -19,7 +18,7 @@ interface MemberRoleManagementProps {
   onChangeRole: (role: ClubRole) => void;
 }
 
-export const MemberRoleManagement = memo(function MemberRoleManagement({
+export const MemberRoleManagement = function MemberRoleManagement({
   currentRole,
   assignableRoles,
   showPicker,
@@ -85,7 +84,7 @@ export const MemberRoleManagement = memo(function MemberRoleManagement({
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },

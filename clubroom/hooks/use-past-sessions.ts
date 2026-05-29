@@ -1,5 +1,3 @@
-import { useMemo } from 'react';
-
 import type { BadgeAward } from '@/constants/types';
 import type { SessionFeedback } from '@/services/progress-service';
 import type { PastSession, SessionMedia } from '@/types/progress-types';
@@ -30,7 +28,7 @@ function firstByNewest<T>(items: T[], getDate: (item: T) => string | undefined):
   if (items.length === 0) {
     return null;
   }
-  return [...items].sort((left, right) => sortByDateDesc(getDate(left), getDate(right)))[0] ?? null;
+  return Array.from(items).toSorted((left, right) => sortByDateDesc(getDate(left), getDate(right)))[0] ?? null;
 }
 
 export function buildPastSessions({
@@ -41,14 +39,14 @@ export function buildPastSessions({
   limit,
 }: BuildPastSessionsInput): PastSession[] {
   const feedbackBySession = new Map<string, SessionFeedback>();
-  for (const item of [...feedback].sort((left, right) => sortByDateDesc(left.createdAt, right.createdAt))) {
+  for (const item of Array.from(feedback).toSorted((left, right) => sortByDateDesc(left.createdAt, right.createdAt))) {
     if (!feedbackBySession.has(item.sessionId)) {
       feedbackBySession.set(item.sessionId, item);
     }
   }
 
   const mediaBySession = new Map<string, SessionMedia>();
-  for (const item of [...media].sort((left, right) => sortByDateDesc(left.createdAt, right.createdAt))) {
+  for (const item of Array.from(media).toSorted((left, right) => sortByDateDesc(left.createdAt, right.createdAt))) {
     if (!mediaBySession.has(item.sessionId)) {
       mediaBySession.set(item.sessionId, item);
     }
@@ -113,15 +111,11 @@ export function usePastSessions({
   coachQualificationById,
   limit,
 }: BuildPastSessionsInput): PastSession[] {
-  return useMemo(
-    () =>
-      buildPastSessions({
-        feedback,
-        media,
-        badges,
-        coachQualificationById,
-        limit,
-      }),
-    [badges, coachQualificationById, feedback, limit, media],
-  );
+  return buildPastSessions({
+    feedback,
+    media,
+    badges,
+    coachQualificationById,
+    limit,
+  });
 }

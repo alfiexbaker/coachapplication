@@ -9,15 +9,12 @@ export interface RetryOptions {
   shouldRetry?: (error: unknown) => boolean;
 }
 
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  options: RetryOptions,
-): Promise<T> {
+export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions): Promise<T> {
   const { maxAttempts, delayMs, backoff = true, shouldRetry } = options;
 
   let lastError: unknown;
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+  const attemptRun = async (attempt: number): Promise<T> => {
     try {
       return await fn();
     } catch (error: unknown) {
@@ -37,8 +34,14 @@ export async function withRetry<T>(
       });
 
       await new Promise((resolve) => setTimeout(resolve, delay));
+      return attemptRun(attempt + 1);
     }
-  }
+  };
 
-  throw lastError;
+  return attemptRun(1).catch((error) => {
+    if (lastError !== undefined) {
+      throw lastError;
+    }
+    throw error;
+  });
 }

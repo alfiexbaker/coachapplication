@@ -6,7 +6,6 @@
  */
 
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import type { ReactNode } from 'react';
@@ -27,13 +26,10 @@ export default function EmergencyQuickAccessScreen() {
   const { colors: palette } = useTheme();
   const e = useEmergencyAccess();
   const renderState = (content: ReactNode) => (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       <PageHeader title="Emergency Info" showBack centerTitle />
       {content}
-    </SafeAreaView>
+    </View>
   );
 
   if (e.status === 'loading') {
@@ -62,17 +58,18 @@ export default function EmergencyQuickAccessScreen() {
   }
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       <PageHeader
         title="Emergency Info"
         showBack
         centerTitle
         right={
           <Clickable onPress={e.handleRefresh} hitSlop={8} disabled={e.refreshing}>
-            <Ionicons name="refresh" size={22} color={e.refreshing ? palette.muted : palette.tint} />
+            <Ionicons
+              name="refresh"
+              size={22}
+              color={e.refreshing ? palette.muted : palette.tint}
+            />
           </Clickable>
         }
       />
@@ -91,6 +88,7 @@ export default function EmergencyQuickAccessScreen() {
       )}
 
       <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -129,7 +127,7 @@ export default function EmergencyQuickAccessScreen() {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

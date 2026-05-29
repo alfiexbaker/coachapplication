@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useEffect } from 'react';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -29,12 +29,12 @@ export default function ClubActivityRoute() {
   const clubId = clubIdParam.valid ? clubIdParam.value : '';
   const activityId = activityIdParam.valid ? activityIdParam.value : '';
 
-  const loadActivity = useCallback(() => {
+  const loadActivity = () => {
     if (!clubIdParam.valid || !activityIdParam.valid) {
       return Promise.resolve(err(validationError('Invalid club activity link.')));
     }
     return clubScheduleService.getClubActivity(clubId, activityId);
-  }, [activityId, activityIdParam.valid, clubId, clubIdParam.valid]);
+  };
 
   const { data: activity, status, error, retry } = useScreen({
     load: loadActivity,

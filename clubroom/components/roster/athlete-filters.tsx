@@ -1,4 +1,4 @@
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, FlatList, type ListRenderItemInfo } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -65,6 +65,8 @@ export function AthleteFilters({
 
   const hasActiveFilters =
     filters.status || filters.skillLevel || (filters.tags && filters.tags.length > 0);
+  const statusItems = getRosterStatusItems(filters.status, toggleStatus, palette);
+  const skillItems = getSkillLevelItems(filters.skillLevel, toggleSkillLevel, palette);
 
   return (
     <SurfaceCard style={styles.container}>
@@ -81,76 +83,27 @@ export function AthleteFilters({
       {/* Status Filter */}
       <View style={styles.section}>
         <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Status</ThemedText>
-        <ScrollView
+        <FlatList
           horizontal
+          data={statusItems}
+          keyExtractor={keyRosterStatusItem}
+          renderItem={renderRosterStatusItem}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipRow}
-        >
-          {STATUS_OPTIONS.map((status) => {
-            const statusColor = rosterService.getStatusColor(status.key);
-            return (
-              <Clickable
-                key={status.key}
-                onPress={() => toggleStatus(status.key)}
-                style={[
-                  styles.chip,
-                  {
-                    backgroundColor:
-                      filters.status === status.key
-                        ? withAlpha(statusColor, 0.09)
-                        : palette.surfaceSecondary,
-                    borderColor: filters.status === status.key ? statusColor : 'transparent',
-                  },
-                ]}
-              >
-                <Row align="center" gap="xxs">
-                  <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-                  <ThemedText
-                    style={[
-                      styles.chipText,
-                      { color: filters.status === status.key ? statusColor : palette.text },
-                    ]}
-                  >
-                    {status.label}
-                  </ThemedText>
-                </Row>
-              </Clickable>
-            );
-          })}
-        </ScrollView>
+        />
       </View>
 
       {/* Skill Level Filter */}
       <View style={styles.section}>
         <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Skill Level</ThemedText>
-        <ScrollView
+        <FlatList
           horizontal
+          data={skillItems}
+          keyExtractor={keySkillLevelItem}
+          renderItem={renderSkillLevelItem}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipRow}
-        >
-          {SKILL_LEVELS.map((level) => (
-            <Clickable
-              key={level.key}
-              onPress={() => toggleSkillLevel(level.key)}
-              style={[
-                styles.chip,
-                {
-                  backgroundColor:
-                    filters.skillLevel === level.key ? palette.tint : palette.surfaceSecondary,
-                },
-              ]}
-            >
-              <ThemedText
-                style={[
-                  styles.chipText,
-                  { color: filters.skillLevel === level.key ? palette.onPrimary : palette.text },
-                ]}
-              >
-                {level.label}
-              </ThemedText>
-            </Clickable>
-          ))}
-        </ScrollView>
+        />
       </View>
 
       {/* Tags Filter */}
@@ -191,6 +144,109 @@ export function AthleteFilters({
         </View>
       )}
     </SurfaceCard>
+  );
+}
+
+interface RosterStatusItem {
+  key: RosterEntry['status'];
+  label: string;
+  statusColor: string;
+  selected: boolean;
+  palette: ReturnType<typeof useTheme>['colors'];
+  onPress: () => void;
+}
+
+function getRosterStatusItems(
+  selectedStatus: RosterFilters['status'],
+  onSelect: (status: RosterEntry['status']) => void,
+  palette: ReturnType<typeof useTheme>['colors'],
+): RosterStatusItem[] {
+  return STATUS_OPTIONS.map((status) => ({
+    key: status.key,
+    label: status.label,
+    statusColor: rosterService.getStatusColor(status.key),
+    selected: selectedStatus === status.key,
+    palette,
+    onPress: () => onSelect(status.key),
+  }));
+}
+
+function keyRosterStatusItem(item: RosterStatusItem) {
+  return item.key;
+}
+
+function renderRosterStatusItem({ item }: ListRenderItemInfo<RosterStatusItem>) {
+  return (
+    <Clickable
+      onPress={item.onPress}
+      style={[
+        styles.chip,
+        {
+          backgroundColor: item.selected
+            ? withAlpha(item.statusColor, 0.09)
+            : item.palette.surfaceSecondary,
+          borderColor: item.selected ? item.statusColor : 'transparent',
+        },
+      ]}
+    >
+      <Row align="center" gap="xxs">
+        <View style={[styles.statusDot, { backgroundColor: item.statusColor }]} />
+        <ThemedText
+          style={[styles.chipText, { color: item.selected ? item.statusColor : item.palette.text }]}
+        >
+          {item.label}
+        </ThemedText>
+      </Row>
+    </Clickable>
+  );
+}
+
+interface SkillLevelItem {
+  key: SkillLevelFilter;
+  label: string;
+  selected: boolean;
+  palette: ReturnType<typeof useTheme>['colors'];
+  onPress: () => void;
+}
+
+function getSkillLevelItems(
+  selectedLevel: SkillLevelFilter | undefined,
+  onSelect: (level: SkillLevelFilter) => void,
+  palette: ReturnType<typeof useTheme>['colors'],
+): SkillLevelItem[] {
+  return SKILL_LEVELS.map((level) => ({
+    key: level.key,
+    label: level.label,
+    selected: selectedLevel === level.key,
+    palette,
+    onPress: () => onSelect(level.key),
+  }));
+}
+
+function keySkillLevelItem(item: SkillLevelItem) {
+  return item.key;
+}
+
+function renderSkillLevelItem({ item }: ListRenderItemInfo<SkillLevelItem>) {
+  return (
+    <Clickable
+      onPress={item.onPress}
+      style={[
+        styles.chip,
+        {
+          backgroundColor: item.selected ? item.palette.tint : item.palette.surfaceSecondary,
+        },
+      ]}
+    >
+      <ThemedText
+        style={[
+          styles.chipText,
+          { color: item.selected ? item.palette.onPrimary : item.palette.text },
+        ]}
+      >
+        {item.label}
+      </ThemedText>
+    </Clickable>
   );
 }
 

@@ -1,12 +1,3 @@
-/**
- * Invite Codes Screen — Admin list of invite codes with create modal.
- *
- * State + logic: hooks/use-invite-codes.ts
- * Card component: components/admin/invite-code-card.tsx
- * Modal component: components/admin/create-code-modal.tsx
- */
-
-import { useCallback } from 'react';
 import { FlatList, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -45,29 +36,23 @@ export default function InviteCodesScreen() {
     copyToClipboard,
   } = useInviteCodes();
 
-  const handleOpenModal = useCallback(() => setShowCreateModal(true), [setShowCreateModal]);
-  const handleCloseModal = useCallback(() => setShowCreateModal(false), [setShowCreateModal]);
+  const handleOpenModal = () => setShowCreateModal(true);
+  const handleCloseModal = () => setShowCreateModal(false);
 
-  const renderItem = useCallback(
-    ({ item }: { item: InviteCode }) => (
-      <InviteCodeCard
-        item={item}
-        onDeactivate={deactivateCode}
-        onCopy={(code) => void copyToClipboard(code)}
-      />
-    ),
-    [deactivateCode, copyToClipboard],
+  const renderItem = ({ item }: { item: InviteCode }) => (
+    <InviteCodeCard
+      item={item}
+      onDeactivate={deactivateCode}
+      onCopy={(code) => void copyToClipboard(code)}
+    />
   );
 
-  const keyExtractor = useCallback((item: InviteCode) => item.id, []);
-  const getItemLayout = useCallback(
-    (_: ArrayLike<InviteCode> | null | undefined, index: number) => ({
-      length: 176,
-      offset: 176 * index,
-      index,
-    }),
-    [],
-  );
+  const keyExtractor = (item: InviteCode) => item.id;
+  const getItemLayout = (_: ArrayLike<InviteCode> | null | undefined, index: number) => ({
+    length: 176,
+    offset: 176 * index,
+    index,
+  });
 
   const headerSubtitle =
     status === 'loading'

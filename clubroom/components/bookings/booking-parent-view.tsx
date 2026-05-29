@@ -143,7 +143,7 @@ function BookingParentViewInner({
   );
 }
 
-export const BookingParentView = React.memo(BookingParentViewInner);
+export const BookingParentView = BookingParentViewInner;
 
 const styles = StyleSheet.create({
   actions: {

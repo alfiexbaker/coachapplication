@@ -3,7 +3,7 @@
  * Manages squad data loading, form state, time slots, and bulk invite sending.
  */
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 
 import { router, useLocalSearchParams } from 'expo-router';
 
@@ -24,7 +24,11 @@ import type {
 } from '@/constants/types';
 import { uiFeedback } from '@/services/ui-feedback';
 
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
+
 const logger = createLogger('SquadInviteScreen');
+const EMPTY_SQUAD_MEMBERS: SquadMember[] = [];
+const EMPTY_INVITE_HISTORY: SquadInviteHistoryEntry[] = [];
 
 export const SESSION_TYPES = ['1:1 Coaching', 'Group Session', 'Assessment', 'Training'];
 export const FOCUSES = [
@@ -115,7 +119,7 @@ export function useSquadInvite() {
     result: BulkInviteResult;
   } | null>(null);
 
-  const loadSquadData = useCallback(async () => {
+  const loadSquadData = async () => {
     if (!squadId) {
       return ok<SquadInviteData>({
         squad: null,
@@ -146,7 +150,7 @@ export function useSquadInvite() {
         ),
       );
     }
-  }, [squadId]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<SquadInviteData>({
     load: loadSquadData,
@@ -156,18 +160,24 @@ export function useSquadInvite() {
   });
 
   const squad = data?.squad ?? null;
-  const members = data?.members ?? [];
-  const inviteHistory = data?.inviteHistory ?? [];
+  const members = data?.members ?? EMPTY_SQUAD_MEMBERS;
+  const inviteHistory = data?.inviteHistory ?? EMPTY_INVITE_HISTORY;
   const loading = status === 'loading';
 
   useEffect(() => {
     if (!squad || initializedSquadId === squad.id) return;
-    setSessionTitle(`${squad.name} Training`);
-    setSelectedMemberIds(members.map((member) => member.id));
-    setInitializedSquadId(squad.id);
+    startTransition(() => {
+      setSessionTitle(`${squad.name} Training`);
+    });
+    startTransition(() => {
+      setSelectedMemberIds(members.map((member) => member.id));
+    });
+    startTransition(() => {
+      setInitializedSquadId(squad.id);
+    });
   }, [squad, members, initializedSquadId]);
 
-  const addTimeSlot = useCallback(() => {
+  const addTimeSlot = () => {
     if (!slotDate || !slotStartTime || !slotEndTime) {
       uiFeedback.showToast('Please fill in date, start time, and end time', 'error');
       return;
@@ -187,85 +197,78 @@ export function useSquadInvite() {
     setSlotStartTime('');
     setSlotEndTime('');
     setSlotLocation('');
-  }, [slotDate, slotStartTime, slotEndTime, slotLocation]);
+  };
 
-  const removeTimeSlot = useCallback((index: number) => {
+  const removeTimeSlot = (index: number) => {
     setProposedSlots((prev) => prev.filter((_, i) => i !== index));
-  }, []);
+  };
 
-  const uniqueParentCount = useMemo(() => {
+  const uniqueParentCount = (() => {
     const selectedMembers = members.filter((member) => selectedMemberIds.includes(member.id));
     return new Set(selectedMembers.map((member) => member.parentId)).size;
-  }, [members, selectedMemberIds]);
+  })();
 
-  const canSend = useMemo(
-    () =>
-      selectedMemberIds.length > 0 &&
-      sessionTitle.trim() !== '' &&
-      sessionType !== '' &&
-      focus !== '' &&
-      proposedSlots.length > 0,
-    [selectedMemberIds, sessionTitle, sessionType, focus, proposedSlots],
-  );
+  const canSend =
+    selectedMemberIds.length > 0 &&
+    sessionTitle.trim() !== '' &&
+    sessionType !== '' &&
+    focus !== '' &&
+    proposedSlots.length > 0;
 
-  const sendBulkInvites = useCallback(async () => {
+  const sendBulkInvites = async () => {
     if (!currentUser || !squadId || !canSend) return;
 
     setSendingInvites(true);
     setViewMode('sending');
 
-    try {
-      const result = await squadBulkInviteService.createBulkInvite({
-        squadId,
-        sessionId: `session_${Date.now()}`,
-        sessionTitle,
-        coachId: currentUser.id,
-        coachName: currentUser.name || 'Coach',
-        clubName: squad?.name,
-        proposedSlots,
-        sessionType,
-        focus,
-        notes: notes || undefined,
-        price: price ? parseFloat(price) : undefined,
-        expiresInDays: 7,
-      });
+    return await runAsyncTryCatchFinally(
+      async () => {
+        const result = await squadBulkInviteService.createBulkInvite({
+          squadId,
+          sessionId: `session_${Date.now()}`,
+          sessionTitle,
+          coachId: currentUser.id,
+          coachName: currentUser.name || 'Coach',
+          clubName: squad?.name,
+          proposedSlots,
+          sessionType,
+          focus,
+          notes: notes || undefined,
+          price: price ? parseFloat(price) : undefined,
+          expiresInDays: 7,
+        });
 
-      if (!result.success) {
-        logger.error('Failed to send bulk invites:', result.error);
-        uiFeedback.showToast(result.error.message || 'Failed to send invites. Please try again.', 'error');
+        if (!result.success) {
+          logger.error('Failed to send bulk invites:', result.error);
+          uiFeedback.showToast(
+            result.error.message || 'Failed to send invites. Please try again.',
+            'error',
+          );
+          setViewMode('form');
+          return;
+        }
+
+        setInviteResult(result.data);
+        setViewMode('result');
+      },
+      async (sendError) => {
+        logger.error('Failed to send bulk invites:', sendError);
+        uiFeedback.showToast('Failed to send invites. Please try again.', 'error');
         setViewMode('form');
-        return;
-      }
+      },
+      () => {
+        setSendingInvites(false);
+      },
+    );
+  };
 
-      setInviteResult(result.data);
-      setViewMode('result');
-    } catch (sendError) {
-      logger.error('Failed to send bulk invites:', sendError);
-      uiFeedback.showToast('Failed to send invites. Please try again.', 'error');
-      setViewMode('form');
-    } finally {
-      setSendingInvites(false);
-    }
-  }, [
-    currentUser,
-    squadId,
-    canSend,
-    sessionTitle,
-    squad,
-    proposedSlots,
-    sessionType,
-    focus,
-    notes,
-    price,
-  ]);
-
-  const handleDone = useCallback(() => {
+  const handleDone = () => {
     router.back();
-  }, []);
+  };
 
-  const handleViewInvites = useCallback(() => {
+  const handleViewInvites = () => {
     router.push(Routes.SESSION_INVITES);
-  }, []);
+  };
 
   return {
     squadId,

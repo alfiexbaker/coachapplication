@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Row } from '@/components/primitives/row';
@@ -20,7 +19,7 @@ type SkillLevelGridProps = {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export const SkillLevelGrid = memo(function SkillLevelGrid({
+export const SkillLevelGrid = function SkillLevelGrid({
   skills,
   compact = false,
   groupByCategory = false,
@@ -86,7 +85,7 @@ export const SkillLevelGrid = memo(function SkillLevelGrid({
       ))}
     </View>
   );
-});
+};
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 

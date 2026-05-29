@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,6 +9,8 @@ import { useNotifications } from '@/hooks/use-notifications';
 import { useToast } from '@/components/ui/toast';
 import { NotificationsPanel } from '@/components/notification/notifications-panel';
 import { NotificationsActionsBar } from '@/components/notification/notifications-actions-bar';
+
+import { runAsyncFinally } from '@/utils/async-control';
 
 // Re-export NotificationsPanel for backward compatibility
 export { NotificationsPanel } from '@/components/notification/notifications-panel';
@@ -22,37 +24,39 @@ export default function NotificationsScreen() {
   const { unreadCount, markAllAsRead, clearAll } = useNotifications();
   const { showToast } = useToast();
 
-  const handleClearAll = useCallback(async () => {
+  const handleClearAll = async () => {
     setClearingAllLoading(true);
     setSeedOnMount(false);
-    try {
+
+    await runAsyncFinally(async () => {
       await clearAll();
       setRefreshToken((token) => token + 1);
       showToast('Notifications cleared', 'success');
-    } finally {
+    }, () => {
       setClearingAllLoading(false);
-    }
-  }, [clearAll, showToast]);
+    });
+  };
 
-  const handleMarkAllRead = useCallback(async () => {
+  const handleMarkAllRead = async () => {
     if (unreadCount <= 0 || markingAllRead) return;
 
     const performMarkAllRead = async () => {
       setMarkingAllRead(true);
-      try {
+
+      await runAsyncFinally(async () => {
         await markAllAsRead();
         setRefreshToken((token) => token + 1);
         showToast(
           `${unreadCount} notification${unreadCount === 1 ? '' : 's'} marked as read`,
           'success',
         );
-      } finally {
+      }, () => {
         setMarkingAllRead(false);
-      }
+      });
     };
 
     await performMarkAllRead();
-  }, [markAllAsRead, unreadCount, markingAllRead, showToast]);
+  };
 
   return (
     <SafeAreaView

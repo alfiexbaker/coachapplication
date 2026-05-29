@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,7 +13,7 @@ interface PublicProfileSpecialtiesProps {
   coach: Coach;
 }
 
-export const PublicProfileSpecialties = memo(function PublicProfileSpecialties({
+export const PublicProfileSpecialties = function PublicProfileSpecialties({
   coach,
 }: PublicProfileSpecialtiesProps) {
   const { colors: palette } = useTheme();
@@ -26,9 +26,9 @@ export const PublicProfileSpecialties = memo(function PublicProfileSpecialties({
             Football Focus Areas
           </ThemedText>
           <Row style={styles.chipGrid}>
-            {coach.footballFocuses.map((focus, i) => (
+            {coach.footballFocuses.map((focus) => (
               <Row
-                key={i}
+                key={focus}
                 style={[styles.chip, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
               >
                 <ThemedText style={[Typography.smallSemiBold, { color: palette.tint }]}>
@@ -44,9 +44,9 @@ export const PublicProfileSpecialties = memo(function PublicProfileSpecialties({
         <SurfaceCard style={styles.section}>
           <ThemedText style={[Typography.heading, { color: palette.text }]}>Sports</ThemedText>
           <Row style={styles.chipGrid}>
-            {coach.sports.map((sport, i) => (
+            {coach.sports.map((sport) => (
               <Row
-                key={i}
+                key={sport}
                 style={[styles.chip, { backgroundColor: withAlpha(palette.secondary, 0.09) }]}
               >
                 <Ionicons name="football-outline" size={14} color={palette.secondary} />
@@ -63,9 +63,9 @@ export const PublicProfileSpecialties = memo(function PublicProfileSpecialties({
         <SurfaceCard style={styles.section}>
           <ThemedText style={[Typography.heading, { color: palette.text }]}>Languages</ThemedText>
           <Row style={styles.chipGrid}>
-            {coach.languages.map((lang, i) => (
+            {coach.languages.map((lang) => (
               <Row
-                key={i}
+                key={`${lang.name}:${lang.proficiency}`}
                 style={[
                   styles.chip,
                   { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 },
@@ -82,7 +82,7 @@ export const PublicProfileSpecialties = memo(function PublicProfileSpecialties({
       ) : null}
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: { padding: Spacing.md, gap: Spacing.md },

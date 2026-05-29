@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
@@ -7,6 +7,8 @@ import { squadService } from '@/services/squad-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { createLogger } from '@/utils/logger';
 import type { GroupSession, ClubSquad } from '@/constants/types';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('TrainingScheduleScreen');
 
@@ -25,51 +27,58 @@ export function useTrainingSchedule() {
   const [clubName, setClubName] = useState('');
 
   const { isParent: userHasChildren } = useChildContext();
+  const currentUserId = currentUser?.id;
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
-  const loadData = useCallback(async () => {
-    if (!currentUser) return;
-
-    setLoading(true);
-    try {
-      const userClubs = socialFeedService.getUserClubs(currentUser.id);
-      const activeClub = userClubs[0];
-
-      if (!activeClub) {
-        setClubName('Club');
-        setSquads([]);
-        setTrainingSessions([]);
+  useEffect(() => {
+    const loadData = async () => {
+      if (!currentUserId) {
+        setLoading(false);
         return;
       }
 
-      setClubName(activeClub.name);
-      const [clubSquads, sessions] = await Promise.all([
-        isCoach
-          ? squadService.getCoachSquads(currentUser.id, activeClub.id)
-          : squadService.getSquads(activeClub.id),
-        groupSessionService.getClubTrainingSessions(activeClub.id),
-      ]);
+      setLoading(true);
 
-      setSquads(clubSquads);
-      setTrainingSessions(sessions);
-    } catch (error) {
-      logger.error('Failed to load training sessions', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser, isCoach]);
+      return await runAsyncTryCatchFinally(
+        async () => {
+          const userClubs = socialFeedService.getUserClubs(currentUserId);
+          const activeClub = userClubs[0];
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+          if (!activeClub) {
+            setClubName('Club');
+            setSquads([]);
+            setTrainingSessions([]);
+            return;
+          }
 
-  const filteredSessions = useMemo(
-    () =>
-      selectedSquadId
-        ? trainingSessions.filter((s) => s.squadId === selectedSquadId)
-        : trainingSessions,
-    [selectedSquadId, trainingSessions],
-  );
+          setClubName(activeClub.name);
+          const [clubSquads, sessions] = await Promise.all([
+            isCoach
+              ? squadService.getCoachSquads(currentUserId, activeClub.id)
+              : squadService.getSquads(activeClub.id),
+            groupSessionService.getClubTrainingSessions(activeClub.id),
+          ]);
+
+          setSquads(clubSquads);
+          setTrainingSessions(sessions);
+        },
+        async (error) => {
+          logger.error('Failed to load training sessions', error);
+        },
+        () => {
+          setLoading(false);
+        },
+      );
+    };
+
+    startTransition(() => {
+      void loadData();
+    });
+  }, [currentUserId, isCoach]);
+
+  const filteredSessions = selectedSquadId
+    ? trainingSessions.filter((s) => s.squadId === selectedSquadId)
+    : trainingSessions;
 
   return {
     loading,

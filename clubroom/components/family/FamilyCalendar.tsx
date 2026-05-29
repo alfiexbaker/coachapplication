@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -13,12 +13,11 @@ import { useScheduleConflicts } from '@/hooks/use-schedule-conflicts';
 import { ScheduleConflictBanner } from './schedule-conflict-banner';
 import type { ChildInfo } from '@/types/child-context';
 import {
-  DAYS,
-  MONTHS,
   ChildFilterRow,
   CalendarDayGrid,
   EventListSection,
 } from './family-calendar-sections';
+import { DAYS, MONTHS } from './family-calendar-helpers';
 import { Row } from '@/components/primitives';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -51,7 +50,7 @@ export function FamilyCalendar({
   const { colors: palette } = useTheme();
   const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
 
-  const calendarData = useMemo(() => {
+  const calendarData = (() => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     const firstDay = new Date(year, month, 1);
@@ -67,34 +66,28 @@ export function FamilyCalendar({
       days.push({ date: new Date(year, month, i), isCurrentMonth: true });
     }
     return days;
-  }, [currentMonth]);
+  })();
 
-  const filteredEvents = useMemo(() => {
+  const filteredEvents = (() => {
     if (!selectedChildId) return events;
     return events.filter((e) => e.childId === selectedChildId);
-  }, [events, selectedChildId]);
+  })();
 
-  const getEventsForDate = useCallback(
-    (date: Date | null): FamilyCalendarEvent[] => {
-      if (!date) return [];
-      const dateStr = toDateStr(date);
-      return filteredEvents.filter((e) => e.start.split('T')[0] === dateStr);
-    },
-    [filteredEvents],
-  );
+  const getEventsForDate = (date: Date | null): FamilyCalendarEvent[] => {
+    if (!date) return [];
+    const dateStr = toDateStr(date);
+    return filteredEvents.filter((e) => e.start.split('T')[0] === dateStr);
+  };
 
-  const isSelected = useCallback(
-    (date: Date | null): boolean => {
-      if (!date || !selectedDate) return false;
-      return date.toDateString() === selectedDate.toDateString();
-    },
-    [selectedDate],
-  );
+  const isSelected = (date: Date | null): boolean => {
+    if (!date || !selectedDate) return false;
+    return date.toDateString() === selectedDate.toDateString();
+  };
 
-  const isToday = useCallback((date: Date | null): boolean => {
+  const isToday = (date: Date | null): boolean => {
     if (!date) return false;
     return date.toDateString() === new Date().toDateString();
-  }, []);
+  };
 
   const goToPreviousMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
@@ -104,10 +97,7 @@ export function FamilyCalendar({
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
   };
 
-  const selectedDateEvents = useMemo(
-    () => getEventsForDate(selectedDate),
-    [selectedDate, getEventsForDate],
-  );
+  const selectedDateEvents = getEventsForDate(selectedDate);
 
   // Schedule conflict detection (Phase 5)
   const {
@@ -118,34 +108,27 @@ export function FamilyCalendar({
     dismissDay,
   } = useScheduleConflicts({ events: filteredEvents, isMultiChild });
 
-  const selectedDateStr = useMemo(() => toDateStr(selectedDate), [selectedDate]);
+  const selectedDateStr = toDateStr(selectedDate);
 
-  const selectedDateConflicts = useMemo(
-    () =>
-      conflicts.filter(
-        (c) =>
-          c.eventA.start.split('T')[0] === selectedDateStr ||
-          c.eventB.start.split('T')[0] === selectedDateStr,
-      ),
-    [conflicts, selectedDateStr],
+  const selectedDateConflicts = conflicts.filter(
+    (c) =>
+      c.eventA.start.split('T')[0] === selectedDateStr ||
+      c.eventB.start.split('T')[0] === selectedDateStr,
   );
 
-  const hasConflictsForDate = useCallback(
-    (date: Date | null): boolean => {
-      if (!date || !hasConflicts) return false;
-      const dateStr = toDateStr(date);
-      return conflicts.some(
-        (c) =>
-          c.eventA.start.split('T')[0] === dateStr ||
-          c.eventB.start.split('T')[0] === dateStr,
-      );
-    },
-    [conflicts, hasConflicts],
-  );
+  const hasConflictsForDate = (date: Date | null): boolean => {
+    if (!date || !hasConflicts) return false;
+    const dateStr = toDateStr(date);
+    return conflicts.some(
+      (c) =>
+        c.eventA.start.split('T')[0] === dateStr ||
+        c.eventB.start.split('T')[0] === dateStr,
+    );
+  };
 
-  const handleDismissConflicts = useCallback(() => {
+  const handleDismissConflicts = () => {
     dismissDay(selectedDateStr);
-  }, [dismissDay, selectedDateStr]);
+  };
 
   const showBanner =
     selectedDateConflicts.length > 0 && !isDayDismissed(selectedDateStr);

@@ -134,8 +134,8 @@ function ProfileTabContentInner({
             content: (
               <Row style={styles.photosGrid}>
                 {coach.photoGallery && coach.photoGallery.length > 0 ? (
-                  coach.photoGallery.map((url, index) => (
-                    <Image key={index} source={{ uri: url }} style={styles.gridPhoto} />
+                  coach.photoGallery.map((url) => (
+                    <Image key={url} source={{ uri: url }} style={styles.gridPhoto} />
                   ))
                 ) : (
                   <SurfaceCard style={styles.emptyState}>
@@ -174,7 +174,7 @@ function ProfileTabContentInner({
   );
 }
 
-export const ProfileTabContent = React.memo(ProfileTabContentInner);
+export const ProfileTabContent = ProfileTabContentInner;
 export default ProfileTabContent;
 
 const styles = StyleSheet.create({

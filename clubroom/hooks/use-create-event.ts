@@ -5,7 +5,7 @@
  * Used by app/events/create.tsx
  */
 
-import { useReducer, useState, useEffect, useCallback } from 'react';
+import { useReducer, useState, useEffect } from 'react';
 
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -17,6 +17,8 @@ import { inviteService as bulkInviteService } from '@/services/invite';
 import { createLogger } from '@/utils/logger';
 import type { ClubEventType, EventTargetAudience, ClubSquad } from '@/constants/types';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('useCreateEvent');
 const DEFAULT_CLUB_ID = 'club_lions';
@@ -97,13 +99,10 @@ export function useCreateEvent() {
     })();
   }, []);
 
-  const setField = useCallback(
-    (field: string, value: unknown) =>
-      dispatch({ type: 'SET_FIELD', field: field as keyof EventFormState, value }),
-    [],
-  );
+  const setField = (field: string, value: unknown) =>
+    dispatch({ type: 'SET_FIELD', field: field as keyof EventFormState, value });
 
-  const canProceed = useCallback((): boolean => {
+  const canProceed = (): boolean => {
     switch (step) {
       case 'type':
         return true;
@@ -120,85 +119,83 @@ export function useCreateEvent() {
       default:
         return false;
     }
-  }, [step, form]);
+  };
 
-  const goNext = useCallback(() => {
+  const goNext = () => {
     const next = currentStepIndex + 1;
     if (next < STEPS.length) setStep(STEPS[next]);
-  }, [currentStepIndex]);
+  };
 
-  const goBack = useCallback(() => {
+  const goBack = () => {
     if (currentStepIndex > 0) setStep(STEPS[currentStepIndex - 1]);
     else router.back();
-  }, [currentStepIndex]);
+  };
 
-  const handleCreate = useCallback(
-    async (publish: boolean = false) => {
-      if (!currentUser) return;
-      setLoading(true);
-      try {
-        if (form.targetAudience === 'SQUADS' && form.selectedSquadIds.length > 0 && publish) {
-          const result = await bulkInviteService.inviteSquadsToEvent({
-            clubId: DEFAULT_CLUB_ID,
-            clubName: 'Lions FC Academy',
-            title: form.title,
-            description: form.description,
-            eventType: form.eventType,
-            date: form.date,
-            startTime: form.startTime,
-            endTime: form.endTime || undefined,
-            venue: form.isVirtual ? 'Online' : form.venue,
-            isVirtual: form.isVirtual,
-            squadIds: form.selectedSquadIds,
-            createdBy: currentUser.id,
-            createdByName: currentUser.name || 'Coach',
-            price: parseFloat(form.price) || 0,
-            maxAttendees: form.maxAttendees ? parseInt(form.maxAttendees, 10) : undefined,
-          });
-          uiFeedback.showToast(`${form.title} created and ${result.inviteResult.successful} invite${result.inviteResult.successful !== 1 ? 's' : ''} sent to squad members.`, 'success');
+  const handleCreate = async (publish: boolean = false) => {
+    if (!currentUser) return;
+    setLoading(true);
+
+    await runAsyncTryCatchFinally(async () => {
+      if (form.targetAudience === 'SQUADS' && form.selectedSquadIds.length > 0 && publish) {
+        const result = await bulkInviteService.inviteSquadsToEvent({
+          clubId: DEFAULT_CLUB_ID,
+          clubName: 'Lions FC Academy',
+          title: form.title,
+          description: form.description,
+          eventType: form.eventType,
+          date: form.date,
+          startTime: form.startTime,
+          endTime: form.endTime || undefined,
+          venue: form.isVirtual ? 'Online' : form.venue,
+          isVirtual: form.isVirtual,
+          squadIds: form.selectedSquadIds,
+          createdBy: currentUser.id,
+          createdByName: currentUser.name || 'Coach',
+          price: parseFloat(form.price) || 0,
+          maxAttendees: form.maxAttendees ? parseInt(form.maxAttendees, 10) : undefined,
+        });
+        uiFeedback.showToast(`${form.title} created and ${result.inviteResult.successful} invite${result.inviteResult.successful !== 1 ? 's' : ''} sent to squad members.`, 'success');
 router.replace(Routes.event(result.event.id));
-        } else {
-          const input: CreateEventInput = {
-            clubId: DEFAULT_CLUB_ID,
-            clubName: 'Lions FC Academy',
-            createdBy: currentUser.id,
-            createdByName: currentUser.name || 'Coach',
-            title: form.title,
-            description: form.description,
-            eventType: form.eventType,
-            date: form.date,
-            startTime: form.startTime,
-            endTime: form.endTime || undefined,
-            venue: form.isVirtual ? 'Online' : form.venue,
-            address: form.isVirtual ? undefined : form.address || undefined,
-            isVirtual: form.isVirtual,
-            meetingLink: form.isVirtual ? form.meetingLink || undefined : undefined,
-            targetAudience:
-              form.targetAudience === 'SQUADS' || form.targetAudience === 'SPECIFIC_ATHLETES'
-                ? 'ATHLETES'
-                : form.targetAudience,
-            maxAttendees: form.maxAttendees ? parseInt(form.maxAttendees, 10) : undefined,
-            price: parseFloat(form.price) || 0,
-            currency: 'GBP',
-            rsvpRequired: form.rsvpRequired,
-            rsvpDeadline: form.rsvpDeadline || undefined,
-          };
-          const event = await eventService.createEvent(input);
-          if (publish) {
-            await eventService.publishEvent(event.id);
-            await eventService.inviteClub(event.id);
-          }
-          router.replace(Routes.event(event.id));
+      } else {
+        const input: CreateEventInput = {
+          clubId: DEFAULT_CLUB_ID,
+          clubName: 'Lions FC Academy',
+          createdBy: currentUser.id,
+          createdByName: currentUser.name || 'Coach',
+          title: form.title,
+          description: form.description,
+          eventType: form.eventType,
+          date: form.date,
+          startTime: form.startTime,
+          endTime: form.endTime || undefined,
+          venue: form.isVirtual ? 'Online' : form.venue,
+          address: form.isVirtual ? undefined : form.address || undefined,
+          isVirtual: form.isVirtual,
+          meetingLink: form.isVirtual ? form.meetingLink || undefined : undefined,
+          targetAudience:
+            form.targetAudience === 'SQUADS' || form.targetAudience === 'SPECIFIC_ATHLETES'
+              ? 'ATHLETES'
+              : form.targetAudience,
+          maxAttendees: form.maxAttendees ? parseInt(form.maxAttendees, 10) : undefined,
+          price: parseFloat(form.price) || 0,
+          currency: 'GBP',
+          rsvpRequired: form.rsvpRequired,
+          rsvpDeadline: form.rsvpDeadline || undefined,
+        };
+        const event = await eventService.createEvent(input);
+        if (publish) {
+          await eventService.publishEvent(event.id);
+          await eventService.inviteClub(event.id);
         }
-      } catch (error) {
-        logger.error('Failed to create event:', error);
-        uiFeedback.showToast('Failed to create event. Please try again.', 'error');
-      } finally {
-        setLoading(false);
+        router.replace(Routes.event(event.id));
       }
-    },
-    [currentUser, form],
-  );
+    }, async error => {
+      logger.error('Failed to create event:', error);
+      uiFeedback.showToast('Failed to create event. Please try again.', 'error');
+    }, () => {
+      setLoading(false);
+    });
+  };
 
   return {
     form,

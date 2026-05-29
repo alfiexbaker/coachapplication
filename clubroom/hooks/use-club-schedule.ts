@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 
 import { useScreen } from '@/hooks/use-screen';
 import { clubScheduleService } from '@/services/club-schedule-service';
@@ -36,7 +36,7 @@ interface UseClubScheduleOptions {
 export function useClubSchedule({ clubId, squadId }: UseClubScheduleOptions) {
   const [filter, setFilter] = useState<ClubScheduleFilter>('all');
 
-  const loadSchedule = useCallback(async () => {
+  const loadSchedule = async () => {
     if (!clubId && !squadId) {
       return ok({ activities: [], club: null, squad: null });
     }
@@ -56,7 +56,7 @@ export function useClubSchedule({ clubId, squadId }: UseClubScheduleOptions) {
       club: club ?? null,
       squad,
     });
-  }, [clubId, squadId]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<ScheduleLoadData>({
     load: loadSchedule,
@@ -65,34 +65,26 @@ export function useClubSchedule({ clubId, squadId }: UseClubScheduleOptions) {
   });
 
   useEffect(() => {
-    setFilter('all');
+    startTransition(() => {
+      setFilter('all');
+    });
   }, [clubId, squadId]);
 
   const activities = data?.activities ?? [];
-  const now = useMemo(() => new Date(), [data?.activities]);
-  const filteredActivities = useMemo(
-    () => filterClubScheduleActivities(activities, filter, now),
-    [activities, filter, now],
-  );
-  const groupedActivities = useMemo<ClubScheduleDayGroup[]>(
-    () => groupClubScheduleActivitiesByDay(filteredActivities),
-    [filteredActivities],
-  );
-  const counts = useMemo(
-    () =>
-      CLUB_SCHEDULE_FILTERS.reduce<Record<ClubScheduleFilter, number>>((acc, current) => {
-        acc[current.key] = filterClubScheduleActivities(activities, current.key, now).length;
-        return acc;
-      }, {
-        all: 0,
-        upcoming: 0,
-        completed: 0,
-        events: 0,
-        training: 0,
-        matches: 0,
-      }),
-    [activities, now],
-  );
+  const now = new Date();
+  const filteredActivities = filterClubScheduleActivities(activities, filter, now);
+  const groupedActivities = groupClubScheduleActivitiesByDay(filteredActivities);
+  const counts = CLUB_SCHEDULE_FILTERS.reduce<Record<ClubScheduleFilter, number>>((acc, current) => {
+    acc[current.key] = filterClubScheduleActivities(activities, current.key, now).length;
+    return acc;
+  }, {
+    all: 0,
+    upcoming: 0,
+    completed: 0,
+    events: 0,
+    training: 0,
+    matches: 0,
+  });
 
   return {
     status,

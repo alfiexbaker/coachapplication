@@ -121,7 +121,9 @@ class CommunityMessagingService {
     try {
       if (!USE_MOCK) {
         if (attachments && attachments.length > 0) {
-          return err(validationError('Message attachments require backend media proof before send'));
+          return err(
+            validationError('Message attachments require backend media proof before send'),
+          );
         }
         return communityMediaAuthorityService.sendGroupMessage(groupId, body);
       }
@@ -235,8 +237,10 @@ class CommunityMessagingService {
     messageId: string,
     status: GroupMessage['status'],
   ): Promise<void> {
-    const persisted = await this.loadPersistedMessages();
-    const currentMessagesResult = await this.getGroupMessages(groupId);
+    const [persisted, currentMessagesResult] = await Promise.all([
+      this.loadPersistedMessages(),
+      this.getGroupMessages(groupId),
+    ]);
     if (!currentMessagesResult.success) {
       return;
     }

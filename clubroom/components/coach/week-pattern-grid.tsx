@@ -3,7 +3,7 @@
  * Setup mode delegates to WeekPatternSetupMode; normal mode renders
  * day rows with week navigation, summary stats, and override merging.
  */
-import { useState, useMemo, useCallback } from 'react';
+import { useState } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -44,26 +44,23 @@ export function WeekPatternGrid(props: WeekPatternGridProps) {
   const [weekOffset, setWeekOffset] = useState(0);
 
   // Compute Monday of viewed week
-  const viewedWeekStart = useMemo(() => {
+  const viewedWeekStart = (() => {
     const today = new Date();
     const mondayOffset = today.getDay() === 0 ? -6 : 1 - today.getDay();
     const start = new Date(today);
     start.setDate(today.getDate() + mondayOffset + weekOffset * 7);
     start.setHours(0, 0, 0, 0);
     return start;
-  }, [weekOffset]);
+  })();
 
-  const getDateForDay = useCallback(
-    (dayIndex: number): string => {
-      const offset = dayIndex === 0 ? 6 : dayIndex - 1;
-      const d = new Date(viewedWeekStart);
-      d.setDate(viewedWeekStart.getDate() + offset);
-      return toDateStr(d);
-    },
-    [viewedWeekStart],
-  );
+  const getDateForDay = (dayIndex: number): string => {
+    const offset = dayIndex === 0 ? 6 : dayIndex - 1;
+    const d = new Date(viewedWeekStart);
+    d.setDate(viewedWeekStart.getDate() + offset);
+    return toDateStr(d);
+  };
 
-  const weekLabel = useMemo(() => {
+  const weekLabel = (() => {
     if (weekOffset === 0) return 'This Week';
     const end = new Date(viewedWeekStart);
     end.setDate(viewedWeekStart.getDate() + 6);
@@ -72,25 +69,31 @@ export function WeekPatternGrid(props: WeekPatternGridProps) {
     return sM === eM
       ? `${viewedWeekStart.getDate()} - ${end.getDate()} ${sM}`
       : `${viewedWeekStart.getDate()} ${sM} - ${end.getDate()} ${eM}`;
-  }, [weekOffset, viewedWeekStart]);
+  })();
 
   // Summary stats
-  const stats = useMemo(() => {
+  const stats = (() => {
     let mins = 0;
     const days = new Set<number>();
     const venues = new Set<string>();
+    const overrideByDate = new Map(overrides.map((override) => [override.date, override]));
+    const templatesByDay = new Map<number, typeof templates>();
+    for (const template of templates) {
+      const existing = templatesByDay.get(template.dayOfWeek);
+      if (existing) {
+        existing.push(template);
+      } else {
+        templatesByDay.set(template.dayOfWeek, [template]);
+      }
+    }
     for (const d of DAYS_ORDERED) {
       const dateStr = getDateForDay(d.index);
-      if (blockedDates.has(dateStr) || overrides.some((o) => o.date === dateStr && o.isBlocked))
+      const override = overrideByDate.get(dateStr);
+      if (blockedDates.has(dateStr) || override?.isBlocked)
         continue;
-      const ovr = overrides.find(
-        (o) => o.date === dateStr && !o.isBlocked && (o.customSlots?.length ?? 0) > 0,
-      );
+      const overrideSlots = override?.customSlots;
       const slots =
-        ovr?.customSlots ??
-        (weekOffset === 0
-          ? templates.filter((t) => t.dayOfWeek === d.index)
-          : templates.filter((t) => t.dayOfWeek === d.index));
+        overrideSlots && overrideSlots.length > 0 ? overrideSlots : templatesByDay.get(d.index) ?? [];
       for (const s of slots) {
         mins += timeToMinutes(s.endTime) - timeToMinutes(s.startTime);
         days.add(d.index);
@@ -98,26 +101,20 @@ export function WeekPatternGrid(props: WeekPatternGridProps) {
       }
     }
     return { hrs: Math.round((mins / 60) * 10) / 10, days: days.size, venues: venues.size };
-  }, [templates, overrides, blockedDates, weekOffset, getDateForDay]);
+  })();
 
   // Helpers
-  const getTemplatesForDay = useCallback(
-    (dow: number) => templates.filter((t) => t.dayOfWeek === dow),
-    [templates],
-  );
+  const getTemplatesForDay = (dow: number) => templates.filter((t) => t.dayOfWeek === dow);
 
-  const getOverrideForDate = useCallback(
-    (dateStr: string) => {
-      const isBlocked =
-        blockedDates.has(dateStr) || overrides.some((o) => o.date === dateStr && o.isBlocked);
-      const ovr =
-        overrides.find(
-          (o) => o.date === dateStr && !o.isBlocked && (o.customSlots?.length ?? 0) > 0,
-        ) ?? null;
-      return { hasOverride: ovr !== null, isBlocked, override: ovr };
-    },
-    [overrides, blockedDates],
-  );
+  const getOverrideForDate = (dateStr: string) => {
+    const isBlocked =
+      blockedDates.has(dateStr) || overrides.some((o) => o.date === dateStr && o.isBlocked);
+    const ovr =
+      overrides.find(
+        (o) => o.date === dateStr && !o.isBlocked && (o.customSlots?.length ?? 0) > 0,
+      ) ?? null;
+    return { hasOverride: ovr !== null, isBlocked, override: ovr };
+  };
 
   const haptic = () => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -168,7 +165,7 @@ export function WeekPatternGrid(props: WeekPatternGridProps) {
 
     // Override slots for non-current weeks
     if (hasOverride && override?.customSlots) {
-      const slots = [...override.customSlots].sort((a, b) =>
+      const slots = Array.from(override.customSlots).toSorted((a, b) =>
         a.startTime.localeCompare(b.startTime),
       );
       return (
@@ -198,7 +195,7 @@ export function WeekPatternGrid(props: WeekPatternGridProps) {
     }
 
     // Templates
-    const sorted = [...dayTemplates].sort((a, b) => a.startTime.localeCompare(b.startTime));
+    const sorted = Array.from(dayTemplates).toSorted((a, b) => a.startTime.localeCompare(b.startTime));
     if (sorted.length === 0) {
       return (
         <View key={d.index}>

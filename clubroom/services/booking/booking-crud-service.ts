@@ -29,7 +29,10 @@ import { progressAttendanceService } from '@/services/progress/progress-attendan
 import { authService } from '@/services/auth-service';
 import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
 import { getBookingAthleteName } from '@/utils/booking-display';
-import { bookingAuthorityService, type ApiRebookContextResponse } from './booking-authority-service';
+import {
+  bookingAuthorityService,
+  type ApiRebookContextResponse,
+} from './booking-authority-service';
 import {
   type Result,
   type ServiceError,
@@ -1371,14 +1374,13 @@ class BookingCrudService {
       }
 
       // DBS safeguarding gate for each booking in batch
-      for (const booking of bookings) {
-        const dbsResult = await this.validateDbsGate(
-          booking.coachId,
-          booking.athleteIds ?? [],
-          booking.bookedById ?? '',
-        );
-        if (!dbsResult.success) return err(dbsResult.error);
-      }
+      const dbsResults = await Promise.all(
+        bookings.map((booking) =>
+          this.validateDbsGate(booking.coachId, booking.athleteIds ?? [], booking.bookedById ?? ''),
+        ),
+      );
+      const failedDbsResult = dbsResults.find((result) => !result.success);
+      if (failedDbsResult) return err(failedDbsResult.error);
 
       const existing = await this.loadFromStorage();
       existing.push(...bookings);
@@ -1389,16 +1391,18 @@ class BookingCrudService {
 
       // Emit events for each booking
       for (const booking of bookings) {
+        const athleteIds = booking.athleteIds ?? [];
+        const athleteCount = athleteIds.length;
         emitTyped(ServiceEvents.BOOKING_CREATED, {
           bookingId: booking.id,
           userId: booking.bookedById ?? '',
           coachId: booking.coachId,
           coachName: booking.coachName,
           athleteIds: booking.athleteIds,
-          athleteName: booking.athleteIds?.length
-            ? booking.athleteIds.length === 1
-              ? booking.athleteIds[0]
-              : `${booking.athleteIds.length} athletes`
+          athleteName: athleteCount
+            ? athleteCount === 1
+              ? athleteIds[0]
+              : `${athleteCount} athletes`
             : undefined,
           scheduledAt: booking.scheduledAt,
           service: booking.service,

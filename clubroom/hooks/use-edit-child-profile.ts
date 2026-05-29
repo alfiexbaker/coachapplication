@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import { router, useLocalSearchParams } from 'expo-router';
 
@@ -14,6 +14,8 @@ import { Routes } from '@/navigation/routes';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { PositionRole } from '@/types/progress-types';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncFinally } from '@/utils/async-control';
 
 const GENDER_OPTIONS: Gender[] = ['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY'];
 const RELATIONSHIP_OPTIONS: Relationship[] = ['SON', 'DAUGHTER', 'WARD', 'GRANDCHILD', 'OTHER'];
@@ -34,26 +36,23 @@ export function useEditChildProfile() {
   const [communicationNotes, setCommunicationNotes] = useState('');
   const [behavioralNotes, setBehavioralNotes] = useState('');
 
-  const hydrate = useCallback(
-    (child: ChildProfile) => {
-      if (initialized) {
-        return;
-      }
-      setFirstName(child.firstName);
-      setLastName(child.lastName);
-      setNickname(child.nickname ?? '');
-      setDateOfBirth(child.dateOfBirth ?? '');
-      setGender(child.gender);
-      setRelationship(child.relationship);
-      setPrimaryPosition(child.primaryPosition ?? null);
-      setCommunicationNotes(child.communicationNotes ?? '');
-      setBehavioralNotes(child.behavioralNotes ?? '');
-      setInitialized(true);
-    },
-    [initialized],
-  );
+  const hydrate = (child: ChildProfile) => {
+    if (initialized) {
+      return;
+    }
+    setFirstName(child.firstName);
+    setLastName(child.lastName);
+    setNickname(child.nickname ?? '');
+    setDateOfBirth(child.dateOfBirth ?? '');
+    setGender(child.gender);
+    setRelationship(child.relationship);
+    setPrimaryPosition(child.primaryPosition ?? null);
+    setCommunicationNotes(child.communicationNotes ?? '');
+    setBehavioralNotes(child.behavioralNotes ?? '');
+    setInitialized(true);
+  };
 
-  const load = useCallback(async () => {
+  const load = async () => {
     if (!childId) {
       return err(serviceError('VALIDATION', 'Missing child ID.'));
     }
@@ -63,7 +62,7 @@ export function useEditChildProfile() {
     }
     hydrate(child);
     return ok(child);
-  }, [childId, hydrate]);
+  };
 
   const {
     data: child,
@@ -78,20 +77,21 @@ export function useEditChildProfile() {
     dataKey: childId ? `edit-child-profile:${childId}` : 'edit-child-profile:missing',
   });
 
-  const validate = useCallback(() => {
+  const validate = () => {
     if (!firstName.trim() || !lastName.trim()) {
       uiFeedback.showToast('Please enter first and last name.', 'error');
       return false;
     }
     return true;
-  }, [firstName, lastName]);
+  };
 
-  const handleSave = useCallback(async () => {
+  const handleSave = async () => {
     if (!child || !validate()) {
       return;
     }
     setSaving(true);
-    try {
+
+    return await runAsyncFinally(async () => {
       const updates: Partial<CreateChildInput> = {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
@@ -111,87 +111,54 @@ export function useEditChildProfile() {
       }
       uiFeedback.showToast('Child profile updated.', 'success');
       router.back();
-    } finally {
+    }, () => {
       setSaving(false);
-    }
-  }, [
-    child,
-    validate,
-    firstName,
-    lastName,
-    nickname,
-    dateOfBirth,
-    gender,
-    relationship,
-    primaryPosition,
-    communicationNotes,
-    behavioralNotes,
-  ]);
+    });
+  };
 
-  const openMedicalInfo = useCallback(() => {
+  const openMedicalInfo = () => {
     if (!child) {
       return;
     }
     router.push(Routes.childMedical(child.id));
-  }, [child]);
+  };
 
-  const openEmergencyContacts = useCallback(() => {
+  const openEmergencyContacts = () => {
     if (!child) {
       return;
     }
     router.push(Routes.childEmergency(child.id));
-  }, [child]);
+  };
 
-  return useMemo(
-    () => ({
-      child,
-      loading: status === 'loading',
-      status,
-      error: status === 'error' ? (error as ServiceError | null) : null,
-      retry,
-      saving,
-      firstName,
-      setFirstName,
-      lastName,
-      setLastName,
-      nickname,
-      setNickname,
-      dateOfBirth,
-      setDateOfBirth,
-      gender,
-      setGender,
-      relationship,
-      setRelationship,
-      primaryPosition,
-      setPrimaryPosition,
-      genderOptions: GENDER_OPTIONS,
-      relationshipOptions: RELATIONSHIP_OPTIONS,
-      communicationNotes,
-      setCommunicationNotes,
-      behavioralNotes,
-      setBehavioralNotes,
-      openMedicalInfo,
-      openEmergencyContacts,
-      handleSave,
-    }),
-    [
-      child,
-      status,
-      error,
-      retry,
-      saving,
-      firstName,
-      lastName,
-      nickname,
-      dateOfBirth,
-      gender,
-      relationship,
-      primaryPosition,
-      communicationNotes,
-      behavioralNotes,
-      openMedicalInfo,
-      openEmergencyContacts,
-      handleSave,
-    ],
-  );
+  return ({
+    child,
+    loading: status === 'loading',
+    status,
+    error: status === 'error' ? (error as ServiceError | null) : null,
+    retry,
+    saving,
+    firstName,
+    setFirstName,
+    lastName,
+    setLastName,
+    nickname,
+    setNickname,
+    dateOfBirth,
+    setDateOfBirth,
+    gender,
+    setGender,
+    relationship,
+    setRelationship,
+    primaryPosition,
+    setPrimaryPosition,
+    genderOptions: GENDER_OPTIONS,
+    relationshipOptions: RELATIONSHIP_OPTIONS,
+    communicationNotes,
+    setCommunicationNotes,
+    behavioralNotes,
+    setBehavioralNotes,
+    openMedicalInfo,
+    openEmergencyContacts,
+    handleSave,
+  });
 }

@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -19,7 +18,7 @@ interface AnnotationBadgeProps {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export const AnnotationBadge = memo(function AnnotationBadge({
+export const AnnotationBadge = function AnnotationBadge({
   annotation,
   onPress,
   compact = false,
@@ -55,7 +54,7 @@ export const AnnotationBadge = memo(function AnnotationBadge({
       </ThemedText>
     </Clickable>
   );
-});
+};
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 

@@ -4,7 +4,7 @@
  * Accepts either an invoiceId directly, or a bookingId (looks up the invoice).
  */
 
-import { memo, useState, useCallback } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -12,6 +12,8 @@ import { Button } from '@/components/primitives/button';
 import { invoiceService } from '@/services/invoice-service';
 import { useTheme } from '@/hooks/useTheme';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 interface MarkPaidButtonProps {
   invoiceId?: string;
@@ -24,7 +26,7 @@ function MarkPaidButtonInner({ invoiceId, bookingId, onSuccess, variant = 'prima
   const { colors } = useTheme();
   const [loading, setLoading] = useState(false);
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     uiFeedback.alert(
       'Mark as Paid',
       'Confirm this invoice has been paid?',
@@ -34,7 +36,8 @@ function MarkPaidButtonInner({ invoiceId, bookingId, onSuccess, variant = 'prima
           text: 'Mark Paid',
           onPress: async () => {
             setLoading(true);
-            try {
+
+            return await runAsyncTryCatchFinally(async () => {
               let targetInvoiceId = invoiceId;
 
               // Look up invoice by booking if no direct ID
@@ -56,16 +59,16 @@ function MarkPaidButtonInner({ invoiceId, bookingId, onSuccess, variant = 'prima
               } else {
                 uiFeedback.showToast('Failed to mark invoice as paid.', 'error');
               }
-            } catch {
+            }, async error => {
               uiFeedback.showToast('Something went wrong. Please try again.', 'error');
-            } finally {
+            }, () => {
               setLoading(false);
-            }
+            });
           },
         },
       ],
     );
-  }, [invoiceId, bookingId, onSuccess]);
+  };
 
   if (loading) {
     return <ActivityIndicator size="small" color={colors.success} />;
@@ -84,4 +87,4 @@ function MarkPaidButtonInner({ invoiceId, bookingId, onSuccess, variant = 'prima
   );
 }
 
-export const MarkPaidButton = memo(MarkPaidButtonInner);
+export const MarkPaidButton = MarkPaidButtonInner;

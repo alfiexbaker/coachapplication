@@ -1,11 +1,3 @@
-/**
- * ChildrenStatsRow — Quick stats bar for the Children Hub.
- *
- * Displays aggregate counts: Children, Sessions, New Badges.
- * Each stat is a SurfaceCard with optional highlight styling.
- */
-
-import { memo } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -27,7 +19,7 @@ interface ChildrenStatsRowProps {
   totalUnseenBadges: number;
 }
 
-export const ChildrenStatsRow = memo(function ChildrenStatsRow({
+export const ChildrenStatsRow = function ChildrenStatsRow({
   childCount,
   totalSessions,
   totalUnseenBadges,
@@ -71,7 +63,7 @@ export const ChildrenStatsRow = memo(function ChildrenStatsRow({
       </Row>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   statCard: {

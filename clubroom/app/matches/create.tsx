@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import { ScrollView, StyleSheet, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
@@ -64,9 +63,9 @@ export default function CreateMatchScreen() {
     handleBack,
     handleSubmit,
   } = useCreateMatch();
-  const handleCreateSquad = useCallback(() => {
+  const handleCreateSquad = () => {
     router.push(Routes.CLUB_SQUAD_CREATE);
-  }, []);
+  };
 
   if (status === 'loading') {
     return (
@@ -243,7 +242,7 @@ export default function CreateMatchScreen() {
               >
                 {isSubmitting ? (
                   <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>
-                    Creating...
+                    Creating…
                   </ThemedText>
                 ) : (
                   <Row align="center" justify="center" gap="sm">

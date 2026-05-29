@@ -1,8 +1,3 @@
-/**
- * SpecialNeedsObservations — Coach's own observation section on the SEN screen.
- */
-
-import { memo, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -21,7 +16,7 @@ interface SpecialNeedsObservationsProps {
   onDelete: (observationId: string) => void;
 }
 
-export const SpecialNeedsObservations = memo(function SpecialNeedsObservations({
+export const SpecialNeedsObservations = function SpecialNeedsObservations({
   observations,
   onAdd,
   onEdit,
@@ -72,9 +67,9 @@ export const SpecialNeedsObservations = memo(function SpecialNeedsObservations({
       )}
     </View>
   );
-});
+};
 
-const ObservationCard = memo(function ObservationCard({
+const ObservationCard = function ObservationCard({
   observation,
   onEdit,
   onDelete,
@@ -85,8 +80,8 @@ const ObservationCard = memo(function ObservationCard({
 }) {
   const { colors } = useTheme();
 
-  const handleEdit = useCallback(() => onEdit(observation), [observation, onEdit]);
-  const handleDelete = useCallback(() => onDelete(observation.id), [observation.id, onDelete]);
+  const handleEdit = () => onEdit(observation);
+  const handleDelete = () => onDelete(observation.id);
 
   const dateLabel = new Date(observation.createdAt).toLocaleDateString('en-GB', {
     day: 'numeric',
@@ -136,7 +131,7 @@ const ObservationCard = memo(function ObservationCard({
       </Row>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.sm },

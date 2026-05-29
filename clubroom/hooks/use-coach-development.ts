@@ -1,7 +1,7 @@
 /**
  * useCoachDevelopment — Data loading and computed values for the coach development screen.
  */
-import { useMemo, useCallback } from 'react';
+import { useState } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
@@ -64,8 +64,9 @@ interface CoachDevelopmentData {
 
 export function useCoachDevelopment() {
   const { currentUser } = useAuth();
+  const [nowMs] = useState(() => Date.now());
 
-  const loadDevelopment = useCallback(async () => {
+  const loadDevelopment = async () => {
     if (!currentUser?.id) {
       return ok<CoachDevelopmentData>({
         sessions: [],
@@ -81,7 +82,7 @@ export function useCoachDevelopment() {
       ]);
       const coachSessions = storedSessions.filter((session) => session.coachId === currentUser.id);
       const athleteIds = [
-        ...new Set(coachSessions.map((session) => session.athleteId).filter(Boolean)),
+        ...new Set(coachSessions.flatMap((session) => (session.athleteId ? [session.athleteId] : []))),
       ];
       const athleteResult = await userService.getUsersByIds(athleteIds);
       const athleteDirectory: Record<string, User> = {};
@@ -113,7 +114,7 @@ export function useCoachDevelopment() {
       logger.error('Failed to load coach development', error);
       return err(serviceError('UNKNOWN', 'Failed to load coach development.', error));
     }
-  }, [currentUser?.id]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<CoachDevelopmentData>({
     load: loadDevelopment,
@@ -128,7 +129,7 @@ export function useCoachDevelopment() {
   const athleteDirectory = data?.athleteDirectory ?? {};
   const awaitingCompletion = data?.awaitingCompletion ?? [];
 
-  const athletesWithSessions = useMemo(() => {
+  const athletesWithSessions = (() => {
     if (!currentUser || allSessions.length === 0) return [];
 
     const athleteMap = new Map<string, Session[]>();
@@ -139,7 +140,7 @@ export function useCoachDevelopment() {
 
     const athletes: AthleteWithSessions[] = [];
     athleteMap.forEach((athleteSessions, athleteId) => {
-      const sortedSessions = [...athleteSessions].sort(
+      const sortedSessions = Array.from(athleteSessions).toSorted(
         (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
       );
       const latestSession = sortedSessions[0];
@@ -171,13 +172,12 @@ export function useCoachDevelopment() {
     return athletes.sort(
       (a, b) => new Date(b.lastSession).getTime() - new Date(a.lastSession).getTime(),
     );
-  }, [currentUser, allSessions, athleteDirectory]);
+  })();
 
-  const rosterEntries: AthleteRosterEntry[] = useMemo(() => {
-    const now = Date.now();
+  const rosterEntries: AthleteRosterEntry[] = (() => {
     return athletesWithSessions.map((entry) => {
       const athleteSessions = allSessions.filter((s) => s.athleteId === entry.athlete.id);
-      const sortedAthleteSessions = [...athleteSessions].sort(
+      const sortedAthleteSessions = Array.from(athleteSessions).toSorted(
         (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime(),
       );
       const needsNotes = athleteSessions.some((s) => !s.notes || s.notes.trim() === '');
@@ -185,7 +185,7 @@ export function useCoachDevelopment() {
         sortedAthleteSessions.find((s) => !s.notes || s.notes.trim() === '') ?? null;
       const daysSinceLast = Math.max(
         0,
-        Math.round((now - new Date(entry.lastSession).getTime()) / (1000 * 60 * 60 * 24)),
+        Math.round((nowMs - new Date(entry.lastSession).getTime()) / (1000 * 60 * 60 * 24)),
       );
       return {
         ...entry,
@@ -194,19 +194,15 @@ export function useCoachDevelopment() {
         prioritySessionId: (sessionNeedingNotes ?? sortedAthleteSessions[0])?.id ?? null,
       };
     });
-  }, [allSessions, athletesWithSessions]);
+  })();
 
   const attentionAthletes = rosterEntries.filter(
     (e) => e.needsNotes || e.averageRating < 4 || e.daysSinceLast >= 10,
   );
 
-  const recentSessions = useMemo(
-    () =>
-      [...allSessions]
-        .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
-        .slice(0, 5),
-    [allSessions],
-  );
+  const recentSessions = Array.from(allSessions)
+    .toSorted((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+    .slice(0, 5);
 
   return {
     currentUser,

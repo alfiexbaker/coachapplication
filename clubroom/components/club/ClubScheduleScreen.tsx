@@ -1,9 +1,7 @@
-import { useMemo } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import type { Href } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
@@ -14,10 +12,12 @@ import { ClubScheduleActivityCard } from '@/components/club/ClubScheduleActivity
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import type { ThemeColors } from '@/hooks/useTheme';
 import { useClubSchedule, CLUB_SCHEDULE_FILTERS } from '@/hooks/use-club-schedule';
-import type { ClubScheduleFilter } from '@/utils/club-schedule-display';
+import type { ClubScheduleDayGroup, ClubScheduleFilter } from '@/utils/club-schedule-display';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
+import type { ClubActivity } from '@/constants/types';
 
 export interface ClubScheduleScreenProps {
   clubId?: string;
@@ -59,6 +59,10 @@ function getPrimaryCreateHref(_scope: 'club' | 'squad', _clubId?: string, _squad
   return Routes.GROUP_SESSIONS_CREATE;
 }
 
+function getEmptyTitle(filter: ClubScheduleFilter): string {
+  return `No ${CLUB_SCHEDULE_FILTERS.find((item) => item.key === filter)?.label.toLowerCase() ?? 'schedule'} items`;
+}
+
 export function ClubScheduleScreen({ clubId, squadId, scope }: ClubScheduleScreenProps) {
   const { colors } = useTheme();
   const { currentUser } = useAuth();
@@ -66,12 +70,12 @@ export function ClubScheduleScreen({ clubId, squadId, scope }: ClubScheduleScree
   const canCreateItems = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
   const title = scope === 'club' ? 'Club Schedule' : 'Team Schedule';
-  const subtitle = useMemo(() => {
+  const subtitle = (() => {
     if (scope === 'club') {
       return schedule.club?.name ?? 'Everything happening next';
     }
     return schedule.squad?.name ?? 'Everything this team is doing next';
-  }, [scope, schedule.club?.name, schedule.squad?.name]);
+  })();
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -97,63 +101,101 @@ export function ClubScheduleScreen({ clubId, squadId, scope }: ClubScheduleScree
 
     router.push(Routes.clubActivity(resolvedClubId, activityId));
   };
+  const filterItems = getClubScheduleFilterItems(
+    schedule.filter,
+    schedule.counts,
+    colors,
+    schedule.setFilter,
+  );
+  const groupItems = getClubScheduleGroupItems(
+    schedule.groupedActivities,
+    colors,
+    handleActivityPress,
+  );
+  const emptyState = (
+    <EmptyState
+      icon="calendar-clear-outline"
+      title={getEmptyTitle(schedule.filter)}
+      message={getEmptyMessage(schedule.filter, scope)}
+    />
+  );
+  const listHeader = (
+    <FlatList
+      contentInsetAdjustmentBehavior="automatic"
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.filterScroll}
+      contentContainerStyle={styles.filterContent}
+      data={filterItems}
+      keyExtractor={keyClubScheduleFilterItem}
+      renderItem={renderClubScheduleFilterItem}
+    />
+  );
 
   if (schedule.status === 'loading') {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <PageHeader title={title} subtitle={subtitle} showBack onBackPress={handleBack} />
         <LoadingState variant="schedule" />
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (schedule.error) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <PageHeader title={title} subtitle={subtitle} showBack onBackPress={handleBack} />
         <ErrorState message={schedule.error.message} onRetry={schedule.retry} />
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <PageHeader
         title={title}
         subtitle={subtitle}
         showBack
         onBackPress={handleBack}
-        right={canCreateItems ? (
-          <Row align="center" gap="xs">
-            <Clickable
-              style={[styles.headerAction, { borderColor: colors.border }]}
-              onPress={() => router.push(Routes.EVENTS_CREATE)}
-              accessibilityLabel="Create event"
-            >
-              <Ionicons name="calendar-outline" size={18} color={colors.tint} />
-            </Clickable>
-            <Clickable
-              style={[styles.headerAction, { borderColor: colors.border }]}
-              onPress={() => router.push(getPrimaryCreateHref(scope, clubId, squadId))}
-              accessibilityLabel="Create training"
-            >
-              <Ionicons name="football-outline" size={18} color={colors.tint} />
-            </Clickable>
-            <Clickable
-              style={[styles.headerAction, { borderColor: colors.border }]}
-              onPress={() => router.push(Routes.MATCHES_CREATE)}
-              accessibilityLabel="Create match"
-            >
-              <Ionicons name="trophy-outline" size={18} color={colors.tint} />
-            </Clickable>
-          </Row>
-        ) : undefined}
+        right={
+          canCreateItems ? (
+            <Row align="center" gap="xs">
+              <Clickable
+                style={[styles.headerAction, { borderColor: colors.border }]}
+                onPress={() => router.push(Routes.EVENTS_CREATE)}
+                accessibilityLabel="Create event"
+              >
+                <Ionicons name="calendar-outline" size={18} color={colors.tint} />
+              </Clickable>
+              <Clickable
+                style={[styles.headerAction, { borderColor: colors.border }]}
+                onPress={() => router.push(getPrimaryCreateHref(scope, clubId, squadId))}
+                accessibilityLabel="Create training"
+              >
+                <Ionicons name="football-outline" size={18} color={colors.tint} />
+              </Clickable>
+              <Clickable
+                style={[styles.headerAction, { borderColor: colors.border }]}
+                onPress={() => router.push(Routes.MATCHES_CREATE)}
+                accessibilityLabel="Create match"
+              >
+                <Ionicons name="trophy-outline" size={18} color={colors.tint} />
+              </Clickable>
+            </Row>
+          ) : undefined
+        }
       />
 
-      <ScrollView
+      <FlatList
+        contentInsetAdjustmentBehavior="automatic"
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        data={groupItems}
+        keyExtractor={keyClubScheduleGroupItem}
+        renderItem={renderClubScheduleGroupItem}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={emptyState}
         refreshControl={
           <RefreshControl
             refreshing={schedule.refreshing}
@@ -162,96 +204,144 @@ export function ClubScheduleScreen({ clubId, squadId, scope }: ClubScheduleScree
             colors={[colors.tint]}
           />
         }
-      >
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filterScroll}
-          contentContainerStyle={styles.filterContent}
+      />
+    </View>
+  );
+}
+
+interface ClubScheduleFilterItem {
+  key: ClubScheduleFilter;
+  active: boolean;
+  count: number;
+  icon: string;
+  label: string;
+  colors: ThemeColors;
+  onPress: () => void;
+}
+
+function getClubScheduleFilterItems(
+  selectedFilter: ClubScheduleFilter,
+  counts: Record<ClubScheduleFilter, number>,
+  colors: ThemeColors,
+  onSelectFilter: (filter: ClubScheduleFilter) => void,
+): ClubScheduleFilterItem[] {
+  return CLUB_SCHEDULE_FILTERS.map((filter) => ({
+    key: filter.key,
+    active: selectedFilter === filter.key,
+    count: counts[filter.key],
+    icon: filter.icon,
+    label: filter.label,
+    colors,
+    onPress: () => onSelectFilter(filter.key),
+  }));
+}
+
+function keyClubScheduleFilterItem(item: ClubScheduleFilterItem): string {
+  return item.key;
+}
+
+function renderClubScheduleFilterItem({ item }: ListRenderItemInfo<ClubScheduleFilterItem>) {
+  return (
+    <Clickable
+      style={[
+        styles.filterChip,
+        {
+          borderColor: item.active ? item.colors.tint : item.colors.border,
+          backgroundColor: item.active ? withAlpha(item.colors.tint, 0.09) : item.colors.surface,
+        },
+      ]}
+      onPress={item.onPress}
+    >
+      <Row align="center" gap="xs">
+        <Ionicons
+          name={item.icon as keyof typeof Ionicons.glyphMap}
+          size={15}
+          color={item.active ? item.colors.tint : item.colors.muted}
+        />
+        <ThemedText
+          style={[
+            Typography.smallSemiBold,
+            { color: item.active ? item.colors.tint : item.colors.foreground },
+          ]}
         >
-          {CLUB_SCHEDULE_FILTERS.map((filter) => {
-            const active = schedule.filter === filter.key;
-            const count = schedule.counts[filter.key];
+          {item.label}
+        </ThemedText>
+        <View
+          style={[
+            styles.countBadge,
+            {
+              backgroundColor: item.active ? item.colors.tint : withAlpha(item.colors.muted, 0.16),
+            },
+          ]}
+        >
+          <ThemedText
+            style={[
+              Typography.micro,
+              { color: item.active ? item.colors.onPrimary : item.colors.foreground },
+            ]}
+          >
+            {item.count}
+          </ThemedText>
+        </View>
+      </Row>
+    </Clickable>
+  );
+}
 
-            return (
-              <Clickable
-                key={filter.key}
-                style={[
-                  styles.filterChip,
-                  {
-                    borderColor: active ? colors.tint : colors.border,
-                    backgroundColor: active ? withAlpha(colors.tint, 0.09) : colors.surface,
-                  },
-                ]}
-                onPress={() => schedule.setFilter(filter.key)}
-              >
-                <Row align="center" gap="xs">
-                  <Ionicons
-                    name={filter.icon as keyof typeof Ionicons.glyphMap}
-                    size={15}
-                    color={active ? colors.tint : colors.muted}
-                  />
-                  <ThemedText
-                    style={[
-                      Typography.smallSemiBold,
-                      { color: active ? colors.tint : colors.foreground },
-                    ]}
-                  >
-                    {filter.label}
-                  </ThemedText>
-                  <View
-                    style={[
-                      styles.countBadge,
-                      {
-                        backgroundColor: active ? colors.tint : withAlpha(colors.muted, 0.16),
-                      },
-                    ]}
-                  >
-                    <ThemedText
-                      style={[
-                        Typography.micro,
-                        { color: active ? colors.onPrimary : colors.foreground },
-                      ]}
-                    >
-                      {count}
-                    </ThemedText>
-                  </View>
-                </Row>
-              </Clickable>
-            );
-          })}
-        </ScrollView>
+interface ClubScheduleActivityItem {
+  key: string;
+  activity: ClubActivity;
+  onPress: () => void;
+}
 
-        {schedule.groupedActivities.length === 0 ? (
-          <EmptyState
-            icon="calendar-clear-outline"
-            title={`No ${CLUB_SCHEDULE_FILTERS.find((filter) => filter.key === schedule.filter)?.label.toLowerCase() ?? 'schedule'} items`}
-            message={getEmptyMessage(schedule.filter, scope)}
+interface ClubScheduleGroupItem {
+  key: string;
+  title: string;
+  activities: ClubScheduleActivityItem[];
+  colors: ThemeColors;
+}
+
+function getClubScheduleGroupItems(
+  groups: ClubScheduleDayGroup[],
+  colors: ThemeColors,
+  onActivityPress: (activityId: string, activityClubId?: string) => void,
+): ClubScheduleGroupItem[] {
+  return groups.map((group) => ({
+    key: group.key,
+    title: group.title,
+    colors,
+    activities: group.items.map((activity) => ({
+      key: activity.id,
+      activity,
+      onPress: () => onActivityPress(activity.id, activity.clubId),
+    })),
+  }));
+}
+
+function keyClubScheduleGroupItem(item: ClubScheduleGroupItem): string {
+  return item.key;
+}
+
+function renderClubScheduleGroupItem({ item }: ListRenderItemInfo<ClubScheduleGroupItem>) {
+  return (
+    <View style={styles.group}>
+      <Row align="center" justify="between" style={styles.groupHeader}>
+        <ThemedText type="defaultSemiBold">{item.title}</ThemedText>
+        <ThemedText style={[Typography.caption, { color: item.colors.muted }]}>
+          {item.activities.length} item{item.activities.length === 1 ? '' : 's'}
+        </ThemedText>
+      </Row>
+
+      <SurfaceCard style={styles.groupCard}>
+        {item.activities.map((activityItem) => (
+          <ClubScheduleActivityCard
+            key={activityItem.key}
+            activity={activityItem.activity}
+            onPress={activityItem.onPress}
           />
-        ) : (
-          schedule.groupedActivities.map((group) => (
-            <View key={group.key} style={styles.group}>
-              <Row align="center" justify="between" style={styles.groupHeader}>
-                <ThemedText type="defaultSemiBold">{group.title}</ThemedText>
-                <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-                  {group.items.length} item{group.items.length === 1 ? '' : 's'}
-                </ThemedText>
-              </Row>
-
-              <SurfaceCard style={styles.groupCard}>
-                {group.items.map((activity) => (
-                  <ClubScheduleActivityCard
-                    key={activity.id}
-                    activity={activity}
-                    onPress={() => handleActivityPress(activity.id, activity.clubId)}
-                  />
-                ))}
-              </SurfaceCard>
-            </View>
-          ))
-        )}
-      </ScrollView>
-    </SafeAreaView>
+        ))}
+      </SurfaceCard>
+    </View>
   );
 }
 

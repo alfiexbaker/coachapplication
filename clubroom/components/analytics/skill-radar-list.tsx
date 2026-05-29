@@ -1,7 +1,3 @@
-/**
- * SkillRadarList — List view for skill progress display.
- */
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
@@ -96,7 +92,7 @@ function SkillRadarListInner({ skillsByCategory }: SkillRadarListProps) {
   );
 }
 
-export const SkillRadarList = memo(SkillRadarListInner);
+export const SkillRadarList = SkillRadarListInner;
 
 const styles = StyleSheet.create({
   listView: { gap: Spacing.md },

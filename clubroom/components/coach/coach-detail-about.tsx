@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -35,7 +35,7 @@ function SummaryChip({
   );
 }
 
-export const CoachDetailAbout = memo(function CoachDetailAbout({ coach }: CoachDetailAboutProps) {
+export const CoachDetailAbout = function CoachDetailAbout({ coach }: CoachDetailAboutProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -124,7 +124,7 @@ export const CoachDetailAbout = memo(function CoachDetailAbout({ coach }: CoachD
       )}
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   tabContent: { padding: Spacing.lg, gap: Spacing.md },

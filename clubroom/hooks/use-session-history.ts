@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import { badgeService } from '@/services/badge-service';
 import { mediaService } from '@/services/media-service';
@@ -31,7 +31,7 @@ export function useSessionHistory(athleteIdParam?: string | null) {
   const [filter, setFilter] = useState<SessionHistoryFilter>('all');
   const [coachFilter, setCoachFilter] = useState<string>('all');
 
-  const resolvedAthleteId = useMemo(() => {
+  const resolvedAthleteId = (() => {
     if (athleteIdParam) {
       return athleteIdParam;
     }
@@ -42,9 +42,9 @@ export function useSessionHistory(athleteIdParam?: string | null) {
       return null;
     }
     return currentUser?.id ?? null;
-  }, [activeChildId, athleteIdParam, children, currentUser?.id, currentUser?.role]);
+  })();
 
-  const load = useCallback(async () => {
+  const load = async () => {
     if (!currentUser?.id) {
       return err(serviceError('VALIDATION', 'Missing user context.'));
     }
@@ -79,7 +79,7 @@ export function useSessionHistory(athleteIdParam?: string | null) {
       logger.error('Failed to load session history', error);
       return err(serviceError('UNKNOWN', 'Failed to load session history.', error));
     }
-  }, [currentUser?.id, currentUser?.role, resolvedAthleteId]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<SessionHistoryData>({
     load,
@@ -92,9 +92,9 @@ export function useSessionHistory(athleteIdParam?: string | null) {
       : `session-history:${currentUser?.id ?? 'missing'}:none`,
   });
 
-  const sessions = useMemo(() => data?.sessions ?? [], [data?.sessions]);
+  const sessions = data?.sessions ?? [];
 
-  const coachOptions = useMemo<SessionHistoryCoachOption[]>(() => {
+  const coachOptions = (() => {
     const counts = new Map<string, number>();
     for (const session of sessions) {
       const key = session.coachName || 'Coach';
@@ -103,9 +103,9 @@ export function useSessionHistory(athleteIdParam?: string | null) {
     return Array.from(counts.entries())
       .map(([coachName, count]) => ({ coachName, count }))
       .sort((left, right) => right.count - left.count);
-  }, [sessions]);
+  })();
 
-  const filteredSessions = useMemo(() => {
+  const filteredSessions = (() => {
     return sessions.filter((session) => {
       const hasMedia = session.photos.length > 0 || Boolean(session.video);
       const hasBadge = Boolean(session.badgeAwarded);
@@ -114,7 +114,7 @@ export function useSessionHistory(athleteIdParam?: string | null) {
       const matchesCoach = coachFilter === 'all' || session.coachName === coachFilter;
       return matchesFilter && matchesCoach;
     });
-  }, [coachFilter, filter, sessions]);
+  })();
 
   return {
     status,

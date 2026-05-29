@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,7 +14,7 @@ interface PastSessionsPlaceholderProps {
   onViewHistory?: () => void;
 }
 
-export const PastSessionsPlaceholder = memo(function PastSessionsPlaceholder({
+export const PastSessionsPlaceholder = function PastSessionsPlaceholder({
   sessions,
   onViewHistory,
 }: PastSessionsPlaceholderProps) {
@@ -62,7 +61,7 @@ export const PastSessionsPlaceholder = memo(function PastSessionsPlaceholder({
       </Column>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

@@ -15,6 +15,8 @@ import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useVerificationHub } from '@/hooks/use-verification-hub';
 
+const VERIFICATION_HEADER = <PageHeader title="Verification" subtitle="Build trust with parents" />;
+
 export default function VerificationHubScreen() {
   const { colors: palette } = useTheme();
   const {
@@ -28,7 +30,6 @@ export default function VerificationHubScreen() {
     hasCredentials,
     credentialStatus,
   } = useVerificationHub();
-  const header = <PageHeader title="Verification" subtitle="Build trust with parents" />;
 
   if (!status) {
     return (
@@ -42,7 +43,7 @@ export default function VerificationHubScreen() {
         emptyTitle="Verification unavailable"
         emptyMessage="Verification status is currently unavailable."
         isEmpty
-        header={header}
+        header={VERIFICATION_HEADER}
       >
         <></>
       </VerificationScreenState>
@@ -68,7 +69,7 @@ export default function VerificationHubScreen() {
       emptyIcon="shield-checkmark-outline"
       emptyTitle="Verification unavailable"
       emptyMessage="Verification status is currently unavailable."
-      header={header}
+      header={VERIFICATION_HEADER}
     >
       <ScrollView
         contentContainerStyle={styles.content}

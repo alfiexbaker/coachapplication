@@ -5,8 +5,8 @@
  * Allows users to quickly toggle common filters and clear all filters.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { FlatList, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,12 +15,15 @@ import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import type { ThemeColors } from '@/hooks/useTheme';
 import type { CoachSearchFilters, FootballObjective } from '@/constants/types';
 import { discoverService } from '@/services/discover-service';
 
 import { QUICK_FILTERS, FOCUS_FILTERS } from './filter-bar-sections';
 import type { QuickFilter } from './filter-bar-sections';
 import { Row } from '@/components/primitives';
+
+import { runAsyncFinally } from '@/utils/async-control';
 
 interface FilterBarProps {
   filters: CoachSearchFilters;
@@ -40,60 +43,60 @@ export function FilterBar({
   variant = 'default',
 }: FilterBarProps) {
   const { colors: palette } = useTheme();
-  const scrollRef = useRef<ScrollView>(null);
   const isMapVariant = variant === 'map';
   const quickFilters = isMapVariant ? QUICK_FILTERS.slice(0, 3) : QUICK_FILTERS;
   const showFocusFilters = !isMapVariant;
   const [filterCounts, setFilterCounts] = useState<Record<string, number>>({});
   const [isCountingFilters, setIsCountingFilters] = useState(false);
 
-  const countableFilters = useMemo(
-    () => [
-      ...quickFilters.map((q) => ({
-        id: q.id,
-        apply: (f: CoachSearchFilters) => (q.getIsActive(f) ? f : q.toggle(f)),
-      })),
-      ...(showFocusFilters
-        ? FOCUS_FILTERS.map((focus) => ({
-            id: `focus:${focus.id}`,
-            apply: (f: CoachSearchFilters) => {
-              const current = f.focuses ?? [];
-              return {
-                ...f,
-                focuses: current.includes(focus.id)
-                  ? current
-                  : [...current, focus.id],
-              };
-            },
-          }))
-        : []),
-    ],
-    [quickFilters, showFocusFilters],
-  );
-
   useEffect(() => {
     let active = true;
     const timeout = setTimeout(async () => {
       setIsCountingFilters(true);
-      try {
-        const entries = await Promise.all(
-          countableFilters.map(async (item) => {
-            const result = await discoverService.countCoaches(item.apply(filters));
-            return [item.id, result.success ? result.data : 0] as const;
-          }),
-        );
-        if (!active) return;
-        setFilterCounts(Object.fromEntries(entries));
-      } finally {
-        if (active) setIsCountingFilters(false);
-      }
+
+      return await runAsyncFinally(
+        async () => {
+          const filtersToCount = [
+            ...(isMapVariant ? QUICK_FILTERS.slice(0, 3) : QUICK_FILTERS).map((quickFilter) => ({
+              id: quickFilter.id,
+              apply: (nextFilters: CoachSearchFilters) =>
+                quickFilter.getIsActive(nextFilters)
+                  ? nextFilters
+                  : quickFilter.toggle(nextFilters),
+            })),
+            ...(!isMapVariant
+              ? FOCUS_FILTERS.map((focus) => ({
+                  id: `focus:${focus.id}`,
+                  apply: (nextFilters: CoachSearchFilters) => {
+                    const current = nextFilters.focuses ?? [];
+                    return {
+                      ...nextFilters,
+                      focuses: current.includes(focus.id) ? current : [...current, focus.id],
+                    };
+                  },
+                }))
+              : []),
+          ];
+          const entries = await Promise.all(
+            filtersToCount.map(async (item) => {
+              const result = await discoverService.countCoaches(item.apply(filters));
+              return [item.id, result.success ? result.data : 0] as const;
+            }),
+          );
+          if (!active) return;
+          setFilterCounts(Object.fromEntries(entries));
+        },
+        () => {
+          if (active) setIsCountingFilters(false);
+        },
+      );
     }, 200);
 
     return () => {
       active = false;
       clearTimeout(timeout);
     };
-  }, [countableFilters, filters]);
+  }, [filters, isMapVariant]);
 
   const handleQuickFilterToggle = (quickFilter: QuickFilter) => {
     const newFilters = quickFilter.toggle(filters);
@@ -116,109 +119,32 @@ export function FilterBar({
   };
 
   const hasActiveFilters = activeFilterCount > 0;
+  const filterBarItems = getFilterBarItems({
+    activeFilterCount,
+    filterCounts,
+    filters,
+    hasActiveFilters,
+    isCountingFilters,
+    isMapVariant,
+    onClearFilters: handleClearFilters,
+    onFocusToggle: handleFocusToggle,
+    onOpenFilters,
+    onQuickFilterToggle: handleQuickFilterToggle,
+    palette,
+    quickFilters,
+    showFocusFilters,
+  });
 
   return (
     <View style={[styles.container, isMapVariant && styles.containerMap]}>
-      <ScrollView
-        ref={scrollRef}
+      <FlatList
         horizontal
         showsHorizontalScrollIndicator={false}
+        data={filterBarItems}
+        keyExtractor={keyFilterBarItem}
+        renderItem={renderFilterBarItem}
         contentContainerStyle={styles.scrollContent}
-      >
-        {/* All Filters Button */}
-        <Clickable
-          accessibilityLabel="Open all filters"
-          onPress={onOpenFilters}
-          style={[
-            styles.filterButton,
-            {
-              backgroundColor: hasActiveFilters
-                ? withAlpha(palette.tint, 0.12)
-                : withAlpha(palette.surface, 0.95),
-              borderColor: hasActiveFilters ? palette.tint : withAlpha(palette.border, 0.6),
-            },
-          ]}
-        >
-          <Ionicons
-            name="options-outline"
-            size={16}
-            color={hasActiveFilters ? palette.tint : palette.text}
-          />
-          <ThemedText
-            style={[
-              styles.filterButtonText,
-              { color: hasActiveFilters ? palette.tint : palette.text },
-            ]}
-          >
-            Filters
-          </ThemedText>
-          {activeFilterCount > 0 && (
-            <View style={[styles.badge, { backgroundColor: palette.tint }]}>
-              <ThemedText style={[styles.badgeText, { color: palette.onPrimary }]}>
-                {activeFilterCount}
-              </ThemedText>
-            </View>
-          )}
-        </Clickable>
-
-        {/* Quick Filters */}
-        {quickFilters.map((quickFilter) => {
-          const count = filterCounts[quickFilter.id];
-          const countKnown = typeof count === 'number';
-          const chipDisabled = countKnown && count === 0 && !quickFilter.getIsActive(filters);
-          return (
-            <Chip
-              key={quickFilter.id}
-              active={quickFilter.getIsActive(filters)}
-              onPress={() => handleQuickFilterToggle(quickFilter)}
-              disabled={chipDisabled}
-              style={[styles.chip, chipDisabled ? styles.dimChip : undefined]}
-            >
-              {quickFilter.label}
-              {countKnown ? ` (${count})` : isCountingFilters ? ' (...)' : ''}
-            </Chip>
-          );
-        })}
-
-        {showFocusFilters ? (
-          <>
-            {/* Separator */}
-            <Divider vertical style={{ height: 24, marginHorizontal: Spacing.sm }} />
-
-            {/* Focus Filters */}
-            {FOCUS_FILTERS.map((focus) => {
-              const key = `focus:${focus.id}`;
-              const count = filterCounts[key];
-              const countKnown = typeof count === 'number';
-              const chipDisabled = countKnown && count === 0 && !(filters.focuses?.includes(focus.id) ?? false);
-              return (
-                <Chip
-                  key={focus.id}
-                  active={filters.focuses?.includes(focus.id) ?? false}
-                  onPress={() => handleFocusToggle(focus.id)}
-                  disabled={chipDisabled}
-                  style={[styles.chip, chipDisabled ? styles.dimChip : undefined]}
-                >
-                  {focus.label}
-                  {countKnown ? ` (${count})` : isCountingFilters ? ' (...)' : ''}
-                </Chip>
-              );
-            })}
-          </>
-        ) : null}
-
-        {/* Clear all — inline for map variant */}
-        {isMapVariant && hasActiveFilters ? (
-          <Clickable
-            accessibilityLabel="Clear all filters"
-            onPress={handleClearFilters}
-            style={styles.inlineClear}
-          >
-            <Ionicons name="close-circle" size={14} color={palette.tint} />
-            <ThemedText style={[styles.clearText, { color: palette.tint }]}>Clear</ThemedText>
-          </Clickable>
-        ) : null}
-      </ScrollView>
+      />
 
       {/* Results count and Clear — only on default variant */}
       {!isMapVariant ? (
@@ -240,11 +166,234 @@ export function FilterBar({
       ) : null}
       {isCountingFilters ? (
         <ThemedText style={[styles.countingText, { color: palette.muted }]}>
-          Updating filter counts...
+          Updating filter counts…
         </ThemedText>
       ) : null}
     </View>
   );
+}
+
+type FocusFilter = (typeof FOCUS_FILTERS)[number];
+
+interface FilterBarItemsInput {
+  activeFilterCount: number;
+  filterCounts: Record<string, number>;
+  filters: CoachSearchFilters;
+  hasActiveFilters: boolean;
+  isCountingFilters: boolean;
+  isMapVariant: boolean;
+  onClearFilters: () => void;
+  onFocusToggle: (focus: FootballObjective) => void;
+  onOpenFilters: () => void;
+  onQuickFilterToggle: (quickFilter: QuickFilter) => void;
+  palette: ThemeColors;
+  quickFilters: QuickFilter[];
+  showFocusFilters: boolean;
+}
+
+type FilterBarItem =
+  | {
+      kind: 'all';
+      key: string;
+      activeFilterCount: number;
+      hasActiveFilters: boolean;
+      onPress: () => void;
+      palette: ThemeColors;
+    }
+  | {
+      kind: 'quick';
+      key: string;
+      active: boolean;
+      count: number | undefined;
+      countKnown: boolean;
+      disabled: boolean;
+      isCountingFilters: boolean;
+      label: string;
+      onPress: () => void;
+    }
+  | {
+      kind: 'divider';
+      key: string;
+    }
+  | {
+      kind: 'focus';
+      key: string;
+      active: boolean;
+      count: number | undefined;
+      countKnown: boolean;
+      disabled: boolean;
+      focus: FocusFilter;
+      isCountingFilters: boolean;
+      onPress: () => void;
+    }
+  | {
+      kind: 'clear';
+      key: string;
+      onPress: () => void;
+      palette: ThemeColors;
+    };
+
+function getFilterBarItems({
+  activeFilterCount,
+  filterCounts,
+  filters,
+  hasActiveFilters,
+  isCountingFilters,
+  isMapVariant,
+  onClearFilters,
+  onFocusToggle,
+  onOpenFilters,
+  onQuickFilterToggle,
+  palette,
+  quickFilters,
+  showFocusFilters,
+}: FilterBarItemsInput): FilterBarItem[] {
+  const items: FilterBarItem[] = [
+    {
+      kind: 'all',
+      key: 'all-filters',
+      activeFilterCount,
+      hasActiveFilters,
+      onPress: onOpenFilters,
+      palette,
+    },
+  ];
+
+  quickFilters.forEach((quickFilter) => {
+    const count = filterCounts[quickFilter.id];
+    const countKnown = typeof count === 'number';
+    const active = quickFilter.getIsActive(filters);
+    items.push({
+      kind: 'quick',
+      key: `quick:${quickFilter.id}`,
+      active,
+      count,
+      countKnown,
+      disabled: countKnown && count === 0 && !active,
+      isCountingFilters,
+      label: quickFilter.label,
+      onPress: () => onQuickFilterToggle(quickFilter),
+    });
+  });
+
+  if (showFocusFilters) {
+    items.push({ kind: 'divider', key: 'focus-divider' });
+
+    FOCUS_FILTERS.forEach((focus) => {
+      const key = `focus:${focus.id}`;
+      const count = filterCounts[key];
+      const countKnown = typeof count === 'number';
+      const active = filters.focuses?.includes(focus.id) ?? false;
+
+      items.push({
+        kind: 'focus',
+        key,
+        active,
+        count,
+        countKnown,
+        disabled: countKnown && count === 0 && !active,
+        focus,
+        isCountingFilters,
+        onPress: () => onFocusToggle(focus.id),
+      });
+    });
+  }
+
+  if (isMapVariant && hasActiveFilters) {
+    items.push({
+      kind: 'clear',
+      key: 'clear',
+      onPress: onClearFilters,
+      palette,
+    });
+  }
+
+  return items;
+}
+
+function keyFilterBarItem(item: FilterBarItem): string {
+  return item.key;
+}
+
+function renderFilterBarItem({ item }: ListRenderItemInfo<FilterBarItem>) {
+  switch (item.kind) {
+    case 'all':
+      return (
+        <Clickable
+          accessibilityLabel="Open all filters"
+          onPress={item.onPress}
+          style={[
+            styles.filterButton,
+            {
+              backgroundColor: item.hasActiveFilters
+                ? withAlpha(item.palette.tint, 0.12)
+                : withAlpha(item.palette.surface, 0.95),
+              borderColor: item.hasActiveFilters
+                ? item.palette.tint
+                : withAlpha(item.palette.border, 0.6),
+            },
+          ]}
+        >
+          <Ionicons
+            name="options-outline"
+            size={16}
+            color={item.hasActiveFilters ? item.palette.tint : item.palette.text}
+          />
+          <ThemedText
+            style={[
+              styles.filterButtonText,
+              { color: item.hasActiveFilters ? item.palette.tint : item.palette.text },
+            ]}
+          >
+            Filters
+          </ThemedText>
+          {item.activeFilterCount > 0 ? (
+            <View style={[styles.badge, { backgroundColor: item.palette.tint }]}>
+              <ThemedText style={[styles.badgeText, { color: item.palette.onPrimary }]}>
+                {item.activeFilterCount}
+              </ThemedText>
+            </View>
+          ) : null}
+        </Clickable>
+      );
+    case 'quick':
+      return (
+        <Chip
+          active={item.active}
+          onPress={item.onPress}
+          disabled={item.disabled}
+          style={[styles.chip, item.disabled ? styles.dimChip : undefined]}
+        >
+          {item.label}
+          {item.countKnown ? ` (${item.count})` : item.isCountingFilters ? ' (...)' : ''}
+        </Chip>
+      );
+    case 'divider':
+      return <Divider vertical style={styles.filterDivider} />;
+    case 'focus':
+      return (
+        <Chip
+          active={item.active}
+          onPress={item.onPress}
+          disabled={item.disabled}
+          style={[styles.chip, item.disabled ? styles.dimChip : undefined]}
+        >
+          {item.focus.label}
+          {item.countKnown ? ` (${item.count})` : item.isCountingFilters ? ' (...)' : ''}
+        </Chip>
+      );
+    case 'clear':
+      return (
+        <Clickable
+          accessibilityLabel="Clear all filters"
+          onPress={item.onPress}
+          style={styles.inlineClear}
+        >
+          <Ionicons name="close-circle" size={14} color={item.palette.tint} />
+          <ThemedText style={[styles.clearText, { color: item.palette.tint }]}>Clear</ThemedText>
+        </Clickable>
+      );
+  }
 }
 
 const styles = StyleSheet.create({
@@ -258,6 +407,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     gap: Spacing.xs,
     alignItems: 'center',
+  },
+  filterDivider: {
+    height: 24,
+    marginHorizontal: Spacing.sm,
   },
   filterButton: {
     flexDirection: 'row',

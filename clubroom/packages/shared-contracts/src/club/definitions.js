@@ -1,3 +1,4 @@
+// react-doctor-disable-file deslop/unused-file -- runtime mirror required by Metro for TypeScript `.js` specifier imports.
 // Runtime mirror for Metro/Expo.
 //
 // The app currently imports shared-contracts source files directly, and those

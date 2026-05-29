@@ -3,13 +3,15 @@
  * Manages squad creation form state, validation, and submission.
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState } from 'react';
 
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
 import { squadService } from '@/services/squad-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 export const AGE_GROUPS = [
   { label: 'U8', min: 5, max: 8 },
@@ -55,24 +57,21 @@ export function useCreateSquad() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const clubs = useMemo(
-    () => (currentUser?.id ? socialFeedService.getUserClubs(currentUser.id) : []),
-    [currentUser?.id],
-  );
+  const clubs = (currentUser?.id ? socialFeedService.getUserClubs(currentUser.id) : []);
 
-  const club = useMemo(() => clubs.find((candidate) => candidate.id === clubId), [clubs, clubId]);
+  const club = clubs.find((candidate) => candidate.id === clubId);
 
-  const toggleTag = useCallback((tag: string) => {
+  const toggleTag = (tag: string) => {
     setSelectedTags((prev) => {
       if (prev.includes(tag)) return prev.filter((t) => t !== tag);
       if (prev.length < 3) return [...prev, tag];
       return prev;
     });
-  }, []);
+  };
 
   const isValid = Boolean(squadName.trim() && selectedAgeGroup && selectedLevel);
 
-  const handleCreate = useCallback(async () => {
+  const handleCreate = async () => {
     if (!squadName.trim()) {
       uiFeedback.showToast('Please enter a squad name', 'error');
       return;
@@ -87,7 +86,8 @@ export function useCreateSquad() {
     }
 
     setIsSubmitting(true);
-    try {
+
+    await runAsyncTryCatchFinally(async () => {
       const newSquad = await squadService.createSquad({
         clubId: clubId!,
         name: squadName.trim(),
@@ -100,12 +100,12 @@ export function useCreateSquad() {
       });
       uiFeedback.showToast(`${newSquad.name} has been created successfully!`, 'success');
 router.back();
-    } catch {
+    }, async error => {
       uiFeedback.showToast('Failed to create squad. Please try again.', 'error');
-    } finally {
+    }, () => {
       setIsSubmitting(false);
-    }
-  }, [squadName, selectedAgeGroup, selectedLevel, meetLocation, selectedTags, clubId]);
+    });
+  };
 
   return {
     club,

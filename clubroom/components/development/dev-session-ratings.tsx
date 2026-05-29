@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
@@ -26,7 +26,7 @@ const EFFORT_LABELS = [
   'Maximum effort',
 ];
 
-export const DevSessionRatings = memo(function DevSessionRatings({
+export const DevSessionRatings = function DevSessionRatings({
   rating,
   effortRating,
   onRatingChange,
@@ -84,7 +84,7 @@ export const DevSessionRatings = memo(function DevSessionRatings({
       </Column>
     </Column>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, alignItems: 'center', gap: Spacing.sm },

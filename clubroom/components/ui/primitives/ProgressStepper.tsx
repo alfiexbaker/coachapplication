@@ -78,7 +78,7 @@ function ProgressStepperInner({ currentStep, totalSteps, label, style }: Progres
   );
 }
 
-export const ProgressStepper = React.memo(ProgressStepperInner);
+export const ProgressStepper = ProgressStepperInner;
 
 const styles = StyleSheet.create({
   wrapper: {

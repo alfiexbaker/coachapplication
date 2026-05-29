@@ -45,12 +45,13 @@ function ProfilePostCardInner({
   onSharePress,
 }: ProfilePostCardProps) {
   const { colors: palette } = useTheme();
-  const initials = coachName
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('') || 'UP';
+  const initials =
+    coachName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? '')
+      .join('') || 'UP';
 
   return (
     <SurfaceCard style={styles.postCard}>
@@ -59,10 +60,7 @@ function ProfilePostCardInner({
           <Image source={{ uri: coachAvatar }} style={styles.postAvatar} />
         ) : (
           <View
-            style={[
-              styles.postAvatarFallback,
-              { backgroundColor: withAlpha(palette.tint, 0.12) },
-            ]}
+            style={[styles.postAvatarFallback, { backgroundColor: withAlpha(palette.tint, 0.12) }]}
           >
             <ThemedText style={[styles.postAvatarFallbackText, { color: palette.tint }]}>
               {initials}
@@ -74,10 +72,7 @@ function ProfilePostCardInner({
             <ThemedText type="subtitle">{coachName}</ThemedText>
             {contextLabel ? (
               <View
-                style={[
-                  styles.contextPill,
-                  { backgroundColor: withAlpha(palette.tint, 0.08) },
-                ]}
+                style={[styles.contextPill, { backgroundColor: withAlpha(palette.tint, 0.08) }]}
               >
                 <ThemedText style={[styles.contextPillText, { color: palette.tint }]}>
                   {contextLabel}
@@ -100,8 +95,8 @@ function ProfilePostCardInner({
       {post.mediaUrls && post.mediaUrls.length > 0 && (
         <View style={styles.postMedia}>
           {post.mediaType === 'photo' &&
-            post.mediaUrls.map((url, index) => (
-              <Image key={index} source={{ uri: url }} style={styles.postImage} />
+            post.mediaUrls.map((url) => (
+              <Image key={url} source={{ uri: url }} style={styles.postImage} />
             ))}
         </View>
       )}
@@ -230,5 +225,5 @@ const styles = StyleSheet.create({
 
 // ─── Exports ────────────────────────────────────────────────────
 
-export const ProfilePostCard = React.memo(ProfilePostCardInner);
+export const ProfilePostCard = ProfilePostCardInner;
 export default ProfilePostCard;

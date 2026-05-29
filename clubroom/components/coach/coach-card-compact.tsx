@@ -1,7 +1,3 @@
-/**
- * CompactCard — Minimal coach card for map selection or list items.
- */
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -13,7 +9,8 @@ import { useTheme } from '@/hooks/useTheme';
 import { CoachAvatar } from './coach-card-header';
 import { RatingDisplay } from './coach-card-reviews';
 import { DistanceDisplay } from './coach-card-availability';
-import { FocusBadge, formatPrice } from './coach-card-services';
+import { FocusBadge } from './coach-card-services';
+import { formatPrice } from './coach-card-services-helpers';
 import type { CompactVariantProps } from './coach-card-shared';
 import { Row } from '@/components/primitives';
 
@@ -72,7 +69,7 @@ function CompactCardInner({ coach, active, onPress, index = 0 }: CompactVariantP
   );
 }
 
-export const CompactCard = memo(CompactCardInner);
+export const CompactCard = CompactCardInner;
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.sm, marginBottom: Spacing.sm },

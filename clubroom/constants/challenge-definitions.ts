@@ -204,7 +204,7 @@ export function selectNextChallenge(
     : candidates;
 
   const source = filtered.length > 0 ? filtered : candidates;
-  const sorted = [...source].sort((left, right) => right.probability - left.probability);
+  const sorted = Array.from(source).toSorted((left, right) => right.probability - left.probability);
   return sorted[0] ?? null;
 }
 

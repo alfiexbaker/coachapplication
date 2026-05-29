@@ -8,8 +8,15 @@
  * that defaults to the active child.
  */
 
-import { View, StyleSheet, ScrollView, RefreshControl, ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  ViewStyle,
+  FlatList,
+  type ListRenderItemInfo,
+} from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
@@ -22,12 +29,12 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { FeedbackList } from '@/components/progress';
 import { SkillRadar } from '@/components/analytics/skill-radar';
 import { ChildProgressStats } from '@/components/development/child-progress-stats';
+import { ChildProgressBadgeList } from '@/components/development/child-progress-badge-list';
 import { ChildSwitcher } from '@/components/family/child-switcher';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
-import { useChildProgress, PROGRESS_TABS } from '@/hooks/use-child-progress';
-import { formatShortDateWithYear } from '@/utils/format';
+import { useChildProgress, PROGRESS_TABS, type ProgressTab } from '@/hooks/use-child-progress';
 import {
   LoadingState,
   ErrorState,
@@ -37,6 +44,7 @@ import {
 import { Routes } from '@/navigation/routes';
 import type { FootballSkill } from '@/types/progress-types';
 import { useRequiredParam } from '@/hooks/use-required-param';
+import type { ThemeColors } from '@/hooks/useTheme';
 
 export default function ChildProgressScreen() {
   const childIdParam = useRequiredParam('childId');
@@ -82,14 +90,11 @@ export default function ChildProgressScreen() {
     showSwitcher?: boolean;
     content: ReactNode;
   }) => (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {header}
       {showSwitcher ? renderSwitcher() : null}
       {content}
-    </SafeAreaView>
+    </View>
   );
   const progressHeader = (
     <PageHeader title="Progress" showBack centerTitle onBackPress={() => router.back()} />
@@ -114,7 +119,9 @@ export default function ChildProgressScreen() {
     return renderShell({
       header: progressHeader,
       showSwitcher: true,
-      content: <ErrorState message={error?.message ?? 'Failed to load child progress.'} onRetry={retry} />,
+      content: (
+        <ErrorState message={error?.message ?? 'Failed to load child progress.'} onRetry={retry} />
+      ),
     });
   }
 
@@ -139,12 +146,10 @@ export default function ChildProgressScreen() {
     }
     router.push(Routes.modalEditChildProfile(selectedChildId));
   };
+  const progressTabItems = getProgressTabItems(activeTab, colors, setActiveTab);
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <PageHeader
         title={child.name}
         showBack
@@ -169,54 +174,30 @@ export default function ChildProgressScreen() {
             size={12}
             color={trend.color}
           />
-          <ThemedText style={[Typography.caption, { color: trend.color }]}>{trend.label}</ThemedText>
+          <ThemedText style={[Typography.caption, { color: trend.color }]}>
+            {trend.label}
+          </ThemedText>
         </Row>
       </View>
 
       {/* Tab Bar */}
       <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>
-        <ScrollView
+        <FlatList
+          contentInsetAdjustmentBehavior="automatic"
           horizontal
           showsHorizontalScrollIndicator={false}
+          data={progressTabItems}
+          keyExtractor={keyProgressTabItem}
+          renderItem={renderProgressTabItem}
           contentContainerStyle={styles.tabContent}
-        >
-          {PROGRESS_TABS.map((tab) => (
-            <Clickable
-              key={tab.id}
-              onPress={() => setActiveTab(tab.id)}
-              style={
-                [
-                  styles.tab,
-                  activeTab === tab.id
-                    ? { borderBottomColor: colors.tint, borderBottomWidth: 2 }
-                    : undefined,
-                ].filter(Boolean) as ViewStyle[]
-              }
-            >
-              <Row align="center" gap="xxs">
-                <Ionicons
-                  name={tab.icon as keyof typeof Ionicons.glyphMap}
-                  size={18}
-                  color={activeTab === tab.id ? colors.tint : colors.muted}
-                />
-                <ThemedText
-                  style={[
-                    Typography.smallSemiBold,
-                    { color: activeTab === tab.id ? colors.tint : colors.muted },
-                  ]}
-                >
-                  {tab.label}
-                </ThemedText>
-              </Row>
-            </Clickable>
-          ))}
-        </ScrollView>
+        />
       </View>
       {refreshing ? (
         <SubmitProgressState label="Refreshing progress" style={styles.pendingState} />
       ) : null}
 
       <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
@@ -232,7 +213,8 @@ export default function ChildProgressScreen() {
             <SurfaceCard style={styles.profileCard}>
               <ThemedText type="defaultSemiBold">Basic</ThemedText>
               <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
-                Full name: {childProfile ? `${childProfile.firstName} ${childProfile.lastName}` : child.name}
+                Full name:{' '}
+                {childProfile ? `${childProfile.firstName} ${childProfile.lastName}` : child.name}
               </ThemedText>
               {!!childProfile?.nickname && (
                 <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
@@ -254,7 +236,8 @@ export default function ChildProgressScreen() {
             <SurfaceCard style={styles.profileCard}>
               <ThemedText type="defaultSemiBold">Medical & Support</ThemedText>
               <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
-                Allergies: {childProfile?.allergies.length ? childProfile.allergies.join(', ') : 'None'}
+                Allergies:{' '}
+                {childProfile?.allergies.length ? childProfile.allergies.join(', ') : 'None'}
               </ThemedText>
               <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
                 Conditions:{' '}
@@ -274,14 +257,16 @@ export default function ChildProgressScreen() {
             <SurfaceCard style={styles.profileCard}>
               <ThemedText type="defaultSemiBold">Emergency</ThemedText>
               <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
-                Primary: {childProfile?.emergencyContactName || '--'} ({childProfile?.emergencyContactRelation || '--'})
+                Primary: {childProfile?.emergencyContactName || '--'} (
+                {childProfile?.emergencyContactRelation || '--'})
               </ThemedText>
               <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
                 Phone: {childProfile?.emergencyContactPhone || '--'}
               </ThemedText>
               {!!childProfile?.secondaryEmergencyName && (
                 <ThemedText style={[styles.profileLine, { color: colors.muted }]}>
-                  Secondary: {childProfile.secondaryEmergencyName} ({childProfile.secondaryEmergencyPhone || '--'})
+                  Secondary: {childProfile.secondaryEmergencyName} (
+                  {childProfile.secondaryEmergencyPhone || '--'})
                 </ThemedText>
               )}
             </SurfaceCard>
@@ -307,7 +292,9 @@ export default function ChildProgressScreen() {
                 </ThemedText>
               </Clickable>
               <Clickable
-                onPress={() => selectedChildId && router.push(Routes.modalEditChildSen(selectedChildId))}
+                onPress={() =>
+                  selectedChildId && router.push(Routes.modalEditChildSen(selectedChildId))
+                }
                 style={[
                   styles.profileAction,
                   { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 },
@@ -342,7 +329,9 @@ export default function ChildProgressScreen() {
                 </ThemedText>
               </Clickable>
               <Clickable
-                onPress={() => selectedChildId && router.push(Routes.childEmergency(selectedChildId))}
+                onPress={() =>
+                  selectedChildId && router.push(Routes.childEmergency(selectedChildId))
+                }
                 style={[
                   styles.profileAction,
                   { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 },
@@ -417,31 +406,7 @@ export default function ChildProgressScreen() {
               </ThemedText>
             </View>
             {badges.length > 0 ? (
-              <View style={{ gap: Spacing.sm }}>
-                {badges.map((badge) => (
-                  <SurfaceCard key={badge.id} style={styles.badgeCard}>
-                    <View
-                      style={[styles.badgeIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}
-                    >
-                      <Ionicons name="ribbon" size={24} color={colors.tint} />
-                    </View>
-                    <ThemedText type="defaultSemiBold">{badge.badgeLabel}</ThemedText>
-                    <ThemedText style={[Typography.small, { color: colors.muted }]}>
-                      {badge.reason}
-                    </ThemedText>
-                    <Row gap="sm">
-                      <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-                        {formatShortDateWithYear(badge.awardedAt)}
-                      </ThemedText>
-                      {badge.coachId && (
-                        <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-                          by {badge.coachId}
-                        </ThemedText>
-                      )}
-                    </Row>
-                  </SurfaceCard>
-                ))}
-              </View>
+              <ChildProgressBadgeList badges={badges} colors={colors} />
             ) : (
               <SurfaceCard style={styles.emptyCard}>
                 <Ionicons name="ribbon-outline" size={32} color={colors.muted} />
@@ -464,7 +429,65 @@ export default function ChildProgressScreen() {
           badgeCount={badges.length}
         />
       </ScrollView>
-    </SafeAreaView>
+    </View>
+  );
+}
+
+type ProgressTabDefinition = (typeof PROGRESS_TABS)[number];
+
+interface ProgressTabItem {
+  key: ProgressTab;
+  tab: ProgressTabDefinition;
+  isActive: boolean;
+  colors: ThemeColors;
+  onPress: () => void;
+}
+
+function getProgressTabItems(
+  activeTab: ProgressTab,
+  colors: ThemeColors,
+  onSelectTab: (tabId: ProgressTab) => void,
+): ProgressTabItem[] {
+  return PROGRESS_TABS.map((tab) => ({
+    key: tab.id,
+    tab,
+    isActive: activeTab === tab.id,
+    colors,
+    onPress: () => onSelectTab(tab.id),
+  }));
+}
+
+function keyProgressTabItem(item: ProgressTabItem): string {
+  return item.key;
+}
+
+function renderProgressTabItem({ item }: ListRenderItemInfo<ProgressTabItem>) {
+  return (
+    <Clickable
+      onPress={item.onPress}
+      style={
+        [
+          styles.tab,
+          item.isActive ? { borderBottomColor: item.colors.tint, borderBottomWidth: 2 } : undefined,
+        ].filter(Boolean) as ViewStyle[]
+      }
+    >
+      <Row align="center" gap="xxs">
+        <Ionicons
+          name={item.tab.icon as keyof typeof Ionicons.glyphMap}
+          size={18}
+          color={item.isActive ? item.colors.tint : item.colors.muted}
+        />
+        <ThemedText
+          style={[
+            Typography.smallSemiBold,
+            { color: item.isActive ? item.colors.tint : item.colors.muted },
+          ]}
+        >
+          {item.tab.label}
+        </ThemedText>
+      </Row>
+    </Clickable>
   );
 }
 
@@ -505,13 +528,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
   },
   emptyCard: { alignItems: 'center', padding: Spacing.xl, gap: Spacing.sm },
-  badgeCard: { padding: Spacing.md, gap: Spacing.xs },
-  badgeIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xs,
-  },
 });

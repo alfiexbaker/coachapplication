@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 
 import type { ClubEvent, EventAttendance, CheckInInput } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
@@ -7,6 +7,8 @@ import { eventService } from '@/services/event-service';
 
 import { CheckInUnavailable, CheckedInBadge, CheckInAction } from './check-in-button-sections';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('CheckInButton');
 
@@ -53,11 +55,12 @@ export function CheckInButton({
   const isCheckedIn = !!currentAttendance;
   const checkInAvailable = eventService.isCheckInAvailable(event);
 
-  const handleCheckIn = useCallback(async () => {
+  const handleCheckIn = async () => {
     if (loading || disabled) return;
 
     setLoading(true);
-    try {
+
+    return await runAsyncTryCatchFinally(async () => {
       if (requireLocation && !currentLocation) {
         uiFeedback.showToast('Please enable location access to check in to this event.', 'error');
         setLoading(false);
@@ -80,15 +83,15 @@ export function CheckInButton({
       };
 
       await onCheckIn(checkInInput);
-    } catch (error) {
+    }, async error => {
       logger.error('Check-in failed', error);
       uiFeedback.showToast('Please try again.', 'error');
-    } finally {
+    }, () => {
       setLoading(false);
-    }
-  }, [loading, disabled, requireLocation, currentLocation, event.id, userId, userRole, onCheckIn]);
+    });
+  };
 
-  const handleUndoCheckIn = useCallback(async () => {
+  const handleUndoCheckIn = async () => {
     if (!onUndoCheckIn || loading) return;
 
     uiFeedback.alert('Undo Check-in', 'Are you sure you want to undo your check-in?', [
@@ -98,18 +101,19 @@ export function CheckInButton({
         style: 'destructive',
         onPress: async () => {
           setLoading(true);
-          try {
+
+          await runAsyncTryCatchFinally(async () => {
             await onUndoCheckIn();
-          } catch (error) {
+          }, async error => {
             logger.error('Undo check-in failed', error);
             uiFeedback.showToast('Please try again.', 'error');
-          } finally {
+          }, () => {
             setLoading(false);
-          }
+          });
         },
       },
     ]);
-  }, [onUndoCheckIn, loading]);
+  };
 
   // Event not available for check-in
   if (!checkInAvailable && !isCheckedIn) {

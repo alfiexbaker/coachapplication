@@ -1,6 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { View, StyleSheet, RefreshControl, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +23,8 @@ import { scaleFont } from '@/utils/scale';
 import { ok } from '@/types/result';
 import { DemoBanner } from '@/utils/demo-mode';
 
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
+
 const logger = createLogger('FavouritesScreen');
 
 export default function FavouritesScreen() {
@@ -39,7 +40,7 @@ export default function FavouritesScreen() {
 
   const userId = currentUser?.id ?? 'parent1';
 
-  const loadFavourites = useCallback(async () => {
+  const loadFavourites = async () => {
     setError(null);
     try {
       const result = await favouriteService.getFavourites(userId);
@@ -57,83 +58,77 @@ export default function FavouritesScreen() {
     }
     setLoading(false);
     setRefreshing(false);
-  }, [userId]);
+  };
 
-  useFocusEffect(
-    useCallback(() => {
-      loadFavourites();
-    }, [loadFavourites]),
-  );
+  useFocusEffect(() => {
+    loadFavourites();
+  });
 
-  useFocusEffect(
-    useCallback(() => {
-      const unsubscribeAdded = onTyped(ServiceEvents.FAVOURITE_ADDED, () => {
-        void loadFavourites();
-      });
-      const unsubscribeRemoved = onTyped(ServiceEvents.FAVOURITE_REMOVED, () => {
-        void loadFavourites();
-      });
-      return () => {
-        unsubscribeAdded();
-        unsubscribeRemoved();
-      };
-    }, [loadFavourites]),
-  );
+  useFocusEffect(() => {
+    const unsubscribeAdded = onTyped(ServiceEvents.FAVOURITE_ADDED, () => {
+      void loadFavourites();
+    });
+    const unsubscribeRemoved = onTyped(ServiceEvents.FAVOURITE_REMOVED, () => {
+      void loadFavourites();
+    });
+    return () => {
+      unsubscribeAdded();
+      unsubscribeRemoved();
+    };
+  });
 
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = () => {
     setRefreshing(true);
     loadFavourites();
-  }, [loadFavourites]);
+  };
 
-  const handleToggleFavourite = useCallback(
-    async (favourite: FavouriteCoach) => {
-      setTogglingId(favourite.id);
-      setFavourites((prev) => prev.filter((f) => f.id !== favourite.id));
+  const handleToggleFavourite = async (favourite: FavouriteCoach) => {
+    setTogglingId(favourite.id);
+    setFavourites((prev) => prev.filter((f) => f.id !== favourite.id));
 
-      try {
+    await runAsyncTryCatchFinally(
+      async () => {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         const result = await favouriteService.removeFavourite(userId, favourite.coachId);
         if (!result.success && result.error.code !== 'NOT_FOUND') {
           logger.error('Failed to remove favourite:', result.error);
           setFavourites((prev) => [...prev, favourite]);
         }
-      } catch (error) {
+      },
+      async (error) => {
         logger.error('Failed to remove favourite:', error);
         setFavourites((prev) => [...prev, favourite]);
-      } finally {
+      },
+      () => {
         setTogglingId(null);
-      }
-    },
-    [userId],
-  );
+      },
+    );
+  };
 
-  const handleBook = useCallback((coachId: string) => {
+  const handleBook = (coachId: string) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.push(
       Routes.bookCoach(coachId, {
         source: 'favourites',
       }),
     );
-  }, []);
+  };
 
-  const handleDiscoverCoaches = useCallback(() => {
+  const handleDiscoverCoaches = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(Routes.BOOK_COACH);
-  }, []);
+  };
 
-  const handleDismissDemoFavourites = useCallback(async () => {
+  const handleDismissDemoFavourites = async () => {
     const result = await favouriteService.dismissDemoFavourites();
     if (result.success) {
       setShowDemoBanner(false);
       setFavourites([]);
     }
-  }, []);
+  };
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       <Row align="center" justify="space-between" style={styles.header}>
         <Row align="center" gap="md" style={styles.headerLeft}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
@@ -162,6 +157,7 @@ export default function FavouritesScreen() {
       </Row>
 
       <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -241,7 +237,7 @@ export default function FavouritesScreen() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -43,7 +43,7 @@ function LoadingSurface({
   );
 }
 
-function ListSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
+export function ListSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
   const rows = scope === 'screen' ? 5 : 3;
 
   return (
@@ -65,7 +65,7 @@ function ListSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
   );
 }
 
-function FeedSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
+export function FeedSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
   const cards = scope === 'screen' ? 3 : 2;
 
   return (
@@ -97,7 +97,7 @@ function FeedSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
   );
 }
 
-function CardSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
+export function CardSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
   const cards = scope === 'screen' ? 3 : 2;
 
   return (
@@ -122,7 +122,7 @@ function CardSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
   );
 }
 
-function HeroSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
+export function HeroSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
   return (
     <SkeletonCluster gap={Spacing.md} accessibilityLabel="Loading detail hero">
       <LoadingSurface>
@@ -161,7 +161,7 @@ function HeroSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
   );
 }
 
-function FormSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
+export function FormSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
   const fields = scope === 'screen' ? 4 : 3;
 
   return (
@@ -187,7 +187,7 @@ function FormSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
   );
 }
 
-function ScheduleSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
+export function ScheduleSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
   const rows = scope === 'screen' ? 4 : 2;
 
   return (
@@ -223,7 +223,7 @@ function ScheduleSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
   );
 }
 
-function TabPaneSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
+export function TabPaneSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
   return (
     <SkeletonCluster gap={Spacing.md} accessibilityLabel="Loading tab pane">
       <Row gap="xs">
@@ -254,18 +254,6 @@ function TabPaneSkeleton({ scope = 'screen' }: SkeletonVariantProps) {
     </SkeletonCluster>
   );
 }
-
-export const VARIANT_MAP: Record<LoadingVariant, React.FC<SkeletonVariantProps>> = {
-  list: ListSkeleton,
-  feed: FeedSkeleton,
-  card: CardSkeleton,
-  detail: HeroSkeleton,
-  hero: HeroSkeleton,
-  form: FormSkeleton,
-  calendar: ScheduleSkeleton,
-  schedule: ScheduleSkeleton,
-  'tab-pane': TabPaneSkeleton,
-};
 
 const styles = StyleSheet.create({
   flex: {

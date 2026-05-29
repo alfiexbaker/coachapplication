@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -16,7 +15,7 @@ interface PositionToggleProps {
   onChange: (role: PositionRole) => void;
 }
 
-export const PositionToggle = memo(function PositionToggle({
+export const PositionToggle = function PositionToggle({
   positions,
   selected,
   onChange,
@@ -115,7 +114,7 @@ export const PositionToggle = memo(function PositionToggle({
       </ScrollView>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   wrap: {

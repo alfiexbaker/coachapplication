@@ -5,7 +5,7 @@
  * Coaches track who owes money, mark paid, write off bad debts, send reminders.
  */
 
-import { memo, useCallback, useState, useMemo } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { FlatList, StyleSheet, View, RefreshControl, Share, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -36,10 +36,10 @@ import {
 } from '@/hooks/use-session-payments';
 import type { CoachBusinessFilter } from '@/utils/coach-business-context';
 
-const Separator = memo(function Separator() {
+const Separator = function Separator() {
   const { colors } = useTheme();
   return <View style={[styles.separator, { backgroundColor: colors.border }]} />;
-});
+};
 
 const TABS: { key: PaymentTab; label: string }[] = [
   { key: 'owed', label: 'Owed' },
@@ -87,7 +87,7 @@ export default function EarningsScreen() {
     retry,
   } = useSessionPayments();
 
-  const activeData = useMemo(() => {
+  const activeData = (() => {
     switch (activeTab) {
       case 'owed':
         return unpaidSessions;
@@ -96,18 +96,15 @@ export default function EarningsScreen() {
       case 'written_off':
         return writtenOffSessions;
     }
-  }, [activeTab, unpaidSessions, paidSessions, writtenOffSessions]);
+  })();
 
-  const businessCounts = useMemo(
-    () => ({
-      all: activeData.length,
-      org: activeData.filter((item) => item.businessContext === 'org').length,
-      independent: activeData.filter((item) => item.businessContext === 'independent').length,
-    }),
-    [activeData],
-  );
+  const businessCounts = ({
+    all: activeData.length,
+    org: activeData.filter((item) => item.businessContext === 'org').length,
+    independent: activeData.filter((item) => item.businessContext === 'independent').length,
+  });
 
-  const filteredData = useMemo(() => {
+  const filteredData = (() => {
     const businessScopedData =
       businessFilter === 'all'
         ? activeData
@@ -127,26 +124,23 @@ export default function EarningsScreen() {
     return businessScopedData.filter(
       (item) => new Date(item.booking.scheduledAt).getTime() >= cutoff.getTime(),
     );
-  }, [activeData, businessFilter, period]);
+  })();
 
-  const visibleOverdueItems = useMemo(
-    () => filteredData.filter((item) => item.isOverdue),
-    [filteredData],
-  );
+  const visibleOverdueItems = filteredData.filter((item) => item.isOverdue);
 
-  const activeSummary = useMemo<PaymentBusinessSummary | null>(() => {
+  const activeSummary = (() => {
     if (businessFilter === 'org') return orgSummary;
     if (businessFilter === 'independent') return independentSummary;
     return null;
-  }, [businessFilter, independentSummary, orgSummary]);
+  })();
 
-  const summaryTitle = useMemo(() => {
+  const summaryTitle = (() => {
     if (businessFilter === 'org') return 'Org Delivery Summary';
     if (businessFilter === 'independent') return 'Independent Revenue Summary';
     return 'Payment Summary';
-  }, [businessFilter]);
+  })();
 
-  const summaryNote = useMemo(() => {
+  const summaryNote = (() => {
     if (businessFilter === 'org') {
       if (orgSummary.creditOwed > 0 || orgSummary.creditCollected > 0) {
         return 'Org-owned work is tracked as reconciler credit until real payout rails exist.';
@@ -157,9 +151,9 @@ export default function EarningsScreen() {
       return 'This view only counts direct client revenue you manage yourself.';
     }
     return 'Org-assigned work stays split from independent client revenue.';
-  }, [businessFilter, orgSummary.creditCollected, orgSummary.creditOwed]);
+  })();
 
-  const summaryBreakdown = useMemo(() => {
+  const summaryBreakdown = (() => {
     if (businessFilter !== 'all') return undefined;
 
     const orgTotal = orgSummary.totalOwed + orgSummary.totalCollected + orgSummary.totalWrittenOff;
@@ -185,20 +179,9 @@ export default function EarningsScreen() {
         amount: independentTotal,
       },
     ].filter((item) => item.amount > 0);
-  }, [
-    businessFilter,
-    independentSummary.totalCollected,
-    independentSummary.totalOwed,
-    independentSummary.totalWrittenOff,
-    orgSummary.creditCollected,
-    orgSummary.creditOwed,
-    orgSummary.directOwed,
-    orgSummary.totalCollected,
-    orgSummary.totalOwed,
-    orgSummary.totalWrittenOff,
-  ]);
+  })();
 
-  const summaryMetrics = useMemo(() => {
+  const summaryMetrics = (() => {
     if (!activeSummary) {
       return {
         totalOwed,
@@ -218,15 +201,7 @@ export default function EarningsScreen() {
       paidCount: activeSummary.paidCount,
       writtenOffCount: activeSummary.writtenOffCount,
     };
-  }, [
-    activeSummary,
-    paidCount,
-    totalCollected,
-    totalOwed,
-    totalWrittenOff,
-    unpaidCount,
-    writtenOffCount,
-  ]);
+  })();
 
   const overdueBadgeCount =
     businessFilter === 'org'
@@ -235,35 +210,32 @@ export default function EarningsScreen() {
         ? independentSummary.overdueCount
         : overdueCount;
 
-  const handleSendReminder = useCallback(
-    async (item: SessionPaymentItemType) => {
-      const result = await coachPaymentInstructionsService.getCoachPaymentInstructions(
-        currentUser?.id ?? '',
-      );
-      const instructions =
-        result.success && result.data.coachId
-          ? result.data
-          : {
-              coachId: currentUser?.id ?? '',
-              payeeName: '',
-              bankTransferDetails: '',
-              paymentNotes: '',
-            };
-      const message = coachPaymentInstructionsService.buildReminderMessage({
-        item,
-        coachName: currentUser?.name,
-        instructions,
-      });
-      try {
-        await Share.share({ message });
-      } catch {
-        // User cancelled share sheet — no action needed
-      }
-    },
-    [currentUser?.id, currentUser?.name],
-  );
+  const handleSendReminder = async (item: SessionPaymentItemType) => {
+    const result = await coachPaymentInstructionsService.getCoachPaymentInstructions(
+      currentUser?.id ?? '',
+    );
+    const instructions =
+      result.success && result.data.coachId
+        ? result.data
+        : {
+            coachId: currentUser?.id ?? '',
+            payeeName: '',
+            bankTransferDetails: '',
+            paymentNotes: '',
+          };
+    const message = coachPaymentInstructionsService.buildReminderMessage({
+      item,
+      coachName: currentUser?.name,
+      instructions,
+    });
+    try {
+      await Share.share({ message });
+    } catch {
+      // User cancelled share sheet — no action needed
+    }
+  };
 
-  const handleRemindAllOverdue = useCallback(async () => {
+  const handleRemindAllOverdue = async () => {
     const overdueItems = visibleOverdueItems;
     if (overdueItems.length === 0) return;
 
@@ -289,9 +261,9 @@ export default function EarningsScreen() {
     } catch {
       // User cancelled
     }
-  }, [currentUser?.id, currentUser?.name, visibleOverdueItems]);
+  };
 
-  const subtitle = useMemo(() => {
+  const subtitle = (() => {
     const summaryOverdueCount = activeSummary?.overdueCount ?? overdueCount;
     const summaryOwed = activeSummary?.totalOwed ?? totalOwed;
     const summaryCollected = activeSummary?.totalCollected ?? totalCollected;
@@ -314,9 +286,9 @@ export default function EarningsScreen() {
       return 'Track direct client revenue';
     }
     return 'Track your session payments';
-  }, [activeSummary, businessFilter, overdueCount, paidCount, totalCollected, totalOwed, unpaidCount]);
+  })();
 
-  const emptyMessage = useMemo(() => {
+  const emptyMessage = (() => {
     switch (activeTab) {
       case 'owed':
         return {
@@ -357,29 +329,23 @@ export default function EarningsScreen() {
           message: 'Sessions you write off will appear here.',
         };
     }
-  }, [activeTab, businessFilter]);
+  })();
 
-  const renderItem = useCallback(
-    ({ item }: { item: SessionPaymentItemType }) => (
-      <SessionPaymentItem
-        item={item}
-        tab={activeTab}
-        onMarkPaid={handleMarkPaid}
-        onMarkUnpaid={handleMarkUnpaid}
-        onWriteOff={handleWriteOff}
-        onRestore={handleRestore}
-        onSendReminder={handleSendReminder}
-      />
-    ),
-    [activeTab, handleMarkPaid, handleMarkUnpaid, handleWriteOff, handleRestore, handleSendReminder],
+  const renderItem = ({ item }: { item: SessionPaymentItemType }) => (
+    <SessionPaymentItem
+      item={item}
+      tab={activeTab}
+      onMarkPaid={handleMarkPaid}
+      onMarkUnpaid={handleMarkUnpaid}
+      onWriteOff={handleWriteOff}
+      onRestore={handleRestore}
+      onSendReminder={handleSendReminder}
+    />
   );
 
-  const keyExtractor = useCallback(
-    (item: SessionPaymentItemType) => item.booking.id,
-    [],
-  );
+  const keyExtractor = (item: SessionPaymentItemType) => item.booking.id;
 
-  const renderPaymentInstructionsSection = useCallback(() => {
+  const renderPaymentInstructionsSection = () => {
     if (!currentUser?.id) return null;
 
     return (
@@ -432,7 +398,7 @@ export default function EarningsScreen() {
         ) : null}
       </View>
     );
-  }, [colors, currentUser?.id, currentUser?.name, showPaymentInstructions]);
+  };
   const renderShell = (content: ReactNode) => (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       {content}
@@ -591,9 +557,8 @@ export default function EarningsScreen() {
             variant="outline"
             style={{ minHeight: Components.buttonCompact.height }}
             accessibilityLabel={`Send reminder for ${visibleOverdueItems.length} overdue payments`}
-          >
-            Remind All Overdue ({visibleOverdueItems.length})
-          </Button>
+            label={`Remind All Overdue (${visibleOverdueItems.length})`}
+          />
         </Row>
       )}
     </View>

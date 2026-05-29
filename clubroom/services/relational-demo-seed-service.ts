@@ -385,7 +385,9 @@ async function getSeedHealthSnapshot(): Promise<SeedHealthSnapshot> {
     (sum, messages) => sum + messages.length,
     0,
   );
-  const offeringCoachIds = new Set(offerings.map((offering) => offering.coachId).filter(Boolean));
+  const offeringCoachIds = new Set(
+    offerings.flatMap((offering) => (offering.coachId ? [offering.coachId] : [])),
+  );
   const clubMemberUserIds = new Set(clubMembers.map((member) => member.userId));
   const hasUser1NoKids = !childrenProfiles.some((profile) => profile.parentId === 'user1');
   const hasParentNoKids =

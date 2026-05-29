@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
@@ -13,7 +13,7 @@ export interface DevProgressionCardProps {
   colors: ThemeColors;
 }
 
-export const DevProgressionCard = memo(function DevProgressionCard({
+export const DevProgressionCard = function DevProgressionCard({
   summary,
   colors,
 }: DevProgressionCardProps) {
@@ -34,7 +34,7 @@ export const DevProgressionCard = memo(function DevProgressionCard({
         </View>
       </Row>
 
-      {summary.nextLevel && (
+      {summary.nextLevel ? (
         <View style={styles.progressContainer}>
           <View style={[styles.progressBar, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
             <View
@@ -48,7 +48,7 @@ export const DevProgressionCard = memo(function DevProgressionCard({
             {summary.pointsToNext} pts to {summary.nextLevel.name}
           </ThemedText>
         </View>
-      )}
+      ) : null}
 
       {summary.topCategories.length > 0 && (
         <View style={styles.categoriesSection}>
@@ -78,7 +78,7 @@ export const DevProgressionCard = memo(function DevProgressionCard({
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

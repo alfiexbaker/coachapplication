@@ -2,7 +2,7 @@
  * AthleteContactCard — Parent/guardian contact with call/message/email actions.
  */
 
-import React, { useCallback } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -26,19 +26,19 @@ function AthleteContactCardInner({ athlete }: AthleteContactCardProps) {
   const parentEmail: string | undefined = undefined;
   const parentPhone: string | undefined = undefined;
 
-  const handleCall = useCallback(() => {
+  const handleCall = () => {
     if (parentPhone) {
       void callPhone(parentPhone, parentName);
     }
-  }, [parentName, parentPhone]);
+  };
 
-  const handleEmail = useCallback(() => {
+  const handleEmail = () => {
     if (parentEmail) void sendEmail(parentEmail);
-  }, [parentEmail]);
+  };
 
-  const handleMessage = useCallback(() => {
+  const handleMessage = () => {
     openMessage(athlete.athleteId);
-  }, [athlete.athleteId]);
+  };
 
   return (
     <SurfaceCard style={styles.card}>
@@ -85,7 +85,7 @@ function AthleteContactCardInner({ athlete }: AthleteContactCardProps) {
   );
 }
 
-export const AthleteContactCard = React.memo(AthleteContactCardInner);
+export const AthleteContactCard = AthleteContactCardInner;
 
 const styles = StyleSheet.create({
   card: {

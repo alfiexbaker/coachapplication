@@ -1,4 +1,3 @@
-import { useCallback, useMemo } from 'react';
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { FlatList, View, StyleSheet, RefreshControl } from 'react-native';
 
@@ -67,7 +66,7 @@ export function BookingsList({
   const isCoach = userRole === 'COACH';
 
   /** Group bookings by seriesId, leaving ungrouped items as-is */
-  const displayItems = useMemo((): DisplayItem[] => {
+  const displayItems = ((): DisplayItem[] => {
     const result: DisplayItem[] = [];
     const seriesMap = new Map<string, BookingSummary[]>();
     const seenSeriesIds = new Set<string>();
@@ -103,51 +102,48 @@ export function BookingsList({
     }
 
     return result;
-  }, [items]);
+  })();
 
   const hasItems = displayItems.length > 0;
 
-  const renderItem = useCallback(
-    ({ item }: { item: DisplayItem }) => {
-      if (item.type === 'offering') {
-        return (
-          <SessionOfferingCard
-            offering={item.data}
-            showCoach={!isCoach}
-            showCapacity
-            onPress={() => onOfferingPress(item.data)}
-          />
-        );
-      }
-
-      if (item.type === 'series') {
-        return (
-          <SeriesBookingGroup
-            seriesId={item.seriesId}
-            bookings={item.bookings}
-            coachName={item.coachName}
-          />
-        );
-      }
-
-      // Regular booking
+  const renderItem = ({ item }: { item: DisplayItem }) => {
+    if (item.type === 'offering') {
       return (
-        <View style={styles.cardWrapper}>
-          <UnifiedBookingCard
-            booking={item.data}
-            variant="standard"
-            showActions={timeFilter === 'past'}
-          />
-        </View>
+        <SessionOfferingCard
+          offering={item.data}
+          showCoach={!isCoach}
+          showCapacity
+          onPress={() => onOfferingPress(item.data)}
+        />
       );
-    },
-    [isCoach, onOfferingPress, timeFilter],
-  );
+    }
 
-  const keyExtractor = useCallback((item: DisplayItem) => {
+    if (item.type === 'series') {
+      return (
+        <SeriesBookingGroup
+          seriesId={item.seriesId}
+          bookings={item.bookings}
+          coachName={item.coachName}
+        />
+      );
+    }
+
+    // Regular booking
+    return (
+      <View style={styles.cardWrapper}>
+        <UnifiedBookingCard
+          booking={item.data}
+          variant="standard"
+          showActions={timeFilter === 'past'}
+        />
+      </View>
+    );
+  };
+
+  const keyExtractor = (item: DisplayItem) => {
     if (item.type === 'series') return `series-${item.seriesId}`;
     return item.data.id;
-  }, []);
+  };
 
   return (
     <View style={styles.container}>

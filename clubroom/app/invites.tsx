@@ -5,7 +5,7 @@
  * All state/logic in useInvites hook. Invite card extracted as InviteCard component.
  */
 
-import React, { useCallback } from 'react';
+import React from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -44,17 +44,14 @@ export default function InvitesScreen() {
     </SafeAreaView>
   );
 
-  const renderInvite = useCallback(
-    ({ item }: { item: SessionInvite }) => (
-      <InviteCard
-        invite={item}
-        respondingTo={inv.respondingTo}
-        onAccept={inv.showSlotPicker}
-        onDecline={inv.handleDeclineInvite}
-        onRsvp={inv.handleRsvp}
-      />
-    ),
-    [inv.respondingTo, inv.showSlotPicker, inv.handleDeclineInvite, inv.handleRsvp],
+  const renderInvite = ({ item }: { item: SessionInvite }) => (
+    <InviteCard
+      invite={item}
+      respondingTo={inv.respondingTo}
+      onAccept={inv.showSlotPicker}
+      onDecline={inv.handleDeclineInvite}
+      onRsvp={inv.handleRsvp}
+    />
   );
 
   const tabs: { key: TabFilter; label: string; count?: number }[] = [

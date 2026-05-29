@@ -1,11 +1,3 @@
-/**
- * Hook: useHealthHub
- *
- * Manages health dashboard screen state: load injuries, child context, navigation handlers.
- * Used by app/health/index.tsx
- */
-
-import { useCallback, useMemo } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import * as Haptics from 'expo-haptics';
@@ -32,54 +24,40 @@ export function useHealthHub() {
   }>();
   const { children, profileMode, profileSubjectId, canSelectSelfProfile } = useChildContext();
 
-  const explicitSubjectId = useMemo(() => {
+  const explicitSubjectId = (() => {
     const raw = subjectIdParam ?? childIdParam;
     if (!raw) return null;
     return Array.isArray(raw) ? raw[0] ?? null : raw;
-  }, [childIdParam, subjectIdParam]);
+  })();
 
-  const subjectOptions = useMemo(
-    () =>
-      buildProfileSubjectOptions({
-        currentUser,
-        children,
-        includeSelf: children.length === 0 || canSelectSelfProfile,
-      }),
-    [canSelectSelfProfile, children, currentUser],
-  );
+  const subjectOptions = buildProfileSubjectOptions({
+    currentUser,
+    children,
+    includeSelf: children.length === 0 || canSelectSelfProfile,
+  });
 
-  const selectedSubjectId = useMemo(
-    () =>
-      resolveProfileSubjectId({
-        explicitSubjectId,
-        currentUserId: currentUser?.id,
-        profileMode,
-        profileSubjectId,
-        subjectOptions,
-      }),
-    [currentUser?.id, explicitSubjectId, profileMode, profileSubjectId, subjectOptions],
-  );
+  const selectedSubjectId = resolveProfileSubjectId({
+    explicitSubjectId,
+    currentUserId: currentUser?.id,
+    profileMode,
+    profileSubjectId,
+    subjectOptions,
+  });
 
-  const selectedChildId = useMemo(
-    () => (children.some((child) => child.id === selectedSubjectId) ? selectedSubjectId : null),
-    [children, selectedSubjectId],
-  );
+  const selectedChildId = (children.some((child) => child.id === selectedSubjectId) ? selectedSubjectId : null);
 
-  const selectedChild = useMemo(
-    () => children.find((child) => child.id === selectedChildId) ?? null,
-    [children, selectedChildId],
-  );
-  const selectedSubjectName = useMemo(() => {
+  const selectedChild = children.find((child) => child.id === selectedChildId) ?? null;
+  const selectedSubjectName = (() => {
     if (selectedChild?.name) return selectedChild.name;
     if (currentUser?.fullName) return currentUser.fullName;
     if (currentUser?.name) return currentUser.name;
     return null;
-  }, [currentUser?.fullName, currentUser?.name, selectedChild?.name]);
+  })();
   const selectedSubjectKind = selectedChildId ? 'child' : 'self';
 
   const subjectId = selectedSubjectId ?? null;
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     if (!subjectId) {
       return ok<{ injuries: Injury[] }>({
         injuries: [],
@@ -96,7 +74,7 @@ export function useHealthHub() {
       logger.error('Failed to load health data:', error);
       return err(serviceError('UNKNOWN', 'Failed to load health dashboard data.', error));
     }
-  }, [currentUser?.id, subjectId]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<{ injuries: Injury[] }>({
     load: loadData,
@@ -110,24 +88,24 @@ export function useHealthHub() {
   const injuries = data?.injuries ?? [];
   const handleRefresh = onRefresh;
 
-  const handleLogInjury = useCallback(() => {
+  const handleLogInjury = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (selectedChildId) {
       router.push({ pathname: '/health/log', params: { childId: selectedChildId } });
       return;
     }
     router.push(Routes.HEALTH_LOG);
-  }, [selectedChildId]);
+  };
 
-  const handleEditSelectedChild = useCallback(() => {
+  const handleEditSelectedChild = () => {
     if (!selectedChildId) return;
     router.push(Routes.modalEditChildProfile(selectedChildId));
-  }, [selectedChildId]);
+  };
 
-  const handleInjuryPress = useCallback((injury: Injury) => {
+  const handleInjuryPress = (injury: Injury) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(Routes.healthEntry(injury.id));
-  }, []);
+  };
 
   return {
     injuries,

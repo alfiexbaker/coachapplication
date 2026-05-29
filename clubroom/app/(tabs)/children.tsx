@@ -1,11 +1,3 @@
-/**
- * Children Hub Screen — Parent view of all child profiles.
- *
- * Composes: StatsRow, RecentBadges, ChildCards.
- * Data loading delegated to useChildrenHub hook.
- */
-
-import { useCallback } from 'react';
 import { router } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -39,17 +31,14 @@ export default function ChildrenHubScreen() {
     handleViewBadge,
   } = useChildrenHub();
 
-  const handleAddChild = useCallback(() => {
+  const handleAddChild = () => {
     router.push(Routes.MODAL_ADD_CHILD);
-  }, []);
+  };
 
-  const handleBadgeView = useCallback(
-    (badge: Parameters<typeof handleViewBadge>[0]) => {
-      handleViewBadge(badge);
-      router.push(Routes.developmentChildProgress(badge.athleteId, { tab: 'badges' }));
-    },
-    [handleViewBadge],
-  );
+  const handleBadgeView = (badge: Parameters<typeof handleViewBadge>[0]) => {
+    handleViewBadge(badge);
+    router.push(Routes.developmentChildProgress(badge.athleteId, { tab: 'badges' }));
+  };
 
   if (status === 'loading') {
     return (

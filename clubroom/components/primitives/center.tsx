@@ -11,7 +11,7 @@
  *   </Center>
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { View, type ViewStyle, type StyleProp } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
@@ -25,7 +25,7 @@ export interface CenterProps {
   children?: React.ReactNode;
 }
 
-export const Center = memo(function Center({ flex, padding, style, children }: CenterProps) {
+export const Center = function Center({ flex, padding, style, children }: CenterProps) {
   const px =
     padding === undefined ? undefined : typeof padding === 'number' ? padding : Spacing[padding];
 
@@ -37,4 +37,4 @@ export const Center = memo(function Center({ flex, padding, style, children }: C
   };
 
   return <View style={[computed, style]}>{children}</View>;
-});
+};

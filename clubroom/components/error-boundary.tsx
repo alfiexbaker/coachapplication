@@ -1,6 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, ScrollView, Appearance } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Clickable } from '@/components/primitives/clickable';
 import { logger } from '@/utils/logger';
 import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
@@ -83,8 +82,11 @@ export class ErrorBoundary extends Component<Props, State> {
 
       // Default error UI
       return (
-        <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-          <ScrollView contentContainerStyle={styles.content}>
+        <View style={[styles.container, { backgroundColor: palette.background }]}>
+          <ScrollView
+            contentInsetAdjustmentBehavior="automatic"
+            contentContainerStyle={styles.content}
+          >
             <Text style={[styles.title, { color: palette.foreground }]}>Something went wrong</Text>
             <Text style={[styles.message, { color: palette.muted }]}>
               {__DEV__
@@ -110,6 +112,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 </Text>
                 {this.state.error.stack && (
                   <ScrollView
+                    contentInsetAdjustmentBehavior="automatic"
                     style={[styles.stackContainer, { backgroundColor: palette.surfaceSecondary }]}
                     horizontal
                   >
@@ -124,6 +127,7 @@ export class ErrorBoundary extends Component<Props, State> {
                       Component Stack:
                     </Text>
                     <ScrollView
+                      contentInsetAdjustmentBehavior="automatic"
                       style={[styles.stackContainer, { backgroundColor: palette.surfaceSecondary }]}
                     >
                       <Text style={[styles.componentStack, { color: palette.muted }]}>
@@ -161,7 +165,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </Clickable>
             )}
           </ScrollView>
-        </SafeAreaView>
+        </View>
       );
     }
 
@@ -174,7 +178,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.lg,

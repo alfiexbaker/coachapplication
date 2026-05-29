@@ -112,7 +112,16 @@ export default function CredentialsScreen() {
         ) : credentials.length > 0 ? (
           <View style={styles.credentialsList}>
             {credentials.map((credential, index) => (
-              <CredentialCard key={index} credential={credential} index={index} colors={colors} />
+              <CredentialCard
+                key={
+                  credential.documentUrl ??
+                  credential.notes ??
+                  `${credential.status}:${credential.verifiedAt ?? ''}:${credential.expiresAt ?? ''}`
+                }
+                credential={credential}
+                index={index}
+                colors={colors}
+              />
             ))}
           </View>
         ) : (

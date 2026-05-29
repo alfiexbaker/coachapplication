@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
@@ -30,7 +30,10 @@ const SPARKS = [
   { x: 13, y: -28, delay: 105 },
 ] as const;
 
-function resolveFlame(currentWeeks: number): { size: number; colorTier: 'warm' | 'hot' | 'blue_hot' } {
+function resolveFlame(currentWeeks: number): {
+  size: number;
+  colorTier: 'warm' | 'hot' | 'blue_hot';
+} {
   if (currentWeeks >= 26) {
     return { size: 22, colorTier: 'blue_hot' };
   }
@@ -46,7 +49,7 @@ function resolveFlame(currentWeeks: number): { size: number; colorTier: 'warm' |
   return { size: 16, colorTier: 'warm' };
 }
 
-export const StreakVisual = memo(function StreakVisual({
+export const StreakVisual = function StreakVisual({
   currentWeeks,
   nextMilestone,
 }: StreakVisualProps) {
@@ -63,9 +66,9 @@ export const StreakVisual = memo(function StreakVisual({
         ? colors.error
         : colors.warning;
 
-  const dots = useMemo(() => {
+  const dots = (() => {
     return Array.from({ length: totalDots }).map((_, index) => index + 1);
-  }, [totalDots]);
+  })();
   const wiggle = useSharedValue(-3);
   const breathe = useSharedValue(0);
   const burst = useSharedValue(0);
@@ -74,31 +77,35 @@ export const StreakVisual = memo(function StreakVisual({
   const isMilestone = MILESTONES.includes(safeCurrent as (typeof MILESTONES)[number]);
 
   useEffect(() => {
-    wiggle.value = withRepeat(
-      withSequence(
-        withTiming(3, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
-        withTiming(-3, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+    wiggle.set(
+      withRepeat(
+        withSequence(
+          withTiming(3, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+          withTiming(-3, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+        ),
+        -1,
+        false,
       ),
-      -1,
-      false,
     );
-    breathe.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+    breathe.set(
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+        ),
+        -1,
+        false,
       ),
-      -1,
-      false,
     );
   }, [breathe, wiggle]);
 
   useEffect(() => {
     const previous = previousStreakRef.current;
     if (safeCurrent > previous && isMilestone) {
-      burst.value = 0;
-      sparks.value = 0;
-      burst.value = withSequence(withTiming(1, { duration: 220 }), withTiming(0, { duration: 260 }));
-      sparks.value = withSequence(withTiming(1, { duration: 500 }), withTiming(0, { duration: 250 }));
+      burst.set(0);
+      sparks.set(0);
+      burst.set(withSequence(withTiming(1, { duration: 220 }), withTiming(0, { duration: 260 })));
+      sparks.set(withSequence(withTiming(1, { duration: 500 }), withTiming(0, { duration: 250 })));
       void HapticPatterns.milestone();
     }
     previousStreakRef.current = safeCurrent;
@@ -108,10 +115,7 @@ export const StreakVisual = memo(function StreakVisual({
     const baseScale = 1 + breathe.value * 0.03;
     const burstScale = 1 + burst.value * 0.5;
     return {
-      transform: [
-        { rotate: `${wiggle.value}deg` },
-        { scale: baseScale * burstScale },
-      ],
+      transform: [{ rotate: `${wiggle.value}deg` }, { scale: baseScale * burstScale }],
     };
   });
 
@@ -176,15 +180,11 @@ export const StreakVisual = memo(function StreakVisual({
           <Animated.View style={flameStyle}>
             <Ionicons name="flame" size={flame.size} color={flameColor} />
           </Animated.View>
-          {sparkStyles.map((style, index) => (
+          {sparkStyles.map((style, sparkSlot) => (
             <Animated.View
-              key={`spark-${index}`}
+              key={`spark-${SPARKS[sparkSlot].delay}`}
               pointerEvents="none"
-              style={[
-                styles.spark,
-                style,
-                { backgroundColor: withAlpha(flameColor, 0.9) },
-              ]}
+              style={[styles.spark, style, { backgroundColor: withAlpha(flameColor, 0.9) }]}
             />
           ))}
         </View>
@@ -217,7 +217,7 @@ export const StreakVisual = memo(function StreakVisual({
       </ThemedText>
     </Column>
   );
-});
+};
 
 const styles = StyleSheet.create({
   flameWrap: {

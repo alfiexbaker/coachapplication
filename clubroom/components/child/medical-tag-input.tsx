@@ -1,4 +1,4 @@
-import { memo, useState, useCallback } from 'react';
+import { useState } from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -16,7 +16,7 @@ interface MedicalTagInputProps {
   onRemove: (index: number) => void;
 }
 
-export const MedicalTagInput = memo(function MedicalTagInput({
+export const MedicalTagInput = function MedicalTagInput({
   label,
   placeholder,
   items,
@@ -26,12 +26,12 @@ export const MedicalTagInput = memo(function MedicalTagInput({
   const { colors } = useTheme();
   const [inputValue, setInputValue] = useState('');
 
-  const handleAdd = useCallback(() => {
+  const handleAdd = () => {
     if (inputValue.trim()) {
       onAdd(inputValue.trim());
       setInputValue('');
     }
-  }, [inputValue, onAdd]);
+  };
 
   return (
     <View style={styles.container}>
@@ -45,9 +45,8 @@ export const MedicalTagInput = memo(function MedicalTagInput({
           onChangeText={setInputValue}
           onSubmitEditing={handleAdd}
           returnKeyType="done"
-
-            maxLength={100}
-          />
+          maxLength={100}
+        />
         <Clickable
           accessibilityLabel="Add medical tag"
           onPress={handleAdd}
@@ -60,7 +59,7 @@ export const MedicalTagInput = memo(function MedicalTagInput({
         <Row style={styles.tagList}>
           {items.map((item, index) => (
             <Row
-              key={index}
+              key={item}
               style={[
                 styles.tag,
                 { backgroundColor: withAlpha(colors.tint, 0.06), borderColor: colors.border },
@@ -76,7 +75,7 @@ export const MedicalTagInput = memo(function MedicalTagInput({
       )}
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: { gap: Spacing.xs },

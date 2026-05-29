@@ -106,9 +106,12 @@ export default function CoachAthleteHealthScreen() {
 
         <SurfaceCard style={[styles.actionsCard, { borderColor: colors.border }]}>
           <Row gap="sm" wrap>
-            <Button onPress={h.handleOpenEmergency} variant="outline" style={styles.actionButton}>
-              Emergency Info
-            </Button>
+            <Button
+              onPress={h.handleOpenEmergency}
+              variant="outline"
+              style={styles.actionButton}
+              label="Emergency Info"
+            />
           </Row>
         </SurfaceCard>
 

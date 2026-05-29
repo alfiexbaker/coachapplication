@@ -107,7 +107,7 @@ function CreateEventReviewStepInner({
   );
 }
 
-export const CreateEventReviewStep = React.memo(CreateEventReviewStepInner);
+export const CreateEventReviewStep = CreateEventReviewStepInner;
 
 const styles = StyleSheet.create({
   stepContent: {

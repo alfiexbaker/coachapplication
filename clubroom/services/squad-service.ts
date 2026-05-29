@@ -437,13 +437,18 @@ export const squadService = {
       { parentId: string; parentName: string; parentEmail?: string; athletes: string[] }
     >();
 
-    for (const m of members) {
-      const [athleteName, parentName, parentEmail] = await Promise.all([
-        resolveUserName(m.athleteId, 'Athlete'),
-        resolveUserName(m.parentId, 'Parent'),
-        resolveUserEmail(m.parentId),
-      ]);
+    const memberProfiles = await Promise.all(
+      members.map(async (member) => {
+        const [athleteName, parentName, parentEmail] = await Promise.all([
+          resolveUserName(member.athleteId, 'Athlete'),
+          resolveUserName(member.parentId, 'Parent'),
+          resolveUserEmail(member.parentId),
+        ]);
+        return { member, athleteName, parentName, parentEmail };
+      }),
+    );
 
+    for (const { member: m, athleteName, parentName, parentEmail } of memberProfiles) {
       const existing = parentMap.get(m.parentId);
       if (existing) {
         existing.athletes.push(athleteName);

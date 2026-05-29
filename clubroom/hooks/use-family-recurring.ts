@@ -1,4 +1,3 @@
-import { useCallback, useMemo } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { Routes } from '@/navigation/routes';
@@ -16,12 +15,12 @@ export function useFamilyRecurring() {
   const { currentUser } = useAuth();
   const params = useLocalSearchParams<{ recurringId?: string }>();
 
-  const loadPlans = useCallback(async () => {
+  const loadPlans = async () => {
     if (!currentUser?.id) {
       return ok<FamilyRecurringPlanSummary[]>([]);
     }
     return familyRecurringService.listPlansForParent(currentUser.id);
-  }, [currentUser?.id]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<FamilyRecurringPlanSummary[]>({
     load: loadPlans,
@@ -33,57 +32,41 @@ export function useFamilyRecurring() {
   });
 
   const plans = data ?? [];
-  const highlightedPlan = useMemo(
-    () =>
-      typeof params.recurringId === 'string'
-        ? plans.find((plan) => plan.recurring.id === params.recurringId)
-        : undefined,
-    [params.recurringId, plans],
-  );
+  const highlightedPlan = typeof params.recurringId === 'string'
+    ? plans.find((plan) => plan.recurring.id === params.recurringId)
+    : undefined;
 
-  const runAndRefresh = useCallback(
-    async (action: () => Promise<{ success: boolean; error?: { message?: string } }>, successMessage: string) => {
-      const result = await action();
-      if (!result.success) {
-        uiFeedback.showToast(result.error?.message || 'Failed to update recurring plan.', 'error');
-        return;
-      }
-      uiFeedback.showToast(successMessage, 'success');
-      onRefresh();
-    },
-    [onRefresh],
-  );
+  const runAndRefresh = async (action: () => Promise<{ success: boolean; error?: { message?: string } }>, successMessage: string) => {
+    const result = await action();
+    if (!result.success) {
+      uiFeedback.showToast(result.error?.message || 'Failed to update recurring plan.', 'error');
+      return;
+    }
+    uiFeedback.showToast(successMessage, 'success');
+    onRefresh();
+  };
 
-  const handlePause = useCallback(
-    async (recurringId: string, reason?: string) =>
-      runAndRefresh(
-        () => recurringBookingService.pauseRecurring(recurringId, reason),
-        'Recurring plan paused. Existing sessions stay on your calendar.',
-      ),
-    [runAndRefresh],
-  );
+  const handlePause = async (recurringId: string, reason?: string) =>
+    runAndRefresh(
+      () => recurringBookingService.pauseRecurring(recurringId, reason),
+      'Recurring plan paused. Existing sessions stay on your calendar.',
+    );
 
-  const handleResume = useCallback(
-    async (recurringId: string) =>
-      runAndRefresh(
-        () => recurringBookingService.resumeRecurring(recurringId),
-        'Recurring plan resumed.',
-      ),
-    [runAndRefresh],
-  );
+  const handleResume = async (recurringId: string) =>
+    runAndRefresh(
+      () => recurringBookingService.resumeRecurring(recurringId),
+      'Recurring plan resumed.',
+    );
 
-  const handleCancel = useCallback(
-    async (recurringId: string, reason?: string) =>
-      runAndRefresh(
-        () => recurringBookingService.cancelRecurring(recurringId, reason),
-        'Recurring plan cancelled. Future recurring sessions have been removed.',
-      ),
-    [runAndRefresh],
-  );
+  const handleCancel = async (recurringId: string, reason?: string) =>
+    runAndRefresh(
+      () => recurringBookingService.cancelRecurring(recurringId, reason),
+      'Recurring plan cancelled. Future recurring sessions have been removed.',
+    );
 
-  const handleCreatePlan = useCallback(() => {
+  const handleCreatePlan = () => {
     router.push(Routes.BOOKINGS_SUBSCRIBE);
-  }, []);
+  };
 
   return {
     status,

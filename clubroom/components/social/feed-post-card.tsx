@@ -21,7 +21,6 @@ import { PostHeader, EventDetailsCard, AttachmentChips } from './feed-post-card-
 
 // Re-export extracted components for backward compat
 export {
-  formatDate,
   PostHeader,
   EventDetailsCard,
   AttachmentChips,
@@ -115,7 +114,7 @@ function FeedPostCardInner({ post, onLike, onComment, onShare }: FeedPostCardPro
         {post.postType === 'session_announcement' && <SessionAnnouncementCard post={post} />}
 
         {/* Badge awarded */}
-        {post.badgeAwarded && <Chip active>{post.badgeAwarded}</Chip>}
+        {post.badgeAwarded && <Chip active label={post.badgeAwarded} />}
 
         {/* Attachments */}
         {post.attachments && post.attachments.length > 0 && (
@@ -189,5 +188,5 @@ const styles = StyleSheet.create({
 
 // ─── Exports ────────────────────────────────────────────────────────────────
 
-export const FeedPostCard = React.memo(FeedPostCardInner);
+export const FeedPostCard = FeedPostCardInner;
 export default FeedPostCard;

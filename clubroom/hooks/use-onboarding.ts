@@ -5,7 +5,7 @@
  * via useAuth().registerFromOnboarding().
  */
 
-import { useReducer, useCallback, useMemo, useEffect, useState } from 'react';
+import { useReducer, useEffect, useState } from 'react';
 
 import type {
   OnboardingState,
@@ -19,6 +19,8 @@ import { POSITION_LABELS } from '@/constants/position-skills';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('useOnboarding');
 
@@ -182,7 +184,7 @@ export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOption
     let isCancelled = false;
 
     const loadDraft = async () => {
-      try {
+      return await runAsyncTryCatchFinally(async () => {
         const draft = await apiClient.get<OnboardingDraft | null>(STORAGE_KEYS.ONBOARDING_PROGRESS, null);
         if (isCancelled || !draft) {
           return;
@@ -194,13 +196,13 @@ export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOption
         if (hasOnboardingProgress(hydrated)) {
           setShowResumePrompt(true);
         }
-      } catch (error) {
+      }, async error => {
         logger.warn('Failed to load onboarding draft', error);
-      } finally {
+      }, () => {
         if (!isCancelled) {
           setIsHydrated(true);
         }
-      }
+      });
     };
 
     void loadDraft();
@@ -227,7 +229,7 @@ export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOption
     return () => clearTimeout(timeoutId);
   }, [state, isHydrated]);
 
-  const stepOrder = useMemo(() => getStepOrder(state.accountType), [state.accountType]);
+  const stepOrder = getStepOrder(state.accountType);
   const stepIndex = stepOrder.indexOf(state.step);
   const stepNumber = stepIndex + 1;
   const totalSteps = stepOrder.length;
@@ -235,13 +237,13 @@ export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOption
   const isLastContentStep = stepIndex === totalSteps - 2; // step before 'complete'
   const isComplete = state.step === 'complete';
 
-  const canAdvance = useMemo(() => validateStep(state) === null, [state]);
+  const canAdvance = validateStep(state) === null;
 
-  const dismissResumePrompt = useCallback(() => {
+  const dismissResumePrompt = () => {
     setShowResumePrompt(false);
-  }, []);
+  };
 
-  const discardSavedDraft = useCallback(async () => {
+  const discardSavedDraft = async () => {
     dispatch({ type: 'HYDRATE_STATE', state: INITIAL_STATE });
     setShowResumePrompt(false);
     setSavedDraftTimestamp(null);
@@ -250,9 +252,9 @@ export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOption
     } catch (error) {
       logger.warn('Failed to discard onboarding draft', error);
     }
-  }, []);
+  };
 
-  const next = useCallback(async () => {
+  const next = async () => {
     const validationError = validateStep(state);
     if (validationError) {
       dispatch({ type: 'SET_ERROR', error: validationError });
@@ -290,7 +292,7 @@ export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOption
         childrenCount: state.accountType === 'PARENT' ? state.childrenCount : undefined,
       };
 
-      try {
+      await runAsyncTryCatchFinally(async () => {
         const success = await registerFromOnboarding(data);
 
         if (success) {
@@ -303,12 +305,13 @@ export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOption
         } else {
           dispatch({ type: 'SET_ERROR', error: 'Registration failed. Email may already be in use.' });
         }
-      } catch (error) {
+      }, async error => {
         logger.error('Unexpected onboarding registration failure', error);
         dispatch({ type: 'SET_ERROR', error: 'Registration failed. Please try again.' });
-      } finally {
+      }, () => {
         dispatch({ type: 'SET_SUBMITTING', value: false });
-      }
+      });
+
       return;
     }
 
@@ -317,19 +320,19 @@ export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOption
     if (nextStep) {
       dispatch({ type: 'SET_STEP', step: nextStep });
     }
-  }, [state, stepOrder, stepIndex, isLastContentStep, registerFromOnboarding]);
+  };
 
-  const back = useCallback(() => {
+  const back = () => {
     if (stepIndex <= 0) {
       onBackToLogin();
       return;
     }
     dispatch({ type: 'SET_STEP', step: stepOrder[stepIndex - 1] });
-  }, [stepIndex, stepOrder, onBackToLogin]);
+  };
 
-  const finish = useCallback(() => {
+  const finish = () => {
     onComplete();
-  }, [onComplete]);
+  };
 
   return {
     state,

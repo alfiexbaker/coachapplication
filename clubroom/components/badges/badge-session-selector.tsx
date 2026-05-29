@@ -1,5 +1,4 @@
-import { memo } from 'react';
-import { View, StyleSheet, TextInput, ScrollView } from 'react-native';
+import { View, StyleSheet, TextInput, FlatList, type ListRenderItemInfo } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -67,7 +66,7 @@ function HighlightedText({
   );
 }
 
-export const BadgeSessionSelector = memo(function BadgeSessionSelector({
+export const BadgeSessionSelector = function BadgeSessionSelector({
   sessionQuery,
   debouncedQuery = '',
   onQueryChange,
@@ -79,6 +78,13 @@ export const BadgeSessionSelector = memo(function BadgeSessionSelector({
   selectedSession,
 }: BadgeSessionSelectorProps) {
   const { colors } = useTheme();
+  const sessionItems = getBadgeSessionItems(
+    filteredSessions,
+    selectedSessionId,
+    debouncedQuery,
+    onSelectSession,
+    colors,
+  );
 
   return (
     <SurfaceCard style={styles.card}>
@@ -107,9 +113,8 @@ export const BadgeSessionSelector = memo(function BadgeSessionSelector({
           value={sessionQuery}
           onChangeText={onQueryChange}
           style={[styles.input, { color: colors.foreground }]}
-
-            maxLength={100}
-          />
+          maxLength={100}
+        />
       </Row>
 
       <ThemedText style={[Typography.small, { color: colors.muted }]}>
@@ -128,56 +133,92 @@ export const BadgeSessionSelector = memo(function BadgeSessionSelector({
             : 'No matching sessions yet'}
         </ThemedText>
       ) : (
-        <ScrollView style={styles.sessionList} contentContainerStyle={{ gap: Spacing.xs }}>
-          {filteredSessions.map((session) => {
-            const isSelected = session.id === selectedSessionId;
-            const athleteName = getSessionAthleteName(session);
-            return (
-              <Clickable
-                key={session.id}
-                onPress={() => onSelectSession(session.id)}
-                style={[
-                  styles.sessionRow,
-                  {
-                    borderColor: isSelected ? colors.tint : colors.border,
-                    backgroundColor: isSelected ? withAlpha(colors.tint, 0.03) : colors.surface,
-                  },
-                ]}
-              >
-                <Row gap="sm" align="center" style={{ flex: 1 }}>
-                  <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
-                    <ThemedText style={{ color: colors.tint, fontWeight: '700' }}>
-                      {athleteName.charAt(0)}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.sessionMeta}>
-                    <HighlightedText
-                      text={athleteName}
-                      query={debouncedQuery}
-                      color={colors.text}
-                      highlightColor={colors.tint}
-                    />
-                    <HighlightedText
-                      text={`${getSessionLabel(session)} · ${formatDate(session.completedAt)}`}
-                      query={debouncedQuery}
-                      color={colors.muted}
-                      highlightColor={colors.tint}
-                    />
-                  </View>
-                </Row>
-                <Ionicons
-                  name={isSelected ? 'checkmark' : 'add'}
-                  size={16}
-                  color={isSelected ? colors.tint : colors.icon}
-                />
-              </Clickable>
-            );
-          })}
-        </ScrollView>
+        <FlatList
+          data={sessionItems}
+          keyExtractor={keyBadgeSessionItem}
+          renderItem={renderBadgeSessionItem}
+          style={styles.sessionList}
+          contentContainerStyle={{ gap: Spacing.xs }}
+        />
       )}
     </SurfaceCard>
   );
-});
+};
+
+interface BadgeSessionItem {
+  key: string;
+  session: Session;
+  athleteName: string;
+  isSelected: boolean;
+  query: string;
+  colors: ReturnType<typeof useTheme>['colors'];
+  onPress: () => void;
+}
+
+function getBadgeSessionItems(
+  filteredSessions: Session[],
+  selectedSessionId: string | null,
+  debouncedQuery: string,
+  onSelectSession: (id: string) => void,
+  colors: ReturnType<typeof useTheme>['colors'],
+): BadgeSessionItem[] {
+  return filteredSessions.map((session) => ({
+    key: session.id,
+    session,
+    athleteName: getSessionAthleteName(session),
+    isSelected: session.id === selectedSessionId,
+    query: debouncedQuery,
+    colors,
+    onPress: () => onSelectSession(session.id),
+  }));
+}
+
+function keyBadgeSessionItem(item: BadgeSessionItem) {
+  return item.key;
+}
+
+function renderBadgeSessionItem({ item }: ListRenderItemInfo<BadgeSessionItem>) {
+  const { session, colors, isSelected, athleteName } = item;
+  return (
+    <Clickable
+      onPress={item.onPress}
+      style={[
+        styles.sessionRow,
+        {
+          borderColor: isSelected ? colors.tint : colors.border,
+          backgroundColor: isSelected ? withAlpha(colors.tint, 0.03) : colors.surface,
+        },
+      ]}
+    >
+      <Row gap="sm" align="center" style={{ flex: 1 }}>
+        <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
+          <ThemedText style={{ color: colors.tint, fontWeight: '700' }}>
+            {athleteName.charAt(0)}
+          </ThemedText>
+        </View>
+        <View style={styles.sessionMeta}>
+          <HighlightedText
+            text={athleteName}
+            query={item.query}
+            color={colors.text}
+            highlightColor={colors.tint}
+          />
+          <HighlightedText
+            text={`${getSessionLabel(session)} · ${formatDate(session.completedAt)}`}
+            query={item.query}
+            color={colors.muted}
+            highlightColor={colors.tint}
+          />
+        </View>
+      </Row>
+      <Ionicons
+        name={isSelected ? 'checkmark' : 'add'}
+        size={16}
+        color={isSelected ? colors.tint : colors.icon}
+      />
+    </Clickable>
+  );
+}
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm, padding: Spacing.sm },

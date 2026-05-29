@@ -7,11 +7,12 @@
  * - Amber dot for partial refund
  * - Red dot for 0% refund
  *
- * Uses LayoutAnimation for expand/collapse.
+ * Uses Reanimated layout transitions for expand/collapse.
  */
 
 import { useState } from 'react';
-import { View, StyleSheet, LayoutAnimation, UIManager, Platform } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -20,11 +21,6 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { CancellationPolicy } from '@/constants/types';
 import { Row } from '@/components/primitives';
-
-// Enable LayoutAnimation on Android
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 interface CancellationPolicyCardProps {
   coachId: string;
@@ -49,12 +45,13 @@ export function CancellationPolicyCard({ coachId: _coachId, policy }: Cancellati
   }
 
   const handleToggle = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpanded((prev) => !prev);
   };
 
   // Sort tiers from highest refund to lowest
-  const sortedTiers = [...policy.tiers].sort((a, b) => b.refundPercentage - a.refundPercentage);
+  const sortedTiers = Array.from(policy.tiers).toSorted(
+    (a, b) => b.refundPercentage - a.refundPercentage,
+  );
 
   return (
     <View style={[styles.card, { borderColor: palette.border }]}>
@@ -76,9 +73,17 @@ export function CancellationPolicyCard({ coachId: _coachId, policy }: Cancellati
       </Clickable>
 
       {expanded && (
-        <View style={styles.tiers}>
-          {sortedTiers.map((tier, index) => (
-            <Row key={index} style={styles.tierRow}>
+        <Animated.View
+          entering={FadeIn.duration(120)}
+          exiting={FadeOut.duration(100)}
+          layout={LinearTransition.duration(180)}
+          style={styles.tiers}
+        >
+          {sortedTiers.map((tier) => (
+            <Row
+              key={`${tier.hoursBeforeSession}:${tier.refundPercentage}:${tier.description}`}
+              style={styles.tierRow}
+            >
               <View
                 style={[
                   styles.dot,
@@ -112,7 +117,7 @@ export function CancellationPolicyCard({ coachId: _coachId, policy }: Cancellati
               Minimum {policy.minimumNoticeHours}h notice required
             </ThemedText>
           )}
-        </View>
+        </Animated.View>
       )}
     </View>
   );

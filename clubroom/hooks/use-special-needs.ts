@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 
 import type { User } from '@/constants/types';
@@ -19,7 +18,7 @@ interface SpecialNeedsData {
 export function useSpecialNeeds() {
   const { athleteId } = useLocalSearchParams<{ athleteId: string }>();
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     if (!athleteId) {
       return err(serviceError('VALIDATION', 'Missing athlete id for special needs.'));
     }
@@ -41,7 +40,7 @@ export function useSpecialNeeds() {
       logger.error('Failed to load child profile', error);
       return err(serviceError('UNKNOWN', 'Failed to load special needs profile.', error));
     }
-  }, [athleteId]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<SpecialNeedsData>({
     load: loadData,

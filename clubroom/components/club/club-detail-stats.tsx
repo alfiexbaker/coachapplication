@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,7 +18,7 @@ export interface ClubDetailStatsProps {
   colors: ThemeColors;
 }
 
-export const ClubDetailStats = memo(function ClubDetailStats({
+export const ClubDetailStats = function ClubDetailStats({
   memberCount,
   squadCount,
   activityCount,
@@ -68,7 +68,7 @@ export const ClubDetailStats = memo(function ClubDetailStats({
       </View>
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   row: {

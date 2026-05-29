@@ -1,7 +1,7 @@
 /**
  * DiscoveryCard — Full-featured coach card for discovery (Airbnb-quality).
  */
-import { memo, useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -25,7 +25,7 @@ function DiscoveryCardInner({
   isFavourited = false,
   index = 0,
 }: DiscoveryVariantProps) {
-  const [favourited, setFavourited] = useState(isFavourited);
+  const [favourited, setFavourited] = useState(() => isFavourited);
   const specialties = coach.specialties || coach.footballFocuses || [];
   const summaryContent = (
     <Row style={styles.summaryContent}>
@@ -82,7 +82,7 @@ function DiscoveryCardInner({
   );
 }
 
-export const DiscoveryCard = memo(DiscoveryCardInner);
+export const DiscoveryCard = DiscoveryCardInner;
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.sm, gap: Spacing.sm, marginBottom: Spacing.sm },

@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,15 +16,19 @@ import {
 } from '@/utils/location-presets';
 import type { AddLocationPickerProps, LocationCoordinates } from './add-location-picker.types';
 
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
+
 function normalizeLocation(value: string): string {
   return value.trim();
 }
 
-export default memo(function AddLocationPickerWeb({
+const EMPTY_SAVED_LOCATIONS: NonNullable<AddLocationPickerProps['savedLocations']> = [];
+
+export default function AddLocationPickerWeb({
   value,
   venueName = '',
   coordinates,
-  savedLocations = [],
+  savedLocations = EMPTY_SAVED_LOCATIONS,
   onChangeValue,
   onChangeVenueName,
   onChangeCoordinates,
@@ -38,95 +42,83 @@ export default memo(function AddLocationPickerWeb({
   const [inlineError, setInlineError] = useState<string | null>(null);
 
   const normalizedValue = normalizeLocation(value);
-  const presetLocations = useMemo(
-    () => dedupeLocationPresets([...savedLocations, ...COACH_LOCATION_FALLBACK_PRESETS]).slice(0, 8),
-    [savedLocations],
-  );
-  const selectedPreset = useMemo(
-    () => findMatchingLocationPreset(presetLocations, normalizedValue, coordinates),
-    [coordinates, normalizedValue, presetLocations],
-  );
+  const presetLocations = dedupeLocationPresets([...savedLocations, ...COACH_LOCATION_FALLBACK_PRESETS]).slice(0, 8);
+  const selectedPreset = findMatchingLocationPreset(presetLocations, normalizedValue, coordinates);
   const hasPresetValue = selectedPreset !== null;
 
   useEffect(() => {
-    setSavedFeedback(false);
+    startTransition(() => {
+      setSavedFeedback(false);
+    });
   }, [normalizedValue]);
 
-  const geocodeAddress = useCallback(
-    async (query: string, options?: { silent?: boolean }) => {
-      const normalized = normalizeLocation(query);
-      if (normalized.length < 3) {
+  const geocodeAddress = async (query: string, options?: { silent?: boolean }) => {
+    const normalized = normalizeLocation(query);
+    if (normalized.length < 3) {
+      if (!options?.silent) {
+        setInlineError('Enter at least 3 characters to search an address.');
+      }
+      return false;
+    }
+
+    setIsSearching(true);
+
+    return await runAsyncTryCatchFinally(async () => {
+      const matches = await Location.geocodeAsync(normalized);
+      if (matches.length === 0) {
+        onChangeCoordinates(null);
         if (!options?.silent) {
-          setInlineError('Enter at least 3 characters to search an address.');
+          setInlineError('Address not found. Try adding city or postcode for a better match.');
         }
         return false;
       }
-
-      setIsSearching(true);
-      try {
-        const matches = await Location.geocodeAsync(normalized);
-        if (matches.length === 0) {
-          onChangeCoordinates(null);
-          if (!options?.silent) {
-            setInlineError('Address not found. Try adding city or postcode for a better match.');
-          }
-          return false;
-        }
-        const nextCoordinates: LocationCoordinates = {
-          latitude: matches[0].latitude,
-          longitude: matches[0].longitude,
-        };
-        onChangeCoordinates(nextCoordinates);
-        setInlineError(null);
-        return true;
-      } catch {
-        onChangeCoordinates(null);
-        if (!options?.silent) {
-          setInlineError('Could not search this location right now.');
-        }
-        return false;
-      } finally {
-        setIsSearching(false);
-      }
-    },
-    [onChangeCoordinates],
-  );
-
-  const handleSavedLocationPress = useCallback(
-    async (preset: (typeof presetLocations)[number]) => {
-      if (onSelectSavedLocation) {
-        onSelectSavedLocation(preset);
-      } else {
-        onChangeValue(preset.address);
-        onChangeCoordinates(preset.coordinates ?? null);
-      }
+      const nextCoordinates: LocationCoordinates = {
+        latitude: matches[0].latitude,
+        longitude: matches[0].longitude,
+      };
+      onChangeCoordinates(nextCoordinates);
       setInlineError(null);
-
-      if (preset.coordinates) {
-        setIsEditorOpen(false);
-        return;
+      return true;
+    }, async error => {
+      onChangeCoordinates(null);
+      if (!options?.silent) {
+        setInlineError('Could not search this location right now.');
       }
+      return false;
+    }, () => {
+      setIsSearching(false);
+    });
+  };
 
-      const matched = await geocodeAddress(preset.address);
-      if (matched) {
-        setIsEditorOpen(false);
-      }
-    },
-    [geocodeAddress, onChangeCoordinates, onChangeValue, onSelectSavedLocation],
-  );
+  const handleSavedLocationPress = async (preset: (typeof presetLocations)[number]) => {
+    if (onSelectSavedLocation) {
+      onSelectSavedLocation(preset);
+    } else {
+      onChangeValue(preset.address);
+      onChangeCoordinates(preset.coordinates ?? null);
+    }
+    setInlineError(null);
 
-  const handleTextChange = useCallback(
-    (nextValue: string) => {
-      onChangeValue(nextValue);
-      setInlineError(null);
-      if (coordinates && nextValue.trim() !== value.trim()) {
-        onChangeCoordinates(null);
-      }
-    },
-    [coordinates, onChangeCoordinates, onChangeValue, value],
-  );
+    if (preset.coordinates) {
+      setIsEditorOpen(false);
+      return;
+    }
 
-  const handleSavePreset = useCallback(() => {
+    const matched = await geocodeAddress(preset.address);
+    if (matched) {
+      setIsEditorOpen(false);
+    }
+  };
+
+  const handleTextChange = (nextValue: string) => {
+    onChangeValue(nextValue);
+    setInlineError(null);
+    if (coordinates && nextValue.trim() !== value.trim()) {
+      onChangeCoordinates(null);
+    }
+  };
+
+  const handleSavePreset = () => {
     if (!onSavePreset) return;
     if (normalizedValue.length < 3) {
       setInlineError('Search for an address, then save this preset.');
@@ -144,7 +136,7 @@ export default memo(function AddLocationPickerWeb({
     });
     setSavedFeedback(true);
     setInlineError(null);
-  }, [coordinates, normalizedValue, onSavePreset, selectedPreset?.label, venueName]);
+  };
 
   const selectedPrimaryLabel =
     venueName.trim() || selectedPreset?.label || normalizedValue || 'Add a location';
@@ -389,7 +381,7 @@ export default memo(function AddLocationPickerWeb({
       )}
     </Column>
   );
-});
+}
 
 const styles = StyleSheet.create({
   flex: {

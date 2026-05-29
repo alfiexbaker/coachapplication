@@ -1,13 +1,12 @@
 /**
  * Extracted sub-components for UnifiedBookingCard.
  *
- * Helpers: formatBookingDateTime, getBookingStatusColor.
  * ExtendedBooking — extended booking interface.
  * CompactBookingCard — minimal single-row variant.
  * DetailedBookingCard — full info variant with all metadata.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,48 +25,7 @@ import {
 } from '@/utils/booking-display';
 import { styles } from './unified-booking-styles';
 import { BookingOwnershipBlock } from '@/components/bookings/booking-ownership-block';
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-export interface ExtendedBooking extends BookingSummary {
-  athleteId?: string;
-  price?: number;
-  duration?: number;
-  notes?: string;
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-export function formatBookingDateTime(start: string) {
-  const date = new Date(start);
-  return {
-    day: date.toLocaleDateString('en-GB', { weekday: 'short', month: 'short', day: 'numeric' }),
-    time: date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-    full: date.toLocaleDateString('en-GB', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    }),
-  };
-}
-
-export function getBookingStatusColor(status: string, palette: ThemeColors): string {
-  switch (status) {
-    case 'Confirmed':
-      return palette.success;
-    case 'Pending':
-      return palette.warning;
-    case 'Needs Completion':
-      return palette.warning;
-    case 'Completed':
-      return palette.muted;
-    case 'Cancelled':
-      return palette.error;
-    default:
-      return palette.muted;
-  }
-}
+import type { ExtendedBooking } from './unified-booking-helpers';
 
 // ─── CompactBookingCard ──────────────────────────────────────────────────────
 
@@ -80,7 +38,7 @@ interface CompactBookingCardProps {
   palette: ThemeColors;
 }
 
-export const CompactBookingCard = memo(function CompactBookingCard({
+export const CompactBookingCard = function CompactBookingCard({
   booking,
   coachPhotoUrl,
   statusColor,
@@ -119,7 +77,7 @@ export const CompactBookingCard = memo(function CompactBookingCard({
       </SurfaceCard>
     </Clickable>
   );
-});
+};
 
 // ─── DetailedBookingCard ─────────────────────────────────────────────────────
 
@@ -139,7 +97,7 @@ interface DetailedBookingCardProps {
   palette: ThemeColors;
 }
 
-export const DetailedBookingCard = memo(function DetailedBookingCard({
+export const DetailedBookingCard = function DetailedBookingCard({
   booking,
   extendedBooking,
   coachPhotoUrl,
@@ -236,4 +194,4 @@ export const DetailedBookingCard = memo(function DetailedBookingCard({
       </SurfaceCard>
     </Clickable>
   );
-});
+};

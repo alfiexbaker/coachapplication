@@ -10,7 +10,7 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
-import { familyHealthService } from '@/services/family';
+import { familyHealthService } from '@/services/family/family-health-service';
 
 const logger = createLogger('SafetyService');
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -86,118 +86,118 @@ const createDefaultEmergencyInfo = (athleteId: string): EmergencyInfo => ({
 // Mock emergency info data — only available in development
 const MOCK_EMERGENCY_INFO: Record<string, EmergencyInfo> | null = __DEV__
   ? normalizeLegacyMockDates({
-  athlete1: {
-    athleteId: 'athlete1',
-    contacts: [
-      {
-        id: 'contact1',
-        name: 'Sarah Henderson',
-        relationship: 'Mother',
-        phone: '+44 7700 900123',
-        email: 'sarah.henderson@email.com',
-        isPrimary: true,
-        canPickup: true,
+      athlete1: {
+        athleteId: 'athlete1',
+        contacts: [
+          {
+            id: 'contact1',
+            name: 'Sarah Henderson',
+            relationship: 'Mother',
+            phone: '+44 7700 900123',
+            email: 'sarah.henderson@email.com',
+            isPrimary: true,
+            canPickup: true,
+          },
+          {
+            id: 'contact2',
+            name: 'James Henderson',
+            relationship: 'Father',
+            phone: '+44 7700 900456',
+            email: 'james.henderson@email.com',
+            isPrimary: false,
+            canPickup: true,
+          },
+          {
+            id: 'contact3',
+            name: 'Emily Parker',
+            relationship: 'Grandmother',
+            phone: '+44 7700 900789',
+            isPrimary: false,
+            canPickup: true,
+          },
+        ],
+        medical: {
+          conditions: ['Mild asthma'],
+          allergies: ['Peanuts', 'Tree nuts'],
+          medications: ['Ventolin inhaler (as needed)'],
+          doctorName: 'Dr. Sarah Williams',
+          doctorPhone: '+44 20 7123 4567',
+          insuranceProvider: 'Bupa',
+          insuranceNumber: 'BUP-123456789',
+          restrictions: ['Avoid running in cold weather without warm-up'],
+          notes: 'Carries inhaler in sports bag. Parent to be notified if inhaler used.',
+        },
+        consents: [
+          {
+            type: 'PHOTO',
+            granted: true,
+            grantedAt: '2024-01-15T10:00:00Z',
+            grantedBy: 'Sarah Henderson',
+          },
+          {
+            type: 'VIDEO',
+            granted: true,
+            grantedAt: '2024-01-15T10:00:00Z',
+            grantedBy: 'Sarah Henderson',
+          },
+          { type: 'SOCIAL_MEDIA', granted: false, grantedBy: '' },
+          {
+            type: 'EMERGENCY_TREATMENT',
+            granted: true,
+            grantedAt: '2024-01-15T10:00:00Z',
+            grantedBy: 'Sarah Henderson',
+          },
+        ],
+        updatedAt: '2024-01-15T10:00:00Z',
       },
-      {
-        id: 'contact2',
-        name: 'James Henderson',
-        relationship: 'Father',
-        phone: '+44 7700 900456',
-        email: 'james.henderson@email.com',
-        isPrimary: false,
-        canPickup: true,
+      athlete2: {
+        athleteId: 'athlete2',
+        contacts: [
+          {
+            id: 'contact4',
+            name: 'Michael Smith',
+            relationship: 'Father',
+            phone: '+44 7700 901234',
+            email: 'michael.smith@email.com',
+            isPrimary: true,
+            canPickup: true,
+          },
+        ],
+        medical: {
+          conditions: [],
+          allergies: ['Penicillin'],
+          medications: [],
+          restrictions: [],
+          notes: 'No significant medical history.',
+        },
+        consents: [
+          {
+            type: 'PHOTO',
+            granted: true,
+            grantedAt: '2024-02-01T14:30:00Z',
+            grantedBy: 'Michael Smith',
+          },
+          {
+            type: 'VIDEO',
+            granted: true,
+            grantedAt: '2024-02-01T14:30:00Z',
+            grantedBy: 'Michael Smith',
+          },
+          {
+            type: 'SOCIAL_MEDIA',
+            granted: true,
+            grantedAt: '2024-02-01T14:30:00Z',
+            grantedBy: 'Michael Smith',
+          },
+          {
+            type: 'EMERGENCY_TREATMENT',
+            granted: true,
+            grantedAt: '2024-02-01T14:30:00Z',
+            grantedBy: 'Michael Smith',
+          },
+        ],
+        updatedAt: '2024-02-01T14:30:00Z',
       },
-      {
-        id: 'contact3',
-        name: 'Emily Parker',
-        relationship: 'Grandmother',
-        phone: '+44 7700 900789',
-        isPrimary: false,
-        canPickup: true,
-      },
-    ],
-    medical: {
-      conditions: ['Mild asthma'],
-      allergies: ['Peanuts', 'Tree nuts'],
-      medications: ['Ventolin inhaler (as needed)'],
-      doctorName: 'Dr. Sarah Williams',
-      doctorPhone: '+44 20 7123 4567',
-      insuranceProvider: 'Bupa',
-      insuranceNumber: 'BUP-123456789',
-      restrictions: ['Avoid running in cold weather without warm-up'],
-      notes: 'Carries inhaler in sports bag. Parent to be notified if inhaler used.',
-    },
-    consents: [
-      {
-        type: 'PHOTO',
-        granted: true,
-        grantedAt: '2024-01-15T10:00:00Z',
-        grantedBy: 'Sarah Henderson',
-      },
-      {
-        type: 'VIDEO',
-        granted: true,
-        grantedAt: '2024-01-15T10:00:00Z',
-        grantedBy: 'Sarah Henderson',
-      },
-      { type: 'SOCIAL_MEDIA', granted: false, grantedBy: '' },
-      {
-        type: 'EMERGENCY_TREATMENT',
-        granted: true,
-        grantedAt: '2024-01-15T10:00:00Z',
-        grantedBy: 'Sarah Henderson',
-      },
-    ],
-    updatedAt: '2024-01-15T10:00:00Z',
-  },
-  athlete2: {
-    athleteId: 'athlete2',
-    contacts: [
-      {
-        id: 'contact4',
-        name: 'Michael Smith',
-        relationship: 'Father',
-        phone: '+44 7700 901234',
-        email: 'michael.smith@email.com',
-        isPrimary: true,
-        canPickup: true,
-      },
-    ],
-    medical: {
-      conditions: [],
-      allergies: ['Penicillin'],
-      medications: [],
-      restrictions: [],
-      notes: 'No significant medical history.',
-    },
-    consents: [
-      {
-        type: 'PHOTO',
-        granted: true,
-        grantedAt: '2024-02-01T14:30:00Z',
-        grantedBy: 'Michael Smith',
-      },
-      {
-        type: 'VIDEO',
-        granted: true,
-        grantedAt: '2024-02-01T14:30:00Z',
-        grantedBy: 'Michael Smith',
-      },
-      {
-        type: 'SOCIAL_MEDIA',
-        granted: true,
-        grantedAt: '2024-02-01T14:30:00Z',
-        grantedBy: 'Michael Smith',
-      },
-      {
-        type: 'EMERGENCY_TREATMENT',
-        granted: true,
-        grantedAt: '2024-02-01T14:30:00Z',
-        grantedBy: 'Michael Smith',
-      },
-    ],
-    updatedAt: '2024-02-01T14:30:00Z',
-  },
     })
   : null;
 
@@ -266,8 +266,7 @@ class SafetyService {
           });
           return err({
             code: 'UNAUTHORIZED',
-            message:
-              "You do not have permission to view this athlete's emergency information",
+            message: "You do not have permission to view this athlete's emergency information",
           });
         }
         // Log access for audit trail
@@ -307,17 +306,19 @@ class SafetyService {
 
     // Parents: check family membership (flat list, match by child id)
     if (requestorRole === 'parent') {
-      const familyMembers = await apiClient.get<
-        { id: string; parentId?: string }[]
-      >(STORAGE_KEYS.FAMILY_MEMBERS, []);
+      const familyMembers = await apiClient.get<{ id: string; parentId?: string }[]>(
+        STORAGE_KEYS.FAMILY_MEMBERS,
+        [],
+      );
       return familyMembers.some((m) => m.id === athleteId);
     }
 
     // Coaches: check roster (coach's rostered athletes)
     if (requestorRole === 'coach') {
-      const roster = await apiClient.get<
-        { athleteId: string; coachId?: string }[]
-      >(STORAGE_KEYS.ROSTER, []);
+      const roster = await apiClient.get<{ athleteId: string; coachId?: string }[]>(
+        STORAGE_KEYS.ROSTER,
+        [],
+      );
       return roster.some((a) => a.athleteId === athleteId);
     }
 
@@ -343,7 +344,7 @@ class SafetyService {
       };
 
       const key = `${STORAGE_KEYS.AUDIT_LOG_PREFIX}${athleteId}`;
-      const existingLogs = await apiClient.get<typeof logEntry[]>(key, []);
+      const existingLogs = await apiClient.get<(typeof logEntry)[]>(key, []);
 
       const MAX_AUDIT_ENTRIES = 1000;
       const updatedLogs = [...existingLogs, logEntry];
@@ -861,15 +862,20 @@ class SafetyService {
       let athletesWithAlerts = 0;
       let highAlertCount = 0;
 
-      for (const attendee of attendees) {
-        const emergencyDataResult = await this.getAthleteEmergency(
-          attendee.athleteId,
-          attendee.athleteName,
-        );
-        if (!emergencyDataResult.success) {
-          return err(emergencyDataResult.error);
-        }
-        const emergencyData = emergencyDataResult.data;
+      const emergencyDataResults = await Promise.all(
+        attendees.map(async (attendee) => ({
+          attendee,
+          result: await this.getAthleteEmergency(attendee.athleteId, attendee.athleteName),
+        })),
+      );
+      const failedEmergencyDataResult = emergencyDataResults.find((entry) => !entry.result.success);
+      if (failedEmergencyDataResult && !failedEmergencyDataResult.result.success) {
+        return err(failedEmergencyDataResult.result.error);
+      }
+
+      for (const { attendee, result } of emergencyDataResults) {
+        if (!result.success) continue;
+        const emergencyData = result.data;
         athletes.push(emergencyData);
 
         // Aggregate allergies and conditions
@@ -1037,17 +1043,19 @@ class SafetyService {
     attendees: { athleteId: string; athleteName: string }[],
   ): Promise<Result<void, ServiceError>> {
     try {
-      for (const attendee of attendees) {
-        const infoResult = await this.getEmergencyInfo(attendee.athleteId);
-        if (!infoResult.success) {
-          logger.warn('Failed to pre-cache emergency info', {
-            athleteId: attendee.athleteId,
-            error: infoResult.error.message,
-          });
-          continue;
-        }
-        await this.cacheEmergencyInfo(attendee.athleteId, infoResult.data, attendee.athleteName);
-      }
+      await Promise.all(
+        attendees.map(async (attendee) => {
+          const infoResult = await this.getEmergencyInfo(attendee.athleteId);
+          if (!infoResult.success) {
+            logger.warn('Failed to pre-cache emergency info', {
+              athleteId: attendee.athleteId,
+              error: infoResult.error.message,
+            });
+            return;
+          }
+          await this.cacheEmergencyInfo(attendee.athleteId, infoResult.data, attendee.athleteName);
+        }),
+      );
       return ok(undefined);
     } catch (error) {
       logger.error('Failed to pre-cache session emergency info', error);

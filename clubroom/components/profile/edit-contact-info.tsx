@@ -3,7 +3,7 @@
  * Phone auto-formats to UK mobile (07xxx xxx xxx) on blur.
  */
 
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -41,7 +41,7 @@ interface EditContactInfoProps {
   onChangeWebsite: (text: string) => void;
 }
 
-export const EditContactInfo = memo(function EditContactInfo({
+export const EditContactInfo = function EditContactInfo({
   colors,
   userIsCoach,
   email,
@@ -56,11 +56,11 @@ export const EditContactInfo = memo(function EditContactInfo({
     { borderColor: colors.border, backgroundColor: colors.card, color: colors.foreground },
   ];
 
-  const handlePhoneBlur = useCallback(() => {
+  const handlePhoneBlur = () => {
     if (phone.trim().length > 0) {
       onChangePhone(formatUkPhone(phone));
     }
-  }, [phone, onChangePhone]);
+  };
 
   return (
     <SurfaceCard style={styles.section}>
@@ -117,7 +117,7 @@ export const EditContactInfo = memo(function EditContactInfo({
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.md },

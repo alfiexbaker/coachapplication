@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { ActivityIndicator, StyleSheet } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -19,7 +19,7 @@ interface SettingsBrandingSectionProps {
   onSave: () => void;
 }
 
-export const SettingsBrandingSection = memo(function SettingsBrandingSection({
+export const SettingsBrandingSection = function SettingsBrandingSection({
   branding,
   colors,
   canManageClub,
@@ -59,7 +59,7 @@ export const SettingsBrandingSection = memo(function SettingsBrandingSection({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

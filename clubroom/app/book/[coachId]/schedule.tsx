@@ -1,4 +1,3 @@
-import { useMemo, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
@@ -102,7 +101,7 @@ export default function ScheduleScreen() {
   });
 
   // Calculate date range (next 14 days)
-  const dateRange = useMemo(() => {
+  const dateRange = (() => {
     const today = new Date();
     const startDate = toDateStr(today);
     const endDate = new Date(today);
@@ -111,10 +110,10 @@ export default function ScheduleScreen() {
       startDate,
       endDate: toDateStr(endDate),
     };
-  }, []);
+  })();
 
   // Fetch availability for the date range
-  const loadAvailability = useCallback(async () => {
+  const loadAvailability = async () => {
     if (!coachId) {
       return ok([]);
     }
@@ -150,16 +149,7 @@ export default function ScheduleScreen() {
         serviceError('UNKNOWN', 'Unable to load available times. Please try again.', loadError),
       );
     }
-  }, [
-    coachId,
-    dateRange.endDate,
-    dateRange.startDate,
-    draft.duration,
-    draft.sessionOfferingId,
-    scheduleLocked,
-    selectedOfferingError,
-    selectedOfferingStatus,
-  ]);
+  };
 
   const {
     data,
@@ -178,7 +168,7 @@ export default function ScheduleScreen() {
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
   });
-  const allSlots = useMemo(() => data ?? [], [data]);
+  const allSlots = data ?? [];
   const shouldShowCalendarSkeleton =
     !scheduleLocked &&
     ((draft.sessionOfferingId && selectedOfferingStatus === 'loading') ||
@@ -186,7 +176,7 @@ export default function ScheduleScreen() {
       (showSectionSkeleton && pendingState.mode === 'dependency-change'));
 
   // Group slots by date for the calendar picker
-  const availabilityByDate = useMemo(() => {
+  const availabilityByDate = (() => {
     const grouped: Record<string, AvailabilitySlot[]> = {};
     for (const slot of allSlots) {
       if (!grouped[slot.date]) {
@@ -195,21 +185,21 @@ export default function ScheduleScreen() {
       grouped[slot.date].push(slot);
     }
     return grouped;
-  }, [allSlots]);
+  })();
 
   // Get slots for the selected date
-  const slotsForSelectedDate = useMemo(() => {
+  const slotsForSelectedDate = (() => {
     if (!draft.date) return [];
     return allSlots.filter((slot) => slot.date === draft.date);
-  }, [allSlots, draft.date]);
+  })();
 
-  const handleDateSelect = useCallback((date: string) => {
+  const handleDateSelect = (date: string) => {
     if (date !== draft.date) {
       updateDraft({ date, slot: undefined });
     }
-  }, [draft.date, updateDraft]);
+  };
 
-  const handleSlotSelect = useCallback((slotTime: string) => {
+  const handleSlotSelect = (slotTime: string) => {
     const selectedSlot = slotsForSelectedDate.find((s) => s.startTime === slotTime);
     const patch: Parameters<typeof updateDraft>[0] = {
       slot: slotTime,
@@ -219,8 +209,8 @@ export default function ScheduleScreen() {
       patch.locationText = selectedSlot.location;
     }
     updateDraft(patch);
-  }, [slotsForSelectedDate, updateDraft]);
-  const handleBack = useCallback(() => {
+  };
+  const handleBack = () => {
     void bookingStepAnalyticsService.track({
       step: 'schedule',
       status: 'abandoned',
@@ -232,9 +222,9 @@ export default function ScheduleScreen() {
       draft,
     });
     router.back();
-  }, [accountHasChildren, currentUser?.role, currentUser?.id, draft]);
+  };
 
-  const handleContinue = useCallback(() => {
+  const handleContinue = () => {
     if (!coachId) {
       void bookingStepAnalyticsService.track({
         step: 'schedule',
@@ -287,7 +277,7 @@ export default function ScheduleScreen() {
       draft,
     });
     router.push(Routes.bookDetails(coachId));
-  }, [accountHasChildren, coachId, currentUser?.role, currentUser?.id, draft, router]);
+  };
   const renderShell = ({ content, footer }: { content: ReactNode; footer?: ReactNode }) => (
     <SafeAreaView
       style={[styles.safeArea, { backgroundColor: palette.background }]}

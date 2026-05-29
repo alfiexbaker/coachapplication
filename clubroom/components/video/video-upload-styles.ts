@@ -53,7 +53,7 @@ export const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   metaText: { ...Typography.caption },
-  useButton: {
+  selectButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

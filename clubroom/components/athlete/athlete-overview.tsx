@@ -42,7 +42,7 @@ interface AthleteOverviewProps {
 // TAGS SECTION
 // ============================================================================
 
-const TagsSection = React.memo(function TagsSection({
+const TagsSection = function TagsSection({
   athlete,
   onTagRemove,
   onTagAdd,
@@ -79,7 +79,7 @@ const TagsSection = React.memo(function TagsSection({
       )}
     </SurfaceCard>
   );
-});
+};
 
 // ============================================================================
 // MAIN COMPONENT
@@ -129,7 +129,7 @@ function AthleteOverviewInner({
   );
 }
 
-export const AthleteOverview = React.memo(AthleteOverviewInner);
+export const AthleteOverview = AthleteOverviewInner;
 
 // ============================================================================
 // STYLES

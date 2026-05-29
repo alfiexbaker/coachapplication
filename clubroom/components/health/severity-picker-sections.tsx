@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -10,34 +9,9 @@ import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';
 import type { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
+import { SEVERITY_OPTIONS, type SeverityOption } from './severity-picker-helpers';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
-
-// ─── Data ───────────────────────────────────────────────────────
-
-export interface SeverityOption {
-  value: InjurySeverity;
-  description: string;
-  examples: string;
-}
-
-export const SEVERITY_OPTIONS: SeverityOption[] = [
-  {
-    value: 'MINOR',
-    description: 'Can continue with some discomfort',
-    examples: 'Slight strain, minor bruise, small cut',
-  },
-  {
-    value: 'MODERATE',
-    description: 'Needs rest but recovers in 1-2 weeks',
-    examples: 'Sprain, muscle pull, significant bruising',
-  },
-  {
-    value: 'SEVERE',
-    description: 'Requires medical attention',
-    examples: 'Fracture, torn ligament, severe swelling',
-  },
-];
 
 // ─── SeverityOptionCard ─────────────────────────────────────────
 
@@ -48,7 +22,7 @@ export interface SeverityOptionCardProps {
   palette: ThemeColors;
 }
 
-export const SeverityOptionCard = memo(function SeverityOptionCard({
+export const SeverityOptionCard = function SeverityOptionCard({
   option,
   isSelected,
   onSelect,
@@ -107,7 +81,7 @@ export const SeverityOptionCard = memo(function SeverityOptionCard({
       </View>
     </Clickable>
   );
-});
+};
 
 // ─── SeverityScale ──────────────────────────────────────────────
 
@@ -116,7 +90,7 @@ export interface SeverityScaleProps {
   palette: ThemeColors;
 }
 
-export const SeverityScale = memo(function SeverityScale({
+export const SeverityScale = function SeverityScale({
   selectedSeverity,
   palette,
 }: SeverityScaleProps) {
@@ -146,7 +120,7 @@ export const SeverityScale = memo(function SeverityScale({
       </Row>
     </View>
   );
-});
+};
 
 // ─── Styles ─────────────────────────────────────────────────────
 

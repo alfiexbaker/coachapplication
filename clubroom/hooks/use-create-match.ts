@@ -1,7 +1,7 @@
 /**
  * useCreateMatch — All state, validation, and handlers for the Create Match wizard.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -12,6 +12,8 @@ import { matchService } from '@/services/match-service';
 import { squadService } from '@/services/squad-service';
 import { inviteService as bulkInviteService } from '@/services/invite';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('CreateMatchScreen');
 const DEFAULT_CLUB_ID = 'club_lions';
@@ -45,10 +47,17 @@ export function useCreateMatch() {
   const [maxPlayers, setMaxPlayers] = useState('14');
   const [notes, setNotes] = useState('');
   const [selectedSquadId, setSelectedSquadId] = useState<string | null>(null);
-  const [selectedSquad, setSelectedSquad] = useState<ClubSquad | null>(null);
-  const [squads, setSquads] = useState<ClubSquad[]>([]);
+  const [squads, setSquads] = useState<ClubSquad[] | undefined>(undefined);
   const [squadMemberCount, setSquadMemberCount] = useState(0);
   const [autoInvite, setAutoInvite] = useState(true);
+  const selectedSquad = squads?.find((squad) => squad.id === selectedSquadId) ?? null;
+
+  const updateSelectedSquadId = (squadId: string | null) => {
+    setSelectedSquadId(squadId);
+    if (!squadId) {
+      setSquadMemberCount(0);
+    }
+  };
 
   useEffect(() => {
     const loadSquads = async () => {
@@ -59,6 +68,7 @@ export function useCreateMatch() {
         logger.error('Failed to load squads:', error);
       }
     };
+    // react-doctor-disable-next-line react-doctor/no-initialize-state -- squad options are loaded from the service after mount.
     loadSquads();
   }, []);
 
@@ -66,20 +76,19 @@ export function useCreateMatch() {
     if (!selectedSquadId) return;
     const loadSquadInfo = async () => {
       try {
-        const squad = await squadService.getSquad(selectedSquadId);
-        setSelectedSquad(squad);
         const members = await squadService.getSquadMembers(selectedSquadId);
         setSquadMemberCount(members.length);
       } catch (error) {
         logger.error('Failed to load squad info:', error);
       }
     };
+    // react-doctor-disable-next-line react-doctor/no-derived-state -- member count must come from the selected squad service record.
     loadSquadInfo();
   }, [selectedSquadId]);
 
   const currentStepIndex = STEPS.indexOf(step);
 
-  const validateStep = useCallback((): boolean => {
+  const validateStep = (): boolean => {
     switch (step) {
       case 'details':
         if (!opponent.trim()) {
@@ -110,23 +119,24 @@ export function useCreateMatch() {
       default:
         return true;
     }
-  }, [step, opponent, venue, date, kickoffTime, selectedSquadId]);
+  };
 
-  const handleNext = useCallback(() => {
+  const handleNext = () => {
     if (!validateStep()) return;
     const nextIndex = currentStepIndex + 1;
     if (nextIndex < STEPS.length) setStep(STEPS[nextIndex]);
-  }, [validateStep, currentStepIndex]);
+  };
 
-  const handleBack = useCallback(() => {
+  const handleBack = () => {
     const prevIndex = currentStepIndex - 1;
     if (prevIndex >= 0) setStep(STEPS[prevIndex]);
     else router.back();
-  }, [currentStepIndex]);
+  };
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = async () => {
     setIsSubmitting(true);
-    try {
+
+    await runAsyncTryCatchFinally(async () => {
       const title = `${selectedSquad?.name || 'Team'} vs ${opponent}`;
       if (autoInvite && selectedSquadId) {
         const result = await bulkInviteService.inviteSquadToMatch({
@@ -173,28 +183,13 @@ export function useCreateMatch() {
         uiFeedback.showToast(`${title} has been created.`, 'success');
         router.replace(Routes.match(match.id));
       }
-    } catch (error) {
+    }, async error => {
       logger.error('Failed to create match:', error);
       uiFeedback.showToast('Failed to create match. Please try again.', 'error');
-    } finally {
+    }, () => {
       setIsSubmitting(false);
-    }
-  }, [
-    selectedSquad,
-    opponent,
-    autoInvite,
-    selectedSquadId,
-    isHome,
-    date,
-    kickoffTime,
-    venue,
-    currentUser,
-    matchType,
-    notes,
-    meetTime,
-    address,
-    maxPlayers,
-  ]);
+    });
+  };
 
   return {
     step,
@@ -222,9 +217,9 @@ export function useCreateMatch() {
     notes,
     setNotes,
     selectedSquadId,
-    setSelectedSquadId,
+    setSelectedSquadId: updateSelectedSquadId,
     selectedSquad,
-    squads,
+    squads: squads ?? [],
     squadMemberCount,
     autoInvite,
     setAutoInvite,

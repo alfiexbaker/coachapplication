@@ -1,8 +1,6 @@
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Column } from '@/components/primitives/column';
@@ -30,7 +28,7 @@ interface ResultsProgramHeroProps {
   reduceMotion?: boolean;
 }
 
-export const ResultsProgramHero = memo(function ResultsProgramHero({
+export const ResultsProgramHero = function ResultsProgramHero({
   title,
   subtitle,
   score,
@@ -42,13 +40,16 @@ export const ResultsProgramHero = memo(function ResultsProgramHero({
 }: ResultsProgramHeroProps) {
   const { colors, scheme } = useTheme();
 
-  const gradientColors: readonly [string, string, string] =
-    scheme === 'dark'
-      ? [withAlpha(colors.tint, 0.24), withAlpha(colors.background, 0.9), colors.background]
-      : [withAlpha(colors.tint, 0.16), withAlpha(colors.background, 0.96), colors.background];
+  const heroBackground =
+    scheme === 'dark' ? withAlpha(colors.tint, 0.1) : withAlpha(colors.tint, 0.06);
 
   return (
-    <LinearGradient colors={gradientColors} style={[styles.container, { borderColor: withAlpha(colors.tint, 0.2) }]}>
+    <View
+      style={[
+        styles.container,
+        { borderColor: withAlpha(colors.tint, 0.2), backgroundColor: heroBackground },
+      ]}
+    >
       <Column gap="sm">
         <Row align="center" justify="between" gap="sm">
           <Column style={styles.headerText} gap="xxs">
@@ -72,7 +73,9 @@ export const ResultsProgramHero = memo(function ResultsProgramHero({
             >
               <Row align="center" gap="xxs">
                 <Ionicons name="swap-horizontal-outline" size={14} color={colors.tint} />
-                <ThemedText style={[styles.switchButtonText, { color: colors.tint }]}>Switch</ThemedText>
+                <ThemedText style={[styles.switchButtonText, { color: colors.tint }]}>
+                  Switch
+                </ThemedText>
               </Row>
             </Clickable>
           ) : null}
@@ -99,7 +102,10 @@ export const ResultsProgramHero = memo(function ResultsProgramHero({
                     <BlurView
                       intensity={24}
                       tint={scheme === 'dark' ? 'dark' : 'light'}
-                      style={[styles.metricBlur, { backgroundColor: withAlpha(colors.surface, 0.2) }]}
+                      style={[
+                        styles.metricBlur,
+                        { backgroundColor: withAlpha(colors.surface, 0.2) },
+                      ]}
                     >
                       <ThemedText style={[styles.metricValue, { color: metricColor }]}>
                         {metric.value}
@@ -115,9 +121,9 @@ export const ResultsProgramHero = memo(function ResultsProgramHero({
           </Column>
         </Row>
       </Column>
-    </LinearGradient>
+    </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: {

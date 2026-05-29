@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import { useColorScheme as useRNColorScheme } from 'react-native';
 
 import { useThemePreferences } from './theme-provider';
@@ -12,7 +12,9 @@ export function useColorScheme() {
   const { colorScheme } = useThemePreferences();
 
   useEffect(() => {
-    setHasHydrated(true);
+    startTransition(() => {
+      setHasHydrated(true);
+    });
   }, []);
 
   if (hasHydrated) {

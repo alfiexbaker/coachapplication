@@ -1,4 +1,10 @@
-import { BadgeAward, BadgeDefinition, BadgeVisibility, BadgeCategory, type Booking } from '@/constants/types';
+import {
+  BadgeAward,
+  BadgeDefinition,
+  BadgeVisibility,
+  BadgeCategory,
+  type Booking,
+} from '@/constants/types';
 import { apiClient } from './api-client';
 import { socialFeedService } from './social-feed-service';
 import { notificationSenderService } from './notification/notification-sender';
@@ -15,11 +21,7 @@ import {
   TierNames,
 } from '@/constants/progression';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import {
-  SKILL_BADGES,
-  SESSION_MILESTONE_BADGES,
-  EVENT_BADGES,
-} from '@/constants/badge-registry';
+import { SKILL_BADGES, SESSION_MILESTONE_BADGES, EVENT_BADGES } from '@/constants/badge-registry';
 const ENABLE_PROGRESS_DEMO_SEED =
   process.env.EXPO_PUBLIC_ENABLE_PROGRESS_DEMO_SEED === 'true' ||
   process.env.EXPO_PUBLIC_ENABLE_PROGRESS_DEMO_SEED === '1' ||
@@ -44,7 +46,6 @@ type AwardBadgeInput = {
 
 // Badge catalog imported from constants/badge-registry.ts (single source of truth)
 const BASE_BADGE_CATALOG: BadgeDefinition[] = SKILL_BADGES;
-
 
 const SEED_BADGE_AWARDS: BadgeAward[] = [
   {
@@ -152,10 +153,7 @@ class BadgeService {
   }
 
   async listDefinitionsWithStats(): Promise<BadgeDefinitionWithStats[]> {
-    const [definitions, allAwards] = await Promise.all([
-      this.listDefinitions(),
-      this.listAwards(),
-    ]);
+    const [definitions, allAwards] = await Promise.all([this.listDefinitions(), this.listAwards()]);
     const athletesByBadge = new Map<string, Set<string>>();
     for (const award of allAwards) {
       const set = athletesByBadge.get(award.badgeId);
@@ -191,8 +189,7 @@ class BadgeService {
   }
 
   async awardBadge(input: AwardBadgeInput): Promise<Result<BadgeAward, ServiceError>> {
-    const stored = await this.getStoredAwards();
-    const allDefs = await this.listDefinitions();
+    const [stored, allDefs] = await Promise.all([this.getStoredAwards(), this.listDefinitions()]);
     const definition = allDefs.find((badge) => badge.id === input.badgeId);
     const allAwards = this.mergeAwards(stored);
     const mostRecentAward = allAwards.find((award) => award.athleteId === input.athleteId);
@@ -541,12 +538,7 @@ class BadgeService {
     }[]
   > {
     const awards = await this.listAwardsForAthlete(athleteId);
-    const categories: BadgeCategory[] = [
-      'technical',
-      'physical',
-      'psychological',
-      'social',
-    ];
+    const categories: BadgeCategory[] = ['technical', 'physical', 'psychological', 'social'];
 
     return categories.map((category) => {
       const categoryAwards = awards.filter((award) => {
@@ -798,12 +790,7 @@ class BadgeService {
 
     // Add category-based groups for skill badges
     const skillBadges = badges.filter((b) => b.badgeType === 'skill');
-    const categories: BadgeCategory[] = [
-      'technical',
-      'physical',
-      'psychological',
-      'social',
-    ];
+    const categories: BadgeCategory[] = ['technical', 'physical', 'psychological', 'social'];
 
     categories.forEach((cat) => {
       const catBadges = skillBadges.filter((b) => b.category === cat);

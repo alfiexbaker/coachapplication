@@ -33,7 +33,7 @@ type TypePickerProps = {
   onSelect: (type: ConcernType) => void;
 };
 
-export const ConcernTypePicker = React.memo(function ConcernTypePicker({
+export const ConcernTypePicker = function ConcernTypePicker({
   colors,
   selected,
   onSelect,
@@ -91,7 +91,7 @@ export const ConcernTypePicker = React.memo(function ConcernTypePicker({
       </Column>
     </Column>
   );
-});
+};
 
 type SeverityPickerProps = {
   colors: ThemeColors;
@@ -99,7 +99,7 @@ type SeverityPickerProps = {
   onSelect: (severity: ConcernSeverity) => void;
 };
 
-export const SeverityPicker = React.memo(function SeverityPicker({
+export const SeverityPicker = function SeverityPicker({
   colors,
   selected,
   onSelect,
@@ -138,7 +138,7 @@ export const SeverityPicker = React.memo(function SeverityPicker({
       </Row>
     </Column>
   );
-});
+};
 
 const styles = StyleSheet.create({
   typeOption: {

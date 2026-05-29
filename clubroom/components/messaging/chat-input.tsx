@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, TextInput } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -29,80 +29,75 @@ export function ChatInput({
 }: ChatInputProps) {
   const { colors: palette, scheme } = useTheme();
   const [value, setValue] = useState(initialValue ?? '');
-  const [isTyping, setIsTyping] = useState(false);
+  const isTypingRef = useRef(false);
   const stopTypingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const placeholderColor = palette.muted;
   const canAttach = Boolean(onAttach) && !disabled;
 
-  const emitStoppedTyping = useCallback(() => {
+  const emitStoppedTyping = () => {
     if (!threadId || !currentUserId) return;
     emitTyped(ServiceEvents.USER_STOPPED_TYPING, {
       threadId,
       userId: currentUserId,
     });
-  }, [threadId, currentUserId]);
+  };
 
-  const clearStopTypingTimer = useCallback(() => {
+  const clearStopTypingTimer = () => {
     if (stopTypingTimerRef.current) {
       clearTimeout(stopTypingTimerRef.current);
       stopTypingTimerRef.current = null;
     }
-  }, []);
+  };
 
-  const scheduleStopTyping = useCallback(() => {
+  const scheduleStopTyping = () => {
     clearStopTypingTimer();
     stopTypingTimerRef.current = setTimeout(() => {
-      setIsTyping(false);
+      isTypingRef.current = false;
       emitStoppedTyping();
       stopTypingTimerRef.current = null;
     }, 2000);
-  }, [clearStopTypingTimer, emitStoppedTyping]);
+  };
 
-  const handleTextChange = useCallback(
-    (text: string) => {
-      setValue(text);
+  const handleTextChange = (text: string) => {
+    setValue(text);
 
-      if (!threadId || !currentUserId) return;
+    if (!threadId || !currentUserId) return;
 
-      if (text.trim().length === 0) {
-        if (isTyping) {
-          setIsTyping(false);
-          emitStoppedTyping();
-        }
-        clearStopTypingTimer();
-        return;
+    if (text.trim().length === 0) {
+      if (isTypingRef.current) {
+        isTypingRef.current = false;
+        emitStoppedTyping();
       }
+      clearStopTypingTimer();
+      return;
+    }
 
-      if (!isTyping) {
-        setIsTyping(true);
-        emitTyped(ServiceEvents.USER_TYPING, {
-          threadId,
-          userId: currentUserId,
-          userName: currentUserName || 'Someone',
-        });
-      }
+    if (!isTypingRef.current) {
+      isTypingRef.current = true;
+      emitTyped(ServiceEvents.USER_TYPING, {
+        threadId,
+        userId: currentUserId,
+        userName: currentUserName || 'Someone',
+      });
+    }
 
-      scheduleStopTyping();
-    },
-    [
-      clearStopTypingTimer,
-      currentUserId,
-      currentUserName,
-      emitStoppedTyping,
-      isTyping,
-      scheduleStopTyping,
-      threadId,
-    ],
-  );
+    scheduleStopTyping();
+  };
 
   useEffect(
     () => () => {
-      clearStopTypingTimer();
-      if (isTyping) {
-        emitStoppedTyping();
+      if (stopTypingTimerRef.current) {
+        clearTimeout(stopTypingTimerRef.current);
+        stopTypingTimerRef.current = null;
+      }
+      if (isTypingRef.current && threadId && currentUserId) {
+        emitTyped(ServiceEvents.USER_STOPPED_TYPING, {
+          threadId,
+          userId: currentUserId,
+        });
       }
     },
-    [clearStopTypingTimer, emitStoppedTyping, isTyping],
+    [threadId, currentUserId],
   );
 
   return (
@@ -130,9 +125,8 @@ export function ChatInput({
         onChangeText={handleTextChange}
         multiline
         editable={!disabled}
-
-            maxLength={500}
-          />
+        maxLength={500}
+      />
       <Clickable
         accessibilityRole="button"
         accessibilityLabel={value ? 'Send message' : 'Record voice message'}
@@ -154,8 +148,8 @@ export function ChatInput({
           if (!trimmed || disabled) return;
           onSend?.(trimmed);
           clearStopTypingTimer();
-          if (isTyping) {
-            setIsTyping(false);
+          if (isTypingRef.current) {
+            isTypingRef.current = false;
             emitStoppedTyping();
           }
           setValue('');

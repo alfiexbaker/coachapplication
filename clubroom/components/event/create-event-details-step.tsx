@@ -126,7 +126,7 @@ function CreateEventDetailsStepInner({
   );
 }
 
-export const CreateEventDetailsStep = React.memo(CreateEventDetailsStepInner);
+export const CreateEventDetailsStep = CreateEventDetailsStepInner;
 
 const styles = StyleSheet.create({
   stepContent: {

@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,7 +14,7 @@ interface MemberProfileCardProps {
   member: ClubMember;
 }
 
-export const MemberProfileCard = memo(function MemberProfileCard({
+export const MemberProfileCard = function MemberProfileCard({
   member,
 }: MemberProfileCardProps) {
   const { colors } = useTheme();
@@ -80,7 +79,7 @@ export const MemberProfileCard = memo(function MemberProfileCard({
       </View>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.md },

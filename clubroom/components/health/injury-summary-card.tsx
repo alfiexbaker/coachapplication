@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -18,7 +18,7 @@ interface InjurySummaryCardProps {
   delay?: number;
 }
 
-export const InjurySummaryCard = memo(function InjurySummaryCard({
+export const InjurySummaryCard = function InjurySummaryCard({
   injury,
   colors,
   delay = 100,
@@ -60,7 +60,7 @@ export const InjurySummaryCard = memo(function InjurySummaryCard({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 function getInjuryName(description: string, bodyPartLabel: string): string {
   const normalized = description.trim();

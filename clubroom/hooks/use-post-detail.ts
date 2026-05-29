@@ -3,7 +3,7 @@
  * Manages post lookup, comment threads, likes, and comment submission.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import { Platform } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -78,7 +78,7 @@ export function usePostDetail() {
   const { currentUser } = useAuth();
   const { postId } = useLocalSearchParams<{ postId: string }>();
 
-  const post = useMemo(() => {
+  const post = (() => {
     if (!postId) return null;
     if (currentUser?.id) {
       const aggregatedPosts = socialFeedService.getAggregatedFeed(currentUser.id);
@@ -97,7 +97,7 @@ export function usePostDetail() {
     }
 
     return null;
-  }, [postId, currentUser?.id, currentUser?.role]);
+  })();
 
   const [actionError, setActionError] = useState<string | null>(null);
   const [newComment, setNewComment] = useState('');
@@ -107,19 +107,25 @@ export function usePostDetail() {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
 
-  const normalized = useMemo(() => (post ? normalizePost(post) : null), [post]);
+  const normalized = (post ? normalizePost(post) : null);
 
   useEffect(() => {
     if (!normalized) return;
     if (normalized.likes.length > 0) {
-      setLiked(normalized.likes.includes(currentUser?.id ?? ''));
-      setLikeCount(normalized.likes.length);
+      startTransition(() => {
+        setLiked(normalized.likes.includes(currentUser?.id ?? ''));
+      });
+      startTransition(() => {
+        setLikeCount(normalized.likes.length);
+      });
     } else {
-      setLikeCount(normalized.reactionCount);
+      startTransition(() => {
+        setLikeCount(normalized.reactionCount);
+      });
     }
   }, [normalized, currentUser?.id]);
 
-  const loadComments = useCallback(async () => {
+  const loadComments = async () => {
     if (!postId) {
       return ok<CommentThread[]>([]);
     }
@@ -135,7 +141,7 @@ export function usePostDetail() {
       logger.error('Failed to load comments', loadError);
       return err(serviceError('UNKNOWN', 'Failed to load comments.', loadError));
     }
-  }, [postId]);
+  };
 
   const {
     data,
@@ -157,72 +163,66 @@ export function usePostDetail() {
 
   const threads = data ?? [];
 
-  const flatItems = useMemo(() => flattenThreads(threads), [threads]);
+  const flatItems = flattenThreads(threads);
 
-  const totalCommentCount = useMemo(() => {
+  const totalCommentCount = (() => {
     let count = 0;
     for (const thread of threads) {
       if (!thread.comment.isDeleted) count += 1;
       count += thread.replies.filter((r) => !r.isDeleted).length;
     }
     return count;
-  }, [threads]);
+  })();
 
-  const handleLikePost = useCallback(() => {
+  const handleLikePost = () => {
     logger.press('LikePost', { postId });
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLiked((previousLiked) => {
       setLikeCount((previousCount) => (previousLiked ? previousCount - 1 : previousCount + 1));
       return !previousLiked;
     });
-  }, [postId]);
+  };
 
-  const handleLikeComment = useCallback(
-    async (commentId: string) => {
-      if (!currentUser) return;
-      const result = await commentService.toggleLike({ commentId, userId: currentUser.id });
-      if (result.success) {
-        setActionError(null);
-        onRefresh();
-        return;
-      }
-      setActionError(result.error.message);
-    },
-    [currentUser, onRefresh],
-  );
+  const handleLikeComment = async (commentId: string) => {
+    if (!currentUser) return;
+    const result = await commentService.toggleLike({ commentId, userId: currentUser.id });
+    if (result.success) {
+      setActionError(null);
+      onRefresh();
+      return;
+    }
+    setActionError(result.error.message);
+  };
 
-  const handleReply = useCallback((commentId: string, authorName: string) => {
+  const handleReply = (commentId: string, authorName: string) => {
     setReplyingTo({ commentId, authorName });
-  }, []);
-  const handleCancelReply = useCallback(() => setReplyingTo(null), []);
+  };
+  const handleCancelReply = () => setReplyingTo(null);
 
-  const handleDeleteComment = useCallback(
-    async (commentId: string) => {
-      if (!currentUser) return;
-      uiFeedback.alert('Delete Comment', 'Are you sure you want to delete this comment?', [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            const result = await commentService.deleteComment({
-              commentId,
-              userId: currentUser.id,
-            });
-            if (result.success) {
-              setActionError(null);
-              onRefresh();
-              return;
-            }
-            setActionError(result.error.message);
-          },
+  const handleDeleteComment = async (commentId: string) => {
+    if (!currentUser) return;
+    uiFeedback.alert('Delete Comment', 'Are you sure you want to delete this comment?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          const result = await commentService.deleteComment({
+            commentId,
+            userId: currentUser.id,
+          });
+          if (result.success) {
+            setActionError(null);
+            onRefresh();
+            return;
+          }
+          setActionError(result.error.message);
         },
-      ]);
-    },
-    [currentUser, onRefresh],
-  );
+      },
+    ]);
+  };
 
-  const handleSubmitComment = useCallback(async () => {
+  const handleSubmitComment = async () => {
     if (!newComment.trim() || !currentUser) return;
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const result = await commentService.createComment({
@@ -241,7 +241,7 @@ export function usePostDetail() {
       return;
     }
     setActionError(result.error.message);
-  }, [newComment, currentUser, postId, replyingTo, onRefresh]);
+  };
 
   const postAuthorName = normalized?.authorName ?? 'Unknown';
   const postAuthorAvatar = normalized?.authorAvatar;

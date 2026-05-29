@@ -83,10 +83,10 @@ export const eventDisplayService = {
    */
   formatPrice(price: number, currency: string = 'GBP'): string {
     if (price === 0) return 'Free';
-    return new Intl.NumberFormat('en-GB', {
+    return price.toLocaleString('en-GB', {
       style: 'currency',
       currency,
-    }).format(price);
+    });
   },
 
   /**

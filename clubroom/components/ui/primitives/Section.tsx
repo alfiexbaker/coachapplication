@@ -14,7 +14,7 @@
  *   </Section>
  */
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Row } from '@/components/primitives/row';
 
@@ -55,13 +55,10 @@ function SectionInner({
   const { colors } = useTheme();
   const hasHeader = Boolean(title || action);
 
-  const themedStyles = useMemo(
-    () => ({
-      title: { color: colors.foreground },
-      subtitle: { color: colors.muted },
-    }),
-    [colors],
-  );
+  const themedStyles = ({
+    title: { color: colors.foreground },
+    subtitle: { color: colors.muted },
+  });
 
   return (
     <View style={[styles.container, style]}>
@@ -88,7 +85,7 @@ function SectionInner({
   );
 }
 
-export const Section = React.memo(SectionInner);
+export const Section = SectionInner;
 
 // ---------------------------------------------------------------------------
 // Styles (color-independent)

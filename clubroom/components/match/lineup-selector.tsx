@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState } from 'react';
 import { StyleSheet, View, ScrollView } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -36,46 +36,34 @@ interface SelectedPlayer extends MatchPlayer {
 export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelectorProps) {
   const { colors: palette } = useTheme();
 
-  const availablePlayers = useMemo(
-    () => match.selectedPlayers.filter((p) => p.status === 'AVAILABLE'),
-    [match.selectedPlayers],
-  );
+  const availablePlayers = match.selectedPlayers.filter((p) => p.status === 'AVAILABLE');
 
-  const unavailablePlayers = useMemo(
-    () => match.selectedPlayers.filter((p) => p.status === 'UNAVAILABLE'),
-    [match.selectedPlayers],
-  );
+  const unavailablePlayers = match.selectedPlayers.filter((p) => p.status === 'UNAVAILABLE');
 
-  const pendingPlayers = useMemo(
-    () => match.selectedPlayers.filter((p) => p.status === 'INVITED'),
-    [match.selectedPlayers],
-  );
+  const pendingPlayers = match.selectedPlayers.filter((p) => p.status === 'INVITED');
 
   const [selectedForLineup, setSelectedForLineup] = useState<SelectedPlayer[]>([]);
   const [reserves, setReserves] = useState<SelectedPlayer[]>([]);
 
-  const togglePlayerSelection = useCallback(
-    (player: MatchPlayer) => {
-      const isSelected = selectedForLineup.some((p) => p.athleteId === player.athleteId);
-      const isReserve = reserves.some((p) => p.athleteId === player.athleteId);
+  const togglePlayerSelection = (player: MatchPlayer) => {
+    const isSelected = selectedForLineup.some((p) => p.athleteId === player.athleteId);
+    const isReserve = reserves.some((p) => p.athleteId === player.athleteId);
 
-      if (isSelected) {
-        setSelectedForLineup((prev) => prev.filter((p) => p.athleteId !== player.athleteId));
-        setReserves((prev) => [...prev, { ...player, isReserve: true }]);
-      } else if (isReserve) {
-        setReserves((prev) => prev.filter((p) => p.athleteId !== player.athleteId));
-      } else {
-        if (selectedForLineup.length >= match.maxPlayers) {
-          uiFeedback.showToast(`Maximum ${match.maxPlayers} players allowed. Remove a player first or add to reserves.`);
-          return;
-        }
-        setSelectedForLineup((prev) => [...prev, { ...player, isReserve: false }]);
+    if (isSelected) {
+      setSelectedForLineup((prev) => prev.filter((p) => p.athleteId !== player.athleteId));
+      setReserves((prev) => [...prev, { ...player, isReserve: true }]);
+    } else if (isReserve) {
+      setReserves((prev) => prev.filter((p) => p.athleteId !== player.athleteId));
+    } else {
+      if (selectedForLineup.length >= match.maxPlayers) {
+        uiFeedback.showToast(`Maximum ${match.maxPlayers} players allowed. Remove a player first or add to reserves.`);
+        return;
       }
-    },
-    [selectedForLineup, reserves, match.maxPlayers],
-  );
+      setSelectedForLineup((prev) => [...prev, { ...player, isReserve: false }]);
+    }
+  };
 
-  const handleSubmitLineup = useCallback(async () => {
+  const handleSubmitLineup = async () => {
     if (selectedForLineup.length === 0) {
       uiFeedback.showToast('Please select at least one player for the lineup.');
       return;
@@ -97,16 +85,13 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
     ];
 
     await onSetLineup(lineup);
-  }, [selectedForLineup, reserves, onSetLineup]);
+  };
 
-  const getPlayerStatus = useCallback(
-    (player: MatchPlayer): 'selected' | 'reserve' | 'available' => {
-      if (selectedForLineup.some((p) => p.athleteId === player.athleteId)) return 'selected';
-      if (reserves.some((p) => p.athleteId === player.athleteId)) return 'reserve';
-      return 'available';
-    },
-    [selectedForLineup, reserves],
-  );
+  const getPlayerStatus = (player: MatchPlayer): 'selected' | 'reserve' | 'available' => {
+    if (selectedForLineup.some((p) => p.athleteId === player.athleteId)) return 'selected';
+    if (reserves.some((p) => p.athleteId === player.athleteId)) return 'reserve';
+    return 'available';
+  };
 
   return (
     <View style={styles.container}>

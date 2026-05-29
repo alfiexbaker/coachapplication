@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { router } from 'expo-router';
 
 import { useAuth } from '@/hooks/use-auth';
@@ -7,6 +7,8 @@ import { verificationService } from '@/services/verification-service';
 import { createLogger } from '@/utils/logger';
 import type { VerificationStatus } from '@/constants/types';
 import { err, serviceError, type ServiceError } from '@/types/result';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('useIdVerification');
 
@@ -43,7 +45,7 @@ export function useIdVerification() {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [uploaded, setUploaded] = useState(false);
 
-  const loadStatus = useCallback(async () => {
+  const loadStatus = async () => {
     if (!coachId) {
       return err(serviceError('UNAUTHORIZED', 'Sign in as a coach to view verification status.'));
     }
@@ -53,7 +55,7 @@ export function useIdVerification() {
       logger.error('Failed to load verification status:', result.error);
     }
     return result;
-  }, [coachId]);
+  };
 
   const {
     data: status,
@@ -73,15 +75,16 @@ export function useIdVerification() {
 
   const loading = screenStatus === 'loading';
 
-  const handleUpload = useCallback(async () => {
+  const handleUpload = async () => {
     if (!selectedType) return;
     setUploaded(true);
-  }, [selectedType]);
+  };
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = async () => {
     if (!selectedType || !uploaded || !coachId) return;
     setSubmitting(true);
-    try {
+
+    await runAsyncTryCatchFinally(async () => {
       const result = await verificationService.submitIdVerification(
         coachId,
         `mock://id-document-${selectedType}.jpg`,
@@ -92,17 +95,18 @@ export function useIdVerification() {
       } else {
         logger.error('Failed to submit ID:', result.error);
       }
-    } catch (error) {
+    }, async error => {
       logger.error('Failed to submit ID:', error);
-    } finally {
+    }, () => {
       setSubmitting(false);
-    }
-  }, [coachId, selectedType, uploaded, onRefresh]);
+    });
+  };
 
-  const handleMockApprove = useCallback(async () => {
+  const handleMockApprove = async () => {
     if (!coachId) return;
     setSubmitting(true);
-    try {
+
+    await runAsyncTryCatchFinally(async () => {
       const result = await verificationService.mockApproveVerification(coachId, 'identity');
       if (result.success) {
         onRefresh();
@@ -110,12 +114,12 @@ export function useIdVerification() {
       } else {
         logger.error('Failed to approve:', result.error);
       }
-    } catch (error) {
+    }, async error => {
       logger.error('Failed to approve:', error);
-    } finally {
+    }, () => {
       setSubmitting(false);
-    }
-  }, [coachId, onRefresh]);
+    });
+  };
 
   const isVerified = status?.identity.status === 'VERIFIED';
   const isPending = status?.identity.status === 'PENDING';

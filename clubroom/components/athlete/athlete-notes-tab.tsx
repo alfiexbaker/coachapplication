@@ -4,7 +4,7 @@
  * Coach's private notes with add/edit/delete, primary focus management, and search.
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState } from 'react';
 import { View, TextInput, Platform, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -20,7 +20,8 @@ import { useTheme } from '@/hooks/useTheme';
 import { Typography, Spacing, Radii } from '@/constants/theme';
 import type { RosterEntry, FootballObjective } from '@/constants/types';
 
-import { NoteCard, PrimaryFocusSection, NoteSearchBar, styles } from './athlete-notes-tab-sections';
+import { NoteCard, PrimaryFocusSection, NoteSearchBar } from './athlete-notes-tab-sections';
+import { styles } from './athlete-notes-tab-styles';
 
 // ============================================================================
 // TYPES
@@ -49,7 +50,7 @@ function AthleteNotesTabInner({
   const [searchQuery, setSearchQuery] = useState('');
   const [showFocusPicker, setShowFocusPicker] = useState(false);
 
-  const handleAddNote = useCallback(() => {
+  const handleAddNote = () => {
     if (newNote.trim()) {
       if (Platform.OS !== 'web') {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -58,28 +59,25 @@ function AthleteNotesTabInner({
       setNewNote('');
       setShowInput(false);
     }
-  }, [newNote, onAddNote]);
+  };
 
-  const handleToggleFocusPicker = useCallback(() => {
+  const handleToggleFocusPicker = () => {
     setShowFocusPicker((prev) => !prev);
-  }, []);
+  };
 
-  const handleSelectFocus = useCallback(
-    (focus: FootballObjective) => {
-      onUpdateFocus(focus);
-      setShowFocusPicker(false);
-    },
-    [onUpdateFocus],
-  );
+  const handleSelectFocus = (focus: FootballObjective) => {
+    onUpdateFocus(focus);
+    setShowFocusPicker(false);
+  };
 
-  const filteredNotes = useMemo(() => {
+  const filteredNotes = (() => {
     let notes = [...athlete.notes];
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       notes = notes.filter((n) => n.content.toLowerCase().includes(q));
     }
     return notes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [athlete.notes, searchQuery]);
+  })();
 
   return (
     <Column gap="md" style={styles.container}>
@@ -156,9 +154,7 @@ function AthleteNotesTabInner({
                 >
                   <ThemedText style={{ color: colors.muted }}>Cancel</ThemedText>
                 </Clickable>
-                <Button onPress={handleAddNote} disabled={!newNote.trim()}>
-                  Save Note
-                </Button>
+                <Button onPress={handleAddNote} disabled={!newNote.trim()} label="Save Note" />
               </Row>
             </Column>
           )}
@@ -198,7 +194,7 @@ function AthleteNotesTabInner({
   );
 }
 
-export const AthleteNotesTab = React.memo(AthleteNotesTabInner);
+export const AthleteNotesTab = AthleteNotesTabInner;
 
 const localStyles = StyleSheet.create({
   helper: {

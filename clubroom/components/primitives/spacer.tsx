@@ -7,7 +7,7 @@
  *   <Spacer size={12} />              // raw number escape hatch
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
@@ -19,7 +19,7 @@ export interface SpacerProps {
   horizontal?: boolean;
 }
 
-export const Spacer = memo(function Spacer({ size, horizontal }: SpacerProps) {
+export const Spacer = function Spacer({ size, horizontal }: SpacerProps) {
   const px = typeof size === 'number' ? size : Spacing[size];
   return <View style={horizontal ? { width: px } : { height: px }} />;
-});
+};

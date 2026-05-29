@@ -1,6 +1,5 @@
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Svg, {
   Circle,
   Defs,
@@ -47,11 +46,34 @@ const CHART_PADDING = 52;
 const COMPACT_CHART_SIZE = 282;
 const REGULAR_CHART_SIZE = 306;
 
-const FALLBACK_CORNER_META: Record<FourCornerKey, { label: string; kidLabel: string; icon: string; color: string }> = {
-  technical: { label: 'Technical', kidLabel: 'Ball Skills', icon: 'football-outline', color: CORNER_COLORS.technical },
-  physical: { label: 'Physical', kidLabel: 'Fitness', icon: 'fitness-outline', color: CORNER_COLORS.physical },
-  psychological: { label: 'Psychological', kidLabel: 'Game IQ', icon: 'bulb-outline', color: CORNER_COLORS.psychological },
-  social: { label: 'Social', kidLabel: 'Teamwork', icon: 'people-outline', color: CORNER_COLORS.social },
+const FALLBACK_CORNER_META: Record<
+  FourCornerKey,
+  { label: string; kidLabel: string; icon: string; color: string }
+> = {
+  technical: {
+    label: 'Technical',
+    kidLabel: 'Ball Skills',
+    icon: 'football-outline',
+    color: CORNER_COLORS.technical,
+  },
+  physical: {
+    label: 'Physical',
+    kidLabel: 'Fitness',
+    icon: 'fitness-outline',
+    color: CORNER_COLORS.physical,
+  },
+  psychological: {
+    label: 'Psychological',
+    kidLabel: 'Game IQ',
+    icon: 'bulb-outline',
+    color: CORNER_COLORS.psychological,
+  },
+  social: {
+    label: 'Social',
+    kidLabel: 'Teamwork',
+    icon: 'people-outline',
+    color: CORNER_COLORS.social,
+  },
 };
 
 function clampScore(value: number): number {
@@ -109,7 +131,7 @@ function splitCornerRows(
   ];
 }
 
-export const FourCornerDiamond = memo(function FourCornerDiamond({
+export const FourCornerDiamond = function FourCornerDiamond({
   data,
   isParentView = false,
   velocityHighlight = null,
@@ -119,22 +141,16 @@ export const FourCornerDiamond = memo(function FourCornerDiamond({
   const { width: viewportWidth } = useWindowDimensions();
   const [selectedCorner, setSelectedCorner] = useState<FourCornerKey | null>(null);
   const chartSize = viewportWidth <= 375 ? COMPACT_CHART_SIZE : REGULAR_CHART_SIZE;
-  const chartGeometry = useMemo(() => getChartGeometry(chartSize), [chartSize]);
-  const areaGradientId = useMemo(
-    () => `four-corner-area-${isParentView ? 'parent' : 'athlete'}-${chartSize}`,
-    [chartSize, isParentView],
-  );
-  const axisLabelLayout = useMemo(
-    () => ({
-      fontSize: chartSize <= COMPACT_CHART_SIZE ? 10 : 11,
-      sideInset: chartSize <= COMPACT_CHART_SIZE ? 16 : 12,
-      topOffset: chartSize <= COMPACT_CHART_SIZE ? 8 : 10,
-      bottomOffset: chartSize <= COMPACT_CHART_SIZE ? 12 : 14,
-    }),
-    [chartSize],
-  );
+  const chartGeometry = getChartGeometry(chartSize);
+  const areaGradientId = `four-corner-area-${isParentView ? 'parent' : 'athlete'}-${chartSize}`;
+  const axisLabelLayout = {
+    fontSize: chartSize <= COMPACT_CHART_SIZE ? 10 : 11,
+    sideInset: chartSize <= COMPACT_CHART_SIZE ? 16 : 12,
+    topOffset: chartSize <= COMPACT_CHART_SIZE ? 8 : 10,
+    bottomOffset: chartSize <= COMPACT_CHART_SIZE ? 12 : 14,
+  };
 
-  const cornerMap = useMemo(() => {
+  const cornerMap = (() => {
     const initial: Record<FourCornerKey, FourCornerData['corners'][number]> = {
       technical: {
         key: 'technical',
@@ -174,42 +190,36 @@ export const FourCornerDiamond = memo(function FourCornerDiamond({
       initial[corner.key] = corner;
     }
     return initial;
-  }, [data.corners]);
+  })();
 
-  const orderedCorners = useMemo(
-    () => CORNER_ORDER.map((key) => cornerMap[key]),
-    [cornerMap],
-  );
-  const cornerRows = useMemo(() => splitCornerRows(orderedCorners), [orderedCorners]);
+  const orderedCorners = CORNER_ORDER.map((key) => cornerMap[key]);
+  const cornerRows = splitCornerRows(orderedCorners);
 
-  const baseCornerValues = useMemo<Record<FourCornerKey, number>>(
-    () => ({
-      technical: cornerMap.technical.value,
-      physical: cornerMap.physical.value,
-      psychological: cornerMap.psychological.value,
-      social: cornerMap.social.value,
-    }),
-    [cornerMap],
-  );
-  const snapshotsKey = useMemo(
-    () =>
-      data.sessionSnapshots
-        .map(
-          (snapshot) =>
-            `${snapshot.id}:${snapshot.values.technical}:${snapshot.values.physical}:${snapshot.values.psychological}:${snapshot.values.social}`,
-        )
-        .join('|'),
-    [data.sessionSnapshots],
-  );
+  const baseCornerValues = {
+    technical: cornerMap.technical.value,
+    physical: cornerMap.physical.value,
+    psychological: cornerMap.psychological.value,
+    social: cornerMap.social.value,
+  };
+  const snapshotsKey = data.sessionSnapshots
+    .map(
+      (snapshot) =>
+        `${snapshot.id}:${snapshot.values.technical}:${snapshot.values.physical}:${snapshot.values.psychological}:${snapshot.values.social}`,
+    )
+    .join('|');
   const [displayCornerValues, setDisplayCornerValues] =
     useState<Record<FourCornerKey, number>>(baseCornerValues);
-  const [activeSnapshotIndex, setActiveSnapshotIndex] = useState(
+  const [activeSnapshotIndex, setActiveSnapshotIndex] = useState(() =>
     Math.max(0, data.sessionSnapshots.length - 1),
   );
 
   useEffect(() => {
-    setDisplayCornerValues(baseCornerValues);
-    setActiveSnapshotIndex(Math.max(0, data.sessionSnapshots.length - 1));
+    startTransition(() => {
+      setDisplayCornerValues(baseCornerValues);
+    });
+    startTransition(() => {
+      setActiveSnapshotIndex(Math.max(0, data.sessionSnapshots.length - 1));
+    });
   }, [baseCornerValues, data.sessionSnapshots.length, snapshotsKey]);
 
   useEffect(() => {
@@ -260,15 +270,11 @@ export const FourCornerDiamond = memo(function FourCornerDiamond({
     };
   }, [baseCornerValues, data.sessionSnapshots, snapshotsKey]);
 
-  const currentPoints = useMemo(
-    () =>
-      CORNER_ORDER.map((key) =>
-        scalePoint(chartGeometry.center, chartGeometry.edgePoints[key], displayCornerValues[key]),
-      ),
-    [chartGeometry.center, chartGeometry.edgePoints, displayCornerValues],
+  const currentPoints = CORNER_ORDER.map((key) =>
+    scalePoint(chartGeometry.center, chartGeometry.edgePoints[key], displayCornerValues[key]),
   );
 
-  const previousPoints = useMemo(() => {
+  const previousPoints = (() => {
     const previousCornerValues = data.previousCornerValues;
     if (!previousCornerValues) {
       return null;
@@ -276,18 +282,18 @@ export const FourCornerDiamond = memo(function FourCornerDiamond({
     return CORNER_ORDER.map((key) =>
       scalePoint(chartGeometry.center, chartGeometry.edgePoints[key], previousCornerValues[key]),
     );
-  }, [chartGeometry.center, chartGeometry.edgePoints, data.previousCornerValues]);
+  })();
 
   const selectedCornerData = selectedCorner ? cornerMap[selectedCorner] : null;
   const hasAnyCornerValue = CORNER_ORDER.some((key) => baseCornerValues[key] > 0);
 
-  const handleCornerPress = useCallback((corner: FourCornerKey) => {
+  const handleCornerPress = (corner: FourCornerKey) => {
     setSelectedCorner((previous) => (previous === corner ? null : corner));
     void HapticPatterns.tap();
-  }, []);
+  };
 
   // Axis label positions: offset from the tip of each axis
-  const axisLabels = useMemo(() => {
+  const axisLabels = (() => {
     const { center, edgePoints } = chartGeometry;
     const { sideInset, topOffset, bottomOffset } = axisLabelLayout;
     return [
@@ -316,7 +322,7 @@ export const FourCornerDiamond = memo(function FourCornerDiamond({
         anchor: 'start' as const,
       },
     ];
-  }, [axisLabelLayout, chartGeometry]);
+  })();
 
   return (
     <View
@@ -328,18 +334,17 @@ export const FourCornerDiamond = memo(function FourCornerDiamond({
         },
       ]}
     >
-      <LinearGradient
+      <View
         pointerEvents="none"
-        colors={['transparent', withAlpha(colors.tint, 0.04)]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.heroGradient}
+        style={[styles.heroGradient, { backgroundColor: withAlpha(colors.tint, 0.025) }]}
       />
       <Column gap="sm">
         <Column gap="micro">
           <ThemedText style={styles.title}>Four Corner Development</ThemedText>
           <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
-            {isParentView ? 'Technical, Physical, Psychological, Social' : 'Ball Skills, Fitness, Game IQ, Teamwork'}
+            {isParentView
+              ? 'Technical, Physical, Psychological, Social'
+              : 'Ball Skills, Fitness, Game IQ, Teamwork'}
           </ThemedText>
           {data.comparisonLabel ? (
             <ThemedText style={[styles.comparisonMeta, { color: colors.muted }]}>
@@ -348,7 +353,8 @@ export const FourCornerDiamond = memo(function FourCornerDiamond({
           ) : null}
           {velocityHighlight ? (
             <ThemedText style={[styles.comparisonMeta, { color: colors.tint }]}>
-              Fastest improving: {velocityHighlight.skill} +{velocityHighlight.delta} in {velocityHighlight.weeks}w
+              Fastest improving: {velocityHighlight.skill} +{velocityHighlight.delta} in{' '}
+              {velocityHighlight.weeks}w
             </ThemedText>
           ) : null}
         </Column>
@@ -453,7 +459,9 @@ export const FourCornerDiamond = memo(function FourCornerDiamond({
         {previousPoints ? (
           <Row align="center" justify="center" gap="sm">
             <Row align="center" gap="xxs">
-              <View style={[styles.legendSwatch, { backgroundColor: withAlpha(colors.tint, 0.9) }]} />
+              <View
+                style={[styles.legendSwatch, { backgroundColor: withAlpha(colors.tint, 0.9) }]}
+              />
               <ThemedText style={[styles.legendText, { color: colors.muted }]}>Current</ThemedText>
             </Row>
             <Row align="center" gap="xxs">
@@ -496,8 +504,8 @@ export const FourCornerDiamond = memo(function FourCornerDiamond({
         ) : null}
 
         <Column gap="xs">
-          {cornerRows.map((row, rowIndex) => (
-            <Row key={`corner-row-${rowIndex}`} align="stretch" gap="xs">
+          {cornerRows.map((row) => (
+            <Row key={row.map((corner) => corner.key).join(':')} align="stretch" gap="xs">
               {row.map((corner) => {
                 const selected = selectedCorner === corner.key;
                 return (
@@ -506,8 +514,12 @@ export const FourCornerDiamond = memo(function FourCornerDiamond({
                     style={[
                       styles.cornerChip,
                       {
-                        borderColor: selected ? withAlpha(corner.color, 0.6) : withAlpha(colors.border, 0.9),
-                        backgroundColor: selected ? withAlpha(corner.color, 0.12) : withAlpha(colors.surface, 0.8),
+                        borderColor: selected
+                          ? withAlpha(corner.color, 0.6)
+                          : withAlpha(colors.border, 0.9),
+                        backgroundColor: selected
+                          ? withAlpha(corner.color, 0.12)
+                          : withAlpha(colors.surface, 0.8),
                       },
                     ]}
                     onPress={() => handleCornerPress(corner.key)}
@@ -531,7 +543,9 @@ export const FourCornerDiamond = memo(function FourCornerDiamond({
                         </Column>
                       </Row>
                       <Row align="center" gap="xxs">
-                        <ThemedText style={styles.cornerChipScore}>{clampScore(corner.value)}</ThemedText>
+                        <ThemedText style={styles.cornerChipScore}>
+                          {clampScore(corner.value)}
+                        </ThemedText>
                         {data.deltas[corner.key] !== 0 ? (
                           <TrendArrow delta={data.deltas[corner.key]} compact />
                         ) : null}
@@ -553,7 +567,7 @@ export const FourCornerDiamond = memo(function FourCornerDiamond({
       </Column>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

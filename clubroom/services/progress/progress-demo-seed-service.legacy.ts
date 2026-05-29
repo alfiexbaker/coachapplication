@@ -7,22 +7,15 @@ import { type Result, type ServiceError, ok, err, storageError } from '@/types/r
 import { createLogger } from '@/utils/logger';
 import { progressGoalsService } from './progress-goals-service';
 import { progressTermlyReportService } from './progress-termly-report-service';
-import type {
-  SessionFeedback,
-  SessionNoteRecord,
-} from './progress-feedback-service';
+import type { SessionFeedback, SessionNoteRecord } from './progress-feedback-service';
 import type { AthleteSkillLevels, SkillLevel } from './progress-skills-service';
 import type { SessionMedia, PositionRole } from '@/types/progress-types';
-
 const logger = createLogger('ProgressDemoSeedService');
-
 const DAY_MS = 24 * 60 * 60 * 1000;
-
 type DemoCoach = {
   id: string;
   name: string;
 };
-
 type JournalEntrySeed = {
   id: string;
   sessionId: string;
@@ -33,13 +26,11 @@ type JournalEntrySeed = {
   energyLevel: number;
   createdAt: string;
 };
-
 type HomeworkCompletionRecord = {
   completedAt: string;
   proofUri: string;
   proofType: 'photo' | 'video';
 };
-
 type PracticeLogSeed = {
   id: string;
   athleteId: string;
@@ -49,7 +40,6 @@ type PracticeLogSeed = {
   updatedAt?: string;
   note?: string;
 };
-
 type SelfAssessmentPromptSeed = {
   id: string;
   athleteId: string;
@@ -63,7 +53,6 @@ type SelfAssessmentPromptSeed = {
   completedAt?: string;
   notificationSentAt?: string;
 };
-
 type SelfAssessmentEntrySeed = {
   id: string;
   athleteId: string;
@@ -77,14 +66,12 @@ type SelfAssessmentEntrySeed = {
   createdAt: string;
   updatedAt?: string;
 };
-
 type PositionHistoryEntrySeed = {
   sessionId: string;
   athleteId: string;
   position: PositionRole;
   recordedAt: string;
 };
-
 type User1SeedSession = {
   index: number;
   daysAgo: number;
@@ -108,13 +95,20 @@ type User1SeedSession = {
   badgeAwarded?: string;
   badges?: string[];
 };
-
 const DEMO_COACHES: DemoCoach[] = [
-  { id: 'coach1', name: 'Jess Okafor' },
-  { id: 'coach2', name: 'Reuben Carr' },
-  { id: 'coach3', name: 'Aiden Sharma' },
+  {
+    id: 'coach1',
+    name: 'Jess Okafor',
+  },
+  {
+    id: 'coach2',
+    name: 'Reuben Carr',
+  },
+  {
+    id: 'coach3',
+    name: 'Aiden Sharma',
+  },
 ];
-
 const SKILL_NAMES = [
   'First Touch',
   'Passing',
@@ -129,20 +123,20 @@ const USER1_DIAMOND_TEST_FEEDBACK_IDS = [
   'user1_diamond_test_feedback_2',
   'user1_diamond_test_feedback_3',
 ] as const;
-
 function daysAgo(days: number): string {
   return new Date(Date.now() - days * DAY_MS).toISOString();
 }
-
 function daysFromNow(days: number): string {
   return new Date(Date.now() + days * DAY_MS).toISOString().slice(0, 10);
 }
-
 function hashValue(input: string): number {
   return input.split('').reduce((sum, char, index) => sum + char.charCodeAt(0) * (index + 1), 0);
 }
-
-function mergeById<T extends { id: string }>(existing: T[], seeded: T[]): T[] {
+function mergeById<
+  T extends {
+    id: string;
+  },
+>(existing: T[], seeded: T[]): T[] {
   const map = new Map<string, T>();
   for (const item of seeded) {
     map.set(item.id, item);
@@ -154,23 +148,19 @@ function mergeById<T extends { id: string }>(existing: T[], seeded: T[]): T[] {
   }
   return Array.from(map.values());
 }
-
 function pickCoach(index: number): DemoCoach {
   return DEMO_COACHES[index % DEMO_COACHES.length];
 }
-
 function buildSeedFeedback(athleteId: string, athleteName: string): SessionFeedback[] {
   const base = hashValue(athleteId);
   const timelines = [2, 5, 8, 12, 16, 21, 28, 36];
   const seededPositions: PositionRole[] = ['MID', 'MID', 'ATT', 'MID', 'DEF', 'MID', 'ATT', 'MID'];
-
   return timelines.map((days, index) => {
     const coach = pickCoach(index);
     const skillOne = SKILL_NAMES[index % SKILL_NAMES.length];
     const skillTwo = SKILL_NAMES[(index + 2) % SKILL_NAMES.length];
     const ratingOne = 3 + ((base + index) % 3);
     const ratingTwo = 3 + ((base + index + 1) % 3);
-
     return {
       id: `seed_progress_feedback_${athleteId}_${index + 1}`,
       sessionId: `seed_progress_session_${athleteId}_${index + 1}`,
@@ -211,7 +201,6 @@ function buildSeedFeedback(athleteId: string, athleteName: string): SessionFeedb
     };
   });
 }
-
 function buildUser1DiamondTestFeedback(athleteName: string): SessionFeedback[] {
   return [
     {
@@ -227,9 +216,21 @@ function buildUser1DiamondTestFeedback(athleteName: string): SessionFeedback[] {
       privateNotes: 'Prompt teammate support sooner when pressed.',
       skillsWorkedOn: ['Teamwork', 'Decision-Making', 'Passing'],
       skillRatings: [
-        { skill: 'Teamwork', rating: 3, previousRating: 2 },
-        { skill: 'Decision-Making', rating: 3, previousRating: 2 },
-        { skill: 'Passing', rating: 3, previousRating: 2 },
+        {
+          skill: 'Teamwork',
+          rating: 3,
+          previousRating: 2,
+        },
+        {
+          skill: 'Decision-Making',
+          rating: 3,
+          previousRating: 2,
+        },
+        {
+          skill: 'Passing',
+          rating: 3,
+          previousRating: 2,
+        },
       ],
       improvements: 'Started calling support angles more consistently.',
       homework: 'Call a scan cue before first touch in each rep block.',
@@ -258,9 +259,21 @@ function buildUser1DiamondTestFeedback(athleteName: string): SessionFeedback[] {
       privateNotes: 'Keep scanning over both shoulders.',
       skillsWorkedOn: ['Teamwork', 'Vision', 'First Touch'],
       skillRatings: [
-        { skill: 'Teamwork', rating: 4, previousRating: 3 },
-        { skill: 'Vision', rating: 4, previousRating: 3 },
-        { skill: 'First Touch', rating: 4, previousRating: 3 },
+        {
+          skill: 'Teamwork',
+          rating: 4,
+          previousRating: 3,
+        },
+        {
+          skill: 'Vision',
+          rating: 4,
+          previousRating: 3,
+        },
+        {
+          skill: 'First Touch',
+          rating: 4,
+          previousRating: 3,
+        },
       ],
       improvements: 'Support play improved and passing options opened faster.',
       homework: 'Two-touch rondo reps with verbal scan cues, 3 sets.',
@@ -289,9 +302,21 @@ function buildUser1DiamondTestFeedback(athleteName: string): SessionFeedback[] {
       privateNotes: 'Strong leadership cues under pressure.',
       skillsWorkedOn: ['Teamwork', 'Communication', 'Passing'],
       skillRatings: [
-        { skill: 'Teamwork', rating: 5, previousRating: 4 },
-        { skill: 'Communication', rating: 4, previousRating: 3 },
-        { skill: 'Passing', rating: 4, previousRating: 4 },
+        {
+          skill: 'Teamwork',
+          rating: 5,
+          previousRating: 4,
+        },
+        {
+          skill: 'Communication',
+          rating: 4,
+          previousRating: 3,
+        },
+        {
+          skill: 'Passing',
+          rating: 4,
+          previousRating: 4,
+        },
       ],
       improvements: 'Consistent scan-call-receive sequence across game phases.',
       homework: 'Maintain verbal cues in first 15 mins of next session.',
@@ -310,10 +335,8 @@ function buildUser1DiamondTestFeedback(athleteName: string): SessionFeedback[] {
     },
   ];
 }
-
 const USER1_FULL_SEED_PREFIX = 'user1_full';
 const USER1_FULL_VIDEO_URI = 'https://samplelib.com/lib/preview/mp4/sample-5s.mp4';
-
 const USER1_FULL_SESSIONS: User1SeedSession[] = [
   {
     index: 1,
@@ -331,15 +354,51 @@ const USER1_FULL_SESSIONS: User1SeedSession[] = [
     performance: 3,
     workedOn: ['Tackling', 'Positioning', 'Communication'],
     ratings: [
-      { skill: 'Work Rate', rating: 2, previousRating: 2 },
-      { skill: 'Attitude', rating: 3, previousRating: 2 },
-      { skill: 'Communication', rating: 2, previousRating: 2 },
-      { skill: 'Coachability', rating: 3, previousRating: 2 },
-      { skill: 'Tackling', rating: 2, previousRating: 2 },
-      { skill: 'Heading & Aerial', rating: 2, previousRating: 2 },
-      { skill: 'Positioning', rating: 2, previousRating: 2 },
-      { skill: 'Playing Out', rating: 2, previousRating: 1 },
-      { skill: '1v1 Defending', rating: 2, previousRating: 2 },
+      {
+        skill: 'Work Rate',
+        rating: 2,
+        previousRating: 2,
+      },
+      {
+        skill: 'Attitude',
+        rating: 3,
+        previousRating: 2,
+      },
+      {
+        skill: 'Communication',
+        rating: 2,
+        previousRating: 2,
+      },
+      {
+        skill: 'Coachability',
+        rating: 3,
+        previousRating: 2,
+      },
+      {
+        skill: 'Tackling',
+        rating: 2,
+        previousRating: 2,
+      },
+      {
+        skill: 'Heading & Aerial',
+        rating: 2,
+        previousRating: 2,
+      },
+      {
+        skill: 'Positioning',
+        rating: 2,
+        previousRating: 2,
+      },
+      {
+        skill: 'Playing Out',
+        rating: 2,
+        previousRating: 1,
+      },
+      {
+        skill: '1v1 Defending',
+        rating: 2,
+        previousRating: 2,
+      },
     ],
     badges: ['Defensive Wall'],
   },
@@ -359,15 +418,51 @@ const USER1_FULL_SESSIONS: User1SeedSession[] = [
     performance: 3,
     workedOn: ['Passing', 'Game Vision', 'Tempo & Control'],
     ratings: [
-      { skill: 'Work Rate', rating: 3, previousRating: 2 },
-      { skill: 'Attitude', rating: 3, previousRating: 3 },
-      { skill: 'Communication', rating: 3, previousRating: 2 },
-      { skill: 'Coachability', rating: 3, previousRating: 3 },
-      { skill: 'Passing', rating: 3, previousRating: 2 },
-      { skill: 'Ball Carrying', rating: 3, previousRating: 2 },
-      { skill: 'Game Vision', rating: 2, previousRating: 2 },
-      { skill: 'Pressing & Defending', rating: 3, previousRating: 2 },
-      { skill: 'Tempo & Control', rating: 3, previousRating: 2 },
+      {
+        skill: 'Work Rate',
+        rating: 3,
+        previousRating: 2,
+      },
+      {
+        skill: 'Attitude',
+        rating: 3,
+        previousRating: 3,
+      },
+      {
+        skill: 'Communication',
+        rating: 3,
+        previousRating: 2,
+      },
+      {
+        skill: 'Coachability',
+        rating: 3,
+        previousRating: 3,
+      },
+      {
+        skill: 'Passing',
+        rating: 3,
+        previousRating: 2,
+      },
+      {
+        skill: 'Ball Carrying',
+        rating: 3,
+        previousRating: 2,
+      },
+      {
+        skill: 'Game Vision',
+        rating: 2,
+        previousRating: 2,
+      },
+      {
+        skill: 'Pressing & Defending',
+        rating: 3,
+        previousRating: 2,
+      },
+      {
+        skill: 'Tempo & Control',
+        rating: 3,
+        previousRating: 2,
+      },
     ],
     badges: ['Tempo Builder'],
   },
@@ -387,15 +482,51 @@ const USER1_FULL_SESSIONS: User1SeedSession[] = [
     performance: 3,
     workedOn: ['Finishing', 'Movement', 'Pressing & Work Rate'],
     ratings: [
-      { skill: 'Work Rate', rating: 3, previousRating: 3 },
-      { skill: 'Attitude', rating: 3, previousRating: 3 },
-      { skill: 'Communication', rating: 3, previousRating: 3 },
-      { skill: 'Coachability', rating: 4, previousRating: 3 },
-      { skill: 'Finishing', rating: 3, previousRating: 2 },
-      { skill: 'Movement', rating: 3, previousRating: 2 },
-      { skill: 'Dribbling & Skills', rating: 3, previousRating: 2 },
-      { skill: 'Hold-Up Play', rating: 2, previousRating: 2 },
-      { skill: 'Pressing & Work Rate', rating: 3, previousRating: 2 },
+      {
+        skill: 'Work Rate',
+        rating: 3,
+        previousRating: 3,
+      },
+      {
+        skill: 'Attitude',
+        rating: 3,
+        previousRating: 3,
+      },
+      {
+        skill: 'Communication',
+        rating: 3,
+        previousRating: 3,
+      },
+      {
+        skill: 'Coachability',
+        rating: 4,
+        previousRating: 3,
+      },
+      {
+        skill: 'Finishing',
+        rating: 3,
+        previousRating: 2,
+      },
+      {
+        skill: 'Movement',
+        rating: 3,
+        previousRating: 2,
+      },
+      {
+        skill: 'Dribbling & Skills',
+        rating: 3,
+        previousRating: 2,
+      },
+      {
+        skill: 'Hold-Up Play',
+        rating: 2,
+        previousRating: 2,
+      },
+      {
+        skill: 'Pressing & Work Rate',
+        rating: 3,
+        previousRating: 2,
+      },
     ],
     badges: ['Attacking Intent'],
   },
@@ -415,15 +546,51 @@ const USER1_FULL_SESSIONS: User1SeedSession[] = [
     performance: 4,
     workedOn: ['Ball Carrying', 'Passing', 'Communication'],
     ratings: [
-      { skill: 'Work Rate', rating: 3, previousRating: 3 },
-      { skill: 'Attitude', rating: 4, previousRating: 3 },
-      { skill: 'Communication', rating: 3, previousRating: 3 },
-      { skill: 'Coachability', rating: 4, previousRating: 3 },
-      { skill: 'Passing', rating: 3, previousRating: 3 },
-      { skill: 'Ball Carrying', rating: 4, previousRating: 3 },
-      { skill: 'Game Vision', rating: 3, previousRating: 2 },
-      { skill: 'Pressing & Defending', rating: 3, previousRating: 3 },
-      { skill: 'Tempo & Control', rating: 3, previousRating: 3 },
+      {
+        skill: 'Work Rate',
+        rating: 3,
+        previousRating: 3,
+      },
+      {
+        skill: 'Attitude',
+        rating: 4,
+        previousRating: 3,
+      },
+      {
+        skill: 'Communication',
+        rating: 3,
+        previousRating: 3,
+      },
+      {
+        skill: 'Coachability',
+        rating: 4,
+        previousRating: 3,
+      },
+      {
+        skill: 'Passing',
+        rating: 3,
+        previousRating: 3,
+      },
+      {
+        skill: 'Ball Carrying',
+        rating: 4,
+        previousRating: 3,
+      },
+      {
+        skill: 'Game Vision',
+        rating: 3,
+        previousRating: 2,
+      },
+      {
+        skill: 'Pressing & Defending',
+        rating: 3,
+        previousRating: 3,
+      },
+      {
+        skill: 'Tempo & Control',
+        rating: 3,
+        previousRating: 3,
+      },
     ],
     badges: ['Ball Carrier'],
   },
@@ -443,15 +610,51 @@ const USER1_FULL_SESSIONS: User1SeedSession[] = [
     performance: 4,
     workedOn: ['Distribution', 'Command of Area', 'Communication'],
     ratings: [
-      { skill: 'Work Rate', rating: 3, previousRating: 3 },
-      { skill: 'Attitude', rating: 4, previousRating: 4 },
-      { skill: 'Communication', rating: 4, previousRating: 3 },
-      { skill: 'Coachability', rating: 4, previousRating: 4 },
-      { skill: 'Shot Stopping', rating: 3, previousRating: 2 },
-      { skill: 'Handling & Crosses', rating: 3, previousRating: 2 },
-      { skill: 'Distribution', rating: 4, previousRating: 3 },
-      { skill: 'Positioning & Sweeping', rating: 3, previousRating: 2 },
-      { skill: 'Command of Area', rating: 3, previousRating: 2 },
+      {
+        skill: 'Work Rate',
+        rating: 3,
+        previousRating: 3,
+      },
+      {
+        skill: 'Attitude',
+        rating: 4,
+        previousRating: 4,
+      },
+      {
+        skill: 'Communication',
+        rating: 4,
+        previousRating: 3,
+      },
+      {
+        skill: 'Coachability',
+        rating: 4,
+        previousRating: 4,
+      },
+      {
+        skill: 'Shot Stopping',
+        rating: 3,
+        previousRating: 2,
+      },
+      {
+        skill: 'Handling & Crosses',
+        rating: 3,
+        previousRating: 2,
+      },
+      {
+        skill: 'Distribution',
+        rating: 4,
+        previousRating: 3,
+      },
+      {
+        skill: 'Positioning & Sweeping',
+        rating: 3,
+        previousRating: 2,
+      },
+      {
+        skill: 'Command of Area',
+        rating: 3,
+        previousRating: 2,
+      },
     ],
     badges: ['Commanding Presence'],
   },
@@ -471,15 +674,51 @@ const USER1_FULL_SESSIONS: User1SeedSession[] = [
     performance: 4,
     workedOn: ['Passing', 'Pressing & Defending', 'Tempo & Control'],
     ratings: [
-      { skill: 'Work Rate', rating: 4, previousRating: 3 },
-      { skill: 'Attitude', rating: 4, previousRating: 4 },
-      { skill: 'Communication', rating: 4, previousRating: 4 },
-      { skill: 'Coachability', rating: 4, previousRating: 4 },
-      { skill: 'Passing', rating: 4, previousRating: 3 },
-      { skill: 'Ball Carrying', rating: 4, previousRating: 4 },
-      { skill: 'Game Vision', rating: 4, previousRating: 3 },
-      { skill: 'Pressing & Defending', rating: 4, previousRating: 3 },
-      { skill: 'Tempo & Control', rating: 4, previousRating: 3 },
+      {
+        skill: 'Work Rate',
+        rating: 4,
+        previousRating: 3,
+      },
+      {
+        skill: 'Attitude',
+        rating: 4,
+        previousRating: 4,
+      },
+      {
+        skill: 'Communication',
+        rating: 4,
+        previousRating: 4,
+      },
+      {
+        skill: 'Coachability',
+        rating: 4,
+        previousRating: 4,
+      },
+      {
+        skill: 'Passing',
+        rating: 4,
+        previousRating: 3,
+      },
+      {
+        skill: 'Ball Carrying',
+        rating: 4,
+        previousRating: 4,
+      },
+      {
+        skill: 'Game Vision',
+        rating: 4,
+        previousRating: 3,
+      },
+      {
+        skill: 'Pressing & Defending',
+        rating: 4,
+        previousRating: 3,
+      },
+      {
+        skill: 'Tempo & Control',
+        rating: 4,
+        previousRating: 3,
+      },
     ],
     badges: ['Press Resistant', 'Vision Builder'],
   },
@@ -491,7 +730,8 @@ const USER1_FULL_SESSIONS: User1SeedSession[] = [
     coachName: 'Jess Okafor',
     templateName: 'Finishing Under Pressure',
     sessionTitle: 'Clinical Finishing Block',
-    summary: 'Strong attacking output this week. Finishing choices and movement were consistently sharp.',
+    summary:
+      'Strong attacking output this week. Finishing choices and movement were consistently sharp.',
     privateNotes: 'Continue improving hold-up first contact and shoulder checks.',
     improvements: 'Higher quality first-time finishing and better off-ball timing into space.',
     homework: '20-minute finishing ladder, alternating weak foot and first-time strikes.',
@@ -499,15 +739,51 @@ const USER1_FULL_SESSIONS: User1SeedSession[] = [
     performance: 4,
     workedOn: ['Finishing', 'Movement', 'Hold-Up Play'],
     ratings: [
-      { skill: 'Work Rate', rating: 4, previousRating: 4 },
-      { skill: 'Attitude', rating: 4, previousRating: 4 },
-      { skill: 'Communication', rating: 4, previousRating: 4 },
-      { skill: 'Coachability', rating: 4, previousRating: 4 },
-      { skill: 'Finishing', rating: 4, previousRating: 3 },
-      { skill: 'Movement', rating: 4, previousRating: 3 },
-      { skill: 'Dribbling & Skills', rating: 4, previousRating: 3 },
-      { skill: 'Hold-Up Play', rating: 4, previousRating: 3 },
-      { skill: 'Pressing & Work Rate', rating: 4, previousRating: 3 },
+      {
+        skill: 'Work Rate',
+        rating: 4,
+        previousRating: 4,
+      },
+      {
+        skill: 'Attitude',
+        rating: 4,
+        previousRating: 4,
+      },
+      {
+        skill: 'Communication',
+        rating: 4,
+        previousRating: 4,
+      },
+      {
+        skill: 'Coachability',
+        rating: 4,
+        previousRating: 4,
+      },
+      {
+        skill: 'Finishing',
+        rating: 4,
+        previousRating: 3,
+      },
+      {
+        skill: 'Movement',
+        rating: 4,
+        previousRating: 3,
+      },
+      {
+        skill: 'Dribbling & Skills',
+        rating: 4,
+        previousRating: 3,
+      },
+      {
+        skill: 'Hold-Up Play',
+        rating: 4,
+        previousRating: 3,
+      },
+      {
+        skill: 'Pressing & Work Rate',
+        rating: 4,
+        previousRating: 3,
+      },
     ],
     badges: ['Clinical Finisher', 'Press Leader'],
   },
@@ -519,7 +795,8 @@ const USER1_FULL_SESSIONS: User1SeedSession[] = [
     coachName: 'Reuben Carr',
     templateName: 'Match Tempo Scenario',
     sessionTitle: 'Match-Speed Midfield Decisioning',
-    summary: 'Outstanding session. Passing tempo, scanning and communication were all at a high level.',
+    summary:
+      'Outstanding session. Passing tempo, scanning and communication were all at a high level.',
     privateNotes: 'Keep forcing one extra scan before high-risk forward passes.',
     improvements: 'Decision speed improved significantly and communication led the group rhythm.',
     homework: 'Maintain scan-call-receive routine in every first 15-minute warm-up block.',
@@ -527,86 +804,113 @@ const USER1_FULL_SESSIONS: User1SeedSession[] = [
     performance: 5,
     workedOn: ['Passing', 'Game Vision', 'Communication'],
     ratings: [
-      { skill: 'Work Rate', rating: 5, previousRating: 4 },
-      { skill: 'Attitude', rating: 5, previousRating: 4 },
-      { skill: 'Communication', rating: 5, previousRating: 4 },
-      { skill: 'Coachability', rating: 5, previousRating: 4 },
-      { skill: 'Passing', rating: 5, previousRating: 4 },
-      { skill: 'Ball Carrying', rating: 4, previousRating: 4 },
-      { skill: 'Game Vision', rating: 5, previousRating: 4 },
-      { skill: 'Pressing & Defending', rating: 4, previousRating: 4 },
-      { skill: 'Tempo & Control', rating: 5, previousRating: 4 },
+      {
+        skill: 'Work Rate',
+        rating: 5,
+        previousRating: 4,
+      },
+      {
+        skill: 'Attitude',
+        rating: 5,
+        previousRating: 4,
+      },
+      {
+        skill: 'Communication',
+        rating: 5,
+        previousRating: 4,
+      },
+      {
+        skill: 'Coachability',
+        rating: 5,
+        previousRating: 4,
+      },
+      {
+        skill: 'Passing',
+        rating: 5,
+        previousRating: 4,
+      },
+      {
+        skill: 'Ball Carrying',
+        rating: 4,
+        previousRating: 4,
+      },
+      {
+        skill: 'Game Vision',
+        rating: 5,
+        previousRating: 4,
+      },
+      {
+        skill: 'Pressing & Defending',
+        rating: 4,
+        previousRating: 4,
+      },
+      {
+        skill: 'Tempo & Control',
+        rating: 5,
+        previousRating: 4,
+      },
     ],
     badgeAwarded: 'Session Leader, Vision & Passing',
     badges: ['Session Leader', 'Vision & Passing'],
   },
 ];
-
 function daysAgoAt(days: number, hour = 17, minute = 0): string {
   const date = new Date(Date.now() - days * DAY_MS);
   date.setHours(hour, minute, 0, 0);
   return date.toISOString();
 }
-
 function dateKeyDaysAgo(days: number): string {
   return daysAgoAt(days).slice(0, 10);
 }
-
 function seedSessionId(index: number): string {
   return `${USER1_FULL_SEED_PREFIX}_session_${String(index).padStart(2, '0')}`;
 }
-
 function seedBookingId(index: number): string {
   return `${USER1_FULL_SEED_PREFIX}_booking_${String(index).padStart(2, '0')}`;
 }
-
 function seedFeedbackId(index: number): string {
   return `${USER1_FULL_SEED_PREFIX}_feedback_${String(index).padStart(2, '0')}`;
 }
-
 function seedMediaPhotoUri(index: number, slot: number): string {
   return `https://picsum.photos/seed/${USER1_FULL_SEED_PREFIX}_p_${index}_${slot}/1080/720`;
 }
-
 function seedMediaThumbUri(index: number, slot: number): string {
   return `https://picsum.photos/seed/${USER1_FULL_SEED_PREFIX}_t_${index}_${slot}/420/280`;
 }
-
 function seedVideoThumbUri(index: number): string {
   return `https://picsum.photos/seed/${USER1_FULL_SEED_PREFIX}_v_${index}/420/280`;
 }
-
 function toSessionDateIso(daysAgoValue: number): string {
   return daysAgoAt(daysAgoValue, 18, 30);
 }
-
 function toCornerRatingsFromSeed(
-  ratings: Array<{ skill: string; rating: 1 | 2 | 3 | 4 | 5 }>,
+  ratings: Array<{
+    skill: string;
+    rating: 1 | 2 | 3 | 4 | 5;
+  }>,
 ): {
   technical: number;
   physical: number;
   psychological: number;
   social: number;
 } {
-  const technicalValues = ratings
-    .filter(
-      (entry) =>
-        entry.skill !== 'Work Rate' &&
-        entry.skill !== 'Attitude' &&
-        entry.skill !== 'Communication' &&
-        entry.skill !== 'Coachability',
-    )
-    .map((entry) => entry.rating);
-  const physicalValues = ratings
-    .filter((entry) => entry.skill === 'Work Rate')
-    .map((entry) => entry.rating);
-  const psychologicalValues = ratings
-    .filter((entry) => entry.skill === 'Attitude' || entry.skill === 'Coachability')
-    .map((entry) => entry.rating);
-  const socialValues = ratings
-    .filter((entry) => entry.skill === 'Communication')
-    .map((entry) => entry.rating);
-
+  const technicalValues = ratings.flatMap((entry) =>
+    entry.skill !== 'Work Rate' &&
+    entry.skill !== 'Attitude' &&
+    entry.skill !== 'Communication' &&
+    entry.skill !== 'Coachability'
+      ? [entry.rating]
+      : [],
+  );
+  const physicalValues = ratings.flatMap((entry) =>
+    entry.skill === 'Work Rate' ? [entry.rating] : [],
+  );
+  const psychologicalValues = ratings.flatMap((entry) =>
+    entry.skill === 'Attitude' || entry.skill === 'Coachability' ? [entry.rating] : [],
+  );
+  const socialValues = ratings.flatMap((entry) =>
+    entry.skill === 'Communication' ? [entry.rating] : [],
+  );
   const avg = (values: number[]): number => {
     if (values.length === 0) {
       return 3;
@@ -614,7 +918,6 @@ function toCornerRatingsFromSeed(
     const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
     return Math.max(1, Math.min(5, Math.round(mean)));
   };
-
   return {
     technical: avg(technicalValues),
     physical: avg(physicalValues),
@@ -622,7 +925,6 @@ function toCornerRatingsFromSeed(
     social: avg(socialValues),
   };
 }
-
 function buildUser1FullFeedback(athleteName: string): SessionFeedback[] {
   return USER1_FULL_SESSIONS.map((session) => {
     const sessionId = seedSessionId(session.index);
@@ -630,7 +932,6 @@ function buildUser1FullFeedback(athleteName: string): SessionFeedback[] {
     const createdAt = toSessionDateIso(session.daysAgo);
     const fourCorners = toCornerRatingsFromSeed(session.ratings);
     const badgeAwarded = session.badgeAwarded ?? session.badges?.join(', ');
-
     return {
       id: seedFeedbackId(session.index),
       sessionId,
@@ -664,7 +965,6 @@ function buildUser1FullFeedback(athleteName: string): SessionFeedback[] {
     };
   });
 }
-
 function mergeSessionMedia(existing: SessionMedia[], seeded: SessionMedia[]): SessionMedia[] {
   const map = new Map<string, SessionMedia>();
   for (const item of seeded) {
@@ -680,7 +980,6 @@ function mergeSessionMedia(existing: SessionMedia[], seeded: SessionMedia[]): Se
     (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
   );
 }
-
 function buildUser1SessionMedia(): SessionMedia[] {
   return USER1_FULL_SESSIONS.map((session) => {
     const sessionId = seedSessionId(session.index);
@@ -692,7 +991,6 @@ function buildUser1SessionMedia(): SessionMedia[] {
       height: 720,
       capturedAt: new Date(new Date(createdAt).getTime() + slot * 60_000).toISOString(),
     }));
-
     const video =
       session.index >= 6
         ? {
@@ -702,7 +1000,6 @@ function buildUser1SessionMedia(): SessionMedia[] {
             capturedAt: createdAt,
           }
         : null;
-
     return {
       sessionId,
       athleteId: 'user1',
@@ -713,7 +1010,6 @@ function buildUser1SessionMedia(): SessionMedia[] {
     } satisfies SessionMedia;
   });
 }
-
 function buildUser1CompletedBookings(athleteName: string): Booking[] {
   const sessionLinked = USER1_FULL_SESSIONS.map((session) => {
     const id = seedBookingId(session.index);
@@ -737,7 +1033,6 @@ function buildUser1CompletedBookings(athleteName: string): Booking[] {
       createdAt: daysAgoAt(session.daysAgo + 4, 10, 0),
     } satisfies Booking;
   });
-
   const extraAttendanceDays = [1, 4, 6, 9, 11, 16, 19, 23, 26, 31, 34, 38, 41];
   const extras = extraAttendanceDays.map((days, index) => {
     const coach = DEMO_COACHES[index % DEMO_COACHES.length];
@@ -759,10 +1054,8 @@ function buildUser1CompletedBookings(athleteName: string): Booking[] {
       createdAt: daysAgoAt(days + 3, 11, 30),
     } satisfies Booking;
   });
-
   return [...sessionLinked, ...extras];
 }
-
 function buildUser1CoachSessions(): Session[] {
   return USER1_FULL_SESSIONS.map((session) => ({
     id: `${USER1_FULL_SEED_PREFIX}_coach_session_${String(session.index).padStart(2, '0')}`,
@@ -779,7 +1072,6 @@ function buildUser1CoachSessions(): Session[] {
     coachName: session.coachName,
   }));
 }
-
 function buildUser1FullSkills(): AthleteSkillLevels {
   const now = new Date().toISOString();
   const baseHistoryDays = [84, 56, 28, 2];
@@ -801,11 +1093,11 @@ function buildUser1FullSkills(): AthleteSkillLevels {
       previousLevel,
       lastUpdated: now,
       updatedBy: coachId,
-      trend: level > previousLevel ? 'improving' : level < previousLevel ? 'declining' : 'consistent',
+      trend:
+        level > previousLevel ? 'improving' : level < previousLevel ? 'declining' : 'consistent',
       history,
     };
   };
-
   const skills: Record<string, SkillLevel> = {
     'Work Rate': makeSkill('Work Rate', [4, 5, 7, 9], 'coach1'),
     Attitude: makeSkill('Attitude', [5, 6, 8, 9], 'coach2'),
@@ -826,14 +1118,12 @@ function buildUser1FullSkills(): AthleteSkillLevels {
     'Shot Stopping': makeSkill('Shot Stopping', [3, 4, 5, 6], 'coach2'),
     Distribution: makeSkill('Distribution', [4, 5, 6, 8], 'coach2'),
   };
-
   return {
     athleteId: 'user1',
     skills,
     lastUpdated: now,
   };
 }
-
 function buildUser1FullGoals(athleteId: string): Goal[] {
   const goals: Goal[] = [
     {
@@ -850,7 +1140,11 @@ function buildUser1FullGoals(athleteId: string): Goal[] {
       progress: 70,
       milestones: buildGoalMilestones(
         `${USER1_FULL_SEED_PREFIX}_goal_game_vision`,
-        ['Scan before every receive', 'Switch play in under two touches', 'Call support lane early'],
+        [
+          'Scan before every receive',
+          'Switch play in under two touches',
+          'Call support lane early',
+        ],
         2,
       ),
       createdBy: 'COACH',
@@ -872,7 +1166,11 @@ function buildUser1FullGoals(athleteId: string): Goal[] {
       progress: 60,
       milestones: buildGoalMilestones(
         `${USER1_FULL_SEED_PREFIX}_goal_finishing`,
-        ['8/10 on-target in finishing ladder', 'Weak-foot finishing set complete', 'Apply in game scenario'],
+        [
+          '8/10 on-target in finishing ladder',
+          'Weak-foot finishing set complete',
+          'Apply in game scenario',
+        ],
         2,
       ),
       createdBy: 'COACH',
@@ -894,7 +1192,11 @@ function buildUser1FullGoals(athleteId: string): Goal[] {
       progress: 100,
       milestones: buildGoalMilestones(
         `${USER1_FULL_SEED_PREFIX}_goal_character`,
-        ['Hit sprint recovery targets', 'Complete final block at full intensity', 'Lead pressing triggers'],
+        [
+          'Hit sprint recovery targets',
+          'Complete final block at full intensity',
+          'Lead pressing triggers',
+        ],
         3,
       ),
       createdBy: 'COACH',
@@ -925,10 +1227,8 @@ function buildUser1FullGoals(athleteId: string): Goal[] {
       updatedAt: daysAgoAt(18, 18, 0),
     },
   ];
-
   return goals;
 }
-
 function buildUser1FullBadges(athleteId: string): BadgeAward[] {
   const rows: Array<{
     index: number;
@@ -1008,7 +1308,6 @@ function buildUser1FullBadges(athleteId: string): BadgeAward[] {
       visibility: 'supporters',
     },
   ];
-
   return rows.map((row, idx) => ({
     id: `${USER1_FULL_SEED_PREFIX}_badge_award_${String(idx + 1).padStart(2, '0')}`,
     badgeId: row.badgeId,
@@ -1026,7 +1325,6 @@ function buildUser1FullBadges(athleteId: string): BadgeAward[] {
     badgePointValue: row.points,
   }));
 }
-
 function buildUser1FullJournalEntries(athleteId: string): JournalEntrySeed[] {
   return USER1_FULL_SESSIONS.slice(-6).map((session) => ({
     id: `${USER1_FULL_SEED_PREFIX}_journal_${String(session.index).padStart(2, '0')}`,
@@ -1039,7 +1337,6 @@ function buildUser1FullJournalEntries(athleteId: string): JournalEntrySeed[] {
     createdAt: toSessionDateIso(session.daysAgo),
   }));
 }
-
 function buildUser1HomeworkCompletion(): Record<string, HomeworkCompletionRecord> {
   const latestFeedback = USER1_FULL_SESSIONS.slice(-3);
   return latestFeedback.reduce<Record<string, HomeworkCompletionRecord>>((acc, session, index) => {
@@ -1052,7 +1349,6 @@ function buildUser1HomeworkCompletion(): Record<string, HomeworkCompletionRecord
     return acc;
   }, {});
 }
-
 function buildUser1SessionNotes(): Record<string, SessionNoteRecord> {
   return USER1_FULL_SESSIONS.reduce<Record<string, SessionNoteRecord>>((acc, session) => {
     const sessionId = seedSessionId(session.index);
@@ -1070,32 +1366,62 @@ function buildUser1SessionNotes(): Record<string, SessionNoteRecord> {
     return acc;
   }, {});
 }
-
 function buildUser1PositionHistory(): Record<string, PositionHistoryEntrySeed[]> {
   const entries = USER1_FULL_SESSIONS.map((session) => ({
     sessionId: seedSessionId(session.index),
     athleteId: 'user1',
     position: session.position,
     recordedAt: toSessionDateIso(session.daysAgo),
-  })).sort((left, right) => new Date(right.recordedAt).getTime() - new Date(left.recordedAt).getTime());
-
+  })).sort(
+    (left, right) => new Date(right.recordedAt).getTime() - new Date(left.recordedAt).getTime(),
+  );
   return {
     user1: entries,
   };
 }
-
 function buildUser1PracticeLogs(): PracticeLogSeed[] {
   const rows = [
-    { daysAgo: 1, minutes: 30, note: 'First-touch wall work + weak-foot control.' },
-    { daysAgo: 3, minutes: 25, note: 'Scanning cue rehearsal before receive.' },
-    { daysAgo: 5, minutes: 35, note: 'Finishing ladder with quick recovery runs.' },
-    { daysAgo: 8, minutes: 20, note: 'Pressure rondo prep set.' },
-    { daysAgo: 10, minutes: 30, note: 'Tempo passing pattern in tight area.' },
-    { daysAgo: 13, minutes: 28, note: 'Ball carrying and turn mechanics.' },
-    { daysAgo: 17, minutes: 32, note: 'Defensive footwork & recovery angles.' },
-    { daysAgo: 20, minutes: 24, note: 'Distribution reps and communication cues.' },
+    {
+      daysAgo: 1,
+      minutes: 30,
+      note: 'First-touch wall work + weak-foot control.',
+    },
+    {
+      daysAgo: 3,
+      minutes: 25,
+      note: 'Scanning cue rehearsal before receive.',
+    },
+    {
+      daysAgo: 5,
+      minutes: 35,
+      note: 'Finishing ladder with quick recovery runs.',
+    },
+    {
+      daysAgo: 8,
+      minutes: 20,
+      note: 'Pressure rondo prep set.',
+    },
+    {
+      daysAgo: 10,
+      minutes: 30,
+      note: 'Tempo passing pattern in tight area.',
+    },
+    {
+      daysAgo: 13,
+      minutes: 28,
+      note: 'Ball carrying and turn mechanics.',
+    },
+    {
+      daysAgo: 17,
+      minutes: 32,
+      note: 'Defensive footwork & recovery angles.',
+    },
+    {
+      daysAgo: 20,
+      minutes: 24,
+      note: 'Distribution reps and communication cues.',
+    },
   ];
-
   return rows.map((row) => {
     const dateKey = dateKeyDaysAgo(row.daysAgo);
     return {
@@ -1108,10 +1434,7 @@ function buildUser1PracticeLogs(): PracticeLogSeed[] {
     };
   });
 }
-
-function buildUser1SelfAssessments(
-  athleteName: string,
-): {
+function buildUser1SelfAssessments(athleteName: string): {
   prompts: SelfAssessmentPromptSeed[];
   entries: SelfAssessmentEntrySeed[];
 } {
@@ -1132,7 +1455,6 @@ function buildUser1SelfAssessments(
       notificationSentAt: daysAgoAt(Math.max(0, session.daysAgo - 1), 20, 0),
     };
   });
-
   const pendingSession = USER1_FULL_SESSIONS[USER1_FULL_SESSIONS.length - 1];
   const pendingPrompt: SelfAssessmentPromptSeed = {
     id: `${USER1_FULL_SEED_PREFIX}_self_prompt_pending`,
@@ -1146,7 +1468,6 @@ function buildUser1SelfAssessments(
     status: 'pending',
     notificationSentAt: daysAgoAt(1, 20, 5),
   };
-
   const completedEntries = completedPromptIndexes.map((index) => {
     const session = USER1_FULL_SESSIONS[index - 1];
     return {
@@ -1162,23 +1483,19 @@ function buildUser1SelfAssessments(
       createdAt: daysAgoAt(Math.max(0, session.daysAgo - 1), 21, 5),
     };
   });
-
   return {
     prompts: [...completedPrompts, pendingPrompt],
     entries: completedEntries,
   };
 }
-
 function buildSkillLevels(athleteId: string): AthleteSkillLevels {
   const base = hashValue(athleteId);
   const now = new Date().toISOString();
   const skills: Record<string, SkillLevel> = {};
-
   SKILL_NAMES.forEach((skill, index) => {
     const coach = pickCoach(index);
     const previousLevel = 3 + ((base + index) % 3);
     const level = Math.min(10, previousLevel + 1);
-
     skills[skill] = {
       skill,
       level,
@@ -1187,20 +1504,30 @@ function buildSkillLevels(athleteId: string): AthleteSkillLevels {
       updatedBy: coach.id,
       trend: 'improving',
       history: [
-        { date: daysAgo(21), level: Math.max(1, previousLevel - 1), coachId: coach.id },
-        { date: daysAgo(10), level: previousLevel, coachId: coach.id },
-        { date: daysAgo(2), level, coachId: coach.id },
+        {
+          date: daysAgo(21),
+          level: Math.max(1, previousLevel - 1),
+          coachId: coach.id,
+        },
+        {
+          date: daysAgo(10),
+          level: previousLevel,
+          coachId: coach.id,
+        },
+        {
+          date: daysAgo(2),
+          level,
+          coachId: coach.id,
+        },
       ],
     };
   });
-
   return {
     athleteId,
     skills,
     lastUpdated: now,
   };
 }
-
 function buildGoalMilestones(
   goalId: string,
   titles: string[],
@@ -1215,12 +1542,10 @@ function buildGoalMilestones(
     order: index,
   }));
 }
-
 function buildSeedGoals(athleteId: string): Omit<Goal, 'id' | 'createdAt' | 'updatedAt'>[] {
   const tacticalGoalId = `seed_goal_${athleteId}_tactical`;
   const finishingGoalId = `seed_goal_${athleteId}_finishing`;
   const fitnessGoalId = `seed_goal_${athleteId}_fitness`;
-
   return [
     {
       userId: athleteId,
@@ -1233,7 +1558,11 @@ function buildSeedGoals(athleteId: string): Omit<Goal, 'id' | 'createdAt' | 'upd
       progress: 50,
       milestones: buildGoalMilestones(
         tacticalGoalId,
-        ['Scan before receiving', 'Choose pass within two touches', 'Break first press consistently'],
+        [
+          'Scan before receiving',
+          'Choose pass within two touches',
+          'Break first press consistently',
+        ],
         1,
       ),
       createdBy: 'COACH',
@@ -1271,7 +1600,11 @@ function buildSeedGoals(athleteId: string): Omit<Goal, 'id' | 'createdAt' | 'upd
       progress: 100,
       milestones: buildGoalMilestones(
         fitnessGoalId,
-        ['Complete interval block', 'Recover heart rate faster', 'Finish final block at target pace'],
+        [
+          'Complete interval block',
+          'Recover heart rate faster',
+          'Finish final block at target pace',
+        ],
         3,
       ),
       createdBy: 'COACH',
@@ -1279,7 +1612,6 @@ function buildSeedGoals(athleteId: string): Omit<Goal, 'id' | 'createdAt' | 'upd
     },
   ];
 }
-
 function buildSeedBadges(athleteId: string): BadgeAward[] {
   return [
     {
@@ -1318,7 +1650,6 @@ function buildSeedBadges(athleteId: string): BadgeAward[] {
     },
   ];
 }
-
 function buildJournalEntries(athleteId: string): JournalEntrySeed[] {
   return [
     {
@@ -1343,21 +1674,18 @@ function buildJournalEntries(athleteId: string): JournalEntrySeed[] {
     },
   ];
 }
-
 async function ensureFeedbackSeeded(athleteId: string, athleteName: string): Promise<void> {
   const allFeedback = await apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []);
   const hasAthleteFeedback = allFeedback.some((entry) => entry.athleteId === athleteId);
   if (hasAthleteFeedback) {
     return;
   }
-
   const seeded = buildSeedFeedback(athleteId, athleteName);
   const merged = mergeById(allFeedback, seeded).sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
   await apiClient.set(STORAGE_KEYS.SESSION_FEEDBACK, merged);
 }
-
 async function ensureSkillsSeeded(athleteId: string): Promise<void> {
   const allLevels = await apiClient.get<Record<string, AthleteSkillLevels>>(
     STORAGE_KEYS.SKILL_LEVELS,
@@ -1368,49 +1696,46 @@ async function ensureSkillsSeeded(athleteId: string): Promise<void> {
   if (hasAthleteSkills) {
     return;
   }
-
   const seeded = buildSkillLevels(athleteId);
-  await apiClient.set(STORAGE_KEYS.SKILL_LEVELS, { ...allLevels, [athleteId]: seeded });
+  await apiClient.set(STORAGE_KEYS.SKILL_LEVELS, {
+    ...allLevels,
+    [athleteId]: seeded,
+  });
 }
-
 async function ensureGoalsSeeded(athleteId: string): Promise<void> {
   const current = await progressGoalsService.getGoalsForAthlete(athleteId);
   if (current.active.length + current.completed.length > 0) {
     return;
   }
-
   const goals = buildSeedGoals(athleteId);
-  for (const goal of goals) {
-    await progressGoalsService.createGoal(athleteId, goal, goal.createdBy, goal.createdById);
-  }
+  await Promise.all(
+    goals.map((goal) =>
+      progressGoalsService.createGoal(athleteId, goal, goal.createdBy, goal.createdById),
+    ),
+  );
 }
-
 async function ensureBadgesSeeded(athleteId: string): Promise<void> {
   const existingAthleteBadges = await badgeService.listAwardsForAthlete(athleteId);
   if (existingAthleteBadges.length > 0) {
     return;
   }
-
   const storedAwards = await apiClient.get<BadgeAward[]>(STORAGE_KEYS.BADGE_AWARDS, []);
   const merged = mergeById(storedAwards, buildSeedBadges(athleteId)).sort(
     (a, b) => new Date(b.awardedAt).getTime() - new Date(a.awardedAt).getTime(),
   );
   await apiClient.set(STORAGE_KEYS.BADGE_AWARDS, merged);
 }
-
 async function ensureJournalSeeded(athleteId: string): Promise<void> {
   const stored = await apiClient.get<JournalEntrySeed[]>(STORAGE_KEYS.SESSION_JOURNAL, []);
   const hasAthleteJournal = stored.some((entry) => entry.athleteId === athleteId);
   if (hasAthleteJournal) {
     return;
   }
-
   const merged = mergeById(stored, buildJournalEntries(athleteId)).sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
   await apiClient.set(STORAGE_KEYS.SESSION_JOURNAL, merged);
 }
-
 function isSeedSessionFeedback(feedback: SessionFeedback, athleteId: string): boolean {
   if (feedback.athleteId !== athleteId) {
     return false;
@@ -1421,36 +1746,29 @@ function isSeedSessionFeedback(feedback: SessionFeedback, athleteId: string): bo
     feedback.bookingId?.startsWith(`seed_progress_booking_${athleteId}_`) === true
   );
 }
-
 function isSeedGoal(goal: Goal, athleteId: string): boolean {
   return goal.athleteId === athleteId && goal.id.startsWith(`seed_goal_${athleteId}_`);
 }
-
 function isSeedBadgeAward(award: BadgeAward, athleteId: string): boolean {
   return award.athleteId === athleteId && award.id.startsWith(`seed_badge_award_${athleteId}_`);
 }
-
 function isSeedJournalEntry(entry: JournalEntrySeed, athleteId: string): boolean {
   return entry.athleteId === athleteId && entry.id.startsWith(`seed_journal_${athleteId}_`);
 }
-
 function bookingMatchesAthlete(booking: Booking, athleteId: string): boolean {
   if (booking.athleteIds?.includes(athleteId)) {
     return true;
   }
   return booking.athleteId === athleteId;
 }
-
 function isLikelySeedSkillSnapshot(levels: AthleteSkillLevels | undefined): boolean {
   if (!levels) {
     return false;
   }
-
   const skills = Object.values(levels.skills);
   if (skills.length === 0) {
     return false;
   }
-
   return skills.every((skill) => {
     if (!SKILL_NAMES.includes(skill.skill as (typeof SKILL_NAMES)[number])) {
       return false;
@@ -1461,35 +1779,35 @@ function isLikelySeedSkillSnapshot(levels: AthleteSkillLevels | undefined): bool
     return skill.history.every((entry) => DEMO_COACH_IDS.has(entry.coachId));
   });
 }
-
 export async function clearProgressDemoSeedData(
   athleteId: string,
 ): Promise<Result<void, ServiceError>> {
   if (!athleteId) {
     return ok(undefined);
   }
-
   try {
-    const [allFeedback, allLevels, allGoals, allAwards, allJournal, allBookings] = await Promise.all([
-      apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []),
-      apiClient.get<Record<string, AthleteSkillLevels>>(STORAGE_KEYS.SKILL_LEVELS, {}),
-      apiClient.get<Goal[]>(STORAGE_KEYS.GOALS, []),
-      apiClient.get<BadgeAward[]>(STORAGE_KEYS.BADGE_AWARDS, []),
-      apiClient.get<JournalEntrySeed[]>(STORAGE_KEYS.SESSION_JOURNAL, []),
-      apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
-    ]);
-
-    const filteredFeedback = allFeedback.filter((entry) => !isSeedSessionFeedback(entry, athleteId));
+    const [allFeedback, allLevels, allGoals, allAwards, allJournal, allBookings] =
+      await Promise.all([
+        apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []),
+        apiClient.get<Record<string, AthleteSkillLevels>>(STORAGE_KEYS.SKILL_LEVELS, {}),
+        apiClient.get<Goal[]>(STORAGE_KEYS.GOALS, []),
+        apiClient.get<BadgeAward[]>(STORAGE_KEYS.BADGE_AWARDS, []),
+        apiClient.get<JournalEntrySeed[]>(STORAGE_KEYS.SESSION_JOURNAL, []),
+        apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
+      ]);
+    const filteredFeedback = allFeedback.filter(
+      (entry) => !isSeedSessionFeedback(entry, athleteId),
+    );
     const filteredGoals = allGoals.filter((goal) => !isSeedGoal(goal, athleteId));
     const filteredAwards = allAwards.filter((award) => !isSeedBadgeAward(award, athleteId));
     const filteredJournal = allJournal.filter((entry) => !isSeedJournalEntry(entry, athleteId));
-
     const hadSeedFeedback = filteredFeedback.length !== allFeedback.length;
     const hadSeedGoals = filteredGoals.length !== allGoals.length;
     const hadSeedAwards = filteredAwards.length !== allAwards.length;
     const hadSeedJournal = filteredJournal.length !== allJournal.length;
-
-    const nextLevels = { ...allLevels };
+    const nextLevels = {
+      ...allLevels,
+    };
     const athleteLevels = nextLevels[athleteId];
     const hasCompletedBooking = allBookings.some(
       (booking) => booking.status === 'COMPLETED' && bookingMatchesAthlete(booking, athleteId),
@@ -1500,13 +1818,11 @@ export async function clearProgressDemoSeedData(
       filteredAwards.some((award) => award.athleteId === athleteId) ||
       filteredJournal.some((entry) => entry.athleteId === athleteId) ||
       hasCompletedBooking;
-
     let removedSeedSkills = false;
     if (!hasRealSignals && isLikelySeedSkillSnapshot(athleteLevels)) {
       delete nextLevels[athleteId];
       removedSeedSkills = true;
     }
-
     if (hadSeedFeedback) {
       await apiClient.set(STORAGE_KEYS.SESSION_FEEDBACK, filteredFeedback);
     }
@@ -1522,7 +1838,6 @@ export async function clearProgressDemoSeedData(
     if (removedSeedSkills) {
       await apiClient.set(STORAGE_KEYS.SKILL_LEVELS, nextLevels);
     }
-
     if (hadSeedFeedback || hadSeedGoals || hadSeedAwards || hadSeedJournal || removedSeedSkills) {
       logger.info('progress_demo_seed_data_cleared', {
         athleteId,
@@ -1533,14 +1848,15 @@ export async function clearProgressDemoSeedData(
         removedSeedSkills,
       });
     }
-
     return ok(undefined);
   } catch (error) {
-    logger.error('failed_to_clear_progress_demo_seed_data', { athleteId, error });
+    logger.error('failed_to_clear_progress_demo_seed_data', {
+      athleteId,
+      error,
+    });
     return err(storageError('Failed to clear seeded progress data'));
   }
 }
-
 export async function ensureUser1DiamondTestDataSeeded(
   athleteId: string,
   athleteName?: string,
@@ -1548,7 +1864,6 @@ export async function ensureUser1DiamondTestDataSeeded(
   if (athleteId !== 'user1') {
     return ok(undefined);
   }
-
   try {
     const [
       allFeedback,
@@ -1590,7 +1905,6 @@ export async function ensureUser1DiamondTestDataSeeded(
         }>
       >(STORAGE_KEYS.PROGRESS_TERM_REPORTS, []),
     ]);
-
     const safeAthleteName = athleteName?.trim() || 'Alfie Barton';
     const seededFeedback = [
       ...buildUser1FullFeedback(safeAthleteName),
@@ -1599,10 +1913,11 @@ export async function ensureUser1DiamondTestDataSeeded(
     const mergedFeedback = mergeById(allFeedback, seededFeedback).sort(
       (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
     );
-
     const seededSkills = buildUser1FullSkills();
     const existingUser1Skills = allLevels.user1;
-    const mergedSkillMap = { ...seededSkills.skills };
+    const mergedSkillMap = {
+      ...seededSkills.skills,
+    };
     if (existingUser1Skills) {
       Object.entries(existingUser1Skills.skills).forEach(([skill, skillData]) => {
         if (!mergedSkillMap[skill]) {
@@ -1618,7 +1933,6 @@ export async function ensureUser1DiamondTestDataSeeded(
         lastUpdated: new Date().toISOString(),
       },
     };
-
     const mergedGoals = mergeById(allGoals, buildUser1FullGoals('user1')).sort(
       (left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
     );
@@ -1637,7 +1951,6 @@ export async function ensureUser1DiamondTestDataSeeded(
       ...allSessionNotes,
       ...buildUser1SessionNotes(),
     };
-
     const seededPositionHistory = buildUser1PositionHistory().user1;
     const existingPositionHistory = allPositionHistory.user1 ?? [];
     const positionMap = new Map<string, PositionHistoryEntrySeed>();
@@ -1653,8 +1966,10 @@ export async function ensureUser1DiamondTestDataSeeded(
         (left, right) => new Date(right.recordedAt).getTime() - new Date(left.recordedAt).getTime(),
       ),
     };
-
-    const mergedBookings = mergeById(allBookings, buildUser1CompletedBookings(safeAthleteName)).sort(
+    const mergedBookings = mergeById(
+      allBookings,
+      buildUser1CompletedBookings(safeAthleteName),
+    ).sort(
       (left, right) =>
         new Date(right.scheduledAt || right.createdAt || '').getTime() -
         new Date(left.scheduledAt || left.createdAt || '').getTime(),
@@ -1665,7 +1980,6 @@ export async function ensureUser1DiamondTestDataSeeded(
     const mergedPracticeLogs = mergeById(allPracticeLogs, buildUser1PracticeLogs()).sort(
       (left, right) => right.dateKey.localeCompare(left.dateKey),
     );
-
     const selfAssessments = buildUser1SelfAssessments(safeAthleteName);
     const mergedSelfAssessmentPrompts = mergeById(
       allSelfAssessmentPrompts,
@@ -1674,8 +1988,9 @@ export async function ensureUser1DiamondTestDataSeeded(
     const mergedSelfAssessmentEntries = mergeById(
       allSelfAssessmentEntries,
       selfAssessments.entries,
-    ).sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
-
+    ).sort(
+      (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+    );
     await Promise.all([
       apiClient.set(STORAGE_KEYS.SESSION_FEEDBACK, mergedFeedback),
       apiClient.set(STORAGE_KEYS.SKILL_LEVELS, mergedLevels),
@@ -1692,7 +2007,6 @@ export async function ensureUser1DiamondTestDataSeeded(
       apiClient.set(STORAGE_KEYS.PROGRESS_SELF_ASSESSMENT_PROMPTS, mergedSelfAssessmentPrompts),
       apiClient.set(STORAGE_KEYS.PROGRESS_SELF_ASSESSMENTS, mergedSelfAssessmentEntries),
     ]);
-
     const hasUser1TermlySnapshot = allTermReports.some(
       (snapshot) =>
         snapshot.athleteId === 'user1' &&
@@ -1714,7 +2028,6 @@ export async function ensureUser1DiamondTestDataSeeded(
         await apiClient.set(STORAGE_KEYS.PROGRESS_TERM_REPORTS, [snapshot, ...allTermReports]);
       }
     }
-
     logger.info('user1_progress_full_stack_seeded', {
       feedbackCount: seededFeedback.length,
       sessionCount: USER1_FULL_SESSIONS.length,
@@ -1723,14 +2036,15 @@ export async function ensureUser1DiamondTestDataSeeded(
       practiceLogs: buildUser1PracticeLogs().length,
       selfAssessmentEntries: selfAssessments.entries.length,
     });
-
     return ok(undefined);
   } catch (error) {
-    logger.error('failed_to_seed_user1_diamond_test_data', { athleteId, error });
+    logger.error('failed_to_seed_user1_diamond_test_data', {
+      athleteId,
+      error,
+    });
     return err(storageError('Failed to seed user1 diamond test data'));
   }
 }
-
 export async function ensureProgressDemoSeeded(
   athleteId: string,
   athleteName?: string,
@@ -1738,18 +2052,21 @@ export async function ensureProgressDemoSeeded(
   if (!athleteId) {
     return ok(undefined);
   }
-
   const safeAthleteName = athleteName?.trim() || 'Athlete';
-
   try {
-    await ensureFeedbackSeeded(athleteId, safeAthleteName);
-    await ensureSkillsSeeded(athleteId);
-    await ensureGoalsSeeded(athleteId);
-    await ensureBadgesSeeded(athleteId);
-    await ensureJournalSeeded(athleteId);
+    await Promise.all([
+      ensureFeedbackSeeded(athleteId, safeAthleteName),
+      ensureSkillsSeeded(athleteId),
+      ensureGoalsSeeded(athleteId),
+      ensureBadgesSeeded(athleteId),
+      ensureJournalSeeded(athleteId),
+    ]);
     return ok(undefined);
   } catch (error) {
-    logger.error('failed_to_seed_progress_demo', { athleteId, error });
+    logger.error('failed_to_seed_progress_demo', {
+      athleteId,
+      error,
+    });
     return err(storageError('Failed to seed progress demo data'));
   }
 }

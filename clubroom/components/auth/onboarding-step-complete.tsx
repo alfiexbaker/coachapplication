@@ -1,8 +1,3 @@
-/**
- * StepComplete — Completion/success step of onboarding.
- */
-
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -36,7 +31,7 @@ function StepCompleteInner({ accountType }: StepCompleteProps) {
   );
 }
 
-export const StepComplete = memo(StepCompleteInner);
+export const StepComplete = StepCompleteInner;
 
 const styles = StyleSheet.create({
   content: {

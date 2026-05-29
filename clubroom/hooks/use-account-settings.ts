@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -21,7 +21,7 @@ export function useAccountSettings() {
     (currentUser as unknown as Record<string, string>)?.phone || '',
   );
 
-  const handleSaveEmail = useCallback(async () => {
+  const handleSaveEmail = async () => {
     if (!currentUser?.id) return;
 
     logger.press('SaveEmail', { email });
@@ -40,9 +40,9 @@ export function useAccountSettings() {
       'Email updated. Verification stays managed separately from this field in the current build.',
       'success',
     );
-  }, [currentUser, email]);
+  };
 
-  const handleSavePhone = useCallback(async () => {
+  const handleSavePhone = async () => {
     if (!currentUser?.id) return;
 
     logger.press('SavePhone', { phone });
@@ -64,9 +64,9 @@ export function useAccountSettings() {
       'Phone number updated. Any verification review is handled separately from this field.',
       'success',
     );
-  }, [currentUser, phone]);
+  };
 
-  const handleChangePassword = useCallback(() => {
+  const handleChangePassword = () => {
     logger.press('ChangePassword');
 
     const body = [
@@ -83,37 +83,34 @@ export function useAccountSettings() {
       }),
       'Could not open your email app right now.',
     );
-  }, [currentUser?.email, currentUser?.id, email]);
+  };
 
-  const handleRequestLifecycleSupport = useCallback(
-    (mode: 'pause' | 'close') => {
-      const subject =
-        mode === 'pause'
-          ? 'Clubroom account pause request'
-          : 'Clubroom account closure request';
-      const intro =
-        mode === 'pause'
-          ? 'I would like support to pause my Clubroom account.'
-          : 'I would like support to close my Clubroom account.';
-      const body = [
-        intro,
-        '',
-        `Account: ${currentUser?.id ?? 'unknown'}`,
-        `Email on file: ${email.trim() || currentUser?.email || 'not set'}`,
-      ].join('\n');
+  const handleRequestLifecycleSupport = (mode: 'pause' | 'close') => {
+    const subject =
+      mode === 'pause'
+        ? 'Clubroom account pause request'
+        : 'Clubroom account closure request';
+    const intro =
+      mode === 'pause'
+        ? 'I would like support to pause my Clubroom account.'
+        : 'I would like support to close my Clubroom account.';
+    const body = [
+      intro,
+      '',
+      `Account: ${currentUser?.id ?? 'unknown'}`,
+      `Email on file: ${email.trim() || currentUser?.email || 'not set'}`,
+    ].join('\n');
 
-      void openExternalUrl(
-        buildMailtoUrl(SUPPORT_EMAIL, {
-          subject,
-          body,
-        }),
-        'Could not open your email app right now.',
-      );
-    },
-    [currentUser?.email, currentUser?.id, email],
-  );
+    void openExternalUrl(
+      buildMailtoUrl(SUPPORT_EMAIL, {
+        subject,
+        body,
+      }),
+      'Could not open your email app right now.',
+    );
+  };
 
-  const handleDeleteAccount = useCallback(() => {
+  const handleDeleteAccount = () => {
     logger.press('DeleteAccount');
     uiFeedback.alert(
       'Request Account Closure',
@@ -127,9 +124,9 @@ export function useAccountSettings() {
         },
       ],
     );
-  }, [handleRequestLifecycleSupport]);
+  };
 
-  const handleDeactivateAccount = useCallback(() => {
+  const handleDeactivateAccount = () => {
     logger.press('DeactivateAccount');
     uiFeedback.alert(
       'Request Account Pause',
@@ -142,7 +139,7 @@ export function useAccountSettings() {
         },
       ],
     );
-  }, [handleRequestLifecycleSupport]);
+  };
 
   return {
     currentUser,

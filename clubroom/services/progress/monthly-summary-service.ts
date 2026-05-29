@@ -2,16 +2,13 @@ import type { MonthSummary } from '@/types/progress-types';
 import type { SessionFeedback, SkillLevel } from '@/services/progress-service';
 import { err, ok, type Result, type ServiceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
-
 const logger = createLogger('MonthlySummaryService');
 void logger;
-
 export interface MonthlySummaryCopy {
   monthTitle: string;
   narrative: string;
   valueLine: string;
 }
-
 const POSITIVE_FEEDBACK_PATTERN =
   /excellent|great|strong|impressed|outstanding|brilliant|confident|sharp|composed/i;
 
@@ -24,12 +21,12 @@ function getSkillLevelLabel(level: number): string {
   if (dots === 4) return 'Excellent';
   return 'Exceptional';
 }
-
 function buildMonthTitle(now: Date): string {
-  const month = now.toLocaleDateString('en-GB', { month: 'long' });
+  const month = now.toLocaleDateString('en-GB', {
+    month: 'long',
+  });
   return `${month} Summary`;
 }
-
 function sanitizeSnippet(summary: string): string {
   const compact = summary.replace(/\s+/g, ' ').trim();
   if (compact.length <= 80) {
@@ -37,7 +34,6 @@ function sanitizeSnippet(summary: string): string {
   }
   return `${compact.slice(0, 80).trimEnd()}...`;
 }
-
 function buildNarrative(
   athleteName: string,
   summary: MonthSummary,
@@ -45,7 +41,6 @@ function buildNarrative(
   feedback: SessionFeedback[],
 ): string {
   const parts: string[] = [];
-
   if (summary.skillsImproved >= 2) {
     parts.push(`${athleteName} had a strong month.`);
   } else if (summary.sessionsAttended >= 4) {
@@ -55,7 +50,6 @@ function buildNarrative(
   } else {
     parts.push(`Here's ${athleteName}'s month in review.`);
   }
-
   const improvedSkills = skills
     .filter((skill) => skill.trend === 'improving')
     .sort((left, right) => {
@@ -63,42 +57,33 @@ function buildNarrative(
       const rightDelta = right.level - (right.previousLevel ?? right.level);
       return rightDelta - leftDelta;
     });
-
   const topImproved = improvedSkills[0];
   if (topImproved) {
     const currentLevelLabel = getSkillLevelLabel(topImproved.level);
     const previousLevelLabel = getSkillLevelLabel(topImproved.previousLevel ?? topImproved.level);
     if (currentLevelLabel !== previousLevelLabel) {
-      parts.push(
-        `${topImproved.skill} moved from ${previousLevelLabel} to ${currentLevelLabel}.`,
-      );
+      parts.push(`${topImproved.skill} moved from ${previousLevelLabel} to ${currentLevelLabel}.`);
     }
   }
-
-  const sortedFeedback = [...feedback].sort(
+  const sortedFeedback = Array.from(feedback).toSorted(
     (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
   );
   const latestCoachFirstName = sortedFeedback[0]?.coachName.split(' ')[0];
   const highlighted = sortedFeedback.find((entry) =>
     POSITIVE_FEEDBACK_PATTERN.test(entry.publicSummary),
   );
-
   if (latestCoachFirstName && highlighted?.publicSummary) {
     parts.push(
       `Coach ${latestCoachFirstName} noted: "${sanitizeSnippet(highlighted.publicSummary)}"`,
     );
   }
-
   return parts.join(' ');
 }
-
 function buildValueLine(summary: MonthSummary): string {
   const estimatedHours = Math.round((summary.sessionsAttended * 90) / 60);
   const hoursLabel = estimatedHours === 1 ? 'hour' : 'hours';
-
   return `Your £20 this month: ${estimatedHours} ${hoursLabel} of qualified coaching, ${summary.feedbackCount} pieces of personalised feedback, and measurable skill improvement.`;
 }
-
 function buildMonthlySummary(
   athleteName: string,
   summary: MonthSummary,
@@ -120,22 +105,27 @@ function buildMonthlySummary(
     });
   }
 }
-
 interface MonthlyStoryPage {
   id: string;
   type: 'intro' | 'stat' | 'coach_quote' | 'badges' | 'next_focus';
   title: string;
   body: string;
   accent?: string;
-  stat?: { value: string; label: string };
+  stat?: {
+    value: string;
+    label: string;
+  };
   photo?: string;
 }
-
 interface MediaItem {
-  photos: { uri: string; thumbnailUri: string }[];
-  video: { uri: string } | null;
+  photos: {
+    uri: string;
+    thumbnailUri: string;
+  }[];
+  video: {
+    uri: string;
+  } | null;
 }
-
 function buildMonthlyStory(
   athleteName: string,
   summary: MonthSummary,
@@ -146,7 +136,9 @@ function buildMonthlyStory(
   try {
     const pages: MonthlyStoryPage[] = [];
     const now = new Date();
-    const monthName = now.toLocaleDateString('en-GB', { month: 'long' });
+    const monthName = now.toLocaleDateString('en-GB', {
+      month: 'long',
+    });
 
     // Page 1: Intro
     pages.push({
@@ -162,15 +154,19 @@ function buildMonthlyStory(
       id: 'sessions-stat',
       type: 'stat',
       title: 'Training Sessions',
-      body: summary.sessionsAttended === 1
-        ? `${athleteName} attended 1 session this month.`
-        : `${athleteName} attended ${summary.sessionsAttended} sessions this month.`,
-      stat: { value: `${summary.sessionsAttended}`, label: 'Sessions attended' },
+      body:
+        summary.sessionsAttended === 1
+          ? `${athleteName} attended 1 session this month.`
+          : `${athleteName} attended ${summary.sessionsAttended} sessions this month.`,
+      stat: {
+        value: `${summary.sessionsAttended}`,
+        label: 'Sessions attended',
+      },
       accent: '#3B82F6',
     });
 
     // Page 3: Coach quote (if available)
-    const sortedFeedback = [...feedback].sort(
+    const sortedFeedback = Array.from(feedback).toSorted(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
     const highlighted = sortedFeedback.find((entry) =>
@@ -193,7 +189,10 @@ function buildMonthlyStory(
         type: 'stat',
         title: 'Badges Earned',
         body: `${athleteName} earned ${summary.badgesEarned} badge${summary.badgesEarned === 1 ? '' : 's'} this month.`,
-        stat: { value: `${summary.badgesEarned}`, label: 'New badges' },
+        stat: {
+          value: `${summary.badgesEarned}`,
+          label: 'New badges',
+        },
         accent: '#F59E0B',
       });
     }
@@ -208,7 +207,10 @@ function buildMonthlyStory(
         body: topSkill
           ? `${topSkill.skill} moved to ${getSkillLevelLabel(topSkill.level)} level.`
           : `${summary.skillsImproved} skill${summary.skillsImproved === 1 ? '' : 's'} improved this month.`,
-        stat: { value: `${summary.skillsImproved}`, label: 'Skills improved' },
+        stat: {
+          value: `${summary.skillsImproved}`,
+          label: 'Skills improved',
+        },
         accent: '#10B981',
       });
     }
@@ -217,7 +219,6 @@ function buildMonthlyStory(
     const decliningSkills = skills.filter((s) => s.trend === 'declining');
     const steadySkills = skills.filter((s) => s.trend === 'steady' || s.trend === 'consistent');
     const focusSkill = decliningSkills[0] ?? steadySkills[0];
-
     pages.push({
       id: 'next-focus',
       type: 'next_focus',
@@ -229,7 +230,7 @@ function buildMonthlyStory(
     });
 
     // Inject photos into pages where available
-    const photos = (media ?? []).flatMap((m) => m.photos).filter((p) => p?.uri).map((p) => p.uri);
+    const photos = (media ?? []).flatMap((m) => m.photos.flatMap((p) => (p?.uri ? [p.uri] : [])));
     if (photos.length > 0) {
       let photoIdx = 0;
       for (const page of pages) {
@@ -241,7 +242,6 @@ function buildMonthlyStory(
         }
       }
     }
-
     return ok(pages);
   } catch (error) {
     return err({
@@ -251,18 +251,14 @@ function buildMonthlyStory(
     });
   }
 }
-
 function extractBestCoachQuote(feedback: SessionFeedback[]): string | undefined {
-  const sorted = [...feedback].sort(
+  const sorted = Array.from(feedback).toSorted(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
-  const highlighted = sorted.find((entry) =>
-    POSITIVE_FEEDBACK_PATTERN.test(entry.publicSummary),
-  );
+  const highlighted = sorted.find((entry) => POSITIVE_FEEDBACK_PATTERN.test(entry.publicSummary));
   if (!highlighted) return undefined;
   return sanitizeSnippet(highlighted.publicSummary);
 }
-
 export const monthlySummaryService = {
   buildMonthlySummary,
   buildMonthlyStory,

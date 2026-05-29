@@ -18,10 +18,10 @@ export const sessionDisplayService = {
    */
   formatPrice(amount: number, currency: string = 'GBP'): string {
     if (amount === 0) return 'Free';
-    return new Intl.NumberFormat('en-GB', {
+    return amount.toLocaleString('en-GB', {
       style: 'currency',
       currency,
-    }).format(amount);
+    });
   },
 
   /**

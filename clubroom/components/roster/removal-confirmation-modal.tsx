@@ -12,12 +12,11 @@ import type { MemberRemovalReason } from '@/services/club-service';
 import { useTheme } from '@/hooks/useTheme';
 
 import {
-  ATHLETE_REASONS,
-  MEMBER_REASONS,
   ReasonGrid,
   WarningBox,
   ArchiveToggle,
 } from './removal-confirmation-sections';
+import { ATHLETE_REASONS, MEMBER_REASONS } from './removal-confirmation-helpers';
 
 type ReasonType = RemovalReason | MemberRemovalReason;
 

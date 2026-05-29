@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet, Modal, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -7,6 +7,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
+import { formatTimeForDisplay } from './quiet-hours-helpers';
 
 function isQuietHoursActive(enabled: boolean, startTime: string, endTime: string): boolean {
   if (!enabled) return false;
@@ -21,30 +22,13 @@ function isQuietHoursActive(enabled: boolean, startTime: string, endTime: string
   }
   return current >= start && current < end;
 }
-export function parseTimeToDate(time: string): Date {
-  const [hours, minutes] = time.split(':').map(Number);
-  const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
-  return date;
-}
-export function formatDateToTime(date: Date): string {
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  return `${hours}:${minutes}`;
-}
-export function formatTimeForDisplay(time: string): string {
-  const [hours, minutes] = time.split(':').map(Number);
-  const period = hours >= 12 ? 'PM' : 'AM';
-  const displayHours = hours % 12 || 12;
-  return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
-}
 interface QuietHoursHeaderProps {
   enabled: boolean;
   disabled: boolean;
   onToggle: () => void;
   palette: ThemeColors;
 }
-export const QuietHoursHeader = memo(function QuietHoursHeader({
+export const QuietHoursHeader = function QuietHoursHeader({
   enabled,
   disabled,
   onToggle,
@@ -76,7 +60,7 @@ export const QuietHoursHeader = memo(function QuietHoursHeader({
       </View>
     </Clickable>
   );
-});
+};
 interface TimeRangeSectionProps {
   enabled: boolean;
   startTime: string;
@@ -86,7 +70,7 @@ interface TimeRangeSectionProps {
   onEndPress: () => void;
   palette: ThemeColors;
 }
-export const TimeRangeSection = memo(function TimeRangeSection({
+const renderTimeRangeSection = function renderTimeRangeSection({
   enabled,
   startTime,
   endTime,
@@ -175,7 +159,8 @@ export const TimeRangeSection = memo(function TimeRangeSection({
       </Row>
     </View>
   );
-});
+};
+export const TimeRangeSection = renderTimeRangeSection;
 interface TimePickerModalProps {
   visible: boolean;
   title: string;
@@ -186,7 +171,7 @@ interface TimePickerModalProps {
   palette: ThemeColors;
   isDark: boolean;
 }
-export const TimePickerModal = memo(function TimePickerModal({
+const renderTimePickerModal = function renderTimePickerModal({
   visible,
   title,
   value,
@@ -229,7 +214,8 @@ export const TimePickerModal = memo(function TimePickerModal({
       </View>
     </Modal>
   );
-});
+};
+export const TimePickerModal = renderTimePickerModal;
 const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',

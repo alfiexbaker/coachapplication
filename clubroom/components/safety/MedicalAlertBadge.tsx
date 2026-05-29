@@ -7,12 +7,11 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
-import { getAlertConfig } from './medical-alert-badge-sections';
-import type { AlertType } from './medical-alert-badge-sections';
+import { getAlertConfig, type AlertType } from './medical-alert-badge-helpers';
 
 // Re-export extracted components for backward compat
 export { MedicalAlertRow, AlertSeverityDot, AlertCountBadge } from './medical-alert-badge-sections';
-export type { AlertType } from './medical-alert-badge-sections';
+export type { AlertType } from './medical-alert-badge-helpers';
 
 interface MedicalAlertBadgeProps {
   type: AlertType;

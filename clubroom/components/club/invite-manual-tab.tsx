@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,7 +14,7 @@ interface InviteManualTabProps {
   onSend: () => void;
 }
 
-export const InviteManualTab = memo(function InviteManualTab({
+export const InviteManualTab = function InviteManualTab({
   email,
   onEmailChange,
   onSend,
@@ -49,7 +48,7 @@ export const InviteManualTab = memo(function InviteManualTab({
       </Row>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },

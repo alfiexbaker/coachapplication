@@ -177,7 +177,7 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
   );
 }
 
-export const AthleteCard = React.memo(AthleteCardInner);
+export const AthleteCard = AthleteCardInner;
 
 // ---------------------------------------------------------------------------
 // Styles

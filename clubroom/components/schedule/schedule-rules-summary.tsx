@@ -2,7 +2,7 @@
  * ScheduleRulesSummary — Compact card showing active booking rules.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -20,7 +20,7 @@ interface Props {
   onPress: () => void;
 }
 
-export const ScheduleRulesSummary = memo(function ScheduleRulesSummary({ rules, onPress }: Props) {
+export const ScheduleRulesSummary = function ScheduleRulesSummary({ rules, onPress }: Props) {
   const { colors } = useTheme();
 
   return (
@@ -41,7 +41,7 @@ export const ScheduleRulesSummary = memo(function ScheduleRulesSummary({ rules, 
       </Clickable>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

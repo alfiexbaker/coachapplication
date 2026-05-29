@@ -1,7 +1,3 @@
-/**
- * SchedulingRules — Section sub-components (chip selector, toggles, policy, summary).
- */
-import { memo } from 'react';
 import { View, Switch, TextInput, StyleSheet as RNStyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -16,8 +12,6 @@ import { useTheme } from '@/hooks/useTheme';
 import { Row, Column } from '@/components/primitives';
 import type { RefundTier } from '@/constants/types';
 import { styles } from './scheduling-rules-section-styles';
-
-export const CANCELLATION_TIMEFRAMES = [24, 12, 2, 0] as const;
 
 // ---------------------------------------------------------------------------
 // OptionChip — Shared selectable chip
@@ -52,7 +46,10 @@ export function OptionChip({
       <ThemedText
         style={[
           styles.chipText,
-          { color: isSelected ? palette.onPrimary : palette.text, fontSize: compact ? Typography.small.fontSize : Typography.bodySmall.fontSize },
+          {
+            color: isSelected ? palette.onPrimary : palette.text,
+            fontSize: compact ? Typography.small.fontSize : Typography.bodySmall.fontSize,
+          },
         ]}
       >
         {label}
@@ -113,7 +110,7 @@ function ChipSectionInner({
   );
 }
 
-export const ChipSection = memo(ChipSectionInner);
+export const ChipSection = ChipSectionInner;
 
 // ---------------------------------------------------------------------------
 // ToggleCard — Same-day booking toggle
@@ -156,7 +153,7 @@ function ToggleCardInner(p: ToggleCardProps) {
   );
 }
 
-export const ToggleCard = memo(ToggleCardInner);
+export const ToggleCard = ToggleCardInner;
 
 // ---------------------------------------------------------------------------
 // CancellationSection — Presets + fully editable tiers
@@ -164,7 +161,11 @@ export const ToggleCard = memo(ToggleCardInner);
 
 export type CancellationPreset = 'flexible' | 'standard' | 'strict' | 'custom';
 
-const PRESET_OPTIONS: { key: CancellationPreset; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+const PRESET_OPTIONS: {
+  key: CancellationPreset;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
   { key: 'flexible', label: 'Flexible', icon: 'happy-outline' },
   { key: 'standard', label: 'Standard', icon: 'shield-checkmark-outline' },
   { key: 'strict', label: 'Strict', icon: 'lock-closed-outline' },
@@ -187,7 +188,7 @@ function formatWindowLabel(hours: number) {
   return `${hours}h+ before`;
 }
 
-const EditableTierRow = memo(function EditableTierRow({
+const EditableTierRow = function EditableTierRow({
   tier,
   index,
   isCustom,
@@ -223,7 +224,10 @@ const EditableTierRow = memo(function EditableTierRow({
         {isCustom ? (
           <Row align="center" gap="xxs" style={cancellationStyles.hoursInputWrap}>
             <TextInput
-              style={[cancellationStyles.hoursInput, { borderColor: palette.border, color: palette.text }]}
+              style={[
+                cancellationStyles.hoursInput,
+                { borderColor: palette.border, color: palette.text },
+              ]}
               value={String(tier.hoursBeforeSession)}
               keyboardType="number-pad"
               placeholder="0"
@@ -253,12 +257,18 @@ const EditableTierRow = memo(function EditableTierRow({
             thumbTintColor={palette.tint}
             onValueChange={(value) => onUpdateRefund(index, Math.round(value))}
             onSlidingComplete={() => {
-              if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              if (Platform.OS !== 'web')
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }}
           />
         </View>
 
-        <View style={[cancellationStyles.refundBadge, { backgroundColor: withAlpha(refundColor, 0.09) }]}>
+        <View
+          style={[
+            cancellationStyles.refundBadge,
+            { backgroundColor: withAlpha(refundColor, 0.09) },
+          ]}
+        >
           <ThemedText style={[Typography.bodySmallSemiBold, { color: refundColor }]}>
             {tier.refundPercentage}%
           </ThemedText>
@@ -267,7 +277,8 @@ const EditableTierRow = memo(function EditableTierRow({
         {isCustom && canRemove && (
           <Clickable
             onPress={() => {
-              if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              if (Platform.OS !== 'web')
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               onRemove(index);
             }}
             style={cancellationStyles.removeButton}
@@ -279,7 +290,7 @@ const EditableTierRow = memo(function EditableTierRow({
       </Row>
     </View>
   );
-});
+};
 
 function CancellationSectionInner({
   tiers,
@@ -289,24 +300,32 @@ function CancellationSectionInner({
 }: CancellationSectionProps) {
   const { colors: palette } = useTheme();
   const isCustom = selectedPreset === 'custom';
-  const sortedTiers = [...tiers].sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
+  const sortedTiers = Array.from(tiers).toSorted(
+    (a, b) => b.hoursBeforeSession - a.hoursBeforeSession,
+  );
 
   const handleUpdateHours = (index: number, hours: number) => {
-    const sorted = [...tiers].sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
+    const sorted = Array.from(tiers).toSorted(
+      (a, b) => b.hoursBeforeSession - a.hoursBeforeSession,
+    );
     const next = [...sorted];
     next[index] = { ...next[index], hoursBeforeSession: hours };
     onTiersChange(next);
   };
 
   const handleUpdateRefund = (index: number, refund: number) => {
-    const sorted = [...tiers].sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
+    const sorted = Array.from(tiers).toSorted(
+      (a, b) => b.hoursBeforeSession - a.hoursBeforeSession,
+    );
     const next = [...sorted];
     next[index] = { ...next[index], refundPercentage: refund };
     onTiersChange(next);
   };
 
   const handleRemove = (index: number) => {
-    const sorted = [...tiers].sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
+    const sorted = Array.from(tiers).toSorted(
+      (a, b) => b.hoursBeforeSession - a.hoursBeforeSession,
+    );
     onTiersChange(sorted.filter((_, i) => i !== index));
   };
 
@@ -335,7 +354,8 @@ function CancellationSectionInner({
           <Clickable
             key={opt.key}
             onPress={() => {
-              if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              if (Platform.OS !== 'web')
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               onPresetChange(opt.key);
             }}
             style={[
@@ -356,7 +376,10 @@ function CancellationSectionInner({
             <ThemedText
               style={[
                 styles.chipText,
-                { color: selectedPreset === opt.key ? palette.onPrimary : palette.text, fontSize: Typography.small.fontSize },
+                {
+                  color: selectedPreset === opt.key ? palette.onPrimary : palette.text,
+                  fontSize: Typography.small.fontSize,
+                },
               ]}
             >
               {opt.label}
@@ -397,7 +420,7 @@ function CancellationSectionInner({
   );
 }
 
-export const CancellationSection = memo(CancellationSectionInner);
+export const CancellationSection = CancellationSectionInner;
 
 const cancellationStyles = RNStyleSheet.create({
   tiersCard: { padding: Spacing.sm, borderRadius: Radii.card },
@@ -448,8 +471,10 @@ interface SettingsSummaryProps {
 
 function SettingsSummaryInner(p: SettingsSummaryProps) {
   const { colors: palette } = useTheme();
-  const highestRefundTier = [...p.cancellationTiers]
-    .sort((a, b) => b.refundPercentage - a.refundPercentage || b.hoursBeforeSession - a.hoursBeforeSession)[0];
+  const highestRefundTier = Array.from(p.cancellationTiers).toSorted(
+    (a, b) =>
+      b.refundPercentage - a.refundPercentage || b.hoursBeforeSession - a.hoursBeforeSession,
+  )[0];
   const summaryText = highestRefundTier
     ? `Max refund ${highestRefundTier.refundPercentage}% (${highestRefundTier.hoursBeforeSession}h+ window)`
     : 'Custom cancellation policy';
@@ -483,8 +508,8 @@ function SettingsSummaryInner(p: SettingsSummaryProps) {
         Current Settings
       </ThemedText>
       <View style={styles.summaryList}>
-        {items.map((item, i) => (
-          <Row key={i} style={styles.summaryItem}>
+        {items.map((item) => (
+          <Row key={item.text} style={styles.summaryItem}>
             <Ionicons
               name={item.on ? 'checkmark-circle' : 'close-circle'}
               size={14}
@@ -498,4 +523,4 @@ function SettingsSummaryInner(p: SettingsSummaryProps) {
   );
 }
 
-export const SettingsSummary = memo(SettingsSummaryInner);
+export const SettingsSummary = SettingsSummaryInner;

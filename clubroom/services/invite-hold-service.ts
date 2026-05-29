@@ -97,9 +97,10 @@ export const inviteHoldService = {
    */
   async releaseHolds(holdIds: string[]): Promise<void> {
     const holds = await loadHolds();
+    const holdIdSet = new Set(holdIds);
     let changed = false;
     for (const hold of holds) {
-      if (holdIds.includes(hold.id) && hold.status === 'active') {
+      if (holdIdSet.has(hold.id) && hold.status === 'active') {
         hold.status = 'released';
         changed = true;
       }

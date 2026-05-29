@@ -419,13 +419,19 @@ function assertUploadStillValid(uploadSession: SeedRow, mediaObject: SeedRow): v
 }
 
 function latestStoreScanForMedia(tables: Record<string, SeedRow[]>, mediaObjectId: string): SeedRow | undefined {
-  return [...asRows(tables.malwareScanResults)]
-    .filter((row) => asString(row.mediaObjectId) === mediaObjectId)
-    .sort((left, right) => {
-      const leftTime = Date.parse(asString(left.scannedAt) ?? asString(left.createdAt) ?? '');
-      const rightTime = Date.parse(asString(right.scannedAt) ?? asString(right.createdAt) ?? '');
-      return (Number.isFinite(rightTime) ? rightTime : 0) - (Number.isFinite(leftTime) ? leftTime : 0);
-    })[0];
+  return asRows(tables.malwareScanResults).reduce<SeedRow | undefined>((latest, row) => {
+    if (asString(row.mediaObjectId) !== mediaObjectId) {
+      return latest;
+    }
+    if (!latest) {
+      return row;
+    }
+    const rowTime = Date.parse(asString(row.scannedAt) ?? asString(row.createdAt) ?? '');
+    const latestTime = Date.parse(asString(latest.scannedAt) ?? asString(latest.createdAt) ?? '');
+    return (Number.isFinite(rowTime) ? rowTime : 0) > (Number.isFinite(latestTime) ? latestTime : 0)
+      ? row
+      : latest;
+  }, undefined);
 }
 
 function normalizeScanVerdict(scan: SeedRow | undefined): string | undefined {

@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -19,7 +18,7 @@ interface QuickAnnotationBarProps {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export const QuickAnnotationBar = memo(function QuickAnnotationBar({
+export const QuickAnnotationBar = function QuickAnnotationBar({
   onAdd,
   disabled = false,
 }: QuickAnnotationBarProps) {
@@ -52,7 +51,7 @@ export const QuickAnnotationBar = memo(function QuickAnnotationBar({
       </Row>
     </Row>
   );
-});
+};
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 

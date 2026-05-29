@@ -5,7 +5,7 @@
  * Allows users to set a start and end time during which push notifications are suppressed.
  */
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -14,12 +14,11 @@ import { useTheme } from '@/hooks/useTheme';
 import type { QuietHours } from '@/constants/types';
 import { ThemedText } from '@/components/themed-text';
 import {
-  parseTimeToDate,
-  formatDateToTime,
   QuietHoursHeader,
   TimeRangeSection,
   TimePickerModal,
 } from './quiet-hours-sections';
+import { parseTimeToDate, formatDateToTime } from './quiet-hours-helpers';
 
 export interface QuietHoursSelectorProps {
   value: QuietHours;
@@ -40,55 +39,49 @@ export function QuietHoursSelector({
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [tempTime, setTempTime] = useState<Date | null>(null);
 
-  const handleToggle = useCallback(() => {
+  const handleToggle = () => {
     onChange({ ...value, enabled: !value.enabled });
-  }, [value, onChange]);
+  };
 
-  const handleStartTimeChange = useCallback(
-    (_event: unknown, selectedDate?: Date) => {
-      if (Platform.OS === 'android') setShowStartPicker(false);
-      if (selectedDate) {
-        if (Platform.OS === 'ios') {
-          setTempTime(selectedDate);
-        } else {
-          onChange({ ...value, startTime: formatDateToTime(selectedDate) });
-        }
+  const handleStartTimeChange = (_event: unknown, selectedDate?: Date) => {
+    if (Platform.OS === 'android') setShowStartPicker(false);
+    if (selectedDate) {
+      if (Platform.OS === 'ios') {
+        setTempTime(selectedDate);
+      } else {
+        onChange({ ...value, startTime: formatDateToTime(selectedDate) });
       }
-    },
-    [value, onChange],
-  );
+    }
+  };
 
-  const handleEndTimeChange = useCallback(
-    (_event: unknown, selectedDate?: Date) => {
-      if (Platform.OS === 'android') setShowEndPicker(false);
-      if (selectedDate) {
-        if (Platform.OS === 'ios') {
-          setTempTime(selectedDate);
-        } else {
-          onChange({ ...value, endTime: formatDateToTime(selectedDate) });
-        }
+  const handleEndTimeChange = (_event: unknown, selectedDate?: Date) => {
+    if (Platform.OS === 'android') setShowEndPicker(false);
+    if (selectedDate) {
+      if (Platform.OS === 'ios') {
+        setTempTime(selectedDate);
+      } else {
+        onChange({ ...value, endTime: formatDateToTime(selectedDate) });
       }
-    },
-    [value, onChange],
-  );
+    }
+  };
 
-  const handleConfirmStartTime = useCallback(() => {
+  const handleConfirmStartTime = () => {
     if (tempTime) onChange({ ...value, startTime: formatDateToTime(tempTime) });
     setTempTime(null);
     setShowStartPicker(false);
-  }, [tempTime, value, onChange]);
+  };
 
-  const handleConfirmEndTime = useCallback(() => {
+  const handleConfirmEndTime = () => {
     if (tempTime) onChange({ ...value, endTime: formatDateToTime(tempTime) });
     setTempTime(null);
     setShowEndPicker(false);
-  }, [tempTime, value, onChange]);
+  };
 
-  const handleCancelPicker = useCallback(() => {
+  const handleCancelPicker = () => {
     setTempTime(null);
     setShowStartPicker(false);
     setShowEndPicker(false);
-  }, []);
+  };
 
   const isDisabled = disabled || loading;
 

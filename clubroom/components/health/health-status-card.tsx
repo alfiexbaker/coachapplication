@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -17,7 +17,7 @@ interface HealthStatusCardProps {
   avgRecovery: number;
 }
 
-export const HealthStatusCard = memo(function HealthStatusCard({
+export const HealthStatusCard = function HealthStatusCard({
   colors,
   injuries,
   activeCount,
@@ -75,7 +75,7 @@ export const HealthStatusCard = memo(function HealthStatusCard({
       </View>
     </SurfaceCard>
   );
-});
+};
 
 interface StatusItemProps {
   icon: string;

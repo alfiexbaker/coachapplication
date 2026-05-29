@@ -31,7 +31,7 @@ type Props = {
   onSave: () => void;
 };
 
-export const BlockDateForm = React.memo(function BlockDateForm({
+export const BlockDateForm = function BlockDateForm({
   colors,
   dates,
   selectedDate,
@@ -46,6 +46,7 @@ export const BlockDateForm = React.memo(function BlockDateForm({
   onSetCustomReason,
   onSave,
 }: Props) {
+  const [today] = React.useState(() => new Date());
   const notesError =
     reason === 'other' && customReason.trim().length < 10 ? 'Please provide a brief reason' : null;
   const canSave = !saving && (reason !== 'other' || !notesError);
@@ -56,12 +57,12 @@ export const BlockDateForm = React.memo(function BlockDateForm({
           <ThemedText type="subtitle">Select Date to Block</ThemedText>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <Row style={styles.dateGrid}>
-              {dates.map((date, index) => {
+              {dates.map((date) => {
                 const isSelected = isSameDay(date, selectedDate);
-                const isToday = isSameDay(date, new Date());
+                const isToday = isSameDay(date, today);
                 return (
                   <Clickable
-                    key={index}
+                    key={date.toISOString()}
                     style={[
                       styles.dateCard,
                       {
@@ -133,7 +134,10 @@ export const BlockDateForm = React.memo(function BlockDateForm({
                 This helps athletes understand your availability
               </ThemedText>
               <TextInput
-                style={[styles.input, { borderColor: notesError ? colors.error : colors.border, color: colors.text }]}
+                style={[
+                  styles.input,
+                  { borderColor: notesError ? colors.error : colors.border, color: colors.text },
+                ]}
                 placeholder="Enter reason..."
                 placeholderTextColor={colors.muted}
                 value={customReason}
@@ -145,13 +149,18 @@ export const BlockDateForm = React.memo(function BlockDateForm({
               <ThemedText
                 style={[
                   Typography.caption,
-                  { color: customReason.length > 180 ? colors.error : colors.muted, textAlign: 'right' },
+                  {
+                    color: customReason.length > 180 ? colors.error : colors.muted,
+                    textAlign: 'right',
+                  },
                 ]}
               >
                 {customReason.length}/200
               </ThemedText>
               {notesError ? (
-                <ThemedText style={[Typography.caption, { color: colors.error }]}>{notesError}</ThemedText>
+                <ThemedText style={[Typography.caption, { color: colors.error }]}>
+                  {notesError}
+                </ThemedText>
               ) : null}
             </View>
           ) : null}
@@ -199,7 +208,7 @@ export const BlockDateForm = React.memo(function BlockDateForm({
       </View>
     </>
   );
-});
+};
 
 const styles = StyleSheet.create({
   content: { flex: 1 },

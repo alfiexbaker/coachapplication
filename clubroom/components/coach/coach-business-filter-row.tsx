@@ -1,4 +1,3 @@
-import { memo, useCallback } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -28,13 +27,10 @@ function CoachBusinessFilterRowInner({
 }: CoachBusinessFilterRowProps) {
   const { colors } = useTheme();
 
-  const handlePress = useCallback(
-    (filter: CoachBusinessFilter) => {
-      if (filter === value) return;
-      onChange(filter);
-    },
-    [onChange, value],
-  );
+  const handlePress = (filter: CoachBusinessFilter) => {
+    if (filter === value) return;
+    onChange(filter);
+  };
 
   return (
     <Row gap="xs" style={[styles.row, style]}>
@@ -75,7 +71,7 @@ function CoachBusinessFilterRowInner({
   );
 }
 
-export const CoachBusinessFilterRow = memo(CoachBusinessFilterRowInner);
+export const CoachBusinessFilterRow = CoachBusinessFilterRowInner;
 
 const styles = StyleSheet.create({
   row: {

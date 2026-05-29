@@ -5,7 +5,7 @@
  * All state/logic in useSubscribe hook.
  */
 
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, StyleSheet, FlatList, RefreshControl, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +21,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { Spacing, Typography, Radii, withAlpha } from '@/constants/theme';
 import { useSubscribe, type CoachOption } from '@/hooks/use-subscribe';
+import type { ThemeColors } from '@/hooks/useTheme';
 
 export default function SubscribeScreen() {
   const c = useSubscribe();
@@ -64,6 +65,8 @@ export default function SubscribeScreen() {
   }
 
   if (!c.selectedCoach) {
+    const coachItems = getCoachSelectionItems(c.coaches, palette, c.setSelectedCoach);
+
     return renderCoachSelectionShell(
       <>
         <ThemedView style={styles.header}>
@@ -72,10 +75,13 @@ export default function SubscribeScreen() {
             Select a coach to set up recurring sessions with
           </ThemedText>
         </ThemedView>
-        <ScrollView
+        <FlatList
           style={styles.scrollView}
           contentContainerStyle={styles.coachList}
           showsVerticalScrollIndicator={false}
+          data={coachItems}
+          keyExtractor={keyCoachSelectionItem}
+          renderItem={renderCoachSelectionItem}
           refreshControl={
             <RefreshControl
               refreshing={c.refreshing}
@@ -83,61 +89,7 @@ export default function SubscribeScreen() {
               tintColor={palette.tint}
             />
           }
-        >
-          {c.coaches.map((coach: CoachOption) => (
-            <SurfaceCard
-              key={coach.id}
-              style={styles.coachCard}
-              onPress={() => c.setSelectedCoach(coach)}
-            >
-              <Row style={styles.coachRow}>
-                <Image
-                  source={{ uri: coach.photoUrl }}
-                  style={styles.coachAvatar}
-                  contentFit="cover"
-                />
-                <View style={styles.coachInfo}>
-                  <ThemedText type="defaultSemiBold">{coach.name}</ThemedText>
-                  <Row style={styles.coachMeta}>
-                    <Ionicons name="star" size={14} color={palette.warning} />
-                    <ThemedText style={[styles.coachMetaText, { color: palette.muted }]}>
-                      {coach.rating.toFixed(1)} ({coach.totalSessions} sessions)
-                    </ThemedText>
-                  </Row>
-                  <Row style={styles.coachMeta}>
-                    <Ionicons name="location-outline" size={14} color={palette.muted} />
-                    <ThemedText style={[styles.coachMetaText, { color: palette.muted }]}>
-                      {coach.location}
-                    </ThemedText>
-                  </Row>
-                </View>
-                <View style={styles.coachPrice}>
-                  <ThemedText type="defaultSemiBold" style={{ color: palette.tint }}>
-                    ${coach.pricePerSession}
-                  </ThemedText>
-                  <ThemedText style={[styles.priceLabel, { color: palette.muted }]}>
-                    /session
-                  </ThemedText>
-                </View>
-              </Row>
-              <Row style={styles.specialtiesRow}>
-                {coach.sessionTypes.slice(0, 3).map((specialty, index) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.specialtyBadge,
-                      { backgroundColor: withAlpha(palette.tint, 0.1) },
-                    ]}
-                  >
-                    <ThemedText style={[styles.specialtyText, { color: palette.tint }]}>
-                      {specialty}
-                    </ThemedText>
-                  </View>
-                ))}
-              </Row>
-            </SurfaceCard>
-          ))}
-        </ScrollView>
+        />
       </>,
     );
   }
@@ -176,6 +128,79 @@ export default function SubscribeScreen() {
         submitting={c.submitting}
       />
     </>,
+  );
+}
+
+interface CoachSelectionItem {
+  key: string;
+  coach: CoachOption;
+  palette: ThemeColors;
+  onPress: () => void;
+}
+
+function getCoachSelectionItems(
+  coaches: CoachOption[],
+  palette: ThemeColors,
+  onSelectCoach: (coach: CoachOption) => void,
+): CoachSelectionItem[] {
+  return coaches.map((coach) => ({
+    key: coach.id,
+    coach,
+    palette,
+    onPress: () => onSelectCoach(coach),
+  }));
+}
+
+function keyCoachSelectionItem(item: CoachSelectionItem): string {
+  return item.key;
+}
+
+function renderCoachSelectionItem({ item }: ListRenderItemInfo<CoachSelectionItem>) {
+  return (
+    <SurfaceCard style={styles.coachCard} onPress={item.onPress}>
+      <Row style={styles.coachRow}>
+        <Image
+          source={{ uri: item.coach.photoUrl }}
+          style={styles.coachAvatar}
+          contentFit="cover"
+        />
+        <View style={styles.coachInfo}>
+          <ThemedText type="defaultSemiBold">{item.coach.name}</ThemedText>
+          <Row style={styles.coachMeta}>
+            <Ionicons name="star" size={14} color={item.palette.warning} />
+            <ThemedText style={[styles.coachMetaText, { color: item.palette.muted }]}>
+              {item.coach.rating.toFixed(1)} ({item.coach.totalSessions} sessions)
+            </ThemedText>
+          </Row>
+          <Row style={styles.coachMeta}>
+            <Ionicons name="location-outline" size={14} color={item.palette.muted} />
+            <ThemedText style={[styles.coachMetaText, { color: item.palette.muted }]}>
+              {item.coach.location}
+            </ThemedText>
+          </Row>
+        </View>
+        <View style={styles.coachPrice}>
+          <ThemedText type="defaultSemiBold" style={{ color: item.palette.tint }}>
+            ${item.coach.pricePerSession}
+          </ThemedText>
+          <ThemedText style={[styles.priceLabel, { color: item.palette.muted }]}>
+            /session
+          </ThemedText>
+        </View>
+      </Row>
+      <Row style={styles.specialtiesRow}>
+        {item.coach.sessionTypes.slice(0, 3).map((specialty) => (
+          <View
+            key={specialty}
+            style={[styles.specialtyBadge, { backgroundColor: withAlpha(item.palette.tint, 0.1) }]}
+          >
+            <ThemedText style={[styles.specialtyText, { color: item.palette.tint }]}>
+              {specialty}
+            </ThemedText>
+          </View>
+        ))}
+      </Row>
+    </SurfaceCard>
   );
 }
 

@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { ServiceEvents } from '@/services/event-bus';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
@@ -30,7 +29,7 @@ export function useClubDashboard(): UseClubDashboardResult {
   const { currentUser } = useAuth();
   const resolvedClubId = clubId ?? '';
 
-  const loadDashboard = useCallback(async () => {
+  const loadDashboard = async () => {
     if (!resolvedClubId) {
       return err(validationError('Club ID is required'));
     }
@@ -46,7 +45,7 @@ export function useClubDashboard(): UseClubDashboardResult {
         serviceError('UNKNOWN', 'Failed to load owner dashboard. Pull down to refresh.', loadError),
       );
     }
-  }, [currentUser?.id, resolvedClubId]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<OrgOwnerDashboardData>({
     load: loadDashboard,
@@ -73,12 +72,9 @@ export function useClubDashboard(): UseClubDashboardResult {
 
   const loading = status === 'loading';
 
-  const navigateTo = useCallback(
-    (path: Href) => {
-      router.push(path);
-    },
-    [router],
-  );
+  const navigateTo = (path: Href) => {
+    router.push(path);
+  };
 
   return {
     clubId: resolvedClubId,

@@ -1,34 +1,29 @@
-import { memo, useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import type { Href } from 'expo-router';
-
-import { Clickable } from '@/components/primitives/clickable';
-import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Column } from '@/components/primitives/column';
-import { Row } from '@/components/primitives/row';
-import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing, Typography } from '@/constants/theme';
-import type { ClubActivity, SessionInvite } from '@/constants/types';
-import { useTheme } from '@/hooks/useTheme';
-import { Routes } from '@/navigation/routes';
-import { ClubScheduleActivityCard } from './ClubScheduleActivityCard';
-import { getSessionInviteCoachName } from '@/utils/session-invite-display';
-
+import { StyleSheet, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import type { Href } from "expo-router";
+import { Clickable } from "@/components/primitives/clickable";
+import { SurfaceCard } from "@/components/primitives/surface-card";
+import { Column } from "@/components/primitives/column";
+import { Row } from "@/components/primitives/row";
+import { ThemedText } from "@/components/themed-text";
+import { Radii, Spacing, Typography } from "@/constants/theme";
+import type { ClubActivity, SessionInvite } from "@/constants/types";
+import { useTheme } from "@/hooks/useTheme";
+import { Routes } from "@/navigation/routes";
+import { ClubScheduleActivityCard } from "./ClubScheduleActivityCard";
+import { getSessionInviteCoachName } from "@/utils/session-invite-display";
 function defaultActivityPress(activity: ClubActivity, clubId?: string) {
   const resolvedClubId = activity.clubId ?? clubId;
   if (!resolvedClubId) {
     return;
   }
-
   router.push(Routes.clubActivity(resolvedClubId, activity.id));
 }
-
 function defaultInvitePress(inviteId: string) {
   router.push(Routes.sessionInvite(inviteId));
 }
-
+const EMPTY_PENDING_INVITES: SessionInvite[] = [];
 function getInviteStartsAt(invite: SessionInvite): string {
   const firstSlot = invite.selectedSlot ?? invite.proposedSlots[0];
   if (!firstSlot) {
@@ -36,7 +31,6 @@ function getInviteStartsAt(invite: SessionInvite): string {
   }
   return `${firstSlot.date}T${firstSlot.startTime}:00`;
 }
-
 export interface ClubActivitiesPanelProps {
   activities: ClubActivity[];
   pendingInvites?: SessionInvite[];
@@ -48,10 +42,9 @@ export interface ClubActivitiesPanelProps {
   showCreateActions?: boolean;
   viewAllHref?: Href;
 }
-
-export const ClubActivitiesPanel = memo(function ClubActivitiesPanel({
+export const ClubActivitiesPanel = function ClubActivitiesPanel({
   activities,
-  pendingInvites = [],
+  pendingInvites = EMPTY_PENDING_INVITES,
   isCoach,
   clubId,
   maxItems = 5,
@@ -61,32 +54,39 @@ export const ClubActivitiesPanel = memo(function ClubActivitiesPanel({
   viewAllHref,
 }: ClubActivitiesPanelProps) {
   const { colors } = useTheme();
-  const visibleEntries = useMemo(() => {
+  const visibleEntries = (() => {
     const publishedSessionIds = new Set(
-      activities
-        .filter((activity) => activity.source === 'group_session')
-        .map((activity) => activity.sourceEntityId),
+      activities.flatMap((activity) =>
+        activity.source === "group_session" ? [activity.sourceEntityId] : [],
+      ),
     );
-    const inviteEntries = pendingInvites
-      .filter((invite) => !invite.existingSessionId || !publishedSessionIds.has(invite.existingSessionId))
-      .map((invite) => ({
-        kind: 'invite' as const,
-        id: `invite-${invite.id}`,
-        startsAt: getInviteStartsAt(invite),
-        invite,
-      }));
+    const inviteEntries = pendingInvites.flatMap((invite) =>
+      !invite.existingSessionId ||
+      !publishedSessionIds.has(invite.existingSessionId)
+        ? [
+            {
+              kind: "invite" as const,
+              id: `invite-${invite.id}`,
+              startsAt: getInviteStartsAt(invite),
+              invite,
+            },
+          ]
+        : [],
+    );
     const activityEntries = activities.map((activity) => ({
-      kind: 'activity' as const,
+      kind: "activity" as const,
       id: activity.id,
       startsAt: activity.startsAt,
       activity,
     }));
-
     return [...activityEntries, ...inviteEntries]
-      .sort((left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime())
+      .sort(
+        (left, right) =>
+          new Date(left.startsAt).getTime() -
+          new Date(right.startsAt).getTime(),
+      )
       .slice(0, maxItems);
-  }, [activities, maxItems, pendingInvites]);
-
+  })();
   return (
     <SurfaceCard style={styles.card}>
       <Row justify="between" align="center" gap="md">
@@ -103,7 +103,16 @@ export const ClubActivitiesPanel = memo(function ClubActivitiesPanel({
             onPress={() => router.push(viewAllHref)}
             accessibilityLabel="Open full schedule"
           >
-            <ThemedText style={[Typography.caption, { color: colors.tint }]}>Open</ThemedText>
+            <ThemedText
+              style={[
+                Typography.caption,
+                {
+                  color: colors.tint,
+                },
+              ]}
+            >
+              Open
+            </ThemedText>
             <Ionicons name="chevron-forward" size={16} color={colors.tint} />
           </Clickable>
         ) : null}
@@ -111,24 +120,64 @@ export const ClubActivitiesPanel = memo(function ClubActivitiesPanel({
         {isCoach && showCreateActions && (
           <Row align="center" gap="xs">
             <Clickable
-              style={[styles.secondaryButton, { borderColor: colors.tint }]}
+              style={[
+                styles.secondaryButton,
+                {
+                  borderColor: colors.tint,
+                },
+              ]}
               onPress={() => router.push(Routes.EVENTS_CREATE)}
             >
-              <ThemedText style={[Typography.caption, { color: colors.tint }]}>Event</ThemedText>
+              <ThemedText
+                style={[
+                  Typography.caption,
+                  {
+                    color: colors.tint,
+                  },
+                ]}
+              >
+                Event
+              </ThemedText>
             </Clickable>
             <Clickable
-              style={[styles.primaryButton, { backgroundColor: colors.tint }]}
+              style={[
+                styles.primaryButton,
+                {
+                  backgroundColor: colors.tint,
+                },
+              ]}
               onPress={() => router.push(Routes.GROUP_SESSIONS_CREATE)}
             >
-              <ThemedText style={[Typography.caption, { color: colors.onPrimary }]}>
+              <ThemedText
+                style={[
+                  Typography.caption,
+                  {
+                    color: colors.onPrimary,
+                  },
+                ]}
+              >
                 Training
               </ThemedText>
             </Clickable>
             <Clickable
-              style={[styles.secondaryButton, { borderColor: colors.warning }]}
+              style={[
+                styles.secondaryButton,
+                {
+                  borderColor: colors.warning,
+                },
+              ]}
               onPress={() => router.push(Routes.MATCHES_CREATE)}
             >
-              <ThemedText style={[Typography.caption, { color: colors.warning }]}>Match</ThemedText>
+              <ThemedText
+                style={[
+                  Typography.caption,
+                  {
+                    color: colors.warning,
+                  },
+                ]}
+              >
+                Match
+              </ThemedText>
             </Clickable>
           </Row>
         )}
@@ -136,15 +185,27 @@ export const ClubActivitiesPanel = memo(function ClubActivitiesPanel({
 
       {visibleEntries.length === 0 ? (
         <View style={styles.emptyState}>
-          <Ionicons name="calendar-clear-outline" size={28} color={colors.muted} />
-          <ThemedText style={[Typography.small, { color: colors.muted, textAlign: 'center' }]}>
+          <Ionicons
+            name="calendar-clear-outline"
+            size={28}
+            color={colors.muted}
+          />
+          <ThemedText
+            style={[
+              Typography.small,
+              {
+                color: colors.muted,
+                textAlign: "center",
+              },
+            ]}
+          >
             No scheduled items yet.
           </ThemedText>
         </View>
       ) : (
         <Column gap="sm">
           {visibleEntries.map((entry) => {
-            if (entry.kind === 'activity') {
+            if (entry.kind === "activity") {
               return (
                 <ClubScheduleActivityCard
                   key={entry.id}
@@ -158,20 +219,40 @@ export const ClubActivitiesPanel = memo(function ClubActivitiesPanel({
                 />
               );
             }
-
             return (
               <Clickable
                 key={entry.id}
                 onPress={() =>
-                  onInvitePress ? onInvitePress(entry.invite.id) : defaultInvitePress(entry.invite.id)
+                  onInvitePress
+                    ? onInvitePress(entry.invite.id)
+                    : defaultInvitePress(entry.invite.id)
                 }
-                style={[styles.inviteRow, { borderColor: colors.border }]}
+                style={[
+                  styles.inviteRow,
+                  {
+                    borderColor: colors.border,
+                  },
+                ]}
                 accessibilityLabel={`Open invite for ${entry.invite.sessionType}`}
               >
                 <View style={styles.inviteCopy}>
                   <Row align="center" gap="xs">
-                    <View style={[styles.inviteBadge, { backgroundColor: colors.tint }]}>
-                      <ThemedText style={[styles.inviteBadgeText, { color: colors.onPrimary }]}>
+                    <View
+                      style={[
+                        styles.inviteBadge,
+                        {
+                          backgroundColor: colors.tint,
+                        },
+                      ]}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.inviteBadgeText,
+                          {
+                            color: colors.onPrimary,
+                          },
+                        ]}
+                      >
                         Invite
                       </ThemedText>
                     </View>
@@ -180,19 +261,28 @@ export const ClubActivitiesPanel = memo(function ClubActivitiesPanel({
                     </ThemedText>
                   </Row>
                   <ThemedText
-                    style={[styles.inviteMeta, { color: colors.muted }]}
+                    style={[
+                      styles.inviteMeta,
+                      {
+                        color: colors.muted,
+                      },
+                    ]}
                     numberOfLines={1}
                   >
-                    {new Date(entry.startsAt).toLocaleDateString('en-GB', {
-                      weekday: 'short',
-                      day: 'numeric',
-                      month: 'short',
-                    })}{' '}
-                    · {entry.invite.proposedSlots[0]?.startTime ?? 'Time TBC'} ·{' '}
+                    {new Date(entry.startsAt).toLocaleDateString("en-GB", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                    })}{" "}
+                    · {entry.invite.proposedSlots[0]?.startTime ?? "Time TBC"} ·{" "}
                     {getSessionInviteCoachName(entry.invite)}
                   </ThemedText>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={colors.muted}
+                />
               </Clickable>
             );
           })}
@@ -200,8 +290,7 @@ export const ClubActivitiesPanel = memo(function ClubActivitiesPanel({
       )}
     </SurfaceCard>
   );
-});
-
+};
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: Spacing.md,
@@ -220,11 +309,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   viewAllButton: {
-    alignItems: 'center',
+    alignItems: "center",
     gap: Spacing.xxs,
   },
   emptyState: {
-    alignItems: 'center',
+    alignItems: "center",
     gap: Spacing.sm,
     paddingVertical: Spacing.md,
   },
@@ -232,8 +321,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: Spacing.sm,
   },
   inviteCopy: {
@@ -247,7 +336,7 @@ const styles = StyleSheet.create({
   },
   inviteBadgeText: {
     ...Typography.caption,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   inviteMeta: {
     ...Typography.caption,

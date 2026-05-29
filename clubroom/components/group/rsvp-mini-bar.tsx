@@ -1,12 +1,3 @@
-/**
- * RsvpMiniBar — Compact colored progress bar showing RSVP distribution.
- *
- * Green = going, Amber = maybe, Red = can't go, Grey = pending.
- * Shows "8/15 confirmed" text alongside the bar.
- * Used on GroupSessionCard, ScheduleSessionItem, and session detail.
- */
-
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -36,10 +27,10 @@ function RsvpMiniBarComponent({ counts, showLabel = true, compact = false }: Rsv
   if (total === 0) return null;
 
   const segments = [
-    { value: counts.going, color: colors.success },
-    { value: counts.maybe, color: colors.warning },
-    { value: counts.notGoing, color: colors.error },
-    { value: counts.pending, color: withAlpha(colors.muted, 0.3) },
+    { key: 'going', value: counts.going, color: colors.success },
+    { key: 'maybe', value: counts.maybe, color: colors.warning },
+    { key: 'not-going', value: counts.notGoing, color: colors.error },
+    { key: 'pending', value: counts.pending, color: withAlpha(colors.muted, 0.3) },
   ];
 
   // Response rate determines label color
@@ -55,7 +46,7 @@ function RsvpMiniBarComponent({ counts, showLabel = true, compact = false }: Rsv
           const widthPercent = (seg.value / total) * 100;
           return (
             <View
-              key={i}
+              key={seg.key}
               style={[
                 styles.segment,
                 {
@@ -84,7 +75,7 @@ function RsvpMiniBarComponent({ counts, showLabel = true, compact = false }: Rsv
   );
 }
 
-export const RsvpMiniBar = memo(RsvpMiniBarComponent);
+export const RsvpMiniBar = RsvpMiniBarComponent;
 
 const styles = StyleSheet.create({
   bar: {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import { useScreen } from '@/hooks/use-screen';
 import { useAuth } from '@/hooks/use-auth';
@@ -58,7 +58,7 @@ export function useAthletesScreen() {
   const roster = screen.data?.roster || [];
   const upcomingSessions = screen.data?.upcomingSessions || {};
 
-  const filteredAthletes = useMemo(() => {
+  const filteredAthletes = (() => {
     let filtered = roster;
 
     if (searchQuery) {
@@ -74,7 +74,7 @@ export function useAthletesScreen() {
       filtered = filtered.filter((athlete) => athlete.status === 'ACTIVE');
     }
 
-    return [...filtered].sort((a, b) => {
+    return Array.from(filtered).toSorted((a, b) => {
       const aHasUpcoming = !!upcomingSessions[a.athleteId];
       const bHasUpcoming = !!upcomingSessions[b.athleteId];
       if (aHasUpcoming && !bHasUpcoming) return -1;
@@ -83,7 +83,7 @@ export function useAthletesScreen() {
       if (!b.lastSessionDate) return -1;
       return new Date(b.lastSessionDate).getTime() - new Date(a.lastSessionDate).getTime();
     });
-  }, [roster, searchQuery, filter, upcomingSessions]);
+  })();
 
   return {
     coachId,

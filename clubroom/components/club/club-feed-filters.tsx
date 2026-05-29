@@ -5,8 +5,8 @@
  * with active state highlighting and count badges.
  */
 
-import React, { memo, useCallback } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import React from 'react';
+import { FlatList, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -21,32 +21,25 @@ export interface ClubFeedFiltersProps {
   filterCounts: Partial<Record<FeedFilter, number>>;
 }
 
-export const ClubFeedFilters = memo(function ClubFeedFilters({
+export const ClubFeedFilters = function ClubFeedFilters({
   activeFilter,
   onFilterChange,
   filterCounts,
 }: ClubFeedFiltersProps) {
+  const filterItems = getFilterTabItems(activeFilter, onFilterChange, filterCounts);
+
   return (
-    <ScrollView
+    <FlatList
       horizontal
+      data={filterItems}
+      keyExtractor={keyFilterTabItem}
+      renderItem={renderFilterTabItem}
       showsHorizontalScrollIndicator={false}
       style={styles.scroll}
       contentContainerStyle={styles.container}
-    >
-      {FEED_FILTERS.map((filter) => (
-        <FilterTab
-          key={filter.key}
-          filterKey={filter.key}
-          label={filter.label}
-          icon={filter.icon}
-          isActive={activeFilter === filter.key}
-          count={filterCounts[filter.key] ?? 0}
-          onPress={onFilterChange}
-        />
-      ))}
-    </ScrollView>
+    />
   );
-});
+};
 
 // ─── Individual filter tab ─────────────────────────────────────────
 
@@ -59,7 +52,33 @@ interface FilterTabProps {
   onPress: (key: FeedFilter) => void;
 }
 
-const FilterTab = memo(function FilterTab({
+type FilterTabItem = FilterTabProps & { key: FeedFilter };
+
+function getFilterTabItems(
+  activeFilter: FeedFilter,
+  onFilterChange: (filter: FeedFilter) => void,
+  filterCounts: Partial<Record<FeedFilter, number>>,
+): FilterTabItem[] {
+  return FEED_FILTERS.map((filter) => ({
+    key: filter.key,
+    filterKey: filter.key,
+    label: filter.label,
+    icon: filter.icon,
+    isActive: activeFilter === filter.key,
+    count: filterCounts[filter.key] ?? 0,
+    onPress: onFilterChange,
+  }));
+}
+
+function keyFilterTabItem(item: FilterTabItem) {
+  return item.key;
+}
+
+function renderFilterTabItem({ item }: ListRenderItemInfo<FilterTabItem>) {
+  return <FilterTab {...item} />;
+}
+
+const FilterTab = function FilterTab({
   filterKey,
   label,
   icon,
@@ -69,9 +88,9 @@ const FilterTab = memo(function FilterTab({
 }: FilterTabProps) {
   const { colors } = useTheme();
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     onPress(filterKey);
-  }, [onPress, filterKey]);
+  };
 
   return (
     <Clickable
@@ -103,7 +122,7 @@ const FilterTab = memo(function FilterTab({
       )}
     </Clickable>
   );
-});
+};
 
 const styles = StyleSheet.create({
   scroll: {

@@ -1,17 +1,25 @@
-import { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import * as Haptics from 'expo-haptics';
-import { forwardRef } from 'react';
+import type { ReactNode, Ref } from 'react';
 import { Pressable, type PressableProps, type View } from 'react-native';
 
-type TabButtonProps = BottomTabBarButtonProps &
-  Pick<PressableProps, 'accessibilityLabel' | 'accessibilityState' | 'onPress'> & {
-    to?: string;
-  };
+export type TabButtonProps = PressableProps & {
+  children?: ReactNode;
+  href?: string;
+  ref?: Ref<View>;
+  to?: string;
+};
 
-export const HapticTab = forwardRef<View, TabButtonProps>(function HapticTab(
-  { children, href, to, accessibilityLabel, accessibilityState, onPress, onPressIn, ...rest },
+export function HapticTab({
+  children,
+  href,
+  to,
+  accessibilityLabel,
+  accessibilityState,
+  onPress,
+  onPressIn,
   ref,
-) {
+  ...rest
+}: TabButtonProps) {
   const content = (
     <Pressable
       ref={ref}
@@ -41,4 +49,4 @@ export const HapticTab = forwardRef<View, TabButtonProps>(function HapticTab(
   // props so the pressable doesn't render an <a> element on web, as that
   // has been causing hydration errors.
   return content;
-});
+}

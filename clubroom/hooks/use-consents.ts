@@ -3,7 +3,7 @@
  * Manages consent data loading, filtering, search, and stat selection.
  */
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
 import { consentService, type ConsentFilters } from '@/services/consent-service';
@@ -28,7 +28,7 @@ export function useConsents() {
 
   const coachId = currentUser?.id || 'coach_1';
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     try {
       const [consentsResult, summaryResult] = await Promise.all([
         consentService.getRosterConsents(coachId, { ...filters, search: searchQuery }),
@@ -51,7 +51,7 @@ export function useConsents() {
       logger.error('Failed to load consents:', error);
       return err(serviceError('UNKNOWN', 'Failed to load consent dashboard.', error));
     }
-  }, [coachId, filters, searchQuery]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<ConsentsLoadData>({
     load: loadData,
@@ -65,29 +65,29 @@ export function useConsents() {
   const consents = data?.consents ?? [];
   const summary = data?.summary ?? null;
 
-  const handleFilterChange = useCallback((newFilters: ConsentFilters) => {
+  const handleFilterChange = (newFilters: ConsentFilters) => {
     setFilters(newFilters);
     setSelectedType(newFilters.type || null);
-  }, []);
+  };
 
-  const handleStatCardPress = useCallback((type: ConsentType) => {
+  const handleStatCardPress = (type: ConsentType) => {
     setSelectedType((prev) => {
       const newType = prev === type ? null : type;
       setFilters((f) => ({ ...f, type: newType || undefined }));
       return newType;
     });
-  }, []);
+  };
 
-  const toggleFilters = useCallback(() => {
+  const toggleFilters = () => {
     setShowFilters((v) => !v);
-  }, []);
-  const clearSearch = useCallback(() => {
+  };
+  const clearSearch = () => {
     setSearchQuery('');
-  }, []);
-  const clearFilters = useCallback(() => {
+  };
+  const clearFilters = () => {
     setFilters({});
     setSelectedType(null);
-  }, []);
+  };
 
   const activeFiltersCount =
     (filters.type ? 1 : 0) + (filters.status && filters.status !== 'all' ? 1 : 0);

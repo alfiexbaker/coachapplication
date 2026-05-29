@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
@@ -36,7 +36,7 @@ export function useFamilyCalendar() {
     };
   });
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     if (!currentUser?.id) {
       return ok<FamilyCalendarData>({ members: [], events: [] });
     }
@@ -77,7 +77,7 @@ export function useFamilyCalendar() {
       logger.error('Failed to load calendar data:', error);
       return err(serviceError('UNKNOWN', 'Failed to load family calendar.', error));
     }
-  }, [currentUser?.id, dateRange]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<FamilyCalendarData>({
     load: loadData,
@@ -89,11 +89,11 @@ export function useFamilyCalendar() {
   const members = data?.members ?? [];
   const events = data?.events ?? [];
 
-  const handleDateSelect = useCallback((date: Date) => {
+  const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
-  }, []);
+  };
 
-  const handleEventPress = useCallback((event: FamilyCalendarEvent) => {
+  const handleEventPress = (event: FamilyCalendarEvent) => {
     if ((event as FamilyCalendarEvent & { type?: string }).type === 'EVENT') {
       router.push(Routes.event(event.id));
     } else {
@@ -101,25 +101,23 @@ export function useFamilyCalendar() {
         Routes.booking(event.id, { returnTo: Routes.FAMILY_CALENDAR as string }),
       );
     }
-  }, []);
+  };
 
-  const handleChildFilterChange = useCallback((childId: string | null) => {
+  const handleChildFilterChange = (childId: string | null) => {
     setSelectedChildId(childId);
-  }, []);
+  };
 
-  const monthStats = useMemo(
-    () => ({
-      totalSessions: events.filter(
-        (e) =>
-          (e.status === 'CONFIRMED' || e.status === 'PENDING') &&
-          (!selectedChildId || e.childId === selectedChildId),
-      ).length,
-      completedSessions: events.filter(
-        (e) => e.status === 'COMPLETED' && (!selectedChildId || e.childId === selectedChildId),
-      ).length,
-    }),
-    [events, selectedChildId],
-  );
+  const monthStats = ({
+    totalSessions: events.filter(
+      (e) =>
+        (e.status === 'CONFIRMED' || e.status === 'PENDING') &&
+        (!selectedChildId || e.childId === selectedChildId),
+    ).length,
+
+    completedSessions: events.filter(
+      (e) => e.status === 'COMPLETED' && (!selectedChildId || e.childId === selectedChildId),
+    ).length,
+  });
 
   return {
     status,

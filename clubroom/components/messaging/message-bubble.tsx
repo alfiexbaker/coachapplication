@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -110,7 +109,7 @@ function MessageBubbleComponent({
   );
 }
 
-export const MessageBubble = memo(MessageBubbleComponent);
+export const MessageBubble = MessageBubbleComponent;
 
 const styles = StyleSheet.create({
   wrapper: {

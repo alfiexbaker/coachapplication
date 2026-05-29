@@ -1,8 +1,3 @@
-/**
- * StatusBanner — Cancelled / Completed session status indicator.
- */
-
-import { memo } from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -30,7 +25,7 @@ function StatusBannerComponent({ icon, label, color }: StatusBannerProps) {
   );
 }
 
-export const StatusBanner = memo(StatusBannerComponent);
+export const StatusBanner = StatusBannerComponent;
 
 const styles = StyleSheet.create({
   banner: {

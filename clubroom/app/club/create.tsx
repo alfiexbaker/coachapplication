@@ -322,7 +322,7 @@ export default function CreateClubScreen() {
             <Row align="center" justify="center" gap="sm">
               {isSubmitting ? (
                 <ThemedText style={[Typography.subheading, { color: palette.onPrimary }]}>
-                  Creating...
+                  Creating…
                 </ThemedText>
               ) : (
                 <>

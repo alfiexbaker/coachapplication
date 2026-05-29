@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, type ElementRef } from 'react';
+import { useEffect, useRef, type ElementRef } from 'react';
 import { RefreshControl, Share, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,7 +23,6 @@ import {
   PastSessionsTimeline,
   ParentValueSummary,
 } from '@/components/progress';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Typography, withAlpha, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -34,10 +32,8 @@ import { Routes } from '@/navigation/routes';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { progressTermlyReportService } from '@/services/progress/progress-termly-report-service';
 import { uiFeedback } from '@/services/ui-feedback';
-
 const DEFAULT_FEEDBACK_MEDIA_DIMENSION = 1080;
 type AnimatedScrollViewRef = ElementRef<typeof Animated.ScrollView>;
-
 export default function MyProgressScreen() {
   const { colors, scheme } = useTheme();
   const celebrationRef = useRef<CelebrationOverlayRef>(null);
@@ -55,7 +51,6 @@ export default function MyProgressScreen() {
   const goalsStyle = useSectionRevealStyle(scrollAnimations, 'goals');
   const badgesStyle = useSectionRevealStyle(scrollAnimations, 'badges');
   const summaryStyle = useSectionRevealStyle(scrollAnimations, 'summary');
-
   const {
     currentUser,
     loading,
@@ -93,7 +88,6 @@ export default function MyProgressScreen() {
     generateTermlyReport,
     retry,
   } = useMyProgress();
-
   useEffect(() => {
     const unsubs = [
       onTyped(ServiceEvents.BADGE_EARNED, ({ badgeLabel }) => {
@@ -124,7 +118,10 @@ export default function MyProgressScreen() {
         });
       }),
       onTyped(ServiceEvents.LEVEL_UP, ({ newLevelName }) => {
-        scrollRef.current?.scrollTo({ y: 0, animated: true });
+        scrollRef.current?.scrollTo({
+          y: 0,
+          animated: true,
+        });
         levelUpRef.current?.show({
           levelName: newLevelName,
           tier: playerCard.tier,
@@ -135,19 +132,18 @@ export default function MyProgressScreen() {
       unsubs.forEach((unsub) => unsub());
     };
   }, [colors.info, colors.success, colors.tint, colors.warning, playerCard.tier]);
-
   const isSelfSubject = Boolean(currentUser?.id && selectedAthleteId === currentUser.id);
   const showChildFocusCard = isParentContext && Boolean(selectedAthleteId);
   const pageTitle = isParentContext ? 'Progress' : 'My Progress';
   const stageGlow = PLAYER_CARD_TIER_CONFIG[playerCard.tier].accent;
-  const nextSubjectLabel = useMemo(() => {
+  const nextSubjectLabel = (() => {
     if (!selectedAthleteId || subjectOptions.length <= 1) {
       return null;
     }
     const currentIndex = subjectOptions.findIndex((option) => option.id === selectedAthleteId);
     const nextOption = subjectOptions[(currentIndex + 1) % subjectOptions.length];
     return nextOption?.name ?? null;
-  }, [selectedAthleteId, subjectOptions]);
+  })();
   const childFocusCard = showChildFocusCard ? (
     <View style={styles.childFocusWrap}>
       <View
@@ -163,7 +159,16 @@ export default function MyProgressScreen() {
           <Row align="center" gap="xs">
             <Ionicons name="person-circle-outline" size={18} color={colors.tint} />
             {!isSelfSubject ? (
-              <ThemedText style={[styles.childLabel, { color: colors.muted }]}>Kid</ThemedText>
+              <ThemedText
+                style={[
+                  styles.childLabel,
+                  {
+                    color: colors.muted,
+                  },
+                ]}
+              >
+                Kid
+              </ThemedText>
             ) : null}
             <ThemedText style={styles.childName}>{selectedAthleteName}</ThemedText>
           </Row>
@@ -181,7 +186,14 @@ export default function MyProgressScreen() {
             >
               <Row align="center" gap="xxs">
                 <Ionicons name="swap-horizontal-outline" size={15} color={colors.tint} />
-                <ThemedText style={[styles.switchSubjectText, { color: colors.tint }]}>
+                <ThemedText
+                  style={[
+                    styles.switchSubjectText,
+                    {
+                      color: colors.tint,
+                    },
+                  ]}
+                >
                   {nextSubjectLabel ? `Switch to ${nextSubjectLabel}` : 'Switch'}
                 </ThemedText>
               </Row>
@@ -191,8 +203,7 @@ export default function MyProgressScreen() {
       </View>
     </View>
   ) : null;
-
-  const handleViewAllFeedback = useCallback(() => {
+  const handleViewAllFeedback = () => {
     if (selectedAthleteId) {
       router.push(
         Routes.developmentSessionHistory({
@@ -200,9 +211,8 @@ export default function MyProgressScreen() {
         }),
       );
     }
-  }, [selectedAthleteId]);
-
-  const handleViewOlderSessions = useCallback(() => {
+  };
+  const handleViewOlderSessions = () => {
     if (selectedAthleteId) {
       router.push(
         Routes.developmentSessionHistory({
@@ -210,9 +220,8 @@ export default function MyProgressScreen() {
         }),
       );
     }
-  }, [selectedAthleteId]);
-
-  const handleOpenMediaGallery = useCallback(() => {
+  };
+  const handleOpenMediaGallery = () => {
     if (selectedAthleteId) {
       router.push(
         Routes.developmentMediaGallery({
@@ -220,21 +229,25 @@ export default function MyProgressScreen() {
         }),
       );
     }
-  }, [selectedAthleteId]);
-
-  const handleAskCoachAboutThis = useCallback(() => {
+  };
+  const handleAskCoachAboutThis = () => {
     if (!isParentContext || !selectedAthleteId) {
       uiFeedback.showToast('Switch to a child profile to contact a coach.');
       return;
     }
-
     if (!latestFeedback?.coachId) {
       uiFeedback.alert(
         'No coach to message yet',
         'Complete a session first to message the coach about this progress update.',
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Find Coach', onPress: () => router.push(Routes.DISCOVER_MAP) },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Find Coach',
+            onPress: () => router.push(Routes.DISCOVER_MAP),
+          },
         ],
       );
       return;
@@ -245,9 +258,8 @@ export default function MyProgressScreen() {
         athleteId: selectedAthleteId,
       }),
     );
-  }, [isParentContext, latestFeedback?.coachId, selectedAthleteId]);
-
-  const latestFeedbackMedia = useMemo(() => {
+  };
+  const latestFeedbackMedia = (() => {
     if (!latestFeedback?.sessionId) {
       return null;
     }
@@ -255,7 +267,6 @@ export default function MyProgressScreen() {
     if (storedMedia) {
       return storedMedia;
     }
-
     const fallbackPhotoUrls = latestFeedback.photoUrls ?? [];
     if (fallbackPhotoUrls.length === 0) {
       return null;
@@ -276,19 +287,11 @@ export default function MyProgressScreen() {
       })),
       video: null,
     };
-  }, [
-    latestFeedback?.athleteId,
-    latestFeedback?.coachId,
-    latestFeedback?.createdAt,
-    latestFeedback?.photoUrls,
-    latestFeedback?.sessionId,
-    media,
-  ]);
-
+  })();
   const canOpenFeedbackHistory = Boolean(selectedAthleteId);
 
   // Build homework data for CoachSaysCard
-  const homeworkData = useMemo(() => {
+  const homeworkData = (() => {
     if (!latestHomeworkFeedback) {
       return null;
     }
@@ -301,19 +304,11 @@ export default function MyProgressScreen() {
       proofUri: latestHomeworkProof?.proofUri,
       proofType: latestHomeworkProof?.proofType,
     };
-  }, [
-    homeworkCompleted,
-    latestHomeworkFeedback,
-    latestHomeworkProof?.completedAt,
-    latestHomeworkProof?.proofType,
-    latestHomeworkProof?.proofUri,
-  ]);
-
-  const progressSummary = useMemo(() => {
+  })();
+  const progressSummary = (() => {
     if (!latestFeedback) {
       return null;
     }
-
     const sessionDate = new Date(latestFeedback.createdAt);
     const dateLabel = Number.isNaN(sessionDate.getTime())
       ? 'recently'
@@ -326,52 +321,62 @@ export default function MyProgressScreen() {
     const coachLabel = coachName.toLowerCase().startsWith('coach ')
       ? coachName
       : `Coach ${coachName.split(' ')[0]}`;
-
-    const previousWithCorners = [...feedback]
-      .filter((entry) => entry.id !== latestFeedback.id && entry.fourCorners)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+    const previousWithCorners = feedback.reduce<(typeof feedback)[number] | undefined>(
+      (latest, entry) => {
+        if (entry.id === latestFeedback.id || !entry.fourCorners) {
+          return latest;
+        }
+        if (!latest) {
+          return entry;
+        }
+        return new Date(entry.createdAt).getTime() > new Date(latest.createdAt).getTime()
+          ? entry
+          : latest;
+      },
+      undefined,
+    );
     const technicalNow = latestFeedback.fourCorners?.technical ?? null;
     const technicalPrevious = previousWithCorners?.fourCorners?.technical ?? null;
     const technicalDelta =
       typeof technicalNow === 'number' && typeof technicalPrevious === 'number'
         ? technicalNow - technicalPrevious
         : null;
-
     return {
       dateLabel,
       coachLabel,
       technicalNow,
       technicalDelta,
     };
-  }, [feedback, latestFeedback]);
-
-  const parentCoachQuotes = useMemo(() => {
+  })();
+  const parentCoachQuotes = (() => {
     if (!isParentContext) {
       return [];
     }
-    return feedback
-      .map((entry) => entry.publicSummary.trim())
-      .filter((entry) => entry.length > 0)
-      .filter((entry, index, all) => all.indexOf(entry) === index)
-      .slice(0, 3);
-  }, [feedback, isParentContext]);
-
-  const parentMonthTitle = useMemo(
-    () =>
-      new Date().toLocaleDateString('en-GB', {
-        month: 'long',
-        year: 'numeric',
-      }),
-    [],
-  );
-
-  const handleShareTermlyReport = useCallback(async () => {
+    const summaries: string[] = [];
+    const seenSummaries = new Set<string>();
+    for (const entry of feedback) {
+      const summary = entry.publicSummary.trim();
+      if (!summary || seenSummaries.has(summary)) {
+        continue;
+      }
+      seenSummaries.add(summary);
+      summaries.push(summary);
+      if (summaries.length >= 3) {
+        break;
+      }
+    }
+    return summaries;
+  })();
+  const parentMonthTitle = new Date().toLocaleDateString('en-GB', {
+    month: 'long',
+    year: 'numeric',
+  });
+  const handleShareTermlyReport = async () => {
     const reportResult = await generateTermlyReport();
     if (!reportResult.success) {
       uiFeedback.showToast(reportResult.error.message, 'error');
       return;
     }
-
     try {
       await Share.share({
         title: `${selectedAthleteName} Termly Progress Report`,
@@ -380,36 +385,39 @@ export default function MyProgressScreen() {
     } catch {
       uiFeedback.showToast('Could not share the termly report right now.', 'error');
     }
-  }, [generateTermlyReport, selectedAthleteName]);
-
+  };
   if (loading) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.background,
+          },
+        ]}
       >
-
         <PageHeader title={pageTitle} showBack centerTitle onBackPress={() => router.back()} />
         {childFocusCard}
         <LoadingState variant="hero" />
-      </SafeAreaView>
+      </View>
     );
   }
-
   if (status === 'error') {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.background,
+          },
+        ]}
       >
-
         <PageHeader title={pageTitle} showBack centerTitle onBackPress={() => router.back()} />
         {childFocusCard}
         <ErrorState message={error?.message ?? 'Unable to load progress.'} onRetry={retry} />
-      </SafeAreaView>
+      </View>
     );
   }
-
   if (!currentUser || status === 'empty' || !progress) {
     const isParentWithoutChildren = isParentContext && switcherChildren.length === 0;
     const emptyTitle = isParentWithoutChildren ? 'No child linked yet' : 'No progress yet';
@@ -423,13 +431,15 @@ export default function MyProgressScreen() {
       : isParentContext
         ? 'Book a Session'
         : 'Find a Coach';
-
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.background,
+          },
+        ]}
       >
-
         <PageHeader title={pageTitle} showBack centerTitle onBackPress={() => router.back()} />
         {childFocusCard}
         <EmptyState
@@ -447,14 +457,17 @@ export default function MyProgressScreen() {
             }
           }}
         />
-      </SafeAreaView>
+      </View>
     );
   }
-
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+        },
+      ]}
     >
       <PageHeader title={pageTitle} showBack centerTitle onBackPress={() => router.back()} />
 
@@ -485,28 +498,60 @@ export default function MyProgressScreen() {
                 },
               ]}
             >
-              <ThemedText style={[styles.summaryLineText, { color: colors.muted }]}>
+              <ThemedText
+                style={[
+                  styles.summaryLineText,
+                  {
+                    color: colors.muted,
+                  },
+                ]}
+              >
                 {progressSummary.dateLabel} with{' '}
               </ThemedText>
-              <ThemedText style={[styles.summaryLineCoach, { color: colors.text }]}>
+              <ThemedText
+                style={[
+                  styles.summaryLineCoach,
+                  {
+                    color: colors.text,
+                  },
+                ]}
+              >
                 {progressSummary.coachLabel}
               </ThemedText>
               {typeof progressSummary.technicalNow === 'number' ? (
                 <>
-                  <ThemedText style={[styles.summaryLineText, { color: colors.muted }]}>
+                  <ThemedText
+                    style={[
+                      styles.summaryLineText,
+                      {
+                        color: colors.muted,
+                      },
+                    ]}
+                  >
                     {' · Technical '}
                   </ThemedText>
-                  <ThemedText style={[styles.summaryLineScore, { color: colors.text }]}>
+                  <ThemedText
+                    style={[
+                      styles.summaryLineScore,
+                      {
+                        color: colors.text,
+                      },
+                    ]}
+                  >
                     {progressSummary.technicalNow}/5
                   </ThemedText>
-                  {typeof progressSummary.technicalDelta === 'number' && progressSummary.technicalDelta > 0 ? (
+                  {typeof progressSummary.technicalDelta === 'number' &&
+                  progressSummary.technicalDelta > 0 ? (
                     <ThemedText
                       style={[
                         styles.summaryLineDelta,
-                        { color: colors.success },
+                        {
+                          color: colors.success,
+                        },
                       ]}
                     >
-                      {' '}+{progressSummary.technicalDelta}
+                      {' '}
+                      +{progressSummary.technicalDelta}
                     </ThemedText>
                   ) : null}
                 </>
@@ -520,13 +565,12 @@ export default function MyProgressScreen() {
           onLayout={scrollAnimations.createSectionLayoutHandler('player-card')}
         >
           <View style={styles.cardStage}>
-            <LinearGradient
-              colors={[
-                withAlpha(stageGlow, scheme === 'dark' ? 0.18 : 0.12),
-                withAlpha(stageGlow, scheme === 'dark' ? 0.07 : 0.04),
-                'transparent',
+            <View
+              pointerEvents="none"
+              style={[
+                styles.cardStageGradient,
+                { backgroundColor: withAlpha(stageGlow, scheme === 'dark' ? 0.1 : 0.07) },
               ]}
-              style={styles.cardStageGradient}
             />
             <PlayerCard data={playerCard} />
           </View>
@@ -544,10 +588,7 @@ export default function MyProgressScreen() {
                 onChange={setSelectedPosition}
               />
             ) : null}
-            <PositionPentagon
-              data={pentagonData}
-              velocityHighlight={skillVelocityHighlight}
-            />
+            <PositionPentagon data={pentagonData} velocityHighlight={skillVelocityHighlight} />
             <CharacterBar universalSkills={universalSkills} />
           </Animated.View>
         ) : null}
@@ -609,10 +650,7 @@ export default function MyProgressScreen() {
           style={badgesStyle}
           onLayout={scrollAnimations.createSectionLayoutHandler('badges')}
         >
-          <BadgeWall
-            badges={allBadges}
-            athleteName={selectedAthleteName}
-          />
+          <BadgeWall badges={allBadges} athleteName={selectedAthleteName} />
         </Animated.View>
 
         {/* ═══ PARENT-ONLY ZONE ═══ */}
@@ -635,10 +673,9 @@ export default function MyProgressScreen() {
 
       <CelebrationOverlay ref={celebrationRef} />
       <LevelUpCeremony ref={levelUpRef} />
-    </SafeAreaView>
+    </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -3,7 +3,7 @@
  * Memoized for FlatList/map performance.
  */
 
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { StyleSheet, type GestureResponderEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -23,25 +23,22 @@ interface Props {
   onPress: (session: SessionData) => void;
 }
 
-export const ScheduleSessionItem = memo(function ScheduleSessionItem({ session, onPress }: Props) {
+export const ScheduleSessionItem = function ScheduleSessionItem({ session, onPress }: Props) {
   const { colors } = useTheme();
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     onPress(session);
-  }, [onPress, session]);
-  const handleOpenMap = useCallback(
-    (event: GestureResponderEvent) => {
-      event.stopPropagation();
-      if (!session.location) return;
+  };
+  const handleOpenMap = (event: GestureResponderEvent) => {
+    event.stopPropagation();
+    if (!session.location) return;
 
-      void openLocationInMaps({ location: session.location }).then((opened) => {
-        if (!opened) {
-          uiFeedback.showToast('Could not open maps application.', 'error');
-        }
-      });
-    },
-    [session.location],
-  );
+    void openLocationInMaps({ location: session.location }).then((opened) => {
+      if (!opened) {
+        uiFeedback.showToast('Could not open maps application.', 'error');
+      }
+    });
+  };
 
   return (
     <Clickable
@@ -147,7 +144,7 @@ export const ScheduleSessionItem = memo(function ScheduleSessionItem({ session, 
       </Row>
     </Clickable>
   );
-});
+};
 
 const styles = StyleSheet.create({
   item: {

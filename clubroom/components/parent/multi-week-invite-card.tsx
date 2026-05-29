@@ -6,7 +6,7 @@
  * Creates a BookingSeries for the accepted weeks only.
  */
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Platform, FlatList } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,8 +33,10 @@ import {
   InviteHeader,
   SelectionControls,
   TotalRow,
-  styles,
 } from './multi-week-invite-card-sections';
+import { styles } from './multi-week-invite-card-styles';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('MultiWeekInviteCard');
 
@@ -57,15 +59,16 @@ export function MultiWeekInviteCard({ invite, onResponded }: MultiWeekInviteCard
   const pricePerSession = invite.price ?? 0;
   const totalCost = pricePerSession * acceptedCount;
 
-  const handleToggle = useCallback((weekDate: string) => {
+  const handleToggle = (weekDate: string) => {
     setWeekAcceptances((prev) =>
       prev.map((w) => (w.weekDate === weekDate ? { ...w, accepted: !w.accepted } : w)),
     );
-  }, []);
+  };
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = async () => {
     setSubmitting(true);
-    try {
+
+    await runAsyncTryCatchFinally(async () => {
       const result = await sessionInviteService.respondToRecurringInvite(
         invite.id,
         weekAcceptances,
@@ -79,32 +82,29 @@ export function MultiWeekInviteCard({ invite, onResponded }: MultiWeekInviteCard
       } else {
         logger.error('Failed to respond to recurring invite', { error: result.error });
       }
-    } catch (error) {
+    }, async error => {
       logger.error('Error responding to recurring invite', error);
-    } finally {
+    }, () => {
       setSubmitting(false);
-    }
-  }, [invite.id, weekAcceptances, onResponded]);
+    });
+  };
 
-  const handleSelectAll = useCallback(() => {
+  const handleSelectAll = () => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     setWeekAcceptances((prev) => prev.map((w) => ({ ...w, accepted: true })));
-  }, []);
+  };
 
-  const handleDeselectAll = useCallback(() => {
+  const handleDeselectAll = () => {
     setWeekAcceptances((prev) => prev.map((w) => ({ ...w, accepted: false })));
-  }, []);
+  };
 
-  const renderItem = useCallback(
-    ({ item }: { item: WeekAcceptance }) => (
-      <WeekToggleRow week={item} onToggle={handleToggle} palette={palette} />
-    ),
-    [handleToggle, palette],
+  const renderItem = ({ item }: { item: WeekAcceptance }) => (
+    <WeekToggleRow week={item} onToggle={handleToggle} palette={palette} />
   );
 
-  const keyExtractor = useCallback((item: WeekAcceptance) => item.weekDate, []);
+  const keyExtractor = (item: WeekAcceptance) => item.weekDate;
 
   return (
     <SurfaceCard style={styles.card}>
@@ -152,13 +152,16 @@ export function MultiWeekInviteCard({ invite, onResponded }: MultiWeekInviteCard
 
       <TotalRow acceptedCount={acceptedCount} totalCost={totalCost} palette={palette} />
 
-      <Button variant="primary" onPress={handleSubmit} disabled={acceptedCount === 0 || submitting}>
-        {submitting
+      <Button
+        variant="primary"
+        onPress={handleSubmit}
+        disabled={acceptedCount === 0 || submitting}
+        label={submitting
           ? 'Booking...'
           : acceptedCount === 0
             ? 'Select weeks to accept'
             : `Accept ${acceptedCount} Week${acceptedCount !== 1 ? 's' : ''}`}
-      </Button>
+      />
     </SurfaceCard>
   );
 }

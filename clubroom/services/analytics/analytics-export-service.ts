@@ -148,13 +148,17 @@ function generateMockPeakHours(): PeakHoursData[] {
     2: [16, 17, 18, 19], // Tuesday
     3: [16, 17, 18, 19], // Wednesday
     4: [16, 17, 18, 19], // Thursday
-    5: [16, 17, 18], // Friday
-    6: [9, 10, 11, 14, 15], // Saturday
-  };
+      5: [16, 17, 18], // Friday
+      6: [9, 10, 11, 14, 15], // Saturday
+    };
+    const peakPatternSets: Record<number, Set<number>> = {};
+    for (const [day, hours] of Object.entries(peakPattern)) {
+      peakPatternSets[Number(day)] = new Set(hours);
+    }
 
-  for (let day = 0; day < 7; day++) {
-    for (let hour = 6; hour < 21; hour++) {
-      const isPeak = peakPattern[day]?.includes(hour);
+    for (let day = 0; day < 7; day++) {
+      for (let hour = 6; hour < 21; hour++) {
+        const isPeak = peakPatternSets[day]?.has(hour);
       const sessionCount = isPeak ? Math.floor(Math.random() * 4) + 2 : Math.random() > 0.7 ? 1 : 0;
       const maxSessions = 5;
       peakHours.push({
@@ -458,8 +462,8 @@ async function buildRealCoachAnalytics(
       skillCounts.set(skill, existing);
     }
   }
-  const topSkills: TopSkillData[] = [...skillCounts.entries()]
-    .sort((a, b) => b[1].count - a[1].count)
+  const topSkills: TopSkillData[] = Array.from(skillCounts.entries())
+    .toSorted((a, b) => b[1].count - a[1].count)
     .slice(0, 5)
     .map(([skill, data]) => ({
       skill,
@@ -469,7 +473,12 @@ async function buildRealCoachAnalytics(
     }));
 
   // Unique athletes = clients
-  const uniqueAthletes = new Set(coachBookings.map((b) => b.athleteId || b.athleteIds?.[0]).filter(Boolean));
+  const uniqueAthletes = new Set(
+    coachBookings.flatMap((booking) => {
+      const athleteId = booking.athleteId || booking.athleteIds?.[0];
+      return athleteId ? [athleteId] : [];
+    }),
+  );
 
   const coachName = coachBookings[0]?.coachName || 'Coach';
 

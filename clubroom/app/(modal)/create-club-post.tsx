@@ -10,11 +10,11 @@ import {
   View,
   StyleSheet,
   TextInput,
-  Image,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, router } from 'expo-router';

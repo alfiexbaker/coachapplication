@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -26,7 +26,7 @@ interface CredentialFormProps {
   onClose: () => void;
 }
 
-export const CredentialForm = memo(function CredentialForm({
+export const CredentialForm = function CredentialForm({
   colors,
   selectedType,
   customName,
@@ -162,9 +162,11 @@ export const CredentialForm = memo(function CredentialForm({
         </View>
       )}
 
-      <Button onPress={onSubmit} disabled={!canSubmit}>
-        {submitting ? 'Submitting...' : !uploaded ? 'Upload Required' : 'Submit Credential'}
-      </Button>
+      <Button
+        onPress={onSubmit}
+        disabled={!canSubmit}
+        label={submitting ? 'Submitting...' : !uploaded ? 'Upload Required' : 'Submit Credential'}
+      />
       {!uploaded && selectedType && (
         <ThemedText
           style={[Typography.small, { textAlign: 'center', marginTop: Spacing.xs, color: colors.muted }]}
@@ -174,7 +176,7 @@ export const CredentialForm = memo(function CredentialForm({
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

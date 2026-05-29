@@ -5,12 +5,12 @@ import { useTheme } from '@/hooks/useTheme';
 import type { GroupMessage } from '@/constants/types';
 
 import {
-  shouldShowDateHeader,
   ChatEmptyState,
   MessageBubble,
   ChatInputBar,
-  styles,
 } from './group-chat-section-sections';
+import { shouldShowDateHeader } from './group-chat-section-helpers';
+import { styles } from './group-chat-section-styles';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -74,4 +74,4 @@ function GroupChatSectionInner({
   );
 }
 
-export const GroupChatSection = React.memo(GroupChatSectionInner);
+export const GroupChatSection = GroupChatSectionInner;

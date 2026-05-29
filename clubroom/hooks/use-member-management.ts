@@ -1,7 +1,7 @@
 /**
  * useMemberManagement — All state, data loading, and handlers for the Member Management screen.
  */
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
@@ -52,7 +52,7 @@ export function useMemberManagement(): UseMemberManagementResult {
 
   const [showRolePicker, setShowRolePicker] = useState(false);
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     if (!clubId || !memberId) {
       return ok<MemberManagementData>({
         member: null,
@@ -85,7 +85,7 @@ export function useMemberManagement(): UseMemberManagementResult {
         serviceError('UNKNOWN', 'Failed to load member data. Pull down to refresh.', loadError),
       );
     }
-  }, [clubId, memberId, currentUser?.id]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<MemberManagementData>({
     load: loadData,
@@ -117,30 +117,27 @@ export function useMemberManagement(): UseMemberManagementResult {
 
   const assignableRoles = currentUserRole ? clubService.getAssignableRoles(currentUserRole) : [];
 
-  const handleChangeRole = useCallback(
-    async (newRole: ClubRole) => {
-      if (!clubId || !memberId || !currentUser || !member) return;
-      try {
-        const result = await clubService.changeMemberRole(clubId, memberId, newRole, {
-          id: currentUser.id,
-          name: currentUser.fullName || currentUser.username || 'Admin',
-        });
-        if (!result.success) {
-          showToast('Failed to change role', 'error');
-          return;
-        }
-        setShowRolePicker(false);
-        onRefresh();
-        showToast(`${member.userName} is now ${clubService.formatRole(newRole)}`, 'success');
-      } catch (error) {
-        logger.error('Failed to change role', error);
+  const handleChangeRole = async (newRole: ClubRole) => {
+    if (!clubId || !memberId || !currentUser || !member) return;
+    try {
+      const result = await clubService.changeMemberRole(clubId, memberId, newRole, {
+        id: currentUser.id,
+        name: currentUser.fullName || currentUser.username || 'Admin',
+      });
+      if (!result.success) {
         showToast('Failed to change role', 'error');
+        return;
       }
-    },
-    [clubId, memberId, currentUser, member, onRefresh, showToast],
-  );
+      setShowRolePicker(false);
+      onRefresh();
+      showToast(`${member.userName} is now ${clubService.formatRole(newRole)}`, 'success');
+    } catch (error) {
+      logger.error('Failed to change role', error);
+      showToast('Failed to change role', 'error');
+    }
+  };
 
-  const handleRemoveMember = useCallback(() => {
+  const handleRemoveMember = () => {
     if (!member) return;
     uiFeedback.alert(
       'Remove Member',
@@ -169,9 +166,9 @@ export function useMemberManagement(): UseMemberManagementResult {
         },
       ],
     );
-  }, [member, club, clubId, memberId, currentUser, showToast]);
+  };
 
-  const handleBanMember = useCallback(() => {
+  const handleBanMember = () => {
     if (!member) return;
     uiFeedback.alert(
       'Ban Member',
@@ -205,33 +202,30 @@ export function useMemberManagement(): UseMemberManagementResult {
         },
       ],
     );
-  }, [member, club, clubId, memberId, currentUser, showToast]);
+  };
 
-  const handleToggleSquad = useCallback(
-    async (squadId: string) => {
-      if (!clubId || !memberId || !member) return;
-      const isInSquad = member.squadIds?.includes(squadId);
-      try {
-        const result = isInSquad
-          ? await clubService.removeMemberFromSquad(clubId, memberId, squadId)
-          : await clubService.addMemberToSquad(clubId, memberId, squadId);
-        if (result.success) {
-          onRefresh();
-          const squad = squads.find((s) => s.id === squadId);
-          showToast(
-            isInSquad
-              ? `Removed from ${squad?.name || 'squad'}`
-              : `Added to ${squad?.name || 'squad'}`,
-            'success',
-          );
-        } else showToast('Failed to update squad membership', 'error');
-      } catch (error) {
-        logger.error('Failed to toggle squad', error);
-        showToast('Failed to update squad membership', 'error');
-      }
-    },
-    [clubId, memberId, member, squads, onRefresh, showToast],
-  );
+  const handleToggleSquad = async (squadId: string) => {
+    if (!clubId || !memberId || !member) return;
+    const isInSquad = member.squadIds?.includes(squadId);
+    try {
+      const result = isInSquad
+        ? await clubService.removeMemberFromSquad(clubId, memberId, squadId)
+        : await clubService.addMemberToSquad(clubId, memberId, squadId);
+      if (result.success) {
+        onRefresh();
+        const squad = squads.find((s) => s.id === squadId);
+        showToast(
+          isInSquad
+            ? `Removed from ${squad?.name || 'squad'}`
+            : `Added to ${squad?.name || 'squad'}`,
+          'success',
+        );
+      } else showToast('Failed to update squad membership', 'error');
+    } catch (error) {
+      logger.error('Failed to toggle squad', error);
+      showToast('Failed to update squad membership', 'error');
+    }
+  };
 
   return {
     member,

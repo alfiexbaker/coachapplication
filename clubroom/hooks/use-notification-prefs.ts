@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
@@ -13,6 +13,8 @@ import type {
 import { err, serviceError, type ServiceError } from '@/types/result';
 import { useToast } from '@/components/ui/toast';
 
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
+
 const logger = createLogger('useNotificationPrefs');
 
 export function useNotificationPrefs() {
@@ -25,7 +27,7 @@ export function useNotificationPrefs() {
   const [updating, setUpdating] = useState(false);
   const { showToast } = useToast();
 
-  const loadPreferences = useCallback(async () => {
+  const loadPreferences = async () => {
     try {
       const prefsResult = await notificationService.getPreferences(userId);
       if (!prefsResult.success) {
@@ -37,7 +39,7 @@ export function useNotificationPrefs() {
       logger.error('Failed to load preferences', { loadError });
       return err(serviceError('UNKNOWN', 'Failed to load notification preferences.', loadError));
     }
-  }, [userId]);
+  };
 
   const {
     data,
@@ -57,134 +59,130 @@ export function useNotificationPrefs() {
 
   useEffect(() => {
     if (data) {
-      setPreferencesOverride(data);
-      setActionError(null);
+      startTransition(() => {
+        setPreferencesOverride(data);
+      });
+      startTransition(() => {
+        setActionError(null);
+      });
     }
   }, [data]);
 
   const preferences = preferencesOverride ?? data;
 
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = () => {
     setActionError(null);
     onRefresh();
-  }, [onRefresh]);
+  };
 
-  const handleQuietHoursChange = useCallback(
-    async (quietHours: QuietHours) => {
-      if (!preferences) return;
-      setUpdating(true);
-      setActionError(null);
-      try {
-        const updatedResult = await notificationService.setQuietHours(
+  const handleQuietHoursChange = async (quietHours: QuietHours) => {
+    if (!preferences) return;
+    setUpdating(true);
+    setActionError(null);
+
+    return await runAsyncTryCatchFinally(async () => {
+      const updatedResult = await notificationService.setQuietHours(
+        userId,
+        quietHours.startTime,
+        quietHours.endTime,
+        quietHours.enabled,
+      );
+      if (!updatedResult.success) {
+        setActionError(updatedResult.error.message);
+        logger.error('Failed to update quiet hours', { userId, error: updatedResult.error });
+        return;
+      }
+
+      setPreferencesOverride(updatedResult.data);
+      showToast(quietHours.enabled ? 'Quiet hours updated' : 'Quiet hours turned off', 'success');
+    }, async updateError => {
+      setActionError('Failed to update quiet hours');
+      logger.error('Failed to update quiet hours', { updateError });
+    }, () => {
+      setUpdating(false);
+    });
+  };
+
+  const handleChannelToggle = async (channel: NotificationChannel, enabled: boolean) => {
+    if (!preferences) return;
+    setUpdating(true);
+    setActionError(null);
+
+    return await runAsyncTryCatchFinally(async () => {
+      const updatedResult = await notificationService.toggleChannel(userId, channel, enabled);
+      if (!updatedResult.success) {
+        setActionError(updatedResult.error.message);
+        logger.error('Failed to toggle channel', {
           userId,
-          quietHours.startTime,
-          quietHours.endTime,
-          quietHours.enabled,
-        );
-        if (!updatedResult.success) {
-          setActionError(updatedResult.error.message);
-          logger.error('Failed to update quiet hours', { userId, error: updatedResult.error });
-          return;
-        }
-
-        setPreferencesOverride(updatedResult.data);
-        showToast(quietHours.enabled ? 'Quiet hours updated' : 'Quiet hours turned off', 'success');
-      } catch (updateError) {
-        setActionError('Failed to update quiet hours');
-        logger.error('Failed to update quiet hours', { updateError });
-      } finally {
-        setUpdating(false);
+          channel,
+          enabled,
+          error: updatedResult.error,
+        });
+        return;
       }
-    },
-    [preferences, userId, showToast],
-  );
 
-  const handleChannelToggle = useCallback(
-    async (channel: NotificationChannel, enabled: boolean) => {
-      if (!preferences) return;
-      setUpdating(true);
-      setActionError(null);
-      try {
-        const updatedResult = await notificationService.toggleChannel(userId, channel, enabled);
-        if (!updatedResult.success) {
-          setActionError(updatedResult.error.message);
-          logger.error('Failed to toggle channel', {
-            userId,
-            channel,
-            enabled,
-            error: updatedResult.error,
-          });
-          return;
-        }
+      setPreferencesOverride(updatedResult.data);
+    }, async updateError => {
+      setActionError('Failed to toggle notification channel');
+      logger.error('Failed to toggle channel', { updateError });
+    }, () => {
+      setUpdating(false);
+    });
+  };
 
-        setPreferencesOverride(updatedResult.data);
-      } catch (updateError) {
-        setActionError('Failed to toggle notification channel');
-        logger.error('Failed to toggle channel', { updateError });
-      } finally {
-        setUpdating(false);
-      }
-    },
-    [preferences, userId],
-  );
+  const handleTypeToggle = async (type: NotificationType, enabled: boolean) => {
+    if (!preferences) return;
+    setUpdating(true);
+    setActionError(null);
 
-  const handleTypeToggle = useCallback(
-    async (type: NotificationType, enabled: boolean) => {
-      if (!preferences) return;
-      setUpdating(true);
-      setActionError(null);
-      try {
-        const updatedResult = await notificationService.toggleNotificationType(
+    return await runAsyncTryCatchFinally(async () => {
+      const updatedResult = await notificationService.toggleNotificationType(
+        userId,
+        type,
+        enabled,
+      );
+      if (!updatedResult.success) {
+        setActionError(updatedResult.error.message);
+        logger.error('Failed to toggle notification type', {
           userId,
           type,
           enabled,
-        );
-        if (!updatedResult.success) {
-          setActionError(updatedResult.error.message);
-          logger.error('Failed to toggle notification type', {
-            userId,
-            type,
-            enabled,
-            error: updatedResult.error,
-          });
-          return;
-        }
-
-        setPreferencesOverride(updatedResult.data);
-      } catch (updateError) {
-        setActionError('Failed to toggle notification type');
-        logger.error('Failed to toggle notification type', { updateError });
-      } finally {
-        setUpdating(false);
+          error: updatedResult.error,
+        });
+        return;
       }
-    },
-    [preferences, userId],
-  );
 
-  const handleUnmuteCoach = useCallback(
-    async (coachId: string) => {
-      if (!preferences) return;
-      setUpdating(true);
-      setActionError(null);
-      try {
-        const updatedResult = await notificationService.unmuteCoach(userId, coachId);
-        if (!updatedResult.success) {
-          setActionError(updatedResult.error.message);
-          logger.error('Failed to unmute coach', { userId, coachId, error: updatedResult.error });
-          return;
-        }
+      setPreferencesOverride(updatedResult.data);
+    }, async updateError => {
+      setActionError('Failed to toggle notification type');
+      logger.error('Failed to toggle notification type', { updateError });
+    }, () => {
+      setUpdating(false);
+    });
+  };
 
-        setPreferencesOverride(updatedResult.data);
-        showToast('Coach unmuted', 'success');
-      } catch (updateError) {
-        setActionError('Failed to unmute coach');
-        logger.error('Failed to unmute coach', { updateError });
-      } finally {
-        setUpdating(false);
+  const handleUnmuteCoach = async (coachId: string) => {
+    if (!preferences) return;
+    setUpdating(true);
+    setActionError(null);
+
+    return await runAsyncTryCatchFinally(async () => {
+      const updatedResult = await notificationService.unmuteCoach(userId, coachId);
+      if (!updatedResult.success) {
+        setActionError(updatedResult.error.message);
+        logger.error('Failed to unmute coach', { userId, coachId, error: updatedResult.error });
+        return;
       }
-    },
-    [preferences, userId, showToast],
-  );
+
+      setPreferencesOverride(updatedResult.data);
+      showToast('Coach unmuted', 'success');
+    }, async updateError => {
+      setActionError('Failed to unmute coach');
+      logger.error('Failed to unmute coach', { updateError });
+    }, () => {
+      setUpdating(false);
+    });
+  };
 
   const error =
     actionError ??

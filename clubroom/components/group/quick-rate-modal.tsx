@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, startTransition } from 'react';
 import { Modal, ScrollView, StyleSheet, View, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,7 +30,7 @@ interface QuickRateModalProps {
   onSaved: () => void;
 }
 
-export const QuickRateModal = memo(function QuickRateModal({
+export const QuickRateModal = function QuickRateModal({
   visible,
   athlete,
   sessionId,
@@ -42,7 +42,7 @@ export const QuickRateModal = memo(function QuickRateModal({
   const { colors } = useTheme();
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
-  const [showBadgePicker, setShowBadgePicker] = useState(false);
+  const showBadgePickerRef = useRef(false);
 
   const athletes = athlete ? [athlete] : [];
 
@@ -54,52 +54,51 @@ export const QuickRateModal = memo(function QuickRateModal({
 
   const currentRating = athlete ? quickRate.ratingsByAthleteId[athlete.athleteId] : undefined;
   const initialRatingJsonRef = useRef<string | null>(null);
-  const currentRatingJson = useMemo(
-    () => (currentRating ? JSON.stringify(currentRating) : null),
-    [currentRating],
-  );
+  const currentRatingJson = currentRating ? JSON.stringify(currentRating) : null;
 
   useEffect(() => {
     if (!visible) {
-      initialRatingJsonRef.current = null;
+      startTransition(() => {
+        initialRatingJsonRef.current = null;
+      });
       return;
     }
-    if (!quickRate.isPrefilling && currentRatingJson !== null && initialRatingJsonRef.current === null) {
-      initialRatingJsonRef.current = currentRatingJson;
+    if (
+      !quickRate.isPrefilling &&
+      currentRatingJson !== null &&
+      initialRatingJsonRef.current === null
+    ) {
+      startTransition(() => {
+        initialRatingJsonRef.current = currentRatingJson;
+      });
     }
   }, [visible, quickRate.isPrefilling, currentRatingJson]);
 
-  const hasUnsavedChanges =
+  const getHasUnsavedChanges = () =>
     !quickRate.isPrefilling &&
     currentRatingJson !== null &&
     initialRatingJsonRef.current !== null &&
     currentRatingJson !== initialRatingJsonRef.current;
 
-  const handlePositionChange = useCallback(
-    (position: import('@/types/progress-types').PositionRole) => {
-      if (!athlete) return;
-      quickRate.updatePosition(athlete.athleteId, position);
-    },
-    [athlete, quickRate.updatePosition],
-  );
+  const handlePositionChange = (position: import('@/types/progress-types').PositionRole) => {
+    if (!athlete) return;
+    quickRate.updatePosition(athlete.athleteId, position);
+  };
 
-  const handleSkillChange = useCallback(
-    (skill: import('@/types/progress-types').FootballSkill, value: number) => {
-      if (!athlete) return;
-      quickRate.updateSkillRating(athlete.athleteId, skill, value);
-    },
-    [athlete, quickRate.updateSkillRating],
-  );
+  const handleSkillChange = (
+    skill: import('@/types/progress-types').FootballSkill,
+    value: number,
+  ) => {
+    if (!athlete) return;
+    quickRate.updateSkillRating(athlete.athleteId, skill, value);
+  };
 
-  const handleEffortChange = useCallback(
-    (value: number) => {
-      if (!athlete) return;
-      quickRate.updateEffort(athlete.athleteId, value);
-    },
-    [athlete, quickRate.updateEffort],
-  );
+  const handleEffortChange = (value: number) => {
+    if (!athlete) return;
+    quickRate.updateEffort(athlete.athleteId, value);
+  };
 
-  const handleSave = useCallback(async () => {
+  const handleSave = async () => {
     if (!athlete || !currentRating) return;
 
     if (!currentRating.positionPlayed) {
@@ -142,28 +141,31 @@ export const QuickRateModal = memo(function QuickRateModal({
     } catch (error) {
       logger.error('Failed to save quick rate from group roster', { error });
       showToast('Failed to save rating', 'error');
-    } finally {
-      setSaving(false);
     }
-  }, [athlete, currentRating, sessionId, coachId, coachName, onSaved, onClose, showToast]);
+    setSaving(false);
+  };
 
-  const closeNow = useCallback(() => {
+  const closeNow = () => {
     if (saving) return;
     Keyboard.dismiss();
     onClose();
-  }, [onClose, saving]);
+  };
 
-  const handleClose = useCallback(() => {
+  const handleClose = () => {
     if (saving) return;
-    if (!hasUnsavedChanges) {
+    if (!getHasUnsavedChanges()) {
       closeNow();
       return;
     }
-    uiFeedback.alert('Discard Ratings?', 'You have unsaved ratings. Are you sure you want to close?', [
-      { text: 'Keep Editing', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: closeNow },
-    ]);
-  }, [saving, hasUnsavedChanges, closeNow]);
+    uiFeedback.alert(
+      'Discard Ratings?',
+      'You have unsaved ratings. Are you sure you want to close?',
+      [
+        { text: 'Keep Editing', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: closeNow },
+      ],
+    );
+  };
 
   if (!athlete) return null;
 
@@ -200,10 +202,7 @@ export const QuickRateModal = memo(function QuickRateModal({
             disabled={saving || quickRate.isPrefilling}
           >
             <ThemedText
-              style={[
-                Typography.bodySemiBold,
-                { color: saving ? colors.muted : colors.tint },
-              ]}
+              style={[Typography.bodySemiBold, { color: saving ? colors.muted : colors.tint }]}
             >
               {saving ? 'Saving…' : 'Save'}
             </ThemedText>
@@ -224,14 +223,16 @@ export const QuickRateModal = memo(function QuickRateModal({
               onPositionChange={handlePositionChange}
               onSkillChange={handleSkillChange}
               onEffortChange={handleEffortChange}
-              onBadgePress={() => setShowBadgePicker(!showBadgePicker)}
+              onBadgePress={() => {
+                showBadgePickerRef.current = !showBadgePickerRef.current;
+              }}
             />
           </ScrollView>
         )}
       </SafeAreaView>
     </Modal>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1 },

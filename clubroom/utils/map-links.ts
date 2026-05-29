@@ -10,13 +10,9 @@ interface OpenLocationInMapsOptions {
   coordinates?: MapCoordinates | null;
 }
 
-function hasValidCoordinates(
-  coordinates?: MapCoordinates | null,
-): coordinates is MapCoordinates {
+function hasValidCoordinates(coordinates?: MapCoordinates | null): coordinates is MapCoordinates {
   return (
-    !!coordinates &&
-    Number.isFinite(coordinates.latitude) &&
-    Number.isFinite(coordinates.longitude)
+    !!coordinates && Number.isFinite(coordinates.latitude) && Number.isFinite(coordinates.longitude)
   );
 }
 
@@ -32,9 +28,7 @@ export async function openLocationInMaps({
   }
 
   const query = encodeURIComponent(normalizedLocation);
-  const destination = withCoordinates
-    ? `${coordinates.latitude},${coordinates.longitude}`
-    : '';
+  const destination = withCoordinates ? `${coordinates.latitude},${coordinates.longitude}` : '';
 
   const nativeUrl = withCoordinates
     ? Platform.select({
@@ -56,11 +50,16 @@ export async function openLocationInMaps({
     (value): value is string => typeof value === 'string' && value.length > 0,
   );
 
-  for (const url of candidates) {
-    const canOpen = await Linking.canOpenURL(url);
-    if (!canOpen) continue;
+  const supportChecks = await Promise.all(
+    candidates.map(async (url) => ({
+      url,
+      canOpen: await Linking.canOpenURL(url),
+    })),
+  );
+  const supportedUrl = supportChecks.find((candidate) => candidate.canOpen)?.url;
 
-    await Linking.openURL(url);
+  if (supportedUrl) {
+    await Linking.openURL(supportedUrl);
     return true;
   }
 

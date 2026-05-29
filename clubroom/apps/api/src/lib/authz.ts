@@ -25,10 +25,10 @@ const authzCacheKey = Symbol('clubroom.authz-cache');
 
 function parseCsvHeader(value: unknown): string[] {
   const raw = Array.isArray(value) ? value.join(',') : typeof value === 'string' ? value : '';
-  return raw
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
+  return raw.split(',').flatMap((item) => {
+    const trimmed = item.trim();
+    return trimmed ? [trimmed] : [];
+  });
 }
 
 function getAuthOrThrow(request: FastifyRequest) {

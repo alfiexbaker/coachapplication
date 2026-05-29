@@ -5,7 +5,7 @@
  * All state/logic in usePostDetail hook. Post card extracted to component.
  */
 
-import React, { useCallback, useRef } from 'react';
+import React, { useRef } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -51,21 +51,18 @@ export default function PostDetailScreen() {
   const modalRef = useRef<View>(null);
   useFocusTrap(modalRef, 'Post detail modal');
 
-  const renderComment = useCallback(
-    ({ item }: { item: FlatItem }) => (
-      <CommentCard
-        comment={item.data}
-        isReply={item.isReply}
-        currentUserId={p.currentUser?.id ?? ''}
-        onLike={p.handleLikeComment}
-        onReply={p.handleReply}
-        onDelete={p.handleDeleteComment}
-      />
-    ),
-    [p.currentUser?.id, p.handleLikeComment, p.handleReply, p.handleDeleteComment],
+  const renderComment = ({ item }: { item: FlatItem }) => (
+    <CommentCard
+      comment={item.data}
+      isReply={item.isReply}
+      currentUserId={p.currentUser?.id ?? ''}
+      onLike={p.handleLikeComment}
+      onReply={p.handleReply}
+      onDelete={p.handleDeleteComment}
+    />
   );
 
-  const keyExtractor = useCallback((item: FlatItem) => item.data.id, []);
+  const keyExtractor = (item: FlatItem) => item.data.id;
   const shouldShowCommentSkeleton =
     p.status === 'loading' ||
     (p.showSectionSkeleton && p.pendingState.mode === 'dependency-change');

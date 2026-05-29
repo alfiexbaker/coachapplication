@@ -1,11 +1,15 @@
-import { memo, useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop, Text as SvgText } from 'react-native-svg';
-import Animated, {
-  useAnimatedProps,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import Svg, {
+  Circle,
+  Defs,
+  Line,
+  LinearGradient,
+  Path,
+  Stop,
+  Text as SvgText,
+} from 'react-native-svg';
+import Animated, { useAnimatedProps, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { Column } from '@/components/primitives/column';
 import { ThemedText } from '@/components/themed-text';
@@ -62,7 +66,7 @@ function buildLinePath(
  * Full-width SVG line chart for skill history.
  * X=dates, Y=level. Corner-colored line with animated draw-in on mount.
  */
-export const SkillTrendChart = memo(function SkillTrendChart({
+export const SkillTrendChart = function SkillTrendChart({
   data,
   color,
   width = 280,
@@ -73,10 +77,7 @@ export const SkillTrendChart = memo(function SkillTrendChart({
   const paddingX = 32;
   const paddingY = 16;
 
-  const linePath = useMemo(
-    () => buildLinePath(data, width, height, paddingX, paddingY),
-    [data, height, width],
-  );
+  const linePath = buildLinePath(data, width, height, paddingX, paddingY);
 
   // Y-axis labels
   const minLevel = data.length > 0 ? Math.min(...data.map((d) => d.level)) : 0;
@@ -84,7 +85,7 @@ export const SkillTrendChart = memo(function SkillTrendChart({
   const midLevel = Math.round((minLevel + maxLevel) / 2);
 
   // X-axis date labels
-  const dateLabels = useMemo(() => {
+  const dateLabels = (() => {
     if (data.length < 2) return [];
     const first = new Date(data[0].date);
     const last = new Date(data[data.length - 1].date);
@@ -92,7 +93,7 @@ export const SkillTrendChart = memo(function SkillTrendChart({
       first.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
       last.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
     ];
-  }, [data]);
+  })();
 
   if (data.length < 2) {
     return (
@@ -106,9 +107,7 @@ export const SkillTrendChart = memo(function SkillTrendChart({
 
   return (
     <Column gap="xxs">
-      {label ? (
-        <ThemedText style={[styles.label, { color }]}>{label}</ThemedText>
-      ) : null}
+      {label ? <ThemedText style={[styles.label, { color }]}>{label}</ThemedText> : null}
       <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
         <Defs>
           <LinearGradient id={`trendGrad-${label ?? 'default'}`} x1="0" y1="0" x2="0" y2="1">
@@ -161,7 +160,13 @@ export const SkillTrendChart = memo(function SkillTrendChart({
             <SvgText x={paddingX} y={height - 2} fontSize={9} fill={withAlpha(colors.text, 0.4)}>
               {dateLabels[0]}
             </SvgText>
-            <SvgText x={width - paddingX} y={height - 2} fontSize={9} fill={withAlpha(colors.text, 0.4)} textAnchor="end">
+            <SvgText
+              x={width - paddingX}
+              y={height - 2}
+              fontSize={9}
+              fill={withAlpha(colors.text, 0.4)}
+              textAnchor="end"
+            >
               {dateLabels[1]}
             </SvgText>
           </>
@@ -181,13 +186,13 @@ export const SkillTrendChart = memo(function SkillTrendChart({
         {data.map((point, index) => {
           const usableWidth = width - paddingX * 2;
           const usableHeight = height - paddingY * 2;
-          const range = (maxLevel - minLevel) || 1;
+          const range = maxLevel - minLevel || 1;
           const x = paddingX + (index / (data.length - 1)) * usableWidth;
           const y = paddingY + usableHeight - ((point.level - minLevel) / range) * usableHeight;
 
           return (
             <Circle
-              key={`point-${index}`}
+              key={`${point.date}:${point.level}`}
               cx={x}
               cy={y}
               r={3}
@@ -200,7 +205,7 @@ export const SkillTrendChart = memo(function SkillTrendChart({
       </Svg>
     </Column>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: {

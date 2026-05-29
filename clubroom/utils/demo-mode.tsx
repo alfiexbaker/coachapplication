@@ -6,11 +6,6 @@ import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { api } from '@/constants/config';
-
-export function isDemoMode(): boolean {
-  return api.useMock;
-}
 
 export function DemoBanner({ message }: { message: string }) {
   const { colors } = useTheme();

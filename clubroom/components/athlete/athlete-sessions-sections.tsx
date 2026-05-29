@@ -6,7 +6,7 @@
  * NeedsNotesBadge — warning badge for missing notes count.
  */
 
-import React, { useCallback } from 'react';
+import React from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,15 +32,15 @@ export interface SessionItemProps {
 
 // ─── SessionItem ──────────────────────────────────────────────────────────────
 
-export const SessionItem = React.memo(function SessionItem({ session, isPast }: SessionItemProps) {
+export const SessionItem = function SessionItem({ session, isPast }: SessionItemProps) {
   const { colors } = useTheme();
   const date = new Date(session.scheduledAt);
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const returnTo = Routes.ATHLETES as string;
     router.push(Routes.booking(session.id, { returnTo }));
-  }, [session.id]);
+  };
 
   const needsNotes = isPast && !session.notes;
 
@@ -100,9 +100,9 @@ export const SessionItem = React.memo(function SessionItem({ session, isPast }: 
       </SurfaceCard>
     </Clickable>
   );
-});
+};
 
-export const SessionItemSkeleton = React.memo(function SessionItemSkeleton({
+export const SessionItemSkeleton = function SessionItemSkeleton({
   showNeedsNotesBadge = false,
 }: {
   showNeedsNotesBadge?: boolean;
@@ -132,11 +132,12 @@ export const SessionItemSkeleton = React.memo(function SessionItemSkeleton({
       </Row>
     </SurfaceCard>
   );
-});
+};
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-export const styles = StyleSheet.create({
+// react-doctor-disable-next-line react-doctor/only-export-components -- public non-component export is intentional in this module boundary.
+const styles = StyleSheet.create({
   container: {
     paddingBottom: Spacing.xl,
   },

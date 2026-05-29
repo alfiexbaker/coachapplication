@@ -1,11 +1,3 @@
-/**
- * Location Map Preview
- *
- * Card showing a map placeholder area with location text
- * and a "Get Directions" button that opens in Maps.
- */
-
-import { memo, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -26,13 +18,13 @@ interface LocationMapPreviewProps {
 function LocationMapPreviewComponent({ location, coordinates }: LocationMapPreviewProps) {
   const { colors: palette } = useTheme();
 
-  const handleGetDirections = useCallback(() => {
+  const handleGetDirections = () => {
     void openLocationInMaps({ location, coordinates }).then((opened) => {
       if (!opened) {
         uiFeedback.showToast('Could not open maps application.', 'error');
       }
     });
-  }, [coordinates, location]);
+  };
 
   if (!location) return null;
 
@@ -67,7 +59,7 @@ function LocationMapPreviewComponent({ location, coordinates }: LocationMapPrevi
   );
 }
 
-export const LocationMapPreview = memo(LocationMapPreviewComponent);
+export const LocationMapPreview = LocationMapPreviewComponent;
 
 const styles = StyleSheet.create({
   card: {

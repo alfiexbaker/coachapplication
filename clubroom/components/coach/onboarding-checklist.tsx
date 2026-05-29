@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '@/services/api-client';
@@ -42,6 +42,7 @@ const DISMISS_KEY_PREFIX = 'clubroom.coach_onboarding_dismissed_';
 // COMPONENT
 // ============================================================================
 
+// react-doctor-disable-next-line react-doctor/no-many-boolean-props -- checklist completion flags are independent onboarding facts from the profile service.
 export function CoachOnboardingChecklist({
   coachId,
   hasProfilePhoto,
@@ -52,7 +53,7 @@ export function CoachOnboardingChecklist({
   hasCancellationPolicy,
   isLive,
 }: CoachOnboardingChecklistProps) {
-  const router = useRouter();
+  const { push } = useRouter();
   const { colors: palette } = useTheme();
   const [isDismissed, setIsDismissed] = useState<boolean>(true);
 
@@ -64,17 +65,14 @@ export function CoachOnboardingChecklist({
     });
   }, [dismissKey]);
 
-  const handleDismiss = useCallback(async () => {
+  const handleDismiss = async () => {
     await apiClient.set(dismissKey, 'true');
     setIsDismissed(true);
-  }, [dismissKey]);
+  };
 
-  const handleNavigate = useCallback(
-    (route: string) => {
-      router.push(route as Href);
-    },
-    [router],
-  );
+  const handleNavigate = (route: string) => {
+    push(route as Href);
+  };
 
   const items: ChecklistItem[] = [
     { id: 'account', label: 'Account created', isComplete: true, route: '/settings' },

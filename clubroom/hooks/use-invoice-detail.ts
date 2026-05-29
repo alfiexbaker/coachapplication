@@ -3,7 +3,7 @@
  * Manages invoice loading, send/mark-paid/void actions, and send modal state.
  */
 
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { Linking } from 'react-native';
 import * as ExpoLinking from 'expo-linking';
 
@@ -16,6 +16,8 @@ import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { Invoice } from '@/constants/types';
 import { uiFeedback } from '@/services/ui-feedback';
 
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
+
 const logger = createLogger('InvoiceDetailScreen');
 
 export function useInvoiceDetail() {
@@ -26,7 +28,7 @@ export function useInvoiceDetail() {
   const [showSendModal, setShowSendModal] = useState(false);
   const [sendEmail, setSendEmail] = useState('');
 
-  const loadInvoice = useCallback(async () => {
+  const loadInvoice = async () => {
     if (!id) {
       return ok<Invoice | null>(null);
     }
@@ -38,7 +40,7 @@ export function useInvoiceDetail() {
       logger.error('Failed to load invoice', error);
       return err(serviceError('UNKNOWN', 'Failed to load invoice.', error));
     }
-  }, [id]);
+  };
 
   const {
     data: invoice,
@@ -56,10 +58,11 @@ export function useInvoiceDetail() {
     dataKey: `invoice-detail:${id ?? 'missing'}`,
   });
 
-  const handleSendInvoice = useCallback(async () => {
+  const handleSendInvoice = async () => {
     if (!invoice || !sendEmail.trim()) return;
     setActionLoading(true);
-    try {
+
+    await runAsyncTryCatchFinally(async () => {
       const result = await invoiceService.sendInvoice(invoice.id, sendEmail.trim());
       if (result.success) {
         uiFeedback.showToast(`Invoice sent to ${sendEmail}`, 'success');
@@ -69,14 +72,14 @@ export function useInvoiceDetail() {
       } else {
         uiFeedback.showToast(result.error || 'Could not send invoice', 'error');
       }
-    } catch {
+    }, async error => {
       uiFeedback.showToast('An error occurred while sending the invoice', 'error');
-    } finally {
+    }, () => {
       setActionLoading(false);
-    }
-  }, [invoice, sendEmail, onRefresh]);
+    });
+  };
 
-  const handleMarkPaid = useCallback(async () => {
+  const handleMarkPaid = async () => {
     if (!invoice) return;
     uiFeedback.alert('Mark as Paid', 'Are you sure you want to mark this invoice as paid?', [
       { text: 'Cancel', style: 'cancel' },
@@ -84,20 +87,21 @@ export function useInvoiceDetail() {
         text: 'Mark Paid',
         onPress: async () => {
           setActionLoading(true);
-          try {
+
+          await runAsyncTryCatchFinally(async () => {
             await invoiceService.markAsPaid(invoice.id);
             onRefresh();
-          } catch {
+          }, async error => {
             uiFeedback.showToast('Failed to update invoice', 'error');
-          } finally {
+          }, () => {
             setActionLoading(false);
-          }
+          });
         },
       },
     ]);
-  }, [invoice, onRefresh]);
+  };
 
-  const handleVoidInvoice = useCallback(async () => {
+  const handleVoidInvoice = async () => {
     if (!invoice) return;
     uiFeedback.alert(
       'Void Invoice',
@@ -109,24 +113,26 @@ export function useInvoiceDetail() {
           style: 'destructive',
           onPress: async () => {
             setActionLoading(true);
-            try {
+
+            await runAsyncTryCatchFinally(async () => {
               await invoiceService.voidInvoice(invoice.id, 'Voided by user');
               onRefresh();
-            } catch {
+            }, async error => {
               uiFeedback.showToast('Failed to void invoice', 'error');
-            } finally {
+            }, () => {
               setActionLoading(false);
-            }
+            });
           },
         },
       ],
     );
-  }, [invoice, onRefresh]);
+  };
 
-  const handlePayInvoice = useCallback(async () => {
+  const handlePayInvoice = async () => {
     if (!invoice) return;
     setActionLoading(true);
-    try {
+
+    return await runAsyncTryCatchFinally(async () => {
       const returnUrl = ExpoLinking.createURL(`invoices/${invoice.id}`);
       const paymentSession = await invoiceService.createPaymentSession(invoice.id, {
         returnUrl,
@@ -144,16 +150,16 @@ export function useInvoiceDetail() {
       }
       await Linking.openURL(checkoutUrl);
       uiFeedback.showToast('Opening secure payment page…', 'success');
-    } catch {
+    }, async error => {
       uiFeedback.showToast('Could not start payment. Please try again.', 'error');
-    } finally {
+    }, () => {
       setActionLoading(false);
-    }
-  }, [invoice]);
+    });
+  };
 
-  const goBack = useCallback(() => router.back(), []);
-  const openSendModal = useCallback(() => setShowSendModal(true), []);
-  const closeSendModal = useCallback(() => setShowSendModal(false), []);
+  const goBack = () => router.back();
+  const openSendModal = () => setShowSendModal(true);
+  const closeSendModal = () => setShowSendModal(false);
 
   const isCoach = currentUser?.role === 'COACH' || currentUser?.id === invoice?.coachId;
   const canSend = Boolean(invoice && isCoach && (invoice.status === 'DRAFT' || (invoice.status === 'SENT' && !invoice.sentAt)));

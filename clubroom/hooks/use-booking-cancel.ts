@@ -3,7 +3,7 @@
  * Manages flow state, booking data loading, refund calculation, and cancellation handlers.
  */
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -17,6 +17,8 @@ import type { Ionicons } from '@expo/vector-icons';
 import { getBookingAthleteName } from '@/utils/booking-display';
 import { err, ok, serviceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('CancelBookingScreen');
 
@@ -101,22 +103,18 @@ export function useBookingCancel(id: string, mode?: string) {
   const [notifyWaitlist, setNotifyWaitlist] = useState(true);
   const [processing, setProcessing] = useState(false);
 
-  const filteredReasons = useMemo(
-    () =>
-      CANCELLATION_REASONS.filter((r) => {
-        if (isCoach && r.parentOnly) return false;
-        if (!isCoach && r.coachOnly) return false;
-        return true;
-      }),
-    [isCoach],
-  );
+  const filteredReasons = CANCELLATION_REASONS.filter((r) => {
+    if (isCoach && r.parentOnly) return false;
+    if (!isCoach && r.coachOnly) return false;
+    return true;
+  });
 
-  const canProceed = useMemo(() => {
+  const canProceed = (() => {
     if (isCoach) return reason !== '';
     return true;
-  }, [isCoach, reason]);
+  })();
 
-  const loadBookingDetails = useCallback(async () => {
+  const loadBookingDetails = async () => {
     if (!id) {
       return err(serviceError('UNKNOWN', 'Missing booking id for cancellation.'));
     }
@@ -165,7 +163,7 @@ export function useBookingCancel(id: string, mode?: string) {
         serviceError('UNKNOWN', 'Failed to load booking cancellation details.', loadError),
       );
     }
-  }, [id]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry, colors } =
     useScreen<CancelLoadData | null>({
@@ -191,13 +189,14 @@ export function useBookingCancel(id: string, mode?: string) {
   const policy = resolvedData?.policy ?? null;
   const refundCalc = resolvedData?.refundCalc ?? null;
 
-  const handleCancel = useCallback(async () => {
+  const handleCancel = async () => {
     if (!refundCalc) return;
     const reasonLabel =
       filteredReasons.find((r) => r.key === reason)?.label || reason || 'Not specified';
 
     setProcessing(true);
-    try {
+
+    await runAsyncTryCatchFinally(async () => {
       const cancelledBooking = await bookingService.cancel(id, reasonLabel, isCoach ? 'coach' : 'parent', {
         note: note.trim() || undefined,
       });
@@ -239,23 +238,20 @@ router.back();
         refundAmount: refundCalc.netRefundAmount,
         waitlistNotified: notifyWaitlist,
       });
-    } catch (error) {
+    }, async error => {
       logger.error('Failed to cancel booking', error);
       uiFeedback.showToast('Failed to cancel booking. Please try again.', 'error');
-    } finally {
+    }, () => {
       setProcessing(false);
-    }
-  }, [id, isCoach, reason, filteredReasons, refundCalc, athleteName, notifyWaitlist, note]);
+    });
+  };
 
-  const handleGoBack = useCallback(() => {
+  const handleGoBack = () => {
     router.back();
-  }, []);
+  };
 
   const effectivePolicy = policy || schedulingRulesService.getDefaultCancellationPolicy();
-  const sortedTiers = useMemo(
-    () => [...effectivePolicy.tiers].sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession),
-    [effectivePolicy],
-  );
+  const sortedTiers = Array.from(effectivePolicy.tiers).toSorted((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
 
   return {
     isCoach,

@@ -1,7 +1,13 @@
-import React, { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
+import React, { useImperativeHandle, useRef, useState } from 'react';
 import { Modal, StyleSheet, View } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
-import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -34,6 +40,7 @@ export interface CelebrationOptions {
 
 interface CelebrationOverlayProps {
   onComplete?: () => void;
+  ref?: React.Ref<CelebrationOverlayRef>;
 }
 
 interface VariantConfig {
@@ -96,57 +103,58 @@ const VARIANT_CONFIGS: Record<CelebrationVariant, VariantConfig> = {
   },
 };
 
-export const CelebrationOverlay = forwardRef<CelebrationOverlayRef, CelebrationOverlayProps>(
-  ({ onComplete }, ref) => {
-    const { colors } = useTheme();
-    const confettiRef = useRef<ConfettiCannon>(null);
-    const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+export function CelebrationOverlay({ onComplete, ref }: CelebrationOverlayProps) {
+  const { colors } = useTheme();
+  const confettiRef = useRef<ConfettiCannon>(null);
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const overlayOpacity = useSharedValue(0);
-    const iconScale = useSharedValue(0.6);
-    const titleScale = useSharedValue(0.7);
-    const subtitleOpacity = useSharedValue(0);
+  const overlayOpacity = useSharedValue(0);
+  const iconScale = useSharedValue(0.6);
+  const titleScale = useSharedValue(0.7);
+  const subtitleOpacity = useSharedValue(0);
 
-    const [visible, setVisible] = useState(false);
-    const [options, setOptions] = useState<CelebrationOptions>({});
+  const [visible, setVisible] = useState(false);
+  const [options, setOptions] = useState<CelebrationOptions>({});
 
-    const clearHideTimeout = useCallback(() => {
-      if (hideTimeoutRef.current) {
-        clearTimeout(hideTimeoutRef.current);
-        hideTimeoutRef.current = null;
-      }
-    }, []);
+  useImperativeHandle(
+    ref,
+    () => ({
+      celebrate: (opts: CelebrationOptions = {}) => {
+        if (hideTimeoutRef.current) {
+          clearTimeout(hideTimeoutRef.current);
+          hideTimeoutRef.current = null;
+        }
 
-    const hide = useCallback(() => {
-      clearHideTimeout();
-      overlayOpacity.value = withTiming(0, { duration: 180 });
-      iconScale.value = withTiming(0.9, { duration: 160 });
-      titleScale.value = withTiming(0.9, { duration: 160 });
-      subtitleOpacity.value = withTiming(0, { duration: 150 });
+        const hide = () => {
+          if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
+            hideTimeoutRef.current = null;
+          }
+          overlayOpacity.set(withTiming(0, { duration: 180 }));
+          iconScale.set(withTiming(0.9, { duration: 160 }));
+          titleScale.set(withTiming(0.9, { duration: 160 }));
+          subtitleOpacity.set(withTiming(0, { duration: 150 }));
 
-      setTimeout(() => {
-        setVisible(false);
-        onComplete?.();
-      }, 190);
-    }, [clearHideTimeout, iconScale, onComplete, overlayOpacity, subtitleOpacity, titleScale]);
+          setTimeout(() => {
+            setVisible(false);
+            onComplete?.();
+          }, 190);
+        };
 
-    const celebrate = useCallback(
-      (opts: CelebrationOptions = {}) => {
-        clearHideTimeout();
         const variant = opts.variant ?? 'default';
         const config = VARIANT_CONFIGS[variant];
         setOptions(opts);
         setVisible(true);
 
-        overlayOpacity.value = 0;
-        iconScale.value = 0.6;
-        titleScale.value = 0.7;
-        subtitleOpacity.value = 0;
+        overlayOpacity.set(0);
+        iconScale.set(0.6);
+        titleScale.set(0.7);
+        subtitleOpacity.set(0);
 
-        overlayOpacity.value = withTiming(1, { duration: 160 });
-        iconScale.value = withSpring(1, { damping: 11, stiffness: 130 });
-        titleScale.value = withDelay(80, withSpring(1, { damping: 10, stiffness: 110 }));
-        subtitleOpacity.value = withDelay(180, withTiming(1, { duration: 160 }));
+        overlayOpacity.set(withTiming(1, { duration: 160 }));
+        iconScale.set(withSpring(1, { damping: 11, stiffness: 130 }));
+        titleScale.set(withDelay(80, withSpring(1, { damping: 10, stiffness: 110 })));
+        subtitleOpacity.set(withDelay(180, withTiming(1, { duration: 160 })));
 
         void config.haptic();
         setTimeout(() => {
@@ -156,91 +164,86 @@ export const CelebrationOverlay = forwardRef<CelebrationOverlayRef, CelebrationO
         const duration = opts.duration ?? config.duration;
         hideTimeoutRef.current = setTimeout(hide, duration);
       },
-      [
-        clearHideTimeout,
-        hide,
-        iconScale,
-        overlayOpacity,
-        subtitleOpacity,
-        titleScale,
-      ],
-    );
+    }),
+    [
+      confettiRef,
+      hideTimeoutRef,
+      iconScale,
+      onComplete,
+      overlayOpacity,
+      subtitleOpacity,
+      titleScale,
+    ],
+  );
 
-    useImperativeHandle(ref, () => ({ celebrate }), [celebrate]);
+  const variant = options.variant ?? 'default';
+  const config = VARIANT_CONFIGS[variant];
+  const icon = options.icon ?? config.icon;
+  const iconColor = options.iconColor ?? colors.tint;
+  const title = options.title ?? 'Achievement Unlocked';
+  const subtitle = options.subtitle;
+  const confettiCount = options.confettiCount ?? config.confettiCount;
 
-    const variant = options.variant ?? 'default';
-    const config = VARIANT_CONFIGS[variant];
-    const icon = options.icon ?? config.icon;
-    const iconColor = options.iconColor ?? colors.tint;
-    const title = options.title ?? 'Achievement Unlocked';
-    const subtitle = options.subtitle;
-    const confettiCount = options.confettiCount ?? config.confettiCount;
+  const overlayStyle = useAnimatedStyle(() => ({
+    opacity: overlayOpacity.value,
+  }));
+  const iconStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: iconScale.value }],
+  }));
+  const titleStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: titleScale.value }],
+  }));
+  const subtitleStyle = useAnimatedStyle(() => ({
+    opacity: subtitleOpacity.value,
+  }));
 
-    const overlayStyle = useAnimatedStyle(() => ({
-      opacity: overlayOpacity.value,
-    }));
-    const iconStyle = useAnimatedStyle(() => ({
-      transform: [{ scale: iconScale.value }],
-    }));
-    const titleStyle = useAnimatedStyle(() => ({
-      transform: [{ scale: titleScale.value }],
-    }));
-    const subtitleStyle = useAnimatedStyle(() => ({
-      opacity: subtitleOpacity.value,
-    }));
+  return (
+    <Modal transparent visible={visible} animationType="none">
+      <Animated.View
+        style={[styles.overlay, { backgroundColor: withAlpha(colors.text, 0.82) }, overlayStyle]}
+      >
+        <View style={styles.content}>
+          <Animated.View style={[styles.iconContainer, iconStyle]}>
+            <View
+              style={[
+                styles.iconCircle,
+                {
+                  backgroundColor: withAlpha(iconColor, 0.14),
+                  borderColor: withAlpha(iconColor, 0.35),
+                },
+              ]}
+            >
+              <Ionicons name={icon} size={58} color={iconColor} />
+            </View>
+          </Animated.View>
 
-    return (
-      <Modal transparent visible={visible} animationType="none">
-        <Animated.View
-          style={[
-            styles.overlay,
-            { backgroundColor: withAlpha(colors.text, 0.82) },
-            overlayStyle,
-          ]}
-        >
-          <View style={styles.content}>
-            <Animated.View style={[styles.iconContainer, iconStyle]}>
-              <View
-                style={[
-                  styles.iconCircle,
-                  {
-                    backgroundColor: withAlpha(iconColor, 0.14),
-                    borderColor: withAlpha(iconColor, 0.35),
-                  },
-                ]}
-              >
-                <Ionicons name={icon} size={58} color={iconColor} />
-              </View>
+          <Animated.View style={titleStyle}>
+            <ThemedText style={[styles.title, { color: colors.onPrimary }]}>{title}</ThemedText>
+          </Animated.View>
+
+          {subtitle ? (
+            <Animated.View style={subtitleStyle}>
+              <ThemedText style={[styles.subtitle, { color: withAlpha(colors.onPrimary, 0.88) }]}>
+                {subtitle}
+              </ThemedText>
             </Animated.View>
+          ) : null}
+        </View>
 
-            <Animated.View style={titleStyle}>
-              <ThemedText style={[styles.title, { color: colors.onPrimary }]}>{title}</ThemedText>
-            </Animated.View>
-
-            {subtitle ? (
-              <Animated.View style={subtitleStyle}>
-                <ThemedText style={[styles.subtitle, { color: withAlpha(colors.onPrimary, 0.88) }]}>
-                  {subtitle}
-                </ThemedText>
-              </Animated.View>
-            ) : null}
-          </View>
-
-          <ConfettiCannon
-            ref={confettiRef}
-            count={confettiCount}
-            origin={{ x: -10, y: 0 }}
-            autoStart={false}
-            fadeOut
-            fallSpeed={3000}
-            explosionSpeed={350}
-            colors={config.confettiColors}
-          />
-        </Animated.View>
-      </Modal>
-    );
-  },
-);
+        <ConfettiCannon
+          ref={confettiRef}
+          count={confettiCount}
+          origin={{ x: -10, y: 0 }}
+          autoStart={false}
+          fadeOut
+          fallSpeed={3000}
+          explosionSpeed={350}
+          colors={config.confettiColors}
+        />
+      </Animated.View>
+    </Modal>
+  );
+}
 
 CelebrationOverlay.displayName = 'CelebrationOverlay';
 

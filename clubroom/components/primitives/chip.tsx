@@ -1,4 +1,4 @@
-import { PropsWithChildren, useCallback, useRef } from 'react';
+import { PropsWithChildren, useRef } from 'react';
 import {
   Platform,
   StyleSheet,
@@ -40,6 +40,19 @@ export function Chip({
   const { colors: baseColor } = useTheme();
   const isInteractive = Boolean(props.onPress || props.onLongPress || props.onPressIn || props.onPressOut);
   const lastPressRef = useRef(0);
+  const {
+    onPress,
+    onLongPress,
+    onPressIn,
+    onPressOut,
+    delayLongPress,
+    disabled,
+    hitSlop,
+    accessibilityLabel,
+    accessibilityHint,
+    accessibilityRole,
+    accessibilityState,
+  } = props;
 
   const containerStyles = [
     styles.base,
@@ -61,6 +74,15 @@ export function Chip({
     },
   ];
 
+  const handlePress = (event: GestureResponderEvent) => {
+    if (disabled) return;
+    const now = Date.now();
+    if (now - lastPressRef.current < 150) return;
+    lastPressRef.current = now;
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onPress?.(event);
+  };
+
   if (!isInteractive) {
     return (
       <View style={containerStyles}>
@@ -68,32 +90,6 @@ export function Chip({
       </View>
     );
   }
-
-  const {
-    onPress,
-    onLongPress,
-    onPressIn,
-    onPressOut,
-    delayLongPress,
-    disabled,
-    hitSlop,
-    accessibilityLabel,
-    accessibilityHint,
-    accessibilityRole,
-    accessibilityState,
-  } = props;
-
-  const handlePress = useCallback(
-    (event: GestureResponderEvent) => {
-      if (disabled) return;
-      const now = Date.now();
-      if (now - lastPressRef.current < 150) return;
-      lastPressRef.current = now;
-      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      onPress?.(event);
-    },
-    [disabled, onPress],
-  );
 
   return (
     <Clickable

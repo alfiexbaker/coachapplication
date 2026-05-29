@@ -5,7 +5,7 @@
  * In view-only mode, just displays the proposed times.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -27,7 +27,7 @@ interface InviteSlotListProps {
   delay?: number;
 }
 
-const SlotItem = memo(function SlotItem({
+const SlotItem = function SlotItem({
   slot,
   index,
   isSelected,
@@ -96,9 +96,9 @@ const SlotItem = memo(function SlotItem({
       )}
     </Clickable>
   );
-});
+};
 
-export const InviteSlotList = memo(function InviteSlotList({
+export const InviteSlotList = function InviteSlotList({
   slots,
   selectedSlot,
   canRespond,
@@ -127,7 +127,7 @@ export const InviteSlotList = memo(function InviteSlotList({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

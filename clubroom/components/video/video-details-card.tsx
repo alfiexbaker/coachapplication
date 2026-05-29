@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -19,7 +19,7 @@ interface VideoDetailsCardProps {
   onViewSession?: (sessionId: string) => void;
 }
 
-export const VideoDetailsCard = memo(function VideoDetailsCard({
+export const VideoDetailsCard = function VideoDetailsCard({
   colors,
   coachName,
   createdAt,
@@ -70,7 +70,7 @@ export const VideoDetailsCard = memo(function VideoDetailsCard({
       </Column>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

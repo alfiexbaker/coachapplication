@@ -4,7 +4,7 @@
  * Styled search row with icon + TextInput using design tokens.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -17,7 +17,7 @@ interface MessagesSearchBarProps {
   onChangeText: (text: string) => void;
 }
 
-export const MessagesSearchBar = memo(function MessagesSearchBar({
+export const MessagesSearchBar = function MessagesSearchBar({
   value,
   onChangeText,
 }: MessagesSearchBarProps) {
@@ -42,7 +42,7 @@ export const MessagesSearchBar = memo(function MessagesSearchBar({
           />
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   searchRow: {

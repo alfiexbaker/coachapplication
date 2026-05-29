@@ -102,14 +102,28 @@ const ROLE_ENTRY_DEFINITIONS: RoleEntryDefinition[] = [
   },
 ];
 
+function findDemoUser(users: DemoRoleUser[], predicate: RoleEntryDefinition['match']): DemoRoleUser | undefined {
+  for (const user of users) {
+    if (predicate(user)) {
+      return user;
+    }
+  }
+  return undefined;
+}
+
 export function buildDemoRoleEntries(users: DemoRoleUser[]): DemoRoleEntry[] {
   const entries: DemoRoleEntry[] = [];
+  const usersByUsername = new Map(users.map((user) => [user.username.toLowerCase(), user]));
 
   for (const definition of ROLE_ENTRY_DEFINITIONS) {
-    const exactMatch = definition.usernames
-      .map((username) => users.find((user) => user.username.toLowerCase() === username.toLowerCase()))
-      .find(Boolean);
-    const matchedUser = exactMatch ?? users.find(definition.match);
+    let exactMatch: DemoRoleUser | undefined;
+    for (const username of definition.usernames) {
+      exactMatch = usersByUsername.get(username.toLowerCase());
+      if (exactMatch) {
+        break;
+      }
+    }
+    const matchedUser = exactMatch ?? findDemoUser(users, definition.match);
 
     if (!matchedUser) {
       continue;
@@ -133,6 +147,7 @@ export function buildDemoRoleEntries(users: DemoRoleUser[]): DemoRoleEntry[] {
 export function buildDemoCredentialRows(users: DemoRoleUser[]): DemoCredentialRow[] {
   const rows: DemoCredentialRow[] = [];
   const seen = new Set<string>();
+  const usersByUsername = new Map(users.map((user) => [user.username.toLowerCase(), user]));
 
   const pushUser = (user: DemoRoleUser | undefined) => {
     if (!user || seen.has(user.username)) {
@@ -148,10 +163,14 @@ export function buildDemoCredentialRows(users: DemoRoleUser[]): DemoCredentialRo
   };
 
   for (const definition of ROLE_ENTRY_DEFINITIONS) {
-    const exactMatch = definition.usernames
-      .map((username) => users.find((user) => user.username.toLowerCase() === username.toLowerCase()))
-      .find(Boolean);
-    pushUser(exactMatch ?? users.find(definition.match));
+    let exactMatch: DemoRoleUser | undefined;
+    for (const username of definition.usernames) {
+      exactMatch = usersByUsername.get(username.toLowerCase());
+      if (exactMatch) {
+        break;
+      }
+    }
+    pushUser(exactMatch ?? findDemoUser(users, definition.match));
   }
 
   for (const user of users) {

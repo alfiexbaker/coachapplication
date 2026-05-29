@@ -1,5 +1,4 @@
-import { useCallback, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, StyleSheet, FlatList, Platform, type ListRenderItemInfo } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -9,25 +8,17 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { AvailabilityTemplate, AvailabilityOverride } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 
-import {
-  DAYS_SHORT,
-  HOURS,
-  formatHourLabel,
-  GridLegend,
-  DayColumnHeaders,
-} from './availability-week-grid-sections';
+import { GridLegend, DayColumnHeaders } from './availability-week-grid-sections';
+import { DAYS_SHORT, HOURS, formatHourLabel } from './availability-week-grid-helpers';
 import { Row } from '@/components/primitives';
-import { DemoBanner, isDemoMode } from '@/utils/demo-mode';
+import { DemoBanner } from '@/utils/demo-mode';
+import { isDemoMode } from '@/utils/demo-mode-helpers';
 
 // Re-export extracted components for backward compat
-export {
-  DAYS_SHORT,
-  HOURS,
-  formatHourLabel,
-  GridLegend,
-  DayColumnHeaders,
-} from './availability-week-grid-sections';
+export { GridLegend, DayColumnHeaders } from './availability-week-grid-sections';
 export type { GridLegendProps, DayColumnHeadersProps } from './availability-week-grid-sections';
+
+const EMPTY_OVERRIDES: AvailabilityOverride[] = [];
 
 interface AvailabilityWeekGridProps {
   templates: AvailabilityTemplate[];
@@ -38,7 +29,7 @@ interface AvailabilityWeekGridProps {
 
 export function AvailabilityWeekGrid({
   templates,
-  overrides = [],
+  overrides = EMPTY_OVERRIDES,
   onSlotPress,
   onSlotLongPress,
 }: AvailabilityWeekGridProps) {
@@ -46,7 +37,7 @@ export function AvailabilityWeekGrid({
   const demoMode = isDemoMode();
   const todayIndex = new Date().getDay();
 
-  const slotLookup = useMemo(() => {
+  const slotLookup = (() => {
     const lookup = new Map<string, AvailabilityTemplate>();
     for (const t of templates) {
       const [startH] = t.startTime.split(':').map(Number);
@@ -56,12 +47,9 @@ export function AvailabilityWeekGrid({
       }
     }
     return lookup;
-  }, [templates]);
+  })();
 
-  const getSlotTemplate = useCallback(
-    (day: number, hour: number) => slotLookup.get(`${day}-${hour}`),
-    [slotLookup],
-  );
+  const getSlotTemplate = (day: number, hour: number) => slotLookup.get(`${day}-${hour}`);
 
   const handlePress = (day: number, hour: number) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -76,11 +64,18 @@ export function AvailabilityWeekGrid({
     }
   };
 
-  const dayCounts = useMemo(() => {
+  const dayCounts = (() => {
     const counts: number[] = [0, 0, 0, 0, 0, 0, 0];
     for (const t of templates) counts[t.dayOfWeek]++;
     return counts;
-  }, [templates]);
+  })();
+  const hourRows = getAvailabilityHourRows(
+    HOURS,
+    palette,
+    getSlotTemplate,
+    handlePress,
+    handleLongPress,
+  );
 
   return (
     <SurfaceCard style={styles.container}>
@@ -94,46 +89,92 @@ export function AvailabilityWeekGrid({
 
       <DayColumnHeaders todayIndex={todayIndex} dayCounts={dayCounts} palette={palette} />
 
-      <ScrollView
+      <FlatList
+        data={hourRows}
+        keyExtractor={keyAvailabilityHourRow}
+        renderItem={renderAvailabilityHourRow}
         style={styles.gridScroll}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
-      >
-        {HOURS.map((hour) => (
-          <Row key={hour} style={styles.gridRow}>
-            <View style={styles.hourLabel}>
-              <ThemedText style={[styles.hourText, { color: palette.muted }]}>
-                {formatHourLabel(hour)}
-              </ThemedText>
-            </View>
-            {DAYS_SHORT.map((_, dayIndex) => {
-              const isAvailable = !!getSlotTemplate(dayIndex, hour);
-              return (
-                <Clickable
-                  key={`${dayIndex}-${hour}`}
-                  onPress={() => handlePress(dayIndex, hour)}
-                  onLongPress={() => handleLongPress(dayIndex, hour)}
-                  delayLongPress={500}
-                  style={[
-                    styles.gridCell,
-                    {
-                      backgroundColor: isAvailable
-                        ? withAlpha(palette.success, 0.15)
-                        : palette.background,
-                      borderColor: isAvailable ? withAlpha(palette.success, 0.38) : palette.border,
-                    },
-                  ]}
-                >
-                  {isAvailable && (
-                    <View style={[styles.cellIndicator, { backgroundColor: palette.success }]} />
-                  )}
-                </Clickable>
-              );
-            })}
-          </Row>
-        ))}
-      </ScrollView>
+      />
     </SurfaceCard>
+  );
+}
+
+interface AvailabilityCellItem {
+  key: string;
+  dayIndex: number;
+  isAvailable: boolean;
+  palette: ReturnType<typeof useTheme>['colors'];
+  onPress: () => void;
+  onLongPress: () => void;
+}
+
+interface AvailabilityHourRow {
+  key: string;
+  hour: number;
+  muted: string;
+  cells: AvailabilityCellItem[];
+}
+
+function getAvailabilityHourRows(
+  hours: number[],
+  palette: ReturnType<typeof useTheme>['colors'],
+  getSlotTemplate: (day: number, hour: number) => AvailabilityTemplate | undefined,
+  handlePress: (day: number, hour: number) => void,
+  handleLongPress: (day: number, hour: number) => void,
+): AvailabilityHourRow[] {
+  return hours.map((hour) => ({
+    key: String(hour),
+    hour,
+    muted: palette.muted,
+    cells: DAYS_SHORT.map((_, dayIndex) => ({
+      key: `${dayIndex}-${hour}`,
+      dayIndex,
+      isAvailable: !!getSlotTemplate(dayIndex, hour),
+      palette,
+      onPress: () => handlePress(dayIndex, hour),
+      onLongPress: () => handleLongPress(dayIndex, hour),
+    })),
+  }));
+}
+
+function keyAvailabilityHourRow(item: AvailabilityHourRow) {
+  return item.key;
+}
+
+function renderAvailabilityHourRow({ item }: ListRenderItemInfo<AvailabilityHourRow>) {
+  return (
+    <Row style={styles.gridRow}>
+      <View style={styles.hourLabel}>
+        <ThemedText style={[styles.hourText, { color: item.muted }]}>
+          {formatHourLabel(item.hour)}
+        </ThemedText>
+      </View>
+      {item.cells.map((cell) => (
+        <Clickable
+          key={cell.key}
+          onPress={cell.onPress}
+          onLongPress={cell.onLongPress}
+          delayLongPress={500}
+          style={[
+            styles.gridCell,
+            {
+              backgroundColor: cell.isAvailable
+                ? withAlpha(cell.palette.success, 0.15)
+                : cell.palette.background,
+              borderColor: cell.isAvailable
+                ? withAlpha(cell.palette.success, 0.38)
+                : cell.palette.border,
+            },
+          ]}
+        >
+          {cell.isAvailable && (
+            <View style={[styles.cellIndicator, { backgroundColor: cell.palette.success }]} />
+          )}
+        </Clickable>
+      ))}
+    </Row>
   );
 }
 

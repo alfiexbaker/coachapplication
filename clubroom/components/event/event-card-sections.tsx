@@ -5,7 +5,7 @@
  * FullEventCardContent — full card with image, badges, details, footer.
  */
 
-import React, { memo, useCallback, useState } from 'react';
+import React, { useState } from 'react';
 import { View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,11 +35,11 @@ function ExpandableVenueText({
 }) {
   const [expanded, setExpanded] = useState(false);
   const isLong = venue.trim().length > 50;
-  const handleLongPress = useCallback(() => {
+  const handleLongPress = () => {
     if (isLong) {
       uiFeedback.showToast(venue);
     }
-  }, [isLong, venue]);
+  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -76,7 +76,7 @@ interface CompactEventCardProps {
   palette: ThemeColors;
 }
 
-export const CompactEventCard = memo(function CompactEventCard({
+export const CompactEventCard = function CompactEventCard({
   event,
   onPress,
   palette,
@@ -110,7 +110,7 @@ export const CompactEventCard = memo(function CompactEventCard({
       <Ionicons name="chevron-forward" size={20} color={palette.muted} />
     </SurfaceCard>
   );
-});
+};
 
 // ─── FullEventCardContent ────────────────────────────────────────────────────
 
@@ -120,7 +120,7 @@ interface FullEventCardContentProps {
   palette: ThemeColors;
 }
 
-export const FullEventCardContent = memo(function FullEventCardContent({
+export const FullEventCardContent = function FullEventCardContent({
   event,
   onPress,
   palette,
@@ -229,6 +229,4 @@ export const FullEventCardContent = memo(function FullEventCardContent({
       </View>
     </SurfaceCard>
   );
-});
-
-export { styles };
+};

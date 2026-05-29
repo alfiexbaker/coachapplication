@@ -2,7 +2,7 @@
  * EditBasicInfo — Name + bio fields for Edit Profile.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -19,7 +19,7 @@ interface EditBasicInfoProps {
   onChangeBio: (text: string) => void;
 }
 
-export const EditBasicInfo = memo(function EditBasicInfo({
+export const EditBasicInfo = function EditBasicInfo({
   colors,
   userIsCoach,
   fullName,
@@ -75,7 +75,7 @@ export const EditBasicInfo = memo(function EditBasicInfo({
       </View>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.md },

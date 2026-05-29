@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useState } from 'react';
 import { StyleSheet, View, Share, ActivityIndicator, Linking } from 'react-native';
 import { SafeImage } from '@/components/primitives/safe-image';
 import { Clickable } from '@/components/primitives/clickable';
@@ -46,7 +46,7 @@ export function ClubHeader({
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoPermissionMessage, setPhotoPermissionMessage] = useState<string | null>(null);
 
-  const roleLabel = useMemo(() => {
+  const roleLabel = (() => {
     switch (membership.role) {
       case 'OWNER':
         return 'Owner';
@@ -59,7 +59,7 @@ export function ClubHeader({
       default:
         return 'Member';
     }
-  }, [membership.role]);
+  })();
 
   const canManage = ['OWNER', 'ADMIN', 'HEAD_COACH'].includes(membership.role);
   const canShareInvite = ['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH'].includes(membership.role);
@@ -67,34 +67,31 @@ export function ClubHeader({
   const badgeText = club.name?.slice(0, 2).toUpperCase() || 'CL';
   const showCoverPhotoArea = Boolean(club.coverPhotoUrl || canManage);
 
-  const pickImage = useCallback(
-    async (type: 'profile' | 'cover') => {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permissionResult.granted) {
-        setPhotoPermissionMessage(
-          'Photo library access is needed to update club photos. Enable it in Settings to continue.',
-        );
-        uiFeedback.showToast('Photo library access is needed to update club photos.', 'warning');
-        return;
-      }
-      setPhotoPermissionMessage(null);
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: type === 'cover' ? [16, 9] : [1, 1],
-        quality: 0.8,
-      });
-      if (!result.canceled && result.assets[0]) {
-        const uri = result.assets[0].uri;
-        setUploadingPhoto(true);
-        onUpdatePhotos?.(type === 'profile' ? { profilePhotoUrl: uri } : { coverPhotoUrl: uri });
-        setUploadingPhoto(false);
-      }
-    },
-    [onUpdatePhotos],
-  );
+  const pickImage = async (type: 'profile' | 'cover') => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      setPhotoPermissionMessage(
+        'Photo library access is needed to update club photos. Enable it in Settings to continue.',
+      );
+      uiFeedback.showToast('Photo library access is needed to update club photos.', 'warning');
+      return;
+    }
+    setPhotoPermissionMessage(null);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: type === 'cover' ? [16, 9] : [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const uri = result.assets[0].uri;
+      setUploadingPhoto(true);
+      onUpdatePhotos?.(type === 'profile' ? { profilePhotoUrl: uri } : { coverPhotoUrl: uri });
+      setUploadingPhoto(false);
+    }
+  };
 
-  const handleShareInvite = useCallback(async () => {
+  const handleShareInvite = async () => {
     setShowMenu(false);
     try {
       const link = buildClubInviteLink(club.inviteCode, 'MEMBER');
@@ -105,22 +102,22 @@ export function ClubHeader({
     } catch {
       uiFeedback.showToast('Failed to share invite code', 'error');
     }
-  }, [club.name, club.inviteCode]);
+  };
 
-  const handleOpenClubSettings = useCallback(() => {
+  const handleOpenClubSettings = () => {
     setShowMenu(false);
     router.push(Routes.clubSettings({ clubId: club.id, section: 'details' }));
-  }, [club.id]);
+  };
 
-  const handleLeaveClub = useCallback(() => {
+  const handleLeaveClub = () => {
     setShowMenu(false);
     uiFeedback.alert('Leave Club', `Are you sure you want to leave ${club.name}?`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Leave', style: 'destructive', onPress: onLeave },
     ]);
-  }, [club.name, onLeave]);
+  };
 
-  const handleDeleteClub = useCallback(() => {
+  const handleDeleteClub = () => {
     setShowMenu(false);
     uiFeedback.alert(
       'Delete Club',
@@ -136,12 +133,12 @@ export function ClubHeader({
         },
       ],
     );
-  }, [club.name, club.id]);
+  };
 
-  const handleCreateGroup = useCallback(() => {
+  const handleCreateGroup = () => {
     setShowMenu(false);
     router.push(Routes.clubSquadCreate(club.id));
-  }, [club.id]);
+  };
 
   const menuItems: ClubMenuItem[] = [
     ...(canShareInvite

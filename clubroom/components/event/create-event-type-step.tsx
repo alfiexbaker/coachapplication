@@ -84,7 +84,7 @@ function CreateEventTypeStepInner({ eventType, onEventTypeChange }: CreateEventT
   );
 }
 
-export const CreateEventTypeStep = React.memo(CreateEventTypeStepInner);
+export const CreateEventTypeStep = CreateEventTypeStepInner;
 
 const styles = StyleSheet.create({
   stepContent: {

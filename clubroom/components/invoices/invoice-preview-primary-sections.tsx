@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 
 import { Row } from '@/components/primitives/row';
@@ -8,7 +8,7 @@ import { withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { Invoice } from '@/constants/types';
 import { invoiceService } from '@/services/invoice-service';
-import { getInvoiceStatusColor } from './invoice-card-sections';
+import { getInvoiceStatusColor } from './invoice-card-helpers';
 
 import { formatDate } from './invoice-preview-helpers';
 import { styles } from './invoice-preview-styles';
@@ -18,7 +18,7 @@ interface InvoiceHeaderProps {
   palette: ThemeColors;
 }
 
-export const InvoiceHeader = memo(function InvoiceHeader({ invoice, palette }: InvoiceHeaderProps) {
+export const InvoiceHeader = function InvoiceHeader({ invoice, palette }: InvoiceHeaderProps) {
   const statusColor = getInvoiceStatusColor(invoice.status, palette);
 
   return (
@@ -46,14 +46,14 @@ export const InvoiceHeader = memo(function InvoiceHeader({ invoice, palette }: I
       </View>
     </Row>
   );
-});
+};
 
 interface InvoiceDateCardProps {
   invoice: Invoice;
   palette: ThemeColors;
 }
 
-export const InvoiceDateCard = memo(function InvoiceDateCard({
+const renderInvoiceDateCard = function renderInvoiceDateCard({
   invoice,
   palette,
 }: InvoiceDateCardProps) {
@@ -83,14 +83,15 @@ export const InvoiceDateCard = memo(function InvoiceDateCard({
       </Row>
     </SurfaceCard>
   );
-});
+};
+export const InvoiceDateCard = renderInvoiceDateCard;
 
 interface InvoicePartiesRowProps {
   invoice: Invoice;
   palette: ThemeColors;
 }
 
-export const InvoicePartiesRow = memo(function InvoicePartiesRow({
+const renderInvoicePartiesRow = function renderInvoicePartiesRow({
   invoice,
   palette,
 }: InvoicePartiesRowProps) {
@@ -126,4 +127,5 @@ export const InvoicePartiesRow = memo(function InvoicePartiesRow({
       </SurfaceCard>
     </Row>
   );
-});
+};
+export const InvoicePartiesRow = renderInvoicePartiesRow;

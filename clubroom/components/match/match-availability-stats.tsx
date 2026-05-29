@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,7 +16,7 @@ interface MatchAvailabilityStatsProps {
   onSetLineup: () => void;
 }
 
-export const MatchAvailabilityStats = memo(function MatchAvailabilityStats({
+export const MatchAvailabilityStats = function MatchAvailabilityStats({
   match,
   onSetLineup,
 }: MatchAvailabilityStatsProps) {
@@ -61,7 +60,7 @@ export const MatchAvailabilityStats = memo(function MatchAvailabilityStats({
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },

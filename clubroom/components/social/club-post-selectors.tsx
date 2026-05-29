@@ -1,5 +1,5 @@
-import React, { memo } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import React from 'react';
+import { View, StyleSheet, FlatList, type ListRenderItemInfo } from 'react-native';
 import { Column } from '@/components/primitives/column';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import type { ThemeColors } from '@/hooks/useTheme';
 import type { ClubPostType, FeedType, ClubEvent } from '@/constants/types';
 import { POST_TYPES } from '@/hooks/use-create-club-post';
 
@@ -18,7 +19,7 @@ interface FeedTypeSelectorProps {
   followerCountEstimate?: number;
 }
 
-export const FeedTypeSelector = memo(function FeedTypeSelector({
+export const FeedTypeSelector = function FeedTypeSelector({
   feedType,
   canTargetClub = false,
   onSelect,
@@ -134,11 +135,15 @@ export const FeedTypeSelector = memo(function FeedTypeSelector({
                 </View>
               ) : null}
             </Row>
-            <ThemedText style={[Typography.caption, { color: palette.tint, marginTop: Spacing.micro }]}>
+            <ThemedText
+              style={[Typography.caption, { color: palette.tint, marginTop: Spacing.micro }]}
+            >
               Estimated audience: ~{Math.max(0, distributionCopy[feedType].count)} people
             </ThemedText>
             {distributionCopy[feedType].caution ? (
-              <ThemedText style={[Typography.caption, { color: palette.warning, marginTop: Spacing.micro }]}>
+              <ThemedText
+                style={[Typography.caption, { color: palette.warning, marginTop: Spacing.micro }]}
+              >
                 {distributionCopy[feedType].caution}
               </ThemedText>
             ) : null}
@@ -147,67 +152,41 @@ export const FeedTypeSelector = memo(function FeedTypeSelector({
       </View>
     </View>
   );
-});
+};
 
 interface PostTypeSelectorProps {
   postType: ClubPostType;
   onSelect: (pt: ClubPostType) => void;
 }
 
-export const PostTypeSelector = memo(function PostTypeSelector({
+export const PostTypeSelector = function PostTypeSelector({
   postType,
   onSelect,
 }: PostTypeSelectorProps) {
   const { colors: palette } = useTheme();
+  const postTypeItems = getPostTypeItems(postType, onSelect, palette);
+
   return (
     <View style={styles.section}>
       <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Post Type</ThemedText>
-      <ScrollView
+      <FlatList
         horizontal
         showsHorizontalScrollIndicator={false}
+        data={postTypeItems}
+        keyExtractor={keyPostTypeItem}
+        renderItem={renderPostTypeItem}
         contentContainerStyle={styles.eventRow}
-      >
-        {POST_TYPES.map((type) => (
-          <Clickable
-            key={type.key}
-            style={[
-              styles.chip,
-              { borderColor: postType === type.key ? palette.tint : palette.border },
-              postType === type.key
-                ? { backgroundColor: withAlpha(palette.tint, 0.06) }
-                : undefined,
-            ]}
-            onPress={() => onSelect(type.key)}
-          >
-            <Ionicons
-              name={type.icon as keyof typeof Ionicons.glyphMap}
-              size={20}
-              color={postType === type.key ? palette.tint : palette.muted}
-            />
-            <ThemedText
-              style={[
-                styles.chipLabel,
-                { color: postType === type.key ? palette.tint : palette.text },
-              ]}
-            >
-              {type.label}
-            </ThemedText>
-          </Clickable>
-        ))}
-      </ScrollView>
+      />
     </View>
   );
-});
+};
 
 interface PostAsSelectorProps {
   postAs: 'self' | 'club';
   onSelect: (pa: 'self' | 'club') => void;
 }
 
-export const PostAsSelector = memo(function PostAsSelector({
-  postAs,
-  onSelect,
-}: PostAsSelectorProps) {
+export const PostAsSelector = function PostAsSelector({ postAs, onSelect }: PostAsSelectorProps) {
   const { colors: palette } = useTheme();
   return (
     <View style={styles.section}>
@@ -236,7 +215,7 @@ export const PostAsSelector = memo(function PostAsSelector({
       </Row>
     </View>
   );
-});
+};
 
 interface AudienceSelectorProps {
   audienceType: 'club' | 'squad';
@@ -247,7 +226,7 @@ interface AudienceSelectorProps {
   onSelectSquadId: (id: string) => void;
 }
 
-export const AudienceSelector = memo(function AudienceSelector({
+export const AudienceSelector = function AudienceSelector({
   audienceType,
   selectedSquadId,
   squads,
@@ -257,6 +236,8 @@ export const AudienceSelector = memo(function AudienceSelector({
 }: AudienceSelectorProps) {
   const { colors: palette } = useTheme();
   const hasSquads = squads.length > 0;
+  const squadItems = getAudienceSquadItems(squads, selectedSquadId, onSelectSquadId, palette);
+
   return (
     <View style={styles.section}>
       <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Post To</ThemedText>
@@ -303,50 +284,14 @@ export const AudienceSelector = memo(function AudienceSelector({
         </Clickable>
       </Row>
       {audienceType === 'squad' && hasSquads && (
-        <ScrollView
+        <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
+          data={squadItems}
+          keyExtractor={keyAudienceSquadItem}
+          renderItem={renderAudienceSquadItem}
           contentContainerStyle={[styles.row, { marginTop: Spacing.sm }]}
-        >
-          {squads.map((squad) => (
-            <Clickable
-              key={squad.id}
-              style={[
-                styles.squadOption,
-                {
-                  borderColor: selectedSquadId === squad.id ? palette.success : palette.border,
-                  backgroundColor:
-                    selectedSquadId === squad.id
-                      ? withAlpha(palette.success, 0.06)
-                      : palette.surface,
-                },
-              ]}
-              onPress={() => onSelectSquadId(squad.id)}
-            >
-              <View
-                style={[
-                  styles.squadBadge,
-                  {
-                    backgroundColor: selectedSquadId === squad.id ? palette.success : palette.muted,
-                  },
-                ]}
-              >
-                <ThemedText style={{ color: palette.onPrimary, ...Typography.micro }}>
-                  {squad.name.slice(0, 2).toUpperCase()}
-                </ThemedText>
-              </View>
-              <Column flex>
-                <ThemedText style={{ ...Typography.smallSemiBold }}>{squad.name}</ThemedText>
-                <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
-                  {squad.memberCount} members
-                </ThemedText>
-              </Column>
-              {selectedSquadId === squad.id && (
-                <Ionicons name="checkmark-circle" size={18} color={palette.success} />
-              )}
-            </Clickable>
-          ))}
-        </ScrollView>
+        />
       )}
       {audienceType === 'squad' && !hasSquads && (
         <ThemedText style={[styles.noSquadsHint, { color: palette.muted }]}>
@@ -355,7 +300,7 @@ export const AudienceSelector = memo(function AudienceSelector({
       )}
     </View>
   );
-});
+};
 
 interface EventAttachSelectorProps {
   events: ClubEvent[];
@@ -364,13 +309,14 @@ interface EventAttachSelectorProps {
   onClear: () => void;
 }
 
-export const EventAttachSelector = memo(function EventAttachSelector({
+export const EventAttachSelector = function EventAttachSelector({
   events,
   selectedEventId,
   onSelectEvent,
   onClear,
 }: EventAttachSelectorProps) {
   const { colors: palette } = useTheme();
+  const eventItems = getEventAttachItems(events, selectedEventId, onSelectEvent, palette);
 
   if (events.length === 0) return null;
 
@@ -386,45 +332,205 @@ export const EventAttachSelector = memo(function EventAttachSelector({
           </Clickable>
         ) : null}
       </Row>
-      <ScrollView
+      <FlatList
         horizontal
         showsHorizontalScrollIndicator={false}
+        data={eventItems}
+        keyExtractor={keyEventAttachItem}
+        renderItem={renderEventAttachItem}
         contentContainerStyle={styles.eventRow}
-      >
-        {events.map((event) => {
-          const isSelected = selectedEventId === event.id;
-          return (
-            <Clickable
-              key={event.id}
-              style={[
-                styles.eventOption,
-                {
-                  borderColor: isSelected ? palette.tint : palette.border,
-                  backgroundColor: isSelected ? withAlpha(palette.tint, 0.06) : palette.surface,
-                },
-              ]}
-              onPress={() => onSelectEvent(event.id)}
-            >
-              <ThemedText
-                style={[styles.eventTitle, { color: isSelected ? palette.tint : palette.text }]}
-                numberOfLines={1}
-              >
-                {event.title}
-              </ThemedText>
-              <ThemedText style={[styles.eventMeta, { color: palette.muted }]} numberOfLines={1}>
-                {new Date(`${event.date}T00:00:00`).toLocaleDateString('en-GB', {
-                  day: 'numeric',
-                  month: 'short',
-                })}{' '}
-                · {event.venue}
-              </ThemedText>
-            </Clickable>
-          );
-        })}
-      </ScrollView>
+      />
     </View>
   );
-});
+};
+
+type PostTypeOption = (typeof POST_TYPES)[number];
+
+interface PostTypeItem {
+  key: ClubPostType;
+  type: PostTypeOption;
+  isSelected: boolean;
+  palette: ThemeColors;
+  onSelect: () => void;
+}
+
+function getPostTypeItems(
+  postType: ClubPostType,
+  onSelect: (postType: ClubPostType) => void,
+  palette: ThemeColors,
+): PostTypeItem[] {
+  return POST_TYPES.map((type) => ({
+    key: type.key,
+    type,
+    isSelected: postType === type.key,
+    palette,
+    onSelect: () => onSelect(type.key),
+  }));
+}
+
+function keyPostTypeItem(item: PostTypeItem): string {
+  return item.key;
+}
+
+function renderPostTypeItem({ item }: ListRenderItemInfo<PostTypeItem>) {
+  return (
+    <Clickable
+      style={[
+        styles.chip,
+        { borderColor: item.isSelected ? item.palette.tint : item.palette.border },
+        item.isSelected ? { backgroundColor: withAlpha(item.palette.tint, 0.06) } : undefined,
+      ]}
+      onPress={item.onSelect}
+    >
+      <Ionicons
+        name={item.type.icon as keyof typeof Ionicons.glyphMap}
+        size={20}
+        color={item.isSelected ? item.palette.tint : item.palette.muted}
+      />
+      <ThemedText
+        style={[
+          styles.chipLabel,
+          { color: item.isSelected ? item.palette.tint : item.palette.text },
+        ]}
+      >
+        {item.type.label}
+      </ThemedText>
+    </Clickable>
+  );
+}
+
+interface AudienceSquad {
+  id: string;
+  name: string;
+  memberCount: number;
+}
+
+interface AudienceSquadItem {
+  key: string;
+  squad: AudienceSquad;
+  isSelected: boolean;
+  palette: ThemeColors;
+  onSelect: () => void;
+}
+
+function getAudienceSquadItems(
+  squads: AudienceSquad[],
+  selectedSquadId: string | null,
+  onSelectSquadId: (id: string) => void,
+  palette: ThemeColors,
+): AudienceSquadItem[] {
+  return squads.map((squad) => ({
+    key: squad.id,
+    squad,
+    isSelected: selectedSquadId === squad.id,
+    palette,
+    onSelect: () => onSelectSquadId(squad.id),
+  }));
+}
+
+function keyAudienceSquadItem(item: AudienceSquadItem): string {
+  return item.key;
+}
+
+function renderAudienceSquadItem({ item }: ListRenderItemInfo<AudienceSquadItem>) {
+  return (
+    <Clickable
+      style={[
+        styles.squadOption,
+        {
+          borderColor: item.isSelected ? item.palette.success : item.palette.border,
+          backgroundColor: item.isSelected
+            ? withAlpha(item.palette.success, 0.06)
+            : item.palette.surface,
+        },
+      ]}
+      onPress={item.onSelect}
+    >
+      <View
+        style={[
+          styles.squadBadge,
+          {
+            backgroundColor: item.isSelected ? item.palette.success : item.palette.muted,
+          },
+        ]}
+      >
+        <ThemedText style={{ color: item.palette.onPrimary, ...Typography.micro }}>
+          {item.squad.name.slice(0, 2).toUpperCase()}
+        </ThemedText>
+      </View>
+      <Column flex>
+        <ThemedText style={{ ...Typography.smallSemiBold }}>{item.squad.name}</ThemedText>
+        <ThemedText style={{ color: item.palette.muted, ...Typography.caption }}>
+          {item.squad.memberCount} members
+        </ThemedText>
+      </Column>
+      {item.isSelected ? (
+        <Ionicons name="checkmark-circle" size={18} color={item.palette.success} />
+      ) : null}
+    </Clickable>
+  );
+}
+
+interface EventAttachItem {
+  key: string;
+  event: ClubEvent;
+  isSelected: boolean;
+  palette: ThemeColors;
+  onSelect: () => void;
+}
+
+function getEventAttachItems(
+  events: ClubEvent[],
+  selectedEventId: string | null,
+  onSelectEvent: (id: string) => void,
+  palette: ThemeColors,
+): EventAttachItem[] {
+  return events.map((event) => ({
+    key: event.id,
+    event,
+    isSelected: selectedEventId === event.id,
+    palette,
+    onSelect: () => onSelectEvent(event.id),
+  }));
+}
+
+function keyEventAttachItem(item: EventAttachItem): string {
+  return item.key;
+}
+
+function renderEventAttachItem({ item }: ListRenderItemInfo<EventAttachItem>) {
+  return (
+    <Clickable
+      style={[
+        styles.eventOption,
+        {
+          borderColor: item.isSelected ? item.palette.tint : item.palette.border,
+          backgroundColor: item.isSelected
+            ? withAlpha(item.palette.tint, 0.06)
+            : item.palette.surface,
+        },
+      ]}
+      onPress={item.onSelect}
+    >
+      <ThemedText
+        style={[
+          styles.eventTitle,
+          { color: item.isSelected ? item.palette.tint : item.palette.text },
+        ]}
+        numberOfLines={1}
+      >
+        {item.event.title}
+      </ThemedText>
+      <ThemedText style={[styles.eventMeta, { color: item.palette.muted }]} numberOfLines={1}>
+        {new Date(`${item.event.date}T00:00:00`).toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+        })}{' '}
+        · {item.event.venue}
+      </ThemedText>
+    </Clickable>
+  );
+}
 
 const styles = StyleSheet.create({
   section: { paddingHorizontal: Spacing.md, paddingTop: Spacing.md },

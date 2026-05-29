@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -32,9 +32,45 @@ interface MyClubsData {
   memberships: ClubMembership[];
 }
 type UserClub = MyClubsData['clubs'][number];
+type ShowToast = ReturnType<typeof useToast>['showToast'];
 
 function isStaffMembership(role: ClubMembership['role'] | undefined): boolean {
   return role ? isClubStaffRole(role) : false;
+}
+
+async function joinClubWithCode({
+  code,
+  currentUserId,
+  onRefresh,
+  showToast,
+}: {
+  code: string;
+  currentUserId: string | undefined;
+  onRefresh: () => void;
+  showToast: ShowToast;
+}) {
+  if (!currentUserId) {
+    uiFeedback.showToast('Please sign in to join a club.', 'error');
+    return;
+  }
+  const result = await clubAuthorityService.joinWithCode(code);
+  if (!result.success) {
+    uiFeedback.showToast(result.error.message, 'error');
+    return;
+  }
+
+  if (result.data.outcome === 'invite_pending') {
+    showToast(`Review the ${result.data.club.name} invite in Club Invites`, 'success');
+    router.push(Routes.COACH_INVITES);
+    return;
+  }
+
+  if (result.data.outcome === 'already_member') {
+    showToast(`You're already in ${result.data.club.name}`, 'success');
+  } else {
+    showToast(`Joined ${result.data.club.name}`, 'success');
+  }
+  onRefresh();
 }
 
 export default function MyClubsScreen() {
@@ -44,7 +80,7 @@ export default function MyClubsScreen() {
   const isCoachAccount = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
   const handledInviteRef = useRef<string | null>(null);
 
-  const loadMyClubs = useCallback(async () => {
+  const loadMyClubs = async () => {
     if (!currentUser?.id) {
       return ok<MyClubsData>({ clubs: [], memberships: [] });
     }
@@ -56,7 +92,7 @@ export default function MyClubsScreen() {
       clubs: socialFeedService.getUserClubs(currentUser.id),
       memberships: socialFeedService.getUserMemberships(currentUser.id),
     });
-  }, [currentUser?.id]);
+  };
 
   const { data, status, error, retry, onRefresh, refreshing, colors } = useScreen<MyClubsData>({
     load: loadMyClubs,
@@ -66,104 +102,77 @@ export default function MyClubsScreen() {
   });
 
   const clubs = data?.clubs ?? [];
-  const membershipByClubId = useMemo(() => {
+  const membershipByClubId = (() => {
     const map = new Map<string, ClubMembership>();
     (data?.memberships ?? []).forEach((membership) => map.set(membership.clubId, membership));
     return map;
-  }, [data?.memberships]);
-  const staffClubs = useMemo(
-    () => clubs.filter((club) => isStaffMembership(membershipByClubId.get(club.id)?.role)),
-    [clubs, membershipByClubId],
+  })();
+  const staffClubs = clubs.filter((club) =>
+    isStaffMembership(membershipByClubId.get(club.id)?.role),
   );
-  const memberClubs = useMemo(
-    () => clubs.filter((club) => !isStaffMembership(membershipByClubId.get(club.id)?.role)),
-    [clubs, membershipByClubId],
+  const memberClubs = clubs.filter(
+    (club) => !isStaffMembership(membershipByClubId.get(club.id)?.role),
   );
 
-  const renderClubCard = useCallback(
-    (club: UserClub) => {
-      const membership = membershipByClubId.get(club.id);
-      return (
-        <SurfaceCard
-          key={club.id}
-          style={styles.clubCard}
-          onPress={() =>
-            router.push(
-              isStaffMembership(membership?.role)
-                ? Routes.clubHub({ clubId: club.id })
-                : Routes.club(club.id),
-            )
-          }
-        >
-          <View
-            style={[
-              styles.clubBadge,
-              { backgroundColor: withAlpha(colors.tint, 0.09) },
-            ]}
-          >
-            <ThemedText style={[styles.clubBadgeText, { color: colors.tint }]}>
-              {club.badge || club.name.slice(0, 2).toUpperCase()}
-            </ThemedText>
-          </View>
+  const renderClubCard = (club: UserClub) => {
+    const membership = membershipByClubId.get(club.id);
+    return (
+      <SurfaceCard
+        key={club.id}
+        style={styles.clubCard}
+        onPress={() =>
+          router.push(
+            isStaffMembership(membership?.role)
+              ? Routes.clubHub({ clubId: club.id })
+              : Routes.club(club.id),
+          )
+        }
+      >
+        <View style={[styles.clubBadge, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
+          <ThemedText style={[styles.clubBadgeText, { color: colors.tint }]}>
+            {club.badge || club.name.slice(0, 2).toUpperCase()}
+          </ThemedText>
+        </View>
 
-          <View style={styles.clubBody}>
-            <ThemedText type="defaultSemiBold" numberOfLines={1}>
-              {club.name}
-            </ThemedText>
-            <ThemedText style={[styles.metaText, { color: colors.muted }]} numberOfLines={1}>
-              {[club.city, `${club.memberCount} members`].filter(Boolean).join(' · ')}
-            </ThemedText>
-            {membership ? (
-              <View
-                style={[
-                  styles.rolePill,
-                  { borderColor: withAlpha(colors.tint, 0.3), backgroundColor: withAlpha(colors.tint, 0.08) },
-                ]}
-              >
-                <ThemedText style={[styles.rolePillText, { color: colors.tint }]}>
-                  {formatOrganizationRoleLabel(membership.role)}
-                </ThemedText>
-              </View>
-            ) : null}
-          </View>
+        <View style={styles.clubBody}>
+          <ThemedText type="defaultSemiBold" numberOfLines={1}>
+            {club.name}
+          </ThemedText>
+          <ThemedText style={[styles.metaText, { color: colors.muted }]} numberOfLines={1}>
+            {[club.city, `${club.memberCount} members`].filter(Boolean).join(' · ')}
+          </ThemedText>
+          {membership ? (
+            <View
+              style={[
+                styles.rolePill,
+                {
+                  borderColor: withAlpha(colors.tint, 0.3),
+                  backgroundColor: withAlpha(colors.tint, 0.08),
+                },
+              ]}
+            >
+              <ThemedText style={[styles.rolePillText, { color: colors.tint }]}>
+                {formatOrganizationRoleLabel(membership.role)}
+              </ThemedText>
+            </View>
+          ) : null}
+        </View>
 
-          <Row align="center" gap="xxs">
-            <ThemedText style={[styles.openLabel, { color: colors.tint }]}>Open</ThemedText>
-            <Ionicons name="chevron-forward" size={16} color={colors.tint} />
-          </Row>
-        </SurfaceCard>
-      );
-    },
-    [colors.muted, colors.tint, membershipByClubId],
-  );
+        <Row align="center" gap="xxs">
+          <ThemedText style={[styles.openLabel, { color: colors.tint }]}>Open</ThemedText>
+          <Ionicons name="chevron-forward" size={16} color={colors.tint} />
+        </Row>
+      </SurfaceCard>
+    );
+  };
 
-  const handleJoin = useCallback(
-    async ({ code }: { code: string; role?: string }) => {
-      if (!currentUser?.id) {
-        uiFeedback.showToast('Please sign in to join a club.', 'error');
-        return;
-      }
-      const result = await clubAuthorityService.joinWithCode(code);
-      if (!result.success) {
-        uiFeedback.showToast(result.error.message, 'error');
-        return;
-      }
-
-      if (result.data.outcome === 'invite_pending') {
-        showToast(`Review the ${result.data.club.name} invite in Club Invites`, 'success');
-        router.push(Routes.COACH_INVITES);
-        return;
-      }
-
-      if (result.data.outcome === 'already_member') {
-        showToast(`You're already in ${result.data.club.name}`, 'success');
-      } else {
-        showToast(`Joined ${result.data.club.name}`, 'success');
-      }
-      onRefresh();
-    },
-    [currentUser?.id, onRefresh, showToast],
-  );
+  const handleJoin = async ({ code }: { code: string; role?: string }) =>
+    joinClubWithCode({
+      code,
+      currentUserId: currentUser?.id,
+      onRefresh,
+      showToast,
+    });
 
   useEffect(() => {
     if (!currentUser?.id || !params.inviteCode) {
@@ -174,8 +183,13 @@ export default function MyClubsScreen() {
       return;
     }
     handledInviteRef.current = normalizedCode;
-    void handleJoin({ code: normalizedCode, role: params.inviteRole });
-  }, [currentUser?.id, handleJoin, params.inviteCode, params.inviteRole]);
+    void joinClubWithCode({
+      code: normalizedCode,
+      currentUserId: currentUser.id,
+      onRefresh,
+      showToast,
+    });
+  }, [currentUser?.id, onRefresh, params.inviteCode, params.inviteRole, showToast]);
 
   if (status === 'loading') {
     return (

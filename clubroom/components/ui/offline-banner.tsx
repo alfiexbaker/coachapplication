@@ -6,7 +6,7 @@
  * Shows queue count, sync progress, flush result, and retry.
  */
 
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { StyleSheet, ActivityIndicator } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -35,9 +35,9 @@ export function OfflineBanner() {
 
   useEffect(() => {
     if (showBanner) {
-      translateY.value = withSpring(0, { damping: 15, stiffness: 120 });
+      translateY.set(withSpring(0, { damping: 15, stiffness: 120 }));
     } else {
-      translateY.value = withTiming(-100, { duration: 300 });
+      translateY.set(withTiming(-100, { duration: 300 }));
     }
   }, [showBanner, translateY]);
 
@@ -45,9 +45,9 @@ export function OfflineBanner() {
     transform: [{ translateY: translateY.value }],
   }));
 
-  const handleRetry = useCallback(() => {
+  const handleRetry = () => {
     void manualFlush();
-  }, [manualFlush]);
+  };
 
   // Determine banner state
   const hasFailedActions = lastFlushResult !== null && lastFlushResult.failed > 0;
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 9999,
+    zIndex: 40,
     paddingBottom: Spacing.xs,
     paddingHorizontal: Spacing.sm,
   },

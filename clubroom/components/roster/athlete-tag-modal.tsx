@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet, Modal, TextInput, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
@@ -16,7 +16,7 @@ interface AthleteTagModalProps {
   onClose: () => void;
 }
 
-export const AthleteTagModal = memo(function AthleteTagModal({
+export const AthleteTagModal = function AthleteTagModal({
   visible,
   value,
   onChangeText,
@@ -52,14 +52,12 @@ export const AthleteTagModal = memo(function AthleteTagModal({
 
             maxLength={50}
           />
-          <Button onPress={onSubmit} disabled={!value.trim()}>
-            Add Tag
-          </Button>
+          <Button onPress={onSubmit} disabled={!value.trim()} label="Add Tag" />
         </View>
       </View>
     </Modal>
   );
-});
+};
 
 const styles = StyleSheet.create({
   overlay: {

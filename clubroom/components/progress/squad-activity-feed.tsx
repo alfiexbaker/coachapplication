@@ -1,4 +1,3 @@
-import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -16,6 +15,8 @@ interface SquadActivityFeedProps {
   summary: SquadActivitySummary;
   onViewAll?: () => void;
 }
+
+const compactDateFormatter = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' });
 
 function iconForType(type: SquadActivityItem['type']): keyof typeof Ionicons.glyphMap {
   switch (type) {
@@ -61,17 +62,17 @@ function formatRelative(iso: string): string {
   if (diffMs < 7 * 24 * 60 * 60 * 1000) {
     return `${Math.max(1, Math.round(diffMs / (24 * 60 * 60 * 1000)))}d`;
   }
-  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(new Date(iso));
+  return compactDateFormatter.format(new Date(iso));
 }
 
-export const SquadActivityFeed = memo(function SquadActivityFeed({
+export const SquadActivityFeed = function SquadActivityFeed({
   items,
   summary,
   onViewAll,
 }: SquadActivityFeedProps) {
   const { colors } = useTheme();
 
-  const visibleItems = useMemo(() => items.slice(0, 5), [items]);
+  const visibleItems = items.slice(0, 5);
   if (visibleItems.length === 0) {
     return null;
   }
@@ -145,7 +146,7 @@ export const SquadActivityFeed = memo(function SquadActivityFeed({
       </Column>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

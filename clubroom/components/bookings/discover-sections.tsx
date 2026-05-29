@@ -1,10 +1,3 @@
-/**
- * Discover Sections — Individual memoized section components for the bookings discover feed.
- *
- * Each section hides itself when it has no data (empty = hidden, not "no data" message).
- */
-
-import { memo, useCallback } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -35,7 +28,7 @@ interface SectionHeaderProps {
   onViewAll?: () => void;
 }
 
-const SectionHeader = memo(function SectionHeader({
+const SectionHeader = function SectionHeader({
   icon,
   title,
   count,
@@ -64,7 +57,7 @@ const SectionHeader = memo(function SectionHeader({
       )}
     </Row>
   );
-});
+};
 
 // ─── This Week Section ────────────────────────────────────────────
 
@@ -73,7 +66,7 @@ interface ThisWeekSectionProps {
   onOfferingPress: (offering: SessionOffering) => void;
 }
 
-export const ThisWeekSection = memo(function ThisWeekSection({
+export const ThisWeekSection = function ThisWeekSection({
   offerings,
   onOfferingPress,
 }: ThisWeekSectionProps) {
@@ -92,7 +85,7 @@ export const ThisWeekSection = memo(function ThisWeekSection({
       ))}
     </Column>
   );
-});
+};
 
 // ─── Your Coaches Section ─────────────────────────────────────────
 
@@ -102,18 +95,15 @@ interface YourCoachesSectionProps {
   onFindCoachPress: () => void;
 }
 
-export const YourCoachesSection = memo(function YourCoachesSection({
+export const YourCoachesSection = function YourCoachesSection({
   coaches,
   onCoachPress,
   onFindCoachPress,
 }: YourCoachesSectionProps) {
   const { colors: palette } = useTheme();
 
-  const renderCoach = useCallback(
-    ({ item }: { item: CoachProfile }) => (
-      <CoachCardCompact coach={item} onPress={onCoachPress} />
-    ),
-    [onCoachPress],
+  const renderCoach = ({ item }: { item: CoachProfile }) => (
+    <CoachCardCompact coach={item} onPress={onCoachPress} />
   );
 
   if (coaches.length === 0) return null;
@@ -151,7 +141,7 @@ export const YourCoachesSection = memo(function YourCoachesSection({
       />
     </Column>
   );
-});
+};
 
 // ─── Club Training Section ────────────────────────────────────────
 
@@ -160,7 +150,7 @@ interface ClubTrainingSectionProps {
   onSessionPress: (sessionId: string) => void;
 }
 
-export const ClubTrainingSection = memo(function ClubTrainingSection({
+export const ClubTrainingSection = function ClubTrainingSection({
   sessions,
   onSessionPress,
 }: ClubTrainingSectionProps) {
@@ -220,7 +210,7 @@ export const ClubTrainingSection = memo(function ClubTrainingSection({
       ))}
     </Column>
   );
-});
+};
 
 // ─── Open Sessions Section ────────────────────────────────────────
 
@@ -229,15 +219,15 @@ interface OpenSessionsSectionProps {
   onOfferingPress: (offering: SessionOffering) => void;
 }
 
-export const OpenSessionsSection = memo(function OpenSessionsSection({
+export const OpenSessionsSection = function OpenSessionsSection({
   offerings,
   onOfferingPress,
 }: OpenSessionsSectionProps) {
-  if (offerings.length === 0) return null;
-
-  const handleViewAll = useCallback(() => {
+  const handleViewAll = () => {
     router.push(Routes.DISCOVER_SESSIONS);
-  }, []);
+  };
+
+  if (offerings.length === 0) return null;
 
   return (
     <Column gap="xs" style={styles.section}>
@@ -257,7 +247,7 @@ export const OpenSessionsSection = memo(function OpenSessionsSection({
       ))}
     </Column>
   );
-});
+};
 
 // ─── Styles ───────────────────────────────────────────────────────
 

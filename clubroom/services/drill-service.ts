@@ -34,15 +34,12 @@ import type {
   AssignDrillInput,
   DrillAssignmentStats,
 } from '../constants/types';
-
 const logger = createLogger('DrillService');
-
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
   const userResult = await userService.getUserById(userId);
   if (!userResult.success) {
     return fallback;
   }
-
   return userResult.data.name?.trim() || fallback;
 }
 
@@ -163,7 +160,6 @@ const MOCK_DRILLS: Drill[] = [
     updatedAt: '2026-01-07T17:00:00Z',
   },
 ];
-
 const MOCK_ASSIGNMENTS: AssignedDrill[] = [
   {
     id: 'assign_1',
@@ -304,7 +300,6 @@ async function createDrill(
 ): Promise<Drill> {
   const drills = await getAllDrills();
   const now = new Date().toISOString();
-
   const newDrill: Drill = {
     id: `drill_${Date.now()}`,
     coachId,
@@ -321,17 +316,14 @@ async function createDrill(
     createdAt: now,
     updatedAt: now,
   };
-
   drills.unshift(newDrill);
   await saveDrills(drills);
-
   logger.info('drill_created', {
     drillId: newDrill.id,
     coachId,
     category: params.category,
     difficulty: params.difficulty,
   });
-
   return newDrill;
 }
 
@@ -347,27 +339,24 @@ async function updateDrill(
 ): Promise<Drill | null> {
   const drills = await getAllDrills();
   const drillIndex = drills.findIndex((d) => d.id === drillId);
-
   if (drillIndex === -1) {
-    logger.warn('drill_not_found', { drillId });
+    logger.warn('drill_not_found', {
+      drillId,
+    });
     return null;
   }
-
   const drill = drills[drillIndex];
   const updatedDrill: Drill = {
     ...drill,
     ...updates,
     updatedAt: new Date().toISOString(),
   };
-
   drills[drillIndex] = updatedDrill;
   await saveDrills(drills);
-
   logger.info('drill_updated', {
     drillId,
     updates: Object.keys(updates),
   });
-
   return updatedDrill;
 }
 
@@ -379,16 +368,17 @@ async function updateDrill(
 async function deleteDrill(drillId: string): Promise<boolean> {
   const drills = await getAllDrills();
   const drillIndex = drills.findIndex((d) => d.id === drillId);
-
   if (drillIndex === -1) {
-    logger.warn('drill_not_found_for_delete', { drillId });
+    logger.warn('drill_not_found_for_delete', {
+      drillId,
+    });
     return false;
   }
-
   drills.splice(drillIndex, 1);
   await saveDrills(drills);
-
-  logger.info('drill_deleted', { drillId });
+  logger.info('drill_deleted', {
+    drillId,
+  });
   return true;
 }
 
@@ -410,15 +400,13 @@ async function assignDrill(
   assignedByName: string,
   params: AssignDrillInput,
 ): Promise<Result<AssignedDrill, ServiceError>> {
-  const assignments = await getAllAssignments();
-  const drills = await getAllDrills();
+  const [assignments, drills] = await Promise.all([getAllAssignments(), getAllDrills()]);
 
   // Get the drill details
   const drill = drills.find((d) => d.id === drillId);
   if (!drill) {
     return err(notFound('Drill', drillId));
   }
-
   const newAssignment: AssignedDrill = {
     id: `assign_${Date.now()}`,
     drillId,
@@ -432,17 +420,16 @@ async function assignDrill(
     repetitions: params.repetitions,
     priority: params.priority ?? 2,
   };
-
   assignments.unshift(newAssignment);
-  await saveAssignments(assignments);
-
   // Increment assignment count on the drill
   const drillIndex = drills.findIndex((d) => d.id === drillId);
   if (drillIndex !== -1) {
     drills[drillIndex].assignmentCount = (drills[drillIndex].assignmentCount ?? 0) + 1;
-    await saveDrills(drills);
   }
-
+  await Promise.all([
+    saveAssignments(assignments),
+    drillIndex !== -1 ? saveDrills(drills) : Promise.resolve(),
+  ]);
   logger.info('drill_assigned', {
     assignmentId: newAssignment.id,
     drillId,
@@ -451,14 +438,18 @@ async function assignDrill(
   });
 
   // Notify parent that a drill has been assigned to their athlete
-  const [coachDisplayName, athleteDisplayName] = await Promise.all([
+  const [coachDisplayName, athleteDisplayName, athleteChildProfile] = await Promise.all([
     assignedByName?.trim() ? Promise.resolve(assignedByName) : resolveUserName(assignedBy, 'Coach'),
     athleteName?.trim() ? Promise.resolve(athleteName) : resolveUserName(athleteId, 'Athlete'),
+    childService.getChild(athleteId),
   ]);
-  const athleteChildProfile = await childService.getChild(athleteId);
   const recipientId = athleteChildProfile?.parentId || athleteId;
-  await notificationTriggers.drillAssigned(coachDisplayName, drill.title, athleteDisplayName, recipientId);
-
+  await notificationTriggers.drillAssigned(
+    coachDisplayName,
+    drill.title,
+    athleteDisplayName,
+    recipientId,
+  );
   return ok(newAssignment);
 }
 
@@ -472,11 +463,8 @@ async function getAthleteAssignments(
   athleteId: string,
   includeCompleted: boolean = true,
 ): Promise<AssignedDrill[]> {
-  const assignments = await getAllAssignments();
-  const drills = await getAllDrills();
-
+  const [assignments, drills] = await Promise.all([getAllAssignments(), getAllDrills()]);
   let athleteAssignments = assignments.filter((a) => a.athleteId === athleteId);
-
   if (!includeCompleted) {
     athleteAssignments = athleteAssignments.filter((a) => !a.isCompleted);
   }
@@ -508,14 +496,11 @@ async function getAthleteAssignments(
  * @returns The assignment with drill details or null if not found
  */
 async function getAssignmentById(assignmentId: string): Promise<AssignedDrill | null> {
-  const assignments = await getAllAssignments();
-  const drills = await getAllDrills();
-
+  const [assignments, drills] = await Promise.all([getAllAssignments(), getAllDrills()]);
   const assignment = assignments.find((a) => a.id === assignmentId);
   if (!assignment) {
     return null;
   }
-
   return {
     ...assignment,
     drill: drills.find((d) => d.id === assignment.drillId),
@@ -532,27 +517,33 @@ async function completeDrill(
   assignmentId: string,
   athleteFeedbackOrOptions?:
     | string
-    | { athleteFeedback?: string; evidenceVideoUri?: string; evidenceNotes?: string },
+    | {
+        athleteFeedback?: string;
+        evidenceVideoUri?: string;
+        evidenceNotes?: string;
+      },
 ): Promise<AssignedDrill | null> {
   const assignments = await getAllAssignments();
   const assignmentIndex = assignments.findIndex((a) => a.id === assignmentId);
-
   if (assignmentIndex === -1) {
-    logger.warn('assignment_not_found', { assignmentId });
+    logger.warn('assignment_not_found', {
+      assignmentId,
+    });
     return null;
   }
-
   const assignment = assignments[assignmentIndex];
   const options =
     typeof athleteFeedbackOrOptions === 'string'
-      ? { athleteFeedback: athleteFeedbackOrOptions }
-      : athleteFeedbackOrOptions ?? {};
-
+      ? {
+          athleteFeedback: athleteFeedbackOrOptions,
+        }
+      : (athleteFeedbackOrOptions ?? {});
   if (assignment.isCompleted) {
-    logger.info('assignment_already_completed', { assignmentId });
+    logger.info('assignment_already_completed', {
+      assignmentId,
+    });
     return assignment;
   }
-
   const updatedAssignment: AssignedDrill = {
     ...assignment,
     isCompleted: true,
@@ -561,10 +552,12 @@ async function completeDrill(
     evidenceVideoUri: options.evidenceVideoUri,
     evidenceNotes: options.evidenceNotes,
   };
-
   assignments[assignmentIndex] = updatedAssignment;
-  await saveAssignments(assignments);
-
+  const [drills, athleteName] = await Promise.all([
+    getAllDrills(),
+    resolveUserName(assignment.athleteId, 'Athlete'),
+    saveAssignments(assignments),
+  ]);
   logger.info('drill_completed', {
     assignmentId,
     drillId: assignment.drillId,
@@ -572,15 +565,12 @@ async function completeDrill(
   });
 
   // Notify coach that the athlete completed the drill
-  const drills = await getAllDrills();
   const completedDrill = drills.find((d) => d.id === assignment.drillId);
-  const athleteName = await resolveUserName(assignment.athleteId, 'Athlete');
   await notificationTriggers.drillCompleted(
     athleteName,
     completedDrill?.title || 'Drill',
     assignment.assignedBy,
   );
-
   return updatedAssignment;
 }
 
@@ -592,14 +582,13 @@ async function completeDrill(
 async function uncompleteDrill(assignmentId: string): Promise<AssignedDrill | null> {
   const assignments = await getAllAssignments();
   const assignmentIndex = assignments.findIndex((a) => a.id === assignmentId);
-
   if (assignmentIndex === -1) {
-    logger.warn('assignment_not_found', { assignmentId });
+    logger.warn('assignment_not_found', {
+      assignmentId,
+    });
     return null;
   }
-
   const assignment = assignments[assignmentIndex];
-
   const updatedAssignment: AssignedDrill = {
     ...assignment,
     isCompleted: false,
@@ -607,16 +596,13 @@ async function uncompleteDrill(assignmentId: string): Promise<AssignedDrill | nu
     evidenceVideoUri: undefined,
     evidenceNotes: undefined,
   };
-
   assignments[assignmentIndex] = updatedAssignment;
   await saveAssignments(assignments);
-
   logger.info('drill_uncompleted', {
     assignmentId,
     drillId: assignment.drillId,
     athleteId: assignment.athleteId,
   });
-
   return updatedAssignment;
 }
 
@@ -628,16 +614,17 @@ async function uncompleteDrill(assignmentId: string): Promise<AssignedDrill | nu
 async function deleteAssignment(assignmentId: string): Promise<boolean> {
   const assignments = await getAllAssignments();
   const assignmentIndex = assignments.findIndex((a) => a.id === assignmentId);
-
   if (assignmentIndex === -1) {
-    logger.warn('assignment_not_found_for_delete', { assignmentId });
+    logger.warn('assignment_not_found_for_delete', {
+      assignmentId,
+    });
     return false;
   }
-
   assignments.splice(assignmentIndex, 1);
   await saveAssignments(assignments);
-
-  logger.info('assignment_deleted', { assignmentId });
+  logger.info('assignment_deleted', {
+    assignmentId,
+  });
   return true;
 }
 
@@ -649,15 +636,19 @@ async function deleteAssignment(assignmentId: string): Promise<boolean> {
 async function getAssignmentStats(athleteId: string): Promise<DrillAssignmentStats> {
   const assignments = await getAthleteAssignments(athleteId, true);
   const now = new Date();
-
   const completed = assignments.filter((a) => a.isCompleted);
   const pending = assignments.filter((a) => !a.isCompleted);
   const overdue = pending.filter((a) => new Date(a.dueDate) < now);
 
   // Calculate by category
   const categories: DrillCategory[] = ['WARMUP', 'TECHNIQUE', 'FITNESS', 'COOLDOWN', 'TACTICAL'];
-  const byCategory = {} as Record<DrillCategory, { total: number; completed: number }>;
-
+  const byCategory = {} as Record<
+    DrillCategory,
+    {
+      total: number;
+      completed: number;
+    }
+  >;
   for (const cat of categories) {
     const catAssignments = assignments.filter((a) => a.drill?.category === cat);
     byCategory[cat] = {
@@ -668,30 +659,31 @@ async function getAssignmentStats(athleteId: string): Promise<DrillAssignmentSta
 
   // Calculate completion streak
   let currentStreak = 0;
-  const completedDates = completed
-    .filter((a) => a.completedAt)
-    .map((a) => {
-      const date = new Date(a.completedAt as string);
-      return toDateStr(date);
-    })
-    .filter((value, index, self) => self.indexOf(value) === index) // Unique dates
+  const completedDates = Array.from(
+    new Set(
+      completed.flatMap((a) => {
+        if (!a.completedAt) return [];
+        const date = new Date(a.completedAt as string);
+        return [toDateStr(date)];
+      }),
+    ),
+  )
     .sort()
     .reverse();
 
   // Count consecutive days from today
   const today = new Date();
+  const completedDateSet = new Set(completedDates);
   for (let i = 0; i < completedDates.length; i++) {
     const checkDate = new Date(today);
     checkDate.setDate(checkDate.getDate() - i);
     const checkKey = toDateStr(checkDate);
-
-    if (completedDates.includes(checkKey)) {
+    if (completedDateSet.has(checkKey)) {
       currentStreak++;
     } else {
       break;
     }
   }
-
   return {
     totalAssigned: assignments.length,
     completed: completed.length,
@@ -754,14 +746,40 @@ function getCategoryInfo(category: DrillCategory): {
   icon: string;
   color: string;
 } {
-  const categoryInfo: Record<DrillCategory, { label: string; icon: string; color: string }> = {
-    WARMUP: { label: 'Warm-up', icon: 'flame', color: '#F59E0B' },
-    TECHNIQUE: { label: 'Technique', icon: 'football', color: '#3B82F6' },
-    FITNESS: { label: 'Fitness', icon: 'fitness', color: '#10B981' },
-    COOLDOWN: { label: 'Cool-down', icon: 'snow', color: '#6366F1' },
-    TACTICAL: { label: 'Tactical', icon: 'bulb', color: '#8B5CF6' },
+  const categoryInfo: Record<
+    DrillCategory,
+    {
+      label: string;
+      icon: string;
+      color: string;
+    }
+  > = {
+    WARMUP: {
+      label: 'Warm-up',
+      icon: 'flame',
+      color: '#F59E0B',
+    },
+    TECHNIQUE: {
+      label: 'Technique',
+      icon: 'football',
+      color: '#3B82F6',
+    },
+    FITNESS: {
+      label: 'Fitness',
+      icon: 'fitness',
+      color: '#10B981',
+    },
+    COOLDOWN: {
+      label: 'Cool-down',
+      icon: 'snow',
+      color: '#6366F1',
+    },
+    TACTICAL: {
+      label: 'Tactical',
+      icon: 'bulb',
+      color: '#8B5CF6',
+    },
   };
-
   return categoryInfo[category] ?? categoryInfo.TECHNIQUE;
 }
 
@@ -773,13 +791,30 @@ function getDifficultyInfo(difficulty: DrillDifficulty): {
   color: string;
   bgColor: string;
 } {
-  const difficultyInfo: Record<DrillDifficulty, { label: string; color: string; bgColor: string }> =
+  const difficultyInfo: Record<
+    DrillDifficulty,
     {
-      BEGINNER: { label: 'Beginner', color: '#10B981', bgColor: '#D1FAE5' },
-      INTERMEDIATE: { label: 'Intermediate', color: '#F59E0B', bgColor: '#FEF3C7' },
-      ADVANCED: { label: 'Advanced', color: '#EF4444', bgColor: '#FEE2E2' },
-    };
-
+      label: string;
+      color: string;
+      bgColor: string;
+    }
+  > = {
+    BEGINNER: {
+      label: 'Beginner',
+      color: '#10B981',
+      bgColor: '#D1FAE5',
+    },
+    INTERMEDIATE: {
+      label: 'Intermediate',
+      color: '#F59E0B',
+      bgColor: '#FEF3C7',
+    },
+    ADVANCED: {
+      label: 'Advanced',
+      color: '#EF4444',
+      bgColor: '#FEE2E2',
+    },
+  };
   return difficultyInfo[difficulty] ?? difficultyInfo.BEGINNER;
 }
 
@@ -814,7 +849,6 @@ export const drillService = {
   createDrill,
   updateDrill,
   deleteDrill,
-
   // Assignment operations
   assignDrill,
   getAthleteAssignments,
@@ -822,10 +856,8 @@ export const drillService = {
   completeDrill,
   uncompleteDrill,
   deleteAssignment,
-
   // Statistics
   getAssignmentStats,
-
   // Helpers
   isOverdue,
   isDueSoon,
@@ -833,7 +865,6 @@ export const drillService = {
   getCategoryInfo,
   getDifficultyInfo,
   formatDuration,
-
   // Development
   resetToMockData,
 };

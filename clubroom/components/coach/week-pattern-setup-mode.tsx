@@ -1,7 +1,7 @@
 /**
  * WeekPatternSetupMode — First-time availability configuration wizard.
  */
-import { memo, useState, useCallback } from 'react';
+import { useState } from 'react';
 import { View, StyleSheet, Switch, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -36,42 +36,40 @@ function WeekPatternSetupModeInner({ coachId, onSetupComplete }: WeekPatternSetu
   });
   const [activePreset, setActivePreset] = useState<string | null>(null);
 
-  const handlePreset = useCallback((presetId: string) => {
+  const handlePreset = (presetId: string) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setActivePreset(presetId);
     const preset = PRESETS.find((p) => p.id === presetId);
     if (!preset || preset.id === 'custom') return;
+    const presetDaySet = new Set(preset.days);
     setSetupDays((prev) => {
       const next = { ...prev };
       for (const d of DAYS_ORDERED) {
         next[d.index] = {
           ...next[d.index],
-          enabled: preset.days.includes(d.index),
+          enabled: presetDaySet.has(d.index),
           startTime: preset.start,
           endTime: preset.end,
         };
       }
       return next;
     });
-  }, []);
+  };
 
-  const handleToggleDay = useCallback((dayIndex: number) => {
+  const handleToggleDay = (dayIndex: number) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActivePreset('custom');
     setSetupDays((prev) => ({
       ...prev,
       [dayIndex]: { ...prev[dayIndex], enabled: !prev[dayIndex].enabled },
     }));
-  }, []);
+  };
 
-  const handleTimeChange = useCallback(
-    (dayIndex: number, field: 'startTime' | 'endTime', value: string) => {
-      setSetupDays((prev) => ({ ...prev, [dayIndex]: { ...prev[dayIndex], [field]: value } }));
-    },
-    [],
-  );
+  const handleTimeChange = (dayIndex: number, field: 'startTime' | 'endTime', value: string) => {
+    setSetupDays((prev) => ({ ...prev, [dayIndex]: { ...prev[dayIndex], [field]: value } }));
+  };
 
-  const handleComplete = useCallback(() => {
+  const handleComplete = () => {
     if (Platform.OS !== 'web')
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const newTemplates: AvailabilityTemplate[] = [];
@@ -92,7 +90,7 @@ function WeekPatternSetupModeInner({ coachId, onSetupComplete }: WeekPatternSetu
     }
     logger.info('Setup complete', { days: newTemplates.length });
     onSetupComplete(newTemplates);
-  }, [setupDays, coachId, onSetupComplete]);
+  };
 
   const enabledCount = Object.values(setupDays).filter((d) => d.enabled).length;
 
@@ -203,7 +201,7 @@ function WeekPatternSetupModeInner({ coachId, onSetupComplete }: WeekPatternSetu
   );
 }
 
-export const WeekPatternSetupMode = memo(WeekPatternSetupModeInner);
+export const WeekPatternSetupMode = WeekPatternSetupModeInner;
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.lg, gap: Spacing.lg },

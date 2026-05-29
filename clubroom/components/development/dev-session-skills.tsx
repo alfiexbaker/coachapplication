@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -46,7 +46,7 @@ function getIconForSkill(skill: string): React.ComponentProps<typeof Ionicons>['
 
 // ─── SubSkillRow ──────────────────────────────────────────────────────────────
 
-const SubSkillRow = memo(function SubSkillRow({
+const SubSkillRow = function SubSkillRow({
   subSkill,
   parentSkill,
   ratingValue,
@@ -61,10 +61,7 @@ const SubSkillRow = memo(function SubSkillRow({
   onRate: (parentSkill: FootballSkill, subSkill: string, rating: 1 | 2 | 3 | 4 | 5) => void;
   colors: ThemeColors;
 }) {
-  const handleChange = useCallback(
-    (val: number) => onRate(parentSkill, subSkill, Math.max(1, Math.min(5, Math.round(val))) as 1 | 2 | 3 | 4 | 5),
-    [onRate, parentSkill, subSkill],
-  );
+  const updateSkillRating = (val: number) => onRate(parentSkill, subSkill, Math.max(1, Math.min(5, Math.round(val))) as 1 | 2 | 3 | 4 | 5);
 
   return (
     <View style={styles.subSkillRow}>
@@ -89,14 +86,14 @@ const SubSkillRow = memo(function SubSkillRow({
           </ThemedText>
         )}
       </Row>
-      <RatingBar value={ratingValue} onChange={handleChange} previousValue={previousRating} height={22} />
+      <RatingBar value={ratingValue} onChange={updateSkillRating} previousValue={previousRating} height={22} />
     </View>
   );
-});
+};
 
 // ─── ParentSkillHeader ────────────────────────────────────────────────────────
 
-const ParentSkillHeader = memo(function ParentSkillHeader({
+const ParentSkillHeader = function ParentSkillHeader({
   skill,
   derivedAvg,
   hasRatings,
@@ -110,7 +107,7 @@ const ParentSkillHeader = memo(function ParentSkillHeader({
   colors: ThemeColors;
 }) {
   const icon = getIconForSkill(skill);
-  const handleRemove = useCallback(() => onRemove(skill), [onRemove, skill]);
+  const handleRemove = () => onRemove(skill);
 
   return (
     <Row align="center" justify="between">
@@ -152,11 +149,11 @@ const ParentSkillHeader = memo(function ParentSkillHeader({
       </Row>
     </Row>
   );
-});
+};
 
 // ─── ParentSkillGroup ─────────────────────────────────────────────────────────
 
-const ParentSkillGroup = memo(function ParentSkillGroup({
+const ParentSkillGroup = function ParentSkillGroup({
   skill,
   subSkillRatings,
   derivedAvg,
@@ -208,11 +205,11 @@ const ParentSkillGroup = memo(function ParentSkillGroup({
       </Column>
     </View>
   );
-});
+};
 
 // ─── Section header ──────────────────────────────────────────────────────────
 
-const SectionHeader = memo(function SectionHeader({
+const SectionHeader = function SectionHeader({
   label,
   ratedCount,
   totalCount,
@@ -235,11 +232,11 @@ const SectionHeader = memo(function SectionHeader({
       )}
     </Row>
   );
-});
+};
 
 // ─── DevSessionSkills ────────────────────────────────────────────────────────
 
-export const DevSessionSkills = memo(function DevSessionSkills({
+export const DevSessionSkills = function DevSessionSkills({
   colors,
   positionsPlayed,
   onPositionToggle,
@@ -252,10 +249,7 @@ export const DevSessionSkills = memo(function DevSessionSkills({
   onUpdateSubSkillRating,
   onRemoveParentRatings,
 }: DevSessionSkillsProps) {
-  const getSubRatingsForParent = useCallback(
-    (parent: FootballSkill) => subSkillRatings.filter((r) => r.parentSkill === parent),
-    [subSkillRatings],
-  );
+  const getSubRatingsForParent = (parent: FootballSkill) => subSkillRatings.filter((r) => r.parentSkill === parent);
 
   const positionalRatedCount = positionalSkills.filter(
     (s) => derivedParentAverages[s] !== undefined,
@@ -333,7 +327,7 @@ export const DevSessionSkills = memo(function DevSessionSkills({
       </SurfaceCard>
     </Column>
   );
-});
+};
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 

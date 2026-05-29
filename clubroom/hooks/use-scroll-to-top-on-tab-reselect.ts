@@ -7,28 +7,31 @@ type ScrollableRef =
   | RefObject<ScrollView | null>
   | RefObject<FlatList<any> | null>;
 
+function subscribeToTabReselect(
+  navigation: { addListener: (event: string, cb: () => void) => () => void },
+  ref: ScrollableRef,
+) {
+  return navigation.addListener('tabPress', () => {
+    const current = ref.current as
+      | {
+          scrollTo?: (options: { y: number; animated: boolean }) => void;
+          scrollToOffset?: (options: { offset: number; animated: boolean }) => void;
+        }
+      | null;
+    if (current?.scrollTo) {
+      current.scrollTo({ y: 0, animated: true });
+    }
+    if (current?.scrollToOffset) {
+      current.scrollToOffset({ offset: 0, animated: true });
+    }
+  });
+}
+
 export function useScrollToTopOnTabReselect(ref: ScrollableRef) {
   const navigation = useNavigation();
 
   useEffect(() => {
-    const unsubscribe = (navigation as { addListener: (event: string, cb: () => void) => () => void }).addListener(
-      'tabPress',
-      () => {
-        const current = ref.current as
-          | {
-              scrollTo?: (options: { y: number; animated: boolean }) => void;
-              scrollToOffset?: (options: { offset: number; animated: boolean }) => void;
-            }
-          | null;
-        if (current?.scrollTo) {
-          current.scrollTo({ y: 0, animated: true });
-        }
-        if (current?.scrollToOffset) {
-          current.scrollToOffset({ offset: 0, animated: true });
-        }
-      },
-    );
-
-    return unsubscribe;
+    const typedNavigation = navigation as { addListener: (event: string, cb: () => void) => () => void };
+    return subscribeToTabReselect(typedNavigation, ref);
   }, [navigation, ref]);
 }

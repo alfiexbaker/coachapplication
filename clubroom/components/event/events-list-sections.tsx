@@ -19,7 +19,7 @@ type HeaderProps = {
   onCreate: () => void;
 };
 
-export const EventsHeader = React.memo(function EventsHeader({
+export const EventsHeader = function EventsHeader({
   colors,
   isCoach,
   onBack,
@@ -46,7 +46,7 @@ export const EventsHeader = React.memo(function EventsHeader({
       ) : null}
     </Row>
   );
-});
+};
 
 type FilterProps = {
   colors: ThemeColors;
@@ -54,7 +54,7 @@ type FilterProps = {
   onChange: (value: EventFilter) => void;
 };
 
-export const EventsFilterTabs = React.memo(function EventsFilterTabs({
+const renderEventsFilterTabs = function renderEventsFilterTabs({
   colors,
   filter,
   onChange,
@@ -85,7 +85,8 @@ export const EventsFilterTabs = React.memo(function EventsFilterTabs({
       ))}
     </Row>
   );
-});
+};
+export const EventsFilterTabs = renderEventsFilterTabs;
 
 type EmptyProps = {
   colors: ThemeColors;
@@ -94,7 +95,7 @@ type EmptyProps = {
   onCreate: () => void;
 };
 
-export const EventsListEmptyState = React.memo(function EventsListEmptyState({
+const renderEventsListEmptyState = function renderEventsListEmptyState({
   colors,
   filter,
   isCoach,
@@ -116,13 +117,12 @@ export const EventsListEmptyState = React.memo(function EventsListEmptyState({
             : 'No events have been created yet.'}
       </ThemedText>
       {isCoach ? (
-        <Button onPress={onCreate} style={styles.emptyButton}>
-          Create Event
-        </Button>
+        <Button onPress={onCreate} style={styles.emptyButton} label="Create Event" />
       ) : null}
     </View>
   );
-});
+};
+export const EventsListEmptyState = renderEventsListEmptyState;
 
 const styles = StyleSheet.create({
   header: {

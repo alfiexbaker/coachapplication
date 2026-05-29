@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Platform } from 'react-native';
 
 import * as Haptics from 'expo-haptics';
@@ -8,9 +7,10 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { AvailabilityTemplate } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
-import { DAYS, HOURS } from './availability-grid-sections';
+import { DAYS, HOURS } from './availability-grid-helpers';
 import { Row } from '@/components/primitives';
-import { DemoBanner, isDemoMode } from '@/utils/demo-mode';
+import { DemoBanner } from '@/utils/demo-mode';
+import { isDemoMode } from '@/utils/demo-mode-helpers';
 
 // Re-export for backward compat
 export { DayScheduleView } from './availability-grid-sections';
@@ -33,18 +33,15 @@ export function AvailabilityGrid({
   const { colors: palette } = useTheme();
   const demoMode = isDemoMode();
 
-  const getSlotStatus = useCallback(
-    (dayOfWeek: number, hour: number): { available: boolean; template?: AvailabilityTemplate } => {
-      const template = templates.find((t) => {
-        if (t.dayOfWeek !== dayOfWeek) return false;
-        const [startHour] = t.startTime.split(':').map(Number);
-        const [endHour] = t.endTime.split(':').map(Number);
-        return hour >= startHour && hour < endHour;
-      });
-      return { available: !!template, template };
-    },
-    [templates],
-  );
+  const getSlotStatus = (dayOfWeek: number, hour: number): { available: boolean; template?: AvailabilityTemplate } => {
+    const template = templates.find((t) => {
+      if (t.dayOfWeek !== dayOfWeek) return false;
+      const [startHour] = t.startTime.split(':').map(Number);
+      const [endHour] = t.endTime.split(':').map(Number);
+      return hour >= startHour && hour < endHour;
+    });
+    return { available: !!template, template };
+  };
 
   const handleSlotPress = (dayOfWeek: number, hour: number) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

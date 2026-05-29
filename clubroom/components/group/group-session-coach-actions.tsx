@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -15,7 +14,7 @@ interface GroupSessionCoachActionsProps {
   onCancel: () => void;
 }
 
-export const GroupSessionCoachActions = memo(function GroupSessionCoachActions({
+export const GroupSessionCoachActions = function GroupSessionCoachActions({
   sessionId,
   rosterCount,
   onCancel,
@@ -45,7 +44,7 @@ export const GroupSessionCoachActions = memo(function GroupSessionCoachActions({
       </Clickable>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: { gap: Spacing.sm, marginTop: Spacing.md },

@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -36,7 +36,7 @@ function getSkillRating(rating: QuickRateInput, skill: FootballSkill): number {
   return Math.max(1, Math.min(5, Math.round(entry.rating)));
 }
 
-export const QuickRateCard = memo(function QuickRateCard({
+export const QuickRateCard = function QuickRateCard({
   athleteName,
   rating,
   onPositionChange,
@@ -54,8 +54,8 @@ export const QuickRateCard = memo(function QuickRateCard({
 
   const position = rating.positionPlayed ?? 'MID';
 
-  const universalSkills = useMemo(() => UNIVERSAL_SKILLS, []);
-  const positionalSkills = useMemo(() => POSITION_SKILLS[position], [position]);
+  const universalSkills = UNIVERSAL_SKILLS;
+  const positionalSkills = POSITION_SKILLS[position];
 
   useEffect(() => {
     onMediaIdsChange?.(media.mediaIds);
@@ -175,7 +175,7 @@ export const QuickRateCard = memo(function QuickRateCard({
       />
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

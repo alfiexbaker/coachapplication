@@ -7,7 +7,7 @@
  * Airbnb-quality design: premium cards, pill markers, polished transitions.
  */
 
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Linking, Platform, StyleSheet, TextInput, View } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
 import ClusteredMapView from 'react-native-map-clustering';
@@ -52,18 +52,18 @@ function hasRegionShifted(prev: Region, next: Region): boolean {
 
 // ─── SkillChip ─────────────────────────────────────────────────────────────
 
-const SkillChip = memo(function SkillChip({ label }: { label: string }) {
+const SkillChip = function SkillChip({ label }: { label: string }) {
   const { colors: palette } = useTheme();
   return (
     <View style={[styles.skillChip, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
       <ThemedText style={[styles.skillChipText, { color: palette.tint }]}>{label}</ThemedText>
     </View>
   );
-});
+};
 
 // ─── PricePin ──────────────────────────────────────────────────────────────
 
-const PricePin = memo(function PricePin({
+const PricePin = function PricePin({
   price,
   selected,
 }: {
@@ -100,9 +100,9 @@ const PricePin = memo(function PricePin({
       />
     </View>
   );
-});
+};
 
-const CoachMapMarker = memo(function CoachMapMarker({
+const CoachMapMarker = function CoachMapMarker({
   result,
   selected,
   onSelect,
@@ -111,9 +111,9 @@ const CoachMapMarker = memo(function CoachMapMarker({
   selected: boolean;
   onSelect: (coachId: string) => void;
 }) {
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     onSelect(result.coach.id);
-  }, [onSelect, result.coach.id]);
+  };
 
   return (
     <Marker
@@ -132,11 +132,11 @@ const CoachMapMarker = memo(function CoachMapMarker({
       />
     </Marker>
   );
-});
+};
 
 // ─── SearchHeader ──────────────────────────────────────────────────────────
 
-const SearchHeader = memo(function SearchHeader({
+const SearchHeader = function SearchHeader({
   searchQuery,
   onSearchChange,
   onSearch,
@@ -230,11 +230,11 @@ const SearchHeader = memo(function SearchHeader({
       {permissionBanner ? <View style={styles.permissionBanner}>{permissionBanner}</View> : null}
     </View>
   );
-});
+};
 
 // ─── CoachSheetItem ────────────────────────────────────────────────────────
 
-const CoachSheetItem = memo(function CoachSheetItem({
+const CoachSheetItem = function CoachSheetItem({
   coach,
   selected,
   onPress,
@@ -353,11 +353,11 @@ const CoachSheetItem = memo(function CoachSheetItem({
       </Row>
     </SurfaceCard>
   );
-});
+};
 
 // ─── SheetHeader ──────────────────────────────────────────────────────────
 
-const SheetHeader = memo(function SheetHeader({ count }: { count: number }) {
+const SheetHeader = function SheetHeader({ count }: { count: number }) {
   const { colors: palette } = useTheme();
   return (
     <Row align="center" gap="xs" style={styles.sheetHeader}>
@@ -369,7 +369,7 @@ const SheetHeader = memo(function SheetHeader({ count }: { count: number }) {
       </View>
     </Row>
   );
-});
+};
 
 // ─── MapContent ────────────────────────────────────────────────────────────
 
@@ -430,57 +430,48 @@ export default function MapContent(props: MapContentProps) {
     })();
   }, []);
 
-  const handleCoachSelect = useCallback(
-    (coachId: string) => {
-      onCoachSelect(coachId);
-      Haptics.selectionAsync();
-      const coach = coaches.find((c) => c.coach.id === coachId)?.coach;
-      if (coach) {
-        mapRef.current?.animateToRegion(
-          {
-            latitude: coach.location.lat,
-            longitude: coach.location.lng,
-            latitudeDelta: 0.02,
-            longitudeDelta: 0.02,
-          },
-          300,
-        );
-      }
-      sheetRef.current?.snapToIndex(1);
-    },
-    [coaches, onCoachSelect],
+  const handleCoachSelect = (coachId: string) => {
+    onCoachSelect(coachId);
+    Haptics.selectionAsync();
+    const coach = coaches.find((c) => c.coach.id === coachId)?.coach;
+    if (coach) {
+      mapRef.current?.animateToRegion(
+        {
+          latitude: coach.location.lat,
+          longitude: coach.location.lng,
+          latitudeDelta: 0.02,
+          longitudeDelta: 0.02,
+        },
+        300,
+      );
+    }
+    sheetRef.current?.snapToIndex(1);
+  };
+
+  const handleBookCoach = (coachId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    onBookCoach(coachId);
+  };
+
+  const renderSheetCoachItem = ({ item }: { item: CoachSearchResult }) => (
+    <CoachSheetItem
+      coach={item.coach}
+      selected={item.coach.id === selectedCoachId}
+      onPress={() => handleCoachSelect(item.coach.id)}
+      onProfile={() => onCoachProfile(item.coach.id)}
+      onBook={() => handleBookCoach(item.coach.id)}
+    />
   );
 
-  const handleBookCoach = useCallback(
-    (coachId: string) => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      onBookCoach(coachId);
-    },
-    [onBookCoach],
-  );
+  const keyExtractor = (item: CoachSearchResult) => item.coach.id;
 
-  const renderSheetCoachItem = useCallback(
-    ({ item }: { item: CoachSearchResult }) => (
-      <CoachSheetItem
-        coach={item.coach}
-        selected={item.coach.id === selectedCoachId}
-        onPress={() => handleCoachSelect(item.coach.id)}
-        onProfile={() => onCoachProfile(item.coach.id)}
-        onBook={() => handleBookCoach(item.coach.id)}
-      />
-    ),
-    [handleBookCoach, handleCoachSelect, selectedCoachId],
-  );
-
-  const keyExtractor = useCallback((item: CoachSearchResult) => item.coach.id, []);
-
-  const handleRegionChange = useCallback((region: Region) => {
+  const handleRegionChange = (region: Region) => {
     if (hasRegionShifted(lastSearchRegion.current, region)) {
       setShowRedoSearch(true);
     }
-  }, []);
+  };
 
-  const handleSearchArea = useCallback(() => {
+  const handleSearchArea = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     mapRef.current?.getCamera?.().then?.((camera) => {
       if (camera?.center) {
@@ -501,13 +492,13 @@ export default function MapContent(props: MapContentProps) {
       }
     });
     setShowRedoSearch(false);
-  }, [filters, onFilterChange]);
+  };
 
-  const handleSheetChange = useCallback((index: number) => {
+  const handleSheetChange = (index: number) => {
     setSheetExpanded(index > 0);
-  }, []);
+  };
 
-  const handleRecenter = useCallback(() => {
+  const handleRecenter = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (userLocation) {
       mapRef.current?.animateToRegion(
@@ -515,7 +506,7 @@ export default function MapContent(props: MapContentProps) {
         400,
       );
     }
-  }, [userLocation]);
+  };
 
   const initialRegion = userLocation
     ? { ...userLocation, latitudeDelta: 0.06, longitudeDelta: 0.06 }

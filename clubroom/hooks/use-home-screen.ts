@@ -1,7 +1,7 @@
 /**
  * useHomeScreen — Data loading and state for the athlete/parent home screen.
  */
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { badgeService } from '@/services/badge-service';
@@ -22,6 +22,10 @@ import type { FamilyBookingRow, FamilyBookingChild } from '@/types/family-bookin
 import { formatShortDateWithYear } from '@/utils/format';
 
 const logger = createLogger('UserHomeScreen');
+
+function currentTimestamp(): number {
+  return Date.now();
+}
 
 export const formatDate = formatShortDateWithYear;
 
@@ -131,13 +135,13 @@ export function deduplicateBookings(
   const groups = new Map<string, { booking: Booking; childIds: Set<string> }>();
 
   for (const booking of bookings) {
-    const involvedChildIds: string[] = [];
+    const involvedChildIds = new Set<string>();
     if (booking.athleteId && childMap.has(booking.athleteId)) {
-      involvedChildIds.push(booking.athleteId);
+      involvedChildIds.add(booking.athleteId);
     }
     for (const id of booking.athleteIds ?? []) {
-      if (childMap.has(id) && !involvedChildIds.includes(id)) {
-        involvedChildIds.push(id);
+      if (childMap.has(id)) {
+        involvedChildIds.add(id);
       }
     }
 
@@ -148,7 +152,7 @@ export function deduplicateBookings(
         existing.childIds.add(cid);
       }
     } else {
-      groups.set(key, { booking, childIds: new Set(involvedChildIds) });
+      groups.set(key, { booking, childIds: involvedChildIds });
     }
   }
 
@@ -169,8 +173,7 @@ export function deduplicateBookings(
   }
 
   rows.sort(
-    (a, b) =>
-      new Date(a.booking.scheduledAt).getTime() - new Date(b.booking.scheduledAt).getTime(),
+    (a, b) => new Date(a.booking.scheduledAt).getTime() - new Date(b.booking.scheduledAt).getTime(),
   );
 
   return rows;
@@ -241,7 +244,9 @@ export function useHomeScreen() {
       return;
     }
 
-    setSelectedChildIdLocal(fallbackChildId);
+    startTransition(() => {
+      setSelectedChildIdLocal(fallbackChildId);
+    });
     if (contextActiveChildId !== fallbackChildId) {
       void contextSetActiveChildId(fallbackChildId);
     }
@@ -255,19 +260,16 @@ export function useHomeScreen() {
   ]);
 
   // Handler: update BOTH local and context
-  const setSelectedChildId = useCallback(
-    (childId: string | null) => {
-      const resolvedChildId = childId ?? fallbackChildId ?? null;
-      setSelectedChildIdLocal(resolvedChildId);
-      void contextSetActiveChildId(resolvedChildId);
-      if (resolvedChildId) {
-        void setProfileScope({ mode: 'child', childId: resolvedChildId });
-      }
-    },
-    [contextSetActiveChildId, fallbackChildId, setProfileScope],
-  );
+  const setSelectedChildId = (childId: string | null) => {
+    const resolvedChildId = childId ?? fallbackChildId ?? null;
+    setSelectedChildIdLocal(resolvedChildId);
+    void contextSetActiveChildId(resolvedChildId);
+    if (resolvedChildId) {
+      void setProfileScope({ mode: 'child', childId: resolvedChildId });
+    }
+  };
 
-  const handleSelectNextChild = useCallback(() => {
+  const handleSelectNextChild = () => {
     if (contextChildren.length <= 1) return;
 
     const currentIndex = contextChildren.findIndex((child) => child.id === selectedChildId);
@@ -275,31 +277,24 @@ export function useHomeScreen() {
     const nextChildId = contextChildren[nextIndex]?.id ?? contextChildren[0]?.id ?? null;
     if (!nextChildId) return;
     setSelectedChildId(nextChildId);
-  }, [contextChildren, selectedChildId, setSelectedChildId]);
+  };
 
-  const selectedChild = useMemo(
-    () => contextChildren.find((child) => child.id === selectedChildId) ?? null,
-    [contextChildren, selectedChildId],
-  );
+  const selectedChild = contextChildren.find((child) => child.id === selectedChildId) ?? null;
   const isViewingSelfProfile = profileMode === 'self';
-  const contextChildrenSignature = useMemo(
-    () =>
-      contextChildren
-        .map(
-          (child) =>
-            `${child.id}:${child.name ?? ''}:${child.age ?? ''}:${child.avatarUrl ?? ''}:${child.colorCode ?? ''}`,
-        )
-        .join('|'),
-    [contextChildren],
-  );
+  const contextChildrenSignature = contextChildren
+    .map(
+      (child) =>
+        `${child.id}:${child.name ?? ''}:${child.age ?? ''}:${child.avatarUrl ?? ''}:${child.colorCode ?? ''}`,
+    )
+    .join('|');
   const currentUserName = currentUser?.name || currentUser?.fullName || 'Athlete';
   const currentUserSignature = `${currentUser?.id ?? 'anon'}:${currentUser?.role ?? 'guest'}:${currentUserName}`;
   const canSelfSwitchProfile = Boolean(
-    !childContextLoading
-      && selfProfileSelectionLoaded
-      && hasChildProfiles
-      && selectedChild
-      && canSelectSelfProfile,
+    !childContextLoading &&
+    selfProfileSelectionLoaded &&
+    hasChildProfiles &&
+    selectedChild &&
+    canSelectSelfProfile,
   );
 
   useEffect(() => {
@@ -314,9 +309,16 @@ export function useHomeScreen() {
       return;
     }
     void setProfileScope({ mode: 'child', childId: fallbackChild });
-  }, [childContextLoading, fallbackChildId, profileMode, profileSubjectId, selectedChildId, setProfileScope]);
+  }, [
+    childContextLoading,
+    fallbackChildId,
+    profileMode,
+    profileSubjectId,
+    selectedChildId,
+    setProfileScope,
+  ]);
 
-  const handleToggleSelfChildProfile = useCallback(() => {
+  const handleToggleSelfChildProfile = () => {
     if (!canSelfSwitchProfile) return;
     const nextMode: 'self' | 'child' = isViewingSelfProfile ? 'child' : 'self';
     logger.press('HomeProfileSwitchPressed', {
@@ -331,15 +333,7 @@ export function useHomeScreen() {
       return;
     }
     void setProfileScope({ mode: 'child', childId: selectedChildId ?? fallbackChildId });
-  }, [
-    canSelectSelfProfile,
-    canSelfSwitchProfile,
-    fallbackChildId,
-    isViewingSelfProfile,
-    selectedChild?.name,
-    selectedChildId,
-    setProfileScope,
-  ]);
+  };
 
   useEffect(() => {
     logger.debug('Home profile switch snapshot', {
@@ -372,47 +366,31 @@ export function useHomeScreen() {
     profileMode === 'child'
       ? profileSubjectId && contextChildren.some((child) => child.id === profileSubjectId)
         ? profileSubjectId
-        : selectedChildId ?? fallbackChildId
-      : selectedChildId ?? fallbackChildId;
-  const requestedSelectedChild = useMemo(
-    () => contextChildren.find((child) => child.id === requestedProfileChildId) ?? null,
-    [contextChildren, requestedProfileChildId],
-  );
-  const athleteId = profileMode === 'self'
-    ? currentUser?.id ?? null
-    : requestedProfileChildId ?? currentUser?.id ?? null;
+        : (selectedChildId ?? fallbackChildId)
+      : (selectedChildId ?? fallbackChildId);
+  const requestedSelectedChild =
+    contextChildren.find((child) => child.id === requestedProfileChildId) ?? null;
+  const athleteId =
+    profileMode === 'self'
+      ? (currentUser?.id ?? null)
+      : (requestedProfileChildId ?? currentUser?.id ?? null);
   const profileDataKey = `${athleteId ?? 'none'}:${profileMode}:${profileSubjectId ?? 'none'}:${currentUser?.id ?? 'anon'}`;
-  const requestedProfileFrame = useMemo<HomeProfileFrame>(
-    () => ({
-      dataKey: profileDataKey,
-      mode: profileMode,
-      subjectId: profileSubjectId ?? null,
-      selectedChildId: requestedProfileChildId ?? null,
-      selectedChild: requestedSelectedChild ? { ...requestedSelectedChild } : null,
-    }),
-    [profileDataKey, profileMode, profileSubjectId, requestedProfileChildId, requestedSelectedChild],
-  );
-  const homeSeedTargets = useMemo(
-    () =>
-      buildHomeSeedTargets({
-        hasChildProfiles,
-        selectedChildId,
-        fallbackChildId,
-        contextChildren,
-        currentUserId: currentUser?.id,
-        currentUserName: currentUserName,
-      }),
-    [
-      contextChildren,
-      contextChildrenSignature,
-      currentUser?.id,
-      currentUserName,
-      fallbackChildId,
-      hasChildProfiles,
-      selectedChildId,
-    ],
-  );
-  const loadHomeFrame = useCallback(async () => {
+  const requestedProfileFrame = {
+    dataKey: profileDataKey,
+    mode: profileMode,
+    subjectId: profileSubjectId ?? null,
+    selectedChildId: requestedProfileChildId ?? null,
+    selectedChild: requestedSelectedChild ? { ...requestedSelectedChild } : null,
+  };
+  const homeSeedTargets = buildHomeSeedTargets({
+    hasChildProfiles,
+    selectedChildId,
+    fallbackChildId,
+    contextChildren,
+    currentUserId: currentUser?.id,
+    currentUserName: currentUserName,
+  });
+  const loadHomeFrame = async () => {
     if (!athleteId) {
       return ok(createEmptyHomeFrame(requestedProfileFrame));
     }
@@ -422,17 +400,19 @@ export function useHomeScreen() {
         try {
           await ensureRelationalDemoSeeded();
 
-          for (const target of homeSeedTargets) {
-            const seedResult = await ensureProgressDemoSeeded(
-              target.athleteId,
-              target.athleteName,
-            );
-            if (!seedResult.success) {
+          const seedResults = await Promise.all(
+            homeSeedTargets.map(async (target) => ({
+              target,
+              result: await ensureProgressDemoSeeded(target.athleteId, target.athleteName),
+            })),
+          );
+          seedResults.forEach(({ target, result }) => {
+            if (!result.success) {
               logger.warn('home_progress_seed_failed', {
                 athleteId: target.athleteId,
               });
             }
-          }
+          });
         } catch (seedError) {
           logger.warn('home_demo_seed_bootstrap_failed', {
             athleteId,
@@ -496,7 +476,7 @@ export function useHomeScreen() {
       if (currentUser?.id) {
         const role = hasChildProfiles ? 'parent' : 'athlete';
         const bookings = await bookingService.getBookingsForUser(currentUser.id, role);
-        const now = Date.now();
+        const now = currentTimestamp();
         const selfAthleteId = currentUser.id;
 
         nextUpcomingBookings = bookings
@@ -507,8 +487,7 @@ export function useHomeScreen() {
               return (
                 isFuture &&
                 isConfirmed &&
-                (booking.athleteId === selfAthleteId ||
-                  booking.athleteIds?.includes(selfAthleteId))
+                (booking.athleteId === selfAthleteId || booking.athleteIds?.includes(selfAthleteId))
               );
             }
             if (!requestedProfileChildId) {
@@ -536,20 +515,9 @@ export function useHomeScreen() {
       });
     } catch (loadError) {
       logger.error('Failed to load home data', loadError);
-      return err(
-        serviceError('UNKNOWN', 'Failed to load data. Pull down to refresh.', loadError),
-      );
+      return err(serviceError('UNKNOWN', 'Failed to load data. Pull down to refresh.', loadError));
     }
-  }, [
-    athleteId,
-    currentUser?.id,
-    currentUser?.role,
-    hasChildProfiles,
-    homeSeedTargets,
-    profileMode,
-    requestedProfileChildId,
-    requestedProfileFrame,
-  ]);
+  };
   const {
     data,
     error,
@@ -602,7 +570,9 @@ export function useHomeScreen() {
     }
 
     if (selectedChildId !== committedChildId) {
-      setSelectedChildIdLocal(committedChildId);
+      startTransition(() => {
+        setSelectedChildIdLocal(committedChildId);
+      });
     }
     if (contextActiveChildId !== committedChildId) {
       void contextSetActiveChildId(committedChildId);

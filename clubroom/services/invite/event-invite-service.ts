@@ -137,42 +137,46 @@ export const eventInviteService = {
       parentMap.set(m.parentId, [...existing, m]);
     });
 
-    let sent = 0;
-    let failed = 0;
-    const errors: BulkInviteError[] = [];
+    const notificationResults = await Promise.all(
+      Array.from(parentMap.entries()).map(async ([parentId, athletes]) => {
+        try {
+          const athleteNames = (
+            await Promise.all(
+              athletes.map((athlete, index) =>
+                resolveAthleteName(athlete.athleteId, `Athlete ${index + 1}`),
+              ),
+            )
+          ).join(', ');
+          await notificationService.create({
+            id: `notif_event_${Date.now()}_${parentId}`,
+            type: 'booking',
+            title: 'Event Invitation',
+            body: `${athleteNames} invited to ${input.title} on ${input.date}`,
+            recipientId: parentId,
+            recipientRole: 'parent',
+            deepLink: `/events/${event.id}`,
+            data: {
+              eventId: event.id,
+              eventTitle: input.title,
+            },
+            timeLabel: 'Just now',
+          });
+          return { sent: 1, error: null };
+        } catch (error) {
+          return {
+            sent: 0,
+            error: {
+              memberId: athletes[0].athleteId,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            } satisfies BulkInviteError,
+          };
+        }
+      }),
+    );
 
-    for (const [parentId, athletes] of parentMap.entries()) {
-      try {
-        const athleteNames = (
-          await Promise.all(
-            athletes.map((athlete, index) =>
-              resolveAthleteName(athlete.athleteId, `Athlete ${index + 1}`),
-            ),
-          )
-        ).join(', ');
-        await notificationService.create({
-          id: `notif_event_${Date.now()}_${parentId}`,
-          type: 'booking',
-          title: 'Event Invitation',
-          body: `${athleteNames} invited to ${input.title} on ${input.date}`,
-          recipientId: parentId,
-          recipientRole: 'parent',
-          deepLink: `/events/${event.id}`,
-          data: {
-            eventId: event.id,
-            eventTitle: input.title,
-          },
-          timeLabel: 'Just now',
-        });
-        sent++;
-      } catch (error) {
-        failed++;
-        errors.push({
-          memberId: athletes[0].athleteId,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-      }
-    }
+    const sent = notificationResults.reduce((count, result) => count + result.sent, 0);
+    const errors = notificationResults.flatMap((result) => (result.error ? [result.error] : []));
+    const failed = errors.length;
 
     return {
       event,

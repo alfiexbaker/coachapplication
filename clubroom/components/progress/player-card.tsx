@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import Animated, {
@@ -15,7 +15,7 @@ import Animated, {
 import { Clickable } from '@/components/primitives/clickable';
 import { Column } from '@/components/primitives/column';
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Shadows, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { CardTier, PlayerCardData } from '@/types/progress-types';
 import { sharePlayerCard } from '@/utils/card-share';
@@ -23,51 +23,18 @@ import { HapticPatterns } from '@/utils/haptics';
 import { buildLinearGradientUri } from '@/components/primitives/surface-card-utils';
 import { PlayerCardBack } from './player-card-back';
 import { PlayerCardFront } from './player-card-front';
-import { isDemoMode } from '@/utils/demo-mode';
+import { isDemoMode } from '@/utils/demo-mode-helpers';
 import { buildPlayerCardPalette } from './player-card-palette';
-
-interface TierConfig {
-  gradient: [string, string];
-  accent: string;
-  overlay: string;
-}
+import { PLAYER_CARD_TIER_CONFIG } from './player-card-config';
 
 interface PlayerCardProps {
   data: PlayerCardData;
 }
 
-export const PLAYER_CARD_TIER_CONFIG: Record<CardTier, TierConfig> = {
-  bronze: {
-    gradient: ['#101A2E', '#2A425B'],
-    accent: '#C9904E',
-    overlay: '#08101D',
-  },
-  silver: {
-    gradient: ['#0F1A2E', '#32475D'],
-    accent: '#A5B4C3',
-    overlay: '#08101D',
-  },
-  gold: {
-    gradient: ['#111B30', '#2D445F'],
-    accent: '#D9B160',
-    overlay: '#08111D',
-  },
-  platinum: {
-    gradient: ['#0D1930', '#245071'],
-    accent: '#69ABE4',
-    overlay: '#07101C',
-  },
-  diamond: {
-    gradient: ['#0E192C', '#20556A'],
-    accent: '#78D5DB',
-    overlay: '#06101A',
-  },
-};
-
 const AnimatedView = Animated.createAnimatedComponent(View);
 
-export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
-  const { colors, scheme } = useTheme();
+export const PlayerCard = function PlayerCard({ data }: PlayerCardProps) {
+  const { colors } = useTheme();
   const demoMode = isDemoMode();
   const { width: viewportWidth } = useWindowDimensions();
   const flipProgress = useSharedValue(0);
@@ -82,20 +49,13 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
   const compact = viewportWidth <= 375;
 
   const tierConfig = PLAYER_CARD_TIER_CONFIG[data.tier] ?? PLAYER_CARD_TIER_CONFIG.bronze;
-  const cardPalette = useMemo(
-    () =>
-      buildPlayerCardPalette({
-        gradient: tierConfig.gradient,
-        accent: tierConfig.accent,
-        overlay: tierConfig.overlay,
-      }),
-    [tierConfig.accent, tierConfig.gradient, tierConfig.overlay],
-  );
+  const cardPalette = buildPlayerCardPalette({
+    gradient: tierConfig.gradient,
+    accent: tierConfig.accent,
+    overlay: tierConfig.overlay,
+  });
 
-  const gradientUri = useMemo(
-    () => buildLinearGradientUri(tierConfig.gradient, Radii.xl),
-    [tierConfig.gradient],
-  );
+  const gradientUri = buildLinearGradientUri(tierConfig.gradient, Radii.xl);
 
   const frontStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
@@ -145,30 +105,30 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
   }));
 
   useEffect(() => {
-    entranceOpacity.value = withTiming(1, { duration: 280 });
-    entranceScale.value = withTiming(1, { duration: 260, easing: Easing.out(Easing.cubic) });
-    entranceTranslateY.value = withTiming(0, { duration: 300, easing: Easing.out(Easing.quad) });
+    entranceOpacity.set(withTiming(1, { duration: 280 }));
+    entranceScale.set(withTiming(1, { duration: 260, easing: Easing.out(Easing.cubic) }));
+    entranceTranslateY.set(withTiming(0, { duration: 300, easing: Easing.out(Easing.quad) }));
   }, [entranceOpacity, entranceScale, entranceTranslateY]);
 
-  const handleFlipFinish = useCallback(() => {
+  const handleFlipFinish = () => {
     isFlippingRef.current = false;
-  }, []);
+  };
 
-  const handleFlip = useCallback(() => {
+  const handleFlip = () => {
     if (isFlippingRef.current) {
       return;
     }
     isFlippingRef.current = true;
-    cardScale.value = withSequence(
+    cardScale.set(withSequence(
       withTiming(0.965, { duration: 90 }),
       withTiming(1, { duration: 140, easing: Easing.out(Easing.cubic) }),
-    );
+    ));
     const nextIsBack = !isBackRef.current;
     isBackRef.current = nextIsBack;
     const targetProgress = nextIsBack ? 1 : 0;
-    sheenProgress.value = 0;
-    sheenProgress.value = withTiming(1, { duration: 260, easing: Easing.out(Easing.cubic) });
-    flipProgress.value = withTiming(
+    sheenProgress.set(0);
+    sheenProgress.set(withTiming(1, { duration: 260, easing: Easing.out(Easing.cubic) }));
+    flipProgress.set(withTiming(
       targetProgress,
       { duration: 260, easing: Easing.bezier(0.2, 0.78, 0.2, 1) },
       (finished) => {
@@ -176,28 +136,28 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
           runOnJS(handleFlipFinish)();
         }
       },
-    );
+    ));
     void HapticPatterns.flip();
-  }, [cardScale, flipProgress, handleFlipFinish, sheenProgress]);
+  };
 
-  const handlePressIn = useCallback(() => {
-    cardScale.value = withTiming(1.015, { duration: 100 });
-  }, [cardScale]);
+  const handlePressIn = () => {
+    cardScale.set(withTiming(1.015, { duration: 100 }));
+  };
 
-  const handlePressOut = useCallback(() => {
-    cardScale.value = withTiming(1, { duration: 120 });
-  }, [cardScale]);
+  const handlePressOut = () => {
+    cardScale.set(withTiming(1, { duration: 120 }));
+  };
 
-  const handleShare = useCallback(() => {
+  const handleShare = () => {
     void HapticPatterns.longPress();
-    cardScale.value = withSequence(
+    cardScale.set(withSequence(
       withTiming(1.05, { duration: 120 }),
       withTiming(1, { duration: 160 }),
-    );
+    ));
     void sharePlayerCard(captureRef, {
       dialogTitle: `Share ${data.name}'s player card`,
     });
-  }, [cardScale, data.name]);
+  };
 
   return (
     <Column gap="xxs">
@@ -208,8 +168,7 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
           style={[
             styles.captureWrap,
             {
-              ...Shadows[scheme].cardHover,
-              shadowColor: tierConfig.accent,
+              boxShadow: `0px 8px 20px ${withAlpha(tierConfig.accent, 0.2)}`,
             },
           ]}
         >
@@ -283,7 +242,7 @@ export const PlayerCard = memo(function PlayerCard({ data }: PlayerCardProps) {
 
     </Column>
   );
-});
+};
 
 const styles = StyleSheet.create({
   captureWrap: {

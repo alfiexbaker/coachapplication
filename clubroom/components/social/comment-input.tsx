@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { Platform, StyleSheet, TextInput, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -40,13 +40,13 @@ function CommentInputInner({
   const maxLength = 2000;
   const warnThreshold = Math.floor(maxLength * 0.9);
 
-  const handleSend = useCallback(() => {
+  const handleSend = () => {
     if (!hasText) return;
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     onSubmit(value.trim());
-  }, [hasText, onSubmit, value]);
+  };
 
   return (
     <View
@@ -179,5 +179,5 @@ const styles = StyleSheet.create({
 // Export
 // ---------------------------------------------------------------------------
 
-export const CommentInput = memo(CommentInputInner);
+export const CommentInput = CommentInputInner;
 export default CommentInput;

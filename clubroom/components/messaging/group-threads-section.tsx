@@ -5,7 +5,7 @@
  * and either the group threads list or an empty state.
  */
 
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -33,16 +33,16 @@ interface GroupThreadsSectionProps {
   onThreadPress: (thread: ChatThreadSummary) => void;
 }
 
-export const GroupThreadsSection = memo(function GroupThreadsSection({
+export const GroupThreadsSection = function GroupThreadsSection({
   threads,
   groupFilter,
   onGroupFilterChange,
   isCoach,
   onThreadPress,
 }: GroupThreadsSectionProps) {
-  const handleEmptyAction = useCallback(() => {
+  const handleEmptyAction = () => {
     router.push(isCoach ? Routes.CLUB_HUB : Routes.MY_CLUBS);
-  }, [isCoach]);
+  };
 
   return (
     <>
@@ -88,7 +88,7 @@ export const GroupThreadsSection = memo(function GroupThreadsSection({
       )}
     </>
   );
-});
+};
 
 const styles = StyleSheet.create({
   filterScroll: {

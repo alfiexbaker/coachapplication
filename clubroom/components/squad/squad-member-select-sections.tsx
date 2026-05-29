@@ -6,7 +6,7 @@
  * MemberCard — individual member row with avatar, meta, checkbox.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -30,7 +30,7 @@ interface SelectAllHeaderProps {
   palette: ThemeColors;
 }
 
-export const SelectAllHeader = memo(function SelectAllHeader({
+export const SelectAllHeader = function SelectAllHeader({
   selectedCount,
   totalCount,
   allSelected,
@@ -77,7 +77,7 @@ export const SelectAllHeader = memo(function SelectAllHeader({
       </Row>
     </Row>
   );
-});
+};
 
 // ─── NotificationBanner ─────────────────────────────────────────────────────
 
@@ -86,7 +86,7 @@ interface NotificationBannerProps {
   palette: ThemeColors;
 }
 
-export const NotificationBanner = memo(function NotificationBanner({
+export const NotificationBanner = function NotificationBanner({
   parentCount,
   palette,
 }: NotificationBannerProps) {
@@ -102,7 +102,7 @@ export const NotificationBanner = memo(function NotificationBanner({
       </ThemedText>
     </Row>
   );
-});
+};
 
 // ─── MemberCard ─────────────────────────────────────────────────────────────
 
@@ -114,7 +114,7 @@ interface MemberCardProps {
   palette: ThemeColors;
 }
 
-export const MemberCard = memo(function MemberCard({
+export const MemberCard = function MemberCard({
   member,
   isSelected,
   disabled,
@@ -198,7 +198,7 @@ export const MemberCard = memo(function MemberCard({
       </Row>
     </Clickable>
   );
-});
+};
 
 // ─── State Screens ──────────────────────────────────────────────────────────
 
@@ -207,7 +207,7 @@ export function MemberSelectLoading({ palette }: { palette: ThemeColors }) {
     <View style={styles.loadingContainer}>
       <ActivityIndicator size="small" color={palette.tint} />
       <ThemedText style={[styles.loadingText, { color: palette.muted }]}>
-        Loading squad members...
+        Loading squad members…
       </ThemedText>
     </View>
   );
@@ -243,5 +243,3 @@ export function MemberSelectEmpty({ palette }: { palette: ThemeColors }) {
     </View>
   );
 }
-
-export { styles };

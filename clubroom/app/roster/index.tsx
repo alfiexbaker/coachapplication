@@ -1,4 +1,4 @@
-import { useState, useCallback, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -36,7 +36,7 @@ export default function RosterScreen() {
 
   const coachId = currentUser?.id || 'coach_1';
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     try {
       const [rosterData, statsData] = await Promise.all([
         rosterService.getRoster(coachId, { ...filters, search: searchQuery }),
@@ -53,7 +53,7 @@ export default function RosterScreen() {
       logger.error('Failed to load roster:', error);
       return err(serviceError('UNKNOWN', 'Failed to load athlete roster.', error));
     }
-  }, [coachId, filters, searchQuery]);
+  };
 
   const {
     data,

@@ -3,7 +3,7 @@
  * Manages injury loading, status filtering, and navigation.
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import * as Haptics from 'expo-haptics';
@@ -38,43 +38,32 @@ export function useInjuries() {
   }>();
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
-  const subjectOptions = useMemo<ProfileSubjectOption[]>(
-    () =>
-      buildProfileSubjectOptions({
-        currentUser,
-        children,
-        includeSelf: children.length === 0 || canSelectSelfProfile,
-      }),
-    [canSelectSelfProfile, children, currentUser],
-  );
+  const subjectOptions = buildProfileSubjectOptions({
+    currentUser,
+    children,
+    includeSelf: children.length === 0 || canSelectSelfProfile,
+  });
 
-  const explicitSubjectId = useMemo(() => {
+  const explicitSubjectId = (() => {
     const raw = subjectIdParam ?? childIdParam;
     if (!raw) return null;
     return Array.isArray(raw) ? raw[0] ?? null : raw;
-  }, [childIdParam, subjectIdParam]);
+  })();
 
-  const selectedSubjectId = useMemo(
-    () =>
-      resolveProfileSubjectId({
-        explicitSubjectId,
-        currentUserId: currentUser?.id,
-        profileMode,
-        profileSubjectId,
-        subjectOptions,
-      }),
-    [currentUser?.id, explicitSubjectId, profileMode, profileSubjectId, subjectOptions],
-  );
+  const selectedSubjectId = resolveProfileSubjectId({
+    explicitSubjectId,
+    currentUserId: currentUser?.id,
+    profileMode,
+    profileSubjectId,
+    subjectOptions,
+  });
 
-  const selectedSubject = useMemo(
-    () => findProfileSubject(selectedSubjectId, subjectOptions),
-    [selectedSubjectId, subjectOptions],
-  );
+  const selectedSubject = findProfileSubject(selectedSubjectId, subjectOptions);
 
   const selectedChildId = selectedSubject?.kind === 'child' ? selectedSubject.id : null;
   const subjectId = selectedSubject?.id ?? null;
 
-  const loadInjuries = useCallback(async () => {
+  const loadInjuries = async () => {
     if (!subjectId) {
       return ok<{ injuries: Injury[] }>({ injuries: [] });
     }
@@ -87,7 +76,7 @@ export function useInjuries() {
       logger.error('Failed to load injuries:', error);
       return err(serviceError('UNKNOWN', 'Failed to load injuries.', error));
     }
-  }, [subjectId]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<{ injuries: Injury[] }>({
     load: loadInjuries,
@@ -101,104 +90,89 @@ export function useInjuries() {
   const injuries = data?.injuries ?? [];
   const handleRefresh = onRefresh;
 
-  const filteredInjuries = useMemo(() => {
+  const filteredInjuries = (() => {
     if (statusFilter === 'ALL') return injuries;
     return injuries.filter((i) => i.status === statusFilter);
-  }, [injuries, statusFilter]);
+  })();
 
-  const counts = useMemo(
-    () => ({
-      ALL: injuries.length,
-      ACTIVE: injuries.filter((i) => i.status === 'ACTIVE').length,
-      RECOVERING: injuries.filter((i) => i.status === 'RECOVERING').length,
-      HEALED: injuries.filter((i) => i.status === 'HEALED').length,
-    }),
-    [injuries],
-  );
+  const counts = ({
+    ALL: injuries.length,
+    ACTIVE: injuries.filter((i) => i.status === 'ACTIVE').length,
+    RECOVERING: injuries.filter((i) => i.status === 'RECOVERING').length,
+    HEALED: injuries.filter((i) => i.status === 'HEALED').length,
+  });
 
-  const handleInjuryPress = useCallback((injury: Injury) => {
+  const handleInjuryPress = (injury: Injury) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(Routes.healthEntry(injury.id));
-  }, []);
+  };
 
-  const handleFilterChange = useCallback((filter: StatusFilter) => {
+  const handleFilterChange = (filter: StatusFilter) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setStatusFilter(filter);
-  }, []);
+  };
 
-  const handleLogInjury = useCallback(() => {
+  const handleLogInjury = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (selectedChildId) {
       router.push({ pathname: '/health/log', params: { childId: selectedChildId } });
       return;
     }
     router.push(Routes.HEALTH_LOG);
-  }, [selectedChildId]);
+  };
 
-  const handleSelectSubject = useCallback(
-    (nextSubjectId: string) => {
-      const nextOption = subjectOptions.find((option) => option.id === nextSubjectId);
-      if (!nextOption) return;
-      void setProfileScope(buildProfileScopePayload(nextOption));
-    },
-    [setProfileScope, subjectOptions],
-  );
+  const handleSelectSubject = (nextSubjectId: string) => {
+    const nextOption = subjectOptions.find((option) => option.id === nextSubjectId);
+    if (!nextOption) return;
+    void setProfileScope(buildProfileScopePayload(nextOption));
+  };
 
-  const handleSelectNextSubject = useCallback(() => {
+  const handleSelectNextSubject = () => {
     const nextOption = getNextProfileSubject(selectedSubjectId, subjectOptions);
     if (nextOption) {
       void setProfileScope(buildProfileScopePayload(nextOption));
     }
-  }, [selectedSubjectId, setProfileScope, subjectOptions]);
+  };
 
-  const handleEditSelectedSubject = useCallback(() => {
+  const handleEditSelectedSubject = () => {
     if (!selectedSubject) return;
     if (selectedSubject.kind === 'child') {
       router.push(Routes.modalEditChildProfile(selectedSubject.id));
       return;
     }
     router.push(Routes.EDIT_PROFILE);
-  }, [selectedSubject]);
+  };
 
-  const handleQuickHeal = useCallback(
-    (injury: Injury) => {
-      if (injury.status === 'HEALED') return;
-      uiFeedback.alert('Mark as recovered?', 'This injury will move to healed records.', [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Mark recovered',
-          onPress: () => {
-            void (async () => {
-              try {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                const actorId = currentUser?.id ?? injury.userId;
-                const updated = await injuryService.markAsHealedForActor(actorId, injury.id);
-                if (updated) {
-                  void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                  onRefresh();
-                  return;
-                }
-                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              } catch (markError) {
-                logger.error('Failed to mark injury as recovered', { injuryId: injury.id, error: markError });
-                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+  const handleQuickHeal = (injury: Injury) => {
+    if (injury.status === 'HEALED') return;
+    uiFeedback.alert('Mark as recovered?', 'This injury will move to healed records.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Mark recovered',
+        onPress: () => {
+          void (async () => {
+            try {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              const actorId = currentUser?.id ?? injury.userId;
+              const updated = await injuryService.markAsHealedForActor(actorId, injury.id);
+              if (updated) {
+                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                onRefresh();
+                return;
               }
-            })();
-          },
+              void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            } catch (markError) {
+              logger.error('Failed to mark injury as recovered', { injuryId: injury.id, error: markError });
+              void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            }
+          })();
         },
-      ]);
-    },
-    [currentUser?.id, onRefresh],
-  );
+      },
+    ]);
+  };
 
-  const openInjuries = useMemo(
-    () => injuries.filter((injury) => injury.status === 'ACTIVE' || injury.status === 'RECOVERING'),
-    [injuries],
-  );
-  const healedInjuries = useMemo(
-    () => injuries.filter((injury) => injury.status === 'HEALED'),
-    [injuries],
-  );
+  const openInjuries = injuries.filter((injury) => injury.status === 'ACTIVE' || injury.status === 'RECOVERING');
+  const healedInjuries = injuries.filter((injury) => injury.status === 'HEALED');
 
   return {
     injuries,

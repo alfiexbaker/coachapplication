@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -12,7 +11,7 @@ interface ChildProgressStatsProps {
   badgeCount: number;
 }
 
-export const ChildProgressStats = memo(function ChildProgressStats({
+export const ChildProgressStats = function ChildProgressStats({
   totalSessions,
   averagePerformance,
   badgeCount,
@@ -32,7 +31,7 @@ export const ChildProgressStats = memo(function ChildProgressStats({
       <StatItem value={String(badgeCount)} label="Badges" />
     </Row>
   );
-});
+};
 
 function StatItem({ value, label }: { value: string; label: string }) {
   const { colors } = useTheme();

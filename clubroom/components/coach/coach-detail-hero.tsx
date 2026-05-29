@@ -1,5 +1,5 @@
-import React, { memo } from 'react';
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import React from 'react';
+import { ActivityIndicator, View, StyleSheet, useWindowDimensions } from 'react-native';
 import { SafeImage } from '@/components/primitives/safe-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,9 +7,9 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { SCREEN_WIDTH, COVER_HEIGHT } from '@/hooks/use-coach-detail';
+import { COVER_HEIGHT } from '@/hooks/use-coach-detail';
 import type { Coach } from '@/services/coach-service';
-import { renderStars } from '@/components/coach/coach-detail-reviews';
+import { RatingStars } from '@/components/coach/coach-detail-reviews';
 import { Row } from '@/components/primitives';
 import type { CoachOfferingSummary } from '@/utils/coach-profile-offerings';
 import { formatCoachAvailabilityLabel } from '@/utils/coach-profile-offerings';
@@ -30,7 +30,8 @@ interface CoachDetailHeroProps {
   onMessage: () => void;
 }
 
-export const CoachDetailHero = memo(function CoachDetailHero({
+// react-doctor-disable-next-line react-doctor/no-many-boolean-props -- public hero API reflects independent profile permissions and follow state.
+export const CoachDetailHero = function CoachDetailHero({
   coach,
   isOwnProfile,
   isFollowing,
@@ -46,6 +47,7 @@ export const CoachDetailHero = memo(function CoachDetailHero({
   onMessage,
 }: CoachDetailHeroProps) {
   const { colors: palette } = useTheme();
+  const { width } = useWindowDimensions();
   const isMutedFollowButton = isFollowing || !canFollowAction;
   const followTextColor = isMutedFollowButton ? palette.text : palette.onPrimary;
   const availabilityLabel = formatCoachAvailabilityLabel(
@@ -70,9 +72,14 @@ export const CoachDetailHero = memo(function CoachDetailHero({
       {/* Cover + Avatar */}
       <View style={styles.coverContainer}>
         {coach.coverPhotoUrl ? (
-          <SafeImage source={{ uri: coach.coverPhotoUrl }} fallbackIcon="image-outline" fallbackIconSize={48} style={styles.coverImage} />
+          <SafeImage
+            source={{ uri: coach.coverPhotoUrl }}
+            fallbackIcon="image-outline"
+            fallbackIconSize={48}
+            style={[styles.coverImage, { width }]}
+          />
         ) : (
-          <View style={[styles.coverPlaceholder, { backgroundColor: palette.tint }]} />
+          <View style={[styles.coverPlaceholder, { backgroundColor: palette.tint, width }]} />
         )}
         <Clickable
           onPress={() => router.back()}
@@ -122,9 +129,9 @@ export const CoachDetailHero = memo(function CoachDetailHero({
         )}
         {coach.badges && coach.badges.length > 0 && (
           <Row style={styles.badgesRow}>
-            {coach.badges.slice(0, 3).map((badge, index) => (
+            {coach.badges.slice(0, 3).map((badge) => (
               <Row
-                key={index}
+                key={badge}
                 style={[styles.badge, { backgroundColor: withAlpha(palette.success, 0.09) }]}
               >
                 <Ionicons name="checkmark-circle" size={12} color={palette.success} />
@@ -138,7 +145,9 @@ export const CoachDetailHero = memo(function CoachDetailHero({
         <Row style={styles.statsRow}>
           <View style={styles.statBlock}>
             <ThemedText type="defaultSemiBold">{coach.rating.toFixed(1)}</ThemedText>
-            <Row style={styles.starsRow}>{renderStars(coach.rating, palette.warning)}</Row>
+            <Row style={styles.starsRow}>
+              <RatingStars rating={coach.rating} color={palette.warning} />
+            </Row>
           </View>
           <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
           <View style={styles.statBlock}>
@@ -157,15 +166,13 @@ export const CoachDetailHero = memo(function CoachDetailHero({
           {profileSummary}
         </ThemedText>
         <Row style={styles.signalRow}>
-          <View
-            style={[styles.signalCard, { backgroundColor: withAlpha(palette.tint, 0.08) }]}
-          >
-            <ThemedText style={[styles.signalLabel, { color: palette.muted }]}>Next slot</ThemedText>
+          <View style={[styles.signalCard, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
+            <ThemedText style={[styles.signalLabel, { color: palette.muted }]}>
+              Next slot
+            </ThemedText>
             <ThemedText style={styles.signalValue}>{availabilityLabel}</ThemedText>
           </View>
-          <View
-            style={[styles.signalCard, { backgroundColor: withAlpha(palette.info, 0.08) }]}
-          >
+          <View style={[styles.signalCard, { backgroundColor: withAlpha(palette.info, 0.08) }]}>
             <ThemedText style={[styles.signalLabel, { color: palette.muted }]}>Access</ThemedText>
             <ThemedText style={styles.signalValue}>{accessLabel}</ThemedText>
           </View>
@@ -186,15 +193,9 @@ export const CoachDetailHero = memo(function CoachDetailHero({
               {followLoading ? (
                 <ActivityIndicator size="small" color={followTextColor} />
               ) : (
-                <Ionicons
-                  name={followIconName}
-                  size={18}
-                  color={followTextColor}
-                />
+                <Ionicons name={followIconName} size={18} color={followTextColor} />
               )}
-              <ThemedText
-                style={{ color: followTextColor, fontWeight: '600' }}
-              >
+              <ThemedText style={{ color: followTextColor, fontWeight: '600' }}>
                 {followLabel}
               </ThemedText>
             </Clickable>
@@ -213,12 +214,12 @@ export const CoachDetailHero = memo(function CoachDetailHero({
       </View>
     </>
   );
-});
+};
 
 const styles = StyleSheet.create({
   coverContainer: { height: COVER_HEIGHT + 50, position: 'relative' },
-  coverImage: { width: SCREEN_WIDTH, height: COVER_HEIGHT },
-  coverPlaceholder: { width: SCREEN_WIDTH, height: COVER_HEIGHT, opacity: 0.8 },
+  coverImage: { height: COVER_HEIGHT },
+  coverPlaceholder: { height: COVER_HEIGHT, opacity: 0.8 },
   backButton: {
     position: 'absolute',
     top: 12,

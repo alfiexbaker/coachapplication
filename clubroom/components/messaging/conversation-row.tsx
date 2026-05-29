@@ -6,7 +6,7 @@
  * Animated entry with FadeInDown. Memoized for FlatList usage.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -24,7 +24,7 @@ interface ConversationRowProps {
   onPress: () => void;
 }
 
-export const ConversationRow = memo(function ConversationRow({
+export const ConversationRow = function ConversationRow({
   thread,
   index,
   onPress,
@@ -87,7 +87,7 @@ export const ConversationRow = memo(function ConversationRow({
       </Clickable>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   conversationRow: {

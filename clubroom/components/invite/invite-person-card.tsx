@@ -5,7 +5,7 @@
  * For parents viewing: shows coach name and optional club name.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -28,7 +28,7 @@ interface InvitePersonCardProps {
   delay?: number;
 }
 
-export const InvitePersonCard = memo(function InvitePersonCard({
+export const InvitePersonCard = function InvitePersonCard({
   invite,
   isCoach,
   colors,
@@ -73,7 +73,7 @@ export const InvitePersonCard = memo(function InvitePersonCard({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

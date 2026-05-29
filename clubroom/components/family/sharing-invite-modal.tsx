@@ -1,7 +1,12 @@
-import { memo, useCallback, useMemo } from 'react';
 import {
-  View, StyleSheet, ScrollView, TextInput, ActivityIndicator, Modal, Keyboard } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  View,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  ActivityIndicator,
+  Modal,
+  Keyboard,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -34,7 +39,7 @@ interface SharingInviteModalProps {
   onSend: () => void;
 }
 
-export const SharingInviteModal = memo(function SharingInviteModal({
+export const SharingInviteModal = function SharingInviteModal({
   visible,
   onClose,
   inviteEmail,
@@ -53,37 +58,38 @@ export const SharingInviteModal = memo(function SharingInviteModal({
   onSend,
 }: SharingInviteModalProps) {
   const { colors } = useTheme();
-  const hasUnsavedChanges = useMemo(
-    () =>
-      inviteEmail.trim().length > 0 ||
-      inviteName.trim().length > 0 ||
-      inviteMessage.trim().length > 0 ||
-      inviteRelationship !== 'Co-parent' ||
-      inviteRole !== 'GUARDIAN',
-    [inviteEmail, inviteName, inviteMessage, inviteRelationship, inviteRole],
-  );
+  const hasUnsavedChanges =
+    inviteEmail.trim().length > 0 ||
+    inviteName.trim().length > 0 ||
+    inviteMessage.trim().length > 0 ||
+    inviteRelationship !== 'Co-parent' ||
+    inviteRole !== 'GUARDIAN';
 
-  const closeNow = useCallback(() => {
+  const closeNow = () => {
     Keyboard.dismiss();
     onClose();
-  }, [onClose]);
+  };
 
-  const handleClose = useCallback(() => {
+  const handleClose = () => {
     if (inviting) return;
     if (!hasUnsavedChanges) {
       closeNow();
       return;
     }
-    uiFeedback.alert('Discard Invite?', 'You have an unsent invite. Are you sure you want to close?', [
-      { text: 'Keep Editing', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: closeNow },
-    ]);
-  }, [inviting, hasUnsavedChanges, closeNow]);
+    uiFeedback.alert(
+      'Discard Invite?',
+      'You have an unsent invite. Are you sure you want to close?',
+      [
+        { text: 'Keep Editing', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: closeNow },
+      ],
+    );
+  };
 
-  const handleSend = useCallback(() => {
+  const handleSend = () => {
     Keyboard.dismiss();
     onSend();
-  }, [onSend]);
+  };
 
   return (
     <Modal
@@ -92,10 +98,7 @@ export const SharingInviteModal = memo(function SharingInviteModal({
       presentationStyle="pageSheet"
       onRequestClose={handleClose}
     >
-      <SafeAreaView
-        style={[styles.modal, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
+      <View style={[styles.modal, { backgroundColor: colors.background }]}>
         <PageHeader
           title="Invite Guardian"
           showBack
@@ -105,7 +108,11 @@ export const SharingInviteModal = memo(function SharingInviteModal({
           containerStyle={[styles.header, { borderBottomColor: colors.border }]}
         />
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.content}
+        >
           <View style={styles.group}>
             <ThemedText type="defaultSemiBold">Email Address</ThemedText>
             <TextInput
@@ -123,7 +130,9 @@ export const SharingInviteModal = memo(function SharingInviteModal({
               maxLength={100}
             />
             {emailError ? (
-              <ThemedText style={[Typography.caption, { color: colors.error }]}>{emailError}</ThemedText>
+              <ThemedText style={[Typography.caption, { color: colors.error }]}>
+                {emailError}
+              </ThemedText>
             ) : null}
           </View>
 
@@ -244,10 +253,10 @@ export const SharingInviteModal = memo(function SharingInviteModal({
             )}
           </Clickable>
         </View>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
-});
+};
 
 const styles = StyleSheet.create({
   modal: { flex: 1 },

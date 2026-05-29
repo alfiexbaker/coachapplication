@@ -11,7 +11,7 @@
  *   <Badge label="3 new" variant="info" size="sm" />
  */
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Fonts, Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
@@ -90,7 +90,7 @@ const SIZE_MAP: Record<BadgeSize, SizeConfig> = {
 
 function BadgeInner({ label, variant = 'default', size = 'md' }: BadgeProps) {
   const { colors } = useTheme();
-  const variantColors = useMemo(() => getVariantColors(variant, colors), [variant, colors]);
+  const variantColors = getVariantColors(variant, colors);
   const sizeConfig = SIZE_MAP[size];
 
   return (
@@ -122,7 +122,7 @@ function BadgeInner({ label, variant = 'default', size = 'md' }: BadgeProps) {
   );
 }
 
-export const Badge = React.memo(BadgeInner);
+export const Badge = BadgeInner;
 
 // ---------------------------------------------------------------------------
 // Styles

@@ -21,6 +21,8 @@ interface ConsentCardProps {
 export function ConsentCard({ athleteConsent, onPress, showDetails = false }: ConsentCardProps) {
   const { colors: palette } = useTheme();
   const [resolvedName, setResolvedName] = useState<string>('');
+  const [nowMs] = useState(() => Date.now());
+  const nowDate = new Date(nowMs);
 
   useEffect(() => {
     let cancelled = false;
@@ -139,15 +141,15 @@ export function ConsentCard({ athleteConsent, onPress, showDetails = false }: Co
                         style={[
                           styles.detailMeta,
                           {
-                            color: new Date(consent.expiryAt) <= new Date()
+                            color: new Date(consent.expiryAt) <= nowDate
                               ? palette.error
-                              : new Date(consent.expiryAt).getTime() - Date.now() < 30 * 24 * 60 * 60 * 1000
+                              : new Date(consent.expiryAt).getTime() - nowMs < 30 * 24 * 60 * 60 * 1000
                                 ? palette.warning
                                 : palette.muted,
                           },
                         ]}
                       >
-                        {new Date(consent.expiryAt) <= new Date()
+                        {new Date(consent.expiryAt) <= nowDate
                           ? 'Expired'
                           : `Expires ${new Date(consent.expiryAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}
                       </ThemedText>

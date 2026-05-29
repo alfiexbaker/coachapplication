@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -16,7 +16,7 @@ interface SquadQuickActionsProps {
   onSchedule: () => void;
 }
 
-export const SquadQuickActions = memo(function SquadQuickActions({
+export const SquadQuickActions = function SquadQuickActions({
   colors,
   openingGroupChat,
   onGroupChat,
@@ -52,7 +52,7 @@ export const SquadQuickActions = memo(function SquadQuickActions({
             <>
               <ActivityIndicator size="small" color={colors.tint} />
               <ThemedText style={[Typography.bodySemiBold, { color: colors.tint }]}>
-                Opening...
+                Opening…
               </ThemedText>
             </>
           ) : (
@@ -75,7 +75,7 @@ export const SquadQuickActions = memo(function SquadQuickActions({
       </Clickable>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: { gap: Spacing.sm },

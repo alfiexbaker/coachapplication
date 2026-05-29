@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -26,7 +26,7 @@ interface CreateMatchReviewProps {
   colors: ThemeColors;
 }
 
-export const CreateMatchReview = memo(function CreateMatchReview({
+export const CreateMatchReview = function CreateMatchReview({
   matchType,
   opponent,
   isHome,
@@ -116,7 +116,7 @@ export const CreateMatchReview = memo(function CreateMatchReview({
       </SurfaceCard>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   stepContent: { gap: Spacing.md },

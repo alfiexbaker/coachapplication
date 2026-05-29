@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import {
   ActivityIndicator,
   Keyboard,
@@ -29,6 +29,7 @@ import {
   coachPaymentInstructionsService,
   type CoachPaymentInstructions,
 } from '@/services/coach-payment-instructions-service';
+import { uiFeedback } from '@/services/ui-feedback';
 
 interface CoachPaymentInstructionsCardProps {
   coachId: string;
@@ -54,45 +55,47 @@ function CoachPaymentInstructionsCardInner({
   const [showEditModal, setShowEditModal] = useState(false);
   const [draft, setDraft] = useState<CoachPaymentInstructions | null>(null);
 
-  const maxLengths = useMemo(() => coachPaymentInstructionsService.getMaxLengths(), []);
-
-  const loadInstructions = useCallback(async () => {
-    if (!coachId) {
-      setInstructions(null);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    const result = await coachPaymentInstructionsService.getCoachPaymentInstructions(coachId);
-    if (result.success) {
-      setInstructions(result.data);
-    } else {
-      showToast(result.error.message, 'error');
-    }
-    setLoading(false);
-  }, [coachId, showToast]);
+  const maxLengths = coachPaymentInstructionsService.getMaxLengths();
 
   useEffect(() => {
-    void loadInstructions();
-  }, [loadInstructions]);
+    const loadInstructions = async () => {
+      if (!coachId) {
+        setInstructions(null);
+        setLoading(false);
+        return;
+      }
 
-  const openEdit = useCallback(() => {
+      setLoading(true);
+      const result = await coachPaymentInstructionsService.getCoachPaymentInstructions(coachId);
+      if (result.success) {
+        setInstructions(result.data);
+      } else {
+        uiFeedback.showToast(result.error.message, 'error');
+      }
+      setLoading(false);
+    };
+
+    startTransition(() => {
+      void loadInstructions();
+    });
+  }, [coachId]);
+
+  const openEdit = () => {
     if (!instructions) return;
     setDraft({ ...instructions });
     setShowEditModal(true);
-  }, [instructions]);
+  };
 
-  const closeEdit = useCallback(() => {
+  const closeEdit = () => {
     Keyboard.dismiss();
     setShowEditModal(false);
-  }, []);
+  };
 
   const hasInstructions = Boolean(
     instructions && (instructions.bankTransferDetails.trim() || instructions.paymentNotes.trim()),
   );
 
-  const handleCopyInstructions = useCallback(async () => {
+  const handleCopyInstructions = async () => {
     if (!instructions) return;
 
     const text = [
@@ -116,9 +119,9 @@ function CoachPaymentInstructionsCardInner({
     } catch {
       showToast('Failed to copy instructions', 'error');
     }
-  }, [instructions, showToast]);
+  };
 
-  const handleCopyInvoiceMessage = useCallback(async () => {
+  const handleCopyInvoiceMessage = async () => {
     if (!instructions || !invoice) return;
     try {
       const message = coachPaymentInstructionsService.buildInvoiceMessage({
@@ -131,9 +134,9 @@ function CoachPaymentInstructionsCardInner({
     } catch {
       showToast('Failed to copy message', 'error');
     }
-  }, [coachName, instructions, invoice, showToast]);
+  };
 
-  const handleShareInvoiceMessage = useCallback(async () => {
+  const handleShareInvoiceMessage = async () => {
     if (!instructions || !invoice) return;
     const message = coachPaymentInstructionsService.buildInvoiceMessage({
       invoice,
@@ -145,18 +148,18 @@ function CoachPaymentInstructionsCardInner({
     } catch {
       // User cancelled share sheet
     }
-  }, [coachName, instructions, invoice]);
+  };
 
-  const updateDraftField = useCallback((field: keyof CoachPaymentInstructions, value: string) => {
+  const updateDraftField = (field: keyof CoachPaymentInstructions, value: string) => {
     setDraft((prev) => (prev ? { ...prev, [field]: value } : prev));
-  }, []);
+  };
 
-  const draftIsValid = useMemo(() => {
+  const draftIsValid = (() => {
     if (!draft) return false;
     return Boolean(draft.bankTransferDetails.trim() || draft.paymentNotes.trim());
-  }, [draft]);
+  })();
 
-  const handleSave = useCallback(async () => {
+  const handleSave = async () => {
     if (!draft) return;
 
     setSaving(true);
@@ -172,7 +175,7 @@ function CoachPaymentInstructionsCardInner({
     setShowEditModal(false);
     Keyboard.dismiss();
     showToast('Payment instructions saved', 'success');
-  }, [draft, showToast]);
+  };
 
   if (!coachId) {
     return null;
@@ -293,9 +296,8 @@ function CoachPaymentInstructionsCardInner({
               style={styles.actionButton}
               accessibilityLabel="Copy direct payment instructions"
               disabled={loading}
-            >
-              Copy Instructions
-            </Button>
+              label="Copy Instructions"
+            />
 
             {invoice ? (
               <>
@@ -305,18 +307,16 @@ function CoachPaymentInstructionsCardInner({
                   style={styles.actionButton}
                   accessibilityLabel="Copy invoice payment message"
                   disabled={loading}
-                >
-                  Copy Invoice Message
-                </Button>
+                  label="Copy Invoice Message"
+                />
                 <Button
                   onPress={handleShareInvoiceMessage}
                   variant="secondary"
                   style={styles.actionButton}
                   accessibilityLabel="Share invoice payment message"
                   disabled={loading}
-                >
-                  Share Invoice Message
-                </Button>
+                  label="Share Invoice Message"
+                />
               </>
             ) : null}
           </Row>
@@ -485,18 +485,16 @@ function CoachPaymentInstructionsCardInner({
                 variant="outline"
                 style={styles.modalActionButton}
                 accessibilityLabel="Cancel editing payment instructions"
-              >
-                Cancel
-              </Button>
+                label="Cancel"
+              />
               <Button
                 onPress={handleSave}
                 variant="primary"
                 style={styles.modalActionButton}
                 accessibilityLabel="Save payment instructions"
                 disabled={!draftIsValid || saving}
-              >
-                {saving ? 'Saving…' : 'Save'}
-              </Button>
+                label={saving ? 'Saving...' : 'Save'}
+              />
             </Row>
           </KeyboardAvoidingView>
         </SafeAreaView>
@@ -505,7 +503,7 @@ function CoachPaymentInstructionsCardInner({
   );
 }
 
-export const CoachPaymentInstructionsCard = memo(CoachPaymentInstructionsCardInner);
+export const CoachPaymentInstructionsCard = CoachPaymentInstructionsCardInner;
 
 const styles = StyleSheet.create({
   flex1: {

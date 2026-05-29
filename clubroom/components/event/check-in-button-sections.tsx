@@ -6,7 +6,7 @@
  * CheckInAction — primary check-in CTA with location warnings.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -27,7 +27,7 @@ interface CheckInUnavailableProps {
   palette: ThemeColors;
 }
 
-export const CheckInUnavailable = memo(function CheckInUnavailable({
+export const CheckInUnavailable = function CheckInUnavailable({
   eventDate,
   palette,
 }: CheckInUnavailableProps) {
@@ -54,7 +54,7 @@ export const CheckInUnavailable = memo(function CheckInUnavailable({
       </ThemedText>
     </Row>
   );
-});
+};
 
 // ─── CheckedInBadge ──────────────────────────────────────────────────────────
 
@@ -65,7 +65,7 @@ interface CheckedInBadgeProps {
   palette: ThemeColors;
 }
 
-export const CheckedInBadge = memo(function CheckedInBadge({
+const renderCheckedInBadge = function renderCheckedInBadge({
   attendance,
   loading,
   onUndoCheckIn,
@@ -109,7 +109,8 @@ export const CheckedInBadge = memo(function CheckedInBadge({
       )}
     </View>
   );
-});
+};
+export const CheckedInBadge = renderCheckedInBadge;
 
 // ─── CheckInAction ───────────────────────────────────────────────────────────
 
@@ -128,7 +129,7 @@ interface CheckInActionProps {
   palette: ThemeColors;
 }
 
-export const CheckInAction = memo(function CheckInAction({
+const renderCheckInAction = function renderCheckInAction({
   loading,
   disabled,
   requireLocation,
@@ -176,6 +177,5 @@ export const CheckInAction = memo(function CheckInAction({
       )}
     </View>
   );
-});
-
-export { styles };
+};
+export const CheckInAction = renderCheckInAction;

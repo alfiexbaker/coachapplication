@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { StyleSheet } from 'react-native';
 
@@ -17,7 +17,7 @@ interface CoachDetailSessionsProps {
   onOfferingPress: (offering: SessionOffering) => void;
 }
 
-export const CoachDetailSessions = memo(function CoachDetailSessions({
+export const CoachDetailSessions = function CoachDetailSessions({
   coach,
   sessionOfferings,
   offeringSummary,
@@ -38,7 +38,7 @@ export const CoachDetailSessions = memo(function CoachDetailSessions({
       />
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   tabContent: { padding: Spacing.lg, gap: Spacing.md },

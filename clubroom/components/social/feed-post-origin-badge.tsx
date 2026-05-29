@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +20,7 @@ interface OriginBadgeProps {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export const OriginBadge = memo(function OriginBadge({
+export const OriginBadge = function OriginBadge({
   clubName,
   clubBadge,
   clubId,
@@ -123,7 +122,7 @@ export const OriginBadge = memo(function OriginBadge({
       <Ionicons name="chevron-forward" size={12} color={palette.tint} />
     </Clickable>
   );
-});
+};
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 

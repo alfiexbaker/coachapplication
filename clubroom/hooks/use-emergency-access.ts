@@ -1,9 +1,3 @@
-/**
- * Hook for the Emergency Quick Access screen.
- * Manages emergency data loading, refresh, and call actions.
- */
-
-import { useCallback } from 'react';
 import { Linking } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -23,7 +17,7 @@ export function useEmergencyAccess() {
   const { currentUser } = useAuth();
   const coachId = currentUser?.id || 'coach_1';
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     if (!athleteId) {
       return ok<AthleteEmergencyQuickView | null>(null);
     }
@@ -43,7 +37,7 @@ export function useEmergencyAccess() {
       logger.error('Failed to load emergency data:', loadError);
       return err(serviceError('UNKNOWN', 'Failed to load emergency information.', loadError));
     }
-  }, [athleteId, coachId]);
+  };
 
   const {
     data: emergencyData,
@@ -59,7 +53,7 @@ export function useEmergencyAccess() {
     refetchOnFocus: true,
   });
 
-  const handleCallContact = useCallback(async (phone: string, name: string) => {
+  const handleCallContact = async (phone: string, name: string) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     uiFeedback.alert('Call Emergency Contact', `Call ${name} at ${phone}?`, [
       { text: 'Cancel', style: 'cancel' },
@@ -77,9 +71,9 @@ export function useEmergencyAccess() {
         },
       },
     ]);
-  }, []);
+  };
 
-  const handleCallDoctor = useCallback(async () => {
+  const handleCallDoctor = async () => {
     if (!emergencyData?.doctorPhone) return;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     uiFeedback.alert(
@@ -101,7 +95,7 @@ export function useEmergencyAccess() {
         },
       ],
     );
-  }, [emergencyData]);
+  };
 
   return {
     emergencyData: emergencyData ?? null,

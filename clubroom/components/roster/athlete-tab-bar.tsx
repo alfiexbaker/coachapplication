@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
@@ -20,7 +20,7 @@ interface AthleteTabBarProps {
   onTabPress: (tab: TabId) => void;
 }
 
-export const AthleteTabBar = memo(function AthleteTabBar({
+export const AthleteTabBar = function AthleteTabBar({
   activeTab,
   onTabPress,
 }: AthleteTabBarProps) {
@@ -60,7 +60,7 @@ export const AthleteTabBar = memo(function AthleteTabBar({
       })}
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   tabBar: {

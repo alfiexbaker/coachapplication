@@ -9,11 +9,11 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import {
-  INVITE_CODES,
   InviteCodeSection,
   CoachFormFields,
   SignupSubmitButton,
 } from './coach-signup-sections';
+import { INVITE_CODES } from './coach-signup-helpers';
 
 interface CoachSignupScreenProps {
   onSignupComplete: (data: CoachSignupData) => void | Promise<void>;

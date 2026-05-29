@@ -1,12 +1,4 @@
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { createContext, useEffect, useRef, useState, startTransition, use } from 'react';
 import { KeyboardTypeOptions, Modal, StyleSheet, TextInput, View } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -37,47 +29,55 @@ type AppPromptContextValue = {
 
 const AppPromptContext = createContext<AppPromptContextValue | undefined>(undefined);
 
+function enqueuePrompt(
+  options: PromptTextOptions,
+  idCounter: React.MutableRefObject<number>,
+  setQueue: React.Dispatch<React.SetStateAction<QueuedPrompt[]>>,
+) {
+  return new Promise<string | null>((resolve) => {
+    idCounter.current += 1;
+    setQueue((previous) => [...previous, { ...options, id: idCounter.current, resolve }]);
+  });
+}
+
 export function AppPromptProvider({ children }: { children: React.ReactNode }) {
   const [queue, setQueue] = useState<QueuedPrompt[]>([]);
   const idCounter = useRef(0);
 
-  const promptText = useCallback((options: PromptTextOptions) => {
-    return new Promise<string | null>((resolve) => {
-      idCounter.current += 1;
-      setQueue((previous) => [...previous, { ...options, id: idCounter.current, resolve }]);
-    });
-  }, []);
+  const promptText = (options: PromptTextOptions) => enqueuePrompt(options, idCounter, setQueue);
 
-  const resolveCurrent = useCallback((value: string | null) => {
+  const resolveCurrent = (value: string | null) => {
     setQueue((previous) => {
       if (previous.length === 0) return previous;
       const [current, ...rest] = previous;
       current.resolve(value);
       return rest;
     });
-  }, []);
+  };
 
+  // react-doctor-disable-next-line react-doctor/no-reset-all-state-on-prop-change -- sheet input state intentionally resets when a new prompt/options payload is shown.
   useEffect(() => {
     return registerPromptPresenter({
       promptText: (options) =>
-        promptText({
-          title: options.title,
-          message: options.message,
-          placeholder: options.placeholder,
-          defaultValue: options.defaultValue,
-          confirmText: options.confirmText,
-          cancelText: options.cancelText,
-          keyboardType: options.keyboardType,
-        }),
+        enqueuePrompt(
+          {
+            title: options.title,
+            message: options.message,
+            placeholder: options.placeholder,
+            defaultValue: options.defaultValue,
+            confirmText: options.confirmText,
+            cancelText: options.cancelText,
+            keyboardType: options.keyboardType,
+          },
+          idCounter,
+          setQueue,
+        ),
     });
-  }, [promptText]);
+  }, []);
 
-  const value = useMemo<AppPromptContextValue>(
-    () => ({
-      promptText,
-    }),
-    [promptText],
-  );
+  const value = {
+    promptText,
+  };
 
   const current = queue[0] ?? null;
 
@@ -97,7 +97,7 @@ export function AppPromptProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useAppPrompt() {
-  const context = useContext(AppPromptContext);
+  const context = use(AppPromptContext);
   if (!context) {
     throw new Error('useAppPrompt must be used within an AppPromptProvider');
   }
@@ -117,9 +117,14 @@ function PromptModal({
   const [value, setValue] = useState(options.defaultValue ?? '');
   const [error, setError] = useState<string | null>(null);
 
+  // react-doctor-disable-next-line react-doctor/no-reset-all-state-on-prop-change -- sheet input state intentionally resets when a new prompt/options payload is shown.
   useEffect(() => {
-    setValue(options.defaultValue ?? '');
-    setError(null);
+    startTransition(() => {
+      setValue(options.defaultValue ?? '');
+    });
+    startTransition(() => {
+      setError(null);
+    });
   }, [options.defaultValue, options.title]);
 
   return (
@@ -137,7 +142,9 @@ function PromptModal({
         >
           <ThemedText type="subtitle">{options.title}</ThemedText>
           {options.message ? (
-            <ThemedText style={[styles.message, { color: palette.muted }]}>{options.message}</ThemedText>
+            <ThemedText style={[styles.message, { color: palette.muted }]}>
+              {options.message}
+            </ThemedText>
           ) : null}
 
           <TextInput
@@ -170,7 +177,9 @@ function PromptModal({
             }}
             accessibilityLabel={options.title}
           />
-          {error ? <ThemedText style={[styles.error, { color: palette.error }]}>{error}</ThemedText> : null}
+          {error ? (
+            <ThemedText style={[styles.error, { color: palette.error }]}>{error}</ThemedText>
+          ) : null}
 
           <View style={styles.actions}>
             <Clickable
@@ -259,4 +268,3 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
   },
 });
-

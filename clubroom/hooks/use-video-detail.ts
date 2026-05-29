@@ -5,7 +5,7 @@
  * Used by app/videos/[id].tsx
  */
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Share } from 'react-native';
 import { router } from 'expo-router';
 
@@ -26,7 +26,7 @@ export function useVideoDetail(id: string | undefined) {
   const [currentTime, setCurrentTime] = useState(0);
   const [showAnnotationModal, setShowAnnotationModal] = useState(false);
 
-  const loadVideo = useCallback(async () => {
+  const loadVideo = async () => {
     if (!id) {
       return err(serviceError('VALIDATION', 'Missing video id.'));
     }
@@ -38,7 +38,7 @@ export function useVideoDetail(id: string | undefined) {
       logger.error('Failed to load video:', loadError);
       return err(serviceError('UNKNOWN', 'Failed to load video details.', loadError));
     }
-  }, [id]);
+  };
 
   const { data: video, status, error, onRefresh, retry } = useScreen<SessionVideo | null>({
     load: loadVideo,
@@ -51,57 +51,54 @@ export function useVideoDetail(id: string | undefined) {
 
   const isOwner = video?.coachId === currentUser?.id;
 
-  const handleTimeUpdate = useCallback((time: number) => {
+  const handleTimeUpdate = (time: number) => {
     setCurrentTime(time);
-  }, []);
+  };
 
-  const handleSeekToAnnotation = useCallback((annotation: VideoAnnotation) => {
+  const handleSeekToAnnotation = (annotation: VideoAnnotation) => {
     setCurrentTime(annotation.timestamp);
-  }, []);
+  };
 
-  const handleQuickAnnotation = useCallback((_type: VideoAnnotationType) => {
+  const handleQuickAnnotation = (_type: VideoAnnotationType) => {
     setShowAnnotationModal(true);
-  }, []);
+  };
 
-  const handleSaveAnnotation = useCallback(
-    async (annotation: Omit<VideoAnnotation, 'id'>) => {
-      if (!video) return;
-      if (annotation.timestamp < 0) {
-        uiFeedback.showToast('Timestamp cannot be negative.', 'error');
-        return;
-      }
-      if (annotation.timestamp > video.duration) {
-        const mins = Math.floor(video.duration / 60);
-        const secs = Math.floor(video.duration % 60);
-        uiFeedback.showToast(`Timestamp cannot exceed ${mins}:${secs.toString().padStart(2, '0')}.`, 'error');
-        return;
-      }
-      if (!annotation.label.trim()) {
-        uiFeedback.showToast('Please enter a label for this annotation.', 'error');
-        return;
-      }
-      if ((annotation.note?.trim().length ?? 0) > 500) {
-        uiFeedback.showToast('Maximum note length is 500 characters.');
-        return;
-      }
-      const duplicateTimestamp = video.annotations.some((entry) => entry.timestamp === annotation.timestamp);
-      if (duplicateTimestamp) {
-        uiFeedback.showToast('An annotation already exists at this timestamp.');
-        return;
-      }
-      await videoService.addAnnotation(
-        video.id,
-        annotation.timestamp,
-        annotation.label.trim(),
-        annotation.type,
-        annotation.note?.trim() || undefined,
-      );
-      onRefresh();
-    },
-    [video, onRefresh],
-  );
+  const handleSaveAnnotation = async (annotation: Omit<VideoAnnotation, 'id'>) => {
+    if (!video) return;
+    if (annotation.timestamp < 0) {
+      uiFeedback.showToast('Timestamp cannot be negative.', 'error');
+      return;
+    }
+    if (annotation.timestamp > video.duration) {
+      const mins = Math.floor(video.duration / 60);
+      const secs = Math.floor(video.duration % 60);
+      uiFeedback.showToast(`Timestamp cannot exceed ${mins}:${secs.toString().padStart(2, '0')}.`, 'error');
+      return;
+    }
+    if (!annotation.label.trim()) {
+      uiFeedback.showToast('Please enter a label for this annotation.', 'error');
+      return;
+    }
+    if ((annotation.note?.trim().length ?? 0) > 500) {
+      uiFeedback.showToast('Maximum note length is 500 characters.');
+      return;
+    }
+    const duplicateTimestamp = video.annotations.some((entry) => entry.timestamp === annotation.timestamp);
+    if (duplicateTimestamp) {
+      uiFeedback.showToast('An annotation already exists at this timestamp.');
+      return;
+    }
+    await videoService.addAnnotation(
+      video.id,
+      annotation.timestamp,
+      annotation.label.trim(),
+      annotation.type,
+      annotation.note?.trim() || undefined,
+    );
+    onRefresh();
+  };
 
-  const handleShare = useCallback(async () => {
+  const handleShare = async () => {
     if (!video) return;
     try {
       const shareUrl = `clubroom://videos/${video.id}`;
@@ -113,9 +110,9 @@ export function useVideoDetail(id: string | undefined) {
     } catch (error) {
       logger.error('Failed to share:', error);
     }
-  }, [video]);
+  };
 
-  const handleToggleVisibility = useCallback(async () => {
+  const handleToggleVisibility = async () => {
     if (!video) return;
     try {
       if (video.visibility === 'PRIVATE') {
@@ -129,9 +126,9 @@ export function useVideoDetail(id: string | undefined) {
     } catch (error) {
       logger.error('Failed to toggle visibility:', error);
     }
-  }, [video, onRefresh]);
+  };
 
-  const handleDelete = useCallback(() => {
+  const handleDelete = () => {
     if (!video) return;
     uiFeedback.alert(
       'Delete Video',
@@ -152,11 +149,11 @@ export function useVideoDetail(id: string | undefined) {
         },
       ],
     );
-  }, [video]);
+  };
 
-  const dismissAnnotationModal = useCallback(() => {
+  const dismissAnnotationModal = () => {
     setShowAnnotationModal(false);
-  }, []);
+  };
 
   return {
     video,

@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,7 +16,8 @@ interface MatchCoachActionsProps {
   onCancelMatch: () => void;
 }
 
-export const MatchCoachActions = memo(function MatchCoachActions({
+// react-doctor-disable-next-line react-doctor/no-many-boolean-props -- match action visibility depends on independent lifecycle and permission facts.
+export const MatchCoachActions = function MatchCoachActions({
   isComplete,
   isUpcoming,
   isCancelled,
@@ -56,7 +56,7 @@ export const MatchCoachActions = memo(function MatchCoachActions({
       )}
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: { gap: Spacing.sm },

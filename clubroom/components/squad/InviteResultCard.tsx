@@ -1,20 +1,17 @@
-import Animated, { FadeInDown } from 'react-native-reanimated';
-
-import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Spacing } from '@/constants/theme';
-import type { BulkInviteResult, SquadInvitedMember } from '@/constants/types';
-import { useTheme } from '@/hooks/useTheme';
-
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { SurfaceCard } from "@/components/primitives/surface-card";
+import { Spacing } from "@/constants/theme";
+import type { BulkInviteResult, SquadInvitedMember } from "@/constants/types";
+import { useTheme } from "@/hooks/useTheme";
 import {
-  getStatusConfig,
   InviteStatusHeader,
   InviteContextRow,
   InviteStatsBreakdown,
   InviteErrorDetails,
   InviteActionRow,
   CompactInviteResultInner,
-} from './invite-result-sections';
-
+} from "./invite-result-sections";
+import { getStatusConfig } from "./invite-result-config";
 interface InviteResultCardProps {
   result: BulkInviteResult;
   invitedMembers?: SquadInvitedMember[];
@@ -25,10 +22,10 @@ interface InviteResultCardProps {
   onDone?: () => void;
   showDetails?: boolean;
 }
-
+const EMPTY_INVITED_MEMBERS: SquadInvitedMember[] = [];
 export function InviteResultCard({
   result,
-  invitedMembers = [],
+  invitedMembers = EMPTY_INVITED_MEMBERS,
   squadName,
   sessionTitle,
   onViewInvites,
@@ -37,19 +34,24 @@ export function InviteResultCard({
   showDetails = true,
 }: InviteResultCardProps) {
   const { colors: palette } = useTheme();
-
   const statusConfig = getStatusConfig(result, palette);
-
-  const failedMemberIds = invitedMembers
-    .filter((m) => m.status === 'FAILED')
-    .map((m) => m.memberId);
-
+  const failedMemberIds = invitedMembers.flatMap((m) =>
+    m.status === "FAILED" ? [m.memberId] : [],
+  );
   return (
     <Animated.View entering={FadeInDown.springify()}>
-      <SurfaceCard style={{ gap: Spacing.md }}>
+      <SurfaceCard
+        style={{
+          gap: Spacing.md,
+        }}
+      >
         <InviteStatusHeader config={statusConfig} palette={palette} />
 
-        <InviteContextRow squadName={squadName} sessionTitle={sessionTitle} palette={palette} />
+        <InviteContextRow
+          squadName={squadName}
+          sessionTitle={sessionTitle}
+          palette={palette}
+        />
 
         {showDetails && (
           <InviteStatsBreakdown
@@ -60,7 +62,9 @@ export function InviteResultCard({
           />
         )}
 
-        {showDetails && <InviteErrorDetails errors={result.errors} palette={palette} />}
+        {showDetails && (
+          <InviteErrorDetails errors={result.errors} palette={palette} />
+        )}
 
         <InviteActionRow
           sent={result.sent}
@@ -75,7 +79,6 @@ export function InviteResultCard({
     </Animated.View>
   );
 }
-
 export function CompactInviteResult({
   result,
   onDismiss,
@@ -84,5 +87,11 @@ export function CompactInviteResult({
   onDismiss?: () => void;
 }) {
   const { colors: palette } = useTheme();
-  return <CompactInviteResultInner result={result} onDismiss={onDismiss} palette={palette} />;
+  return (
+    <CompactInviteResultInner
+      result={result}
+      onDismiss={onDismiss}
+      palette={palette}
+    />
+  );
 }

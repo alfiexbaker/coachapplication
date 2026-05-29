@@ -9,7 +9,7 @@
  *   <ListItem title="Compact row" compact />
  */
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -58,15 +58,12 @@ function ListItemInner({
   const { colors } = useTheme();
   const minHeight = compact ? Components.listItem.compact : Components.listItem.standard;
 
-  const themedStyles = useMemo(
-    () => ({
-      pressed: { backgroundColor: colors.overlay },
-      iconContainer: { backgroundColor: colors.surfaceSecondary },
-      title: { color: colors.foreground },
-      subtitle: { color: colors.muted },
-    }),
-    [colors],
-  );
+  const themedStyles = ({
+    pressed: { backgroundColor: colors.overlay },
+    iconContainer: { backgroundColor: colors.surfaceSecondary },
+    title: { color: colors.foreground },
+    subtitle: { color: colors.muted },
+  });
 
   const content = (
     <Row align="center" gap={compact ? 'xs' : 'sm'} flex>
@@ -122,7 +119,7 @@ function ListItemInner({
   return <View style={containerStyle}>{content}</View>;
 }
 
-export const ListItem = React.memo(ListItemInner);
+export const ListItem = ListItemInner;
 
 // ---------------------------------------------------------------------------
 // Styles (color-independent)

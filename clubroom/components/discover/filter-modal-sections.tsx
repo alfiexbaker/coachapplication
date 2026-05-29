@@ -4,10 +4,9 @@
  * FilterModalHeader — close + clear buttons with title.
  * ChipGridSection — titled chip grid (reused for distance, focus, format, languages, gender).
  * FilterModalFooter — sticky apply button.
- * Constants: DISTANCE_OPTIONS, GENDER_OPTIONS, FilterOption type.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,32 +16,8 @@ import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
-import type { CoachGender } from '@/constants/types';
 import { Row } from '@/components/primitives';
-
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-export interface FilterOption {
-  value: string;
-  label: string;
-  color: string;
-}
-
-// ─── Constants ──────────────────────────────────────────────────────────────
-
-export const DISTANCE_OPTIONS = [
-  { value: 5, label: '5 km' },
-  { value: 10, label: '10 km' },
-  { value: 25, label: '25 km' },
-  { value: 50, label: '50 km' },
-  { value: undefined, label: 'Any distance' },
-];
-
-export const GENDER_OPTIONS: { value: CoachGender; label: string }[] = [
-  { value: 'Any', label: 'Any' },
-  { value: 'Male', label: 'Male' },
-  { value: 'Female', label: 'Female' },
-];
+import type { FilterOption } from './filter-modal-helpers';
 
 // ─── FilterModalHeader ──────────────────────────────────────────────────────
 
@@ -53,7 +28,7 @@ interface FilterModalHeaderProps {
   palette: ThemeColors;
 }
 
-export const FilterModalHeader = memo(function FilterModalHeader({
+export const FilterModalHeader = function FilterModalHeader({
   onClose,
   onClear,
   hasActiveFilters,
@@ -83,7 +58,7 @@ export const FilterModalHeader = memo(function FilterModalHeader({
       </Clickable>
     </Row>
   );
-});
+};
 
 // ─── ChipGridSection ────────────────────────────────────────────────────────
 
@@ -93,7 +68,7 @@ interface ChipGridSectionProps {
   children: React.ReactNode;
 }
 
-export const ChipGridSection = memo(function ChipGridSection({
+export const ChipGridSection = function ChipGridSection({
   title,
   palette,
   children,
@@ -104,7 +79,7 @@ export const ChipGridSection = memo(function ChipGridSection({
       <Row style={styles.chipGrid}>{children}</Row>
     </View>
   );
-});
+};
 
 // ─── ChipOption ─────────────────────────────────────────────────────────────
 
@@ -143,7 +118,7 @@ interface FilterModalFooterProps {
   palette: ThemeColors;
 }
 
-export const FilterModalFooter = memo(function FilterModalFooter({
+export const FilterModalFooter = function FilterModalFooter({
   onApply,
   resultCount,
   palette,
@@ -158,12 +133,14 @@ export const FilterModalFooter = memo(function FilterModalFooter({
         },
       ]}
     >
-      <Button onPress={onApply} style={styles.applyButton}>
-        {`Show ${resultCount} ${resultCount === 1 ? 'Coach' : 'Coaches'}`}
-      </Button>
+      <Button
+        onPress={onApply}
+        style={styles.applyButton}
+        label={`Show ${resultCount} ${resultCount === 1 ? 'Coach' : 'Coaches'}`}
+      />
     </View>
   );
-});
+};
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 

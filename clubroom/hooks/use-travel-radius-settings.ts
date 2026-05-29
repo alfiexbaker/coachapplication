@@ -1,9 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, startTransition } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { coachTravelService, type CoachTravelSettings } from '@/services/coach-travel-service';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+
+function clearSaveTimer(ref: { current: ReturnType<typeof setTimeout> | null }) {
+  if (ref.current) {
+    clearTimeout(ref.current);
+    ref.current = null;
+  }
+}
 
 export function useTravelRadiusSettings() {
   const { currentUser } = useAuth();
@@ -12,12 +19,12 @@ export function useTravelRadiusSettings() {
   const [saving, setSaving] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const load = useCallback(async () => {
+  const load = async () => {
     if (!coachId) {
       return err(serviceError('UNAUTHORIZED', 'Coach account required.'));
     }
     return coachTravelService.getSettings(coachId);
-  }, [coachId]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<CoachTravelSettings>({
     load,
@@ -29,32 +36,32 @@ export function useTravelRadiusSettings() {
   });
 
   useEffect(() => {
-    if (data) setSettings(data);
+    if (data)
+      startTransition(() => {
+        setSettings(data);
+      });
   }, [data]);
 
-  const update = useCallback(
-    <K extends keyof CoachTravelSettings>(key: K, value: CoachTravelSettings[K]) => {
-      setSettings((previous) => {
-        if (!previous) return previous;
-        const next = { ...previous, [key]: value };
-        if (saveTimer.current) clearTimeout(saveTimer.current);
-        saveTimer.current = setTimeout(async () => {
-          setSaving(true);
-          const result = await coachTravelService.updateSettings(coachId, { [key]: value });
-          if (result.success) {
-            setSettings(result.data);
-          }
-          setSaving(false);
-        }, 300);
-        return next;
-      });
-    },
-    [coachId],
-  );
+  const update = <K extends keyof CoachTravelSettings>(key: K, value: CoachTravelSettings[K]) => {
+    setSettings((previous) => {
+      if (!previous) return previous;
+      const next = { ...previous, [key]: value };
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(async () => {
+        setSaving(true);
+        const result = await coachTravelService.updateSettings(coachId, { [key]: value });
+        if (result.success) {
+          setSettings(result.data);
+        }
+        setSaving(false);
+      }, 300);
+      return next;
+    });
+  };
 
   useEffect(() => {
     return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
+      clearSaveTimer(saveTimer);
     };
   }, []);
 

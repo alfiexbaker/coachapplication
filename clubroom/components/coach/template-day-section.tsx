@@ -1,7 +1,3 @@
-/**
- * TemplateDaySection — Day selection: presets, day chips, and selection summary.
- */
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -143,7 +139,7 @@ function TemplateDaySectionInner({
   );
 }
 
-export const TemplateDaySection = memo(TemplateDaySectionInner);
+export const TemplateDaySection = TemplateDaySectionInner;
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.sm },

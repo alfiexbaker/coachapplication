@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
@@ -45,7 +45,7 @@ export function useMatchesScreen() {
 
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
-  const loadMatches = useCallback(async () => {
+  const loadMatches = async () => {
     try {
       const clubId = 'club_1';
       let data: Match[];
@@ -65,7 +65,7 @@ export function useMatchesScreen() {
         serviceError('UNKNOWN', 'Failed to load matches. Pull down to refresh.', loadError),
       );
     }
-  }, [filter]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<MatchesData>({
     load: loadMatches,
@@ -79,11 +79,11 @@ export function useMatchesScreen() {
   const matches = data?.matches ?? [];
   const loading = status === 'loading';
 
-  const handleCreateMatch = useCallback(() => {
+  const handleCreateMatch = () => {
     router.push(Routes.MATCHES_CREATE);
-  }, []);
+  };
 
-  const stats = useMemo(() => {
+  const stats = (() => {
     const completed = matches.filter((m) => m.status === 'COMPLETED');
     let wins = 0,
       draws = 0,
@@ -104,9 +104,9 @@ export function useMatchesScreen() {
     }
 
     return { total: completed.length, wins, draws, losses };
-  }, [matches]);
+  })();
 
-  const groupedMatches = useMemo(() => {
+  const groupedMatches = (() => {
     const groups: { [key: string]: Match[] } = {};
 
     for (const match of matches) {
@@ -120,7 +120,7 @@ export function useMatchesScreen() {
     }
 
     return Object.entries(groups);
-  }, [matches]);
+  })();
 
   return {
     matches,

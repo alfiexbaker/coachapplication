@@ -1,7 +1,3 @@
-/**
- * RecurringCard — Content sections: header, schedule, stats, actions.
- */
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +16,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { getStatusColor, getStatusIcon, formatRecurringTime } from './recurring-card-helpers';
 import { getRecurringCoachName } from '@/utils/recurring-display';
 
-export const HeaderRow = memo(function HeaderRow({ recurring }: { recurring: RecurringBooking }) {
+export const HeaderRow = function HeaderRow({ recurring }: { recurring: RecurringBooking }) {
   const { colors: palette } = useTheme();
   const statusColor = getStatusColor(recurring.status, palette);
   const statusIcon = getStatusIcon(recurring.status);
@@ -54,9 +50,9 @@ export const HeaderRow = memo(function HeaderRow({ recurring }: { recurring: Rec
       </Row>
     </Row>
   );
-});
+};
 
-export const ScheduleRow = memo(function ScheduleRow({
+export const ScheduleRow = function ScheduleRow({
   recurring,
 }: {
   recurring: RecurringBooking;
@@ -80,9 +76,9 @@ export const ScheduleRow = memo(function ScheduleRow({
       </Row>
     </Row>
   );
-});
+};
 
-export const StatsRow = memo(function StatsRow({
+export const StatsRow = function StatsRow({
   recurring,
   startDateLabel,
 }: {
@@ -127,7 +123,7 @@ export const StatsRow = memo(function StatsRow({
       </Row>
     </>
   );
-});
+};
 
 interface ActionsRowProps {
   status: string;
@@ -136,7 +132,7 @@ interface ActionsRowProps {
   onCancel?: () => void;
 }
 
-export const ActionsRow = memo(function ActionsRow({
+export const ActionsRow = function ActionsRow({
   status,
   onPause,
   onResume,
@@ -180,7 +176,7 @@ export const ActionsRow = memo(function ActionsRow({
       )}
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   avatar: { width: 44, height: 44, borderRadius: Radii.xl },

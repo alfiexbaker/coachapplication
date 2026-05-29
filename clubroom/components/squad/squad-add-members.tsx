@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useState } from 'react';
+import React, { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -11,6 +11,8 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { clubService, type ClubMember } from '@/services/club-service';
 import type { ThemeColors } from '@/hooks/useTheme';
 
+import { runAsyncFinally } from '@/utils/async-control';
+
 interface SquadAddMembersProps {
   visible: boolean;
   membersNotInSquad: ClubMember[];
@@ -19,7 +21,7 @@ interface SquadAddMembersProps {
   onAdd: (member: ClubMember) => void;
 }
 
-export const SquadAddMembers = memo(function SquadAddMembers({
+export const SquadAddMembers = function SquadAddMembers({
   visible,
   membersNotInSquad,
   squadName,
@@ -28,23 +30,21 @@ export const SquadAddMembers = memo(function SquadAddMembers({
 }: SquadAddMembersProps) {
   const [isAddingByMemberId, setIsAddingByMemberId] = useState<Map<string, boolean>>(new Map());
 
-  const handleAddMember = useCallback(
-    async (member: ClubMember) => {
-      if (isAddingByMemberId.get(member.userId)) return;
+  const handleAddMember = async (member: ClubMember) => {
+    if (isAddingByMemberId.get(member.userId)) return;
 
-      setIsAddingByMemberId((prev) => new Map(prev).set(member.userId, true));
-      try {
-        await Promise.resolve(onAdd(member));
-      } finally {
-        setIsAddingByMemberId((prev) => {
-          const next = new Map(prev);
-          next.delete(member.userId);
-          return next;
-        });
-      }
-    },
-    [isAddingByMemberId, onAdd],
-  );
+    setIsAddingByMemberId((prev) => new Map(prev).set(member.userId, true));
+
+    await runAsyncFinally(async () => {
+      await Promise.resolve(onAdd(member));
+    }, () => {
+      setIsAddingByMemberId((prev) => {
+        const next = new Map(prev);
+        next.delete(member.userId);
+        return next;
+      });
+    });
+  };
 
   if (!visible) return null;
 
@@ -98,7 +98,7 @@ export const SquadAddMembers = memo(function SquadAddMembers({
                     <Row align="center" gap="xxs">
                       <ActivityIndicator size="small" color={colors.tint} />
                       <ThemedText style={[Typography.caption, { color: colors.tint }]}>
-                        Adding...
+                        Adding…
                       </ThemedText>
                     </Row>
                   ) : (
@@ -114,7 +114,7 @@ export const SquadAddMembers = memo(function SquadAddMembers({
       </View>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },

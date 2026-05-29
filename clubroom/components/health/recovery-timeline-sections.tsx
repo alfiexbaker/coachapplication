@@ -6,7 +6,7 @@
  * TimelineEmptyState — empty state for no notes.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -32,7 +32,7 @@ interface RecoveryProgressCardProps {
   palette: ThemeColors;
 }
 
-export const RecoveryProgressCard = memo(function RecoveryProgressCard({
+export const RecoveryProgressCard = function RecoveryProgressCard({
   recoveryPercent,
   statusInfo,
   expectedProgress,
@@ -117,7 +117,7 @@ export const RecoveryProgressCard = memo(function RecoveryProgressCard({
       </Row>
     </SurfaceCard>
   );
-});
+};
 
 // ─── TimelineItem ────────────────────────────────────────────────────────────
 
@@ -129,7 +129,7 @@ interface TimelineItemProps {
   statusColor: string;
 }
 
-export const TimelineItem = memo(function TimelineItem({
+const renderTimelineItem = function renderTimelineItem({
   note,
   isFirst,
   isLast,
@@ -187,11 +187,12 @@ export const TimelineItem = memo(function TimelineItem({
       </View>
     </Animated.View>
   );
-});
+};
+export const TimelineItem = renderTimelineItem;
 
 // ─── TimelineEmptyState ──────────────────────────────────────────────────────
 
-export function TimelineEmptyState({ palette }: { palette: ThemeColors }) {
+function renderTimelineEmptyState({ palette }: { palette: ThemeColors }) {
   return (
     <View style={[styles.emptyState, { backgroundColor: palette.surface }]}>
       <Ionicons name="document-text-outline" size={32} color={palette.muted} />
@@ -204,5 +205,4 @@ export function TimelineEmptyState({ palette }: { palette: ThemeColors }) {
     </View>
   );
 }
-
-export { styles };
+export const TimelineEmptyState = renderTimelineEmptyState;

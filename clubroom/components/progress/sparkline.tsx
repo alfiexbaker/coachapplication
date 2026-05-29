@@ -1,4 +1,3 @@
-import { memo, useMemo } from 'react';
 import { View } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 
@@ -66,7 +65,7 @@ function detectTrend(data: number[]): 'up' | 'down' | 'flat' {
  * 48×16px SVG micro-chart from number[].
  * Gradient fill, trend-colored.
  */
-export const Sparkline = memo(function Sparkline({
+export const Sparkline = function Sparkline({
   data,
   width = 48,
   height = 16,
@@ -75,13 +74,10 @@ export const Sparkline = memo(function Sparkline({
 }: SparklineProps) {
   const { colors } = useTheme();
 
-  const trend = useMemo(() => detectTrend(data), [data]);
+  const trend = detectTrend(data);
   const lineColor = color ?? (trend === 'up' ? colors.success : trend === 'down' ? colors.error : colors.muted);
 
-  const { linePath, areaPath } = useMemo(
-    () => buildSparklinePath(data, width, height, 1),
-    [data, height, width],
-  );
+  const { linePath, areaPath } = buildSparklinePath(data, width, height, 1);
 
   if (data.length === 0) {
     return <View style={{ width, height }} />;
@@ -110,4 +106,4 @@ export const Sparkline = memo(function Sparkline({
       />
     </Svg>
   );
-});
+};

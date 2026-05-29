@@ -2,7 +2,7 @@
  * SchedulingRulesModal — Composition root.
  * Coach scheduling rules editor modal with chip selectors, toggles, and cancellation policy.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, type Dispatch, type SetStateAction } from 'react';
 import { View, StyleSheet, Modal, ScrollView, Platform, Keyboard } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
@@ -25,6 +25,8 @@ import {
   type CancellationPreset,
 } from './scheduling-rules-sections';
 import { Row } from '@/components/primitives';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('SchedulingRulesModal');
 
@@ -56,16 +58,78 @@ function detectPreset(tiers: RefundTier[]): CancellationPreset {
   for (const key of ['flexible', 'standard', 'strict'] as const) {
     const template = POLICY_TEMPLATES[key];
     if (template.tiers.length !== tiers.length) continue;
-    const sorted = [...tiers].sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
-    const templateSorted = [...template.tiers].sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
-    const match = sorted.every(
-      (t, i) =>
-        t.hoursBeforeSession === templateSorted[i].hoursBeforeSession &&
-        t.refundPercentage === templateSorted[i].refundPercentage,
+    const sorted = Array.from(tiers).toSorted(
+      (a, b) => b.hoursBeforeSession - a.hoursBeforeSession,
     );
+    const templateSorted = Array.from(template.tiers).toSorted(
+      (a, b) => b.hoursBeforeSession - a.hoursBeforeSession,
+    );
+    const match =
+      sorted.length === templateSorted.length &&
+      sorted.every(
+        (t, i) =>
+          t.hoursBeforeSession === templateSorted[i].hoursBeforeSession &&
+          t.refundPercentage === templateSorted[i].refundPercentage,
+      );
     if (match) return key;
   }
   return 'custom';
+}
+
+interface SchedulingRulesLoadSetters {
+  setLoading: Dispatch<SetStateAction<boolean>>;
+  setLoadError: Dispatch<SetStateAction<string | null>>;
+  setMinimumAdvanceHours: Dispatch<SetStateAction<number>>;
+  setMaxAdvanceDays: Dispatch<SetStateAction<number>>;
+  setBufferMinutes: Dispatch<SetStateAction<number>>;
+  setAllowSameDayBookings: Dispatch<SetStateAction<boolean>>;
+  setCancellationPreset: Dispatch<SetStateAction<CancellationPreset>>;
+  setCancellationTiers: Dispatch<SetStateAction<RefundTier[]>>;
+}
+
+async function loadSchedulingRulesIntoState(coachId: string, setters: SchedulingRulesLoadSetters) {
+  setters.setLoading(true);
+  setters.setLoadError(null);
+
+  await runAsyncTryCatchFinally(
+    async () => {
+      const [dataResult, policyResult] = await Promise.all([
+        schedulingRulesService.getCoachRules(coachId),
+        schedulingRulesService.getCancellationPolicy(coachId),
+      ]);
+      if (dataResult.success) {
+        const data = dataResult.data;
+        setters.setMinimumAdvanceHours(Math.min(168, Math.max(1, data.minimumAdvanceBookingHours)));
+        setters.setMaxAdvanceDays(data.maxAdvanceBookingDays);
+        setters.setBufferMinutes(data.bufferMinutesDefault);
+        setters.setAllowSameDayBookings(data.allowSameDayBookings);
+      } else {
+        logger.error('Failed to load coach scheduling rules', dataResult.error);
+        setters.setLoadError(dataResult.error.message || 'Failed to load booking rules.');
+      }
+      if (policyResult.success && policyResult.data) {
+        const tiers = policyResult.data.tiers;
+        setters.setCancellationTiers(tiers);
+        setters.setCancellationPreset(detectPreset(tiers));
+      } else if (policyResult.success) {
+        const defaultTiers = schedulingRulesService.getDefaultCancellationPolicy().tiers;
+        setters.setCancellationTiers(defaultTiers);
+        setters.setCancellationPreset('standard');
+      } else {
+        logger.error('Failed to load cancellation policy', policyResult.error);
+        setters.setLoadError(
+          (prev) => prev ?? (policyResult.error.message || 'Failed to load cancellation policy.'),
+        );
+      }
+    },
+    async (error) => {
+      logger.error('Failed to load scheduling rules', error);
+      setters.setLoadError('Failed to load booking rules.');
+    },
+    () => {
+      setters.setLoading(false);
+    },
+  );
 }
 
 interface SchedulingRulesModalProps {
@@ -96,119 +160,96 @@ export function SchedulingRulesModal({
     schedulingRulesService.getDefaultCancellationPolicy().tiers,
   );
 
-  const loadRules = useCallback(async () => {
-    if (!visible) return;
-    setLoading(true);
-    setLoadError(null);
-    try {
-      const [dataResult, policyResult] = await Promise.all([
-        schedulingRulesService.getCoachRules(coachId),
-        schedulingRulesService.getCancellationPolicy(coachId),
-      ]);
-      if (dataResult.success) {
-        const data = dataResult.data;
-        setMinimumAdvanceHours(Math.min(168, Math.max(1, data.minimumAdvanceBookingHours)));
-        setMaxAdvanceDays(data.maxAdvanceBookingDays);
-        setBufferMinutes(data.bufferMinutesDefault);
-        setAllowSameDayBookings(data.allowSameDayBookings);
-      } else {
-        logger.error('Failed to load coach scheduling rules', dataResult.error);
-        setLoadError(dataResult.error.message || 'Failed to load booking rules.');
-      }
-      if (policyResult.success && policyResult.data) {
-        const tiers = policyResult.data.tiers;
-        setCancellationTiers(tiers);
-        setCancellationPreset(detectPreset(tiers));
-      } else if (policyResult.success) {
-        const defaultTiers = schedulingRulesService.getDefaultCancellationPolicy().tiers;
-        setCancellationTiers(defaultTiers);
-        setCancellationPreset('standard');
-      } else {
-        logger.error('Failed to load cancellation policy', policyResult.error);
-        setLoadError(
-          (prev) => prev ?? (policyResult.error.message || 'Failed to load cancellation policy.'),
-        );
-      }
-    } catch (error) {
-      logger.error('Failed to load scheduling rules', error);
-      setLoadError('Failed to load booking rules.');
-    } finally {
-      setLoading(false);
-    }
-  }, [coachId, visible]);
+  const loadRules = async () =>
+    loadSchedulingRulesIntoState(coachId, {
+      setLoading,
+      setLoadError,
+      setMinimumAdvanceHours,
+      setMaxAdvanceDays,
+      setBufferMinutes,
+      setAllowSameDayBookings,
+      setCancellationPreset,
+      setCancellationTiers,
+    });
 
   useEffect(() => {
-    if (visible) loadRules();
-  }, [visible, loadRules]);
+    if (!visible) return;
+    void loadSchedulingRulesIntoState(coachId, {
+      setLoading,
+      setLoadError,
+      setMinimumAdvanceHours,
+      setMaxAdvanceDays,
+      setBufferMinutes,
+      setAllowSameDayBookings,
+      setCancellationPreset,
+      setCancellationTiers,
+    });
+  }, [coachId, visible]);
 
-  const handleSave = useCallback(async () => {
+  const handleSave = async () => {
     setSaving(true);
-    try {
-      const templateKey = cancellationPreset === 'custom' ? 'custom' : cancellationPreset;
-      const [rulesResult, policyResult] = await Promise.all([
-        schedulingRulesService.updateCoachRules(coachId, {
-          minimumAdvanceBookingHours: Math.min(168, Math.max(1, minimumAdvanceHours)),
-          maxAdvanceBookingDays: maxAdvanceDays,
-          bufferMinutesDefault: bufferMinutes,
-          maxConcurrentDefault: 1,
-          allowSameDayBookings,
-        }),
-        schedulingRulesService.setCancellationPolicy(
-          coachId,
-          templateKey,
-          templateKey === 'custom' ? cancellationTiers : undefined,
-        ),
-      ]);
-      if (!rulesResult.success) {
-        logger.error('Failed to save scheduling rules', rulesResult.error);
-        showToast(rulesResult.error.message || 'Failed to save scheduling rules', 'error');
-        return;
-      }
-      if (!policyResult.success) {
-        logger.error('Failed to save cancellation policy', policyResult.error);
-        showToast(policyResult.error.message || 'Failed to save cancellation policy', 'error');
-        return;
-      }
-      if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showToast('Booking rules saved', 'success');
-      onSaved?.();
-      Keyboard.dismiss();
-      onClose();
-    } catch (error) {
-      logger.error('Failed to save scheduling rules', error);
-      showToast('Failed to save. Please try again.', 'error');
-    } finally {
-      setSaving(false);
-    }
-  }, [
-    coachId,
-    minimumAdvanceHours,
-    maxAdvanceDays,
-    bufferMinutes,
-    allowSameDayBookings,
-    cancellationPreset,
-    cancellationTiers,
-    onSaved,
-    onClose,
-  ]);
 
-  const handlePresetChange = useCallback((preset: CancellationPreset) => {
+    return await runAsyncTryCatchFinally(
+      async () => {
+        const templateKey = cancellationPreset === 'custom' ? 'custom' : cancellationPreset;
+        const [rulesResult, policyResult] = await Promise.all([
+          schedulingRulesService.updateCoachRules(coachId, {
+            minimumAdvanceBookingHours: Math.min(168, Math.max(1, minimumAdvanceHours)),
+            maxAdvanceBookingDays: maxAdvanceDays,
+            bufferMinutesDefault: bufferMinutes,
+            maxConcurrentDefault: 1,
+            allowSameDayBookings,
+          }),
+          schedulingRulesService.setCancellationPolicy(
+            coachId,
+            templateKey,
+            templateKey === 'custom' ? cancellationTiers : undefined,
+          ),
+        ]);
+        if (!rulesResult.success) {
+          logger.error('Failed to save scheduling rules', rulesResult.error);
+          showToast(rulesResult.error.message || 'Failed to save scheduling rules', 'error');
+          return;
+        }
+        if (!policyResult.success) {
+          logger.error('Failed to save cancellation policy', policyResult.error);
+          showToast(policyResult.error.message || 'Failed to save cancellation policy', 'error');
+          return;
+        }
+        if (Platform.OS !== 'web')
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showToast('Booking rules saved', 'success');
+        onSaved?.();
+        Keyboard.dismiss();
+        onClose();
+      },
+      async (error) => {
+        logger.error('Failed to save scheduling rules', error);
+        showToast('Failed to save. Please try again.', 'error');
+      },
+      () => {
+        setSaving(false);
+      },
+    );
+  };
+
+  const handlePresetChange = (preset: CancellationPreset) => {
     setCancellationPreset(preset);
     if (preset !== 'custom') {
       const template = POLICY_TEMPLATES[preset];
       if (template) setCancellationTiers([...template.tiers]);
     }
-  }, []);
+  };
 
-  const handleTiersChange = useCallback((tiers: RefundTier[]) => {
+  const handleTiersChange = (tiers: RefundTier[]) => {
     setCancellationTiers(tiers);
     setCancellationPreset('custom');
-  }, []);
+  };
 
-  const handleClose = useCallback(() => {
+  const handleClose = () => {
     Keyboard.dismiss();
     onClose();
-  }, [onClose]);
+  };
 
   return (
     <Modal

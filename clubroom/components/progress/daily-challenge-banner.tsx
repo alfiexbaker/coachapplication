@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
@@ -41,7 +41,7 @@ const DIFFICULTY_XP_LABEL: Record<string, string> = {
   hard: 'Challenge',
 };
 
-export const DailyChallengeBanner = memo(function DailyChallengeBanner({
+export const DailyChallengeBanner = function DailyChallengeBanner({
   challenge,
   isCompleted,
   onMarkComplete,
@@ -80,20 +80,20 @@ export const DailyChallengeBanner = memo(function DailyChallengeBanner({
   useEffect(() => {
     if (!challenge) return;
     if (!isCompleted) {
-      pulseScale.value = withRepeat(
+      pulseScale.set(withRepeat(
         withSequence(
           withTiming(1.08, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
           withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
         ),
         -1,
         true,
-      );
+      ));
     } else {
-      pulseScale.value = withTiming(1, { duration: 200 });
-      checkScale.value = withSequence(
+      pulseScale.set(withTiming(1, { duration: 200 }));
+      checkScale.set(withSequence(
         withTiming(1.3, { duration: 180, easing: Easing.out(Easing.back(2)) }),
         withTiming(1, { duration: 120 }),
-      );
+      ));
     }
   }, [challenge, checkScale, isCompleted, pulseScale]);
 
@@ -101,16 +101,13 @@ export const DailyChallengeBanner = memo(function DailyChallengeBanner({
     transform: [{ scale: isCompleted ? checkScale.value : pulseScale.value }],
   }));
 
-  const handleComplete = useCallback(() => {
+  const handleComplete = () => {
     if (isCompleted) return;
     void HapticPatterns.dailyChallengeComplete();
     onMarkComplete();
-  }, [isCompleted, onMarkComplete]);
+  };
 
-  const difficultyLabel = useMemo(
-    () => (challenge ? DIFFICULTY_XP_LABEL[challenge.difficulty] ?? challenge.difficulty : ''),
-    [challenge],
-  );
+  const difficultyLabel = (challenge ? DIFFICULTY_XP_LABEL[challenge.difficulty] ?? challenge.difficulty : '');
 
   if (!challenge) return null;
 
@@ -198,7 +195,7 @@ export const DailyChallengeBanner = memo(function DailyChallengeBanner({
       </Clickable>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   banner: {

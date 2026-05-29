@@ -1,7 +1,6 @@
 /**
  * Extracted sub-components for MultiWeekInviteCard.
  *
- * formatWeekDate, formatTime — date/time helpers.
  * WeekToggleRow — single toggleable week row.
  * WeekSeparator — FlatList separator.
  * InviteHeader — coach avatar + session info.
@@ -9,35 +8,19 @@
  * TotalRow — cost summary.
  */
 
-import React, { memo, useCallback } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import React from 'react';
+import { Platform, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { WeekAcceptance } from '@/constants/types';
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-export function formatWeekDate(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
-}
-
-export function formatTime(time: string): string {
-  const [h, m] = time.split(':').map(Number);
-  const suffix = h >= 12 ? 'pm' : 'am';
-  const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return m === 0 ? `${hour12}${suffix}` : `${hour12}:${m.toString().padStart(2, '0')}${suffix}`;
-}
+import { formatTime, formatWeekDate } from './multi-week-invite-card-helpers';
+import { styles } from './multi-week-invite-card-styles';
 
 // ─── WeekSeparator ───────────────────────────────────────────────────────────
 
@@ -51,17 +34,17 @@ interface WeekToggleRowProps {
   palette: ThemeColors;
 }
 
-export const WeekToggleRow = memo(function WeekToggleRow({
+export const WeekToggleRow = function WeekToggleRow({
   week,
   onToggle,
   palette,
 }: WeekToggleRowProps) {
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     onToggle(week.weekDate);
-  }, [week.weekDate, onToggle]);
+  };
 
   return (
     <Clickable onPress={handlePress}>
@@ -105,7 +88,7 @@ export const WeekToggleRow = memo(function WeekToggleRow({
       </Row>
     </Clickable>
   );
-});
+};
 
 // ─── InviteHeader ────────────────────────────────────────────────────────────
 
@@ -118,7 +101,7 @@ interface InviteHeaderProps {
   palette: ThemeColors;
 }
 
-export const InviteHeader = memo(function InviteHeader({
+export const InviteHeader = function InviteHeader({
   coachName,
   clubName,
   sessionType,
@@ -151,7 +134,7 @@ export const InviteHeader = memo(function InviteHeader({
       </View>
     </Row>
   );
-});
+};
 
 // ─── SelectionControls ───────────────────────────────────────────────────────
 
@@ -163,7 +146,7 @@ interface SelectionControlsProps {
   palette: ThemeColors;
 }
 
-export const SelectionControls = memo(function SelectionControls({
+export const SelectionControls = function SelectionControls({
   acceptedCount,
   totalCount,
   onSelectAll,
@@ -185,7 +168,7 @@ export const SelectionControls = memo(function SelectionControls({
       </Row>
     </Row>
   );
-});
+};
 
 // ─── TotalRow ────────────────────────────────────────────────────────────────
 
@@ -195,7 +178,7 @@ interface TotalRowProps {
   palette: ThemeColors;
 }
 
-export const TotalRow = memo(function TotalRow({
+export const TotalRow = function TotalRow({
   acceptedCount,
   totalCost,
   palette,
@@ -211,38 +194,4 @@ export const TotalRow = memo(function TotalRow({
       </ThemedText>
     </Row>
   );
-});
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-export const styles = StyleSheet.create({
-  card: {
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: Radii.xl,
-  },
-  headerContent: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  selectAllButton: {
-    paddingVertical: Spacing.xxs,
-    paddingHorizontal: Spacing.xs,
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  weekRow: {
-    padding: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    minHeight: 44,
-  },
-  weekRowLeft: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-});
+};

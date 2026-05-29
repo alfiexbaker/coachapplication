@@ -5,7 +5,7 @@
  * Returns 3-way split: unpaid (owed), paid, written-off with totals and action handlers.
  */
 
-import { useCallback, useMemo, useRef } from 'react';
+import { useRef } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
@@ -30,6 +30,8 @@ import {
 } from '@/utils/coach-business-context';
 import { ok, err, serviceError } from '@/types/result';
 import type { Booking, Invoice, SessionOffering } from '@/constants/types';
+
+import { runAsyncFinally } from '@/utils/async-control';
 
 export interface SessionPaymentItem {
   booking: Booking;
@@ -90,7 +92,7 @@ export function useSessionPayments() {
   const { showToast } = useToast();
   const processingInvoiceIdsRef = useRef<Set<string>>(new Set());
 
-  const load = useCallback(async () => {
+  const load = async () => {
     try {
       const [bookings, roster, offerings] = await Promise.all([
         bookingService.getBookingsForUser(coachId, 'coach'),
@@ -173,23 +175,21 @@ export function useSessionPayments() {
         } else {
           summary.directOwed += invoice.total;
         }
-        if (isOverdue) overdueCount++;
+        if (isOverdue) overdueCount += 1;
         if (isOverdue) summary.overdueCount += 1;
       };
 
       const invoiceAmounts = reconcilable.map((booking) =>
-        booking.status === 'CANCELLED'
-          ? (booking.cancellationFee ?? 0)
-          : (booking.price ?? 0),
+        booking.status === 'CANCELLED' ? (booking.cancellationFee ?? 0) : (booking.price ?? 0),
       );
 
       const invoiceResults = await Promise.all(
         reconcilable.map((booking) => invoiceService.getInvoiceByBookingId(booking.id)),
       );
 
-      const missingInvoiceIndices = invoiceResults
-        .map((invoice, index) => (invoice ? -1 : index))
-        .filter((index) => index >= 0);
+      const missingInvoiceIndices = invoiceResults.flatMap((invoice, index) =>
+        invoice ? [] : [index],
+      );
 
       if (missingInvoiceIndices.length > 0) {
         const generatedResults = await Promise.all(
@@ -259,86 +259,94 @@ export function useSessionPayments() {
         pushItem(item);
       }
 
-      for (const offering of reconcilableOffPlatformOfferings) {
-        const offPlatformCount = getSessionOfferingOffPlatformCount(offering);
-        const perParticipantPrice = offering.price ?? 0;
-        const invoiceAmount = perParticipantPrice * offPlatformCount;
-        if (invoiceAmount <= 0) continue;
+      const offPlatformPaymentItems = await Promise.all(
+        reconcilableOffPlatformOfferings.map(async (offering) => {
+          const offPlatformCount = getSessionOfferingOffPlatformCount(offering);
+          const perParticipantPrice = offering.price ?? 0;
+          const invoiceAmount = perParticipantPrice * offPlatformCount;
+          if (invoiceAmount <= 0) return null;
 
-        const syntheticBookingId = `booking_off_platform_${offering.id}`;
-        const syntheticInvoiceTemplate: Invoice = {
-          id: `inv_off_platform_${offering.id}`,
-          invoiceNumber: `INV-OFF-${offering.id}`,
-          userId: offering.coachId,
-          bookingId: syntheticBookingId,
-          coachId: offering.coachId,
-          athleteId: undefined,
-          sessionDate: offering.scheduledAt,
-          sessionType: `${offering.title} (Off-platform)`,
-          sessionLocation: offering.location,
-          sessionDuration: offering.duration ?? 60,
-          amount: invoiceAmount,
-          tax: 0,
-          taxRate: 0,
-          total: invoiceAmount,
-          currency: 'GBP',
-          status: 'SENT',
-          createdAt: offering.createdAt ?? offering.scheduledAt,
-        };
+          const syntheticBookingId = `booking_off_platform_${offering.id}`;
+          const syntheticInvoiceTemplate: Invoice = {
+            id: `inv_off_platform_${offering.id}`,
+            invoiceNumber: `INV-OFF-${offering.id}`,
+            userId: offering.coachId,
+            bookingId: syntheticBookingId,
+            coachId: offering.coachId,
+            athleteId: undefined,
+            sessionDate: offering.scheduledAt,
+            sessionType: `${offering.title} (Off-platform)`,
+            sessionLocation: offering.location,
+            sessionDuration: offering.duration ?? 60,
+            amount: invoiceAmount,
+            tax: 0,
+            taxRate: 0,
+            total: invoiceAmount,
+            currency: 'GBP',
+            status: 'SENT',
+            createdAt: offering.createdAt ?? offering.scheduledAt,
+          };
 
-        const storedInvoice = await invoiceService.getInvoiceByBookingId(syntheticBookingId);
-        let invoice = storedInvoice
-          ? {
-              ...storedInvoice,
-              amount: invoiceAmount,
-              tax: 0,
-              taxRate: 0,
-              total: invoiceAmount,
-              sessionDate: offering.scheduledAt,
-              sessionType: `${offering.title} (Off-platform)`,
-              sessionLocation: offering.location,
-              sessionDuration: offering.duration ?? 60,
-            }
-          : syntheticInvoiceTemplate;
+          const storedInvoice = await invoiceService.getInvoiceByBookingId(syntheticBookingId);
+          const invoice = storedInvoice
+            ? {
+                ...storedInvoice,
+                amount: invoiceAmount,
+                tax: 0,
+                taxRate: 0,
+                total: invoiceAmount,
+                sessionDate: offering.scheduledAt,
+                sessionType: `${offering.title} (Off-platform)`,
+                sessionLocation: offering.location,
+                sessionDuration: offering.duration ?? 60,
+              }
+            : syntheticInvoiceTemplate;
 
-        if (!storedInvoice) {
-          syntheticInvoicesToPersist.push(invoice);
+          const syntheticBooking: Booking = {
+            id: syntheticBookingId,
+            coachId: offering.coachId,
+            clubId: offering.clubId,
+            actingAs: offering.actingAs,
+            ownerCoachId: offering.ownerCoachId,
+            assigneeCoachId: offering.assigneeCoachId,
+            createdByUserId: offering.createdByUserId,
+            createdByRole: offering.createdByRole,
+            status: 'COMPLETED',
+            scheduledAt: offering.scheduledAt,
+            location: offering.location,
+            service: offering.title,
+            serviceType: 'group',
+            price: invoiceAmount,
+            isGroupSession: true,
+            maxParticipants: offering.maxParticipants,
+            currentParticipants: getSessionOfferingHeadcount(offering),
+            createdAt: offering.createdAt,
+            groupSessionId: offering.id,
+          };
+
+          const moneyDisplay = getCoachMoneyContextDisplay(syntheticBooking);
+          return {
+            item: {
+              booking: syntheticBooking,
+              invoice,
+              athleteName: `Off-platform (${offPlatformCount})`,
+              businessContext: getCoachBusinessContext(syntheticBooking),
+              moneyContext: getCoachMoneyContext(syntheticBooking),
+              moneyLabel: moneyDisplay.label,
+              moneyDetail: moneyDisplay.detail,
+            } satisfies SessionPaymentItem,
+            invoiceToPersist: storedInvoice ? null : invoice,
+          };
+        }),
+      );
+
+      offPlatformPaymentItems.forEach((entry) => {
+        if (!entry) return;
+        if (entry.invoiceToPersist) {
+          syntheticInvoicesToPersist.push(entry.invoiceToPersist);
         }
-
-        const syntheticBooking: Booking = {
-          id: syntheticBookingId,
-          coachId: offering.coachId,
-          clubId: offering.clubId,
-          actingAs: offering.actingAs,
-          ownerCoachId: offering.ownerCoachId,
-          assigneeCoachId: offering.assigneeCoachId,
-          createdByUserId: offering.createdByUserId,
-          createdByRole: offering.createdByRole,
-          status: 'COMPLETED',
-          scheduledAt: offering.scheduledAt,
-          location: offering.location,
-          service: offering.title,
-          serviceType: 'group',
-          price: invoiceAmount,
-          isGroupSession: true,
-          maxParticipants: offering.maxParticipants,
-          currentParticipants: getSessionOfferingHeadcount(offering),
-          createdAt: offering.createdAt,
-          groupSessionId: offering.id,
-        };
-
-        const moneyDisplay = getCoachMoneyContextDisplay(syntheticBooking);
-        const item: SessionPaymentItem = {
-          booking: syntheticBooking,
-          invoice,
-          athleteName: `Off-platform (${offPlatformCount})`,
-          businessContext: getCoachBusinessContext(syntheticBooking),
-          moneyContext: getCoachMoneyContext(syntheticBooking),
-          moneyLabel: moneyDisplay.label,
-          moneyDetail: moneyDisplay.detail,
-        };
-        pushItem(item);
-      }
+        pushItem(entry.item);
+      });
 
       if (syntheticInvoicesToPersist.length > 0) {
         await Promise.all(
@@ -350,7 +358,9 @@ export function useSessionPayments() {
       unpaid.sort((a, b) => {
         if (a.isOverdue && !b.isOverdue) return -1;
         if (!a.isOverdue && b.isOverdue) return 1;
-        return new Date(b.booking.scheduledAt).getTime() - new Date(a.booking.scheduledAt).getTime();
+        return (
+          new Date(b.booking.scheduledAt).getTime() - new Date(a.booking.scheduledAt).getTime()
+        );
       });
       const sortByDate = (a: SessionPaymentItem, b: SessionPaymentItem) =>
         new Date(b.booking.scheduledAt).getTime() - new Date(a.booking.scheduledAt).getTime();
@@ -371,16 +381,9 @@ export function useSessionPayments() {
     } catch {
       return err(serviceError('UNKNOWN', 'Failed to load session payments'));
     }
-  }, [coachId, currentUser?.name]);
+  };
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-  } = useScreen<SessionPaymentsData>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<SessionPaymentsData>({
     load,
     deps: [coachId],
     isEmpty: (d) => d.unpaid.length === 0 && d.paid.length === 0 && d.writtenOff.length === 0,
@@ -396,9 +399,9 @@ export function useSessionPayments() {
     ],
   });
 
-  const unpaidSessions = useMemo(() => data?.unpaid ?? [], [data]);
-  const paidSessions = useMemo(() => data?.paid ?? [], [data]);
-  const writtenOffSessions = useMemo(() => data?.writtenOff ?? [], [data]);
+  const unpaidSessions = data?.unpaid ?? [];
+  const paidSessions = data?.paid ?? [];
+  const writtenOffSessions = data?.writtenOff ?? [];
   const totalOwed = data?.totalOwed ?? 0;
   const totalCollected = data?.totalCollected ?? 0;
   const totalWrittenOff = data?.totalWrittenOff ?? 0;
@@ -406,47 +409,51 @@ export function useSessionPayments() {
   const orgSummary = data?.orgSummary ?? createPaymentBusinessSummary();
   const independentSummary = data?.independentSummary ?? createPaymentBusinessSummary();
 
-  const handleMarkPaid = useCallback(async (invoiceId: string) => {
+  const handleMarkPaid = async (invoiceId: string) => {
     if (processingInvoiceIdsRef.current.has(invoiceId)) return;
     processingInvoiceIdsRef.current.add(invoiceId);
-    try {
-      const result = await invoiceService.markAsPaid(invoiceId);
-      if (result) {
-        showToast('Marked as paid', 'success');
-      } else {
-        showToast('Failed to update payment', 'error');
-      }
-    } finally {
-      processingInvoiceIdsRef.current.delete(invoiceId);
-    }
-  }, [showToast]);
 
-  const handleMarkUnpaid = useCallback(async (invoiceId: string) => {
+    await runAsyncFinally(
+      async () => {
+        const result = await invoiceService.markAsPaid(invoiceId);
+        if (result) {
+          showToast('Marked as paid', 'success');
+        } else {
+          showToast('Failed to update payment', 'error');
+        }
+      },
+      () => {
+        processingInvoiceIdsRef.current.delete(invoiceId);
+      },
+    );
+  };
+
+  const handleMarkUnpaid = async (invoiceId: string) => {
     const result = await invoiceService.markAsUnpaid(invoiceId);
     if (result) {
       showToast('Moved back to owed', 'default');
     } else {
       showToast('Failed to update', 'error');
     }
-  }, [showToast]);
+  };
 
-  const handleWriteOff = useCallback(async (invoiceId: string) => {
+  const handleWriteOff = async (invoiceId: string) => {
     const result = await invoiceService.writeOff(invoiceId);
     if (result) {
       showToast('Written off', 'default');
     } else {
       showToast('Failed to write off', 'error');
     }
-  }, [showToast]);
+  };
 
-  const handleRestore = useCallback(async (invoiceId: string) => {
+  const handleRestore = async (invoiceId: string) => {
     const result = await invoiceService.restoreFromWriteOff(invoiceId);
     if (result) {
       showToast('Restored to owed', 'success');
     } else {
       showToast('Failed to restore', 'error');
     }
-  }, [showToast]);
+  };
 
   return {
     unpaidSessions,

@@ -1,4 +1,3 @@
-import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,10 +32,13 @@ function formatMemberSince(memberSince: string): string {
 }
 
 function nextStreakMilestone(currentWeeks: number): number {
-  return STREAK_MILESTONES.find((milestone) => milestone > currentWeeks) ?? STREAK_MILESTONES[STREAK_MILESTONES.length - 1];
+  return (
+    STREAK_MILESTONES.find((milestone) => milestone > currentWeeks) ??
+    STREAK_MILESTONES[STREAK_MILESTONES.length - 1]
+  );
 }
 
-export const PlayerCardBack = memo(function PlayerCardBack({
+export const PlayerCardBack = function PlayerCardBack({
   data,
   palette,
   compact = false,
@@ -47,19 +49,26 @@ export const PlayerCardBack = memo(function PlayerCardBack({
   const bestSkillLabel = data.bestSkill
     ? `${data.bestSkill.name} — ${getSkillLabel(data.bestSkill.level)}`
     : null;
-  const memberSince = useMemo(() => formatMemberSince(data.memberSince), [data.memberSince]);
-  const nextMilestone = useMemo(
-    () => nextStreakMilestone(data.streakWeeks),
-    [data.streakWeeks],
-  );
+  const memberSince = formatMemberSince(data.memberSince);
+  const nextMilestone = nextStreakMilestone(data.streakWeeks);
   const textColor = palette.text;
   const softText = palette.softText;
   const statBackground = palette.tileBackground;
   const infoBackground = palette.infoBackground;
   const faceOverlay = data.latestPhotoUri ? palette.mediaOverlayStrong : palette.mediaOverlaySoft;
-  const statRows: { id: string; icon: keyof typeof Ionicons.glyphMap; label: string; value: string }[][] = [
+  const statRows: {
+    id: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    label: string;
+    value: string;
+  }[][] = [
     [
-      { id: 'sessions', icon: 'calendar-outline', label: 'Sessions', value: String(data.totalSessions) },
+      {
+        id: 'sessions',
+        icon: 'calendar-outline',
+        label: 'Sessions',
+        value: String(data.totalSessions),
+      },
       { id: 'badges', icon: 'ribbon-outline', label: 'Badges', value: String(data.totalBadges) },
     ],
     [
@@ -71,19 +80,25 @@ export const PlayerCardBack = memo(function PlayerCardBack({
   return (
     <View style={styles.face}>
       {data.latestPhotoUri ? (
-        <Image source={{ uri: data.latestPhotoUri }} style={StyleSheet.absoluteFill} blurRadius={20} />
+        <Image
+          source={{ uri: data.latestPhotoUri }}
+          style={StyleSheet.absoluteFill}
+          blurRadius={20}
+        />
       ) : null}
 
-      <View
-        style={[
-          styles.overlay,
-          { backgroundColor: faceOverlay },
-        ]}
-      />
+      <View style={[styles.overlay, { backgroundColor: faceOverlay }]} />
 
       <Column flex style={[styles.content, compact ? styles.contentCompact : undefined]} gap="sm">
         <Column gap="micro">
-          <ThemedText style={[styles.nameText, compact ? styles.nameTextCompact : undefined, { color: textColor }]} numberOfLines={1}>
+          <ThemedText
+            style={[
+              styles.nameText,
+              compact ? styles.nameTextCompact : undefined,
+              { color: textColor },
+            ]}
+            numberOfLines={1}
+          >
             {data.name.toUpperCase()}
           </ThemedText>
           <ThemedText style={[styles.memberText, { color: softText }]}>
@@ -92,8 +107,8 @@ export const PlayerCardBack = memo(function PlayerCardBack({
         </Column>
 
         <Column gap="xxs">
-          {statRows.map((row, rowIndex) => (
-            <Row key={`stats-${rowIndex}`} align="center" gap="xxs">
+          {statRows.map((row) => (
+            <Row key={row.map((tile) => tile.id).join(':')} align="center" gap="xxs">
               {row.map((tile) => (
                 <Column
                   key={tile.id}
@@ -106,9 +121,18 @@ export const PlayerCardBack = memo(function PlayerCardBack({
                 >
                   <Row align="center" gap="xxs">
                     <Ionicons name={tile.icon} size={compact ? 12 : 13} color={softText} />
-                    <ThemedText style={[styles.tileLabel, { color: softText }]}>{tile.label}</ThemedText>
+                    <ThemedText style={[styles.tileLabel, { color: softText }]}>
+                      {tile.label}
+                    </ThemedText>
                   </Row>
-                  <ThemedText style={[styles.tileValue, compact ? styles.tileValueCompact : undefined, { color: textColor }]} numberOfLines={1}>
+                  <ThemedText
+                    style={[
+                      styles.tileValue,
+                      compact ? styles.tileValueCompact : undefined,
+                      { color: textColor },
+                    ]}
+                    numberOfLines={1}
+                  >
                     {tile.value}
                   </ThemedText>
                 </Column>
@@ -130,7 +154,9 @@ export const PlayerCardBack = memo(function PlayerCardBack({
               <>
                 <Row align="center" gap="xxs">
                   <Ionicons name="trending-up-outline" size={14} color={softText} />
-                  <ThemedText style={[styles.infoLabel, { color: softText }]}>Most improved</ThemedText>
+                  <ThemedText style={[styles.infoLabel, { color: softText }]}>
+                    Most improved
+                  </ThemedText>
                 </Row>
                 <ThemedText style={[styles.infoValue, { color: textColor }]} numberOfLines={1}>
                   {improvedLabel}
@@ -141,7 +167,9 @@ export const PlayerCardBack = memo(function PlayerCardBack({
               <>
                 <Row align="center" gap="xxs">
                   <Ionicons name="star-outline" size={14} color={softText} />
-                  <ThemedText style={[styles.infoLabel, { color: softText }]}>Best skill</ThemedText>
+                  <ThemedText style={[styles.infoLabel, { color: softText }]}>
+                    Best skill
+                  </ThemedText>
                 </Row>
                 <ThemedText style={[styles.infoValue, { color: textColor }]} numberOfLines={1}>
                   {bestSkillLabel}
@@ -158,11 +186,15 @@ export const PlayerCardBack = memo(function PlayerCardBack({
         <Row align="center" justify="between" gap="xxs">
           <Row align="center" gap="xxs" style={styles.cornerRow}>
             <Ionicons name="football-outline" size={13} color={softText} />
-            <ThemedText style={[styles.cornerText, { color: textColor }]}>T {data.corners.technical}</ThemedText>
+            <ThemedText style={[styles.cornerText, { color: textColor }]}>
+              T {data.corners.technical}
+            </ThemedText>
           </Row>
           <Row align="center" gap="xxs" style={styles.cornerRow}>
             <Ionicons name="fitness-outline" size={13} color={softText} />
-            <ThemedText style={[styles.cornerText, { color: textColor }]}>P {data.corners.physical}</ThemedText>
+            <ThemedText style={[styles.cornerText, { color: textColor }]}>
+              P {data.corners.physical}
+            </ThemedText>
           </Row>
           <Row align="center" gap="xxs" style={styles.cornerRow}>
             <Ionicons name="bulb-outline" size={13} color={softText} />
@@ -172,7 +204,9 @@ export const PlayerCardBack = memo(function PlayerCardBack({
           </Row>
           <Row align="center" gap="xxs" style={styles.cornerRow}>
             <Ionicons name="people-outline" size={13} color={softText} />
-            <ThemedText style={[styles.cornerText, { color: textColor }]}>S {data.corners.social}</ThemedText>
+            <ThemedText style={[styles.cornerText, { color: textColor }]}>
+              S {data.corners.social}
+            </ThemedText>
           </Row>
         </Row>
 
@@ -180,7 +214,7 @@ export const PlayerCardBack = memo(function PlayerCardBack({
       </Column>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   face: {

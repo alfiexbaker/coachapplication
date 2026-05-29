@@ -5,19 +5,17 @@ import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
 import { normalizeForJson } from './normalize.js';
-
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
-
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
-const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
+const asString = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
 const asBoolean = (value: unknown, fallback = false): boolean =>
   typeof value === 'boolean' ? value : fallback;
 const asStringArray = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
 const isoNow = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
-
 type GuardianInviteRole = 'GUARDIAN' | 'VIEWER';
 type GuardianInviteStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'CANCELLED';
 type GuardianPermission =
@@ -27,7 +25,6 @@ type GuardianPermission =
   | 'MANAGE_PAYMENTS'
   | 'MANAGE_PROFILE'
   | 'ADMIN';
-
 export interface GuardianInviteRecord {
   id: string;
   familyId: string;
@@ -44,7 +41,6 @@ export interface GuardianInviteRecord {
   respondedAt?: string;
   message?: string;
 }
-
 export interface CreateGuardianInviteInput {
   familyId: string;
   inviterUserId: string;
@@ -55,18 +51,15 @@ export interface CreateGuardianInviteInput {
   childAccess: string[];
   message?: string;
 }
-
 export interface GuardianInviteCreateResult {
   invite: GuardianInviteRecord;
   replayed: boolean;
 }
-
 export interface GuardianInviteRespondResult {
   invite: GuardianInviteRecord;
   familyId: string;
   replayed: boolean;
 }
-
 export interface FamilyAggregate {
   family: Record<string, unknown>;
   memberships: Array<Record<string, unknown>>;
@@ -74,9 +67,12 @@ export interface FamilyAggregate {
   guardianInvites: GuardianInviteRecord[];
   dataVersion: string | null;
 }
-
 export interface FamilyRepository {
-  getFamilyAggregate(familyId: string, authUserId: string, isClubAdmin: boolean): Promise<FamilyAggregate>;
+  getFamilyAggregate(
+    familyId: string,
+    authUserId: string,
+    isClubAdmin: boolean,
+  ): Promise<FamilyAggregate>;
   listGuardianInvitesForUser(authUserId: string): Promise<GuardianInviteRecord[]>;
   createGuardianInvite(input: CreateGuardianInviteInput): Promise<GuardianInviteCreateResult>;
   respondGuardianInvite(
@@ -87,37 +83,31 @@ export interface FamilyRepository {
   cancelGuardianInvite(familyId: string, inviteId: string, authUserId: string): Promise<boolean>;
   removeGuardian(familyId: string, guardianId: string, authUserId: string): Promise<boolean>;
 }
-
 function ensureStoreTable(tables: SeedTables, name: string): SeedRow[] {
   if (!Array.isArray(tables[name])) {
     tables[name] = [];
   }
   return asRows(tables[name]);
 }
-
 function defaultInvitePermissions(role: GuardianInviteRole): GuardianPermission[] {
   if (role === 'VIEWER') {
     return ['VIEW_SCHEDULE', 'VIEW_PROGRESS'];
   }
   return ['VIEW_SCHEDULE', 'VIEW_PROGRESS', 'BOOK_SESSIONS'];
 }
-
 function membershipPermissionsForRole(role: GuardianInviteRole): string[] {
   if (role === 'VIEWER') {
     return ['messages'];
   }
   return ['book', 'messages'];
 }
-
 function normalizeEmail(value: string): string {
   return value.trim().toLowerCase();
 }
-
 function normalizeOptionalString(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
 }
-
 function inviteFromRow(row: SeedRow): GuardianInviteRecord {
   return {
     id: asString(row.id) ?? '',
@@ -136,19 +126,18 @@ function inviteFromRow(row: SeedRow): GuardianInviteRecord {
     message: asString(row.message),
   };
 }
-
 function invitePayloadMatches(row: SeedRow, input: CreateGuardianInviteInput): boolean {
-  const requestedChildAccess = [...new Set(input.childAccess)].sort();
+  const requestedChildAccess = Array.from(new Set(input.childAccess)).toSorted();
   const existingChildAccess = asStringArray(row.childAccessAthleteIds ?? row.childAccess).sort();
   return (
     asString(row.invitedByUserId) === input.inviterUserId &&
     asString(row.role) === input.role &&
-    (asString(row.relationshipLabel) ?? asString(row.relationship) ?? '') === input.relationship.trim() &&
+    (asString(row.relationshipLabel) ?? asString(row.relationship) ?? '') ===
+      input.relationship.trim() &&
     JSON.stringify(existingChildAccess) === JSON.stringify(requestedChildAccess) &&
     (asString(row.message) ?? '') === (normalizeOptionalString(input.message) ?? '')
   );
 }
-
 function isPending(row: SeedRow, now = Date.now()): boolean {
   const expiresAt = asString(row.expiresAt);
   return (
@@ -157,31 +146,33 @@ function isPending(row: SeedRow, now = Date.now()): boolean {
     (!expiresAt || Date.parse(expiresAt) > now)
   );
 }
-
-function isFamilyAdminFromRows(family: SeedRow, memberships: SeedRow[], authUserId: string): boolean {
+function isFamilyAdminFromRows(
+  family: SeedRow,
+  memberships: SeedRow[],
+  authUserId: string,
+): boolean {
   if (asString(family.primaryGuardianUserId) === authUserId) {
     return true;
   }
-
   const membership = memberships.find((row) => asString(row.userId) === authUserId);
   if (!membership) {
     return false;
   }
-
   const role = asString(membership.role)?.toLowerCase();
-  const permissions = asStringArray(membership.permissions).map((permission) => permission.toLowerCase());
+  const permissions = asStringArray(membership.permissions).map((permission) =>
+    permission.toLowerCase(),
+  );
   return role === 'owner' || role === 'admin' || permissions.includes('admin');
 }
-
 function familyAthleteIdsFromRows(tables: SeedTables, familyId: string): Set<string> {
   return new Set(
-    asRows(tables.guardianChildLinks)
-      .filter((row) => asString(row.familyId) === familyId && !asString(row.deletedAt))
-      .map((row) => asString(row.athleteId))
-      .filter((athleteId): athleteId is string => Boolean(athleteId)),
+    asRows(tables.guardianChildLinks).flatMap((row) => {
+      if (!(asString(row.familyId) === familyId && !asString(row.deletedAt))) return [];
+      const mapped = asString(row.athleteId);
+      return Boolean(mapped) ? [mapped] : [];
+    }),
   );
 }
-
 function assertChildAccessIsInsideFamily(
   tables: SeedTables,
   familyId: string,
@@ -193,19 +184,20 @@ function assertChildAccessIsInsideFamily(
   const athleteIds = familyAthleteIdsFromRows(tables, familyId);
   const outsideFamily = childAccess.find((athleteId) => !athleteIds.has(athleteId));
   if (outsideFamily) {
-    throw badRequest('Guardian child access must belong to this family', { athleteId: outsideFamily });
+    throw badRequest('Guardian child access must belong to this family', {
+      athleteId: outsideFamily,
+    });
   }
 }
-
 function activeUserEmailById(tables: SeedTables): Map<string, string> {
   const users = asRows(tables.users).filter((row) => !asString(row.deletedAt));
   return new Map(
-    users
-      .map((row) => [asString(row.id), asString(row.email)?.toLowerCase()] as const)
-      .filter((entry): entry is [string, string] => Boolean(entry[0] && entry[1])),
+    users.flatMap((row) => {
+      const mapped = [asString(row.id), asString(row.email)?.toLowerCase()] as const;
+      return Boolean(mapped[0] && mapped[1]) ? [mapped] : [];
+    }),
   );
 }
-
 function activeUserEmail(tables: SeedTables, authUserId: string): string {
   const email = activeUserEmailById(tables).get(authUserId);
   if (!email) {
@@ -213,7 +205,6 @@ function activeUserEmail(tables: SeedTables, authUserId: string): string {
   }
   return email;
 }
-
 function assertInviteeIsNotActiveFamilyMember(
   tables: SeedTables,
   familyId: string,
@@ -224,10 +215,11 @@ function assertInviteeIsNotActiveFamilyMember(
     .filter((row) => asString(row.familyId) === familyId && !asString(row.deletedAt))
     .find((row) => emailByUserId.get(asString(row.userId) ?? '') === inviteeEmail);
   if (existing) {
-    throw conflict('This email already belongs to a family guardian', { familyId });
+    throw conflict('This email already belongs to a family guardian', {
+      familyId,
+    });
   }
 }
-
 function createGuardianInviteFromTables(
   tables: SeedTables,
   input: CreateGuardianInviteInput,
@@ -235,33 +227,42 @@ function createGuardianInviteFromTables(
   const families = asRows(tables.families).filter((row) => !asString(row.deletedAt));
   const family = families.find((row) => asString(row.id) === input.familyId);
   if (!family) {
-    throw notFound('Family not found', { familyId: input.familyId });
+    throw notFound('Family not found', {
+      familyId: input.familyId,
+    });
   }
-
   const memberships = asRows(tables.familyMemberships).filter(
     (row) => asString(row.familyId) === input.familyId && !asString(row.deletedAt),
   );
   if (!isFamilyAdminFromRows(family, memberships, input.inviterUserId)) {
     throw forbidden('Only a family admin guardian can invite guardians');
   }
-
   const inviteeEmail = normalizeEmail(input.inviteeEmail);
   assertChildAccessIsInsideFamily(tables, input.familyId, input.childAccess);
   assertInviteeIsNotActiveFamilyMember(tables, input.familyId, inviteeEmail);
-
   const invites = ensureStoreTable(tables, 'familyGuardianInvites');
   const existingPending = invites.find(
-    (row) => asString(row.familyId) === input.familyId &&
+    (row) =>
+      asString(row.familyId) === input.familyId &&
       asString(row.inviteeEmail)?.toLowerCase() === inviteeEmail &&
       isPending(row),
   );
   if (existingPending) {
-    if (invitePayloadMatches(existingPending, { ...input, inviteeEmail })) {
-      return { invite: inviteFromRow(existingPending), replayed: true };
+    if (
+      invitePayloadMatches(existingPending, {
+        ...input,
+        inviteeEmail,
+      })
+    ) {
+      return {
+        invite: inviteFromRow(existingPending),
+        replayed: true,
+      };
     }
-    throw conflict('A pending guardian invitation already exists for this email', { familyId: input.familyId });
+    throw conflict('A pending guardian invitation already exists for this email', {
+      familyId: input.familyId,
+    });
   }
-
   const now = new Date();
   const expiresAt = new Date(now);
   expiresAt.setDate(expiresAt.getDate() + 7);
@@ -286,9 +287,11 @@ function createGuardianInviteFromTables(
     deletedByUserId: null,
   };
   invites.push(invite);
-  return { invite: inviteFromRow(invite), replayed: false };
+  return {
+    invite: inviteFromRow(invite),
+    replayed: false,
+  };
 }
-
 function listGuardianInvitesForUserFromTables(
   tables: SeedTables,
   authUserId: string,
@@ -296,17 +299,22 @@ function listGuardianInvitesForUserFromTables(
   const email = activeUserEmail(tables, authUserId);
   return asRows(tables.familyGuardianInvites)
     .filter((row) => asString(row.inviteeEmail)?.toLowerCase() === email && isPending(row))
-    .sort((left, right) => Date.parse(asString(right.createdAt) ?? '') - Date.parse(asString(left.createdAt) ?? ''))
+    .sort(
+      (left, right) =>
+        Date.parse(asString(right.createdAt) ?? '') - Date.parse(asString(left.createdAt) ?? ''),
+    )
     .map(inviteFromRow);
 }
-
-function familyInviteAthleteIds(tables: SeedTables, familyId: string, childAccess: string[]): string[] {
+function familyInviteAthleteIds(
+  tables: SeedTables,
+  familyId: string,
+  childAccess: string[],
+): string[] {
   if (childAccess.length > 0) {
     return [...new Set(childAccess)];
   }
   return [...familyAthleteIdsFromRows(tables, familyId)];
 }
-
 function respondGuardianInviteFromTables(
   tables: SeedTables,
   inviteId: string,
@@ -318,38 +326,52 @@ function respondGuardianInviteFromTables(
     (row) => asString(row.id) === inviteId && !asString(row.deletedAt),
   );
   if (!invite) {
-    throw notFound('Guardian invitation not found', { inviteId });
+    throw notFound('Guardian invitation not found', {
+      inviteId,
+    });
   }
   const familyId = asString(invite.familyId);
   if (!familyId) {
-    throw notFound('Guardian invitation family not found', { inviteId });
+    throw notFound('Guardian invitation family not found', {
+      inviteId,
+    });
   }
   if (asString(invite.inviteeEmail)?.toLowerCase() !== email) {
     throw forbidden('Guardian invitation does not belong to authenticated user');
   }
-
   const currentStatus = asString(invite.status);
   if (currentStatus === response) {
-    return { invite: inviteFromRow(invite), familyId, replayed: true };
+    return {
+      invite: inviteFromRow(invite),
+      familyId,
+      replayed: true,
+    };
   }
   if (currentStatus !== 'PENDING') {
-    throw conflict('Guardian invitation has already been responded to', { inviteId, status: currentStatus });
+    throw conflict('Guardian invitation has already been responded to', {
+      inviteId,
+      status: currentStatus,
+    });
   }
   const expiresAt = asString(invite.expiresAt);
   if (expiresAt && Date.parse(expiresAt) <= Date.now()) {
     invite.status = 'EXPIRED';
     invite.updatedAt = isoNow();
-    throw conflict('Guardian invitation has expired', { inviteId });
+    throw conflict('Guardian invitation has expired', {
+      inviteId,
+    });
   }
-
   const now = isoNow();
   invite.status = response;
   invite.respondedAt = now;
   invite.updatedAt = now;
   if (response === 'DECLINED') {
-    return { invite: inviteFromRow(invite), familyId, replayed: false };
+    return {
+      invite: inviteFromRow(invite),
+      familyId,
+      replayed: false,
+    };
   }
-
   const memberships = ensureStoreTable(tables, 'familyMemberships');
   const existingMembership = memberships.find(
     (row) => asString(row.familyId) === familyId && asString(row.userId) === authUserId,
@@ -357,7 +379,6 @@ function respondGuardianInviteFromTables(
   const childAccess = asStringArray(invite.childAccessAthleteIds ?? invite.childAccess);
   const athleteIds = familyInviteAthleteIds(tables, familyId, childAccess);
   const role = (asString(invite.role) as GuardianInviteRole | undefined) ?? 'GUARDIAN';
-
   if (existingMembership) {
     existingMembership.role = role.toLowerCase();
     existingMembership.permissions = membershipPermissionsForRole(role);
@@ -385,15 +406,23 @@ function respondGuardianInviteFromTables(
       deletedByUserId: null,
     });
   }
-
   const guardianLinks = ensureStoreTable(tables, 'guardianChildLinks');
+  const guardianLinkByAthleteId = new Map(
+    guardianLinks.flatMap((row) => {
+      if (asString(row.guardianUserId) !== authUserId) {
+        return [];
+      }
+      const athleteId = asString(row.athleteId);
+      return athleteId ? [[athleteId, row] as const] : [];
+    }),
+  );
   for (const athleteId of athleteIds) {
-    const existingLink = guardianLinks.find(
-      (row) => asString(row.guardianUserId) === authUserId && asString(row.athleteId) === athleteId,
-    );
+    const existingLink = guardianLinkByAthleteId.get(athleteId);
     if (existingLink) {
       existingLink.familyId = familyId;
-      existingLink.relationshipType = (asString(invite.relationshipLabel) ?? 'guardian').toLowerCase();
+      existingLink.relationshipType = (
+        asString(invite.relationshipLabel) ?? 'guardian'
+      ).toLowerCase();
       existingLink.isPrimary = false;
       existingLink.deletedAt = null;
       existingLink.deletedByUserId = null;
@@ -401,7 +430,7 @@ function respondGuardianInviteFromTables(
       existingLink.updatedByUserId = authUserId;
       continue;
     }
-    guardianLinks.push({
+    const createdLink = {
       id: newId('gcl'),
       familyId,
       guardianUserId: authUserId,
@@ -415,12 +444,16 @@ function respondGuardianInviteFromTables(
       version: 1,
       deletedAt: null,
       deletedByUserId: null,
-    });
+    };
+    guardianLinks.push(createdLink);
+    guardianLinkByAthleteId.set(athleteId, createdLink);
   }
-
-  return { invite: inviteFromRow(invite), familyId, replayed: false };
+  return {
+    invite: inviteFromRow(invite),
+    familyId,
+    replayed: false,
+  };
 }
-
 function cancelGuardianInviteFromTables(
   tables: SeedTables,
   familyId: string,
@@ -431,7 +464,9 @@ function cancelGuardianInviteFromTables(
     (row) => asString(row.id) === familyId && !asString(row.deletedAt),
   );
   if (!family) {
-    throw notFound('Family not found', { familyId });
+    throw notFound('Family not found', {
+      familyId,
+    });
   }
   const memberships = asRows(tables.familyMemberships).filter(
     (row) => asString(row.familyId) === familyId && !asString(row.deletedAt),
@@ -440,20 +475,24 @@ function cancelGuardianInviteFromTables(
     throw forbidden('Only a family admin guardian can cancel guardian invitations');
   }
   const invite = ensureStoreTable(tables, 'familyGuardianInvites').find(
-    (row) => asString(row.id) === inviteId && asString(row.familyId) === familyId && !asString(row.deletedAt),
+    (row) =>
+      asString(row.id) === inviteId &&
+      asString(row.familyId) === familyId &&
+      !asString(row.deletedAt),
   );
   if (!invite) {
     return false;
   }
   if (asString(invite.status) !== 'PENDING') {
-    throw conflict('Only pending guardian invitations can be cancelled', { inviteId });
+    throw conflict('Only pending guardian invitations can be cancelled', {
+      inviteId,
+    });
   }
   invite.status = 'CANCELLED';
   invite.respondedAt = isoNow();
   invite.updatedAt = isoNow();
   return true;
 }
-
 function removeGuardianFromTables(
   tables: SeedTables,
   familyId: string,
@@ -465,7 +504,9 @@ function removeGuardianFromTables(
     (row) => asString(row.id) === familyId && !asString(row.deletedAt),
   );
   if (!family) {
-    throw notFound('Family not found', { familyId });
+    throw notFound('Family not found', {
+      familyId,
+    });
   }
   const memberships = asRows(tables.familyMemberships).filter(
     (row) => asString(row.familyId) === familyId && !asString(row.deletedAt),
@@ -481,8 +522,13 @@ function removeGuardianFromTables(
   if (!guardianUserId) {
     return false;
   }
-  if (asString(family.primaryGuardianUserId) === guardianUserId || asString(membership.role) === 'owner') {
-    throw conflict('Cannot remove the primary guardian', { guardianId });
+  if (
+    asString(family.primaryGuardianUserId) === guardianUserId ||
+    asString(membership.role) === 'owner'
+  ) {
+    throw conflict('Cannot remove the primary guardian', {
+      guardianId,
+    });
   }
   const links = asRows(tables.guardianChildLinks).filter(
     (link) =>
@@ -491,22 +537,22 @@ function removeGuardianFromTables(
       !asString(link.deletedAt),
   );
   if (links.some((link) => asBoolean(link.isPrimary))) {
-    throw conflict('Cannot remove a primary guardian link', { guardianId });
+    throw conflict('Cannot remove a primary guardian link', {
+      guardianId,
+    });
   }
   membership.deletedAt = now;
   membership.deletedByUserId = authUserId;
   membership.updatedAt = now;
   membership.updatedByUserId = authUserId;
-
   for (const link of links) {
-      link.deletedAt = now;
-      link.deletedByUserId = authUserId;
-      link.updatedAt = now;
-      link.updatedByUserId = authUserId;
+    link.deletedAt = now;
+    link.deletedByUserId = authUserId;
+    link.updatedAt = now;
+    link.updatedByUserId = authUserId;
   }
   return true;
 }
-
 function fromTables(
   tables: SeedTables,
   familyId: string,
@@ -517,44 +563,52 @@ function fromTables(
   const families = asRows(tables.families).filter((row) => !asString(row.deletedAt));
   const memberships = asRows(tables.familyMemberships).filter((row) => !asString(row.deletedAt));
   const athletes = asRows(tables.athletes).filter((row) => !asString(row.deletedAt));
-  const guardianChildLinks = asRows(tables.guardianChildLinks).filter((row) => !asString(row.deletedAt));
-  const guardianInvites = asRows(tables.familyGuardianInvites).filter((row) => !asString(row.deletedAt));
+  const guardianChildLinks = asRows(tables.guardianChildLinks).filter(
+    (row) => !asString(row.deletedAt),
+  );
+  const guardianInvites = asRows(tables.familyGuardianInvites).filter(
+    (row) => !asString(row.deletedAt),
+  );
   const childSenTags = asRows(tables.childSenTags).filter((row) => !asString(row.deletedAt));
   const childConsents = asRows(tables.childConsents);
   const users = asRows(tables.users).filter((row) => !asString(row.deletedAt));
-
   const family = families.find((row) => asString(row.id) === familyId);
   if (!family) {
-    throw notFound('Family not found', { familyId });
+    throw notFound('Family not found', {
+      familyId,
+    });
   }
-
   const familyMemberships = memberships.filter((row) => asString(row.familyId) === familyId);
-  const canAccess = isClubAdmin || familyMemberships.some((row) => asString(row.userId) === authUserId);
+  const canAccess =
+    isClubAdmin || familyMemberships.some((row) => asString(row.userId) === authUserId);
   if (!canAccess) {
     throw forbidden('Not allowed to access this family');
   }
-
   const familyAthleteIds = new Set(
-    guardianChildLinks
-      .filter((row) => asString(row.familyId) === familyId)
-      .map((row) => asString(row.athleteId))
-      .filter((id): id is string => Boolean(id)),
+    guardianChildLinks.flatMap((row) => {
+      if (!(asString(row.familyId) === familyId)) return [];
+      const mapped = asString(row.athleteId);
+      return Boolean(mapped) ? [mapped] : [];
+    }),
   );
-  const familyAthletes = athletes
-    .filter((row) => {
-      const athleteId = asString(row.id);
-      return Boolean(athleteId && familyAthleteIds.has(athleteId));
-    })
-    .map((athlete) => {
-      const athleteId = asString(athlete.id) ?? '';
-      return {
-        ...athlete,
+  const familyAthletes = athletes.flatMap((row) => {
+    if (
+      !(() => {
+        const athleteId = asString(row.id);
+        return Boolean(athleteId && familyAthleteIds.has(athleteId));
+      })()
+    )
+      return [];
+    const athleteId = asString(row.id) ?? '';
+    return [
+      {
+        ...row,
         guardians: guardianChildLinks.filter((row) => asString(row.athleteId) === athleteId),
         senTags: childSenTags.filter((row) => asString(row.athleteId) === athleteId),
         consents: childConsents.filter((row) => asString(row.athleteId) === athleteId),
-      };
-    });
-
+      },
+    ];
+  });
   const membershipRows = familyMemberships.map((membership) => {
     const userId = asString(membership.userId);
     const user = users.find((row) => asString(row.id) === userId) ?? null;
@@ -563,18 +617,16 @@ function fromTables(
       user,
     };
   });
-
   return {
     family,
     memberships: membershipRows,
     athletes: familyAthletes,
-    guardianInvites: guardianInvites
-      .filter((row) => asString(row.familyId) === familyId && isPending(row))
-      .map(inviteFromRow),
+    guardianInvites: guardianInvites.flatMap((row) =>
+      asString(row.familyId) === familyId && isPending(row) ? [inviteFromRow(row)] : [],
+    ),
     dataVersion,
   };
 }
-
 class SeedFamilyRepository implements FamilyRepository {
   async getFamilyAggregate(
     familyId: string,
@@ -584,17 +636,16 @@ class SeedFamilyRepository implements FamilyRepository {
     const store = getMarketplaceSeedStore();
     return fromTables(store.tables, familyId, authUserId, isClubAdmin, store.version);
   }
-
-  async createGuardianInvite(input: CreateGuardianInviteInput): Promise<GuardianInviteCreateResult> {
+  async createGuardianInvite(
+    input: CreateGuardianInviteInput,
+  ): Promise<GuardianInviteCreateResult> {
     const store = getMarketplaceSeedStore();
     return createGuardianInviteFromTables(store.tables, input);
   }
-
   async listGuardianInvitesForUser(authUserId: string): Promise<GuardianInviteRecord[]> {
     const store = getMarketplaceSeedStore();
     return listGuardianInvitesForUserFromTables(store.tables, authUserId);
   }
-
   async respondGuardianInvite(
     inviteId: string,
     authUserId: string,
@@ -603,7 +654,6 @@ class SeedFamilyRepository implements FamilyRepository {
     const store = getMarketplaceSeedStore();
     return respondGuardianInviteFromTables(store.tables, inviteId, authUserId, response);
   }
-
   async cancelGuardianInvite(
     familyId: string,
     inviteId: string,
@@ -612,17 +662,11 @@ class SeedFamilyRepository implements FamilyRepository {
     const store = getMarketplaceSeedStore();
     return cancelGuardianInviteFromTables(store.tables, familyId, inviteId, authUserId);
   }
-
-  async removeGuardian(
-    familyId: string,
-    guardianId: string,
-    authUserId: string,
-  ): Promise<boolean> {
+  async removeGuardian(familyId: string, guardianId: string, authUserId: string): Promise<boolean> {
     const store = getMarketplaceSeedStore();
     return removeGuardianFromTables(store.tables, familyId, guardianId, authUserId);
   }
 }
-
 class DbFamilyRepository implements FamilyRepository {
   async getFamilyAggregate(
     familyId: string,
@@ -633,24 +677,28 @@ class DbFamilyRepository implements FamilyRepository {
       const store = getDbFixtureStore();
       return fromTables(store.tables, familyId, authUserId, isClubAdmin, null);
     }
-
     const prisma = getPrismaClientOrThrow();
     const family = await prisma.family.findUnique({
-      where: { id: familyId },
+      where: {
+        id: familyId,
+      },
     });
     if (!family) {
-      throw notFound('Family not found', { familyId });
+      throw notFound('Family not found', {
+        familyId,
+      });
     }
-
     const familyMemberships = await prisma.familyMembership.findMany({
-      where: { familyId, deletedAt: null },
+      where: {
+        familyId,
+        deletedAt: null,
+      },
     });
     const canAccess = isClubAdmin || familyMemberships.some((row) => row.userId === authUserId);
     if (!canAccess) {
       throw forbidden('Not allowed to access this family');
     }
-
-    const [users, guardianLinks] = await Promise.all([
+    const [users, guardianLinks, guardianInvites] = await Promise.all([
       prisma.user.findMany({
         where: {
           id: {
@@ -659,42 +707,51 @@ class DbFamilyRepository implements FamilyRepository {
         },
       }),
       prisma.guardianChildLink.findMany({
-        where: { familyId, deletedAt: null },
+        where: {
+          familyId,
+          deletedAt: null,
+        },
+      }),
+      prisma.familyGuardianInvite.findMany({
+        where: {
+          familyId,
+          status: 'PENDING',
+          deletedAt: null,
+          expiresAt: {
+            gt: new Date(),
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
       }),
     ]);
-    const guardianInvites = await prisma.familyGuardianInvite.findMany({
-      where: {
-        familyId,
-        status: 'PENDING',
-        deletedAt: null,
-        expiresAt: {
-          gt: new Date(),
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
     const athleteIds = [...new Set(guardianLinks.map((row) => row.athleteId))];
     const [athletes, senTags, consents] = await Promise.all([
       prisma.athlete.findMany({
         where: {
-          id: { in: athleteIds },
+          id: {
+            in: athleteIds,
+          },
           deletedAt: null,
         },
       }),
       prisma.childSenTag.findMany({
         where: {
-          athleteId: { in: athleteIds },
+          athleteId: {
+            in: athleteIds,
+          },
           deletedAt: null,
         },
       }),
       prisma.childConsent.findMany({
         where: {
-          athleteId: { in: athleteIds },
+          athleteId: {
+            in: athleteIds,
+          },
         },
       }),
     ]);
-
     const membershipRows = familyMemberships.map((membership) => {
       const user = users.find((row) => row.id === membership.userId) ?? null;
       return {
@@ -702,14 +759,12 @@ class DbFamilyRepository implements FamilyRepository {
         user,
       };
     });
-
     const familyAthletes = athletes.map((athlete) => ({
       ...athlete,
       guardians: guardianLinks.filter((row) => row.athleteId === athlete.id),
       senTags: senTags.filter((row) => row.athleteId === athlete.id),
       consents: consents.filter((row) => row.athleteId === athlete.id),
     }));
-
     return normalizeForJson({
       family,
       memberships: membershipRows,
@@ -720,24 +775,33 @@ class DbFamilyRepository implements FamilyRepository {
       dataVersion: null,
     });
   }
-
-  async createGuardianInvite(input: CreateGuardianInviteInput): Promise<GuardianInviteCreateResult> {
+  async createGuardianInvite(
+    input: CreateGuardianInviteInput,
+  ): Promise<GuardianInviteCreateResult> {
     if (shouldUseDbFixtureFallback()) {
       const store = getDbFixtureStore();
       return createGuardianInviteFromTables(store.tables, input);
     }
-
     const prisma = getPrismaClientOrThrow();
     const family = await prisma.family.findFirst({
-      where: { id: input.familyId, deletedAt: null },
+      where: {
+        id: input.familyId,
+        deletedAt: null,
+      },
     });
     if (!family) {
-      throw notFound('Family not found', { familyId: input.familyId });
+      throw notFound('Family not found', {
+        familyId: input.familyId,
+      });
     }
-
     const memberships = await prisma.familyMembership.findMany({
-      where: { familyId: input.familyId, deletedAt: null },
-      include: { user: true },
+      where: {
+        familyId: input.familyId,
+        deletedAt: null,
+      },
+      include: {
+        user: true,
+      },
     });
     if (
       !isFamilyAdminFromRows(
@@ -748,27 +812,31 @@ class DbFamilyRepository implements FamilyRepository {
     ) {
       throw forbidden('Only a family admin guardian can invite guardians');
     }
-
     const familyAthleteIds = new Set(
       (
         await prisma.guardianChildLink.findMany({
-          where: { familyId: input.familyId, deletedAt: null },
-          select: { athleteId: true },
+          where: {
+            familyId: input.familyId,
+            deletedAt: null,
+          },
+          select: {
+            athleteId: true,
+          },
         })
       ).map((row) => row.athleteId),
     );
     const outsideFamily = input.childAccess.find((athleteId) => !familyAthleteIds.has(athleteId));
     if (outsideFamily) {
-      throw badRequest('Guardian child access must belong to this family', { athleteId: outsideFamily });
+      throw badRequest('Guardian child access must belong to this family', {
+        athleteId: outsideFamily,
+      });
     }
-
     const inviteeEmail = normalizeEmail(input.inviteeEmail);
-    if (
-      memberships.some((row) => row.user?.email?.trim().toLowerCase() === inviteeEmail)
-    ) {
-      throw conflict('This email already belongs to a family guardian', { familyId: input.familyId });
+    if (memberships.some((row) => row.user?.email?.trim().toLowerCase() === inviteeEmail)) {
+      throw conflict('This email already belongs to a family guardian', {
+        familyId: input.familyId,
+      });
     }
-
     const existingPending = await prisma.familyGuardianInvite.findFirst({
       where: {
         familyId: input.familyId,
@@ -782,12 +850,21 @@ class DbFamilyRepository implements FamilyRepository {
     });
     if (existingPending) {
       const row = normalizeForJson(existingPending) as SeedRow;
-      if (invitePayloadMatches(row, { ...input, inviteeEmail })) {
-        return { invite: inviteFromRow(row), replayed: true };
+      if (
+        invitePayloadMatches(row, {
+          ...input,
+          inviteeEmail,
+        })
+      ) {
+        return {
+          invite: inviteFromRow(row),
+          replayed: true,
+        };
       }
-      throw conflict('A pending guardian invitation already exists for this email', { familyId: input.familyId });
+      throw conflict('A pending guardian invitation already exists for this email', {
+        familyId: input.familyId,
+      });
     }
-
     const now = new Date();
     const expiresAt = new Date(now);
     expiresAt.setDate(expiresAt.getDate() + 7);
@@ -809,20 +886,24 @@ class DbFamilyRepository implements FamilyRepository {
         expiresAt,
       },
     });
-
-    return { invite: inviteFromRow(normalizeForJson(created) as SeedRow), replayed: false };
+    return {
+      invite: inviteFromRow(normalizeForJson(created) as SeedRow),
+      replayed: false,
+    };
   }
-
   async listGuardianInvitesForUser(authUserId: string): Promise<GuardianInviteRecord[]> {
     if (shouldUseDbFixtureFallback()) {
       const store = getDbFixtureStore();
       return listGuardianInvitesForUserFromTables(store.tables, authUserId);
     }
-
     const prisma = getPrismaClientOrThrow();
     const user = await prisma.user.findUnique({
-      where: { id: authUserId },
-      select: { email: true },
+      where: {
+        id: authUserId,
+      },
+      select: {
+        email: true,
+      },
     });
     const email = user?.email?.trim().toLowerCase();
     if (!email) {
@@ -833,13 +914,16 @@ class DbFamilyRepository implements FamilyRepository {
         inviteeEmail: email,
         status: 'PENDING',
         deletedAt: null,
-        expiresAt: { gt: new Date() },
+        expiresAt: {
+          gt: new Date(),
+        },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
     return invites.map((row) => inviteFromRow(normalizeForJson(row) as SeedRow));
   }
-
   async respondGuardianInvite(
     inviteId: string,
     authUserId: string,
@@ -849,22 +933,29 @@ class DbFamilyRepository implements FamilyRepository {
       const store = getDbFixtureStore();
       return respondGuardianInviteFromTables(store.tables, inviteId, authUserId, response);
     }
-
     const prisma = getPrismaClientOrThrow();
     const user = await prisma.user.findUnique({
-      where: { id: authUserId },
-      select: { email: true },
+      where: {
+        id: authUserId,
+      },
+      select: {
+        email: true,
+      },
     });
     const email = user?.email?.trim().toLowerCase();
     if (!email) {
       throw forbidden(`Authenticated user ${authUserId} does not exist or has no email`);
     }
-
     const existing = await prisma.familyGuardianInvite.findFirst({
-      where: { id: inviteId, deletedAt: null },
+      where: {
+        id: inviteId,
+        deletedAt: null,
+      },
     });
     if (!existing) {
-      throw notFound('Guardian invitation not found', { inviteId });
+      throw notFound('Guardian invitation not found', {
+        inviteId,
+      });
     }
     if (existing.inviteeEmail.trim().toLowerCase() !== email) {
       throw forbidden('Guardian invitation does not belong to authenticated user');
@@ -884,16 +975,24 @@ class DbFamilyRepository implements FamilyRepository {
     }
     if (existing.expiresAt.getTime() <= Date.now()) {
       await prisma.familyGuardianInvite.update({
-        where: { id: inviteId },
-        data: { status: 'EXPIRED', updatedAt: new Date() },
+        where: {
+          id: inviteId,
+        },
+        data: {
+          status: 'EXPIRED',
+          updatedAt: new Date(),
+        },
       });
-      throw conflict('Guardian invitation has expired', { inviteId });
+      throw conflict('Guardian invitation has expired', {
+        inviteId,
+      });
     }
-
     const now = new Date();
     if (response === 'DECLINED') {
       const declined = await prisma.familyGuardianInvite.update({
-        where: { id: inviteId },
+        where: {
+          id: inviteId,
+        },
         data: {
           status: 'DECLINED',
           respondedAt: now,
@@ -906,27 +1005,37 @@ class DbFamilyRepository implements FamilyRepository {
         replayed: false,
       };
     }
-
     const childAccess = existing.childAccessAthleteIds;
     const familyLinks = await prisma.guardianChildLink.findMany({
-      where: { familyId: existing.familyId, deletedAt: null },
-      select: { athleteId: true },
+      where: {
+        familyId: existing.familyId,
+        deletedAt: null,
+      },
+      select: {
+        athleteId: true,
+      },
     });
     const familyAthleteIds = [...new Set(familyLinks.map((row) => row.athleteId))];
     const athleteIds = childAccess.length > 0 ? [...new Set(childAccess)] : familyAthleteIds;
     const outsideFamily = athleteIds.find((athleteId) => !familyAthleteIds.includes(athleteId));
     if (outsideFamily) {
-      throw badRequest('Guardian child access must belong to this family', { athleteId: outsideFamily });
+      throw badRequest('Guardian child access must belong to this family', {
+        athleteId: outsideFamily,
+      });
     }
     const role = (existing.role as GuardianInviteRole | undefined) ?? 'GUARDIAN';
-
     const accepted = await prisma.$transaction(async (tx) => {
       const currentMembership = await tx.familyMembership.findFirst({
-        where: { familyId: existing.familyId, userId: authUserId },
+        where: {
+          familyId: existing.familyId,
+          userId: authUserId,
+        },
       });
       if (currentMembership) {
         await tx.familyMembership.update({
-          where: { id: currentMembership.id },
+          where: {
+            id: currentMembership.id,
+          },
           data: {
             role: role.toLowerCase(),
             permissions: membershipPermissionsForRole(role),
@@ -955,44 +1064,51 @@ class DbFamilyRepository implements FamilyRepository {
           },
         });
       }
-
-      for (const athleteId of athleteIds) {
-        const currentLink = await tx.guardianChildLink.findFirst({
-          where: { guardianUserId: authUserId, athleteId },
-        });
-        if (currentLink) {
-          await tx.guardianChildLink.update({
-            where: { id: currentLink.id },
+      await Promise.all(
+        athleteIds.map(async (athleteId) => {
+          const currentLink = await tx.guardianChildLink.findFirst({
+            where: {
+              guardianUserId: authUserId,
+              athleteId,
+            },
+          });
+          if (currentLink) {
+            await tx.guardianChildLink.update({
+              where: {
+                id: currentLink.id,
+              },
+              data: {
+                familyId: existing.familyId,
+                relationshipType: existing.relationshipLabel.toLowerCase(),
+                isPrimary: false,
+                deletedAt: null,
+                deletedByUserId: null,
+                updatedByUserId: authUserId,
+                updatedAt: now,
+              },
+            });
+            return;
+          }
+          await tx.guardianChildLink.create({
             data: {
+              id: newId('gcl'),
               familyId: existing.familyId,
+              guardianUserId: authUserId,
+              athleteId,
               relationshipType: existing.relationshipLabel.toLowerCase(),
               isPrimary: false,
-              deletedAt: null,
-              deletedByUserId: null,
+              createdByUserId: existing.invitedByUserId,
               updatedByUserId: authUserId,
+              createdAt: now,
               updatedAt: now,
             },
           });
-          continue;
-        }
-        await tx.guardianChildLink.create({
-          data: {
-            id: newId('gcl'),
-            familyId: existing.familyId,
-            guardianUserId: authUserId,
-            athleteId,
-            relationshipType: existing.relationshipLabel.toLowerCase(),
-            isPrimary: false,
-            createdByUserId: existing.invitedByUserId,
-            updatedByUserId: authUserId,
-            createdAt: now,
-            updatedAt: now,
-          },
-        });
-      }
-
+        }),
+      );
       return tx.familyGuardianInvite.update({
-        where: { id: inviteId },
+        where: {
+          id: inviteId,
+        },
         data: {
           status: 'ACCEPTED',
           respondedAt: now,
@@ -1000,14 +1116,12 @@ class DbFamilyRepository implements FamilyRepository {
         },
       });
     });
-
     return {
       invite: inviteFromRow(normalizeForJson(accepted) as SeedRow),
       familyId: accepted.familyId,
       replayed: false,
     };
   }
-
   async cancelGuardianInvite(
     familyId: string,
     inviteId: string,
@@ -1017,14 +1131,23 @@ class DbFamilyRepository implements FamilyRepository {
       const store = getDbFixtureStore();
       return cancelGuardianInviteFromTables(store.tables, familyId, inviteId, authUserId);
     }
-
     const prisma = getPrismaClientOrThrow();
-    const family = await prisma.family.findFirst({ where: { id: familyId, deletedAt: null } });
+    const family = await prisma.family.findFirst({
+      where: {
+        id: familyId,
+        deletedAt: null,
+      },
+    });
     if (!family) {
-      throw notFound('Family not found', { familyId });
+      throw notFound('Family not found', {
+        familyId,
+      });
     }
     const memberships = await prisma.familyMembership.findMany({
-      where: { familyId, deletedAt: null },
+      where: {
+        familyId,
+        deletedAt: null,
+      },
     });
     if (
       !isFamilyAdminFromRows(
@@ -1035,18 +1158,25 @@ class DbFamilyRepository implements FamilyRepository {
     ) {
       throw forbidden('Only a family admin guardian can cancel guardian invitations');
     }
-
     const invite = await prisma.familyGuardianInvite.findFirst({
-      where: { id: inviteId, familyId, deletedAt: null },
+      where: {
+        id: inviteId,
+        familyId,
+        deletedAt: null,
+      },
     });
     if (!invite) {
       return false;
     }
     if (invite.status !== 'PENDING') {
-      throw conflict('Only pending guardian invitations can be cancelled', { inviteId });
+      throw conflict('Only pending guardian invitations can be cancelled', {
+        inviteId,
+      });
     }
     await prisma.familyGuardianInvite.update({
-      where: { id: inviteId },
+      where: {
+        id: inviteId,
+      },
       data: {
         status: 'CANCELLED',
         respondedAt: new Date(),
@@ -1055,24 +1185,28 @@ class DbFamilyRepository implements FamilyRepository {
     });
     return true;
   }
-
-  async removeGuardian(
-    familyId: string,
-    guardianId: string,
-    authUserId: string,
-  ): Promise<boolean> {
+  async removeGuardian(familyId: string, guardianId: string, authUserId: string): Promise<boolean> {
     if (shouldUseDbFixtureFallback()) {
       const store = getDbFixtureStore();
       return removeGuardianFromTables(store.tables, familyId, guardianId, authUserId);
     }
-
     const prisma = getPrismaClientOrThrow();
-    const family = await prisma.family.findFirst({ where: { id: familyId, deletedAt: null } });
+    const family = await prisma.family.findFirst({
+      where: {
+        id: familyId,
+        deletedAt: null,
+      },
+    });
     if (!family) {
-      throw notFound('Family not found', { familyId });
+      throw notFound('Family not found', {
+        familyId,
+      });
     }
     const memberships = await prisma.familyMembership.findMany({
-      where: { familyId, deletedAt: null },
+      where: {
+        familyId,
+        deletedAt: null,
+      },
     });
     if (
       !isFamilyAdminFromRows(
@@ -1088,7 +1222,9 @@ class DbFamilyRepository implements FamilyRepository {
       return false;
     }
     if (family.primaryGuardianUserId === membership.userId || membership.role === 'owner') {
-      throw conflict('Cannot remove the primary guardian', { guardianId });
+      throw conflict('Cannot remove the primary guardian', {
+        guardianId,
+      });
     }
     const primaryLinkCount = await prisma.guardianChildLink.count({
       where: {
@@ -1099,12 +1235,16 @@ class DbFamilyRepository implements FamilyRepository {
       },
     });
     if (primaryLinkCount > 0) {
-      throw conflict('Cannot remove a primary guardian link', { guardianId });
+      throw conflict('Cannot remove a primary guardian link', {
+        guardianId,
+      });
     }
     const now = new Date();
     await prisma.$transaction(async (tx) => {
       await tx.familyMembership.update({
-        where: { id: guardianId },
+        where: {
+          id: guardianId,
+        },
         data: {
           deletedAt: now,
           deletedByUserId: authUserId,
@@ -1130,10 +1270,8 @@ class DbFamilyRepository implements FamilyRepository {
     return true;
   }
 }
-
 const seedFamilyRepository = new SeedFamilyRepository();
 const dbFamilyRepository = new DbFamilyRepository();
-
 export function resolveFamilyRepository(): FamilyRepository {
   return getApiDataBackend() === 'db' ? dbFamilyRepository : seedFamilyRepository;
 }

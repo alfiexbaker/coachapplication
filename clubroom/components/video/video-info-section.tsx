@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,7 +15,7 @@ interface VideoInfoSectionProps {
   colors: ThemeColors;
 }
 
-export const VideoInfoSection = memo(function VideoInfoSection({
+export const VideoInfoSection = function VideoInfoSection({
   video,
   colors,
 }: VideoInfoSectionProps) {
@@ -53,9 +53,7 @@ export const VideoInfoSection = memo(function VideoInfoSection({
 
       <Row gap="xs" wrap align="center">
         {video.tags.map((tag) => (
-          <Chip key={tag} dense selected={false}>
-            {tag}
-          </Chip>
+          <Chip key={tag} dense selected={false} label={tag} />
         ))}
         <Row
           align="center"
@@ -86,7 +84,7 @@ export const VideoInfoSection = memo(function VideoInfoSection({
       )}
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: {

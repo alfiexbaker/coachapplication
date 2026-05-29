@@ -5,7 +5,7 @@
  * Shows each present athlete with badges grouped by FA Four Corners category.
  */
 
-import React, { memo, useCallback, useMemo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
@@ -105,29 +105,20 @@ interface BadgeAthleteRowProps {
   onToggleBadge: (registrationId: string, badgeId: string) => void;
 }
 
-const BadgeAthleteRow = memo(function BadgeAthleteRow({
+const BadgeAthleteRow = function BadgeAthleteRow({
   athlete,
   availableBadges,
   colors,
   onToggleBadge,
 }: BadgeAthleteRowProps) {
-  const handleToggle = useCallback(
-    (badgeId: string) => {
-      onToggleBadge(athlete.registrationId, badgeId);
-    },
-    [athlete.registrationId, onToggleBadge],
-  );
+  const handleToggle = (badgeId: string) => {
+    onToggleBadge(athlete.registrationId, badgeId);
+  };
 
-  const skillBadges = useMemo(
-    () => availableBadges.filter((b) => !EVENT_BADGE_IDS.has(b.id)),
-    [availableBadges],
-  );
-  const eventBadges = useMemo(
-    () => availableBadges.filter((b) => EVENT_BADGE_IDS.has(b.id)).slice(0, 6),
-    [availableBadges],
-  );
+  const skillBadges = availableBadges.filter((b) => !EVENT_BADGE_IDS.has(b.id));
+  const eventBadges = availableBadges.filter((b) => EVENT_BADGE_IDS.has(b.id)).slice(0, 6);
 
-  const groupedSkillBadges = useMemo(() => {
+  const groupedSkillBadges = (() => {
     const groups: { category: BadgeCategory; label: string; badges: BadgeDefinitionWithStats[] }[] =
       [];
     for (const cat of CATEGORY_ORDER) {
@@ -137,7 +128,7 @@ const BadgeAthleteRow = memo(function BadgeAthleteRow({
       }
     }
     return groups;
-  }, [skillBadges]);
+  })();
 
   return (
     <View style={[styles.badgeAthleteRow, { borderBottomColor: colors.border }]}>
@@ -188,13 +179,13 @@ const BadgeAthleteRow = memo(function BadgeAthleteRow({
       ) : null}
     </View>
   );
-});
+};
 
 // ============================================================================
 // BADGES STEP
 // ============================================================================
 
-export const BadgesStep = memo(function BadgesStep({
+export const BadgesStep = function BadgesStep({
   presentAthletes,
   availableBadges,
   colors,
@@ -227,7 +218,7 @@ export const BadgesStep = memo(function BadgesStep({
       )}
     </SurfaceCard>
   );
-});
+};
 
 // ============================================================================
 // STYLES

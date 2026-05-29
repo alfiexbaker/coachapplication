@@ -46,7 +46,7 @@ function DividerInner({ vertical = false, spacing = 0, style }: DividerProps) {
   );
 }
 
-export const Divider = React.memo(DividerInner);
+export const Divider = DividerInner;
 
 // ---------------------------------------------------------------------------
 // Styles (color-independent)

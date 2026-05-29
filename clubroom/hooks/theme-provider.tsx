@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useEffect, useState, use } from 'react';
 import { Platform, useColorScheme, type ColorSchemeName } from 'react-native';
 
 // Web API types for cross-platform theme detection
@@ -54,25 +54,24 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [override, setOverride] = useState<NonNullable<ColorSchemeName> | null>('dark');
   const colorScheme = override ?? systemScheme;
 
-  const value = useMemo(
-    () => ({
-      colorScheme,
-      systemScheme,
-      toggleColorScheme: () =>
-        setOverride((prev) => {
-          const current = prev ?? systemScheme;
-          return current === 'dark' ? 'light' : 'dark';
-        }),
-      setColorScheme: (scheme: NonNullable<ColorSchemeName>) => setOverride(scheme),
-    }),
-    [colorScheme, systemScheme],
-  );
+  const value = ({
+    colorScheme,
+    systemScheme,
+
+    toggleColorScheme: () =>
+      setOverride((prev) => {
+        const current = prev ?? systemScheme;
+        return current === 'dark' ? 'light' : 'dark';
+      }),
+
+    setColorScheme: (scheme: NonNullable<ColorSchemeName>) => setOverride(scheme),
+  });
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useThemePreferences() {
-  const context = useContext(ThemeContext);
+  const context = use(ThemeContext);
   if (!context) {
     throw new Error('useThemePreferences must be used within a ThemeProvider');
   }

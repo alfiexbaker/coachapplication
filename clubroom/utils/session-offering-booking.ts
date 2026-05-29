@@ -214,7 +214,7 @@ export function filterSessionOfferingsByCategory(
 }
 
 export function sortSessionOfferingsForBooking(offerings: SessionOffering[]): SessionOffering[] {
-  return [...offerings].sort((left, right) => {
+  return Array.from(offerings).toSorted((left, right) => {
     const leftCategory = getSessionOfferingCategoryMeta(left);
     const rightCategory = getSessionOfferingCategoryMeta(right);
     if (leftCategory.priority !== rightCategory.priority) {

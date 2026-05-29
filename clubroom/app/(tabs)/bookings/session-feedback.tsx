@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useRef } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -18,11 +18,11 @@ export default function SessionFeedbackScreen() {
   const { colors: palette } = useTheme();
   const params = useLocalSearchParams();
   const { currentUser } = useAuth();
-  const [isCreating, setIsCreating] = useState(false);
+  const isCreatingRef = useRef(false);
 
   // Get athlete's objectives from params
   const athleteObjectivesParam = params.athleteObjectives as string;
-  const athleteObjectives: FootballObjective[] = useMemo(() => {
+  const athleteObjectives: FootballObjective[] = (() => {
     if (!athleteObjectivesParam) return [];
     try {
       return JSON.parse(athleteObjectivesParam) as FootballObjective[];
@@ -30,7 +30,7 @@ export default function SessionFeedbackScreen() {
       logger.error('Failed to parse athleteObjectives param');
       return [];
     }
-  }, [athleteObjectivesParam]);
+  })();
   const athleteName = (params.athleteName as string) || 'the athlete';
   const athleteId = params.athleteId as string;
   const bookingId = params.bookingId as string;
@@ -38,8 +38,8 @@ export default function SessionFeedbackScreen() {
   // Create session record and navigate to detail screen
   useEffect(() => {
     const createSessionAndNavigate = async () => {
-      if (isCreating) return;
-      setIsCreating(true);
+      if (isCreatingRef.current) return;
+      isCreatingRef.current = true;
 
       try {
         // Create minimal session record
@@ -89,7 +89,7 @@ export default function SessionFeedbackScreen() {
     };
 
     createSessionAndNavigate();
-  }, [athleteId, athleteName, currentUser, bookingId, athleteObjectives, isCreating]);
+  }, [athleteId, athleteName, currentUser, bookingId, athleteObjectives]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>

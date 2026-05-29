@@ -2,7 +2,7 @@
  * Athletes Tab — Coach's command center for managing their roster.
  */
 
-import React, { useCallback } from 'react';
+import React from 'react';
 import type { ReactNode } from 'react';
 import { StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
@@ -23,7 +23,7 @@ import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import {
   AthletesListHeader,
   AthletesSearchEmptyState,
-  renderAthleteCard,
+  AthleteCardItem,
 } from '@/components/athlete/athletes-screen-header-sections';
 
 export default function AthletesScreen() {
@@ -44,10 +44,10 @@ export default function AthletesScreen() {
     filteredAthletes,
   } = useAthletesScreen();
 
-  const keyExtractor = useCallback((item: RosterEntry) => item.id, []);
-  const handleInviteAthlete = useCallback(() => {
+  const keyExtractor = (item: RosterEntry) => item.id;
+  const handleInviteAthlete = () => {
     router.push(Routes.sessionsCreateIntent({ intent: 'existing', source: 'manual' }));
-  }, []);
+  };
   const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -64,25 +64,24 @@ export default function AthletesScreen() {
       </>,
     );
 
-  const listHeader = useCallback(
-    () => (
-      <>
-        {refreshing ? (
-          <SubmitProgressState label="Refreshing athletes" style={styles.pendingState} />
-        ) : null}
-        <AthletesListHeader
-          colors={colors}
-          roster={roster}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onClearSearch={() => setSearchQuery('')}
-          filter={filter}
-          onFilterChange={setFilter}
-        />
-      </>
-    ),
-    [colors, filter, refreshing, roster, searchQuery, setFilter, setSearchQuery],
+  const listHeader = () => (
+    <>
+      {refreshing ? (
+        <SubmitProgressState label="Refreshing athletes" style={styles.pendingState} />
+      ) : null}
+      <AthletesListHeader
+        colors={colors}
+        roster={roster}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onClearSearch={() => setSearchQuery('')}
+        filter={filter}
+        onFilterChange={setFilter}
+      />
+    </>
   );
+  const renderAthleteItem = ({ item }: { item: RosterEntry }) =>
+    <AthleteCardItem item={item} upcomingSessions={upcomingSessions} />;
 
   if (showLoadingState) {
     return renderState(<LoadingState variant="list" />);
@@ -123,7 +122,7 @@ export default function AthletesScreen() {
         CellRendererComponent={AccessibleListCell}
         accessibilityRole="list"
         data={filteredAthletes}
-        renderItem={({ item }) => renderAthleteCard({ item, upcomingSessions })}
+        renderItem={renderAthleteItem}
         keyExtractor={keyExtractor}
         ListHeaderComponent={listHeader}
         ListEmptyComponent={<AthletesSearchEmptyState colors={colors} />}

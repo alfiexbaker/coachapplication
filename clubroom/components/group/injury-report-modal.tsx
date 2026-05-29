@@ -1,6 +1,5 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { Modal, ScrollView, StyleSheet, TextInput, View, Keyboard } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -28,7 +27,7 @@ export interface InjuryReportModalProps {
   onSubmit: () => void;
 }
 
-export const InjuryReportModal = memo(function InjuryReportModal({
+export const InjuryReportModal = function InjuryReportModal({
   visible,
   athleteName,
   bodyPart,
@@ -52,10 +51,7 @@ export const InjuryReportModal = memo(function InjuryReportModal({
         onClose();
       }}
     >
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <PageHeader
           title="Report Injury"
           subtitle={athleteName}
@@ -70,6 +66,7 @@ export const InjuryReportModal = memo(function InjuryReportModal({
         />
 
         <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
           style={{ flex: 1, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md }}
           showsVerticalScrollIndicator={false}
         >
@@ -195,10 +192,10 @@ export const InjuryReportModal = memo(function InjuryReportModal({
             {saving ? 'Submitting...' : 'Report Injury'}
           </Button>
         </View>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1 },

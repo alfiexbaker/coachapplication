@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, startTransition } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -29,6 +29,8 @@ import { CelebrationOverlay, CelebrationOverlayRef } from '@/components/celebrat
 import { hasAccountChildren } from '@/utils/booking-self-capability';
 import { getBookingRelationshipContext } from '@/utils/booking-display';
 import type { OrganizationCommercialMode } from '@/constants/types';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('ConfirmationScreen');
 
@@ -88,7 +90,9 @@ export default function ConfirmationScreen() {
   };
 
   useEffect(() => {
-    setResolvedCoachName(draft.coachName ?? '');
+    startTransition(() => {
+      setResolvedCoachName(draft.coachName ?? '');
+    });
   }, [draft.coachName]);
 
   useEffect(() => {
@@ -128,7 +132,9 @@ export default function ConfirmationScreen() {
 
   useEffect(() => {
     if (!draft.clubId) {
-      setClubLabel(null);
+      startTransition(() => {
+        setClubLabel(null);
+      });
       return;
     }
     let cancelled = false;
@@ -149,7 +155,9 @@ export default function ConfirmationScreen() {
 
   useEffect(() => {
     if (!draft.assigneeCoachId) {
-      setAssigneeLabel(null);
+      startTransition(() => {
+        setAssigneeLabel(null);
+      });
       return;
     }
     let cancelled = false;
@@ -184,7 +192,7 @@ export default function ConfirmationScreen() {
     setIsCreating(true);
     setError(null);
 
-    try {
+    return await runAsyncTryCatchFinally(async () => {
       const resolvedCoach = coachId || draft.coachId;
       const coachName = draft.coachName || resolvedCoachName;
       const selectedAthleteIds = (
@@ -304,13 +312,13 @@ export default function ConfirmationScreen() {
                 'Failed to create booking. The slot may no longer be available.',
         );
       }
-    } catch (err) {
+    }, async err => {
       trackConfirmStep('conflict_fail', 'unexpected_error');
       logger.error('Error creating booking', err);
       setError('An unexpected error occurred. Please try again.');
-    } finally {
+    }, () => {
       setIsCreating(false);
-    }
+    });
   };
 
   return (

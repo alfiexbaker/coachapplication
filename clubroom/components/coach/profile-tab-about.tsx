@@ -1,7 +1,7 @@
 /**
  * ProfileTabAbout — About tab content for coach profile.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Linking, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -52,6 +52,7 @@ interface ProfileTabAboutProps {
 
 function ProfileTabAboutInner({ coach, userRole }: ProfileTabAboutProps) {
   const { colors: palette } = useTheme();
+  const [nowMs] = useState(() => Date.now());
   const handleEditProfile = () => {
     router.push(Routes.EDIT_PROFILE);
   };
@@ -164,7 +165,7 @@ function ProfileTabAboutInner({ coach, userRole }: ProfileTabAboutProps) {
         {coach.certifications && coach.certifications.length > 0 ? (
           coach.certifications.map((cert) => {
             const isExpiring = cert.expiryDate
-              ? new Date(cert.expiryDate).getTime() - Date.now() < 90 * 24 * 60 * 60 * 1000
+              ? new Date(cert.expiryDate).getTime() - nowMs < 90 * 24 * 60 * 60 * 1000
               : false;
             return (
               <Row key={cert.id} style={styles.credentialItem}>
@@ -212,8 +213,8 @@ function ProfileTabAboutInner({ coach, userRole }: ProfileTabAboutProps) {
       {coach.achievements && coach.achievements.length > 0 && (
         <SurfaceCard style={styles.section}>
           <ThemedText type="subtitle">Achievements</ThemedText>
-          {coach.achievements.map((achievement, index) => (
-            <Row key={index} style={styles.achievementItem}>
+          {coach.achievements.map((achievement) => (
+            <Row key={achievement} style={styles.achievementItem}>
               <Ionicons name="trophy" size={18} color={palette.warning} />
               <ThemedText style={styles.achievementText}>{achievement}</ThemedText>
             </Row>
@@ -264,7 +265,7 @@ function ProfileTabAboutInner({ coach, userRole }: ProfileTabAboutProps) {
   );
 }
 
-export const ProfileTabAbout = React.memo(ProfileTabAboutInner);
+export const ProfileTabAbout = ProfileTabAboutInner;
 
 const styles = StyleSheet.create({
   aboutContent: { gap: Spacing.md },

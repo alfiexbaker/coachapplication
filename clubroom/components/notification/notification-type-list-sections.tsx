@@ -1,5 +1,6 @@
-import { useState, useCallback, memo } from 'react';
-import { View, StyleSheet, Switch, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { useState } from 'react';
+import { View, StyleSheet, Switch } from 'react-native';
+import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -12,49 +13,7 @@ import type {
   NotificationCategory,
   TypeNotificationPreference,
 } from '@/constants/types';
-import { NOTIFICATION_TYPE_CATEGORIES } from '@/constants/types';
-
-// Enable LayoutAnimation on Android
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
-export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
-  BOOKING_RECEIVED: 'New Booking Requests',
-  BOOKING_HANDOFF: 'Booking Handoffs',
-  BOOKING_CONFIRMED: 'Booking Confirmations',
-  BOOKING_CANCELLED: 'Booking Cancellations',
-  CLUB_UPDATE: 'Club Updates',
-  SUPPORT_UPDATE: 'Support Updates',
-  SESSION_REMINDER: 'Session Reminders',
-  MESSAGE_RECEIVED: 'New Messages',
-  SESSION_INVITE: 'Session Invites',
-  SESSION_INVITE_RESPONSE: 'Invite Responses',
-  REVIEW_REQUEST: 'Review Requests',
-  REVIEW_RECEIVED: 'New Reviews',
-  BADGE_AWARDED: 'Badge Awards',
-  WAITLIST_AVAILABLE: 'Waitlist Openings',
-  PAYMENT_RECEIVED: 'Payment Received',
-  PAYMENT_FAILED: 'Payment Issues',
-  GOAL_COMPLETED: 'Goal Completions',
-  VIDEO_SHARED: 'Shared Videos',
-  MATCH_INVITE: 'Match Invites',
-  MATCH_RESPONSE: 'Match Responses',
-  MATCH_LINEUP: 'Lineup Announcements',
-  MATCH_REMINDER: 'Match Reminders',
-  MATCH_CANCELLED: 'Match Cancellations',
-  NEW_FOLLOWER: 'New Followers',
-  FOLLOW_REQUEST: 'Follow Requests',
-  FOLLOW_REQUEST_ACCEPTED: 'Accepted Follow Requests',
-};
-
-export function getTypesForCategory(category: NotificationCategory): NotificationType[] {
-  return (
-    Object.entries(NOTIFICATION_TYPE_CATEGORIES) as [NotificationType, NotificationCategory][]
-  )
-    .filter(([_, cat]) => cat === category)
-    .map(([type]) => type);
-}
+import { NOTIFICATION_TYPE_LABELS } from './notification-type-list-helpers';
 
 /* ---------- CategorySection ---------- */
 
@@ -70,7 +29,7 @@ export interface CategorySectionProps {
   loading?: boolean;
 }
 
-export const CategorySection = memo(function CategorySection({
+export const CategorySection = function CategorySection({
   label,
   description,
   icon,
@@ -83,10 +42,9 @@ export const CategorySection = memo(function CategorySection({
   const { colors: palette } = useTheme();
   const [expanded, setExpanded] = useState(false);
 
-  const handleToggleExpand = useCallback(() => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+  const handleToggleExpand = () => {
     setExpanded((prev) => !prev);
-  }, []);
+  };
 
   const enabledCount = types.filter((type) => {
     const pref = typePreferences[type];
@@ -142,7 +100,12 @@ export const CategorySection = memo(function CategorySection({
       </Clickable>
 
       {expanded && (
-        <View style={[styles.typeList, { borderTopColor: palette.border }]}>
+        <Animated.View
+          entering={FadeIn.duration(120)}
+          exiting={FadeOut.duration(100)}
+          layout={LinearTransition.duration(180)}
+          style={[styles.typeList, { borderTopColor: palette.border }]}
+        >
           {types.map((type, index) => {
             const pref = typePreferences[type];
             const isEnabled = pref === undefined || pref.enabled;
@@ -179,11 +142,11 @@ export const CategorySection = memo(function CategorySection({
               </Row>
             );
           })}
-        </View>
+        </Animated.View>
       )}
     </View>
   );
-});
+};
 
 /* ---------- Styles ---------- */
 

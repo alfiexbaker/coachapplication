@@ -1,4 +1,4 @@
-import { PropsWithChildren, useEffect, useMemo, useState } from 'react';
+import { PropsWithChildren, useEffect, useState } from 'react';
 import {
   LayoutChangeEvent,
   Platform,
@@ -81,9 +81,9 @@ export function SurfaceCard({
 
   useEffect(() => {
     if (loading && cardSize.width > 0) {
-      shimmerProgress.value = withRepeat(withTiming(1, { duration: 1600 }), -1, false);
+      shimmerProgress.set(withRepeat(withTiming(1, { duration: 1600 }), -1, false));
     } else {
-      shimmerProgress.value = 0;
+      shimmerProgress.set(0);
     }
   }, [cardSize.width, loading, shimmerProgress]);
 
@@ -94,8 +94,8 @@ export function SurfaceCard({
 
   const handlePressIn = (event: Parameters<NonNullable<PressableProps['onPressIn']>>[0]) => {
     if (interactive) {
-      pressed.value = withTiming(1, { duration: 120 });
-      scale.value = withSpring(0.97, { damping: 18, stiffness: 320 });
+      pressed.set(withTiming(1, { duration: 120 }));
+      scale.set(withSpring(0.97, { damping: 18, stiffness: 320 }));
       if (haptics && Platform.OS !== 'web') {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
       }
@@ -105,34 +105,27 @@ export function SurfaceCard({
 
   const handlePressOut = (event: Parameters<NonNullable<PressableProps['onPressOut']>>[0]) => {
     if (interactive) {
-      pressed.value = withTiming(0, { duration: 150 });
-      scale.value = withSpring(1, { damping: 18, stiffness: 320 });
+      pressed.set(withTiming(0, { duration: 150 }));
+      scale.set(withSpring(1, { damping: 18, stiffness: 320 }));
     }
     onPressOut?.(event);
   };
 
-  const gradientUri = useMemo(() => {
+  const gradientUri = (() => {
     if (!outlineGradient) {
       return null;
     }
     return buildLinearGradientUri(outlineGradient, Radii.lg + gradientPadding);
-  }, [gradientPadding, outlineGradient]);
+  })();
 
-  const shimmerGradientUri = useMemo(() => {
+  const shimmerGradientUri = (() => {
     const colors = shimmerColors ?? shimmerPresets[scheme];
     return buildLinearGradientUri([...colors], Radii.lg);
-  }, [scheme, shimmerColors]);
+  })();
 
   // Precompute pressed colors on JS thread (non-worklet functions can't run in worklets)
-  const pressedBackground = useMemo(
-    () => (scheme === 'light' ? lightenHex(palette.card, 0.04) : darkenHex(palette.card, 0.06)),
-    [palette.card, scheme],
-  );
-  const pressedBorder = useMemo(
-    () =>
-      scheme === 'light' ? lightenHex(palette.border, 0.25) : lightenHex(palette.border, 0.1),
-    [palette.border, scheme],
-  );
+  const pressedBackground = (scheme === 'light' ? lightenHex(palette.card, 0.04) : darkenHex(palette.card, 0.06));
+  const pressedBorder = scheme === 'light' ? lightenHex(palette.border, 0.25) : lightenHex(palette.border, 0.1);
 
   const animatedCardStyle = useAnimatedStyle(() => {
     const shadowOpacity = animateElevation

@@ -109,7 +109,7 @@ function AddChildConsentsStepInner(props: AddChildConsentsStepProps) {
   );
 }
 
-export const AddChildConsentsStep = React.memo(AddChildConsentsStepInner);
+export const AddChildConsentsStep = AddChildConsentsStepInner;
 
 // ─── Styles ─────────────────────────────────────────────────────
 

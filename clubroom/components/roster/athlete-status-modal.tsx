@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
@@ -16,7 +16,7 @@ interface AthleteStatusModalProps {
   onClose: () => void;
 }
 
-export const AthleteStatusModal = memo(function AthleteStatusModal({
+export const AthleteStatusModal = function AthleteStatusModal({
   visible,
   currentStatus,
   onSelect,
@@ -62,7 +62,7 @@ export const AthleteStatusModal = memo(function AthleteStatusModal({
       </View>
     </Modal>
   );
-});
+};
 
 const styles = StyleSheet.create({
   overlay: {

@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -10,39 +9,11 @@ import type { SessionFeedback } from '@/services/progress-service';
 import { useTheme } from '@/hooks/useTheme';
 import { getParentSkill, SKILL_SUB_SKILLS } from '@/constants/position-skills';
 import type { FootballSkill } from '@/types/progress-types';
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-export function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-
-  return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
-}
-
-export function getPerformanceLabel(rating: number): string {
-  switch (rating) {
-    case 5:
-      return 'Excellent';
-    case 4:
-      return 'Great';
-    case 3:
-      return 'Good';
-    case 2:
-      return 'Fair';
-    default:
-      return 'Keep Going';
-  }
-}
+import { formatDate, getPerformanceLabel } from './session-feedback-helpers';
 
 // ─── RatingStars ────────────────────────────────────────────────────────────
 
-export const RatingStars = memo(function RatingStars({
+export const RatingStars = function RatingStars({
   rating,
   size = 14,
 }: {
@@ -63,7 +34,7 @@ export const RatingStars = memo(function RatingStars({
       ))}
     </Row>
   );
-});
+};
 
 // ─── CompactFeedbackCard ────────────────────────────────────────────────────
 
@@ -73,7 +44,7 @@ type CompactFeedbackCardProps = {
   showCoachName?: boolean;
 };
 
-export const CompactFeedbackCard = memo(function CompactFeedbackCard({
+export const CompactFeedbackCard = function CompactFeedbackCard({
   feedback,
   onPress,
   showCoachName = true,
@@ -104,7 +75,7 @@ export const CompactFeedbackCard = memo(function CompactFeedbackCard({
       )}
     </SurfaceCard>
   );
-});
+};
 
 // ─── SkillRatingsGrid ───────────────────────────────────────────────────────
 
@@ -135,9 +106,11 @@ function groupSubSkillsByParent(
   return result;
 }
 
-export const SkillRatingsGrid = memo(function SkillRatingsGrid({
+const EMPTY_SKILLS_WORKED_ON: string[] = [];
+
+export const SkillRatingsGrid = function SkillRatingsGrid({
   ratings,
-  skillsWorkedOn = [],
+  skillsWorkedOn = EMPTY_SKILLS_WORKED_ON,
   subSkillRatings,
 }: {
   ratings: SkillRatingEntry[];
@@ -151,13 +124,17 @@ export const SkillRatingsGrid = memo(function SkillRatingsGrid({
     const grouped = groupSubSkillsByParent(subSkillRatings);
     return (
       <View style={styles.section}>
-        <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Skill ratings</ThemedText>
+        <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
+          Skill ratings
+        </ThemedText>
         <View style={{ gap: Spacing.sm }}>
           {Object.entries(grouped).map(([parent, { avg, subs }]) => (
             <View key={parent} style={{ gap: Spacing.xxs }}>
               {/* Parent header with derived average */}
               <Row align="center" gap="xxs" style={styles.skillRatingItem}>
-                <ThemedText style={[styles.skillRatingName, { fontWeight: '600' }]}>{parent}</ThemedText>
+                <ThemedText style={[styles.skillRatingName, { fontWeight: '600' }]}>
+                  {parent}
+                </ThemedText>
                 <Row align="baseline">
                   <ThemedText
                     type="defaultSemiBold"
@@ -165,20 +142,34 @@ export const SkillRatingsGrid = memo(function SkillRatingsGrid({
                   >
                     {avg.toFixed(1)}
                   </ThemedText>
-                  <ThemedText style={[styles.skillRatingMax, { color: palette.muted }]}>/5</ThemedText>
+                  <ThemedText style={[styles.skillRatingMax, { color: palette.muted }]}>
+                    /5
+                  </ThemedText>
                 </Row>
               </Row>
               {/* Sub-skills */}
               {subs.map((sub) => (
-                <Row key={sub.subSkill} align="center" gap="xxs" style={{ paddingLeft: Spacing.sm }}>
+                <Row
+                  key={sub.subSkill}
+                  align="center"
+                  gap="xxs"
+                  style={{ paddingLeft: Spacing.sm }}
+                >
                   <ThemedText style={[styles.skillRatingName, { color: palette.muted }]}>
                     {sub.subSkill}
                   </ThemedText>
                   <Row align="baseline">
-                    <ThemedText style={[styles.skillRatingNumber, { color: palette.tint, ...Typography.small }]}>
+                    <ThemedText
+                      style={[
+                        styles.skillRatingNumber,
+                        { color: palette.tint, ...Typography.small },
+                      ]}
+                    >
                       {sub.rating}
                     </ThemedText>
-                    <ThemedText style={[styles.skillRatingMax, { color: palette.muted }]}>/5</ThemedText>
+                    <ThemedText style={[styles.skillRatingMax, { color: palette.muted }]}>
+                      /5
+                    </ThemedText>
                   </Row>
                 </Row>
               ))}
@@ -196,10 +187,10 @@ export const SkillRatingsGrid = memo(function SkillRatingsGrid({
     <View style={styles.section}>
       <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Skill ratings</ThemedText>
       <View style={{ gap: Spacing.xs }}>
-        {ratings.slice(0, 6).map((sr, index) => {
+        {ratings.slice(0, 6).map((sr) => {
           const subSkills = getSubSkillsForParent(sr.skill, skillsWorkedOn);
           return (
-            <View key={index} style={{ gap: Spacing.micro }}>
+            <View key={sr.skill} style={{ gap: Spacing.micro }}>
               <Row align="center" gap="xxs" style={styles.skillRatingItem}>
                 <ThemedText style={styles.skillRatingName}>{sr.skill}</ThemedText>
                 <Row align="baseline">
@@ -209,7 +200,9 @@ export const SkillRatingsGrid = memo(function SkillRatingsGrid({
                   >
                     {sr.rating}
                   </ThemedText>
-                  <ThemedText style={[styles.skillRatingMax, { color: palette.muted }]}>/5</ThemedText>
+                  <ThemedText style={[styles.skillRatingMax, { color: palette.muted }]}>
+                    /5
+                  </ThemedText>
                   {sr.previousRating !== undefined && sr.rating !== sr.previousRating && (
                     <Ionicons
                       name={sr.rating > sr.previousRating ? 'arrow-up' : 'arrow-down'}
@@ -243,11 +236,11 @@ export const SkillRatingsGrid = memo(function SkillRatingsGrid({
       </View>
     </View>
   );
-});
+};
 
 // ─── FeedbackCardDetails ────────────────────────────────────────────────────
 
-export const FeedbackCardDetails = memo(function FeedbackCardDetails({
+export const FeedbackCardDetails = function FeedbackCardDetails({
   feedback,
 }: {
   feedback: SessionFeedback;
@@ -311,7 +304,7 @@ export const FeedbackCardDetails = memo(function FeedbackCardDetails({
             .map((label) => label.trim())
             .filter((label) => label.length > 0)
             .map((label, index) => (
-              <ThemedText key={index} style={[styles.badgeText, { color: palette.success }]}>
+              <ThemedText key={label} style={[styles.badgeText, { color: palette.success }]}>
                 {index === 0 ? `Badge awarded: ${label}` : label}
               </ThemedText>
             ))}
@@ -319,7 +312,7 @@ export const FeedbackCardDetails = memo(function FeedbackCardDetails({
       )}
     </>
   );
-});
+};
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 

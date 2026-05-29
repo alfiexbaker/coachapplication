@@ -758,7 +758,7 @@ class SchedulingRulesService {
     }
 
     // Find applicable tier (tiers should be sorted highest hours first)
-    const sortedTiers = [...effectivePolicy.tiers].sort(
+    const sortedTiers = Array.from(effectivePolicy.tiers).toSorted(
       (a, b) => b.hoursBeforeSession - a.hoursBeforeSession,
     );
 

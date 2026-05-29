@@ -338,7 +338,9 @@ function mapApiVideo(video: ApiVideoRecord): SessionVideo {
     thumbnailUrl: video.thumbnailUrl || video.playbackUrl || '',
     duration: Math.max(0, Math.round((video.durationMs ?? 0) / 1000)),
     fileSize: Math.max(0, video.fileSizeBytes ?? 0),
-    annotations: (video.annotations ?? []).map(mapApiAnnotation).sort((left, right) => left.timestamp - right.timestamp),
+    annotations: (video.annotations ?? [])
+      .map(mapApiAnnotation)
+      .sort((left, right) => left.timestamp - right.timestamp),
     visibility: video.visibility === 'SHARED' ? 'SHARED' : 'PRIVATE',
     sharedWith: video.sharedWithUserIds ?? [],
     createdAt: video.createdAt || new Date().toISOString(),
@@ -532,12 +534,15 @@ export const videoService = {
 
     reportStage?.('finalizing-upload');
     requireApiResult(
-      await apiFetch<ApiUploadCompleteResponse>(`/v1/uploads/${uploadInit.uploadSessionId}/complete`, {
-        method: 'POST',
-        body: JSON.stringify({
-          mediaObjectId: uploadInit.mediaObjectId,
-        }),
-      }),
+      await apiFetch<ApiUploadCompleteResponse>(
+        `/v1/uploads/${uploadInit.uploadSessionId}/complete`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            mediaObjectId: uploadInit.mediaObjectId,
+          }),
+        },
+      ),
       'Failed to finalize video upload',
     );
 
@@ -922,15 +927,18 @@ export const videoService = {
       return mutableVideo.annotations[mutableIndex];
     }
 
-    const result = await apiFetch<ApiAnnotationResponse>(`/v1/videos/${videoId}/annotations/${annotationId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        timestamp: nextTimestamp,
-        label: nextLabel,
-        note: updates.note ?? existingAnnotation.note,
-        type: updates.type ?? existingAnnotation.type,
-      }),
-    });
+    const result = await apiFetch<ApiAnnotationResponse>(
+      `/v1/videos/${videoId}/annotations/${annotationId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          timestamp: nextTimestamp,
+          label: nextLabel,
+          note: updates.note ?? existingAnnotation.note,
+          type: updates.type ?? existingAnnotation.type,
+        }),
+      },
+    );
 
     if (!result.success) {
       return null;
@@ -1113,14 +1121,42 @@ export const videoService = {
     createdBy?: string,
     createdByName?: string,
   ): Promise<VideoAnnotation[]> {
-    const results: VideoAnnotation[] = [];
+    if (USE_MOCK) {
+      videosCache = await loadFromStorage();
+      const video = videosCache.find((candidate) => candidate.id === videoId);
+      if (!video) throw new Error(`Video not found: ${videoId}`);
 
-    for (const input of inputs) {
-      const annotation = await this.createAnnotation(videoId, input, createdBy, createdByName);
-      results.push(annotation);
+      const annotations = inputs.map((input) => {
+        const normalizedLabel = input.label.trim();
+        if (!normalizedLabel) {
+          throw new Error('Annotation label is required');
+        }
+        if (input.timestamp < 0 || input.timestamp > video.duration) {
+          throw new Error('Annotation timestamp is out of range');
+        }
+        if (video.annotations.some((annotation) => annotation.timestamp === input.timestamp)) {
+          throw new Error('Annotation timestamp already exists');
+        }
+        return {
+          id: apiClient.generateId('ann'),
+          timestamp: input.timestamp,
+          label: normalizedLabel,
+          type: input.type,
+          note: input.note?.trim() || undefined,
+          createdBy,
+          createdAt: createdBy || createdByName ? new Date().toISOString() : undefined,
+        };
+      });
+
+      video.annotations.push(...annotations);
+      video.annotations.sort((a, b) => a.timestamp - b.timestamp);
+      await saveToStorage(videosCache);
+      return annotations;
     }
 
-    return results;
+    return Promise.all(
+      inputs.map((input) => this.createAnnotation(videoId, input, createdBy, createdByName)),
+    );
   },
 
   /**
@@ -1130,10 +1166,25 @@ export const videoService = {
     const video = await this.getVideo(videoId);
     if (!video) return false;
 
-    for (const annotation of video.annotations) {
-      await this.removeAnnotation(videoId, annotation.id);
+    if (USE_MOCK) {
+      videosCache = await loadFromStorage();
+      const cachedVideo = videosCache.find((candidate) => candidate.id === videoId);
+      if (!cachedVideo) return false;
+      const annotationIds = cachedVideo.annotations.map((annotation) => annotation.id);
+      cachedVideo.annotations = [];
+      await saveToStorage(videosCache);
+      annotationIds.forEach((annotationId) => {
+        emitTyped(ServiceEvents.VIDEO_ANNOTATION_REMOVED, {
+          videoId,
+          annotationId,
+        });
+      });
+      return true;
     }
 
+    await Promise.all(
+      video.annotations.map((annotation) => this.removeAnnotation(videoId, annotation.id)),
+    );
     return true;
   },
 

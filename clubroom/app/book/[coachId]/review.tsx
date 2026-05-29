@@ -1,5 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useEffect, useState, startTransition } from 'react';
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -56,7 +55,7 @@ export default function ReviewScreen() {
     draft.commercialMode ?? null,
   );
 
-  const loadCoach = useCallback(async () => {
+  const loadCoach = async () => {
     if (!coachId) {
       return err(serviceError('UNKNOWN', 'Coach not provided for booking review.'));
     }
@@ -85,7 +84,7 @@ export default function ReviewScreen() {
       logger.error('Failed to load coach:', loadError);
       return err(serviceError('UNKNOWN', 'Failed to load coach details for review.', loadError));
     }
-  }, [coachId]);
+  };
 
   const {
     data,
@@ -124,7 +123,9 @@ export default function ReviewScreen() {
 
   useEffect(() => {
     if (!draft.clubId) {
-      setClubLabel(null);
+      startTransition(() => {
+        setClubLabel(null);
+      });
       return;
     }
     let cancelled = false;
@@ -149,7 +150,9 @@ export default function ReviewScreen() {
 
   useEffect(() => {
     if (!draft.assigneeCoachId) {
-      setAssigneeLabel(null);
+      startTransition(() => {
+        setAssigneeLabel(null);
+      });
       return;
     }
     let cancelled = false;
@@ -174,15 +177,12 @@ export default function ReviewScreen() {
     if (!locationText) {
       return draft.locationOption || 'Coach preferred location';
     }
-    if (
-      draft.locationOption &&
-      draft.locationOption !== BOOKING_LOCATION_OPTIONS.COACH_PRESET
-    ) {
+    if (draft.locationOption && draft.locationOption !== BOOKING_LOCATION_OPTIONS.COACH_PRESET) {
       return `${draft.locationOption} · ${locationText}`;
     }
     return locationText;
   })();
-  const reviewDateLabel = useMemo(() => {
+  const reviewDateLabel = (() => {
     if (!draft.date) return 'Pick a date';
     const parsed = new Date(`${draft.date}T12:00:00`);
     if (Number.isNaN(parsed.getTime())) return draft.date;
@@ -192,8 +192,8 @@ export default function ReviewScreen() {
       month: 'short',
       year: 'numeric',
     });
-  }, [draft.date]);
-  const reviewTimeLabel = useMemo(() => {
+  })();
+  const reviewTimeLabel = (() => {
     if (!draft.slot) return 'Pick a slot';
     const parsed = new Date(`1970-01-01T${draft.slot}:00`);
     if (Number.isNaN(parsed.getTime())) return draft.slot;
@@ -201,18 +201,14 @@ export default function ReviewScreen() {
       hour: 'numeric',
       minute: '2-digit',
     });
-  }, [draft.slot]);
-  const relationshipContext = useMemo(
-    () =>
-      getBookingRelationshipContext({
-        actingAs: draft.actingAs,
-        organizationLabel: clubLabel,
-        coachLabel: coach?.name || draft.coachName || 'Coach',
-        deliveredByLabel: assigneeLabel || coach?.name || draft.coachName || 'Coach',
-        commercialMode,
-      }),
-    [assigneeLabel, clubLabel, coach?.name, commercialMode, draft.actingAs, draft.coachName],
-  );
+  })();
+  const relationshipContext = getBookingRelationshipContext({
+    actingAs: draft.actingAs,
+    organizationLabel: clubLabel,
+    coachLabel: coach?.name || draft.coachName || 'Coach',
+    deliveredByLabel: assigneeLabel || coach?.name || draft.coachName || 'Coach',
+    commercialMode,
+  });
 
   // Handle promo code application
   const handleApplyPromo = () => {
@@ -241,7 +237,7 @@ export default function ReviewScreen() {
     setPromoDiscount(0);
     setPromoError(null);
   };
-  const handleBack = useCallback(() => {
+  const handleBack = () => {
     void bookingStepAnalyticsService.track({
       step: 'review',
       status: 'abandoned',
@@ -253,9 +249,9 @@ export default function ReviewScreen() {
       draft,
     });
     router.back();
-  }, [accountHasChildren, currentUser?.role, currentUser?.id, draft]);
+  };
 
-  const handleContinue = useCallback(() => {
+  const handleContinue = () => {
     if (!resolvedCoachId) {
       void bookingStepAnalyticsService.track({
         step: 'review',
@@ -296,38 +292,22 @@ export default function ReviewScreen() {
 
     updateDraft({ totalPrice: total, price: sessionPrice });
     router.push(Routes.bookConfirmation(resolvedCoachId));
-  }, [
-    currentUser?.role,
-    currentUser?.id,
-    accountHasChildren,
-    draft,
-    hasRequiredDraft,
-    resolvedCoachId,
-    sessionPrice,
-    total,
-    updateDraft,
-  ]);
+  };
 
   if (status === 'error' && !coach) {
     return (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
+      <View style={[styles.safeArea, { backgroundColor: palette.background }]}>
         <ErrorState
           message={error?.message ?? 'Failed to load booking review details.'}
           onRetry={retry}
         />
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (status === 'empty') {
     return (
-      <SafeAreaView
-        style={[styles.safeArea, { backgroundColor: palette.background }]}
-        edges={['top', 'bottom']}
-      >
+      <View style={[styles.safeArea, { backgroundColor: palette.background }]}>
         <EmptyState
           icon="person-outline"
           title="Coach unavailable"
@@ -335,16 +315,14 @@ export default function ReviewScreen() {
           actionLabel="Go back"
           onPressAction={() => router.back()}
         />
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
+    <View style={[styles.safeArea, { backgroundColor: palette.background }]}>
       <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
@@ -370,10 +348,7 @@ export default function ReviewScreen() {
                 <SummaryRow label="Organization" value={relationshipContext.organizationLabel} />
               ) : null}
               {draft.actingAs === 'club' ? (
-                <SummaryRow
-                  label="Delivered by"
-                  value={relationshipContext.deliveredByLabel}
-                />
+                <SummaryRow label="Delivered by" value={relationshipContext.deliveredByLabel} />
               ) : null}
               <SummaryRow label="Billing" value={relationshipContext.billingLabel} />
               <SummaryRow label="Date" value={reviewDateLabel} />
@@ -410,7 +385,8 @@ export default function ReviewScreen() {
               <>
                 <CancellationPolicyCard coachId={coach.id} policy={cancellationPolicy} />
                 <ThemedText style={[styles.policyNote, { color: palette.muted }]}>
-                  By continuing, you agree to this cancellation policy and any applicable refund rules.
+                  By continuing, you agree to this cancellation policy and any applicable refund
+                  rules.
                 </ThemedText>
               </>
             ) : null}
@@ -441,9 +417,7 @@ export default function ReviewScreen() {
           style={[
             styles.cta,
             {
-              backgroundColor: hasRequiredDraft
-                ? palette.tint
-                : withAlpha(palette.tint, 0.45),
+              backgroundColor: hasRequiredDraft ? palette.tint : withAlpha(palette.tint, 0.45),
             },
           ]}
           disabled={!hasRequiredDraft}
@@ -462,7 +436,7 @@ export default function ReviewScreen() {
           </Row>
         </Clickable>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

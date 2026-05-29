@@ -1,4 +1,4 @@
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, FlatList, type ListRenderItemInfo } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -19,6 +19,7 @@ interface TeamsPanelProps {
 
 export function TeamsPanel({ squads, canManageTeams, clubId }: TeamsPanelProps) {
   const { colors: palette } = useTheme();
+  const teamItems = getTeamItems(squads, canManageTeams, palette);
 
   if (squads.length === 0 && !canManageTeams) {
     return null;
@@ -44,60 +45,14 @@ export function TeamsPanel({ squads, canManageTeams, clubId }: TeamsPanelProps) 
       </Row>
 
       {squads.length > 0 ? (
-        <ScrollView
+        <FlatList
           horizontal
+          data={teamItems}
+          keyExtractor={keyTeamItem}
+          renderItem={renderTeamItem}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
-        >
-          {squads.map((squad) => (
-            <SurfaceCard
-              key={squad.id}
-              style={styles.teamCard}
-              onPress={() => router.push(Routes.clubSquad(squad.id))}
-              accessibilityLabel={`${canManageTeams ? 'Manage' : 'View'} ${squad.name}`}
-            >
-              <View style={[styles.teamIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-                <Ionicons name="people" size={24} color={palette.tint} />
-              </View>
-              <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.teamName}>
-                {squad.name}
-              </ThemedText>
-              <ThemedText style={[styles.teamMeta, { color: palette.muted }]}>
-                {squad.memberCount} athletes
-              </ThemedText>
-              {squad.primaryCoach && (
-                <Row style={styles.coachRow}>
-                  <Ionicons name="person-circle-outline" size={12} color={palette.muted} />
-                  <ThemedText
-                    style={[styles.coachName, { color: palette.muted }]}
-                    numberOfLines={1}
-                  >
-                    {squad.primaryCoach}
-                  </ThemedText>
-                </Row>
-              )}
-              {squad.nextSession && (
-                <Row
-                  style={[
-                    styles.nextSessionBadge,
-                    { backgroundColor: withAlpha(palette.success, 0.09) },
-                  ]}
-                >
-                  <Ionicons name="calendar" size={10} color={palette.success} />
-                  <ThemedText style={[styles.nextSessionText, { color: palette.success }]}>
-                    {formatNextSession(squad.nextSession)}
-                  </ThemedText>
-                </Row>
-              )}
-              <Row style={styles.manageRow}>
-                <ThemedText style={[styles.manageText, { color: palette.tint }]}>
-                  {canManageTeams ? 'Manage squad' : 'View squad'}
-                </ThemedText>
-                <Ionicons name="chevron-forward" size={14} color={palette.tint} />
-              </Row>
-            </SurfaceCard>
-          ))}
-        </ScrollView>
+        />
       ) : (
         <SurfaceCard style={styles.emptyCard}>
           <Ionicons name="people-outline" size={32} color={palette.muted} />
@@ -107,6 +62,77 @@ export function TeamsPanel({ squads, canManageTeams, clubId }: TeamsPanelProps) 
         </SurfaceCard>
       )}
     </View>
+  );
+}
+
+interface TeamItem {
+  key: string;
+  squad: ClubSquad;
+  canManageTeams: boolean;
+  palette: ReturnType<typeof useTheme>['colors'];
+  onPress: () => void;
+}
+
+function getTeamItems(
+  squads: ClubSquad[],
+  canManageTeams: boolean,
+  palette: ReturnType<typeof useTheme>['colors'],
+): TeamItem[] {
+  return squads.map((squad) => ({
+    key: squad.id,
+    squad,
+    canManageTeams,
+    palette,
+    onPress: () => router.push(Routes.clubSquad(squad.id)),
+  }));
+}
+
+function keyTeamItem(item: TeamItem) {
+  return item.key;
+}
+
+function renderTeamItem({ item }: ListRenderItemInfo<TeamItem>) {
+  const { squad, palette, canManageTeams } = item;
+  return (
+    <SurfaceCard
+      style={styles.teamCard}
+      onPress={item.onPress}
+      accessibilityLabel={`${canManageTeams ? 'Manage' : 'View'} ${squad.name}`}
+    >
+      <View style={[styles.teamIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+        <Ionicons name="people" size={24} color={palette.tint} />
+      </View>
+      <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.teamName}>
+        {squad.name}
+      </ThemedText>
+      <ThemedText style={[styles.teamMeta, { color: palette.muted }]}>
+        {squad.memberCount} athletes
+      </ThemedText>
+      {squad.primaryCoach && (
+        <Row style={styles.coachRow}>
+          <Ionicons name="person-circle-outline" size={12} color={palette.muted} />
+          <ThemedText style={[styles.coachName, { color: palette.muted }]} numberOfLines={1}>
+            {squad.primaryCoach}
+          </ThemedText>
+        </Row>
+      )}
+      {squad.nextSession && (
+        <Row
+          style={[styles.nextSessionBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}
+        >
+          <Ionicons name="calendar" size={10} color={palette.success} />
+          <ThemedText style={[styles.nextSessionText, { color: palette.success }]}>
+            {formatNextSession(squad.nextSession)}
+          </ThemedText>
+        </Row>
+      )}
+      <Row style={styles.manageRow}>
+        <ThemedText style={[styles.manageText, { color: palette.tint }]}>
+          {canManageTeams ? 'Manage squad' : 'View squad'}
+        </ThemedText>
+        <Ionicons name="chevron-forward" size={14} color={palette.tint} />
+      </Row>
+    </SurfaceCard>
   );
 }
 
@@ -186,5 +212,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  emptyText: { ...Typography.small, textAlign: 'center', lineHeight: Typography.caption.lineHeight },
+  emptyText: {
+    ...Typography.small,
+    textAlign: 'center',
+    lineHeight: Typography.caption.lineHeight,
+  },
 });

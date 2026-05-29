@@ -11,8 +11,8 @@ import {
   FollowButton,
   BadgesRow,
   EditProfileButton,
-  styles,
 } from './profile-header-sections';
+import { styles } from './profile-header-section-styles';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -115,5 +115,5 @@ function ProfileHeaderInner({
 
 // ─── Exports ────────────────────────────────────────────────────
 
-export const ProfileHeader = React.memo(ProfileHeaderInner);
+export const ProfileHeader = ProfileHeaderInner;
 export default ProfileHeader;

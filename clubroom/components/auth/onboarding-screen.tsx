@@ -1,11 +1,3 @@
-/**
- * OnboardingScreen — Multi-step signup wizard.
- *
- * Renders 5 steps (account-type → basic-info → location → details → complete)
- * using the useOnboarding hook for state, validation, and registration.
- */
-
-import { memo, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -64,57 +56,30 @@ function OnboardingScreenInner({ onComplete, onBackToLogin }: OnboardingScreenPr
     discardSavedDraft,
   } = useOnboarding({ onComplete, onBackToLogin });
 
-  const handleChangeField = useCallback(
-    (field: string, value: string) => {
-      dispatch({ type: 'SET_FIELD', field: field as keyof OnboardingState, value });
-    },
-    [dispatch],
-  );
+  const handleChangeField = (field: string, value: string) => {
+    dispatch({ type: 'SET_FIELD', field: field as keyof OnboardingState, value });
+  };
 
-  const handleSelectSport = useCallback(
-    (sport: string) => dispatch({ type: 'SET_FIELD', field: 'sport', value: sport }),
-    [dispatch],
-  );
+  const handleSelectSport = (sport: string) => dispatch({ type: 'SET_FIELD', field: 'sport', value: sport });
 
-  const handleSelectSkillLevel = useCallback(
-    (level: OnboardingState['skillLevel']) => {
-      if (level) dispatch({ type: 'SET_SKILL_LEVEL', value: level });
-    },
-    [dispatch],
-  );
+  const handleSelectSkillLevel = (level: OnboardingState['skillLevel']) => {
+    if (level) dispatch({ type: 'SET_SKILL_LEVEL', value: level });
+  };
 
-  const handleChangePosition = useCallback(
-    (position: PositionRole | null) =>
-      dispatch({ type: 'SET_FIELD', field: 'position', value: position }),
-    [dispatch],
-  );
+  const handleChangePosition = (position: PositionRole | null) =>
+    dispatch({ type: 'SET_FIELD', field: 'position', value: position });
 
-  const handleToggleHasChildren = useCallback(
-    () => dispatch({ type: 'TOGGLE_HAS_CHILDREN' }),
-    [dispatch],
-  );
+  const handleToggleHasChildren = () => dispatch({ type: 'TOGGLE_HAS_CHILDREN' });
 
-  const handleToggleIsOrganization = useCallback(
-    () => dispatch({ type: 'TOGGLE_IS_ORGANIZATION' }),
-    [dispatch],
-  );
+  const handleToggleIsOrganization = () => dispatch({ type: 'TOGGLE_IS_ORGANIZATION' });
 
-  const handleToggleSpecialization = useCallback(
-    (spec: string) => dispatch({ type: 'TOGGLE_SPECIALIZATION', spec }),
-    [dispatch],
-  );
+  const handleToggleSpecialization = (spec: string) => dispatch({ type: 'TOGGLE_SPECIALIZATION', spec });
 
-  const handleSelectAccountType = useCallback(
-    (type: NonNullable<OnboardingState['accountType']>) =>
-      dispatch({ type: 'SET_ACCOUNT_TYPE', accountType: type }),
-    [dispatch],
-  );
+  const handleSelectAccountType = (type: NonNullable<OnboardingState['accountType']>) =>
+    dispatch({ type: 'SET_ACCOUNT_TYPE', accountType: type });
 
-  const handleChangeChildrenCount = useCallback(
-    (count: number) =>
-      dispatch({ type: 'SET_FIELD', field: 'childrenCount', value: count }),
-    [dispatch],
-  );
+  const handleChangeChildrenCount = (count: number) =>
+    dispatch({ type: 'SET_FIELD', field: 'childrenCount', value: count });
 
   // Button label changes based on step
   const buttonLabel = isComplete
@@ -123,21 +88,21 @@ function OnboardingScreenInner({ onComplete, onBackToLogin }: OnboardingScreenPr
       ? 'Create Account'
       : 'Continue';
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     if (isComplete) {
       finish();
     } else {
       next();
     }
-  }, [isComplete, finish, next]);
+  };
 
-  const handleResumeDraft = useCallback(() => {
+  const handleResumeDraft = () => {
     dismissResumePrompt();
-  }, [dismissResumePrompt]);
+  };
 
-  const handleDiscardDraft = useCallback(() => {
+  const handleDiscardDraft = () => {
     void discardSavedDraft();
-  }, [discardSavedDraft]);
+  };
 
   if (!isHydrated) {
     return (
@@ -145,7 +110,7 @@ function OnboardingScreenInner({ onComplete, onBackToLogin }: OnboardingScreenPr
         <View style={[styles.flex, styles.centered]}>
           <ActivityIndicator size="small" color={colors.tint} />
           <Spacer size={Spacing.sm} />
-          <ThemedText style={Typography.small}>Loading onboarding...</ThemedText>
+          <ThemedText style={Typography.small}>Loading onboarding…</ThemedText>
         </View>
       </SafeAreaView>
     );
@@ -198,12 +163,8 @@ function OnboardingScreenInner({ onComplete, onBackToLogin }: OnboardingScreenPr
                 ?
               </ThemedText>
               <Row gap={Spacing.sm} style={styles.resumeActions}>
-                <Button variant="secondary" size="small" onPress={handleDiscardDraft}>
-                  Start Fresh
-                </Button>
-                <Button variant="primary" size="small" onPress={handleResumeDraft}>
-                  Resume
-                </Button>
+                <Button variant="secondary" size="small" onPress={handleDiscardDraft} label="Start Fresh" />
+                <Button variant="primary" size="small" onPress={handleResumeDraft} label="Resume" />
               </Row>
             </SurfaceCard>
           ) : null}
@@ -302,7 +263,7 @@ function OnboardingScreenInner({ onComplete, onBackToLogin }: OnboardingScreenPr
   );
 }
 
-export default memo(OnboardingScreenInner);
+export default OnboardingScreenInner;
 
 const styles = StyleSheet.create({
   container: { flex: 1 },

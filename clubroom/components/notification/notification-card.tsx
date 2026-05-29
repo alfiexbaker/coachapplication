@@ -1,5 +1,4 @@
 import { View, StyleSheet } from 'react-native';
-import { useCallback } from 'react';
 import Animated, {
   Extrapolate,
   interpolate,
@@ -79,7 +78,7 @@ export function NotificationCard({
   void _onShare;
   void _onAddToFeed;
 
-  const handlePress = useCallback(async () => {
+  const handlePress = async () => {
     if (onPress) {
       await onPress();
     } else if (onMarkRead) {
@@ -99,7 +98,7 @@ export function NotificationCard({
         showToast('Could not open notification', 'error');
       }
     }
-  }, [item.deepLink, onMarkRead, onPress, router, showToast]);
+  };
 
   const content = (
     <Clickable onPress={() => void handlePress()}>

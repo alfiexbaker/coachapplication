@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { router } from 'expo-router';
@@ -15,7 +14,7 @@ interface WeeklyCalendarViewProps {
   sessions: GroupSession[];
 }
 
-export const WeeklyCalendarView = memo(function WeeklyCalendarView({
+export const WeeklyCalendarView = function WeeklyCalendarView({
   sessions,
 }: WeeklyCalendarViewProps) {
   const { colors } = useTheme();
@@ -67,7 +66,7 @@ export const WeeklyCalendarView = memo(function WeeklyCalendarView({
       })}
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: { gap: Spacing.xxs },

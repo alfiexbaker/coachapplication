@@ -1,10 +1,3 @@
-/**
- * Series Booking Group — Extracted sections
- *
- * Helpers and sub-components for SeriesBookingGroup.
- */
-
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -14,35 +7,9 @@ import { Spacing, Typography, Radii } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { BookingSummary } from '@/constants/types';
 import { Row } from '@/components/primitives';
+import { formatBookingDate, getStatusColor } from './series-booking-group-helpers';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-export function getStatusColor(status: BookingSummary['status'], palette: ThemeColors): string {
-  switch (status) {
-    case 'Confirmed':
-      return palette.success;
-    case 'Pending':
-      return palette.warning;
-    case 'Completed':
-      return palette.muted;
-    case 'Cancelled':
-      return palette.error;
-    default:
-      return palette.muted;
-  }
-}
-
-export function formatBookingDate(dateStr: string): { day: string; time: string } {
-  const date = new Date(dateStr);
-  return {
-    day: date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }),
-    time: date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-  };
-}
 
 // ---------------------------------------------------------------------------
 // SeriesWeekRow
@@ -56,7 +23,7 @@ export interface SeriesWeekRowProps {
   onPress?: (booking: BookingSummary) => void;
 }
 
-export const SeriesWeekRow = memo(function SeriesWeekRow({
+export const SeriesWeekRow = function SeriesWeekRow({
   booking,
   index,
   total,
@@ -92,7 +59,7 @@ export const SeriesWeekRow = memo(function SeriesWeekRow({
       <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
     </Clickable>
   );
-});
+};
 
 const styles = StyleSheet.create({
   weekRow: {

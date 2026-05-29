@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -22,7 +22,7 @@ interface SquadInfoCardProps {
   onStartEdit: () => void;
 }
 
-export const SquadInfoCard = memo(function SquadInfoCard({
+export const SquadInfoCard = function SquadInfoCard({
   squad,
   members,
   isEditing,
@@ -54,9 +54,8 @@ export const SquadInfoCard = memo(function SquadInfoCard({
               onChangeText={onEditNameChange}
               autoFocus
               selectTextOnFocus
-
-            maxLength={50}
-          />
+              maxLength={50}
+            />
             <Row gap="xs">
               <Clickable
                 style={[styles.editBtn, { backgroundColor: colors.tint }]}
@@ -109,8 +108,8 @@ export const SquadInfoCard = memo(function SquadInfoCard({
 
       {squad.tags && squad.tags.length > 0 && (
         <Row wrap gap="xs">
-          {squad.tags.map((tag, idx) => (
-            <View key={idx} style={[styles.tag, { backgroundColor: withAlpha(colors.tint, 0.06) }]}>
+          {squad.tags.map((tag) => (
+            <View key={tag} style={[styles.tag, { backgroundColor: withAlpha(colors.tint, 0.06) }]}>
               <ThemedText style={[Typography.caption, { color: colors.tint }]}>{tag}</ThemedText>
             </View>
           ))}
@@ -118,7 +117,7 @@ export const SquadInfoCard = memo(function SquadInfoCard({
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },

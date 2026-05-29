@@ -8,7 +8,7 @@
  * InvoiceSeparator — list item separator.
  */
 
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { View, Modal, FlatList } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,6 +37,16 @@ function getFilterOptions(palette: ThemeColors): FilterOption[] {
   ];
 }
 
+function getQuickDateRange(days: number): { from: string; to: string } {
+  const now = new Date();
+  const from = new Date(now);
+  from.setDate(now.getDate() - days);
+  return {
+    from: from.toISOString(),
+    to: now.toISOString(),
+  };
+}
+
 export function InvoiceSeparator() {
   return <View style={{ height: Spacing.sm }} />;
 }
@@ -52,7 +62,7 @@ interface StatusFilterBarProps {
   palette: ThemeColors;
 }
 
-export const StatusFilterBar = memo(function StatusFilterBar({
+export const StatusFilterBar = function StatusFilterBar({
   selectedStatus,
   onStatusChange,
   dateRange,
@@ -62,39 +72,36 @@ export const StatusFilterBar = memo(function StatusFilterBar({
 }: StatusFilterBarProps) {
   const filterOptions = getFilterOptions(palette);
 
-  const renderFilterPill = useCallback(
-    ({ item }: { item: FilterOption }) => (
-      <Clickable
+  const renderFilterPill = ({ item }: { item: FilterOption }) => (
+    <Clickable
+      style={[
+        styles.filterPill,
+        {
+          backgroundColor:
+            selectedStatus === item.value ? withAlpha(item.color, 0.15) : palette.surface,
+          borderColor: selectedStatus === item.value ? item.color : palette.border,
+        },
+      ]}
+      onPress={() => onStatusChange(item.value)}
+    >
+      <View
         style={[
-          styles.filterPill,
-          {
-            backgroundColor:
-              selectedStatus === item.value ? withAlpha(item.color, 0.15) : palette.surface,
-            borderColor: selectedStatus === item.value ? item.color : palette.border,
-          },
+          styles.filterDot,
+          { backgroundColor: item.value === 'ALL' ? 'transparent' : item.color },
         ]}
-        onPress={() => onStatusChange(item.value)}
+      />
+      <ThemedText
+        style={[
+          styles.filterPillText,
+          { color: selectedStatus === item.value ? item.color : palette.text },
+        ]}
       >
-        <View
-          style={[
-            styles.filterDot,
-            { backgroundColor: item.value === 'ALL' ? 'transparent' : item.color },
-          ]}
-        />
-        <ThemedText
-          style={[
-            styles.filterPillText,
-            { color: selectedStatus === item.value ? item.color : palette.text },
-          ]}
-        >
-          {item.label}
-        </ThemedText>
-      </Clickable>
-    ),
-    [selectedStatus, palette, onStatusChange],
+        {item.label}
+      </ThemedText>
+    </Clickable>
   );
 
-  const filterKeyExtractor = useCallback((item: FilterOption) => item.value, []);
+  const filterKeyExtractor = (item: FilterOption) => item.value;
   const hasDateFilter = !!(dateRange.from || dateRange.to);
 
   return (
@@ -133,7 +140,7 @@ export const StatusFilterBar = memo(function StatusFilterBar({
       </Clickable>
     </Row>
   );
-});
+};
 
 // ─── DateFilterModal ────────────────────────────────────────────────────────
 
@@ -152,7 +159,7 @@ const DATE_OPTIONS = [
   { label: 'This year', days: 365 },
 ];
 
-export const DateFilterModal = memo(function DateFilterModal({
+export const DateFilterModal = function DateFilterModal({
   visible,
   onClose,
   onSelect,
@@ -180,7 +187,7 @@ export const DateFilterModal = memo(function DateFilterModal({
 
         <View style={styles.modalContent}>
           <ThemedText style={[styles.dateHint, { color: palette.muted }]}>
-            Date range filtering coming soon...
+            Date range filtering coming soon…
           </ThemedText>
 
           {DATE_OPTIONS.map((option) => (
@@ -191,10 +198,8 @@ export const DateFilterModal = memo(function DateFilterModal({
                 { backgroundColor: palette.surface, borderColor: palette.border },
               ]}
               onPress={() => {
-                const now = new Date();
-                const from = new Date();
-                from.setDate(now.getDate() - option.days);
-                onSelect(from.toISOString(), now.toISOString());
+                const range = getQuickDateRange(option.days);
+                onSelect(range.from, range.to);
               }}
             >
               <ThemedText>{option.label}</ThemedText>
@@ -212,7 +217,7 @@ export const DateFilterModal = memo(function DateFilterModal({
       </View>
     </Modal>
   );
-});
+};
 
 // ─── InvoiceEmptyState ──────────────────────────────────────────────────────
 
@@ -223,7 +228,7 @@ interface InvoiceEmptyStateProps {
   palette: ThemeColors;
 }
 
-export const InvoiceEmptyState = memo(function InvoiceEmptyState({
+export const InvoiceEmptyState = function InvoiceEmptyState({
   message,
   hasFilter,
   onClearFilter,
@@ -245,6 +250,4 @@ export const InvoiceEmptyState = memo(function InvoiceEmptyState({
       )}
     </View>
   );
-});
-
-export { styles };
+};

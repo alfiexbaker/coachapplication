@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useEffect, useState, startTransition } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -19,10 +18,7 @@ import { bookingSelfSettingService } from '@/services/booking-self-setting-servi
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { bookingStepAnalyticsService } from '@/services/booking/booking-step-analytics-service';
 import type { User } from '@/constants/app-types';
-import {
-  BOOKING_LOCATION_OPTION_LIST,
-  BOOKING_LOCATION_OPTIONS,
-} from '@/constants/booking-flow';
+import { BOOKING_LOCATION_OPTION_LIST, BOOKING_LOCATION_OPTIONS } from '@/constants/booking-flow';
 import {
   canBookForSelf,
   hasAccountChildren,
@@ -57,28 +53,25 @@ export default function DetailsScreen() {
     allowBookSelf: hasSelectableChildren ? allowBookSelf : true,
   });
 
-  const applyAllowBookSelf = useCallback(
-    (enabled: boolean) => {
-      setAllowBookSelf(enabled);
-    },
-    [],
-  );
-
   useEffect(() => {
     if (!currentUser?.id || !accountHasChildren) {
-      applyAllowBookSelf(false);
+      startTransition(() => {
+        setAllowBookSelf(false);
+      });
       return;
     }
     let cancelled = false;
     void bookingSelfSettingService.isEnabled(currentUser.id).then((enabled) => {
       if (!cancelled) {
-        applyAllowBookSelf(enabled);
+        startTransition(() => {
+          setAllowBookSelf(enabled);
+        });
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [accountHasChildren, applyAllowBookSelf, currentUser?.id]);
+  }, [accountHasChildren, currentUser?.id]);
 
   useEffect(() => {
     if (!currentUser?.id) {
@@ -89,9 +82,9 @@ export default function DetailsScreen() {
       if (payload.userId !== currentUser.id) {
         return;
       }
-      applyAllowBookSelf(payload.enabled);
+      setAllowBookSelf(payload.enabled);
     });
-  }, [applyAllowBookSelf, currentUser?.id]);
+  }, [currentUser?.id]);
 
   useEffect(() => {
     if ((!draft.locationOption && draft.locationText?.trim()) || lockPresetLocation) {
@@ -99,20 +92,16 @@ export default function DetailsScreen() {
     }
   }, [draft.locationOption, draft.locationText, lockPresetLocation, updateDraft]);
 
-  const childOptions = useMemo(
-    () =>
-      children.map((c) => ({
-        id: c.id,
-        name: c.name,
-        email: '',
-        role: 'USER' as const,
-        postcode: '',
-        dateOfBirth: '',
-      })) satisfies User[],
-    [children],
-  );
+  const childOptions = children.map((c) => ({
+    id: c.id,
+    name: c.name,
+    email: '',
+    role: 'USER' as const,
+    postcode: '',
+    dateOfBirth: '',
+  })) satisfies User[];
 
-  const bookingTargets = useMemo<User[]>(() => {
+  const bookingTargets = (() => {
     if (!currentUser) {
       return childOptions;
     }
@@ -133,7 +122,7 @@ export default function DetailsScreen() {
 
     const lockedTarget = unlockedTargets.find((target) => target.id === draft.childId);
     return lockedTarget ? [lockedTarget] : unlockedTargets;
-  }, [canSelectSelf, childOptions, currentUser, draft.childId, isTargetLocked]);
+  })();
 
   // Auto-select a target when the draft has none:
   // - single child: default to child
@@ -176,30 +165,27 @@ export default function DetailsScreen() {
     }
   }, [canSelectSelf, children, currentUser?.id, draft.childId, updateDraft]);
 
-  const handleSelectChild = useCallback(
-    (targetId: string) => {
-      if (!currentUser) {
-        return;
-      }
+  const handleSelectChild = (targetId: string) => {
+    if (!currentUser) {
+      return;
+    }
 
-      if (isTargetLocked && targetId !== draft.childId) {
-        return;
-      }
+    if (isTargetLocked && targetId !== draft.childId) {
+      return;
+    }
 
-      if (targetId === currentUser.id && canSelectSelf) {
-        updateDraft({
-          childId: currentUser.id,
-          athleteName: currentUser.name || currentUser.fullName || 'Athlete',
-        });
-        return;
-      }
+    if (targetId === currentUser.id && canSelectSelf) {
+      updateDraft({
+        childId: currentUser.id,
+        athleteName: currentUser.name || currentUser.fullName || 'Athlete',
+      });
+      return;
+    }
 
-      const child = children.find((c) => c.id === targetId);
-      updateDraft({ childId: targetId, athleteName: child?.name });
-    },
-    [canSelectSelf, children, currentUser, draft.childId, isTargetLocked, updateDraft],
-  );
-  const handleBack = useCallback(() => {
+    const child = children.find((c) => c.id === targetId);
+    updateDraft({ childId: targetId, athleteName: child?.name });
+  };
+  const handleBack = () => {
     void bookingStepAnalyticsService.track({
       step: 'details',
       status: 'abandoned',
@@ -211,9 +197,9 @@ export default function DetailsScreen() {
       draft,
     });
     router.back();
-  }, [accountHasChildren, currentUser?.role, currentUser?.id, draft]);
+  };
 
-  const handleContinue = useCallback(() => {
+  const handleContinue = () => {
     if (!coachId) {
       void bookingStepAnalyticsService.track({
         step: 'details',
@@ -266,17 +252,14 @@ export default function DetailsScreen() {
       draft,
     });
     router.push(Routes.bookReview(coachId));
-  }, [accountHasChildren, canSelectSelf, coachId, currentUser, draft, router]);
+  };
 
   const canContinue =
     Boolean(draft.childId) && (canSelectSelf || draft.childId !== currentUser?.id);
 
   return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
-      <ScrollView contentContainerStyle={styles.content}>
+    <View style={[styles.safeArea, { backgroundColor: palette.background }]}>
+      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
         <BookingWizardHeader
           title="Add details"
           subtitle="Booking details"
@@ -298,13 +281,9 @@ export default function DetailsScreen() {
             >
               <Row align="center" gap="xs">
                 <Ionicons name="location-outline" size={16} color={palette.tint} />
-                <ThemedText style={{ color: palette.text }}>
-                  {draft.locationText}
-                </ThemedText>
+                <ThemedText style={{ color: palette.text }}>{draft.locationText}</ThemedText>
               </Row>
-              <ThemedText style={{ color: palette.muted }}>
-                Venue fixed by session.
-              </ThemedText>
+              <ThemedText style={{ color: palette.muted }}>Venue fixed by session.</ThemedText>
             </View>
           ) : (
             <>
@@ -394,15 +373,15 @@ export default function DetailsScreen() {
               },
             ]}
           >
-            <ThemedText style={{ color: palette.text }}>
-              Booking for yourself is off.
-            </ThemedText>
+            <ThemedText style={{ color: palette.text }}>Booking for yourself is off.</ThemedText>
             <Clickable
               onPress={() => router.push(Routes.SETTINGS)}
               style={styles.settingHintCta}
               accessibilityLabel="Open settings"
             >
-              <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Open settings</ThemedText>
+              <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
+                Open settings
+              </ThemedText>
             </Clickable>
           </View>
         )}
@@ -447,7 +426,7 @@ export default function DetailsScreen() {
           </Row>
         </Clickable>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

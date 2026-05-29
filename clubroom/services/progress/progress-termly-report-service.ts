@@ -11,25 +11,21 @@ import { progressGoalsService } from '@/services/progress/progress-goals-service
 import { err, ok, storageError, type Result, type ServiceError } from '@/types/result';
 import { accountIdsMatch } from '@/utils/account-id';
 import { createLogger } from '@/utils/logger';
-
 const logger = createLogger('ProgressTermlyReportService');
 const TERM_WEEKS = 12;
 const TERM_DAYS = TERM_WEEKS * 7;
 const TERM_REPORTS_STORAGE_KEY = STORAGE_KEYS.PROGRESS_TERM_REPORTS;
-
 export interface TermlyReportRange {
   startDate: string;
   endDate: string;
   label: string;
 }
-
 export interface TermlySkillSnapshot {
   skill: string;
   level: number;
   trend: 'improving' | 'consistent' | 'steady' | 'declining';
   delta: number;
 }
-
 export interface TermlyGoalSnapshot {
   id: string;
   title: string;
@@ -38,19 +34,16 @@ export interface TermlyGoalSnapshot {
   updatedAt: string;
   targetDate?: string;
 }
-
 export interface TermlyCoachHighlight {
   coachId: string;
   coachName: string;
   quote: string;
   createdAt: string;
 }
-
 export interface TermlyAttendanceWeek {
   weekStart: string;
   sessions: number;
 }
-
 export interface TermlyProgressReport {
   id: string;
   athleteId: string;
@@ -76,21 +69,23 @@ export interface TermlyProgressReport {
   goalSnapshot: TermlyGoalSnapshot[];
   generatedFrom: 'termly_v1';
 }
-
 export interface TermlyReportSnapshot {
   id: string;
   athleteId: string;
   generatedAt: string;
   report: TermlyProgressReport;
 }
-
 interface GenerateTermlyReportInput {
   athleteId: string;
   athleteName: string;
   viewerRole?: 'coach' | 'parent' | 'athlete';
   now?: Date;
 }
-
+const termlyReportDateFormatter = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
 function toTimestamp(value: string | undefined): number | null {
   if (!value) {
     return null;
@@ -98,20 +93,12 @@ function toTimestamp(value: string | undefined): number | null {
   const timestamp = new Date(value).getTime();
   return Number.isNaN(timestamp) ? null : timestamp;
 }
-
 function toDateKey(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
-
 function formatRangeLabel(start: Date, end: Date): string {
-  const formatter = new Intl.DateTimeFormat('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-  return `${formatter.format(start)} - ${formatter.format(end)}`;
+  return `${termlyReportDateFormatter.format(start)} - ${termlyReportDateFormatter.format(end)}`;
 }
-
 function isCompletedBookingForAthlete(booking: Booking, athleteId: string): boolean {
   if (booking.status !== 'COMPLETED') {
     return false;
@@ -121,7 +108,6 @@ function isCompletedBookingForAthlete(booking: Booking, athleteId: string): bool
   }
   return accountIdsMatch(booking.athleteId || '', athleteId);
 }
-
 function getWeekStartIso(isoDate: string): string | null {
   const parsed = new Date(isoDate);
   if (Number.isNaN(parsed.getTime())) {
@@ -134,19 +120,15 @@ function getWeekStartIso(isoDate: string): string | null {
   monday.setHours(0, 0, 0, 0);
   return monday.toISOString();
 }
-
 function toOneDecimal(value: number): number {
   return Math.round(value * 10) / 10;
 }
-
-function buildHighlights(
-  report: Omit<TermlyProgressReport, 'highlights'>,
-): string[] {
+function buildHighlights(report: Omit<TermlyProgressReport, 'highlights'>): string[] {
   const next: string[] = [];
   if (report.summary.sessionsAttended > 0) {
     next.push(`${report.summary.sessionsAttended} completed sessions this term.`);
   }
-  const topImprovement = [...report.skillSnapshot].sort((a, b) => b.delta - a.delta)[0];
+  const topImprovement = Array.from(report.skillSnapshot).toSorted((a, b) => b.delta - a.delta)[0];
   if (topImprovement && topImprovement.delta > 0) {
     next.push(`${topImprovement.skill} improved by ${toOneDecimal(topImprovement.delta)} points.`);
   }
@@ -161,40 +143,29 @@ function buildHighlights(
   }
   return next.slice(0, 4);
 }
-
 async function generateTermlyReport(
   input: GenerateTermlyReportInput,
 ): Promise<Result<TermlyProgressReport, ServiceError>> {
   if (!input.athleteId.trim() || !input.athleteName.trim()) {
     return err(storageError('Missing athlete context for termly report'));
   }
-
   const now = input.now ?? new Date();
   const rangeStart = new Date(now);
   rangeStart.setDate(rangeStart.getDate() - (TERM_DAYS - 1));
   rangeStart.setHours(0, 0, 0, 0);
   const rangeStartTs = rangeStart.getTime();
   const viewerRole = input.viewerRole ?? 'parent';
-
   try {
-    const [
-      bookings,
-      feedback,
-      awards,
-      practiceLogs,
-      selfAssessments,
-      skillLevels,
-      goals,
-    ] = await Promise.all([
-      apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
-      progressFeedbackService.getFeedbackForAthlete(input.athleteId, viewerRole),
-      badgeService.listAwardsForAthlete(input.athleteId),
-      progressPracticeLogService.listAthleteLogs(input.athleteId),
-      progressSelfAssessmentService.listAssessmentsForAthlete(input.athleteId),
-      progressSkillsService.getAthleteSkillLevels(input.athleteId),
-      progressGoalsService.getGoalsForAthlete(input.athleteId),
-    ]);
-
+    const [bookings, feedback, awards, practiceLogs, selfAssessments, skillLevels, goals] =
+      await Promise.all([
+        apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
+        progressFeedbackService.getFeedbackForAthlete(input.athleteId, viewerRole),
+        badgeService.listAwardsForAthlete(input.athleteId),
+        progressPracticeLogService.listAthleteLogs(input.athleteId),
+        progressSelfAssessmentService.listAssessmentsForAthlete(input.athleteId),
+        progressSkillsService.getAthleteSkillLevels(input.athleteId),
+        progressGoalsService.getGoalsForAthlete(input.athleteId),
+      ]);
     const sessionsInRange = bookings.filter((booking) => {
       if (!isCompletedBookingForAthlete(booking, input.athleteId)) {
         return false;
@@ -202,7 +173,6 @@ async function generateTermlyReport(
       const timestamp = toTimestamp(booking.scheduledAt || booking.createdAt);
       return timestamp !== null && timestamp >= rangeStartTs;
     });
-
     const feedbackInRange = feedback.filter((entry) => {
       const timestamp = toTimestamp(entry.createdAt);
       return timestamp !== null && timestamp >= rangeStartTs;
@@ -215,11 +185,9 @@ async function generateTermlyReport(
       const timestamp = toTimestamp(entry.createdAt);
       return timestamp !== null && timestamp >= rangeStartTs;
     });
-
     const rangeStartKey = toDateKey(rangeStart);
     const practiceInRange = practiceLogs.filter((entry) => entry.dateKey >= rangeStartKey);
     const practiceMinutes = practiceInRange.reduce((sum, entry) => sum + entry.minutes, 0);
-
     const skills = Object.values(skillLevels?.skills ?? {});
     const skillSnapshot = skills
       .map<TermlySkillSnapshot>((skill) => ({
@@ -230,19 +198,21 @@ async function generateTermlyReport(
       }))
       .sort((left, right) => right.delta - left.delta || right.level - left.level)
       .slice(0, 8);
-
     const focusAreas = Array.from(
       new Set(
-        feedbackInRange
-          .flatMap((entry) => entry.skillsWorkedOn)
-          .map((skill) => skill.trim())
-          .filter((skill) => skill.length > 0),
+        feedbackInRange.flatMap((entry) =>
+          entry.skillsWorkedOn.flatMap((skill) => {
+            const mapped = skill.trim();
+            return mapped.length > 0 ? [mapped] : [];
+          }),
+        ),
       ),
     ).slice(0, 5);
-
     const coachHighlights = feedbackInRange
       .filter((entry) => entry.publicSummary.trim().length > 0)
-      .sort((left, right) => (toTimestamp(right.createdAt) ?? 0) - (toTimestamp(left.createdAt) ?? 0))
+      .sort(
+        (left, right) => (toTimestamp(right.createdAt) ?? 0) - (toTimestamp(left.createdAt) ?? 0),
+      )
       .slice(0, 3)
       .map<TermlyCoachHighlight>((entry) => ({
         coachId: entry.coachId,
@@ -250,10 +220,11 @@ async function generateTermlyReport(
         quote: entry.publicSummary.trim(),
         createdAt: entry.createdAt,
       }));
-
     const allGoals = [...goals.active, ...goals.completed];
     const goalSnapshot = allGoals
-      .sort((left, right) => (toTimestamp(right.updatedAt) ?? 0) - (toTimestamp(left.updatedAt) ?? 0))
+      .sort(
+        (left, right) => (toTimestamp(right.updatedAt) ?? 0) - (toTimestamp(left.updatedAt) ?? 0),
+      )
       .slice(0, 8)
       .map<TermlyGoalSnapshot>((goal) => ({
         id: goal.id,
@@ -263,7 +234,6 @@ async function generateTermlyReport(
         updatedAt: goal.updatedAt,
         targetDate: goal.targetDate,
       }));
-
     const goalsCompleted = allGoals.filter((goal) => {
       if (goal.status !== 'COMPLETED') {
         return false;
@@ -271,7 +241,6 @@ async function generateTermlyReport(
       const timestamp = toTimestamp(goal.updatedAt);
       return timestamp !== null && timestamp >= rangeStartTs;
     }).length;
-
     const weeklySessionsMap = new Map<string, number>();
     sessionsInRange.forEach((booking) => {
       const weekStart = getWeekStartIso(booking.scheduledAt || booking.createdAt || '');
@@ -286,7 +255,6 @@ async function generateTermlyReport(
         weekStart,
         sessions,
       }));
-
     const averageEffort =
       feedbackInRange.length > 0
         ? toOneDecimal(
@@ -301,7 +269,6 @@ async function generateTermlyReport(
               feedbackInRange.length,
           )
         : 0;
-
     const baseReport = {
       id: `termly_report_${input.athleteId}_${now.getTime()}`,
       athleteId: input.athleteId,
@@ -330,12 +297,10 @@ async function generateTermlyReport(
       goalSnapshot,
       generatedFrom: 'termly_v1' as const,
     };
-
     const report: TermlyProgressReport = {
       ...baseReport,
       highlights: buildHighlights(baseReport),
     };
-
     return ok(report);
   } catch (error) {
     logger.error('Failed to generate termly report', {
@@ -345,7 +310,6 @@ async function generateTermlyReport(
     return err(storageError('Failed to generate termly report'));
   }
 }
-
 async function saveReportSnapshot(
   report: TermlyProgressReport,
 ): Promise<Result<TermlyReportSnapshot, ServiceError>> {
@@ -368,27 +332,30 @@ async function saveReportSnapshot(
     return err(storageError('Failed to save termly report snapshot'));
   }
 }
-
 async function listReportSnapshots(
   athleteId: string,
 ): Promise<Result<TermlyReportSnapshot[], ServiceError>> {
   if (!athleteId.trim()) {
     return ok([]);
   }
-
   try {
     const snapshots = await apiClient.get<TermlyReportSnapshot[]>(TERM_REPORTS_STORAGE_KEY, []);
     return ok(
       snapshots
         .filter((snapshot) => accountIdsMatch(snapshot.athleteId, athleteId))
-        .sort((left, right) => (toTimestamp(right.generatedAt) ?? 0) - (toTimestamp(left.generatedAt) ?? 0)),
+        .sort(
+          (left, right) =>
+            (toTimestamp(right.generatedAt) ?? 0) - (toTimestamp(left.generatedAt) ?? 0),
+        ),
     );
   } catch (error) {
-    logger.error('Failed to list termly report snapshots', { athleteId, error });
+    logger.error('Failed to list termly report snapshots', {
+      athleteId,
+      error,
+    });
     return err(storageError('Failed to load termly report snapshots'));
   }
 }
-
 function buildShareMessage(report: TermlyProgressReport): string {
   const lines: string[] = [];
   lines.push(`${report.athleteName} - Termly Progress Report`);
@@ -414,7 +381,6 @@ function buildShareMessage(report: TermlyProgressReport): string {
   }
   return lines.join('\n');
 }
-
 function buildCsv(report: TermlyProgressReport): string {
   const rows: string[][] = [
     ['metric', 'value'],
@@ -430,16 +396,10 @@ function buildCsv(report: TermlyProgressReport): string {
     ['practice_minutes', String(report.summary.practiceMinutes)],
     ['self_assessments_submitted', String(report.summary.selfAssessmentsSubmitted)],
   ];
-
   return rows
-    .map((row) =>
-      row
-        .map((value) => `"${String(value).replace(/"/g, '""')}"`)
-        .join(','),
-    )
+    .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(','))
     .join('\n');
 }
-
 export const progressTermlyReportService = {
   generateTermlyReport,
   saveReportSnapshot,

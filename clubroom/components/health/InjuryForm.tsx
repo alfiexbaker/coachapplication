@@ -133,13 +133,9 @@ export function InjuryForm({ onSubmit, onCancel, loading = false }: InjuryFormPr
       {/* Navigation buttons */}
       <Row style={styles.buttonRow}>
         {step !== 'body_part' ? (
-          <Button variant="secondary" onPress={handleBack} style={styles.button}>
-            Back
-          </Button>
+          <Button variant="secondary" onPress={handleBack} style={styles.button} label="Back" />
         ) : onCancel ? (
-          <Button variant="secondary" onPress={onCancel} style={styles.button}>
-            Cancel
-          </Button>
+          <Button variant="secondary" onPress={onCancel} style={styles.button} label="Cancel" />
         ) : (
           <View style={styles.button} />
         )}
@@ -152,13 +148,15 @@ export function InjuryForm({ onSubmit, onCancel, loading = false }: InjuryFormPr
               (step === 'severity' && !canProceedFromSeverity)
             }
             style={styles.button}
-          >
-            Next
-          </Button>
+            label="Next"
+          />
         ) : (
-          <Button onPress={handleSubmit} disabled={!canSubmit || loading} style={styles.button}>
-            {loading ? 'Saving...' : 'Log Injury'}
-          </Button>
+          <Button
+            onPress={handleSubmit}
+            disabled={!canSubmit || loading}
+            style={styles.button}
+            label={loading ? 'Saving...' : 'Log Injury'}
+          />
         )}
       </Row>
     </View>

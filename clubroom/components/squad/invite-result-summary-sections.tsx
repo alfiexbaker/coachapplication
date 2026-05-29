@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -14,7 +14,7 @@ interface InviteStatusHeaderProps {
   palette: ThemeColors;
 }
 
-export const InviteStatusHeader = memo(function InviteStatusHeader({
+export const InviteStatusHeader = function InviteStatusHeader({
   config,
   palette,
 }: InviteStatusHeaderProps) {
@@ -31,7 +31,7 @@ export const InviteStatusHeader = memo(function InviteStatusHeader({
       </View>
     </Row>
   );
-});
+};
 
 interface InviteContextRowProps {
   squadName?: string;
@@ -39,7 +39,7 @@ interface InviteContextRowProps {
   palette: ThemeColors;
 }
 
-export const InviteContextRow = memo(function InviteContextRow({
+const renderInviteContextRow = function renderInviteContextRow({
   squadName,
   sessionTitle,
   palette,
@@ -66,7 +66,8 @@ export const InviteContextRow = memo(function InviteContextRow({
       )}
     </Row>
   );
-});
+};
+export const InviteContextRow = renderInviteContextRow;
 
 interface InviteStatsBreakdownProps {
   sent: number;
@@ -75,7 +76,7 @@ interface InviteStatsBreakdownProps {
   palette: ThemeColors;
 }
 
-export const InviteStatsBreakdown = memo(function InviteStatsBreakdown({
+const renderInviteStatsBreakdown = function renderInviteStatsBreakdown({
   sent,
   failed,
   skipped,
@@ -104,4 +105,5 @@ export const InviteStatsBreakdown = memo(function InviteStatsBreakdown({
       )}
     </Row>
   );
-});
+};
+export const InviteStatsBreakdown = renderInviteStatsBreakdown;

@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -19,7 +18,7 @@ interface StepperProps {
   helperText?: string;
 }
 
-export const Stepper = memo(function Stepper({
+export const Stepper = function Stepper({
   label,
   value,
   onValueChange,
@@ -75,7 +74,7 @@ export const Stepper = memo(function Stepper({
       </Row>
     </Row>
   );
-});
+};
 
 interface ToggleRowProps {
   label: string;
@@ -84,7 +83,7 @@ interface ToggleRowProps {
   helperText?: string;
 }
 
-export const ToggleRow = memo(function ToggleRow({
+export const ToggleRow = function ToggleRow({
   label,
   value,
   onValueChange,
@@ -107,7 +106,7 @@ export const ToggleRow = memo(function ToggleRow({
       />
     </Row>
   );
-});
+};
 
 interface NavigationRowProps {
   label: string;
@@ -116,7 +115,7 @@ interface NavigationRowProps {
   icon?: keyof typeof Ionicons.glyphMap;
 }
 
-export const NavigationRow = memo(function NavigationRow({
+export const NavigationRow = function NavigationRow({
   label,
   value,
   onPress,
@@ -153,7 +152,7 @@ export const NavigationRow = memo(function NavigationRow({
       </Row>
     </Clickable>
   );
-});
+};
 
 export function SectionHeader({ title }: { title: string }) {
   const { colors } = useTheme();

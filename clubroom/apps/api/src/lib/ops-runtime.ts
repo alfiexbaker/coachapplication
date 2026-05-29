@@ -113,7 +113,10 @@ export function getStartupConfigIssues(currentEnv: AppEnv = env): OpsIssue[] {
     );
   }
 
-  if (hasRequiredValue(currentEnv.AUTH0_ISSUER_URL) && !hasRequiredValue(currentEnv.AUTH0_AUDIENCE ?? currentEnv.API_JWT_AUDIENCE)) {
+  if (
+    hasRequiredValue(currentEnv.AUTH0_ISSUER_URL) &&
+    !hasRequiredValue(currentEnv.AUTH0_AUDIENCE ?? currentEnv.API_JWT_AUDIENCE)
+  ) {
     pushIssue(
       issues,
       'config',
@@ -147,8 +150,8 @@ export function getStartupConfigIssues(currentEnv: AppEnv = env): OpsIssue[] {
   }
 
   if (
-    currentEnv.API_PAYMENT_PROVIDER === 'simulated'
-    && currentEnv.API_PAYMENT_SIMULATION_SECRET === DEFAULT_API_PAYMENT_SIMULATION_SECRET
+    currentEnv.API_PAYMENT_PROVIDER === 'simulated' &&
+    currentEnv.API_PAYMENT_SIMULATION_SECRET === DEFAULT_API_PAYMENT_SIMULATION_SECRET
   ) {
     pushIssue(
       issues,
@@ -235,17 +238,18 @@ async function defaultDatabaseProbe(): Promise<void> {
 
 function getObjectStorageIssues(currentEnv: AppEnv = env): OpsIssue[] {
   const issues: OpsIssue[] = [];
-  const missingKeys = currentEnv === env
-    ? getObjectStorageBlockers()
-    : [
-      ['S3_ENDPOINT', currentEnv.S3_ENDPOINT],
-      ['S3_BUCKET_PRIVATE', currentEnv.S3_BUCKET_PRIVATE],
-      ['S3_REGION', currentEnv.S3_REGION],
-      ['S3_ACCESS_KEY_ID', currentEnv.S3_ACCESS_KEY_ID],
-      ['S3_SECRET_ACCESS_KEY', currentEnv.S3_SECRET_ACCESS_KEY],
-    ]
-      .filter(([, value]) => !hasRequiredValue(value))
-      .map(([key]) => key);
+  const missingKeys =
+    currentEnv === env
+      ? getObjectStorageBlockers()
+      : [
+          ['S3_ENDPOINT', currentEnv.S3_ENDPOINT],
+          ['S3_BUCKET_PRIVATE', currentEnv.S3_BUCKET_PRIVATE],
+          ['S3_REGION', currentEnv.S3_REGION],
+          ['S3_ACCESS_KEY_ID', currentEnv.S3_ACCESS_KEY_ID],
+          ['S3_SECRET_ACCESS_KEY', currentEnv.S3_SECRET_ACCESS_KEY],
+        ]
+          .filter(([, value]) => !hasRequiredValue(value))
+          .map(([key]) => key);
 
   if (missingKeys.length > 0) {
     pushIssue(
@@ -261,7 +265,10 @@ function getObjectStorageIssues(currentEnv: AppEnv = env): OpsIssue[] {
   return issues;
 }
 
-function summarizeCheckStatus(issues: OpsIssue[], check: Exclude<OpsCheckName, 'api'>): OpsCheckStatus {
+function summarizeCheckStatus(
+  issues: OpsIssue[],
+  check: Exclude<OpsCheckName, 'api'>,
+): OpsCheckStatus {
   const relevant = issues.filter((issue) => issue.check === check);
   if (relevant.some((issue) => issue.status === 'down')) {
     return 'down';
@@ -272,7 +279,9 @@ function summarizeCheckStatus(issues: OpsIssue[], check: Exclude<OpsCheckName, '
   return 'ok';
 }
 
-function summarizeReadinessStatus(checks: Record<OpsCheckName, OpsCheckStatus>): OpsReadinessStatus {
+function summarizeReadinessStatus(
+  checks: Record<OpsCheckName, OpsCheckStatus>,
+): OpsReadinessStatus {
   if (Object.values(checks).some((status) => status === 'down')) {
     return 'down';
   }
@@ -360,7 +369,9 @@ async function getDatabaseIssuesWithProbe(
 }
 
 export function assertProductionStartupReady(currentEnv: AppEnv = env): void {
-  const blockingIssues = getStartupConfigIssues(currentEnv).filter((issue) => issue.status === 'down');
+  const blockingIssues = getStartupConfigIssues(currentEnv).filter(
+    (issue) => issue.status === 'down',
+  );
   if (blockingIssues.length === 0) {
     return;
   }
@@ -378,23 +389,27 @@ async function detectPrismaMigrations(defaultValue: boolean): Promise<boolean> {
   }
 
   try {
-    await access(prismaMigrationLockFile);
-    const entries = await readdir(prismaMigrationsDir, { withFileTypes: true });
+    const [, entries] = await Promise.all([
+      access(prismaMigrationLockFile),
+      readdir(prismaMigrationsDir, { withFileTypes: true }),
+    ]);
     const migrationDirs = entries.filter((entry) => entry.isDirectory());
     if (migrationDirs.length === 0) {
       return false;
     }
 
-    for (const migrationDir of migrationDirs) {
-      try {
-        await access(path.join(prismaMigrationsDir, migrationDir.name, 'migration.sql'));
-        return true;
-      } catch {
-        continue;
-      }
-    }
+    const migrationSqlExists = await Promise.all(
+      migrationDirs.map(async (migrationDir) => {
+        try {
+          await access(path.join(prismaMigrationsDir, migrationDir.name, 'migration.sql'));
+          return true;
+        } catch {
+          return false;
+        }
+      }),
+    );
 
-    return false;
+    return migrationSqlExists.some(Boolean);
   } catch {
     return false;
   }
@@ -404,7 +419,9 @@ export async function getReleaseGuardrailIssues(
   currentEnv: AppEnv = env,
   options: ReleaseGuardrailOptions = {},
 ): Promise<OpsIssue[]> {
-  const readiness = await buildReadinessReport(currentEnv, { probeDatabase: options.probeDatabase });
+  const readiness = await buildReadinessReport(currentEnv, {
+    probeDatabase: options.probeDatabase,
+  });
   const issues = [...readiness.issues];
   const hasPrismaMigrations = await detectPrismaMigrations(options.hasPrismaMigrations ?? true);
 

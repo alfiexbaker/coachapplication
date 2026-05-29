@@ -20,10 +20,8 @@ import {
 } from '../../lib/invoice-runtime.js';
 import { normalizeForJson } from './normalize.js';
 import { badRequest, conflict, forbidden, notFound } from '../../lib/http-errors.js';
-
 export type SeedRow = Record<string, unknown>;
 export type SeedTables = Record<string, SeedRow[]>;
-
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
@@ -42,12 +40,10 @@ const BOOKING_CREATE_ENDPOINT_KEY = 'POST:/v1/bookings';
 const IDEMPOTENCY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const bookingLifecycleEndpointKey = (bookingId: string, action: 'cancel' | 'reopen' | 'complete') =>
   `POST:/v1/bookings/${bookingId}/${action}`;
-
 export interface ListBookingsParams {
   authUserId: string;
   statusFilter?: string;
 }
-
 export interface CreateBookingParams {
   authUserId: string;
   requestId: string;
@@ -56,38 +52,32 @@ export interface CreateBookingParams {
     clubId?: string | null;
   };
 }
-
 export interface GetBookingParams {
   authUserId: string;
   bookingId: string;
 }
-
 export interface CancelBookingParams {
   authUserId: string;
   requestId: string;
   bookingId: string;
   body: CancelBookingRequest;
 }
-
 export interface ReopenBookingParams {
   authUserId: string;
   requestId: string;
   bookingId: string;
   body: ReopenBookingRequest;
 }
-
 export interface CompleteBookingParams {
   authUserId: string;
   requestId: string;
   bookingId: string;
   body: CompleteBookingRequest;
 }
-
 export interface ListBookingsResult {
   bookings: BookingResponse[];
   dataVersion: string | null;
 }
-
 export interface BookingRepository {
   listVisibleBookings(params: ListBookingsParams): Promise<ListBookingsResult>;
   getVisibleBookingById(params: GetBookingParams): Promise<BookingResponse>;
@@ -96,18 +86,15 @@ export interface BookingRepository {
   reopenBooking(params: ReopenBookingParams): Promise<BookingResponse>;
   completeBooking(params: CompleteBookingParams): Promise<BookingResponse>;
 }
-
 function isSupportedBookingStatus(status: string): boolean {
   return bookingStatusSchema.safeParse(status).success;
 }
-
 function getMutableRows(tables: SeedTables, key: string): SeedRow[] {
   if (!Array.isArray(tables[key])) {
     tables[key] = [];
   }
   return tables[key];
 }
-
 function canonicalizeJson(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(canonicalizeJson);
@@ -121,14 +108,12 @@ function canonicalizeJson(value: unknown): unknown {
   }
   return value;
 }
-
 function hashCreateBookingRequest(body: CreateBookingRequest): string {
   return crypto
     .createHash('sha256')
     .update(JSON.stringify(canonicalizeJson(body)))
     .digest('hex');
 }
-
 function hashBookingLifecycleRequest(params: {
   bookingId: string;
   body: CancelBookingRequest | ReopenBookingRequest | CompleteBookingRequest;
@@ -145,36 +130,34 @@ function hashBookingLifecycleRequest(params: {
     )
     .digest('hex');
 }
-
 function assertMatchingIdempotencyRequest(entry: SeedRow, requestHash: string): void {
   if (asString(entry.requestHash) !== requestHash) {
     throw conflict('Idempotency key was already used with a different booking payload');
   }
 }
-
 function parseIdempotentBookingResponse(value: unknown): BookingResponse | null {
   const parsed = bookingResponseSchema.safeParse(value);
   return parsed.success ? parsed.data : null;
 }
-
 function isCreateBookingIdempotencyRace(error: unknown): boolean {
   if (!error || typeof error !== 'object') {
     return false;
   }
-
-  const prismaError = error as { code?: unknown; meta?: { target?: unknown } };
+  const prismaError = error as {
+    code?: unknown;
+    meta?: {
+      target?: unknown;
+    };
+  };
   if (prismaError.code !== 'P2002') {
     return false;
   }
-
   const target = prismaError.meta?.target;
   if (!Array.isArray(target)) {
     return false;
   }
-
   return ['userId', 'endpointKey', 'idempotencyKey'].every((field) => target.includes(field));
 }
-
 function findSeedCreateBookingIdempotency(params: {
   tables: SeedTables;
   authUserId: string;
@@ -184,7 +167,6 @@ function findSeedCreateBookingIdempotency(params: {
   if (!idempotencyKey) {
     return null;
   }
-
   const requestHash = hashCreateBookingRequest(params.body);
   const entry = asRows(params.tables.idempotencyKeys).find(
     (row) =>
@@ -195,21 +177,17 @@ function findSeedCreateBookingIdempotency(params: {
   if (!entry) {
     return null;
   }
-
   assertMatchingIdempotencyRequest(entry, requestHash);
   const response = parseIdempotentBookingResponse(entry.responseBodyJson);
   if (response) {
     return response;
   }
-
   const legacyBookingId = asString((entry.responseBodyJson as SeedRow | undefined)?.bookingId);
   if (!legacyBookingId) {
     return null;
   }
-
   return getVisibleSeedBookingById(params.tables, params.authUserId, legacyBookingId);
 }
-
 function recordSeedCreateBookingIdempotency(params: {
   tables: SeedTables;
   authUserId: string;
@@ -220,7 +198,6 @@ function recordSeedCreateBookingIdempotency(params: {
   if (!params.body.idempotencyKey) {
     return;
   }
-
   getMutableRows(params.tables, 'idempotencyKeys').push({
     id: newId('idk'),
     userId: params.authUserId,
@@ -233,7 +210,6 @@ function recordSeedCreateBookingIdempotency(params: {
     expiresAt: new Date(Date.parse(params.now) + IDEMPOTENCY_TTL_MS).toISOString(),
   });
 }
-
 function findSeedLifecycleBookingIdempotency(params: {
   tables: SeedTables;
   authUserId: string;
@@ -244,7 +220,6 @@ function findSeedLifecycleBookingIdempotency(params: {
   if (!params.idempotencyKey) {
     return null;
   }
-
   const entry = asRows(params.tables.idempotencyKeys).find(
     (row) =>
       asString(row.userId) === params.authUserId &&
@@ -254,11 +229,9 @@ function findSeedLifecycleBookingIdempotency(params: {
   if (!entry) {
     return null;
   }
-
   assertMatchingIdempotencyRequest(entry, params.requestHash);
   return parseIdempotentBookingResponse(entry.responseBodyJson);
 }
-
 function recordSeedLifecycleBookingIdempotency(params: {
   tables: SeedTables;
   authUserId: string;
@@ -271,7 +244,6 @@ function recordSeedLifecycleBookingIdempotency(params: {
   if (!params.idempotencyKey) {
     return;
   }
-
   getMutableRows(params.tables, 'idempotencyKeys').push({
     id: newId('idk'),
     userId: params.authUserId,
@@ -284,17 +256,18 @@ function recordSeedLifecycleBookingIdempotency(params: {
     expiresAt: new Date(Date.parse(params.now) + IDEMPOTENCY_TTL_MS).toISOString(),
   });
 }
-
 function getAthleteUserIdsByAthleteId(tables: SeedTables): Map<string, string | undefined> {
   const athletes = asRows(tables.athletes);
   return new Map(
-    athletes
-      .map((row) => [asString(row.id), asString(row.userId)] as const)
-      .filter(([id]) => Boolean(id))
-      .map(([id, userId]) => [id as string, userId]),
+    athletes.flatMap((item) => {
+      const mapped = ((row) => [asString(row.id), asString(row.userId)] as const)(item);
+      return ((item) =>
+        (([id]) => Boolean(id))(item) ? [(([id, userId]) => [id as string, userId])(item)] : [])(
+        mapped,
+      );
+    }),
   );
 }
-
 function assertSeedBookingAthleteAccess(
   tables: SeedTables,
   authUserId: string,
@@ -302,30 +275,25 @@ function assertSeedBookingAthleteAccess(
 ): void {
   const athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(tables);
   const guardianLinks = asRows(tables.guardianChildLinks);
-
   for (const athleteId of athleteIds) {
     const athleteUserId = athleteUserIdsByAthleteId.get(athleteId);
     if (athleteUserId === authUserId) {
       continue;
     }
-
     const linkedGuardian = guardianLinks.some(
       (row) => asString(row.athleteId) === athleteId && asString(row.guardianUserId) === authUserId,
     );
     if (linkedGuardian) {
       continue;
     }
-
     throw forbidden('Authenticated user cannot create bookings for this athlete', {
       athleteId,
     });
   }
 }
-
 function getParticipantRowsByBooking(tables: SeedTables): Map<string, SeedRow[]> {
   const participants = asRows(tables.bookingParticipants);
   const participantRowsByBooking = new Map<string, SeedRow[]>();
-
   for (const participant of participants) {
     const bookingId = asString(participant.bookingId);
     if (!bookingId) {
@@ -335,18 +303,17 @@ function getParticipantRowsByBooking(tables: SeedTables): Map<string, SeedRow[]>
     existing.push(participant);
     participantRowsByBooking.set(bookingId, existing);
   }
-
   return participantRowsByBooking;
 }
-
 function getObjectiveValuesForBooking(tables: SeedTables, bookingId: string): string[] {
   return asRows(tables.bookingObjectives)
     .filter((objective) => asString(objective.bookingId) === bookingId)
     .sort((a, b) => (asNumber(a.sortOrder) ?? 0) - (asNumber(b.sortOrder) ?? 0))
-    .map((objective) => asString(objective.objective))
-    .filter((objective): objective is string => Boolean(objective));
+    .flatMap((objective) => {
+      const mapped = asString(objective.objective);
+      return Boolean(mapped) ? [mapped] : [];
+    });
 }
-
 function canUserAccessSeedBooking(
   tables: SeedTables,
   booking: SeedRow,
@@ -360,7 +327,6 @@ function canUserAccessSeedBooking(
   ) {
     return true;
   }
-
   const bookingParticipants = participantRowsByBooking.get(asString(booking.id) ?? '') ?? [];
   return bookingParticipants.some((participant) => {
     if (asString(participant.guardianUserId) === authUserId) {
@@ -370,7 +336,6 @@ function canUserAccessSeedBooking(
     return Boolean(athleteId && athleteUserIdsByAthleteId.get(athleteId) === authUserId);
   });
 }
-
 function mapSeedBookingRow(
   tables: SeedTables,
   booking: SeedRow,
@@ -384,7 +349,6 @@ function mapSeedBookingRow(
       status: (asString(participant.status) ?? 'pending').toLowerCase(),
     }),
   );
-
   return bookingResponseSchema.parse({
     id: bookingId,
     coachUserId: asString(booking.coachUserId),
@@ -406,7 +370,6 @@ function mapSeedBookingRow(
     cancelledAt: asString(booking.cancelledAt) ?? null,
   });
 }
-
 function mapSeedBookingsFromTables(
   tables: SeedTables,
   authUserId: string,
@@ -417,10 +380,8 @@ function mapSeedBookingsFromTables(
   if (normalizedStatus && !isSupportedBookingStatus(normalizedStatus)) {
     return [];
   }
-
   const athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(tables);
   const participantRowsByBooking = getParticipantRowsByBooking(tables);
-
   const visible = bookings.filter((booking) => {
     const bookingStatus = asString(booking.status)?.toUpperCase();
     if (normalizedStatus && bookingStatus !== normalizedStatus) {
@@ -434,10 +395,8 @@ function mapSeedBookingsFromTables(
       athleteUserIdsByAthleteId,
     );
   });
-
   return visible.map((booking) => mapSeedBookingRow(tables, booking, participantRowsByBooking));
 }
-
 function upsertSeedBookingAttendanceRecords(params: {
   tables: SeedTables;
   booking: SeedRow;
@@ -450,16 +409,21 @@ function upsertSeedBookingAttendanceRecords(params: {
   const bookingId = asString(params.booking.id) ?? '';
   const focusAreas = getObjectiveValuesForBooking(params.tables, bookingId);
   const attendanceRecordIds: string[] = [];
-
+  const attendanceByAthleteId = new Map(
+    attendanceRecords.flatMap((row) => {
+      if (asString(row.bookingId) !== bookingId) {
+        return [];
+      }
+      const athleteId = asString(row.athleteId);
+      return athleteId ? [[athleteId, row] as const] : [];
+    }),
+  );
   for (const participant of params.participantRows) {
     const athleteId = asString(participant.athleteId);
     if (!athleteId) {
       continue;
     }
-
-    const existing = attendanceRecords.find(
-      (row) => asString(row.bookingId) === bookingId && asString(row.athleteId) === athleteId,
-    );
+    const existing = attendanceByAthleteId.get(athleteId);
     if (existing) {
       existing.status = 'ATTENDED';
       existing.notes = params.note ?? null;
@@ -471,9 +435,8 @@ function upsertSeedBookingAttendanceRecords(params: {
       attendanceRecordIds.push(asString(existing.id) ?? '');
       continue;
     }
-
     const recordId = newId('att');
-    attendanceRecords.push({
+    const createdRecord = {
       id: recordId,
       bookingId,
       groupSessionId: asString(params.booking.groupSessionId) ?? null,
@@ -486,13 +449,13 @@ function upsertSeedBookingAttendanceRecords(params: {
       recordedAt: params.recordedAt,
       createdAt: params.recordedAt,
       updatedAt: params.recordedAt,
-    });
+    };
+    attendanceRecords.push(createdRecord);
+    attendanceByAthleteId.set(athleteId, createdRecord);
     attendanceRecordIds.push(recordId);
   }
-
   return attendanceRecordIds.filter(Boolean);
 }
-
 function upsertSeedBookingCompletionSessionNotes(params: {
   tables: SeedTables;
   booking: SeedRow;
@@ -506,18 +469,15 @@ function upsertSeedBookingCompletionSessionNotes(params: {
   if (!noteText) {
     return [];
   }
-
   const sessionNotes = getMutableRows(params.tables, 'sessionNotes');
   const bookingId = asString(params.booking.id) ?? '';
   const focusAreas = getObjectiveValuesForBooking(params.tables, bookingId);
   const sessionNoteIds: string[] = [];
-
   params.participantRows.forEach((participant, index) => {
     const athleteId = asString(participant.athleteId);
     if (!athleteId) {
       return;
     }
-
     const attendanceRecordId = params.attendanceRecordIds[index] ?? null;
     const metadataJson = {
       source: 'booking-completion',
@@ -546,7 +506,6 @@ function upsertSeedBookingCompletionSessionNotes(params: {
       sessionNoteIds.push(asString(existing.id) ?? '');
       return;
     }
-
     const sessionNoteId = newId('snt');
     sessionNotes.push({
       id: sessionNoteId,
@@ -568,10 +527,8 @@ function upsertSeedBookingCompletionSessionNotes(params: {
     });
     sessionNoteIds.push(sessionNoteId);
   });
-
   return sessionNoteIds.filter(Boolean);
 }
-
 function getVisibleSeedBookingById(
   tables: SeedTables,
   authUserId: string,
@@ -581,11 +538,11 @@ function getVisibleSeedBookingById(
   const participantRowsByBooking = getParticipantRowsByBooking(tables);
   const athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(tables);
   const booking = bookings.find((row) => asString(row.id) === bookingId);
-
   if (!booking) {
-    throw notFound('Booking not found', { bookingId });
+    throw notFound('Booking not found', {
+      bookingId,
+    });
   }
-
   if (
     !canUserAccessSeedBooking(
       tables,
@@ -597,10 +554,8 @@ function getVisibleSeedBookingById(
   ) {
     throw forbidden('Booking does not belong to authenticated user');
   }
-
   return mapSeedBookingRow(tables, booking, participantRowsByBooking);
 }
-
 function normalizeReopenStatus(status: string | undefined): BookingStatusCode {
   if (status) {
     const normalized = status.toUpperCase();
@@ -614,7 +569,6 @@ function normalizeReopenStatus(status: string | undefined): BookingStatusCode {
   }
   return 'CONFIRMED';
 }
-
 function assertExpectedBookingVersion(currentVersion: number, expectedVersion?: number): void {
   if (expectedVersion === undefined) {
     return;
@@ -626,21 +580,27 @@ function assertExpectedBookingVersion(currentVersion: number, expectedVersion?: 
     });
   }
 }
-
 function resolveSeedReopenStatus(tables: SeedTables, bookingId: string): BookingStatusCode {
-  const latestCancelEvent = asRows(tables.bookingStatusEvents)
-    .filter(
-      (event) =>
-        asString(event.bookingId) === bookingId &&
-        asString(event.toStatus)?.toUpperCase() === 'CANCELLED',
-    )
-    .sort(
-      (a, b) => Date.parse(asString(b.occurredAt) ?? '') - Date.parse(asString(a.occurredAt) ?? ''),
-    )[0];
-
+  const latestCancelEvent = asRows(tables.bookingStatusEvents).reduce<SeedRow | undefined>(
+    (latest, event) => {
+      if (
+        asString(event.bookingId) !== bookingId ||
+        asString(event.toStatus)?.toUpperCase() !== 'CANCELLED'
+      ) {
+        return latest;
+      }
+      if (!latest) {
+        return event;
+      }
+      return Date.parse(asString(event.occurredAt) ?? '') >
+        Date.parse(asString(latest.occurredAt) ?? '')
+        ? event
+        : latest;
+    },
+    undefined,
+  );
   return normalizeReopenStatus(asString(latestCancelEvent?.fromStatus));
 }
-
 export function createBookingInSeedTables(params: {
   tables: SeedTables;
   authUserId: string;
@@ -649,11 +609,14 @@ export function createBookingInSeedTables(params: {
   bookingRowOverrides?: Partial<SeedRow>;
 }): BookingResponse {
   const { tables, authUserId, requestId, body, bookingRowOverrides } = params;
-  const idempotentResponse = findSeedCreateBookingIdempotency({ tables, authUserId, body });
+  const idempotentResponse = findSeedCreateBookingIdempotency({
+    tables,
+    authUserId,
+    body,
+  });
   if (idempotentResponse) {
     return idempotentResponse;
   }
-
   const bookings = asRows(tables.bookings);
   const participants = asRows(tables.bookingParticipants);
   const objectives = asRows(tables.bookingObjectives);
@@ -661,9 +624,7 @@ export function createBookingInSeedTables(params: {
   const guardianChildLinks = asRows(tables.guardianChildLinks);
   const now = isoNow();
   const bookingId = newId('bok');
-
   assertSeedBookingAthleteAccess(tables, authUserId, body.athleteIds);
-
   bookings.push({
     id: bookingId,
     coachUserId: body.coachUserId,
@@ -700,7 +661,6 @@ export function createBookingInSeedTables(params: {
     deletedByUserId: null,
     ...bookingRowOverrides,
   });
-
   const participantRows = body.athleteIds.map((athleteId) => {
     const guardianLink = guardianChildLinks.find((row) => asString(row.athleteId) === athleteId);
     const guardianUserId = asString(guardianLink?.guardianUserId) ?? body.bookedByUserId;
@@ -724,7 +684,6 @@ export function createBookingInSeedTables(params: {
       status: 'confirmed' as const,
     };
   });
-
   for (const [index, objective] of body.objectives.entries()) {
     objectives.push({
       id: newId('boj'),
@@ -734,7 +693,6 @@ export function createBookingInSeedTables(params: {
       createdAt: now,
     });
   }
-
   statusEvents.push({
     id: newId('bse'),
     bookingId,
@@ -748,7 +706,6 @@ export function createBookingInSeedTables(params: {
     requestId,
     occurredAt: now,
   });
-
   const response = bookingResponseSchema.parse({
     id: bookingId,
     coachUserId: body.coachUserId,
@@ -769,12 +726,15 @@ export function createBookingInSeedTables(params: {
     updatedAt: now,
     cancelledAt: null,
   });
-
-  recordSeedCreateBookingIdempotency({ tables, authUserId, body, response, now });
-
+  recordSeedCreateBookingIdempotency({
+    tables,
+    authUserId,
+    body,
+    response,
+    now,
+  });
   return response;
 }
-
 class SeedBookingRepository implements BookingRepository {
   constructor(
     private readonly loadStore: () => {
@@ -782,7 +742,6 @@ class SeedBookingRepository implements BookingRepository {
       tables: SeedTables;
     } = getMarketplaceSeedStore,
   ) {}
-
   async listVisibleBookings(params: ListBookingsParams): Promise<ListBookingsResult> {
     const store = this.loadStore();
     return {
@@ -790,12 +749,10 @@ class SeedBookingRepository implements BookingRepository {
       dataVersion: store.version,
     };
   }
-
   async getVisibleBookingById(params: GetBookingParams): Promise<BookingResponse> {
     const store = this.loadStore();
     return getVisibleSeedBookingById(store.tables, params.authUserId, params.bookingId);
   }
-
   async createBooking(params: CreateBookingParams): Promise<BookingResponse> {
     const store = this.loadStore();
     return createBookingInSeedTables({
@@ -806,7 +763,6 @@ class SeedBookingRepository implements BookingRepository {
       bookingRowOverrides: params.bookingRowOverrides,
     });
   }
-
   async cancelBooking(params: CancelBookingParams): Promise<BookingResponse> {
     const store = this.loadStore();
     const bookings = asRows(store.tables.bookings);
@@ -828,11 +784,11 @@ class SeedBookingRepository implements BookingRepository {
     if (idempotentResponse) {
       return idempotentResponse;
     }
-
     const booking = bookings.find((row) => asString(row.id) === params.bookingId);
-
     if (!booking) {
-      throw notFound('Booking not found', { bookingId: params.bookingId });
+      throw notFound('Booking not found', {
+        bookingId: params.bookingId,
+      });
     }
     if (
       !canUserAccessSeedBooking(
@@ -845,7 +801,6 @@ class SeedBookingRepository implements BookingRepository {
     ) {
       throw forbidden('Booking does not belong to authenticated user');
     }
-
     const currentStatus = asString(booking.status)?.toUpperCase();
     if (currentStatus === 'CANCELLED') {
       return mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
@@ -854,19 +809,16 @@ class SeedBookingRepository implements BookingRepository {
     if (currentStatus === 'COMPLETED') {
       throw badRequest('Completed bookings cannot be cancelled');
     }
-
     const scheduledAt = Date.parse(asString(booking.scheduledAt) ?? '');
     if (!Number.isFinite(scheduledAt) || scheduledAt <= Date.now()) {
       throw badRequest('Only upcoming bookings can be cancelled');
     }
-
     await applyBookingCancellationInvoiceEffects({
       bookingId: params.bookingId,
       actorUserId: params.authUserId,
       reason: params.body.reason,
       requestId: params.requestId,
     });
-
     const now = isoNow();
     booking.status = 'CANCELLED';
     booking.cancelledByUserId = params.authUserId;
@@ -875,7 +827,6 @@ class SeedBookingRepository implements BookingRepository {
     booking.updatedByUserId = params.authUserId;
     booking.updatedAt = now;
     booking.version = (asNumber(booking.version) ?? 1) + 1;
-
     statusEvents.push({
       id: newId('bse'),
       bookingId: params.bookingId,
@@ -890,7 +841,6 @@ class SeedBookingRepository implements BookingRepository {
       requestId: params.requestId,
       occurredAt: now,
     });
-
     const response = mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
     recordSeedLifecycleBookingIdempotency({
       tables: store.tables,
@@ -901,10 +851,8 @@ class SeedBookingRepository implements BookingRepository {
       response,
       now,
     });
-
     return response;
   }
-
   async reopenBooking(params: ReopenBookingParams): Promise<BookingResponse> {
     const store = this.loadStore();
     const bookings = asRows(store.tables.bookings);
@@ -926,11 +874,11 @@ class SeedBookingRepository implements BookingRepository {
     if (idempotentResponse) {
       return idempotentResponse;
     }
-
     const booking = bookings.find((row) => asString(row.id) === params.bookingId);
-
     if (!booking) {
-      throw notFound('Booking not found', { bookingId: params.bookingId });
+      throw notFound('Booking not found', {
+        bookingId: params.bookingId,
+      });
     }
     if (
       !canUserAccessSeedBooking(
@@ -943,18 +891,15 @@ class SeedBookingRepository implements BookingRepository {
     ) {
       throw forbidden('Booking does not belong to authenticated user');
     }
-
     const currentStatus = asString(booking.status)?.toUpperCase();
     if (currentStatus !== 'CANCELLED') {
       throw badRequest('Only cancelled bookings can be reopened');
     }
     assertExpectedBookingVersion(asNumber(booking.version) ?? 1, params.body.expectedVersion);
-
     const scheduledAt = Date.parse(asString(booking.scheduledAt) ?? '');
     if (!Number.isFinite(scheduledAt) || scheduledAt <= Date.now()) {
       throw badRequest('Only upcoming cancelled bookings can be reopened');
     }
-
     const restoredStatus = resolveSeedReopenStatus(store.tables, params.bookingId);
     const now = isoNow();
     booking.status = restoredStatus;
@@ -964,7 +909,6 @@ class SeedBookingRepository implements BookingRepository {
     booking.updatedByUserId = params.authUserId;
     booking.updatedAt = now;
     booking.version = (asNumber(booking.version) ?? 1) + 1;
-
     statusEvents.push({
       id: newId('bse'),
       bookingId: params.bookingId,
@@ -979,14 +923,12 @@ class SeedBookingRepository implements BookingRepository {
       requestId: params.requestId,
       occurredAt: now,
     });
-
     await applyBookingReopenInvoiceEffects({
       bookingId: params.bookingId,
       actorUserId: params.authUserId,
       reason: 'Booking reopened',
       requestId: params.requestId,
     });
-
     const response = mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
     recordSeedLifecycleBookingIdempotency({
       tables: store.tables,
@@ -997,10 +939,8 @@ class SeedBookingRepository implements BookingRepository {
       response,
       now,
     });
-
     return response;
   }
-
   async completeBooking(params: CompleteBookingParams): Promise<BookingResponse> {
     const store = this.loadStore();
     const bookings = asRows(store.tables.bookings);
@@ -1021,15 +961,15 @@ class SeedBookingRepository implements BookingRepository {
     if (idempotentResponse) {
       return idempotentResponse;
     }
-
     const booking = bookings.find((row) => asString(row.id) === params.bookingId);
     if (!booking) {
-      throw notFound('Booking not found', { bookingId: params.bookingId });
+      throw notFound('Booking not found', {
+        bookingId: params.bookingId,
+      });
     }
     if (asString(booking.coachUserId) !== params.authUserId) {
       throw forbidden('Only the assigned coach can complete this booking');
     }
-
     const currentStatus = asString(booking.status)?.toUpperCase();
     if (currentStatus === 'COMPLETED') {
       return mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
@@ -1044,11 +984,12 @@ class SeedBookingRepository implements BookingRepository {
         status: currentStatus,
       });
     }
-
     const completedAt = params.body.completedAt ?? isoNow();
     const completedAtMs = Date.parse(completedAt);
     if (!Number.isFinite(completedAtMs)) {
-      throw badRequest('Completed-at timestamp is invalid', { completedAt });
+      throw badRequest('Completed-at timestamp is invalid', {
+        completedAt,
+      });
     }
     const scheduledAt = Date.parse(asString(booking.scheduledAt) ?? '');
     if (!Number.isFinite(scheduledAt) || scheduledAt > completedAtMs) {
@@ -1074,12 +1015,10 @@ class SeedBookingRepository implements BookingRepository {
       recordedAt: completedAt,
       note: params.body.note ?? null,
     });
-
     booking.status = 'COMPLETED';
     booking.updatedByUserId = params.authUserId;
     booking.updatedAt = completedAt;
     booking.version = (asNumber(booking.version) ?? 1) + 1;
-
     statusEvents.push({
       id: newId('bse'),
       bookingId: params.bookingId,
@@ -1100,7 +1039,6 @@ class SeedBookingRepository implements BookingRepository {
       requestId: params.requestId,
       occurredAt: completedAt,
     });
-
     const response = mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
     recordSeedLifecycleBookingIdempotency({
       tables: store.tables,
@@ -1111,19 +1049,19 @@ class SeedBookingRepository implements BookingRepository {
       response,
       now: completedAt,
     });
-
     return response;
   }
 }
-
 export async function resolveCreateBookingIdempotency(params: {
   authUserId: string;
   body: CreateBookingRequest;
-}): Promise<{ responseStatus: number; response: BookingResponse } | null> {
+}): Promise<{
+  responseStatus: number;
+  response: BookingResponse;
+} | null> {
   if (!params.body.idempotencyKey) {
     return null;
   }
-
   if (getApiDataBackend() !== 'db' || shouldUseDbFixtureFallback()) {
     const tables =
       getApiDataBackend() === 'db' ? getDbFixtureStore().tables : getMarketplaceSeedStore().tables;
@@ -1132,9 +1070,13 @@ export async function resolveCreateBookingIdempotency(params: {
       authUserId: params.authUserId,
       body: params.body,
     });
-    return response ? { responseStatus: 201, response } : null;
+    return response
+      ? {
+          responseStatus: 201,
+          response,
+        }
+      : null;
   }
-
   const prisma = getPrismaClientOrThrow();
   const entry = await prisma.idempotencyKey.findUnique({
     where: {
@@ -1148,36 +1090,36 @@ export async function resolveCreateBookingIdempotency(params: {
   if (!entry) {
     return null;
   }
-
   const requestHash = hashCreateBookingRequest(params.body);
   if (entry.requestHash !== requestHash) {
     throw conflict('Idempotency key was already used with a different booking payload');
   }
-
   const response = parseIdempotentBookingResponse(entry.responseBodyJson);
   if (!response) {
     throw conflict('Stored idempotency response is no longer valid');
   }
-
-  return { responseStatus: entry.responseStatus, response };
+  return {
+    responseStatus: entry.responseStatus,
+    response,
+  };
 }
-
 async function resolveLifecycleBookingIdempotency(params: {
   authUserId: string;
   bookingId: string;
   action: 'cancel' | 'reopen' | 'complete';
   body: CancelBookingRequest | ReopenBookingRequest | CompleteBookingRequest;
-}): Promise<{ responseStatus: number; response: BookingResponse } | null> {
+}): Promise<{
+  responseStatus: number;
+  response: BookingResponse;
+} | null> {
   if (!params.body.idempotencyKey) {
     return null;
   }
-
   const endpointKey = bookingLifecycleEndpointKey(params.bookingId, params.action);
   const requestHash = hashBookingLifecycleRequest({
     bookingId: params.bookingId,
     body: params.body,
   });
-
   if (getApiDataBackend() !== 'db' || shouldUseDbFixtureFallback()) {
     const tables =
       getApiDataBackend() === 'db' ? getDbFixtureStore().tables : getMarketplaceSeedStore().tables;
@@ -1188,9 +1130,13 @@ async function resolveLifecycleBookingIdempotency(params: {
       idempotencyKey: params.body.idempotencyKey,
       requestHash,
     });
-    return response ? { responseStatus: 200, response } : null;
+    return response
+      ? {
+          responseStatus: 200,
+          response,
+        }
+      : null;
   }
-
   const prisma = getPrismaClientOrThrow();
   const entry = await prisma.idempotencyKey.findUnique({
     where: {
@@ -1204,19 +1150,18 @@ async function resolveLifecycleBookingIdempotency(params: {
   if (!entry) {
     return null;
   }
-
   if (entry.requestHash !== requestHash) {
     throw conflict('Idempotency key was already used with a different booking payload');
   }
-
   const response = parseIdempotentBookingResponse(entry.responseBodyJson);
   if (!response) {
     throw conflict('Stored idempotency response is no longer valid');
   }
-
-  return { responseStatus: entry.responseStatus, response };
+  return {
+    responseStatus: entry.responseStatus,
+    response,
+  };
 }
-
 class DbBookingRepository implements BookingRepository {
   async listVisibleBookings(params: ListBookingsParams): Promise<ListBookingsResult> {
     if (shouldUseDbFixtureFallback()) {
@@ -1226,29 +1171,54 @@ class DbBookingRepository implements BookingRepository {
         dataVersion: null,
       };
     }
-
     const prisma = getPrismaClientOrThrow();
     const normalizedStatus = params.statusFilter?.toUpperCase();
     if (normalizedStatus && !isSupportedBookingStatus(normalizedStatus)) {
-      return { bookings: [], dataVersion: null };
+      return {
+        bookings: [],
+        dataVersion: null,
+      };
     }
     const statusValue = normalizedStatus ? (normalizedStatus as BookingStatusCode) : undefined;
-
     const bookings = await prisma.booking.findMany({
       where: {
-        ...(statusValue ? { status: statusValue } : {}),
+        ...(statusValue
+          ? {
+              status: statusValue,
+            }
+          : {}),
         OR: [
-          { coachUserId: params.authUserId },
-          { bookedByUserId: params.authUserId },
-          { participants: { some: { guardianUserId: params.authUserId } } },
-          { participants: { some: { athlete: { userId: params.authUserId } } } },
+          {
+            coachUserId: params.authUserId,
+          },
+          {
+            bookedByUserId: params.authUserId,
+          },
+          {
+            participants: {
+              some: {
+                guardianUserId: params.authUserId,
+              },
+            },
+          },
+          {
+            participants: {
+              some: {
+                athlete: {
+                  userId: params.authUserId,
+                },
+              },
+            },
+          },
         ],
       },
       include: {
         participants: {
           include: {
             athlete: {
-              select: { userId: true },
+              select: {
+                userId: true,
+              },
             },
           },
         },
@@ -1258,7 +1228,6 @@ class DbBookingRepository implements BookingRepository {
         scheduledAt: 'asc',
       },
     });
-
     const normalizedBookings = normalizeForJson(bookings) as Record<string, unknown>[];
     const rows = normalizedBookings.map((booking) => {
       const participantRows = asRows(booking.participants).map((participant) => ({
@@ -1268,9 +1237,10 @@ class DbBookingRepository implements BookingRepository {
       }));
       const objectiveRows = asRows(booking.objectives)
         .sort((a, b) => (asNumber(a.sortOrder) ?? 0) - (asNumber(b.sortOrder) ?? 0))
-        .map((objective) => asString(objective.objective))
-        .filter((objective): objective is string => Boolean(objective));
-
+        .flatMap((objective) => {
+          const mapped = asString(objective.objective);
+          return Boolean(mapped) ? [mapped] : [];
+        });
       return bookingResponseSchema.parse({
         id: asString(booking.id),
         coachUserId: asString(booking.coachUserId),
@@ -1297,32 +1267,34 @@ class DbBookingRepository implements BookingRepository {
       dataVersion: null,
     };
   }
-
   async getVisibleBookingById(params: GetBookingParams): Promise<BookingResponse> {
     if (shouldUseDbFixtureFallback()) {
       const store = getDbFixtureStore();
       return getVisibleSeedBookingById(store.tables, params.authUserId, params.bookingId);
     }
-
     const prisma = getPrismaClientOrThrow();
     const booking = await prisma.booking.findUnique({
-      where: { id: params.bookingId },
+      where: {
+        id: params.bookingId,
+      },
       include: {
         participants: {
           include: {
             athlete: {
-              select: { userId: true },
+              select: {
+                userId: true,
+              },
             },
           },
         },
         objectives: true,
       },
     });
-
     if (!booking) {
-      throw notFound('Booking not found', { bookingId: params.bookingId });
+      throw notFound('Booking not found', {
+        bookingId: params.bookingId,
+      });
     }
-
     const hasAccess =
       booking.coachUserId === params.authUserId ||
       booking.bookedByUserId === params.authUserId ||
@@ -1334,7 +1306,6 @@ class DbBookingRepository implements BookingRepository {
     if (!hasAccess) {
       throw forbidden('Booking does not belong to authenticated user');
     }
-
     return normalizeForJson(
       bookingResponseSchema.parse({
         id: booking.id,
@@ -1364,7 +1335,6 @@ class DbBookingRepository implements BookingRepository {
       }),
     );
   }
-
   async createBooking(params: CreateBookingParams): Promise<BookingResponse> {
     if (shouldUseDbFixtureFallback()) {
       const store = getDbFixtureStore();
@@ -1376,7 +1346,6 @@ class DbBookingRepository implements BookingRepository {
         bookingRowOverrides: params.bookingRowOverrides,
       });
     }
-
     const prisma = getPrismaClientOrThrow();
     const idempotentResponse = await resolveCreateBookingIdempotency({
       authUserId: params.authUserId,
@@ -1385,29 +1354,30 @@ class DbBookingRepository implements BookingRepository {
     if (idempotentResponse) {
       return idempotentResponse.response;
     }
-
     const now = new Date();
     const nowIsoString = now.toISOString();
     const bookingId = newId('bok');
     const body = params.body;
-    const guardianLinks = await prisma.guardianChildLink.findMany({
-      where: {
-        athleteId: {
-          in: body.athleteIds,
+    const [guardianLinks, athleteRows] = await Promise.all([
+      prisma.guardianChildLink.findMany({
+        where: {
+          athleteId: {
+            in: body.athleteIds,
+          },
         },
-      },
-    });
-    const athleteRows = await prisma.athlete.findMany({
-      where: {
-        id: {
-          in: body.athleteIds,
+      }),
+      prisma.athlete.findMany({
+        where: {
+          id: {
+            in: body.athleteIds,
+          },
         },
-      },
-      select: {
-        id: true,
-        userId: true,
-      },
-    });
+        select: {
+          id: true,
+          userId: true,
+        },
+      }),
+    ]);
     const athleteUserIdByAthleteId = new Map(
       athleteRows.map((row) => [row.id, row.userId ?? undefined]),
     );
@@ -1416,14 +1386,12 @@ class DbBookingRepository implements BookingRepository {
       if (athleteUserId === params.authUserId) {
         continue;
       }
-
       const linkedGuardian = guardianLinks.some(
         (row) => row.athleteId === athleteId && row.guardianUserId === params.authUserId,
       );
       if (linkedGuardian) {
         continue;
       }
-
       throw forbidden('Authenticated user cannot create bookings for this athlete', {
         athleteId,
       });
@@ -1431,7 +1399,6 @@ class DbBookingRepository implements BookingRepository {
     const guardianByAthlete = new Map(
       guardianLinks.map((row) => [row.athleteId, row.guardianUserId]),
     );
-
     const participantRows = body.athleteIds.map((athleteId) => ({
       id: newId('bkp'),
       bookingId,
@@ -1441,13 +1408,11 @@ class DbBookingRepository implements BookingRepository {
       createdByUserId: params.authUserId,
       updatedByUserId: params.authUserId,
     }));
-
     const result = participantRows.map((participant) => ({
       athleteId: participant.athleteId,
       guardianUserId: participant.guardianUserId ?? undefined,
       status: participant.status as 'confirmed',
     }));
-
     const response = bookingResponseSchema.parse({
       id: bookingId,
       coachUserId: body.coachUserId,
@@ -1468,7 +1433,6 @@ class DbBookingRepository implements BookingRepository {
       updatedAt: nowIsoString,
       cancelledAt: null,
     });
-
     try {
       await prisma.$transaction(async (tx) => {
         await tx.booking.create({
@@ -1495,13 +1459,11 @@ class DbBookingRepository implements BookingRepository {
             updatedByUserId: params.authUserId,
           },
         });
-
         if (participantRows.length > 0) {
           await tx.bookingParticipant.createMany({
             data: participantRows,
           });
         }
-
         if (body.objectives.length > 0) {
           await tx.bookingObjective.createMany({
             data: body.objectives.map((objective, index) => ({
@@ -1513,7 +1475,6 @@ class DbBookingRepository implements BookingRepository {
             })),
           });
         }
-
         await tx.bookingStatusEvent.create({
           data: {
             id: newId('bse'),
@@ -1529,7 +1490,6 @@ class DbBookingRepository implements BookingRepository {
             occurredAt: now,
           },
         });
-
         if (body.idempotencyKey) {
           await tx.idempotencyKey.create({
             data: {
@@ -1557,10 +1517,8 @@ class DbBookingRepository implements BookingRepository {
       }
       throw error;
     }
-
     return normalizeForJson(response);
   }
-
   async cancelBooking(params: CancelBookingParams): Promise<BookingResponse> {
     if (shouldUseDbFixtureFallback()) {
       const seedRepository = new SeedBookingRepository(getDbFixtureStore);
@@ -1571,7 +1529,6 @@ class DbBookingRepository implements BookingRepository {
         body: params.body,
       });
     }
-
     const prisma = getPrismaClientOrThrow();
     const idempotentResponse = await resolveLifecycleBookingIdempotency({
       authUserId: params.authUserId,
@@ -1582,25 +1539,28 @@ class DbBookingRepository implements BookingRepository {
     if (idempotentResponse) {
       return idempotentResponse.response;
     }
-
     const booking = await prisma.booking.findUnique({
-      where: { id: params.bookingId },
+      where: {
+        id: params.bookingId,
+      },
       include: {
         participants: {
           include: {
             athlete: {
-              select: { userId: true },
+              select: {
+                userId: true,
+              },
             },
           },
         },
         objectives: true,
       },
     });
-
     if (!booking) {
-      throw notFound('Booking not found', { bookingId: params.bookingId });
+      throw notFound('Booking not found', {
+        bookingId: params.bookingId,
+      });
     }
-
     const hasAccess =
       booking.coachUserId === params.authUserId ||
       booking.bookedByUserId === params.authUserId ||
@@ -1612,9 +1572,7 @@ class DbBookingRepository implements BookingRepository {
     if (!hasAccess) {
       throw forbidden('Booking does not belong to authenticated user');
     }
-
     assertExpectedBookingVersion(Number(booking.version), params.body.expectedVersion);
-
     if (booking.status === 'CANCELLED') {
       return normalizeForJson(
         bookingResponseSchema.parse({
@@ -1645,21 +1603,18 @@ class DbBookingRepository implements BookingRepository {
         }),
       );
     }
-
     if (booking.status === 'COMPLETED') {
       throw badRequest('Completed bookings cannot be cancelled');
     }
     if (booking.scheduledAt.getTime() <= Date.now()) {
       throw badRequest('Only upcoming bookings can be cancelled');
     }
-
     const now = new Date();
     const endpointKey = bookingLifecycleEndpointKey(params.bookingId, 'cancel');
     const requestHash = hashBookingLifecycleRequest({
       bookingId: params.bookingId,
       body: params.body,
     });
-
     try {
       const response = await prisma.$transaction(async (tx) => {
         await applyBookingCancellationInvoiceEffectsInDbTransaction(tx, {
@@ -1668,9 +1623,11 @@ class DbBookingRepository implements BookingRepository {
           reason: params.body.reason,
           requestId: params.requestId,
         });
-
         const updateResult = await tx.booking.updateMany({
-          where: { id: params.bookingId, version: booking.version },
+          where: {
+            id: params.bookingId,
+            version: booking.version,
+          },
           data: {
             status: 'CANCELLED',
             cancelledByUserId: params.authUserId,
@@ -1687,11 +1644,11 @@ class DbBookingRepository implements BookingRepository {
             currentVersion: Number(booking.version),
           });
         }
-
         const updated = await tx.booking.findUniqueOrThrow({
-          where: { id: params.bookingId },
+          where: {
+            id: params.bookingId,
+          },
         });
-
         await tx.bookingStatusEvent.create({
           data: {
             id: newId('bse'),
@@ -1708,7 +1665,6 @@ class DbBookingRepository implements BookingRepository {
             occurredAt: now,
           },
         });
-
         const nextResponse = bookingResponseSchema.parse({
           id: updated.id,
           coachUserId: updated.coachUserId,
@@ -1735,7 +1691,6 @@ class DbBookingRepository implements BookingRepository {
           updatedAt: updated.updatedAt.toISOString(),
           cancelledAt: updated.cancelledAt?.toISOString() ?? null,
         });
-
         if (params.body.idempotencyKey) {
           await tx.idempotencyKey.create({
             data: {
@@ -1750,10 +1705,8 @@ class DbBookingRepository implements BookingRepository {
             },
           });
         }
-
         return nextResponse;
       });
-
       return normalizeForJson(response);
     } catch (error) {
       if (params.body.idempotencyKey && isCreateBookingIdempotencyRace(error)) {
@@ -1770,7 +1723,6 @@ class DbBookingRepository implements BookingRepository {
       throw error;
     }
   }
-
   async reopenBooking(params: ReopenBookingParams): Promise<BookingResponse> {
     if (shouldUseDbFixtureFallback()) {
       const seedRepository = new SeedBookingRepository(getDbFixtureStore);
@@ -1781,7 +1733,6 @@ class DbBookingRepository implements BookingRepository {
         body: params.body,
       });
     }
-
     const prisma = getPrismaClientOrThrow();
     const idempotentResponse = await resolveLifecycleBookingIdempotency({
       authUserId: params.authUserId,
@@ -1792,25 +1743,28 @@ class DbBookingRepository implements BookingRepository {
     if (idempotentResponse) {
       return idempotentResponse.response;
     }
-
     const booking = await prisma.booking.findUnique({
-      where: { id: params.bookingId },
+      where: {
+        id: params.bookingId,
+      },
       include: {
         participants: {
           include: {
             athlete: {
-              select: { userId: true },
+              select: {
+                userId: true,
+              },
             },
           },
         },
         objectives: true,
       },
     });
-
     if (!booking) {
-      throw notFound('Booking not found', { bookingId: params.bookingId });
+      throw notFound('Booking not found', {
+        bookingId: params.bookingId,
+      });
     }
-
     const hasAccess =
       booking.coachUserId === params.authUserId ||
       booking.bookedByUserId === params.authUserId ||
@@ -1822,16 +1776,13 @@ class DbBookingRepository implements BookingRepository {
     if (!hasAccess) {
       throw forbidden('Booking does not belong to authenticated user');
     }
-
     assertExpectedBookingVersion(Number(booking.version), params.body.expectedVersion);
-
     if (booking.status !== 'CANCELLED') {
       throw badRequest('Only cancelled bookings can be reopened');
     }
     if (booking.scheduledAt.getTime() <= Date.now()) {
       throw badRequest('Only upcoming cancelled bookings can be reopened');
     }
-
     const latestCancelEvent = await prisma.bookingStatusEvent.findFirst({
       where: {
         bookingId: params.bookingId,
@@ -1848,11 +1799,13 @@ class DbBookingRepository implements BookingRepository {
       bookingId: params.bookingId,
       body: params.body,
     });
-
     try {
       const response = await prisma.$transaction(async (tx) => {
         const updateResult = await tx.booking.updateMany({
-          where: { id: params.bookingId, version: booking.version },
+          where: {
+            id: params.bookingId,
+            version: booking.version,
+          },
           data: {
             status: restoredStatus,
             cancelledByUserId: null,
@@ -1869,35 +1822,35 @@ class DbBookingRepository implements BookingRepository {
             currentVersion: Number(booking.version),
           });
         }
-
-        const updated = await tx.booking.findUniqueOrThrow({
-          where: { id: params.bookingId },
-        });
-
-        await tx.bookingStatusEvent.create({
-          data: {
-            id: newId('bse'),
+        const [updated] = await Promise.all([
+          tx.booking.findUniqueOrThrow({
+            where: {
+              id: params.bookingId,
+            },
+          }),
+          tx.bookingStatusEvent.create({
+            data: {
+              id: newId('bse'),
+              bookingId: params.bookingId,
+              fromStatus: 'CANCELLED',
+              toStatus: restoredStatus,
+              actorUserId: params.authUserId,
+              reason: 'Booking reopened',
+              metadataJson: {
+                note: params.body.note ?? null,
+                source: 'api-db-runtime',
+              },
+              requestId: params.requestId,
+              occurredAt: now,
+            },
+          }),
+          applyBookingReopenInvoiceEffectsInDbTransaction(tx, {
             bookingId: params.bookingId,
-            fromStatus: 'CANCELLED',
-            toStatus: restoredStatus,
             actorUserId: params.authUserId,
             reason: 'Booking reopened',
-            metadataJson: {
-              note: params.body.note ?? null,
-              source: 'api-db-runtime',
-            },
             requestId: params.requestId,
-            occurredAt: now,
-          },
-        });
-
-        await applyBookingReopenInvoiceEffectsInDbTransaction(tx, {
-          bookingId: params.bookingId,
-          actorUserId: params.authUserId,
-          reason: 'Booking reopened',
-          requestId: params.requestId,
-        });
-
+          }),
+        ]);
         const nextResponse = bookingResponseSchema.parse({
           id: updated.id,
           coachUserId: updated.coachUserId,
@@ -1924,7 +1877,6 @@ class DbBookingRepository implements BookingRepository {
           updatedAt: updated.updatedAt.toISOString(),
           cancelledAt: updated.cancelledAt?.toISOString() ?? null,
         });
-
         if (params.body.idempotencyKey) {
           await tx.idempotencyKey.create({
             data: {
@@ -1939,10 +1891,8 @@ class DbBookingRepository implements BookingRepository {
             },
           });
         }
-
         return nextResponse;
       });
-
       return normalizeForJson(response);
     } catch (error) {
       if (params.body.idempotencyKey && isCreateBookingIdempotencyRace(error)) {
@@ -1959,7 +1909,6 @@ class DbBookingRepository implements BookingRepository {
       throw error;
     }
   }
-
   async completeBooking(params: CompleteBookingParams): Promise<BookingResponse> {
     if (shouldUseDbFixtureFallback()) {
       const seedRepository = new SeedBookingRepository(getDbFixtureStore);
@@ -1970,7 +1919,6 @@ class DbBookingRepository implements BookingRepository {
         body: params.body,
       });
     }
-
     const prisma = getPrismaClientOrThrow();
     const idempotentResponse = await resolveLifecycleBookingIdempotency({
       authUserId: params.authUserId,
@@ -1981,28 +1929,31 @@ class DbBookingRepository implements BookingRepository {
     if (idempotentResponse) {
       return idempotentResponse.response;
     }
-
     const booking = await prisma.booking.findUnique({
-      where: { id: params.bookingId },
+      where: {
+        id: params.bookingId,
+      },
       include: {
         participants: {
           include: {
             athlete: {
-              select: { userId: true },
+              select: {
+                userId: true,
+              },
             },
           },
         },
         objectives: true,
       },
     });
-
     if (!booking) {
-      throw notFound('Booking not found', { bookingId: params.bookingId });
+      throw notFound('Booking not found', {
+        bookingId: params.bookingId,
+      });
     }
     if (booking.coachUserId !== params.authUserId) {
       throw forbidden('Only the assigned coach can complete this booking');
     }
-
     if (booking.status === 'COMPLETED') {
       return normalizeForJson(
         bookingResponseSchema.parse({
@@ -2033,9 +1984,7 @@ class DbBookingRepository implements BookingRepository {
         }),
       );
     }
-
     assertExpectedBookingVersion(Number(booking.version), params.body.expectedVersion);
-
     if (booking.status === 'CANCELLED') {
       throw badRequest('Cancelled bookings cannot be completed');
     }
@@ -2045,7 +1994,6 @@ class DbBookingRepository implements BookingRepository {
         status: booking.status,
       });
     }
-
     const completedAt = params.body.completedAt ? new Date(params.body.completedAt) : new Date();
     if (Number.isNaN(completedAt.getTime())) {
       throw badRequest('Completed-at timestamp is invalid', {
@@ -2057,17 +2005,18 @@ class DbBookingRepository implements BookingRepository {
         bookingId: params.bookingId,
       });
     }
-
     const endpointKey = bookingLifecycleEndpointKey(params.bookingId, 'complete');
     const requestHash = hashBookingLifecycleRequest({
       bookingId: params.bookingId,
       body: params.body,
     });
-
     try {
       const response = await prisma.$transaction(async (tx) => {
         const updateResult = await tx.booking.updateMany({
-          where: { id: params.bookingId, version: booking.version },
+          where: {
+            id: params.bookingId,
+            version: booking.version,
+          },
           data: {
             status: 'COMPLETED',
             updatedByUserId: params.authUserId,
@@ -2081,115 +2030,128 @@ class DbBookingRepository implements BookingRepository {
             currentVersion: Number(booking.version),
           });
         }
-
-        const updated = await tx.booking.findUniqueOrThrow({
-          where: { id: params.bookingId },
-        });
-
-        const existingAttendance = await tx.attendanceRecord.findMany({
-          where: {
-            bookingId: params.bookingId,
-            athleteId: {
-              in: booking.participants.map((participant) => participant.athleteId),
+        const [updated, existingAttendance] = await Promise.all([
+          tx.booking.findUniqueOrThrow({
+            where: {
+              id: params.bookingId,
             },
-          },
-        });
-        const attendanceRecordIds: string[] = [];
-        for (const participant of booking.participants) {
-          const existing = existingAttendance.find(
-            (record) => record.athleteId === participant.athleteId,
-          );
-          if (existing) {
-            const updatedAttendance = await tx.attendanceRecord.update({
-              where: { id: existing.id },
-              data: {
-                status: 'ATTENDED',
-                notes: params.body.note ?? null,
-                focusAreasJson: booking.objectives.map((objective) => objective.objective) as never,
-                recordedByUserId: params.authUserId,
-                recordedAt: completedAt,
-              },
-            });
-            attendanceRecordIds.push(updatedAttendance.id);
-            continue;
-          }
-
-          const attendanceRecord = await tx.attendanceRecord.create({
-            data: {
-              id: newId('att'),
+          }),
+          tx.attendanceRecord.findMany({
+            where: {
               bookingId: params.bookingId,
-              groupSessionId: booking.groupSessionId ?? null,
-              athleteId: participant.athleteId,
-              status: 'ATTENDED',
-              notes: params.body.note ?? null,
-              effortRating: null,
-              focusAreasJson: booking.objectives.map((objective) => objective.objective) as never,
-              recordedByUserId: params.authUserId,
-              recordedAt: completedAt,
+              athleteId: {
+                in: booking.participants.map((participant) => participant.athleteId),
+              },
             },
-          });
-          attendanceRecordIds.push(attendanceRecord.id);
-        }
+          }),
+        ]);
+        const attendanceRecordIds: string[] = [];
+        const existingAttendanceByAthleteId = new Map(
+          existingAttendance.map((record) => [record.athleteId, record]),
+        );
+        const attendanceWrites = await Promise.all(
+          booking.participants.map(async (participant) => {
+            const existing = existingAttendanceByAthleteId.get(participant.athleteId);
+            const attendanceRecord = existing
+              ? await tx.attendanceRecord.update({
+                  where: {
+                    id: existing.id,
+                  },
+                  data: {
+                    status: 'ATTENDED',
+                    notes: params.body.note ?? null,
+                    focusAreasJson: booking.objectives.map(
+                      (objective) => objective.objective,
+                    ) as never,
+                    recordedByUserId: params.authUserId,
+                    recordedAt: completedAt,
+                  },
+                })
+              : await tx.attendanceRecord.create({
+                  data: {
+                    id: newId('att'),
+                    bookingId: params.bookingId,
+                    groupSessionId: booking.groupSessionId ?? null,
+                    athleteId: participant.athleteId,
+                    status: 'ATTENDED',
+                    notes: params.body.note ?? null,
+                    effortRating: null,
+                    focusAreasJson: booking.objectives.map(
+                      (objective) => objective.objective,
+                    ) as never,
+                    recordedByUserId: params.authUserId,
+                    recordedAt: completedAt,
+                  },
+                });
+            return { participant, attendanceRecord };
+          }),
+        );
+        attendanceRecordIds.push(
+          ...attendanceWrites.map(({ attendanceRecord }) => attendanceRecord.id),
+        );
+        attendanceWrites.forEach(({ participant, attendanceRecord }) => {
+          existingAttendanceByAthleteId.set(participant.athleteId, attendanceRecord);
+        });
         const sessionNoteIds: string[] = [];
         const completionNoteText = params.body.note?.trim();
         const focusAreas = booking.objectives.map((objective) => objective.objective);
         if (completionNoteText) {
-          for (const [index, participant] of booking.participants.entries()) {
-            const attendanceRecordId = attendanceRecordIds[index] ?? null;
-            const metadataJson = {
-              source: 'booking-completion',
-              proofSource: 'attendance-record',
-              attendanceRecordId,
-              attendanceRecordIds: attendanceRecordId ? [attendanceRecordId] : [],
-              focus: focusAreas,
-              completedAt: completedAt.toISOString(),
-            };
-            const existingSessionNote = await tx.sessionNote.findFirst({
-              where: {
-                bookingId: params.bookingId,
-                athleteId: participant.athleteId,
-                createdByUserId: params.authUserId,
-                deletedAt: null,
-              },
-            });
-            if (existingSessionNote) {
-              const updatedSessionNote = await tx.sessionNote.update({
-                where: { id: existingSessionNote.id },
+          const sessionNoteWrites = await Promise.all(
+            booking.participants.map(async (participant, index) => {
+              const attendanceRecordId = attendanceRecordIds[index] ?? null;
+              const metadataJson = {
+                source: 'booking-completion',
+                proofSource: 'attendance-record',
+                attendanceRecordId,
+                attendanceRecordIds: attendanceRecordId ? [attendanceRecordId] : [],
+                focus: focusAreas,
+                completedAt: completedAt.toISOString(),
+              };
+              const existingSessionNote = await tx.sessionNote.findFirst({
+                where: {
+                  bookingId: params.bookingId,
+                  athleteId: participant.athleteId,
+                  createdByUserId: params.authUserId,
+                  deletedAt: null,
+                },
+              });
+              if (existingSessionNote) {
+                return tx.sessionNote.update({
+                  where: {
+                    id: existingSessionNote.id,
+                  },
+                  data: {
+                    groupSessionId: booking.groupSessionId ?? null,
+                    coachUserId: params.authUserId,
+                    visibility: 'PUBLIC',
+                    noteText: completionNoteText,
+                    metadataJson: metadataJson as never,
+                    updatedByUserId: params.authUserId,
+                    version: {
+                      increment: 1,
+                    },
+                  },
+                });
+              }
+              return tx.sessionNote.create({
                 data: {
+                  id: newId('snt'),
+                  bookingId: params.bookingId,
                   groupSessionId: booking.groupSessionId ?? null,
+                  athleteId: participant.athleteId,
                   coachUserId: params.authUserId,
                   visibility: 'PUBLIC',
                   noteText: completionNoteText,
+                  privateNotesEncrypted: null,
                   metadataJson: metadataJson as never,
+                  createdByUserId: params.authUserId,
                   updatedByUserId: params.authUserId,
-                  version: {
-                    increment: 1,
-                  },
                 },
               });
-              sessionNoteIds.push(updatedSessionNote.id);
-              continue;
-            }
-
-            const sessionNote = await tx.sessionNote.create({
-              data: {
-                id: newId('snt'),
-                bookingId: params.bookingId,
-                groupSessionId: booking.groupSessionId ?? null,
-                athleteId: participant.athleteId,
-                coachUserId: params.authUserId,
-                visibility: 'PUBLIC',
-                noteText: completionNoteText,
-                privateNotesEncrypted: null,
-                metadataJson: metadataJson as never,
-                createdByUserId: params.authUserId,
-                updatedByUserId: params.authUserId,
-              },
-            });
-            sessionNoteIds.push(sessionNote.id);
-          }
+            }),
+          );
+          sessionNoteIds.push(...sessionNoteWrites.map((sessionNote) => sessionNote.id));
         }
-
         await tx.bookingStatusEvent.create({
           data: {
             id: newId('bse'),
@@ -2212,7 +2174,6 @@ class DbBookingRepository implements BookingRepository {
             occurredAt: completedAt,
           },
         });
-
         const nextResponse = bookingResponseSchema.parse({
           id: updated.id,
           coachUserId: updated.coachUserId,
@@ -2239,7 +2200,6 @@ class DbBookingRepository implements BookingRepository {
           updatedAt: updated.updatedAt.toISOString(),
           cancelledAt: updated.cancelledAt?.toISOString() ?? null,
         });
-
         if (params.body.idempotencyKey) {
           await tx.idempotencyKey.create({
             data: {
@@ -2254,10 +2214,8 @@ class DbBookingRepository implements BookingRepository {
             },
           });
         }
-
         return nextResponse;
       });
-
       return normalizeForJson(response);
     } catch (error) {
       if (params.body.idempotencyKey && isCreateBookingIdempotencyRace(error)) {
@@ -2275,10 +2233,8 @@ class DbBookingRepository implements BookingRepository {
     }
   }
 }
-
 const seedBookingRepository = new SeedBookingRepository();
 const dbBookingRepository = new DbBookingRepository();
-
 export function resolveBookingRepository(): BookingRepository {
   return getApiDataBackend() === 'db' ? dbBookingRepository : seedBookingRepository;
 }

@@ -1,11 +1,3 @@
-/**
- * StepParentDetails — Parent-specific details step of onboarding.
- *
- * Lightweight step: asks how many children, then previews the
- * post-signup setup flow (add children, emergency contacts, consents).
- */
-
-import { memo, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -35,10 +27,7 @@ function StepParentDetailsInner({
 }: StepParentDetailsProps) {
   const { colors: palette } = useTheme();
 
-  const handleSelect = useCallback(
-    (count: number) => onChangeChildrenCount(count),
-    [onChangeChildrenCount],
-  );
+  const handleSelect = (count: number) => onChangeChildrenCount(count);
 
   return (
     <View style={styles.content}>
@@ -123,7 +112,7 @@ function StepParentDetailsInner({
   );
 }
 
-export const StepParentDetails = memo(StepParentDetailsInner);
+export const StepParentDetails = StepParentDetailsInner;
 
 const styles = StyleSheet.create({
   content: {

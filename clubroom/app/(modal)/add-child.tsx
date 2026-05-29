@@ -117,13 +117,14 @@ export default function AddChildScreen() {
       {/* Footer */}
       <View style={[styles.footer, { borderTopColor: palette.border }]}>
         {c.isLastStep ? (
-          <Button onPress={c.handleSave} disabled={c.saving} style={{ flex: 1 }}>
-            {c.saving ? 'Creating Profile...' : `Add ${c.firstName || 'Child'}`}
-          </Button>
+          <Button
+            onPress={c.handleSave}
+            disabled={c.saving}
+            style={{ flex: 1 }}
+            label={c.saving ? 'Creating Profile...' : `Add ${c.firstName || 'Child'}`}
+          />
         ) : (
-          <Button onPress={c.goNext} style={{ flex: 1 }}>
-            Continue
-          </Button>
+          <Button onPress={c.goNext} style={{ flex: 1 }} label="Continue" />
         )}
       </View>
     </SafeAreaView>

@@ -1,13 +1,23 @@
 /**
  * Skill radar helpers — constants and utility functions.
  */
-import { Dimensions } from 'react-native';
 import { Spacing } from '@/constants/theme';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-export const RADAR_SIZE = Math.min(SCREEN_WIDTH - Spacing.lg * 4, 260);
-export const CENTER = RADAR_SIZE / 2;
-export const RADIUS = RADAR_SIZE / 2 - 45;
+export type SkillRadarGeometry = {
+  size: number;
+  center: number;
+  radius: number;
+};
+
+export function getSkillRadarGeometry(width: number): SkillRadarGeometry {
+  const size = Math.min(width - Spacing.lg * 4, 260);
+  const center = size / 2;
+  return {
+    size,
+    center,
+    radius: size / 2 - 45,
+  };
+}
 
 export const SKILL_COLORS = {
   developing: '#F59E0B',
@@ -35,9 +45,17 @@ export function getSkillLabel(level: number): string {
   return 'Exceptional';
 }
 
-export function getPosition(index: number, level: number, numSkills: number): { x: number; y: number } {
+export function getPosition(
+  index: number,
+  level: number,
+  numSkills: number,
+  geometry: SkillRadarGeometry,
+): { x: number; y: number } {
   const angleStep = (2 * Math.PI) / numSkills;
   const angle = angleStep * index - Math.PI / 2;
-  const r = (level / 100) * RADIUS;
-  return { x: CENTER + r * Math.cos(angle), y: CENTER + r * Math.sin(angle) };
+  const r = (level / 100) * geometry.radius;
+  return {
+    x: geometry.center + r * Math.cos(angle),
+    y: geometry.center + r * Math.sin(angle),
+  };
 }

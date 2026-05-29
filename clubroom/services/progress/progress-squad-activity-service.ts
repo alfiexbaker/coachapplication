@@ -1,22 +1,25 @@
-import type { Booking } from '@/constants/app-types';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
-import type { BadgeAward, SquadMember } from '@/constants/types';
-import { apiClient } from '@/services/api-client';
-import { userService } from '@/services/user-service';
-import type { SessionFeedback } from '@/services/progress/progress-feedback-service';
-import type { PracticeLogEntry } from '@/services/progress/progress-practice-log-service';
-import { err, ok, storageError, type Result, type ServiceError } from '@/types/result';
-import { accountIdsMatch, normalizeAccountId } from '@/utils/account-id';
-import { createLogger } from '@/utils/logger';
-
-const logger = createLogger('ProgressSquadActivityService');
-
+import type { Booking } from "@/constants/app-types";
+import { STORAGE_KEYS } from "@/constants/storage-keys";
+import type { BadgeAward, SquadMember } from "@/constants/types";
+import { apiClient } from "@/services/api-client";
+import { userService } from "@/services/user-service";
+import type { SessionFeedback } from "@/services/progress/progress-feedback-service";
+import type { PracticeLogEntry } from "@/services/progress/progress-practice-log-service";
+import {
+  err,
+  ok,
+  storageError,
+  type Result,
+  type ServiceError,
+} from "@/types/result";
+import { accountIdsMatch, normalizeAccountId } from "@/utils/account-id";
+import { createLogger } from "@/utils/logger";
+const logger = createLogger("ProgressSquadActivityService");
 export type SquadActivityType =
-  | 'session_completed'
-  | 'badge_earned'
-  | 'feedback_received'
-  | 'practice_logged';
-
+  | "session_completed"
+  | "badge_earned"
+  | "feedback_received"
+  | "practice_logged";
 export interface SquadActivityItem {
   id: string;
   type: SquadActivityType;
@@ -28,7 +31,6 @@ export interface SquadActivityItem {
   title: string;
   detail: string;
 }
-
 export interface SquadActivitySummary {
   activeToday: number;
   sessionsThisWeek: number;
@@ -36,21 +38,18 @@ export interface SquadActivitySummary {
   totalItems: number;
   peerCount: number;
 }
-
 export interface SquadActivityFeed {
   athleteId: string;
   squadIds: string[];
   items: SquadActivityItem[];
   summary: SquadActivitySummary;
 }
-
 export interface GetSquadActivityFeedInput {
   athleteId: string;
   now?: Date;
   lookbackDays?: number;
   limit?: number;
 }
-
 function toTimestamp(value: string | undefined): number | null {
   if (!value) {
     return null;
@@ -58,33 +57,32 @@ function toTimestamp(value: string | undefined): number | null {
   const timestamp = new Date(value).getTime();
   return Number.isNaN(timestamp) ? null : timestamp;
 }
-
 function toDateKey(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
-
 function toInitials(name: string): string {
   const normalized = name.trim();
   if (!normalized) {
-    return '?';
+    return "?";
   }
   return normalized
-    .split(' ')
+    .split(" ")
     .map((part) => part[0])
-    .join('')
+    .join("")
     .slice(0, 2)
     .toUpperCase();
 }
-
 function firstName(name: string): string {
   const value = name.trim();
   if (!value) {
-    return 'Athlete';
+    return "Athlete";
   }
-  return value.split(' ')[0] || value;
+  return value.split(" ")[0] || value;
 }
-
-function bookingAthleteRows(booking: Booking): Array<{ athleteId: string; athleteName?: string }> {
+function bookingAthleteRows(booking: Booking): Array<{
+  athleteId: string;
+  athleteName?: string;
+}> {
   if (booking.athleteIds && booking.athleteIds.length > 0) {
     return booking.athleteIds.map((athleteId, index) => ({
       athleteId,
@@ -92,15 +90,18 @@ function bookingAthleteRows(booking: Booking): Array<{ athleteId: string; athlet
     }));
   }
   if (booking.athleteId) {
-    return [{ athleteId: booking.athleteId, athleteName: booking.athleteNames?.[0] }];
+    return [
+      {
+        athleteId: booking.athleteId,
+        athleteName: booking.athleteNames?.[0],
+      },
+    ];
   }
   return [];
 }
-
 function isActiveMember(member: SquadMember): boolean {
-  return member.status === 'ACTIVE';
+  return member.status === "ACTIVE";
 }
-
 function buildEmptyFeed(athleteId: string): SquadActivityFeed {
   return {
     athleteId,
@@ -115,71 +116,78 @@ function buildEmptyFeed(athleteId: string): SquadActivityFeed {
     },
   };
 }
-
 async function getFeedForAthlete(
   input: GetSquadActivityFeedInput,
 ): Promise<Result<SquadActivityFeed, ServiceError>> {
   if (!input.athleteId.trim()) {
     return ok(buildEmptyFeed(input.athleteId));
   }
-
   const now = input.now ?? new Date();
   const lookbackDays = Math.max(1, Math.round(input.lookbackDays ?? 21));
   const limit = Math.max(1, Math.round(input.limit ?? 10));
   const lookbackCutoff = now.getTime() - lookbackDays * 24 * 60 * 60 * 1000;
   const weekCutoff = now.getTime() - 7 * 24 * 60 * 60 * 1000;
   const todayKey = toDateKey(now);
-
   try {
-    const [members, bookings, feedback, badgeAwards, practiceLogs] = await Promise.all([
-      apiClient.get<SquadMember[]>(STORAGE_KEYS.SQUAD_MEMBERS, []),
-      apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
-      apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []),
-      apiClient.get<BadgeAward[]>(STORAGE_KEYS.BADGE_AWARDS, []),
-      apiClient.get<PracticeLogEntry[]>(STORAGE_KEYS.PROGRESS_PRACTICE_LOGS, []),
-    ]);
-
+    const [members, bookings, feedback, badgeAwards, practiceLogs] =
+      await Promise.all([
+        apiClient.get<SquadMember[]>(STORAGE_KEYS.SQUAD_MEMBERS, []),
+        apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
+        apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []),
+        apiClient.get<BadgeAward[]>(STORAGE_KEYS.BADGE_AWARDS, []),
+        apiClient.get<PracticeLogEntry[]>(
+          STORAGE_KEYS.PROGRESS_PRACTICE_LOGS,
+          [],
+        ),
+      ]);
     const athleteSquadIds = Array.from(
       new Set(
-        members
-          .filter((member) => isActiveMember(member) && accountIdsMatch(member.athleteId, input.athleteId))
-          .map((member) => member.squadId),
+        members.flatMap((member) =>
+          isActiveMember(member) &&
+          accountIdsMatch(member.athleteId, input.athleteId)
+            ? [member.squadId]
+            : [],
+        ),
       ),
     );
-
     if (athleteSquadIds.length === 0) {
       return ok(buildEmptyFeed(input.athleteId));
     }
-
     const squadAthleteIds = Array.from(
       new Set(
-        members
-          .filter((member) => isActiveMember(member) && athleteSquadIds.includes(member.squadId))
-          .map((member) => member.athleteId),
+        members.flatMap((member) =>
+          isActiveMember(member) && athleteSquadIds.includes(member.squadId)
+            ? [member.athleteId]
+            : [],
+        ),
       ),
     );
-
     const usersResult = await userService.getUsersByIds(squadAthleteIds);
     const athleteNameById = new Map<string, string>();
     if (usersResult.success) {
       usersResult.data.forEach((user) => {
-        athleteNameById.set(normalizeAccountId(user.id), user.name.trim() || 'Athlete');
+        athleteNameById.set(
+          normalizeAccountId(user.id),
+          user.name.trim() || "Athlete",
+        );
       });
     }
-
-    const resolveAthleteName = (athleteId: string, fallback?: string): string => {
+    const resolveAthleteName = (
+      athleteId: string,
+      fallback?: string,
+    ): string => {
       const normalized = normalizeAccountId(athleteId);
       const fromUsers = athleteNameById.get(normalized);
       if (fromUsers) {
         return fromUsers;
       }
       const normalizedFallback = fallback?.trim();
-      return normalizedFallback?.length ? normalizedFallback : 'Athlete';
+      return normalizedFallback?.length ? normalizedFallback : "Athlete";
     };
-
-    const athleteIdSet = new Set(squadAthleteIds.map((athleteId) => normalizeAccountId(athleteId)));
+    const athleteIdSet = new Set(
+      squadAthleteIds.map((athleteId) => normalizeAccountId(athleteId)),
+    );
     const items: SquadActivityItem[] = [];
-
     const addItem = (
       id: string,
       type: SquadActivityType,
@@ -193,7 +201,6 @@ async function getFeedForAthlete(
       if (timestamp === null || timestamp < lookbackCutoff) {
         return;
       }
-
       items.push({
         id,
         type,
@@ -206,9 +213,8 @@ async function getFeedForAthlete(
         detail,
       });
     };
-
     for (const booking of bookings) {
-      if (booking.status !== 'COMPLETED') {
+      if (booking.status !== "COMPLETED") {
         continue;
       }
       const bookingTime = booking.scheduledAt || booking.createdAt;
@@ -221,16 +227,17 @@ async function getFeedForAthlete(
         const self = accountIdsMatch(row.athleteId, input.athleteId);
         addItem(
           `booking:${booking.id}:${normalizeAccountId(row.athleteId)}`,
-          'session_completed',
+          "session_completed",
           row.athleteId,
           athleteName,
           bookingTime || new Date().toISOString(),
-          self ? 'You completed a session' : `${firstName(athleteName)} completed a session`,
-          booking.service?.trim() || 'Training session completed',
+          self
+            ? "You completed a session"
+            : `${firstName(athleteName)} completed a session`,
+          booking.service?.trim() || "Training session completed",
         );
       }
     }
-
     for (const award of badgeAwards) {
       if (!athleteIdSet.has(normalizeAccountId(award.athleteId))) {
         continue;
@@ -239,37 +246,40 @@ async function getFeedForAthlete(
       const self = accountIdsMatch(award.athleteId, input.athleteId);
       addItem(
         `badge:${award.id}`,
-        'badge_earned',
+        "badge_earned",
         award.athleteId,
         athleteName,
         award.awardedAt,
         self
           ? `You earned ${award.badgeLabel}`
           : `${firstName(athleteName)} earned ${award.badgeLabel}`,
-        award.reason?.trim() || 'Badge earned',
+        award.reason?.trim() || "Badge earned",
       );
     }
-
     for (const entry of feedback) {
       if (!athleteIdSet.has(normalizeAccountId(entry.athleteId))) {
         continue;
       }
-      if (entry.visibility === 'coach_only') {
+      if (entry.visibility === "coach_only") {
         continue;
       }
-      const athleteName = resolveAthleteName(entry.athleteId, entry.athleteName);
+      const athleteName = resolveAthleteName(
+        entry.athleteId,
+        entry.athleteName,
+      );
       const self = accountIdsMatch(entry.athleteId, input.athleteId);
       addItem(
         `feedback:${entry.id}`,
-        'feedback_received',
+        "feedback_received",
         entry.athleteId,
         athleteName,
         entry.createdAt,
-        self ? 'New coach feedback added' : `${firstName(athleteName)} got coach feedback`,
-        entry.publicSummary?.trim() || 'Coach feedback shared',
+        self
+          ? "New coach feedback added"
+          : `${firstName(athleteName)} got coach feedback`,
+        entry.publicSummary?.trim() || "Coach feedback shared",
       );
     }
-
     for (const log of practiceLogs) {
       if (!athleteIdSet.has(normalizeAccountId(log.athleteId))) {
         continue;
@@ -283,17 +293,16 @@ async function getFeedForAthlete(
       const self = accountIdsMatch(log.athleteId, input.athleteId);
       addItem(
         `practice:${log.id}`,
-        'practice_logged',
+        "practice_logged",
         log.athleteId,
         athleteName,
         happenedAt,
         self
           ? `You logged ${log.minutes}m practice`
           : `${firstName(athleteName)} logged ${log.minutes}m practice`,
-        log.note?.trim() || 'Self-practice logged',
+        log.note?.trim() || "Self-practice logged",
       );
     }
-
     const uniqueById = new Map<string, SquadActivityItem>();
     for (const item of items) {
       const existing = uniqueById.get(item.id);
@@ -301,29 +310,37 @@ async function getFeedForAthlete(
         uniqueById.set(item.id, item);
         continue;
       }
-      if (toTimestamp(item.happenedAt) ?? 0 > (toTimestamp(existing.happenedAt) ?? 0)) {
+      if (
+        toTimestamp(item.happenedAt) ??
+        0 > (toTimestamp(existing.happenedAt) ?? 0)
+      ) {
         uniqueById.set(item.id, item);
       }
     }
-
     const sorted = Array.from(uniqueById.values())
-      .sort((left, right) => (toTimestamp(right.happenedAt) ?? 0) - (toTimestamp(left.happenedAt) ?? 0))
+      .sort(
+        (left, right) =>
+          (toTimestamp(right.happenedAt) ?? 0) -
+          (toTimestamp(left.happenedAt) ?? 0),
+      )
       .slice(0, limit);
-
     const activeTodayIds = new Set(
-      sorted
-        .filter((item) => item.happenedAt.slice(0, 10) === todayKey)
-        .map((item) => normalizeAccountId(item.athleteId)),
+      sorted.flatMap((item) =>
+        item.happenedAt.slice(0, 10) === todayKey
+          ? [normalizeAccountId(item.athleteId)]
+          : [],
+      ),
     );
     const sessionsThisWeek = sorted.filter(
       (item) =>
-        item.type === 'session_completed' && (toTimestamp(item.happenedAt) ?? 0) >= weekCutoff,
+        item.type === "session_completed" &&
+        (toTimestamp(item.happenedAt) ?? 0) >= weekCutoff,
     ).length;
     const badgesThisWeek = sorted.filter(
       (item) =>
-        item.type === 'badge_earned' && (toTimestamp(item.happenedAt) ?? 0) >= weekCutoff,
+        item.type === "badge_earned" &&
+        (toTimestamp(item.happenedAt) ?? 0) >= weekCutoff,
     ).length;
-
     return ok({
       athleteId: input.athleteId,
       squadIds: athleteSquadIds,
@@ -337,14 +354,13 @@ async function getFeedForAthlete(
       },
     });
   } catch (error) {
-    logger.error('Failed to build squad activity feed', {
+    logger.error("Failed to build squad activity feed", {
       athleteId: input.athleteId,
       error,
     });
-    return err(storageError('Failed to load squad activity feed'));
+    return err(storageError("Failed to load squad activity feed"));
   }
 }
-
 export const progressSquadActivityService = {
   getFeedForAthlete,
 };

@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
@@ -43,7 +43,7 @@ interface DotButtonProps {
   size: number;
 }
 
-const DotButton = memo(function DotButton({
+const DotButton = function DotButton({
   dot,
   label,
   filled,
@@ -58,18 +58,18 @@ const DotButton = memo(function DotButton({
   const fillBackground = withAlpha(fillColor, 0.16);
 
   useEffect(() => {
-    fillProgress.value = withTiming(filled ? 1 : 0, { duration: 150 });
+    fillProgress.set(withTiming(filled ? 1 : 0, { duration: 150 }));
   }, [fillProgress, filled]);
 
   useEffect(() => {
     if (pulseDot !== dot) {
       return;
     }
-    pulseProgress.value = 0;
-    pulseProgress.value = withSequence(
+    pulseProgress.set(0);
+    pulseProgress.set(withSequence(
       withTiming(1, { duration: 100 }),
       withTiming(0, { duration: 110 }),
-    );
+    ));
   }, [dot, pulseDot, pulseProgress]);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -99,9 +99,9 @@ const DotButton = memo(function DotButton({
       </Clickable>
     </Animated.View>
   );
-});
+};
 
-export const DotRating = memo(function DotRating({ label, icon, value, onChange, compact = false }: DotRatingProps) {
+export const DotRating = function DotRating({ label, icon, value, onChange, compact = false }: DotRatingProps) {
   const { colors } = useTheme();
   const normalizedValue = clampRating(value);
   const [pulseDot, setPulseDot] = useState<number | null>(null);
@@ -110,14 +110,11 @@ export const DotRating = memo(function DotRating({ label, icon, value, onChange,
 
   const fillColor = colors.tint;
 
-  const handleSelect = useCallback(
-    (nextValue: number) => {
-      void HapticPatterns.tap();
-      setPulseDot(nextValue);
-      onChange(nextValue);
-    },
-    [onChange],
-  );
+  const handleSelect = (nextValue: number) => {
+    void HapticPatterns.tap();
+    setPulseDot(nextValue);
+    onChange(nextValue);
+  };
 
   return (
     <Row align="center" justify="between" style={compact ? styles.rowCompact : styles.row}>
@@ -146,7 +143,7 @@ export const DotRating = memo(function DotRating({ label, icon, value, onChange,
       </Row>
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   row: {

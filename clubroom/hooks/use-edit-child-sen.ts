@@ -4,7 +4,7 @@
  * special needs, communication/behavioral notes.
  */
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 
 import { router, useLocalSearchParams } from 'expo-router';
 
@@ -18,6 +18,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { ok, err, serviceError, type ServiceError } from '@/types/result';
 import { ServiceEvents } from '@/services/event-bus';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncFinally } from '@/utils/async-control';
 
 export function useEditChildSen() {
   const { childId } = useLocalSearchParams<{ childId: string }>();
@@ -47,7 +49,7 @@ export function useEditChildSen() {
   const [behavioralNotes, setBehavioralNotes] = useState('');
   const [notesInitialised, setNotesInitialised] = useState(false);
 
-  const loadChild = useCallback(async () => {
+  const loadChild = async () => {
     if (!childId) return err(serviceError('VALIDATION', 'Missing child ID.'));
     const child = await childService.getChild(childId);
     if (!child) return err(serviceError('NOT_FOUND', 'Child not found.'));
@@ -58,7 +60,7 @@ export function useEditChildSen() {
       setNotesInitialised(true);
     }
     return ok(child);
-  }, [childId, notesInitialised]);
+  };
 
   const { data: child, status, error, retry } = useScreen<ChildProfile>({
     load: loadChild,
@@ -69,10 +71,11 @@ export function useEditChildSen() {
     events: [ServiceEvents.CHILD_SEN_UPDATED],
   });
 
-  const addDisability = useCallback(async () => {
+  const addDisability = async () => {
     if (!child || !selectedDisabilityType) return;
     setSaving(true);
-    try {
+
+    await runAsyncFinally(async () => {
       const result = await childService.addDisability(child.id, {
         type: selectedDisabilityType,
         description: disabilityDescription || undefined,
@@ -91,20 +94,21 @@ export function useEditChildSen() {
         setTriggers([]);
         setCalmingStrategies([]);
       }
-    } finally {
+    }, () => {
       setSaving(false);
-    }
-  }, [child, selectedDisabilityType, disabilityDescription, diagnosisDate, supportRequired, commPrefs, triggers, calmingStrategies]);
+    });
+  };
 
-  const removeDisability = useCallback(async (disabilityId: string) => {
+  const removeDisability = async (disabilityId: string) => {
     if (!child) return;
     await childService.removeDisability(child.id, disabilityId);
-  }, [child]);
+  };
 
-  const addSpecialNeed = useCallback(async () => {
+  const addSpecialNeed = async () => {
     if (!child || !snCategory || !snName.trim()) return;
     setSaving(true);
-    try {
+
+    await runAsyncFinally(async () => {
       const result = await childService.addSpecialNeed(child.id, {
         category: snCategory,
         name: snName.trim(),
@@ -121,20 +125,21 @@ export function useEditChildSen() {
         setSnAccommodations([]);
         setSnParentHints('');
       }
-    } finally {
+    }, () => {
       setSaving(false);
-    }
-  }, [child, snCategory, snName, snDescription, snSeverity, snAccommodations, snParentHints]);
+    });
+  };
 
-  const removeSpecialNeed = useCallback(async (specialNeedId: string) => {
+  const removeSpecialNeed = async (specialNeedId: string) => {
     if (!child) return;
     await childService.removeSpecialNeed(child.id, specialNeedId);
-  }, [child]);
+  };
 
-  const saveNotes = useCallback(async () => {
+  const saveNotes = async () => {
     if (!child || !currentUser?.id) return;
     setSaving(true);
-    try {
+
+    await runAsyncFinally(async () => {
       const result = await childService.updateChild(child.id, {
         communicationNotes: communicationNotes.trim() || undefined,
         behavioralNotes: behavioralNotes.trim() || undefined,
@@ -145,10 +150,10 @@ router.back();
       } else {
         uiFeedback.showToast('Failed to save. Please try again.', 'error');
       }
-    } finally {
+    }, () => {
       setSaving(false);
-    }
-  }, [child, currentUser, communicationNotes, behavioralNotes]);
+    });
+  };
 
   return {
     child,

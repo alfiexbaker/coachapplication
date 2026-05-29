@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -19,7 +19,7 @@ interface CancelReasonPickerProps {
   touched?: boolean;
 }
 
-export const CancelReasonPicker = memo(function CancelReasonPicker({
+export const CancelReasonPicker = function CancelReasonPicker({
   isCoach,
   reasons,
   selectedReason,
@@ -28,13 +28,10 @@ export const CancelReasonPicker = memo(function CancelReasonPicker({
 }: CancelReasonPickerProps) {
   const { colors: palette } = useTheme();
 
-  const handlePress = useCallback(
-    (key: string) => {
-      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      onSelectReason(key);
-    },
-    [onSelectReason],
-  );
+  const handlePress = (key: string) => {
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onSelectReason(key);
+  };
 
   return (
     <SurfaceCard style={styles.card}>
@@ -92,7 +89,7 @@ export const CancelReasonPicker = memo(function CancelReasonPicker({
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.sm },

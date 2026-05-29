@@ -5,16 +5,15 @@
  * and renders NotificationCards within each group.
  */
 
-import React, { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
-
-import { NotificationCard } from '@/components/notification/notification-card';
-import { ThemedText } from '@/components/themed-text';
-import { Row } from '@/components/primitives/row';
-import { Spacing, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
-import type { ExtendedNotificationItem } from '@/services/notification-service';
-import { NotificationDesign } from './notification-design';
+import React from "react";
+import { StyleSheet, View } from "react-native";
+import { NotificationCard } from "@/components/notification/notification-card";
+import { ThemedText } from "@/components/themed-text";
+import { Row } from "@/components/primitives/row";
+import { Spacing, Typography } from "@/constants/theme";
+import { useTheme } from "@/hooks/useTheme";
+import type { ExtendedNotificationItem } from "@/services/notification-service";
+import { NotificationDesign } from "./notification-design";
 
 // ============================================================================
 // DAY GROUPING HELPER
@@ -24,32 +23,26 @@ interface GroupedNotifications {
   label: string;
   items: ExtendedNotificationItem[];
 }
-
-export function groupByDay(notifications: ExtendedNotificationItem[]): GroupedNotifications[] {
+function groupByDay(
+  notifications: ExtendedNotificationItem[],
+): GroupedNotifications[] {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const yesterday = new Date(today.getTime() - 86400000);
-
   const groups: Record<string, ExtendedNotificationItem[]> = {
     Today: [],
     Yesterday: [],
     Earlier: [],
   };
-
   for (const item of notifications) {
     const createdAt = item.createdAt ? new Date(item.createdAt) : null;
-    const timeLabel = (item.timeLabel || '').toLowerCase();
-
-    if (
-      timeLabel.includes('just now') ||
-      timeLabel.includes('min ago') ||
-      timeLabel.includes('hour ago') ||
-      timeLabel.includes('hours ago') ||
-      (createdAt && createdAt >= today)
-    ) {
+    const timeLabel = (item.timeLabel || "").toLowerCase();
+    const isRelativeTodayLabel = /just now|min ago|hours? ago/.test(timeLabel);
+    const isYesterdayLabel = /yesterday/.test(timeLabel);
+    if (isRelativeTodayLabel || (createdAt && createdAt >= today)) {
       groups.Today.push(item);
     } else if (
-      timeLabel.includes('yesterday') ||
+      isYesterdayLabel ||
       (createdAt && createdAt >= yesterday && createdAt < today)
     ) {
       groups.Yesterday.push(item);
@@ -57,10 +50,16 @@ export function groupByDay(notifications: ExtendedNotificationItem[]): GroupedNo
       groups.Earlier.push(item);
     }
   }
-
-  return Object.entries(groups)
-    .filter(([_, items]) => items.length > 0)
-    .map(([label, items]) => ({ label, items }));
+  return Object.entries(groups).flatMap((item) =>
+    (([_, items]) => items.length > 0)(item)
+      ? [
+          (([label, items]) => ({
+            label,
+            items,
+          }))(item),
+        ]
+      : [],
+  );
 }
 
 // ============================================================================
@@ -77,8 +76,7 @@ interface NotificationDayGroupsProps {
   onShare: (item: ExtendedNotificationItem) => void;
   onAddToFeed: (item: ExtendedNotificationItem) => void;
 }
-
-export const NotificationDayGroups = memo(function NotificationDayGroups({
+export const NotificationDayGroups = function NotificationDayGroups({
   items,
   unreadCount,
   onPress,
@@ -89,15 +87,30 @@ export const NotificationDayGroups = memo(function NotificationDayGroups({
   onAddToFeed,
 }: NotificationDayGroupsProps) {
   const { colors: palette } = useTheme();
-
   return (
     <>
       {groupByDay(items).map((group) => (
         <View key={group.label} style={styles.dayGroup}>
           <Row align="center" justify="between">
-            <ThemedText style={[styles.dayLabel, { color: palette.muted }]}>{group.label}</ThemedText>
-            {group.label === 'Today' && unreadCount > 0 ? (
-              <ThemedText style={[styles.inlineUnread, { color: palette.muted }]}>
+            <ThemedText
+              style={[
+                styles.dayLabel,
+                {
+                  color: palette.muted,
+                },
+              ]}
+            >
+              {group.label}
+            </ThemedText>
+            {group.label === "Today" && unreadCount > 0 ? (
+              <ThemedText
+                style={[
+                  styles.inlineUnread,
+                  {
+                    color: palette.muted,
+                  },
+                ]}
+              >
                 {unreadCount} unread
               </ThemedText>
             ) : null}
@@ -110,9 +123,11 @@ export const NotificationDayGroups = memo(function NotificationDayGroups({
               onMarkRead={() => onMarkRead(item.id)}
               onMute={() => onMute(item)}
               onDelete={() => onDelete(item.id)}
-              onShare={item.type === 'badge' ? () => onShare(item) : undefined}
+              onShare={item.type === "badge" ? () => onShare(item) : undefined}
               onAddToFeed={
-                item.type === 'badge' && !item.handled ? () => onAddToFeed(item) : undefined
+                item.type === "badge" && !item.handled
+                  ? () => onAddToFeed(item)
+                  : undefined
               }
             />
           ))}
@@ -120,8 +135,7 @@ export const NotificationDayGroups = memo(function NotificationDayGroups({
       ))}
     </>
   );
-});
-
+};
 const styles = StyleSheet.create({
   dayGroup: {
     gap: NotificationDesign.list.cardGap,
@@ -130,7 +144,7 @@ const styles = StyleSheet.create({
   dayLabel: {
     ...Typography.smallSemiBold,
     letterSpacing: 0.3,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     paddingBottom: Spacing.xxs,
   },
   inlineUnread: {

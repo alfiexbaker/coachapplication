@@ -113,29 +113,29 @@ class ConsentService {
       const roster = await rosterService.getRoster(coachId);
 
       // Get consent data for each athlete
-      const consentsPromises = roster.map(async (entry: RosterEntry): Promise<AthleteConsent> => {
-        const emergencyInfoResult = await safetyService.getEmergencyInfo(entry.athleteId);
-        if (emergencyInfoResult.success) {
-          const emergencyInfo = emergencyInfoResult.data;
+      let athleteConsents = await Promise.all(
+        roster.map(async (entry: RosterEntry): Promise<AthleteConsent> => {
+          const emergencyInfoResult = await safetyService.getEmergencyInfo(entry.athleteId);
+          if (emergencyInfoResult.success) {
+            const emergencyInfo = emergencyInfoResult.data;
+            return {
+              athleteId: entry.athleteId,
+              consents: emergencyInfo.consents,
+              lastUpdated: emergencyInfo.updatedAt,
+            };
+          }
+          // Return default consents if no emergency info exists
           return {
             athleteId: entry.athleteId,
-            consents: emergencyInfo.consents,
-            lastUpdated: emergencyInfo.updatedAt,
+            consents: CONSENT_TYPES.map((type) => ({
+              type,
+              granted: false,
+              grantedBy: '',
+            })),
+            lastUpdated: new Date().toISOString(),
           };
-        }
-        // Return default consents if no emergency info exists
-        return {
-          athleteId: entry.athleteId,
-          consents: CONSENT_TYPES.map((type) => ({
-            type,
-            granted: false,
-            grantedBy: '',
-          })),
-          lastUpdated: new Date().toISOString(),
-        };
-      });
-
-      let athleteConsents = await Promise.all(consentsPromises);
+        }),
+      );
 
       // Apply filters
       if (filters?.search) {
@@ -191,9 +191,7 @@ class ConsentService {
       // Verify coach-athlete relationship when coachId provided
       if (coachId) {
         const roster = await rosterService.getRoster(coachId);
-        const isOnRoster = roster.some(
-          (entry) => entry.athleteId === athleteId,
-        );
+        const isOnRoster = roster.some((entry) => entry.athleteId === athleteId);
         if (!isOnRoster) {
           logger.warn('Consent check failed - no coach-athlete relationship', {
             coachId,

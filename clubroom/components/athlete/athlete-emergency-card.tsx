@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import { View, StyleSheet, Platform, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -21,7 +21,7 @@ import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('AthleteEmergencyCard');
 
-export const AthleteEmergencyCard = React.memo(function AthleteEmergencyCard({
+export const AthleteEmergencyCard = function AthleteEmergencyCard({
   athlete,
   emergencyData,
 }: {
@@ -30,39 +30,35 @@ export const AthleteEmergencyCard = React.memo(function AthleteEmergencyCard({
 }) {
   const { colors } = useTheme();
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(Routes.rosterAthleteEmergency(athlete.athleteId));
-  }, [athlete.athleteId]);
+  };
 
-  const handleCallContact = useCallback((contact: EmergencyContact) => {
+  const handleCallContact = (contact: EmergencyContact) => {
     const phoneNumber = contact.phone.replace(/\s/g, '');
     const telUrl = `tel:${phoneNumber}`;
 
-    uiFeedback.alert(
-      'Call Emergency Contact',
-      `Call ${contact.name} at ${contact.phone}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Call',
-          style: 'destructive',
-          onPress: async () => {
-            if (Platform.OS !== 'web') {
-              await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            }
-            const canOpen = await Linking.canOpenURL(telUrl);
-            if (canOpen) {
-              await Linking.openURL(telUrl);
-              logger.info('Emergency contact called', { contactId: contact.id });
-            } else {
-              uiFeedback.showToast('This device cannot make phone calls', 'error');
-            }
-          },
+    uiFeedback.alert('Call Emergency Contact', `Call ${contact.name} at ${contact.phone}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Call',
+        style: 'destructive',
+        onPress: async () => {
+          if (Platform.OS !== 'web') {
+            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          }
+          const canOpen = await Linking.canOpenURL(telUrl);
+          if (canOpen) {
+            await Linking.openURL(telUrl);
+            logger.info('Emergency contact called', { contactId: contact.id });
+          } else {
+            uiFeedback.showToast('This device cannot make phone calls', 'error');
+          }
         },
-      ],
-    );
-  }, []);
+      },
+    ]);
+  };
 
   const alertColor = emergencyData?.hasAlerts
     ? safetyService.getAlertLevelColor(emergencyData.alertLevel)
@@ -97,11 +93,21 @@ export const AthleteEmergencyCard = React.memo(function AthleteEmergencyCard({
 
       {emergencyData?.hasAlerts && (
         <Row gap="xxs" style={styles.alertBadges} wrap>
-          {emergencyData.allergies.slice(0, 2).map((allergy, i) => (
-            <MedicalAlertBadge key={`a-${i}`} type="allergy" label={allergy} size="small" />
+          {emergencyData.allergies.slice(0, 2).map((allergy) => (
+            <MedicalAlertBadge
+              key={`allergy-${allergy}`}
+              type="allergy"
+              label={allergy}
+              size="small"
+            />
           ))}
-          {emergencyData.conditions.slice(0, 1).map((condition, i) => (
-            <MedicalAlertBadge key={`c-${i}`} type="condition" label={condition} size="small" />
+          {emergencyData.conditions.slice(0, 1).map((condition) => (
+            <MedicalAlertBadge
+              key={`condition-${condition}`}
+              type="condition"
+              label={condition}
+              size="small"
+            />
           ))}
           {emergencyData.allergies.length + emergencyData.conditions.length > 3 && (
             <View style={[styles.moreBadge, { backgroundColor: colors.surfaceSecondary }]}>
@@ -123,14 +129,13 @@ export const AthleteEmergencyCard = React.memo(function AthleteEmergencyCard({
             onPress={() => handleCallContact(emergencyData.primaryContact!)}
             variant="primary"
             style={{ backgroundColor: colors.error }}
-          >
-            Call
-          </Button>
+            label="Call"
+          />
         </Row>
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

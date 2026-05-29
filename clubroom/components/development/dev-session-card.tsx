@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -19,7 +19,7 @@ export interface DevSessionCardProps {
   onSelectForBadge?: (session: Session) => void;
 }
 
-export const DevSessionCard = memo(function DevSessionCard({
+export const DevSessionCard = function DevSessionCard({
   session,
   awards,
   colors,
@@ -27,9 +27,9 @@ export const DevSessionCard = memo(function DevSessionCard({
   const needsNotes = !session.notes || session.notes.trim() === '';
   const sessionAwards = awards.filter((a) => a.sessionId === session.id);
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     router.push(Routes.developmentSession(session.id));
-  }, [session.id]);
+  };
 
   return (
     <SurfaceCard style={styles.card}>
@@ -69,9 +69,9 @@ export const DevSessionCard = memo(function DevSessionCard({
 
       {session.skillsWorkedOn.length > 0 && (
         <Row style={styles.skillsRow}>
-          {session.skillsWorkedOn.map((skill, index) => (
+          {session.skillsWorkedOn.map((skill) => (
             <View
-              key={index}
+              key={skill}
               style={[styles.skillChip, { backgroundColor: withAlpha(colors.tint, 0.09) }]}
             >
               <ThemedText style={[styles.skillText, { color: colors.tint }]}>{skill}</ThemedText>
@@ -101,12 +101,14 @@ export const DevSessionCard = memo(function DevSessionCard({
         accessibilityLabel={`Open session feedback from ${formatShortDateWithYear(session.completedAt)}`}
         style={[styles.openFeedbackButton, { borderColor: colors.border }]}
       >
-        <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>Open feedback</ThemedText>
+        <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>
+          Open feedback
+        </ThemedText>
         <Ionicons name="chevron-forward" size={18} color={colors.tint} />
       </Clickable>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

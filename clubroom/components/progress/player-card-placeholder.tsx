@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -14,7 +13,7 @@ interface PlayerCardPlaceholderProps {
   totalSessions: number;
 }
 
-export const PlayerCardPlaceholder = memo(function PlayerCardPlaceholder({
+export const PlayerCardPlaceholder = function PlayerCardPlaceholder({
   level,
   totalSessions,
 }: PlayerCardPlaceholderProps) {
@@ -49,7 +48,7 @@ export const PlayerCardPlaceholder = memo(function PlayerCardPlaceholder({
       </Column>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

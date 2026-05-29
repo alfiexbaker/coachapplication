@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -121,7 +120,7 @@ export default function SessionTypeScreen() {
     accountChildRefCount: currentUser?.children?.length ?? 0,
   });
 
-  const preselectedChild = useMemo<BookingPrefillChild | null>(() => {
+  const preselectedChild = (() => {
     if (childId) {
       if (currentUser?.id && childId === currentUser.id) {
         return {
@@ -173,17 +172,9 @@ export default function SessionTypeScreen() {
     }
 
     return null;
-  }, [
-    activeChildId,
-    childContextLoading,
-    childId,
-    children,
-    currentUser?.fullName,
-    currentUser?.id,
-    currentUser?.name,
-  ]);
+  })();
 
-  const loadOfferings = useCallback(async () => {
+  const loadOfferings = async () => {
     if (!coachId) {
       return err(serviceError('VALIDATION', 'Coach information is missing for booking.'));
     }
@@ -215,7 +206,7 @@ export default function SessionTypeScreen() {
     } catch (loadError) {
       return err(serviceError('UNKNOWN', 'Failed to load coach offerings.', loadError));
     }
-  }, [coachId]);
+  };
 
   const {
     data: offerings,
@@ -233,36 +224,28 @@ export default function SessionTypeScreen() {
     loadingStrategy: 'section-skeleton',
   });
 
-  const resolvedOfferings = useMemo(() => offerings ?? [], [offerings]);
-  const selectedOffering = useMemo(
-    () => resolvedOfferings.find((offering) => offering.id === draft.sessionOfferingId) ?? null,
-    [resolvedOfferings, draft.sessionOfferingId],
-  );
+  const resolvedOfferings = offerings ?? [];
+  const selectedOffering =
+    resolvedOfferings.find((offering) => offering.id === draft.sessionOfferingId) ?? null;
 
-  const filters = useMemo<SessionTypeFilterOption[]>(
-    () => [
-      { id: 'all', label: 'All Sessions', count: resolvedOfferings.length },
-      ...buildSessionOfferingCategories(resolvedOfferings).map((category) => ({
-        id: category.id,
-        label: category.label,
-        count: category.count,
-      })),
-    ],
-    [resolvedOfferings],
-  );
+  const filters = [
+    { id: 'all', label: 'All Sessions', count: resolvedOfferings.length },
+    ...buildSessionOfferingCategories(resolvedOfferings).map((category) => ({
+      id: category.id,
+      label: category.label,
+      count: category.count,
+    })),
+  ];
 
-  const filteredOfferings = useMemo(
-    () => filterSessionOfferingsByCategory(resolvedOfferings, activeFilter),
-    [activeFilter, resolvedOfferings],
-  );
+  const effectiveFilter = filters.some((filter) => filter.id === activeFilter)
+    ? activeFilter
+    : 'all';
+  const filteredOfferings = filterSessionOfferingsByCategory(resolvedOfferings, effectiveFilter);
 
-  const selectedFilter = useMemo(
-    () => filters.find((filter) => filter.id === activeFilter) ?? filters[0],
-    [activeFilter, filters],
-  );
+  const selectedFilter = filters.find((filter) => filter.id === effectiveFilter) ?? filters[0];
 
   const categoryCount = Math.max(filters.length - 1, 0);
-  const startingPrice = useMemo(() => {
+  const startingPrice = (() => {
     const prices = resolvedOfferings
       .map((offering) => offering.price)
       .filter((price): price is number => typeof price === 'number' && price > 0);
@@ -270,83 +253,38 @@ export default function SessionTypeScreen() {
       return null;
     }
     return Math.min(...prices);
-  }, [resolvedOfferings]);
+  })();
 
-  const requestedWeeks = useMemo(() => {
+  const requestedWeeks = (() => {
     const parsed = Number.parseInt(weeks ?? '', 10);
     return Number.isFinite(parsed) && parsed > 1 ? parsed : 1;
-  }, [weeks]);
+  })();
 
-  const clearOfferingSelection = useCallback(() => {
-    if (!coachId) {
-      return;
-    }
-
-    const hasOfferingDraftState = Boolean(
-      draft.sessionOfferingId ||
-      draft.sessionSource ||
-      draft.sessionSourceEntityId ||
-      draft.sessionTemplateId ||
-      draft.participants ||
-      draft.duration ||
-      draft.date ||
-      draft.slot ||
-      draft.locationOption ||
-      draft.locationText ||
-      draft.price ||
-      draft.totalPrice ||
-      draft.sessionType ||
-      draft.sessionTypeLabel ||
-      draft.clubId ||
-      draft.actingAs ||
-      draft.commercialMode ||
-      draft.ownerCoachId ||
-      draft.assigneeCoachId ||
-      draft.createdByUserId ||
-      draft.createdByRole ||
-      draft.coachId !== coachId ||
-      draft.entrySource !== source,
-    );
-
-    if (!hasOfferingDraftState) {
-      return;
-    }
-
-    updateDraft(buildOfferingResetPatch({ coachId, source }));
-  }, [
-    coachId,
-    draft.actingAs,
-    draft.assigneeCoachId,
-    draft.clubId,
-    draft.coachId,
-    draft.commercialMode,
-    draft.createdByRole,
-    draft.createdByUserId,
-    draft.date,
-    draft.duration,
-    draft.entrySource,
-    draft.locationOption,
-    draft.locationText,
-    draft.ownerCoachId,
-    draft.participants,
-    draft.price,
-    draft.sessionOfferingId,
-    draft.sessionSource,
-    draft.sessionSourceEntityId,
-    draft.sessionTemplateId,
-    draft.sessionType,
-    draft.sessionTypeLabel,
-    draft.slot,
-    draft.totalPrice,
-    source,
-    updateDraft,
-  ]);
-
-  useEffect(() => {
-    if (!filters.some((filter) => filter.id === activeFilter)) {
-      setActiveFilter('all');
-    }
-  }, [activeFilter, filters]);
+  const hasOfferingDraftState = Boolean(
+    draft.sessionOfferingId ||
+    draft.sessionSource ||
+    draft.sessionSourceEntityId ||
+    draft.sessionTemplateId ||
+    draft.participants ||
+    draft.duration ||
+    draft.date ||
+    draft.slot ||
+    draft.locationOption ||
+    draft.locationText ||
+    draft.price ||
+    draft.totalPrice ||
+    draft.sessionType ||
+    draft.sessionTypeLabel ||
+    draft.clubId ||
+    draft.actingAs ||
+    draft.commercialMode ||
+    draft.ownerCoachId ||
+    draft.assigneeCoachId ||
+    draft.createdByUserId ||
+    draft.createdByRole ||
+    draft.coachId !== coachId ||
+    draft.entrySource !== source,
+  );
 
   useEffect(() => {
     if (!preselectedChild) {
@@ -374,7 +312,9 @@ export default function SessionTypeScreen() {
     }
 
     if (status === 'empty') {
-      clearOfferingSelection();
+      if (hasOfferingDraftState) {
+        updateDraft(buildOfferingResetPatch({ coachId, source }));
+      }
       return;
     }
 
@@ -382,7 +322,8 @@ export default function SessionTypeScreen() {
       return;
     }
 
-    const currentSelection = resolvedOfferings.find(
+    const currentResolvedOfferings = offerings ?? [];
+    const currentSelection = currentResolvedOfferings.find(
       (offering) => offering.id === draft.sessionOfferingId,
     );
     if (currentSelection) {
@@ -390,8 +331,10 @@ export default function SessionTypeScreen() {
     }
 
     const preferredOffering =
-      (offeringId ? resolvedOfferings.find((offering) => offering.id === offeringId) : undefined) ??
-      (resolvedOfferings.length === 1 ? resolvedOfferings[0] : undefined);
+      (offeringId
+        ? currentResolvedOfferings.find((offering) => offering.id === offeringId)
+        : undefined) ??
+      (currentResolvedOfferings.length === 1 ? currentResolvedOfferings[0] : undefined);
 
     if (preferredOffering) {
       updateDraft(
@@ -405,69 +348,67 @@ export default function SessionTypeScreen() {
       return;
     }
 
-    clearOfferingSelection();
+    if (hasOfferingDraftState) {
+      updateDraft(buildOfferingResetPatch({ coachId, source }));
+    }
   }, [
-    clearOfferingSelection,
     coachId,
     draft.sessionOfferingId,
+    hasOfferingDraftState,
     offeringId,
+    offerings,
     preselectedChild,
-    resolvedOfferings,
     source,
     status,
     updateDraft,
   ]);
 
   useEffect(() => {
-    if (!selectedOffering || activeFilter === 'all') {
+    if (!selectedOffering || effectiveFilter === 'all') {
       return;
     }
 
-    if (getSessionOfferingCategoryId(selectedOffering) === activeFilter) {
+    if (getSessionOfferingCategoryId(selectedOffering) === effectiveFilter) {
       return;
     }
 
-    clearOfferingSelection();
-  }, [activeFilter, clearOfferingSelection, selectedOffering]);
+    if (hasOfferingDraftState) {
+      updateDraft(buildOfferingResetPatch({ coachId, source }));
+    }
+  }, [coachId, effectiveFilter, hasOfferingDraftState, selectedOffering, source, updateDraft]);
 
-  const handleSelectOffering = useCallback(
-    (selectedOfferingId: string) => {
-      const offering = resolvedOfferings.find((item) => item.id === selectedOfferingId);
-      if (!offering || !coachId) {
-        return;
-      }
+  const handleSelectOffering = (selectedOfferingId: string) => {
+    const offering = resolvedOfferings.find((item) => item.id === selectedOfferingId);
+    if (!offering || !coachId) {
+      return;
+    }
 
-      updateDraft(
-        buildBookingDraftPatchFromOffering({
-          coachId,
-          offering,
-          child: preselectedChild,
-          entrySource: source,
-        }),
-      );
-    },
-    [coachId, preselectedChild, resolvedOfferings, source, updateDraft],
-  );
+    updateDraft(
+      buildBookingDraftPatchFromOffering({
+        coachId,
+        offering,
+        child: preselectedChild,
+        entrySource: source,
+      }),
+    );
+  };
 
-  const handleFilterChange = useCallback(
-    (nextFilter: string) => {
-      if (nextFilter === activeFilter) {
-        return;
-      }
+  const handleFilterChange = (nextFilter: string) => {
+    if (nextFilter === effectiveFilter) {
+      return;
+    }
 
-      setActiveFilter(nextFilter);
-    },
-    [activeFilter],
-  );
+    setActiveFilter(nextFilter);
+  };
 
-  const handleMessageCoach = useCallback(() => {
+  const handleMessageCoach = () => {
     if (!coachId) {
       return;
     }
     router.push(Routes.messagesWith({ coachId }));
-  }, [coachId]);
+  };
 
-  const handleBack = useCallback(() => {
+  const handleBack = () => {
     void bookingStepAnalyticsService.track({
       step: 'type',
       status: 'abandoned',
@@ -480,9 +421,9 @@ export default function SessionTypeScreen() {
       draft,
     });
     router.back();
-  }, [accountHasChildren, currentUser?.id, currentUser?.role, draft, source]);
+  };
 
-  const handleContinue = useCallback(() => {
+  const handleContinue = () => {
     if (!coachId) {
       void bookingStepAnalyticsService.track({
         step: 'type',
@@ -537,24 +478,15 @@ export default function SessionTypeScreen() {
       return;
     }
     router.push(Routes.bookReview(coachId));
-  }, [
-    accountHasChildren,
-    coachId,
-    currentUser?.id,
-    currentUser?.role,
-    draft,
-    requestedWeeks,
-    selectedOffering,
-    source,
-  ]);
+  };
 
   const canContinue = Boolean(coachId && selectedOffering);
   const visibleSessionCount =
-    activeFilter === 'all' ? resolvedOfferings.length : filteredOfferings.length;
-  const catalogTitle = activeFilter === 'all' ? 'All sessions' : selectedFilter.label;
+    effectiveFilter === 'all' ? resolvedOfferings.length : filteredOfferings.length;
+  const catalogTitle = effectiveFilter === 'all' ? 'All sessions' : selectedFilter.label;
   const listSummary =
     status === 'success'
-      ? activeFilter === 'all'
+      ? effectiveFilter === 'all'
         ? `${resolvedOfferings.length} live`
         : `${filteredOfferings.length} ${selectedFilter.label.toLowerCase()} live`
       : 'Loading';
@@ -585,11 +517,9 @@ export default function SessionTypeScreen() {
               };
 
   return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
+    <View style={[styles.safeArea, { backgroundColor: palette.background }]}>
       <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
@@ -614,9 +544,7 @@ export default function SessionTypeScreen() {
           </View>
           {status === 'success' && resolvedOfferings.length > 0 ? (
             <Row wrap gap="xs" style={styles.catalogMetrics}>
-              <View
-                style={[styles.metricChip, { backgroundColor: withAlpha(palette.tint, 0.08) }]}
-              >
+              <View style={[styles.metricChip, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
                 <ThemedText style={[styles.metricText, { color: palette.tint }]}>
                   {resolvedOfferings.length} live
                 </ThemedText>
@@ -666,7 +594,7 @@ export default function SessionTypeScreen() {
           </View>
         ) : (
           <SessionTypeSelector
-            activeFilter={activeFilter}
+            activeFilter={effectiveFilter}
             filters={filters}
             loading={status === 'loading'}
             offerings={filteredOfferings}
@@ -761,7 +689,8 @@ export default function SessionTypeScreen() {
                   style={[styles.selectionTrayMeta, { color: palette.muted }]}
                   numberOfLines={1}
                 >
-                  {formatOfferingSchedule(selectedOffering)} · {formatCapacityLabel(selectedOffering)}
+                  {formatOfferingSchedule(selectedOffering)} ·{' '}
+                  {formatCapacityLabel(selectedOffering)}
                 </ThemedText>
               </View>
               <ThemedText style={styles.selectionTrayPrice}>
@@ -843,7 +772,7 @@ export default function SessionTypeScreen() {
           </>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

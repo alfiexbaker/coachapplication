@@ -2,7 +2,7 @@
  * EditLanguagesSection — Languages list + add/edit modal for coach profiles.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { Modal, StyleSheet, TextInput, View, Keyboard } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,7 +31,7 @@ interface EditLanguagesSectionProps {
   modalError?: string | null;
 }
 
-export const EditLanguagesSection = memo(function EditLanguagesSection({
+export const EditLanguagesSection = function EditLanguagesSection({
   colors,
   languages,
   onOpenModal,
@@ -239,7 +239,7 @@ export const EditLanguagesSection = memo(function EditLanguagesSection({
       </Modal>
     </>
   );
-});
+};
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.md },

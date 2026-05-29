@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -10,6 +10,8 @@ import { createLogger } from '@/utils/logger';
 import type { ClubSquad } from '@/constants/types';
 import { squadService } from '@/services/squad-service';
 import { useTheme } from '@/hooks/useTheme';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('InlineSquadSelector');
 
@@ -36,26 +38,15 @@ export function InlineSquadSelector({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadSquads = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      let data = await squadService.getSquads(clubId);
-      if (excludeStaffSquad) {
-        data = data.filter((s) => !s.name.toLowerCase().includes('staff'));
-      }
-      setSquads(data);
-    } catch (err) {
-      logger.error('Failed to load squads', err);
-      setError('Failed to load squads');
-    } finally {
-      setLoading(false);
-    }
-  }, [clubId, excludeStaffSquad]);
+  const retryLoadSquads = () => {
+    void loadInlineSquads(clubId, excludeStaffSquad, setSquads, setLoading, setError);
+  };
 
   useEffect(() => {
-    loadSquads();
-  }, [loadSquads]);
+    startTransition(() => {
+      void loadInlineSquads(clubId, excludeStaffSquad, setSquads, setLoading, setError);
+    });
+  }, [clubId, excludeStaffSquad]);
 
   const toggleSquad = (squadId: string) => {
     if (multiSelect) {
@@ -72,7 +63,7 @@ export function InlineSquadSelector({
     return (
       <View style={styles.loading}>
         <ThemedText style={{ ...Typography.small, color: palette.muted }}>
-          Loading squads...
+          Loading squads…
         </ThemedText>
       </View>
     );
@@ -80,7 +71,7 @@ export function InlineSquadSelector({
 
   if (error) {
     return (
-      <Clickable onPress={loadSquads} style={styles.error}>
+      <Clickable onPress={retryLoadSquads} style={styles.error}>
         <Row align="center" gap="xs">
           <Ionicons name="alert-circle" size={16} color={palette.error} />
           <ThemedText style={{ ...Typography.small, color: palette.error }}>
@@ -137,6 +128,34 @@ export function InlineSquadSelector({
         })}
       </Row>
     </View>
+  );
+}
+
+async function loadInlineSquads(
+  clubId: string,
+  excludeStaffSquad: boolean,
+  setSquads: (squads: ClubSquad[]) => void,
+  setLoading: (loading: boolean) => void,
+  setError: (error: string | null) => void,
+) {
+  setLoading(true);
+  setError(null);
+
+  await runAsyncTryCatchFinally(
+    async () => {
+      let data = await squadService.getSquads(clubId);
+      if (excludeStaffSquad) {
+        data = data.filter((squad) => !squad.name.toLowerCase().includes('staff'));
+      }
+      setSquads(data);
+    },
+    async (err) => {
+      logger.error('Failed to load squads', err);
+      setError('Failed to load squads');
+    },
+    () => {
+      setLoading(false);
+    },
   );
 }
 

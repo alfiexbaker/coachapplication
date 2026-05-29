@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
@@ -13,12 +13,7 @@ import { Row } from '@/components/primitives/row';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState, ErrorState } from '@/components/ui/screen-states';
-import {
-  Skeleton,
-  SkeletonCircle,
-  SkeletonPill,
-  SkeletonText,
-} from '@/components/ui/skeleton';
+import { Skeleton, SkeletonCircle, SkeletonPill, SkeletonText } from '@/components/ui/skeleton';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { useTheme } from '@/hooks/useTheme';
@@ -43,6 +38,40 @@ interface FindCoachData {
 }
 
 let lastFindCoachSnapshot: FindCoachData | null = null;
+
+interface InitialCoachSearchState {
+  filters: CoachSearchFilters;
+  searchQuery: string;
+}
+
+function getInitialCoachSearchState(filtersParam: string | undefined): InitialCoachSearchState {
+  if (!filtersParam) {
+    return {
+      filters: {
+        location: DEFAULT_LOCATION,
+      },
+      searchQuery: '',
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(filtersParam) as CoachSearchFilters;
+    return {
+      filters: {
+        ...parsed,
+        location: parsed.location ?? DEFAULT_LOCATION,
+      },
+      searchQuery: parsed.query ?? '',
+    };
+  } catch {
+    return {
+      filters: {
+        location: DEFAULT_LOCATION,
+      },
+      searchQuery: '',
+    };
+  }
+}
 
 function formatNextAvailability(isoDate: string): string {
   const date = new Date(isoDate);
@@ -77,54 +106,34 @@ function toCoachCardData(coach: CoachProfile): CoachCardData {
 }
 
 export default function BookCoachScreen() {
+  const params = useLocalSearchParams<{ coachId?: string; filters?: string }>();
+  const initialState = getInitialCoachSearchState(params.filters);
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
-  const router = useRouter();
-  const params = useLocalSearchParams<{ coachId?: string; filters?: string }>();
+  const { back, push } = useRouter();
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState<CoachSearchFilters>({
-    location: DEFAULT_LOCATION,
-  });
+  const [searchQuery, setSearchQuery] = useState(initialState.searchQuery);
+  const [filters, setFilters] = useState<CoachSearchFilters>(initialState.filters);
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const filtersRef = useRef(filters);
 
   useEffect(() => {
-    if (!params.coachId) return;
-    router.replace(
-      Routes.bookCoach(params.coachId, {
-        source: 'discover_search',
-      }),
-    );
-  }, [params.coachId, router]);
+    filtersRef.current = filters;
+  });
 
-  useEffect(() => {
-    if (!params.filters) return;
-    try {
-      const parsed = JSON.parse(params.filters) as CoachSearchFilters;
-      setFilters((prev) => ({
-        ...prev,
-        ...parsed,
-        location: parsed.location ?? prev.location ?? DEFAULT_LOCATION,
-      }));
-      setSearchQuery(parsed.query ?? '');
-    } catch {
-      // Ignore malformed route params and keep defaults.
-    }
-  }, [params.filters]);
-
-  const loadResults = useCallback(async () => {
-    const result = await discoverService.searchCoaches(filters, 1, 40);
+  const loadResults = async () => {
+    const result = await discoverService.searchCoaches(filtersRef.current, 1, 40);
     if (!result.success) return result;
     return ok<FindCoachData>({
       results: result.data.results,
       filterOptions: result.data.filterOptions,
       totalCount: result.data.totalCount,
     });
-  }, [filters]);
+  };
 
   const { data, status, error, retry, refreshing, onRefresh } = useScreen<FindCoachData>({
     load: loadResults,
-    deps: [loadResults],
+    deps: [filters],
     isEmpty: (value) => value.totalCount === 0,
     refetchOnFocus: true,
     loadingStrategy: 'warm-first',
@@ -142,53 +151,46 @@ export default function BookCoachScreen() {
   const filterOptions = resolvedData?.filterOptions ?? null;
   const activeFilterCount = discoverService.getActiveFilterCount(filters);
 
-  const cards = useMemo(
-    () => (resolvedData?.results ?? []).map((result) => toCoachCardData(result.coach)),
-    [resolvedData?.results],
-  );
-  const minSessionPrice = useMemo(
-    () =>
-      cards.reduce((lowest, coach) => {
-        const price = coach.pricePerHour ?? 0;
-        if (price <= 0) return lowest;
-        return lowest === 0 ? price : Math.min(lowest, price);
-      }, 0),
-    [cards],
-  );
-  const averageRating = useMemo(() => {
+  const cards = (resolvedData?.results ?? []).map((result) => toCoachCardData(result.coach));
+  const minSessionPrice = cards.reduce((lowest, coach) => {
+    const price = coach.pricePerHour ?? 0;
+    if (price <= 0) return lowest;
+    return lowest === 0 ? price : Math.min(lowest, price);
+  }, 0);
+  const averageRating = (() => {
     const rated = cards.filter((coach) => typeof coach.rating === 'number' && coach.rating > 0);
     if (rated.length === 0) return 0;
     const total = rated.reduce((sum, coach) => sum + (coach.rating ?? 0), 0);
     return Number((total / rated.length).toFixed(1));
-  }, [cards]);
+  })();
 
-  const handleSearch = useCallback(() => {
+  const handleSearch = () => {
     setFilters((prev) => ({
       ...prev,
       query: searchQuery.trim().length > 0 ? searchQuery.trim() : undefined,
     }));
-  }, [searchQuery]);
+  };
 
-  const handleClearSearch = useCallback(() => {
+  const handleClearSearch = () => {
     setSearchQuery('');
     setFilters((prev) => ({ ...prev, query: undefined }));
-  }, []);
+  };
 
-  const handleFilterChange = useCallback((next: CoachSearchFilters) => {
+  const handleFilterChange = (next: CoachSearchFilters) => {
     setFilters({
       ...next,
       location: next.location ?? DEFAULT_LOCATION,
     });
-  }, []);
+  };
 
-  const handleOpenMap = useCallback(() => {
-    router.push(Routes.discoverMap({ filters: JSON.stringify(filters) }));
-  }, [filters, router]);
+  const handleOpenMap = () => {
+    push(Routes.discoverMap({ filters: JSON.stringify(filters) }));
+  };
 
-  const locationLabel = useMemo(() => {
+  const locationLabel = (() => {
     if (currentUser?.postcode) return currentUser.postcode;
     return FALLBACK_LOCATION_LABEL;
-  }, [currentUser?.postcode]);
+  })();
   const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.background }]}
@@ -203,7 +205,7 @@ export default function BookCoachScreen() {
       <View style={styles.headerContent}>
         <Row align="center" justify="between" style={styles.headerTop}>
           <Clickable
-            onPress={() => router.back()}
+            onPress={() => back()}
             style={[styles.backButton, { backgroundColor: palette.surface }]}
             accessibilityLabel="Go back"
           >
@@ -230,7 +232,10 @@ export default function BookCoachScreen() {
           </Clickable>
           <Clickable
             onPress={handleOpenMap}
-            style={[styles.mapIconButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
+            style={[
+              styles.mapIconButton,
+              { backgroundColor: palette.surface, borderColor: palette.border },
+            ]}
             accessibilityLabel="Open map view"
           >
             <Ionicons name="map-outline" size={18} color={palette.text} />
@@ -246,12 +251,15 @@ export default function BookCoachScreen() {
           ]}
           tactile={false}
         >
-          <ThemedText style={[styles.eyebrow, { color: palette.muted }]}>Map-first discovery</ThemedText>
+          <ThemedText style={[styles.eyebrow, { color: palette.muted }]}>
+            Map-first discovery
+          </ThemedText>
           <ThemedText type="title" style={styles.title}>
             Find a Coach Nearby
           </ThemedText>
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-            Search trusted local coaches, then open the map to choose by distance, fit, and next bookable session.
+            Search trusted local coaches, then open the map to choose by distance, fit, and next
+            bookable session.
           </ThemedText>
 
           <Row
@@ -275,9 +283,8 @@ export default function BookCoachScreen() {
               returnKeyType="search"
               style={[styles.searchInput, { color: palette.text }]}
               accessibilityLabel="Search coaches"
-
-            maxLength={100}
-          />
+              maxLength={100}
+            />
             {searchQuery.length > 0 ? (
               <Clickable accessibilityLabel="Clear search" onPress={handleClearSearch}>
                 <Ionicons name="close-circle" size={18} color={palette.muted} />
@@ -297,7 +304,9 @@ export default function BookCoachScreen() {
               <ThemedText style={[styles.metricValue, { color: palette.tint }]}>
                 {resolvedData?.totalCount ?? 0}
               </ThemedText>
-              <ThemedText style={[styles.metricLabel, { color: palette.muted }]}>Available</ThemedText>
+              <ThemedText style={[styles.metricLabel, { color: palette.muted }]}>
+                Available
+              </ThemedText>
             </View>
             <View
               style={[
@@ -310,7 +319,9 @@ export default function BookCoachScreen() {
               <ThemedText style={[styles.metricValue, { color: palette.success }]}>
                 {minSessionPrice > 0 ? `£${minSessionPrice}` : '£--'}
               </ThemedText>
-              <ThemedText style={[styles.metricLabel, { color: palette.muted }]}>Starting price</ThemedText>
+              <ThemedText style={[styles.metricLabel, { color: palette.muted }]}>
+                Starting price
+              </ThemedText>
             </View>
             <View
               style={[
@@ -323,7 +334,9 @@ export default function BookCoachScreen() {
               <ThemedText style={[styles.metricValue, { color: palette.rating }]}>
                 {averageRating > 0 ? `${averageRating}★` : '--'}
               </ThemedText>
-              <ThemedText style={[styles.metricLabel, { color: palette.muted }]}>Avg rating</ThemedText>
+              <ThemedText style={[styles.metricLabel, { color: palette.muted }]}>
+                Avg rating
+              </ThemedText>
             </View>
           </Row>
         </SurfaceCard>
@@ -337,7 +350,7 @@ export default function BookCoachScreen() {
           totalResults={cards.length}
           activeFilterCount={activeFilterCount}
         />
-      ) : loading || params.coachId ? (
+      ) : loading ? (
         <Row style={styles.filterSkeletonRow} gap="xs">
           <SkeletonPill width={96} height={34} />
           <SkeletonPill width={124} height={34} />
@@ -348,11 +361,12 @@ export default function BookCoachScreen() {
   );
 
   if (params.coachId) {
-    return renderShell(
-      <>
-        {header}
-        <CoachDiscoveryResultsSkeleton />
-      </>,
+    return (
+      <Redirect
+        href={Routes.bookCoach(params.coachId, {
+          source: 'discover_search',
+        })}
+      />
     );
   }
 
@@ -409,9 +423,9 @@ export default function BookCoachScreen() {
                 coach={coach}
                 variant="discovery"
                 index={index}
-                onPress={() => router.push(Routes.coach(coach.id))}
+                onPress={() => push(Routes.coach(coach.id))}
                 onBookNow={() =>
-                  router.push(
+                  push(
                     Routes.bookCoach(coach.id, {
                       source: 'discover_search',
                     }),

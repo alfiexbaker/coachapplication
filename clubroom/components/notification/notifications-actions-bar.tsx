@@ -2,7 +2,7 @@
  * NotificationsActionsBar — Compact top actions for notifications.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -21,7 +21,7 @@ interface NotificationsActionsBarProps {
   clearingAll?: boolean;
 }
 
-export const NotificationsActionsBar = memo(function NotificationsActionsBar({
+export const NotificationsActionsBar = function NotificationsActionsBar({
   unreadCount,
   onMarkAllRead,
   onClearAll,
@@ -73,7 +73,7 @@ export const NotificationsActionsBar = memo(function NotificationsActionsBar({
       </Row>
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   actionsBar: {

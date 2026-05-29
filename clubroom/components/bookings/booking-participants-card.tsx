@@ -5,7 +5,7 @@
  * and links to athlete development profiles.
  */
 
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -40,7 +40,7 @@ const statusColorKey = {
   cancelled: 'error',
 } as const;
 
-export const BookingParticipantsCard = memo(function BookingParticipantsCard({
+export const BookingParticipantsCard = function BookingParticipantsCard({
   participants,
   currentParticipants,
   maxParticipants,
@@ -69,7 +69,7 @@ export const BookingParticipantsCard = memo(function BookingParticipantsCard({
       </Column>
     </SurfaceCard>
   );
-});
+};
 
 // ============================================================================
 // PARTICIPANT ROW
@@ -81,7 +81,7 @@ interface ParticipantRowProps {
   isCoach: boolean;
 }
 
-const ParticipantRow = memo(function ParticipantRow({
+const ParticipantRow = function ParticipantRow({
   participant,
   coachId,
   isCoach,
@@ -91,15 +91,15 @@ const ParticipantRow = memo(function ParticipantRow({
   const colorKey = statusColorKey[participant.status];
   const statusColor = palette[colorKey];
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     if (isCoach) {
       router.push(Routes.developmentAthlete(participant.id));
     }
-  }, [isCoach, participant.id]);
+  };
 
-  const handleMessage = useCallback(() => {
+  const handleMessage = () => {
     router.push(Routes.messagesWith({ coachId, athleteId: participant.id }));
-  }, [coachId, participant.id]);
+  };
 
   return (
     <Row
@@ -148,7 +148,7 @@ const ParticipantRow = memo(function ParticipantRow({
       )}
     </Row>
   );
-});
+};
 
 // ============================================================================
 // STYLES

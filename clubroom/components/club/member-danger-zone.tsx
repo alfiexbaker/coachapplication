@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -14,7 +13,7 @@ interface MemberDangerZoneProps {
   onBan: () => void;
 }
 
-export const MemberDangerZone = memo(function MemberDangerZone({
+export const MemberDangerZone = function MemberDangerZone({
   onRemove,
   onBan,
 }: MemberDangerZoneProps) {
@@ -61,7 +60,7 @@ export const MemberDangerZone = memo(function MemberDangerZone({
       </Clickable>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },

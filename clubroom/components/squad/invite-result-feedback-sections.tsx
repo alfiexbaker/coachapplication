@@ -1,4 +1,4 @@
-import React, { memo, useState } from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInUp } from 'react-native-reanimated';
@@ -17,14 +17,19 @@ interface InviteErrorDetailsProps {
   palette: ThemeColors;
 }
 
-export const InviteErrorDetails = memo(function InviteErrorDetails({
+export const InviteErrorDetails = function InviteErrorDetails({
   errors,
   palette,
 }: InviteErrorDetailsProps) {
   if (errors.length === 0) return null;
 
   return (
-    <View style={[styles.errorSection, { backgroundColor: withAlpha(palette.error, 0.06), borderRadius: 8, padding: Spacing.sm }]}>
+    <View
+      style={[
+        styles.errorSection,
+        { backgroundColor: withAlpha(palette.error, 0.06), borderRadius: 8, padding: Spacing.sm },
+      ]}
+    >
       <Row align="center" gap="xs" style={{ marginBottom: Spacing.xs }}>
         <Ionicons name="alert-circle" size={18} color={palette.error} />
         <ThemedText style={[styles.errorToggleText, { color: palette.error }]}>
@@ -49,7 +54,7 @@ export const InviteErrorDetails = memo(function InviteErrorDetails({
       </Animated.View>
     </View>
   );
-});
+};
 
 interface InviteActionRowProps {
   sent: number;
@@ -61,7 +66,7 @@ interface InviteActionRowProps {
   palette: ThemeColors;
 }
 
-export const InviteActionRow = memo(function InviteActionRow({
+const renderInviteActionRow = function renderInviteActionRow({
   sent,
   failed,
   failedMemberIds,
@@ -112,7 +117,8 @@ export const InviteActionRow = memo(function InviteActionRow({
       )}
     </Row>
   );
-});
+};
+export const InviteActionRow = renderInviteActionRow;
 
 interface CompactInviteResultInnerProps {
   result: BulkInviteResult;
@@ -120,7 +126,7 @@ interface CompactInviteResultInnerProps {
   palette: ThemeColors;
 }
 
-export const CompactInviteResultInner = memo(function CompactInviteResultInner({
+const renderCompactInviteResultInner = function renderCompactInviteResultInner({
   result,
   onDismiss,
   palette,
@@ -158,8 +164,5 @@ export const CompactInviteResultInner = memo(function CompactInviteResultInner({
       )}
     </Row>
   );
-});
-
-export const inviteResultCardStyles = StyleSheet.create({
-  card: { gap: Spacing.sm },
-});
+};
+export const CompactInviteResultInner = renderCompactInviteResultInner;

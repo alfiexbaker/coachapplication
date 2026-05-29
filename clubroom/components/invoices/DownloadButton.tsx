@@ -11,14 +11,13 @@ import { createLogger } from '@/utils/logger';
 import { Invoice } from '@/constants/types';
 import { invoiceService } from '@/services/invoice-service';
 
-import {
-  getButtonSize,
-  getIconSize,
-  getFontSize,
-  DownloadOnlyButtonInner,
-  ShareOnlyButtonInner,
-} from './download-button-sections';
+import { getButtonSize, getIconSize, getFontSize } from './download-button-helpers';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
+
+export { DownloadOnlyButton } from './download-only-button';
+export { ShareOnlyButton } from './share-only-button';
 
 const logger = createLogger('DownloadButton');
 
@@ -46,39 +45,47 @@ export function DownloadButton({
     setDownloading(true);
     onDownloadStart?.();
 
-    try {
-      const result = await invoiceService.downloadInvoice(invoice.id);
-      if (result) {
-        uiFeedback.showToast(`${invoice.invoiceNumber} has been saved to your device.`);
-        onDownloadComplete?.(true);
-      } else {
-        uiFeedback.showToast('Could not download the invoice. Please try again.', 'error');
+    await runAsyncTryCatchFinally(
+      async () => {
+        const result = await invoiceService.downloadInvoice(invoice.id);
+        if (result) {
+          uiFeedback.showToast(`${invoice.invoiceNumber} has been saved to your device.`);
+          onDownloadComplete?.(true);
+        } else {
+          uiFeedback.showToast('Could not download the invoice. Please try again.', 'error');
+          onDownloadComplete?.(false);
+        }
+      },
+      async (error) => {
+        logger.error('Download error', error);
+        uiFeedback.showToast('An error occurred while downloading the invoice.', 'error');
         onDownloadComplete?.(false);
-      }
-    } catch (error) {
-      logger.error('Download error', error);
-      uiFeedback.showToast('An error occurred while downloading the invoice.', 'error');
-      onDownloadComplete?.(false);
-    } finally {
-      setDownloading(false);
-    }
+      },
+      () => {
+        setDownloading(false);
+      },
+    );
   };
 
   const handleShare = async () => {
     if (downloading || sharing) return;
     setSharing(true);
 
-    try {
-      const success = await invoiceService.shareInvoice(invoice.id);
-      if (!success) {
-        uiFeedback.showToast('Could not share the invoice. Please try again.', 'error');
-      }
-    } catch (error) {
-      logger.error('Share error', error);
-      uiFeedback.showToast('An error occurred while sharing the invoice.', 'error');
-    } finally {
-      setSharing(false);
-    }
+    await runAsyncTryCatchFinally(
+      async () => {
+        const success = await invoiceService.shareInvoice(invoice.id);
+        if (!success) {
+          uiFeedback.showToast('Could not share the invoice. Please try again.', 'error');
+        }
+      },
+      async (error) => {
+        logger.error('Share error', error);
+        uiFeedback.showToast('An error occurred while sharing the invoice.', 'error');
+      },
+      () => {
+        setSharing(false);
+      },
+    );
   };
 
   const iconSz = getIconSize(size);
@@ -187,22 +194,6 @@ export function DownloadButton({
       </Clickable>
     </Row>
   );
-}
-
-// Backward compat wrappers
-interface SingleButtonProps {
-  invoice: Invoice;
-  size?: 'small' | 'medium' | 'large';
-}
-
-export function DownloadOnlyButton({ invoice, size = 'medium' }: SingleButtonProps) {
-  const { colors: palette } = useTheme();
-  return <DownloadOnlyButtonInner invoice={invoice} size={size} palette={palette} />;
-}
-
-export function ShareOnlyButton({ invoice, size = 'medium' }: SingleButtonProps) {
-  const { colors: palette } = useTheme();
-  return <ShareOnlyButtonInner invoice={invoice} size={size} palette={palette} />;
 }
 
 const styles = StyleSheet.create({

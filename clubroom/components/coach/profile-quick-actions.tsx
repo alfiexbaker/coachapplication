@@ -9,8 +9,8 @@ import {
   GoLiveCard,
   QuickAccessItem,
   SignOutButton,
-  styles,
 } from './profile-quick-actions-sections';
+import { styles } from './profile-quick-actions-styles';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -95,5 +95,5 @@ function ProfileQuickActionsInner({
 
 // ─── Exports ────────────────────────────────────────────────────
 
-export const ProfileQuickActions = React.memo(ProfileQuickActionsInner);
+export const ProfileQuickActions = ProfileQuickActionsInner;
 export default ProfileQuickActions;

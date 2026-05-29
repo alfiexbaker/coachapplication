@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from 'react';
-import { StyleSheet, View, Dimensions } from 'react-native';
+import { useRef, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -24,8 +24,6 @@ import { NotificationDesign } from './notification-design';
 
 const logger = createLogger('NotificationToast');
 
-Dimensions.get('window');
-
 const ICONS: Record<string, string> = {
   booking: 'calendar',
   message: 'chatbubbles',
@@ -49,35 +47,34 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
   const opacityAnim = useSharedValue(0);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const hideToast = useCallback(() => {
-    slideAnim.value = withTiming(-100, { duration: NotificationDesign.motion.fast });
-    opacityAnim.value = withTiming(0, { duration: NotificationDesign.motion.fast }, (finished) => {
-      if (finished) runOnJS(setToast)({ notification: null, visible: false });
-    });
-  }, [slideAnim, opacityAnim]);
+  const hideToast = () => {
+    slideAnim.set(withTiming(-100, { duration: NotificationDesign.motion.fast }));
+    opacityAnim.set(
+      withTiming(0, { duration: NotificationDesign.motion.fast }, (finished) => {
+        if (finished) runOnJS(setToast)({ notification: null, visible: false });
+      }),
+    );
+  };
 
-  const showToast = useCallback(
-    (notification: ExtendedNotificationItem) => {
-      // Clear any existing timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+  const showToast = (notification: ExtendedNotificationItem) => {
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
 
-      setToast({ notification, visible: true });
+    setToast({ notification, visible: true });
 
-      // Animate in
-      slideAnim.value = withSpring(0, NotificationDesign.motion.spring);
-      opacityAnim.value = withTiming(1, { duration: NotificationDesign.motion.standard });
+    // Animate in
+    slideAnim.set(withSpring(0, NotificationDesign.motion.spring));
+    opacityAnim.set(withTiming(1, { duration: NotificationDesign.motion.standard }));
 
-      // Auto-hide after 6 seconds (extended for better user visibility)
-      timeoutRef.current = setTimeout(() => {
-        hideToast();
-      }, 6000);
-    },
-    [slideAnim, opacityAnim, hideToast],
-  );
+    // Auto-hide after 6 seconds (extended for better user visibility)
+    timeoutRef.current = setTimeout(() => {
+      hideToast();
+    }, 6000);
+  };
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     hideToast();
     if (toast.notification?.deepLink) {
       try {
@@ -89,7 +86,7 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
         logger.error('Navigation error', error);
       }
     }
-  }, [toast.notification, hideToast, router]);
+  };
 
   const containerAnimStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: slideAnim.value }],
@@ -220,8 +217,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: Spacing.md,
     right: Spacing.md,
-    zIndex: 9999,
-    elevation: Shadows.light.cardHover.elevation,
+    zIndex: 40,
+    boxShadow: '0px 8px 18px rgba(15, 23, 42, 0.16)',
   },
   toast: {
     padding: Spacing.md,

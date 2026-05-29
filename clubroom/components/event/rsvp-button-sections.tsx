@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -8,50 +7,14 @@ import type { RSVPStatus, EventAttendee } from '@/constants/types';
 import type { ThemeColors } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import { Row } from '@/components/primitives';
-
-export function getButtonStyle(
-  status: RSVPStatus,
-  currentStatus: RSVPStatus | undefined,
-  palette: ThemeColors,
-) {
-  if (currentStatus === status) {
-    switch (status) {
-      case 'GOING':
-        return { backgroundColor: palette.success, borderColor: palette.success };
-      case 'MAYBE':
-        return { backgroundColor: palette.warning, borderColor: palette.warning };
-      case 'NOT_GOING':
-        return { backgroundColor: palette.error, borderColor: palette.error };
-    }
-  }
-  return { backgroundColor: 'transparent' as const, borderColor: palette.border };
-}
-
-export function getTextColor(
-  status: RSVPStatus,
-  currentStatus: RSVPStatus | undefined,
-  palette: ThemeColors,
-): string {
-  return currentStatus === status ? palette.onPrimary : palette.text;
-}
-
-export function getIcon(status: RSVPStatus): keyof typeof Ionicons.glyphMap {
-  switch (status) {
-    case 'GOING':
-      return 'checkmark-circle';
-    case 'MAYBE':
-      return 'help-circle';
-    case 'NOT_GOING':
-      return 'close-circle';
-  }
-}
+import { getIcon } from './rsvp-button-helpers';
 
 type CurrentRSVPStatusProps = {
   currentRSVP: EventAttendee;
   palette: ThemeColors;
 };
 
-export const CurrentRSVPStatus = memo(function CurrentRSVPStatus({
+export const CurrentRSVPStatus = function CurrentRSVPStatus({
   currentRSVP,
   palette,
 }: CurrentRSVPStatusProps) {
@@ -81,9 +44,9 @@ export const CurrentRSVPStatus = memo(function CurrentRSVPStatus({
       </Row>
     </Row>
   );
-});
+};
 
-export const CancelledBanner = memo(function CancelledBanner({
+export const CancelledBanner = function CancelledBanner({
   palette,
 }: {
   palette: ThemeColors;
@@ -96,9 +59,9 @@ export const CancelledBanner = memo(function CancelledBanner({
       </ThemedText>
     </Row>
   );
-});
+};
 
-export const ClosedBanner = memo(function ClosedBanner({ palette }: { palette: ThemeColors }) {
+export const ClosedBanner = function ClosedBanner({ palette }: { palette: ThemeColors }) {
   return (
     <Row style={[styles.banner, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
       <Ionicons name="time" size={20} color={palette.warning} />
@@ -107,9 +70,9 @@ export const ClosedBanner = memo(function ClosedBanner({ palette }: { palette: T
       </ThemedText>
     </Row>
   );
-});
+};
 
-export const FullBanner = memo(function FullBanner({ palette }: { palette: ThemeColors }) {
+export const FullBanner = function FullBanner({ palette }: { palette: ThemeColors }) {
   return (
     <Row style={[styles.banner, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
       <Ionicons name="alert-circle" size={20} color={palette.error} />
@@ -118,7 +81,7 @@ export const FullBanner = memo(function FullBanner({ palette }: { palette: Theme
       </ThemedText>
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   currentStatus: {

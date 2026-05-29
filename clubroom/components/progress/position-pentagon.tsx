@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import Svg, {
   Circle,
@@ -75,12 +75,12 @@ function interpolateValues(
 // and longer labels go to top (0) / bottom (2, 3) where there's more horizontal room.
 function optimiseLabelPlacement<T extends { label: string }>(attributes: T[]): T[] {
   if (attributes.length !== 5) return attributes;
-  const sorted = [...attributes].sort((a, b) => a.label.length - b.label.length);
+  const sorted = Array.from(attributes).toSorted((a, b) => a.label.length - b.label.length);
   // shortest two → side slots (indices 1, 4); remaining → top (0), bottom-right (2), bottom-left (3)
   return [sorted[2], sorted[0], sorted[3], sorted[4], sorted[1]];
 }
 
-export const PositionPentagon = memo(function PositionPentagon({
+export const PositionPentagon = function PositionPentagon({
   data,
   velocityHighlight = null,
 }: PositionPentagonProps) {
@@ -93,44 +93,35 @@ export const PositionPentagon = memo(function PositionPentagon({
   const labelMargin = compact ? 30 : 36;
   const svgW = pentagonSize + labelMargin * 2;
   const svgH = pentagonSize + labelMargin;
-  const center = useMemo<Point>(
-    () => ({ x: svgW / 2, y: pentagonSize / 2 + labelMargin * 0.3 }),
-    [svgW, pentagonSize, labelMargin],
-  );
+  const center = ({
+    x: svgW / 2,
+    y: pentagonSize / 2 + labelMargin * 0.3,
+  });
   const radius = pentagonSize / 2 - padding;
 
-  const orderedAttributes = useMemo(
-    () => optimiseLabelPlacement(data.attributes),
-    [data.attributes],
-  );
+  const orderedAttributes = optimiseLabelPlacement(data.attributes);
 
-  const baseVertices = useMemo(
-    () => orderedAttributes.map((_, index) => getVertex(center, radius, index)),
-    [center, orderedAttributes, radius],
-  );
-  const keyOrder = useMemo(() => orderedAttributes.map((attribute) => attribute.key), [orderedAttributes]);
-  const gradientId = useMemo(
-    () => `position-pentagon-${data.position.toLowerCase()}-${compact ? 'compact' : 'regular'}`,
-    [compact, data.position],
-  );
+  const baseVertices = orderedAttributes.map((_, index) => getVertex(center, radius, index));
+  const keyOrder = orderedAttributes.map((attribute) => attribute.key);
+  const gradientId = `position-pentagon-${data.position.toLowerCase()}-${compact ? 'compact' : 'regular'}`;
 
-  const currentValues = useMemo(
-    () =>
-      orderedAttributes.reduce<Record<string, number>>((acc, attribute) => {
-        acc[attribute.key] = clampValue(attribute.value);
-        return acc;
-      }, {}),
-    [orderedAttributes],
-  );
+  const currentValues = orderedAttributes.reduce<Record<string, number>>((acc, attribute) => {
+    acc[attribute.key] = clampValue(attribute.value);
+    return acc;
+  }, {});
 
   const [displayValues, setDisplayValues] = useState<Record<string, number>>(currentValues);
-  const [activeSnapshotIndex, setActiveSnapshotIndex] = useState(
+  const [activeSnapshotIndex, setActiveSnapshotIndex] = useState(() =>
     Math.max(0, data.sessionSnapshots.length - 1),
   );
 
   useEffect(() => {
-    setDisplayValues(currentValues);
-    setActiveSnapshotIndex(Math.max(0, data.sessionSnapshots.length - 1));
+    startTransition(() => {
+      setDisplayValues(currentValues);
+    });
+    startTransition(() => {
+      setActiveSnapshotIndex(Math.max(0, data.sessionSnapshots.length - 1));
+    });
   }, [currentValues, data.sessionSnapshots.length]);
 
   useEffect(() => {
@@ -178,15 +169,11 @@ export const PositionPentagon = memo(function PositionPentagon({
     };
   }, [currentValues, data.sessionSnapshots, keyOrder]);
 
-  const currentPoints = useMemo(
-    () =>
-      orderedAttributes.map((attribute, index) =>
-        scalePoint(center, baseVertices[index], displayValues[attribute.key] ?? 0),
-      ),
-    [baseVertices, center, orderedAttributes, displayValues],
+  const currentPoints = orderedAttributes.map((attribute, index) =>
+    scalePoint(center, baseVertices[index], displayValues[attribute.key] ?? 0),
   );
 
-  const comparisonValues = useMemo(() => {
+  const comparisonValues = (() => {
     if (!data.comparisonLabel || data.sessionSnapshots.length < 2) {
       return null;
     }
@@ -196,32 +183,22 @@ export const PositionPentagon = memo(function PositionPentagon({
       data.sessionSnapshots[0]?.values ??
       null
     );
-  }, [data.comparisonLabel, data.sessionSnapshots]);
+  })();
 
-  const comparisonPoints = useMemo(() => {
+  const comparisonPoints = (() => {
     if (!comparisonValues) {
       return null;
     }
     return orderedAttributes.map((attribute, index) =>
       scalePoint(center, baseVertices[index], comparisonValues[attribute.key] ?? 0),
     );
-  }, [baseVertices, center, comparisonValues, orderedAttributes]);
+  })();
 
-  const averageRating = useMemo(
-    () =>
-      orderedAttributes.length > 0
-        ? orderedAttributes.reduce((total, attribute) => total + attribute.rating, 0) / orderedAttributes.length
-        : 0,
-    [orderedAttributes],
-  );
-  const improvingCount = useMemo(
-    () => orderedAttributes.filter((attribute) => attribute.trend === 'improving').length,
-    [orderedAttributes],
-  );
-  const sessionCount = useMemo(
-    () => Math.max(0, data.sessionCount ?? 0),
-    [data.sessionCount],
-  );
+  const averageRating = orderedAttributes.length > 0
+    ? orderedAttributes.reduce((total, attribute) => total + attribute.rating, 0) / orderedAttributes.length
+    : 0;
+  const improvingCount = orderedAttributes.filter((attribute) => attribute.trend === 'improving').length;
+  const sessionCount = Math.max(0, data.sessionCount ?? 0);
 
   return (
     <View
@@ -424,7 +401,7 @@ export const PositionPentagon = memo(function PositionPentagon({
       </Column>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

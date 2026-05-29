@@ -6,7 +6,16 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, ViewStyle, TextStyle } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  ViewStyle,
+  TextStyle,
+  FlatList,
+  type ListRenderItemInfo,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,6 +40,7 @@ import {
 import { RetainedTabPanels } from '@/components/ui/retained-tab-panels';
 import { Spacing, Components, Typography } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
+import type { ThemeColors } from '@/hooks/useTheme';
 import { ok } from '@/types/result';
 import { usePublicProfile, PROFILE_TABS } from '@/hooks/use-public-profile';
 
@@ -79,8 +89,8 @@ export default function PublicCoachProfileScreen() {
     );
   }
 
-  const showPendingPaneSkeleton =
-    profile.showSectionSkeleton && !profile.hasRequestedTruthfulFrame;
+  const showPendingPaneSkeleton = profile.showSectionSkeleton && !profile.hasRequestedTruthfulFrame;
+  const profileTabItems = getProfileTabItems(profile.activeTab, palette, profile.setActiveTab);
 
   return renderMainShell(
     <>
@@ -104,47 +114,15 @@ export default function PublicCoachProfileScreen() {
         />
 
         {/* Tab Bar */}
-        <ScrollView
+        <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
+          data={profileTabItems}
+          keyExtractor={keyProfileTabItem}
+          renderItem={renderProfileTabItem}
           contentContainerStyle={styles.tabBarContent}
           style={[styles.tabBar, { borderBottomColor: palette.border }]}
-        >
-          {PROFILE_TABS.map((tab) => {
-            const isActive = profile.activeTab === tab.id;
-            return (
-              <Clickable
-                key={tab.id}
-                onPress={() => profile.setActiveTab(tab.id)}
-                style={
-                  [
-                    styles.tab,
-                    isActive && { borderBottomColor: palette.tint, borderBottomWidth: 2 },
-                  ].filter(Boolean) as ViewStyle[]
-                }
-              >
-                <Row align="center" gap={Spacing.xs / 2}>
-                  <Ionicons
-                    name={tab.icon}
-                    size={Components.icon.md}
-                    color={isActive ? palette.tint : palette.muted}
-                  />
-                  <ThemedText
-                    style={
-                      [
-                        Typography.small,
-                        { color: isActive ? palette.tint : palette.muted },
-                        isActive && { fontWeight: '600' },
-                      ].filter(Boolean) as TextStyle[]
-                    }
-                  >
-                    {tab.label}
-                  </ThemedText>
-                </Row>
-              </Clickable>
-            );
-          })}
-        </ScrollView>
+        />
 
         {/* Tab Content */}
         {profile.refreshing ? (
@@ -155,7 +133,11 @@ export default function PublicCoachProfileScreen() {
           {showPendingPaneSkeleton ? (
             <SectionSkeleton
               variant={
-                profile.activeTab === 'reviews' ? 'list' : profile.activeTab === 'about' ? 'schedule' : 'tab-pane'
+                profile.activeTab === 'reviews'
+                  ? 'list'
+                  : profile.activeTab === 'about'
+                    ? 'schedule'
+                    : 'tab-pane'
               }
             />
           ) : (
@@ -201,6 +183,70 @@ export default function PublicCoachProfileScreen() {
         />
       )}
     </>,
+  );
+}
+
+type ProfileTab = (typeof PROFILE_TABS)[number];
+
+interface ProfileTabItem {
+  key: string;
+  tab: ProfileTab;
+  isActive: boolean;
+  palette: ThemeColors;
+  onPress: () => void;
+}
+
+function getProfileTabItems(
+  activeTab: ProfileTab['id'],
+  palette: ThemeColors,
+  onSelectTab: (tabId: ProfileTab['id']) => void,
+): ProfileTabItem[] {
+  return PROFILE_TABS.map((tab) => ({
+    key: tab.id,
+    tab,
+    isActive: activeTab === tab.id,
+    palette,
+    onPress: () => onSelectTab(tab.id),
+  }));
+}
+
+function keyProfileTabItem(item: ProfileTabItem): string {
+  return item.key;
+}
+
+function renderProfileTabItem({ item }: ListRenderItemInfo<ProfileTabItem>) {
+  return (
+    <Clickable
+      onPress={item.onPress}
+      style={
+        [
+          styles.tab,
+          item.isActive && {
+            borderBottomColor: item.palette.tint,
+            borderBottomWidth: 2,
+          },
+        ].filter(Boolean) as ViewStyle[]
+      }
+    >
+      <Row align="center" gap={Spacing.xs / 2}>
+        <Ionicons
+          name={item.tab.icon}
+          size={Components.icon.md}
+          color={item.isActive ? item.palette.tint : item.palette.muted}
+        />
+        <ThemedText
+          style={
+            [
+              Typography.small,
+              { color: item.isActive ? item.palette.tint : item.palette.muted },
+              item.isActive && { fontWeight: '600' },
+            ].filter(Boolean) as TextStyle[]
+          }
+        >
+          {item.tab.label}
+        </ThemedText>
+      </Row>
+    </Clickable>
   );
 }
 

@@ -15,7 +15,7 @@ type PaymentMethodCardProps = {
   onChange?: () => void;
 };
 
-export const PaymentMethodCard = React.memo(function PaymentMethodCard({
+export const PaymentMethodCard = function PaymentMethodCard({
   colors,
   paymentMethod,
   onChange,
@@ -26,14 +26,12 @@ export const PaymentMethodCard = React.memo(function PaymentMethodCard({
       <ThemedText style={{ color: colors.muted }}>{paymentMethod}</ThemedText>
       {onChange ? (
         <Clickable onPress={onChange} accessibilityLabel="Change payment arrangement">
-          <ThemedText style={{ color: colors.tint, fontWeight: '700' }}>
-            Change
-          </ThemedText>
+          <ThemedText style={{ color: colors.tint, fontWeight: '700' }}>Change</ThemedText>
         </Clickable>
       ) : null}
     </View>
   );
-});
+};
 
 type PromoCardProps = {
   colors: ThemeColors;
@@ -45,7 +43,7 @@ type PromoCardProps = {
   onRemovePromo: () => void;
 };
 
-export const PromoCodeCard = React.memo(function PromoCodeCard({
+const renderPromoCodeCard = function renderPromoCodeCard({
   colors,
   promoCode,
   promoApplied,
@@ -83,9 +81,8 @@ export const PromoCodeCard = React.memo(function PromoCodeCard({
                 { borderColor: colors.border, backgroundColor: colors.card },
               ]}
               accessibilityLabel="Promo code"
-
-            maxLength={20}
-          />
+              maxLength={20}
+            />
             <Clickable
               onPress={onApplyPromo}
               disabled={!promoCode.trim()}
@@ -110,7 +107,8 @@ export const PromoCodeCard = React.memo(function PromoCodeCard({
       )}
     </View>
   );
-});
+};
+export const PromoCodeCard = renderPromoCodeCard;
 
 type TotalsCardProps = {
   colors: ThemeColors;
@@ -119,7 +117,7 @@ type TotalsCardProps = {
   total: number;
 };
 
-export const BookingTotalsCard = React.memo(function BookingTotalsCard({
+const renderBookingTotalsCard = function renderBookingTotalsCard({
   colors,
   sessionPrice,
   promoDiscount,
@@ -135,7 +133,8 @@ export const BookingTotalsCard = React.memo(function BookingTotalsCard({
       <SummaryRow label="Total" value={`£${total.toFixed(2)}`} />
     </View>
   );
-});
+};
+export const BookingTotalsCard = renderBookingTotalsCard;
 
 const styles = StyleSheet.create({
   card: {

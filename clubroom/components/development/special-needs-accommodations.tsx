@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -12,7 +11,7 @@ interface SpecialNeedsAccommodationsProps {
   specialNeeds: ChildProfile['specialNeeds'];
 }
 
-export const SpecialNeedsAccommodations = memo(function SpecialNeedsAccommodations({
+export const SpecialNeedsAccommodations = function SpecialNeedsAccommodations({
   specialNeeds,
 }: SpecialNeedsAccommodationsProps) {
   const { colors } = useTheme();
@@ -47,8 +46,8 @@ export const SpecialNeedsAccommodations = memo(function SpecialNeedsAccommodatio
 
           {need.accommodationsNeeded && need.accommodationsNeeded.length > 0 && (
             <View style={styles.detailBlock}>
-              {need.accommodationsNeeded.map((accommodation, idx) => (
-                <Row key={idx} gap="xs" align="flex-start">
+              {need.accommodationsNeeded.map((accommodation) => (
+                <Row key={accommodation} gap="xs" align="flex-start">
                   <ThemedText style={[Typography.small, { color: colors.muted }]}>•</ThemedText>
                   <ThemedText style={[Typography.small, { flex: 1 }]}>{accommodation}</ThemedText>
                 </Row>
@@ -70,7 +69,7 @@ export const SpecialNeedsAccommodations = memo(function SpecialNeedsAccommodatio
       ))}
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.sm },

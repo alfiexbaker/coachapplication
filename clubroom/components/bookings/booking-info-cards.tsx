@@ -4,7 +4,7 @@
  * Three small card components that display booking metadata with icon rows.
  */
 
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState, startTransition } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -25,10 +25,7 @@ import { coachService } from '@/services/coach-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { uiFeedback } from '@/services/ui-feedback';
 import type { BookingSummary } from '@/constants/types';
-import {
-  getBookingRelationshipContext,
-  getBookingSummaryCoachName,
-} from '@/utils/booking-display';
+import { getBookingRelationshipContext, getBookingSummaryCoachName } from '@/utils/booking-display';
 import { formatCommercialModeLabel } from '@/utils/organization-commercial-mode';
 
 type WeatherTone = 'sunny' | 'cloudy' | 'rainy' | 'storm' | 'snow' | 'unknown';
@@ -86,17 +83,22 @@ const getDaysUntil = (iso: string): number => {
   return Math.round((startOfTarget - startOfToday) / (1000 * 60 * 60 * 24));
 };
 
-const mapWeatherCode = (code: number): { summary: string; icon: keyof typeof Ionicons.glyphMap; tone: WeatherTone } => {
+const mapWeatherCode = (
+  code: number,
+): { summary: string; icon: keyof typeof Ionicons.glyphMap; tone: WeatherTone } => {
   if (code === 0) return { summary: 'Clear', icon: 'sunny-outline', tone: 'sunny' };
-  if ([1, 2].includes(code)) return { summary: 'Partly cloudy', icon: 'partly-sunny-outline', tone: 'cloudy' };
-  if (code === 3 || [45, 48].includes(code)) return { summary: 'Cloudy', icon: 'cloud-outline', tone: 'cloudy' };
+  if ([1, 2].includes(code))
+    return { summary: 'Partly cloudy', icon: 'partly-sunny-outline', tone: 'cloudy' };
+  if (code === 3 || [45, 48].includes(code))
+    return { summary: 'Cloudy', icon: 'cloud-outline', tone: 'cloudy' };
   if ([51, 53, 55, 56, 57, 61, 63, 65, 80, 81, 82].includes(code)) {
     return { summary: 'Rain likely', icon: 'rainy-outline', tone: 'rainy' };
   }
   if ([66, 67, 71, 73, 75, 77, 85, 86].includes(code)) {
     return { summary: 'Snow/ice risk', icon: 'snow-outline', tone: 'snow' };
   }
-  if ([95, 96, 99].includes(code)) return { summary: 'Thunderstorm risk', icon: 'thunderstorm-outline', tone: 'storm' };
+  if ([95, 96, 99].includes(code))
+    return { summary: 'Thunderstorm risk', icon: 'thunderstorm-outline', tone: 'storm' };
   return { summary: 'Forecast available', icon: 'cloud-outline', tone: 'unknown' };
 };
 
@@ -107,100 +109,137 @@ const getWeatherToneColor = (tone: WeatherTone, palette: ReturnType<typeof useTh
   return palette.muted;
 };
 
+async function loadBookingWeather(
+  locationLabel: string,
+  bookingStartIso: string,
+  cacheKey: string,
+): Promise<WeatherState> {
+  const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&format=json&name=${encodeURIComponent(locationLabel)}`;
+  const geoResponse = await fetch(geoUrl);
+  if (!geoResponse.ok) {
+    return {
+      loading: false,
+      available: false,
+      reason: 'Weather forecast is unavailable right now.',
+    };
+  }
+  const geoData = (await geoResponse.json()) as OpenMeteoGeoResponse;
+  const first = geoData.results?.[0];
+  if (!first) {
+    const unavailable = {
+      loading: false,
+      available: false,
+      reason: 'No weather match found for this location.',
+    };
+    weatherCache.set(cacheKey, unavailable);
+    return unavailable;
+  }
+
+  const forecastUrl =
+    `https://api.open-meteo.com/v1/forecast?latitude=${first.latitude}&longitude=${first.longitude}` +
+    '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=16&timezone=auto';
+  const forecastResponse = await fetch(forecastUrl);
+  if (!forecastResponse.ok) {
+    return {
+      loading: false,
+      available: false,
+      reason: 'Weather forecast is unavailable right now.',
+    };
+  }
+  const forecast = (await forecastResponse.json()) as OpenMeteoForecastResponse;
+  const daily = forecast.daily;
+  const targetDateKey = getDateKey(bookingStartIso);
+  const index = daily?.time?.findIndex((date) => date === targetDateKey) ?? -1;
+
+  if (!daily || index < 0) {
+    const unavailable = {
+      loading: false,
+      available: false,
+      reason: 'Forecast for this date is not available yet.',
+    };
+    weatherCache.set(cacheKey, unavailable);
+    return unavailable;
+  }
+
+  const weatherCode = daily.weather_code[index] ?? -1;
+  const maxTemp = daily.temperature_2m_max[index];
+  const minTemp = daily.temperature_2m_min[index];
+  const precip = daily.precipitation_probability_max?.[index];
+  const mapped = mapWeatherCode(weatherCode);
+  const sourceBits = [first.name, first.admin1, first.country].filter(Boolean);
+
+  const loaded: WeatherState = {
+    loading: false,
+    available: true,
+    summary: mapped.summary,
+    temperatureText:
+      Number.isFinite(maxTemp) && Number.isFinite(minTemp)
+        ? `${Math.round(minTemp)}°-${Math.round(maxTemp)}°C`
+        : undefined,
+    precipitationText:
+      typeof precip === 'number' ? `${Math.round(precip)}% rain chance` : undefined,
+    sourceLabel: sourceBits.join(', '),
+    tone: mapped.tone,
+  };
+  weatherCache.set(cacheKey, loaded);
+  return loaded;
+}
+
 function useBookingWeather(locationLabel: string, bookingStartIso: string): WeatherState {
   const [state, setState] = useState<WeatherState>({ loading: true, available: false });
 
-  const cacheKey = useMemo(
-    () => `${locationLabel.trim().toLowerCase()}|${getDateKey(bookingStartIso)}`,
-    [bookingStartIso, locationLabel],
-  );
+  const cacheKey = `${locationLabel.trim().toLowerCase()}|${getDateKey(bookingStartIso)}`;
 
+  // react-doctor-disable-next-line react-doctor/no-fetch-in-effect -- one-shot weather lookup is cached and has cancellation; this app has no query client in this surface.
   useEffect(() => {
     const daysUntil = getDaysUntil(bookingStartIso);
 
     if (!locationLabel.trim()) {
-      setState({ loading: false, available: false, reason: 'No location set for this booking.' });
+      startTransition(() => {
+        setState({ loading: false, available: false, reason: 'No location set for this booking.' });
+      });
       return;
     }
 
     if (daysUntil < 0) {
-      setState({ loading: false, available: false, reason: 'Weather forecast only shows upcoming bookings.' });
+      startTransition(() => {
+        setState({
+          loading: false,
+          available: false,
+          reason: 'Weather forecast only shows upcoming bookings.',
+        });
+      });
       return;
     }
 
     if (daysUntil > 16) {
-      setState({
-        loading: false,
-        available: false,
-        reason: 'Forecast is usually available within 16 days of the session.',
+      startTransition(() => {
+        setState({
+          loading: false,
+          available: false,
+          reason: 'Forecast is usually available within 16 days of the session.',
+        });
       });
       return;
     }
 
     const cached = weatherCache.get(cacheKey);
     if (cached) {
-      setState(cached);
+      startTransition(() => {
+        setState(cached);
+      });
       return;
     }
 
     let cancelled = false;
 
-    const load = async () => {
-      setState({ loading: true, available: false });
-      try {
-        const geoUrl =
-          `https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&format=json&name=${encodeURIComponent(locationLabel)}`;
-        const geoResponse = await fetch(geoUrl);
-        if (!geoResponse.ok) throw new Error('Failed geocoding lookup');
-        const geoData = (await geoResponse.json()) as OpenMeteoGeoResponse;
-        const first = geoData.results?.[0];
-        if (!first) {
-          const unavailable = { loading: false, available: false, reason: 'No weather match found for this location.' };
-          weatherCache.set(cacheKey, unavailable);
-          if (!cancelled) setState(unavailable);
-          return;
+    void loadBookingWeather(locationLabel, bookingStartIso, cacheKey)
+      .then((nextState) => {
+        if (!cancelled) {
+          setState(nextState);
         }
-
-        const forecastUrl =
-          `https://api.open-meteo.com/v1/forecast?latitude=${first.latitude}&longitude=${first.longitude}` +
-          '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=16&timezone=auto';
-        const forecastResponse = await fetch(forecastUrl);
-        if (!forecastResponse.ok) throw new Error('Failed forecast lookup');
-        const forecast = (await forecastResponse.json()) as OpenMeteoForecastResponse;
-        const daily = forecast.daily;
-        const targetDateKey = getDateKey(bookingStartIso);
-        const index = daily?.time?.findIndex((date) => date === targetDateKey) ?? -1;
-
-        if (!daily || index < 0) {
-          const unavailable = { loading: false, available: false, reason: 'Forecast for this date is not available yet.' };
-          weatherCache.set(cacheKey, unavailable);
-          if (!cancelled) setState(unavailable);
-          return;
-        }
-
-        const weatherCode = daily.weather_code[index] ?? -1;
-        const maxTemp = daily.temperature_2m_max[index];
-        const minTemp = daily.temperature_2m_min[index];
-        const precip = daily.precipitation_probability_max?.[index];
-        const mapped = mapWeatherCode(weatherCode);
-        const sourceBits = [first.name, first.admin1, first.country].filter(Boolean);
-
-        const loaded: WeatherState = {
-          loading: false,
-          available: true,
-          summary: mapped.summary,
-          temperatureText:
-            Number.isFinite(maxTemp) && Number.isFinite(minTemp)
-              ? `${Math.round(minTemp)}°-${Math.round(maxTemp)}°C`
-              : undefined,
-          precipitationText:
-            typeof precip === 'number' ? `${Math.round(precip)}% rain chance` : undefined,
-          sourceLabel: sourceBits.join(', '),
-          tone: mapped.tone,
-        };
-        weatherCache.set(cacheKey, loaded);
-        if (!cancelled) setState(loaded);
-      } catch {
+      })
+      .catch(() => {
         if (!cancelled) {
           setState({
             loading: false,
@@ -208,10 +247,7 @@ function useBookingWeather(locationLabel: string, bookingStartIso: string): Weat
             reason: 'Weather forecast is unavailable right now.',
           });
         }
-      }
-    };
-
-    void load();
+      });
 
     return () => {
       cancelled = true;
@@ -231,11 +267,7 @@ interface DateTimeCardProps {
   time: string;
 }
 
-export const DateTimeCard = memo(function DateTimeCard({
-  weekday,
-  dateStr,
-  time,
-}: DateTimeCardProps) {
+export const DateTimeCard = function DateTimeCard({ weekday, dateStr, time }: DateTimeCardProps) {
   const { colors: palette } = useTheme();
 
   return (
@@ -254,7 +286,7 @@ export const DateTimeCard = memo(function DateTimeCard({
       </Row>
     </SurfaceCard>
   );
-});
+};
 
 // ============================================================================
 // LOCATION CARD
@@ -264,16 +296,16 @@ interface LocationCardProps {
   locationLabel: string;
 }
 
-export const LocationCard = memo(function LocationCard({ locationLabel }: LocationCardProps) {
+export const LocationCard = function LocationCard({ locationLabel }: LocationCardProps) {
   const { colors: palette } = useTheme();
 
-  const handleOpenMap = useCallback(() => {
+  const handleOpenMap = () => {
     void openLocationInMaps({ location: locationLabel }).then((opened) => {
       if (!opened) {
         uiFeedback.showToast('Could not open maps application.', 'error');
       }
     });
-  }, [locationLabel]);
+  };
 
   return (
     <SurfaceCard style={styles.card}>
@@ -310,17 +342,19 @@ export const LocationCard = memo(function LocationCard({ locationLabel }: Locati
         <View style={[styles.mapPin, { backgroundColor: palette.tint }]}>
           <Ionicons name="location" size={18} color={palette.onPrimary} />
         </View>
-        <ThemedText style={[styles.mapText, { color: palette.muted }]}>Tap for directions</ThemedText>
+        <ThemedText style={[styles.mapText, { color: palette.muted }]}>
+          Tap for directions
+        </ThemedText>
       </Clickable>
     </SurfaceCard>
   );
-});
+};
 
 // ============================================================================
 // PAYMENT CARD
 // ============================================================================
 
-export const PaymentCard = memo(function PaymentCard({
+export const PaymentCard = function PaymentCard({
   showDemoIndicator = false,
   amount = null,
   invoiceStatus = 'NONE',
@@ -339,10 +373,8 @@ export const PaymentCard = memo(function PaymentCard({
 }) {
   const { colors: palette } = useTheme();
   const amountLabel =
-    typeof amount === 'number' && Number.isFinite(amount)
-      ? `£${amount.toFixed(2)}`
-      : 'Amount TBC';
-  const dueDateLabel = useMemo(() => {
+    typeof amount === 'number' && Number.isFinite(amount) ? `£${amount.toFixed(2)}` : 'Amount TBC';
+  const dueDateLabel = (() => {
     if (!dueDate) return null;
     const parsed = new Date(dueDate);
     if (Number.isNaN(parsed.getTime())) return null;
@@ -351,8 +383,8 @@ export const PaymentCard = memo(function PaymentCard({
       month: 'short',
       year: 'numeric',
     });
-  }, [dueDate]);
-  const statusMeta = useMemo(() => {
+  })();
+  const statusMeta = (() => {
     if (invoiceStatus === 'PAID') {
       return {
         label: 'Paid',
@@ -381,15 +413,13 @@ export const PaymentCard = memo(function PaymentCard({
       label: 'Direct payment',
       tone: palette.tint,
     };
-  }, [invoiceStatus, palette.info, palette.muted, palette.success, palette.tint, palette.warning]);
-  const helperText = useMemo(() => {
+  })();
+  const helperText = (() => {
     if (helperTextOverride?.trim()) {
       return helperTextOverride;
     }
     if (invoiceStatus === 'PAID') {
-      return isCoachView
-        ? 'Marked paid in your reconciler.'
-        : 'Marked paid by your coach.';
+      return isCoachView ? 'Marked paid in your reconciler.' : 'Marked paid by your coach.';
     }
     if (isCoachView) {
       return 'Families pay you directly. Track status in your earnings reconciler.';
@@ -398,7 +428,7 @@ export const PaymentCard = memo(function PaymentCard({
       return `Pay coach directly using shared details. Due by ${dueDateLabel}.`;
     }
     return 'Pay coach directly using the details they shared.';
-  }, [dueDateLabel, helperTextOverride, invoiceStatus, isCoachView]);
+  })();
   const actionLabel = onPressAction ? (isCoachView ? 'Open reconciler' : 'Message coach') : null;
 
   return (
@@ -444,7 +474,10 @@ export const PaymentCard = memo(function PaymentCard({
           onPress={onPressAction}
           style={[
             styles.paymentActionButton,
-            { backgroundColor: withAlpha(palette.tint, 0.08), borderColor: withAlpha(palette.tint, 0.22) },
+            {
+              backgroundColor: withAlpha(palette.tint, 0.08),
+              borderColor: withAlpha(palette.tint, 0.22),
+            },
           ]}
           accessibilityLabel={actionLabel}
         >
@@ -460,7 +493,7 @@ export const PaymentCard = memo(function PaymentCard({
       ) : null}
     </SurfaceCard>
   );
-});
+};
 
 // ============================================================================
 // WEATHER CARD
@@ -471,14 +504,14 @@ interface BookingWeatherCardProps {
   bookingStartIso: string;
 }
 
-export const BookingWeatherCard = memo(function BookingWeatherCard({
+export const BookingWeatherCard = function BookingWeatherCard({
   locationLabel,
   bookingStartIso,
 }: BookingWeatherCardProps) {
   const { colors: palette } = useTheme();
   const weather = useBookingWeather(locationLabel, bookingStartIso);
 
-  const weatherVisual = useMemo(() => {
+  const weatherVisual = (() => {
     if (!weather.available || !weather.tone) {
       return {
         icon: 'partly-sunny-outline' as const,
@@ -502,16 +535,13 @@ export const BookingWeatherCard = memo(function BookingWeatherCard({
                   : 3,
     );
     return { icon: mapped.icon, color: toneColor };
-  }, [palette, weather.available, weather.summary, weather.tone]);
+  })();
 
   return (
     <SurfaceCard style={styles.card}>
       <Row gap="md" align="center">
         <View
-          style={[
-            styles.iconCircle,
-            { backgroundColor: withAlpha(weatherVisual.color, 0.12) },
-          ]}
+          style={[styles.iconCircle, { backgroundColor: withAlpha(weatherVisual.color, 0.12) }]}
         >
           <Ionicons name={weatherVisual.icon} size={24} color={weatherVisual.color} />
         </View>
@@ -520,7 +550,7 @@ export const BookingWeatherCard = memo(function BookingWeatherCard({
           {weather.loading ? (
             <>
               <ThemedText type="subtitle" style={styles.cardValue}>
-                Loading forecast...
+                Loading forecast…
               </ThemedText>
               <ThemedText style={styles.cardSubtext}>Checking session-day weather</ThemedText>
             </>
@@ -549,7 +579,7 @@ export const BookingWeatherCard = memo(function BookingWeatherCard({
       </Row>
     </SurfaceCard>
   );
-});
+};
 
 // ============================================================================
 // COACH CARD
@@ -563,7 +593,7 @@ interface CoachCardProps {
   coachPhotoUrl: string;
 }
 
-export const BookingCoachCard = memo(function BookingCoachCard({
+export const BookingCoachCard = function BookingCoachCard({
   coachId,
   bookingId,
   coachName,
@@ -574,19 +604,23 @@ export const BookingCoachCard = memo(function BookingCoachCard({
   const [coachRating, setCoachRating] = useState<number | null>(null);
   const [coachReviewCount, setCoachReviewCount] = useState<number | null>(null);
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     if (!coachId) {
       logger.warn('Coach profile unavailable from booking card', { bookingId });
       showToast('Coach profile unavailable', 'warning');
       return;
     }
     router.push(Routes.profile(coachId));
-  }, [bookingId, coachId, showToast]);
+  };
 
   useEffect(() => {
     if (!coachId) {
-      setCoachRating(null);
-      setCoachReviewCount(null);
+      startTransition(() => {
+        setCoachRating(null);
+      });
+      startTransition(() => {
+        setCoachReviewCount(null);
+      });
       return;
     }
 
@@ -598,7 +632,9 @@ export const BookingCoachCard = memo(function BookingCoachCard({
         const reviews = reviewsResult.success ? reviewsResult.data : [];
         const averageFromReviews =
           reviews.length > 0
-            ? Math.round((reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length) * 10) / 10
+            ? Math.round(
+                (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length) * 10,
+              ) / 10
             : null;
         const countFromReviews = reviews.length > 0 ? reviews.length : null;
 
@@ -649,7 +685,7 @@ export const BookingCoachCard = memo(function BookingCoachCard({
       </SurfaceCard>
     </Clickable>
   );
-});
+};
 
 // ============================================================================
 // ATHLETE CARD (coach view only)
@@ -661,16 +697,16 @@ interface AthleteCardProps {
   clientPhotoUrl: string;
 }
 
-export const BookingAthleteCard = memo(function BookingAthleteCard({
+export const BookingAthleteCard = function BookingAthleteCard({
   childName,
   clientId,
   clientPhotoUrl,
 }: AthleteCardProps) {
   const { colors: palette } = useTheme();
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     router.push(Routes.developmentAthlete(clientId));
-  }, [clientId]);
+  };
 
   return (
     <Clickable onPress={handlePress} accessibilityLabel={`View ${childName} profile`}>
@@ -692,7 +728,7 @@ export const BookingAthleteCard = memo(function BookingAthleteCard({
       </SurfaceCard>
     </Clickable>
   );
-});
+};
 
 // ============================================================================
 // OWNERSHIP CARD
@@ -717,83 +753,68 @@ function formatAuditTimestamp(iso?: string): string {
   });
 }
 
-export const BookingOwnershipCard = memo(function BookingOwnershipCard({
+export const BookingOwnershipCard = function BookingOwnershipCard({
   booking,
   coachLabel,
   showAuditTrail = false,
 }: BookingOwnershipCardProps) {
   const { colors: palette } = useTheme();
   const [organizationLabel, setOrganizationLabel] = useState<string | null>(booking.clubId ?? null);
-  const resolvedCoachLabel = coachLabel || booking.ownerCoachName || getBookingSummaryCoachName(booking);
-  const deliveryLabel =
-    booking.assigneeCoachName || booking.assigneeCoachId || resolvedCoachLabel;
-  const relationshipContext = useMemo(
-    () =>
-      getBookingRelationshipContext({
-        actingAs: booking.actingAs,
-        organizationLabel,
-        coachLabel: resolvedCoachLabel,
-        deliveredByLabel: deliveryLabel,
-        commercialMode: booking.commercialMode,
-      }),
-    [
-      booking.actingAs,
-      booking.commercialMode,
-      deliveryLabel,
-      organizationLabel,
-      resolvedCoachLabel,
-    ],
-  );
+  const resolvedCoachLabel =
+    coachLabel || booking.ownerCoachName || getBookingSummaryCoachName(booking);
+  const deliveryLabel = booking.assigneeCoachName || booking.assigneeCoachId || resolvedCoachLabel;
+  const relationshipContext = getBookingRelationshipContext({
+    actingAs: booking.actingAs,
+    organizationLabel,
+    coachLabel: resolvedCoachLabel,
+    deliveredByLabel: deliveryLabel,
+    commercialMode: booking.commercialMode,
+  });
   const ownershipMode =
     booking.actingAs === 'club'
       ? `${formatCommercialModeLabel(booking.commercialMode)} club booking`
       : 'Independent coach booking';
-  const relationshipRows = useMemo(
-    () =>
-      [
-        organizationLabel ? { label: 'Organization', value: organizationLabel } : null,
-        { label: 'Booked with', value: relationshipContext.bookedWithLabel },
-        { label: 'Delivered by', value: relationshipContext.deliveredByLabel },
-        { label: 'Billing handled by', value: relationshipContext.billingLabel },
-        { label: 'Support handled by', value: relationshipContext.supportLabel },
-        booking.ownerCoachName &&
-        booking.ownerCoachName !== relationshipContext.deliveredByLabel &&
-        booking.ownerCoachName !== relationshipContext.bookedWithLabel
-          ? { label: 'Session owner', value: booking.ownerCoachName }
-          : null,
-      ].filter((entry): entry is { label: string; value: string } => Boolean(entry)),
-    [booking.ownerCoachName, organizationLabel, relationshipContext],
-  );
-  const timelineEntries = useMemo(
-    () => [
-      {
-        id: 'created',
-        label: `Created by ${booking.createdByName || 'Unknown'}`,
-        meta: booking.createdByRole ? booking.createdByRole.replace('_', ' ') : undefined,
-        time: formatAuditTimestamp(booking.createdAt),
-      },
-      {
-        id: 'assigned',
-        label: `Delivered by ${relationshipContext.deliveredByLabel}`,
-        meta:
-          booking.actingAs === 'club'
-            ? `Billing: ${relationshipContext.billingLabel}`
-            : 'Independent coach booking',
-        time: formatAuditTimestamp(booking.createdAt),
-      },
-      {
-        id: 'scheduled',
-        label: 'Scheduled session',
-        meta: 'Booking schedule locked',
-        time: formatAuditTimestamp(booking.start),
-      },
-    ],
-    [booking.actingAs, booking.createdAt, booking.createdByName, booking.createdByRole, booking.start, relationshipContext.billingLabel, relationshipContext.deliveredByLabel],
-  );
+  const relationshipRows = [
+    organizationLabel ? { label: 'Organization', value: organizationLabel } : null,
+    { label: 'Booked with', value: relationshipContext.bookedWithLabel },
+    { label: 'Delivered by', value: relationshipContext.deliveredByLabel },
+    { label: 'Billing handled by', value: relationshipContext.billingLabel },
+    { label: 'Support handled by', value: relationshipContext.supportLabel },
+    booking.ownerCoachName &&
+    booking.ownerCoachName !== relationshipContext.deliveredByLabel &&
+    booking.ownerCoachName !== relationshipContext.bookedWithLabel
+      ? { label: 'Session owner', value: booking.ownerCoachName }
+      : null,
+  ].filter((entry): entry is { label: string; value: string } => Boolean(entry));
+  const timelineEntries = [
+    {
+      id: 'created',
+      label: `Created by ${booking.createdByName || 'Unknown'}`,
+      meta: booking.createdByRole ? booking.createdByRole.replace('_', ' ') : undefined,
+      time: formatAuditTimestamp(booking.createdAt),
+    },
+    {
+      id: 'assigned',
+      label: `Delivered by ${relationshipContext.deliveredByLabel}`,
+      meta:
+        booking.actingAs === 'club'
+          ? `Billing: ${relationshipContext.billingLabel}`
+          : 'Independent coach booking',
+      time: formatAuditTimestamp(booking.createdAt),
+    },
+    {
+      id: 'scheduled',
+      label: 'Scheduled session',
+      meta: 'Booking schedule locked',
+      time: formatAuditTimestamp(booking.start),
+    },
+  ];
 
   useEffect(() => {
     if (booking.actingAs !== 'club' || !booking.clubId) {
-      setOrganizationLabel(null);
+      startTransition(() => {
+        setOrganizationLabel(null);
+      });
       return;
     }
 
@@ -858,7 +879,7 @@ export const BookingOwnershipCard = memo(function BookingOwnershipCard({
       ) : null}
     </SurfaceCard>
   );
-});
+};
 
 // ============================================================================
 // STYLES

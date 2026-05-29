@@ -6,16 +6,17 @@ import { forbidden, notFound } from '../../lib/http-errors.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
 import { normalizeForJson } from './normalize.js';
-
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
-
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
-const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
+const asString = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
 const asObject = (value: unknown): Record<string, unknown> | null =>
-  value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
-const isTruthy = <T>(value: T | null | undefined): value is T => value !== null && value !== undefined;
-
+  value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+const isTruthy = <T>(value: T | null | undefined): value is T =>
+  value !== null && value !== undefined;
 export interface ClubMembershipSummary {
   id: string;
   clubId: string;
@@ -25,7 +26,6 @@ export interface ClubMembershipSummary {
   createdAt: string;
   updatedAt: string;
 }
-
 export interface ClubSummary {
   id: string;
   name: string;
@@ -34,13 +34,11 @@ export interface ClubSummary {
   createdByUserId?: string;
   inviteCode: string | null;
 }
-
 export interface VisibleClub extends ClubSummary {
   memberships: ClubMembershipSummary[];
   viewerMembership: ClubMembershipSummary | null;
   squads: Array<Record<string, unknown>>;
 }
-
 export interface ClubInviteCodeRecord {
   id: string;
   clubId: string;
@@ -51,7 +49,6 @@ export interface ClubInviteCodeRecord {
   expiresAt: string;
   remainingUses: number;
 }
-
 export interface ClubJoinPreview {
   clubId: string;
   clubName: string;
@@ -63,7 +60,6 @@ export interface ClubJoinPreview {
   expiresAt: string;
   alreadyMember: boolean;
 }
-
 export interface PendingClubInvite {
   id: string;
   clubId: string;
@@ -78,27 +74,35 @@ export interface PendingClubInvite {
   expiresAt: string;
   respondedAt?: string | null;
 }
-
 export interface JoinWithCodeResult {
   outcome: 'joined' | 'invite_pending' | 'already_member';
   club: ClubSummary;
   membership: ClubMembershipSummary | null;
   invite: PendingClubInvite | null;
 }
-
 export interface RespondToInviteResult {
   invite: PendingClubInvite;
   membership: ClubMembershipSummary | null;
   club: ClubSummary;
 }
-
 export interface ClubAuthorityRepository {
-  listVisibleClubs(params: { authUserId: string; isPrivilegedAdmin: boolean }): Promise<VisibleClub[]>;
+  listVisibleClubs(params: {
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<VisibleClub[]>;
   listInviteCodes(params: { clubId: string; authUserId: string }): Promise<ClubInviteCodeRecord[]>;
-  createInviteCode(params: { clubId: string; authUserId: string; role: string }): Promise<ClubInviteCodeRecord>;
+  createInviteCode(params: {
+    clubId: string;
+    authUserId: string;
+    role: string;
+  }): Promise<ClubInviteCodeRecord>;
   deleteInviteCode(params: { clubId: string; authUserId: string; code: string }): Promise<void>;
   resolveJoinCode(params: { authUserId: string; code: string }): Promise<ClubJoinPreview>;
-  joinWithCode(params: { authUserId: string; code: string; actingAuthCanUseStaffLinks: boolean }): Promise<JoinWithCodeResult>;
+  joinWithCode(params: {
+    authUserId: string;
+    code: string;
+    actingAuthCanUseStaffLinks: boolean;
+  }): Promise<JoinWithCodeResult>;
   listPendingInvites(params: { authUserId: string }): Promise<PendingClubInvite[]>;
   respondToInvite(params: {
     authUserId: string;
@@ -106,45 +110,42 @@ export interface ClubAuthorityRepository {
     response: 'accepted' | 'declined';
   }): Promise<RespondToInviteResult>;
 }
-
 function normalizeInviteCode(code: string): string {
   return code.trim().toUpperCase();
 }
-
 function toStoreRole(role: string): string {
   if (role === 'ADMIN') {
     return 'club_admin';
   }
   return role.toLowerCase();
 }
-
 function buildCodePrefix(clubName: string): string {
   const normalized = clubName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
   return normalized.slice(0, 5) || 'CLUB';
 }
-
 function buildInviteCode(clubName: string, role: string): string {
   const suffix = role === 'MEMBER' ? 'JOIN' : role.replace(/[^A-Za-z]/g, '').slice(0, 4) || 'TEAM';
   return `${buildCodePrefix(clubName)}-${suffix}`;
 }
-
 function buildDefaultInviteCode(clubName: string, role: string, clubId: string): string {
-  const clubSuffix = clubId.replace(/[^A-Za-z0-9]/g, '').slice(-4).toUpperCase() || 'CLUB';
+  const clubSuffix =
+    clubId
+      .replace(/[^A-Za-z0-9]/g, '')
+      .slice(-4)
+      .toUpperCase() || 'CLUB';
   return `${buildInviteCode(clubName, role)}-${clubSuffix}`;
 }
-
 function addDaysIso(days: number): string {
   return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
 }
-
 function isActiveStoreRow(row: SeedRow): boolean {
   return row.active !== false && !asString(row.deletedAt);
 }
-
-function isPendingInviteStatus(status: string | undefined): status is 'pending' | 'accepted' | 'declined' {
+function isPendingInviteStatus(
+  status: string | undefined,
+): status is 'pending' | 'accepted' | 'declined' {
   return status === 'pending' || status === 'accepted' || status === 'declined';
 }
-
 function toPendingInviteStatus(value: string | undefined): 'pending' | 'accepted' | 'declined' {
   const normalized = value?.toLowerCase();
   if (isPendingInviteStatus(normalized)) {
@@ -152,7 +153,6 @@ function toPendingInviteStatus(value: string | undefined): 'pending' | 'accepted
   }
   return 'pending';
 }
-
 function toMembershipSummary(row: {
   id: string;
   clubId: string;
@@ -174,7 +174,6 @@ function toMembershipSummary(row: {
       : row.updatedAt instanceof Date
         ? row.updatedAt.toISOString()
         : createdAt;
-
   return {
     id: row.id,
     clubId: row.clubId,
@@ -185,16 +184,20 @@ function toMembershipSummary(row: {
     updatedAt,
   };
 }
-
 function requireManageInvites(membershipRole: string | undefined): void {
   const viewerRole = parseOrganizationRole(membershipRole);
   if (!viewerRole || !canUseClubCapability(viewerRole, 'manage_staff_and_invites')) {
     throw forbidden('You do not have permission to manage club invites');
   }
 }
-
 function buildClubSummary(
-  club: { id: string; name: string; slug?: string | null; visibility?: string | null; createdByUserId?: string | null },
+  club: {
+    id: string;
+    name: string;
+    slug?: string | null;
+    visibility?: string | null;
+    createdByUserId?: string | null;
+  },
   inviteCode: string | null,
 ): ClubSummary {
   return {
@@ -206,20 +209,17 @@ function buildClubSummary(
     inviteCode,
   };
 }
-
 function ensureTable(tables: SeedTables, key: string): SeedRow[] {
   if (!Array.isArray(tables[key])) {
     tables[key] = [];
   }
   return tables[key];
 }
-
 function ensureStoreInviteCodesTable(tables: SeedTables): SeedRow[] {
   const existing = ensureTable(tables, 'clubInviteCodes');
   if (existing.length > 0) {
     return existing;
   }
-
   const clubs = asRows(tables.clubs);
   const generated = clubs.flatMap((club) => {
     const clubId = asString(club.id);
@@ -228,7 +228,6 @@ function ensureStoreInviteCodesTable(tables: SeedTables): SeedRow[] {
     if (!clubId || !clubName || !createdByUserId) {
       return [];
     }
-
     const createdAt = asString(club.createdAt) ?? new Date().toISOString();
     return [
       {
@@ -266,7 +265,6 @@ function ensureStoreInviteCodesTable(tables: SeedTables): SeedRow[] {
   tables.clubInviteCodes = generated;
   return tables.clubInviteCodes;
 }
-
 function getStoreActiveMemberships(tables: SeedTables, clubId?: string): SeedRow[] {
   return asRows(tables.clubMemberships).filter((row) => {
     if (!isActiveStoreRow(row)) {
@@ -275,25 +273,26 @@ function getStoreActiveMemberships(tables: SeedTables, clubId?: string): SeedRow
     return !clubId || asString(row.clubId) === clubId;
   });
 }
-
-function getStoreViewerMembership(tables: SeedTables, clubId: string, authUserId: string): SeedRow | null {
+function getStoreViewerMembership(
+  tables: SeedTables,
+  clubId: string,
+  authUserId: string,
+): SeedRow | null {
   return (
-    getStoreActiveMemberships(tables, clubId).find((row) => asString(row.userId) === authUserId)
-    ?? null
+    getStoreActiveMemberships(tables, clubId).find((row) => asString(row.userId) === authUserId) ??
+    null
   );
 }
-
 function getActiveStoreInviteCodeRows(tables: SeedTables): SeedRow[] {
   return ensureStoreInviteCodesTable(tables).filter((row) => {
     const expiresAt = asString(row.expiresAt);
     return (
-      !asString(row.deletedAt)
-      && Number(row.remainingUses ?? 0) > 0
-      && Boolean(expiresAt && new Date(expiresAt).getTime() > Date.now())
+      !asString(row.deletedAt) &&
+      Number(row.remainingUses ?? 0) > 0 &&
+      Boolean(expiresAt && new Date(expiresAt).getTime() > Date.now())
     );
   });
 }
-
 function mapInviteCodeRecordFromRow(row: SeedRow): ClubInviteCodeRecord {
   return {
     id: asString(row.id) ?? '',
@@ -306,11 +305,12 @@ function mapInviteCodeRecordFromRow(row: SeedRow): ClubInviteCodeRecord {
     remainingUses: Number(row.remainingUses ?? 0),
   };
 }
-
 function findStoreClubById(tables: SeedTables, clubId: string): SeedRow | null {
-  return asRows(tables.clubs).find((row) => asString(row.id) === clubId && !asString(row.deletedAt)) ?? null;
+  return (
+    asRows(tables.clubs).find((row) => asString(row.id) === clubId && !asString(row.deletedAt)) ??
+    null
+  );
 }
-
 function mapPendingInviteFromRows(params: {
   invite: SeedRow;
   target: SeedRow;
@@ -332,29 +332,44 @@ function mapPendingInviteFromRows(params: {
     respondedAt: asString(params.target.respondedAt) ?? null,
   };
 }
-
-function getStoreClubStaffInvitePairs(tables: SeedTables): Array<{ invite: SeedRow; target: SeedRow }> {
-  const invites = asRows(tables.invites).filter((invite) => asString(invite.inviteType) === 'club_staff_join');
+function getStoreClubStaffInvitePairs(tables: SeedTables): Array<{
+  invite: SeedRow;
+  target: SeedRow;
+}> {
+  const invites = asRows(tables.invites).filter(
+    (invite) => asString(invite.inviteType) === 'club_staff_join',
+  );
   const inviteTargets = asRows(tables.inviteTargets);
   return invites.flatMap((invite) =>
-    inviteTargets
-      .filter((target) => asString(target.inviteId) === asString(invite.id))
-      .map((target) => ({ invite, target })),
+    inviteTargets.flatMap((target) =>
+      asString(target.inviteId) === asString(invite.id)
+        ? [
+            {
+              invite,
+              target,
+            },
+          ]
+        : [],
+    ),
   );
 }
-
-function findStorePendingInvitePair(tables: SeedTables, inviteId: string, authUserId: string): { invite: SeedRow; target: SeedRow } | null {
+function findStorePendingInvitePair(
+  tables: SeedTables,
+  inviteId: string,
+  authUserId: string,
+): {
+  invite: SeedRow;
+  target: SeedRow;
+} | null {
   return (
     getStoreClubStaffInvitePairs(tables).find(
       ({ invite, target }) =>
-        asString(invite.id) === inviteId
-        && asString(target.targetUserId) === authUserId
-        && !asString(invite.revokedAt),
-    )
-    ?? null
+        asString(invite.id) === inviteId &&
+        asString(target.targetUserId) === authUserId &&
+        !asString(invite.revokedAt),
+    ) ?? null
   );
 }
-
 function createOrReviveStoreMembership(params: {
   tables: SeedTables;
   clubId: string;
@@ -367,7 +382,6 @@ function createOrReviveStoreMembership(params: {
   const existing = memberships.find(
     (row) => asString(row.clubId) === params.clubId && asString(row.userId) === params.userId,
   );
-
   if (existing) {
     existing.role = toStoreRole(params.role);
     existing.active = true;
@@ -386,7 +400,6 @@ function createOrReviveStoreMembership(params: {
       updatedAt: asString(existing.updatedAt) ?? now,
     });
   }
-
   const created: SeedRow = {
     id: `cmb_${randomUUID()}`,
     clubId: params.clubId,
@@ -412,24 +425,26 @@ function createOrReviveStoreMembership(params: {
     updatedAt: now,
   });
 }
-
 class SeedClubAuthorityRepository implements ClubAuthorityRepository {
   constructor(private readonly getTables: () => SeedTables) {}
-
-  async listVisibleClubs(params: { authUserId: string; isPrivilegedAdmin: boolean }): Promise<VisibleClub[]> {
+  async listVisibleClubs(params: {
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<VisibleClub[]> {
     const tables = this.getTables();
     const clubs = asRows(tables.clubs).filter((row) => !asString(row.deletedAt));
     const memberships = getStoreActiveMemberships(tables);
     const squads = asRows(tables.squads).filter((row) => !asString(row.deletedAt));
-    const memberInviteCodes = getActiveStoreInviteCodeRows(tables).filter((row) => asString(row.role) === 'MEMBER');
-
-    const allowedClubIds = new Set(
-      memberships
-        .filter((row) => asString(row.userId) === params.authUserId)
-        .map((row) => asString(row.clubId))
-        .filter(isTruthy),
+    const memberInviteCodes = getActiveStoreInviteCodeRows(tables).filter(
+      (row) => asString(row.role) === 'MEMBER',
     );
-
+    const allowedClubIds = new Set(
+      memberships.flatMap((row) => {
+        if (!(asString(row.userId) === params.authUserId)) return [];
+        const mapped = asString(row.clubId);
+        return isTruthy(mapped) ? [mapped] : [];
+      }),
+    );
     const visibleClubs = clubs.filter((club) => {
       if (params.isPrivilegedAdmin) {
         return true;
@@ -437,26 +452,27 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
       const clubId = asString(club.id);
       return Boolean(clubId && allowedClubIds.has(clubId));
     });
-
     return visibleClubs.map((club) => {
       const clubId = asString(club.id) ?? '';
-      const clubMemberships = memberships
-        .filter((row) => asString(row.clubId) === clubId)
-        .map((row) =>
-          toMembershipSummary({
-            id: asString(row.id) ?? '',
-            clubId,
-            userId: asString(row.userId) ?? '',
-            role: asString(row.role) ?? '',
-            active: row.active !== false,
-            createdAt: asString(row.createdAt),
-            updatedAt: asString(row.updatedAt),
-          }),
-        );
-      const viewerMembership = clubMemberships.find((membership) => membership.userId === params.authUserId) ?? null;
-      const primaryInviteCode =
-        memberInviteCodes.find((row) => asString(row.clubId) === clubId)?.code as string | undefined;
-
+      const clubMemberships = memberships.flatMap((row) =>
+        asString(row.clubId) === clubId
+          ? [
+              toMembershipSummary({
+                id: asString(row.id) ?? '',
+                clubId,
+                userId: asString(row.userId) ?? '',
+                role: asString(row.role) ?? '',
+                active: row.active !== false,
+                createdAt: asString(row.createdAt),
+                updatedAt: asString(row.updatedAt),
+              }),
+            ]
+          : [],
+      );
+      const viewerMembership =
+        clubMemberships.find((membership) => membership.userId === params.authUserId) ?? null;
+      const primaryInviteCode = memberInviteCodes.find((row) => asString(row.clubId) === clubId)
+        ?.code as string | undefined;
       return {
         ...buildClubSummary(
           {
@@ -474,16 +490,17 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
       };
     });
   }
-
-  async listInviteCodes(params: { clubId: string; authUserId: string }): Promise<ClubInviteCodeRecord[]> {
+  async listInviteCodes(params: {
+    clubId: string;
+    authUserId: string;
+  }): Promise<ClubInviteCodeRecord[]> {
     const tables = this.getTables();
     const viewerMembership = getStoreViewerMembership(tables, params.clubId, params.authUserId);
     requireManageInvites(asString(viewerMembership?.role));
-    return getActiveStoreInviteCodeRows(tables)
-      .filter((row) => asString(row.clubId) === params.clubId)
-      .map(mapInviteCodeRecordFromRow);
+    return getActiveStoreInviteCodeRows(tables).flatMap((row) =>
+      asString(row.clubId) === params.clubId ? [mapInviteCodeRecordFromRow(row)] : [],
+    );
   }
-
   async createInviteCode(params: {
     clubId: string;
     authUserId: string;
@@ -494,16 +511,17 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
     if (!club) {
       throw notFound('Club not found');
     }
-
     const viewerMembership = getStoreViewerMembership(tables, params.clubId, params.authUserId);
     requireManageInvites(asString(viewerMembership?.role));
-
     const inviteCodes = ensureStoreInviteCodesTable(tables);
     const now = new Date().toISOString();
-
     if (params.role !== 'MEMBER') {
       inviteCodes.forEach((row) => {
-        if (asString(row.clubId) === params.clubId && asString(row.role) === params.role && !asString(row.deletedAt)) {
+        if (
+          asString(row.clubId) === params.clubId &&
+          asString(row.role) === params.role &&
+          !asString(row.deletedAt)
+        ) {
           row.deletedAt = now;
           row.deletedByUserId = params.authUserId;
           row.updatedAt = now;
@@ -512,7 +530,6 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
         }
       });
     }
-
     const inviteCode: SeedRow = {
       id: `cinv_${randomUUID()}`,
       clubId: params.clubId,
@@ -531,17 +548,22 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
     inviteCodes.push(inviteCode);
     return mapInviteCodeRecordFromRow(inviteCode);
   }
-
-  async deleteInviteCode(params: { clubId: string; authUserId: string; code: string }): Promise<void> {
+  async deleteInviteCode(params: {
+    clubId: string;
+    authUserId: string;
+    code: string;
+  }): Promise<void> {
     const tables = this.getTables();
     const viewerMembership = getStoreViewerMembership(tables, params.clubId, params.authUserId);
     requireManageInvites(asString(viewerMembership?.role));
-
     const inviteCodes = ensureStoreInviteCodesTable(tables);
     const normalizedCode = normalizeInviteCode(params.code);
     const now = new Date().toISOString();
     inviteCodes.forEach((row) => {
-      if (asString(row.clubId) === params.clubId && normalizeInviteCode(asString(row.code) ?? '') === normalizedCode) {
+      if (
+        asString(row.clubId) === params.clubId &&
+        normalizeInviteCode(asString(row.code) ?? '') === normalizedCode
+      ) {
         row.deletedAt = now;
         row.deletedByUserId = params.authUserId;
         row.updatedAt = now;
@@ -550,7 +572,6 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
       }
     });
   }
-
   async resolveJoinCode(params: { authUserId: string; code: string }): Promise<ClubJoinPreview> {
     const tables = this.getTables();
     const inviteCodeRow = getActiveStoreInviteCodeRows(tables).find(
@@ -559,13 +580,11 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
     if (!inviteCodeRow) {
       throw notFound('Invite code not found');
     }
-
     const clubId = asString(inviteCodeRow.clubId) ?? '';
     const club = findStoreClubById(tables, clubId);
     if (!club) {
       throw notFound('Club not found');
     }
-
     const existingMembership = getStoreViewerMembership(tables, clubId, params.authUserId);
     return {
       clubId,
@@ -579,7 +598,6 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
       alreadyMember: Boolean(existingMembership),
     };
   }
-
   async joinWithCode(params: {
     authUserId: string;
     code: string;
@@ -592,13 +610,11 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
     if (!inviteCodeRow) {
       throw notFound('Invite code not found');
     }
-
     const clubId = asString(inviteCodeRow.clubId) ?? '';
     const club = findStoreClubById(tables, clubId);
     if (!club) {
       throw notFound('Club not found');
     }
-
     const clubSummary = buildClubSummary(
       {
         id: clubId,
@@ -626,12 +642,10 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
         invite: null,
       };
     }
-
     const role = asString(inviteCodeRow.role) ?? 'MEMBER';
     if (role !== 'MEMBER' && !params.actingAuthCanUseStaffLinks) {
       throw forbidden('Only coach or admin accounts can use staff invite links');
     }
-
     if (role === 'MEMBER') {
       inviteCodeRow.remainingUses = Math.max(0, Number(inviteCodeRow.remainingUses ?? 0) - 1);
       inviteCodeRow.updatedAt = new Date().toISOString();
@@ -650,20 +664,18 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
         invite: null,
       };
     }
-
     const pendingPair =
       getStoreClubStaffInvitePairs(tables).find(({ invite, target }) => {
         const metadata = asObject(invite.metadataJson);
         return (
-          asString(invite.clubId) === clubId
-          && asString(target.targetUserId) === params.authUserId
-          && toPendingInviteStatus(asString(target.status)) === 'pending'
-          && asString(metadata?.role) === role
-          && !asString(invite.revokedAt)
-          && new Date(asString(invite.expiresAt) ?? '').getTime() > Date.now()
+          asString(invite.clubId) === clubId &&
+          asString(target.targetUserId) === params.authUserId &&
+          toPendingInviteStatus(asString(target.status)) === 'pending' &&
+          asString(metadata?.role) === role &&
+          !asString(invite.revokedAt) &&
+          new Date(asString(invite.expiresAt) ?? '').getTime() > Date.now()
         );
-      })
-      ?? null;
+      }) ?? null;
     if (pendingPair) {
       return {
         outcome: 'invite_pending',
@@ -676,7 +688,6 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
         }),
       };
     }
-
     const now = new Date().toISOString();
     const inviteRow: SeedRow = {
       id: `inv_${randomUUID()}`,
@@ -712,7 +723,6 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
     };
     ensureTable(tables, 'invites').push(inviteRow);
     ensureTable(tables, 'inviteTargets').push(targetRow);
-
     return {
       outcome: 'invite_pending',
       club: clubSummary,
@@ -724,26 +734,32 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
       }),
     };
   }
-
   async listPendingInvites(params: { authUserId: string }): Promise<PendingClubInvite[]> {
     const tables = this.getTables();
-    return getStoreClubStaffInvitePairs(tables)
-      .filter(({ invite, target }) => {
+    return getStoreClubStaffInvitePairs(tables).flatMap((item) =>
+      (({ invite, target }) => {
         const expiresAt = asString(invite.expiresAt);
         return (
-          asString(target.targetUserId) === params.authUserId
-          && toPendingInviteStatus(asString(target.status)) === 'pending'
-          && !asString(invite.revokedAt)
-          && Boolean(expiresAt && new Date(expiresAt).getTime() > Date.now())
+          asString(target.targetUserId) === params.authUserId &&
+          toPendingInviteStatus(asString(target.status)) === 'pending' &&
+          !asString(invite.revokedAt) &&
+          Boolean(expiresAt && new Date(expiresAt).getTime() > Date.now())
         );
-      })
-      .map(({ invite, target }) => {
-        const clubName =
-          asString(findStoreClubById(tables, asString(invite.clubId) ?? '')?.name) ?? 'Club';
-        return mapPendingInviteFromRows({ invite, target, clubName });
-      });
+      })(item)
+        ? [
+            (({ invite, target }) => {
+              const clubName =
+                asString(findStoreClubById(tables, asString(invite.clubId) ?? '')?.name) ?? 'Club';
+              return mapPendingInviteFromRows({
+                invite,
+                target,
+                clubName,
+              });
+            })(item),
+          ]
+        : [],
+    );
   }
-
   async respondToInvite(params: {
     authUserId: string;
     inviteId: string;
@@ -754,22 +770,22 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
     if (!pair) {
       throw notFound('Club invite not found');
     }
-
     const clubId = asString(pair.invite.clubId) ?? '';
     const club = findStoreClubById(tables, clubId);
     if (!club) {
       throw notFound('Club not found');
     }
-
     const metadata = asObject(pair.invite.metadataJson);
     const now = new Date().toISOString();
     pair.invite.status = params.response.toUpperCase();
     pair.invite.updatedAt = now;
     pair.target.status = params.response.toUpperCase();
     pair.target.respondedAt = now;
-    pair.target.responsePayloadJson = { response: params.response, source: 'club_invites' };
+    pair.target.responsePayloadJson = {
+      response: params.response,
+      source: 'club_invites',
+    };
     pair.target.updatedAt = now;
-
     const membership =
       params.response === 'accepted'
         ? createOrReviveStoreMembership({
@@ -780,7 +796,6 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
             actorUserId: asString(pair.invite.senderUserId) ?? params.authUserId,
           })
         : null;
-
     return {
       invite: mapPendingInviteFromRows({
         invite: pair.invite,
@@ -801,18 +816,23 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
     };
   }
 }
-
 class DbClubAuthorityRepository implements ClubAuthorityRepository {
   private readonly fixture = new SeedClubAuthorityRepository(() => getDbFixtureStore().tables);
-
-  async listVisibleClubs(params: { authUserId: string; isPrivilegedAdmin: boolean }): Promise<VisibleClub[]> {
+  async listVisibleClubs(params: {
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<VisibleClub[]> {
     if (shouldUseDbFixtureFallback()) {
       return this.fixture.listVisibleClubs(params);
     }
-
     const prisma = getPrismaClientOrThrow();
-    const baseWhere = { deletedAt: null as null };
-    const membershipsWhere = { active: true, deletedAt: null as null };
+    const baseWhere = {
+      deletedAt: null as null,
+    };
+    const membershipsWhere = {
+      active: true,
+      deletedAt: null as null,
+    };
     const visibleMemberships = params.isPrivilegedAdmin
       ? null
       : await prisma.clubMembership.findMany({
@@ -820,38 +840,60 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
             ...membershipsWhere,
             userId: params.authUserId,
           },
-          select: { clubId: true },
+          select: {
+            clubId: true,
+          },
         });
-
-    const clubIds = visibleMemberships ? [...new Set(visibleMemberships.map((row) => row.clubId))] : [];
+    const clubIds = visibleMemberships
+      ? [...new Set(visibleMemberships.map((row) => row.clubId))]
+      : [];
     if (!params.isPrivilegedAdmin && clubIds.length === 0) {
       return [];
     }
-
     const clubs = await prisma.club.findMany({
-      where: params.isPrivilegedAdmin ? baseWhere : { ...baseWhere, id: { in: clubIds } },
+      where: params.isPrivilegedAdmin
+        ? baseWhere
+        : {
+            ...baseWhere,
+            id: {
+              in: clubIds,
+            },
+          },
       include: {
         memberships: {
           where: membershipsWhere,
-          orderBy: { createdAt: 'asc' },
+          orderBy: {
+            createdAt: 'asc',
+          },
         },
         squads: {
-          where: { deletedAt: null },
-          orderBy: { createdAt: 'asc' },
+          where: {
+            deletedAt: null,
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
         },
         inviteCodes: {
           where: {
             deletedAt: null,
             role: 'MEMBER',
-            expiresAt: { gt: new Date() },
-            remainingUses: { gt: 0 },
+            expiresAt: {
+              gt: new Date(),
+            },
+            remainingUses: {
+              gt: 0,
+            },
           },
-          orderBy: { createdAt: 'asc' },
+          orderBy: {
+            createdAt: 'asc',
+          },
         },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: {
+        createdAt: 'asc',
+      },
     });
-
     return normalizeForJson(
       clubs.map((club) => ({
         ...buildClubSummary(
@@ -888,18 +930,18 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
                 updatedAt: membership.updatedAt,
               }),
             )
-            .find((membership) => membership.userId === params.authUserId)
-          ?? null,
+            .find((membership) => membership.userId === params.authUserId) ?? null,
         squads: club.squads,
       })),
     );
   }
-
-  async listInviteCodes(params: { clubId: string; authUserId: string }): Promise<ClubInviteCodeRecord[]> {
+  async listInviteCodes(params: {
+    clubId: string;
+    authUserId: string;
+  }): Promise<ClubInviteCodeRecord[]> {
     if (shouldUseDbFixtureFallback()) {
       return this.fixture.listInviteCodes(params);
     }
-
     const prisma = getPrismaClientOrThrow();
     const viewerMembership = await prisma.clubMembership.findUnique({
       where: {
@@ -910,17 +952,21 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
       },
     });
     requireManageInvites(viewerMembership?.role);
-
     const inviteCodes = await prisma.clubInviteCode.findMany({
       where: {
         clubId: params.clubId,
         deletedAt: null,
-        expiresAt: { gt: new Date() },
-        remainingUses: { gt: 0 },
+        expiresAt: {
+          gt: new Date(),
+        },
+        remainingUses: {
+          gt: 0,
+        },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: {
+        createdAt: 'asc',
+      },
     });
-
     return normalizeForJson(
       inviteCodes.map((row) => ({
         id: row.id,
@@ -934,7 +980,6 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
       })),
     );
   }
-
   async createInviteCode(params: {
     clubId: string;
     authUserId: string;
@@ -943,13 +988,15 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
     if (shouldUseDbFixtureFallback()) {
       return this.fixture.createInviteCode(params);
     }
-
     const prisma = getPrismaClientOrThrow();
-    const club = await prisma.club.findUnique({ where: { id: params.clubId } });
+    const club = await prisma.club.findUnique({
+      where: {
+        id: params.clubId,
+      },
+    });
     if (!club || club.deletedAt) {
       throw notFound('Club not found');
     }
-
     const viewerMembership = await prisma.clubMembership.findUnique({
       where: {
         clubId_userId: {
@@ -959,7 +1006,6 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
       },
     });
     requireManageInvites(viewerMembership?.role);
-
     const now = new Date();
     const created = await prisma.$transaction(async (tx) => {
       if (params.role !== 'MEMBER') {
@@ -976,7 +1022,6 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
           },
         });
       }
-
       return tx.clubInviteCode.create({
         data: {
           id: `cinv_${randomUUID()}`,
@@ -984,13 +1029,14 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
           code: `${buildInviteCode(club.name, params.role)}-${randomUUID().slice(0, 4).toUpperCase()}`,
           role: params.role,
           remainingUses: params.role === 'MEMBER' ? 999 : 25,
-          expiresAt: new Date(Date.now() + (params.role === 'MEMBER' ? 365 : 30) * 24 * 60 * 60 * 1000),
+          expiresAt: new Date(
+            Date.now() + (params.role === 'MEMBER' ? 365 : 30) * 24 * 60 * 60 * 1000,
+          ),
           createdByUserId: params.authUserId,
           updatedByUserId: params.authUserId,
         },
       });
     });
-
     return normalizeForJson({
       id: created.id,
       clubId: created.clubId,
@@ -1002,12 +1048,14 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
       remainingUses: created.remainingUses,
     });
   }
-
-  async deleteInviteCode(params: { clubId: string; authUserId: string; code: string }): Promise<void> {
+  async deleteInviteCode(params: {
+    clubId: string;
+    authUserId: string;
+    code: string;
+  }): Promise<void> {
     if (shouldUseDbFixtureFallback()) {
       return this.fixture.deleteInviteCode(params);
     }
-
     const prisma = getPrismaClientOrThrow();
     const viewerMembership = await prisma.clubMembership.findUnique({
       where: {
@@ -1018,7 +1066,6 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
       },
     });
     requireManageInvites(viewerMembership?.role);
-
     await prisma.clubInviteCode.updateMany({
       where: {
         clubId: params.clubId,
@@ -1032,12 +1079,10 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
       },
     });
   }
-
   async resolveJoinCode(params: { authUserId: string; code: string }): Promise<ClubJoinPreview> {
     if (shouldUseDbFixtureFallback()) {
       return this.fixture.resolveJoinCode(params);
     }
-
     const prisma = getPrismaClientOrThrow();
     const inviteCode = await prisma.clubInviteCode.findFirst({
       where: {
@@ -1045,15 +1090,21 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
         deletedAt: null,
       },
     });
-    if (!inviteCode || inviteCode.remainingUses <= 0 || inviteCode.expiresAt.getTime() <= Date.now()) {
+    if (
+      !inviteCode ||
+      inviteCode.remainingUses <= 0 ||
+      inviteCode.expiresAt.getTime() <= Date.now()
+    ) {
       throw notFound('Invite code not found');
     }
-
-    const club = await prisma.club.findUnique({ where: { id: inviteCode.clubId } });
+    const club = await prisma.club.findUnique({
+      where: {
+        id: inviteCode.clubId,
+      },
+    });
     if (!club || club.deletedAt) {
       throw notFound('Club not found');
     }
-
     const existingMembership = await prisma.clubMembership.findUnique({
       where: {
         clubId_userId: {
@@ -1062,7 +1113,6 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
         },
       },
     });
-
     return normalizeForJson({
       clubId: club.id,
       clubName: club.name,
@@ -1075,7 +1125,6 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
       alreadyMember: Boolean(existingMembership?.active && !existingMembership.deletedAt),
     });
   }
-
   async joinWithCode(params: {
     authUserId: string;
     code: string;
@@ -1084,7 +1133,6 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
     if (shouldUseDbFixtureFallback()) {
       return this.fixture.joinWithCode(params);
     }
-
     const prisma = getPrismaClientOrThrow();
     const inviteCode = await prisma.clubInviteCode.findFirst({
       where: {
@@ -1092,15 +1140,21 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
         deletedAt: null,
       },
     });
-    if (!inviteCode || inviteCode.remainingUses <= 0 || inviteCode.expiresAt.getTime() <= Date.now()) {
+    if (
+      !inviteCode ||
+      inviteCode.remainingUses <= 0 ||
+      inviteCode.expiresAt.getTime() <= Date.now()
+    ) {
       throw notFound('Invite code not found');
     }
-
-    const club = await prisma.club.findUnique({ where: { id: inviteCode.clubId } });
+    const club = await prisma.club.findUnique({
+      where: {
+        id: inviteCode.clubId,
+      },
+    });
     if (!club || club.deletedAt) {
       throw notFound('Club not found');
     }
-
     const clubSummary = buildClubSummary(
       {
         id: club.id,
@@ -1111,7 +1165,6 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
       },
       inviteCode.code,
     );
-
     const existingMembership = await prisma.clubMembership.findUnique({
       where: {
         clubId_userId: {
@@ -1138,21 +1191,20 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
         invite: null,
       };
     }
-
     if (inviteCode.role !== 'MEMBER' && !params.actingAuthCanUseStaffLinks) {
       throw forbidden('Only coach or admin accounts can use staff invite links');
     }
-
     if (inviteCode.role === 'MEMBER') {
       const membership = await prisma.$transaction(async (tx) => {
         await tx.clubInviteCode.update({
-          where: { id: inviteCode.id },
+          where: {
+            id: inviteCode.id,
+          },
           data: {
             remainingUses: Math.max(0, inviteCode.remainingUses - 1),
             updatedByUserId: inviteCode.createdByUserId,
           },
         });
-
         const membershipRow = existingMembership
           ? await tx.clubMembership.update({
               where: {
@@ -1167,7 +1219,9 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
                 deletedAt: null,
                 deletedByUserId: null,
                 updatedByUserId: inviteCode.createdByUserId,
-                version: { increment: 1n },
+                version: {
+                  increment: 1n,
+                },
               },
             })
           : await tx.clubMembership.create({
@@ -1183,7 +1237,6 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
             });
         return membershipRow;
       });
-
       return {
         outcome: 'joined',
         club: clubSummary,
@@ -1201,7 +1254,6 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
         invite: null,
       };
     }
-
     const pendingInvite = (
       await prisma.invite.findMany({
         where: {
@@ -1209,7 +1261,9 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
           clubId: inviteCode.clubId,
           status: 'PENDING',
           revokedAt: null,
-          expiresAt: { gt: new Date() },
+          expiresAt: {
+            gt: new Date(),
+          },
           targets: {
             some: {
               targetUserId: params.authUserId,
@@ -1225,8 +1279,10 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
           },
         },
       })
-    ).find((invite) => asString((invite.metadataJson as Record<string, unknown> | null)?.role) === inviteCode.role);
-
+    ).find(
+      (invite) =>
+        asString((invite.metadataJson as Record<string, unknown> | null)?.role) === inviteCode.role,
+    );
     if (pendingInvite) {
       const target = pendingInvite.targets[0];
       return {
@@ -1238,11 +1294,17 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
           clubId: pendingInvite.clubId ?? '',
           clubName: club.name,
           targetUserId: target?.targetUserId ?? params.authUserId,
-          inviteCode: asString((pendingInvite.metadataJson as Record<string, unknown> | null)?.inviteCode) ?? inviteCode.code,
-          role: asString((pendingInvite.metadataJson as Record<string, unknown> | null)?.role) ?? inviteCode.role,
+          inviteCode:
+            asString((pendingInvite.metadataJson as Record<string, unknown> | null)?.inviteCode) ??
+            inviteCode.code,
+          role:
+            asString((pendingInvite.metadataJson as Record<string, unknown> | null)?.role) ??
+            inviteCode.role,
           invitedByUserId: pendingInvite.senderUserId,
           invitedByLabel:
-            asString((pendingInvite.metadataJson as Record<string, unknown> | null)?.invitedByLabel) ?? 'Club staff',
+            asString(
+              (pendingInvite.metadataJson as Record<string, unknown> | null)?.invitedByLabel,
+            ) ?? 'Club staff',
           status: 'pending',
           createdAt: pendingInvite.createdAt.toISOString(),
           expiresAt: pendingInvite.expiresAt?.toISOString() ?? new Date().toISOString(),
@@ -1250,7 +1312,6 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
         }),
       };
     }
-
     const created = await prisma.invite.create({
       data: {
         id: `inv_${randomUUID()}`,
@@ -1277,7 +1338,6 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
         targets: true,
       },
     });
-
     return {
       outcome: 'invite_pending',
       club: clubSummary,
@@ -1298,19 +1358,19 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
       }),
     };
   }
-
   async listPendingInvites(params: { authUserId: string }): Promise<PendingClubInvite[]> {
     if (shouldUseDbFixtureFallback()) {
       return this.fixture.listPendingInvites(params);
     }
-
     const prisma = getPrismaClientOrThrow();
     const invites = await prisma.invite.findMany({
       where: {
         inviteType: 'club_staff_join',
         status: 'PENDING',
         revokedAt: null,
-        expiresAt: { gt: new Date() },
+        expiresAt: {
+          gt: new Date(),
+        },
         targets: {
           some: {
             targetUserId: params.authUserId,
@@ -1325,19 +1385,24 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
-
-    const clubIds = invites.map((invite) => invite.clubId).filter(isTruthy);
+    const clubIds = invites.flatMap((invite) => {
+      const mapped = invite.clubId;
+      return isTruthy(mapped) ? [mapped] : [];
+    });
     const clubs = clubIds.length
       ? await prisma.club.findMany({
           where: {
-            id: { in: clubIds },
+            id: {
+              in: clubIds,
+            },
           },
         })
       : [];
     const clubNameById = new Map(clubs.map((club) => [club.id, club.name]));
-
     return normalizeForJson(
       invites.map((invite) => {
         const target = invite.targets[0];
@@ -1359,7 +1424,6 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
       }),
     );
   }
-
   async respondToInvite(params: {
     authUserId: string;
     inviteId: string;
@@ -1368,56 +1432,72 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
     if (shouldUseDbFixtureFallback()) {
       return this.fixture.respondToInvite(params);
     }
-
     const prisma = getPrismaClientOrThrow();
     const invite = await prisma.invite.findUnique({
-      where: { id: params.inviteId },
+      where: {
+        id: params.inviteId,
+      },
       include: {
         targets: {
-          where: { targetUserId: params.authUserId },
+          where: {
+            targetUserId: params.authUserId,
+          },
         },
       },
     });
-    if (!invite || invite.inviteType !== 'club_staff_join' || invite.targets.length === 0 || invite.revokedAt) {
+    if (
+      !invite ||
+      invite.inviteType !== 'club_staff_join' ||
+      invite.targets.length === 0 ||
+      invite.revokedAt
+    ) {
       throw notFound('Club invite not found');
     }
-
     const target = invite.targets[0];
     const clubId = invite.clubId;
     if (!clubId) {
       throw notFound('Club not found');
     }
-
-    const club = await prisma.club.findUnique({ where: { id: clubId } });
+    const club = await prisma.club.findUnique({
+      where: {
+        id: clubId,
+      },
+    });
     if (!club || club.deletedAt) {
       throw notFound('Club not found');
     }
-
     const metadata = invite.metadataJson as Record<string, unknown> | null;
     const membership = await prisma.$transaction(async (tx) => {
       const nextStatus = params.response.toUpperCase();
-      await tx.invite.update({
-        where: { id: invite.id },
-        data: {
-          status: nextStatus as 'ACCEPTED' | 'DECLINED',
-        },
-      });
-      await tx.inviteTarget.update({
-        where: { id: target.id },
-        data: {
-          status: nextStatus as 'ACCEPTED' | 'DECLINED',
-          respondedAt: new Date(),
-          responsePayloadJson: {
-            response: params.response,
-            source: 'club_invites',
-          },
-        },
-      });
-
+      const recordResponse = () =>
+        Promise.all([
+          tx.invite.update({
+            where: {
+              id: invite.id,
+            },
+            data: {
+              status: nextStatus as 'ACCEPTED' | 'DECLINED',
+            },
+          }),
+          tx.inviteTarget.update({
+            where: {
+              id: target.id,
+            },
+            data: {
+              status: nextStatus as 'ACCEPTED' | 'DECLINED',
+              respondedAt: new Date(),
+              responsePayloadJson: {
+                response: params.response,
+                source: 'club_invites',
+              },
+            },
+          }),
+        ]);
       if (params.response !== 'accepted') {
+        await recordResponse();
         return null;
       }
-
+      await recordResponse();
       const existingMembership = await tx.clubMembership.findUnique({
         where: {
           clubId_userId: {
@@ -1426,7 +1506,6 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
           },
         },
       });
-
       if (existingMembership) {
         return tx.clubMembership.update({
           where: {
@@ -1441,11 +1520,12 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
             deletedAt: null,
             deletedByUserId: null,
             updatedByUserId: invite.senderUserId,
-            version: { increment: 1n },
+            version: {
+              increment: 1n,
+            },
           },
         });
       }
-
       return tx.clubMembership.create({
         data: {
           id: `cmb_${randomUUID()}`,
@@ -1458,7 +1538,6 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
         },
       });
     });
-
     return {
       invite: normalizeForJson({
         id: invite.id,
@@ -1500,14 +1579,13 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
     };
   }
 }
-
-const seedClubAuthorityRepository = new SeedClubAuthorityRepository(() => getMarketplaceSeedStore().tables);
+const seedClubAuthorityRepository = new SeedClubAuthorityRepository(
+  () => getMarketplaceSeedStore().tables,
+);
 const dbClubAuthorityRepository = new DbClubAuthorityRepository();
-
 export function resolveClubAuthorityRepository(): ClubAuthorityRepository {
   return getApiDataBackend() === 'db' ? dbClubAuthorityRepository : seedClubAuthorityRepository;
 }
-
 export function resetClubAuthorityRepositoryForTests(): void {
   // The repository mutates only the current backend tables; test store reset functions own the real reset.
 }

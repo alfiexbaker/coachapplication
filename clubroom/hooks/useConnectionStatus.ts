@@ -19,6 +19,13 @@ function getIsExpensive(state: NetInfoState): boolean {
   return Boolean(state.details.isConnectionExpensive);
 }
 
+function clearReconnectTimer(ref: { current: ReturnType<typeof setTimeout> | null }) {
+  if (ref.current) {
+    clearTimeout(ref.current);
+    ref.current = null;
+  }
+}
+
 export function useConnectionStatus() {
   const [isConnected, setIsConnected] = useState(true);
   const [wasOffline, setWasOffline] = useState(false);
@@ -107,9 +114,7 @@ export function useConnectionStatus() {
 
     return () => {
       unsubscribe();
-      if (reconnectedTimeoutRef.current) {
-        clearTimeout(reconnectedTimeoutRef.current);
-      }
+      clearReconnectTimer(reconnectedTimeoutRef);
     };
   }, []);
 

@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
@@ -17,13 +17,23 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { SessionFeedback } from '@/services/progress-service';
-import type { FootballSkill, ParentSkillGroup, PhotoAsset, VideoAsset } from '@/types/progress-types';
+import type {
+  FootballSkill,
+  ParentSkillGroup,
+  PhotoAsset,
+  VideoAsset,
+} from '@/types/progress-types';
 import type { CoachBadgeData } from './coach-badge';
 import { CoachBadge } from './coach-badge';
 import { CornerDotsCompact } from './corner-dots-compact';
 import { MediaStrip } from './media-strip';
 import { CORNER_COLORS } from '@/constants/four-corner-mapping';
-import { POSITION_LABELS, getParentGroup, mapSkillToCorner, SKILL_SUB_SKILLS } from '@/constants/position-skills';
+import {
+  POSITION_LABELS,
+  getParentGroup,
+  mapSkillToCorner,
+  SKILL_SUB_SKILLS,
+} from '@/constants/position-skills';
 
 interface HomeworkData {
   homework: string;
@@ -60,7 +70,7 @@ function toFivePointDots(value: number): number {
   return Math.max(1, Math.min(5, Math.round(value)));
 }
 
-export const CoachSaysCard = memo(function CoachSaysCard({
+export const CoachSaysCard = function CoachSaysCard({
   feedback,
   coachBadge,
   media,
@@ -75,68 +85,66 @@ export const CoachSaysCard = memo(function CoachSaysCard({
   const quoteLift = useSharedValue(10);
   const homeworkExpandedByFeedbackIdRef = useRef<Record<string, boolean>>({});
   const [homeworkExpanded, setHomeworkExpanded] = useState(false);
+  const feedbackId = feedback?.id;
 
   useEffect(() => {
-    if (!feedback) {
+    if (!feedbackId) {
       return;
     }
-    quoteOpacity.value = 0;
-    quoteLift.value = 10;
-    quoteOpacity.value = withTiming(1, { duration: 220 });
-    quoteLift.value = withTiming(0, { duration: 220 });
-  }, [feedback?.id, quoteLift, quoteOpacity]);
+    quoteOpacity.set(0);
+    quoteLift.set(10);
+    quoteOpacity.set(withTiming(1, { duration: 220 }));
+    quoteLift.set(withTiming(0, { duration: 220 }));
+  }, [feedbackId, quoteLift, quoteOpacity]);
 
   useEffect(() => {
-    const key = feedback?.id ?? 'none';
+    const key = feedbackId ?? 'none';
     setHomeworkExpanded(Boolean(homeworkExpandedByFeedbackIdRef.current[key]));
-  }, [feedback?.id]);
+  }, [feedbackId]);
 
   const quoteStyle = useAnimatedStyle(() => ({
     opacity: quoteOpacity.value,
     transform: [{ translateY: quoteLift.value }],
   }));
 
-  const toggleHomework = useCallback(() => {
+  const toggleHomework = () => {
     setHomeworkExpanded((prev) => {
       const next = !prev;
-      const key = feedback?.id ?? 'none';
+      const key = feedbackId ?? 'none';
       homeworkExpandedByFeedbackIdRef.current[key] = next;
       return next;
     });
-  }, [feedback?.id]);
+  };
 
   const trimmedImprovements = feedback?.improvements?.trim() ?? '';
   const trimmedTemplate = feedback?.sessionTemplateName?.trim() ?? '';
   const trimmedSessionTitle = feedback?.sessionTitle?.trim() ?? '';
   const trimmedBadgeAward = feedback?.badgeAwarded?.trim() ?? '';
   const sessionContextLabel = trimmedTemplate || trimmedSessionTitle;
-  const sessionBadges = useMemo(
-    () =>
-      trimmedBadgeAward
-        .split(',')
-        .map((label) => label.trim())
-        .filter((label) => label.length > 0),
-    [trimmedBadgeAward],
+  const sessionBadges = trimmedBadgeAward
+    .split(',')
+    .map((label) => label.trim())
+    .filter((label) => label.length > 0);
+  const skillRatings = (feedback?.skillRatings ?? []).filter(
+    (entry) => entry.skill.trim().length > 0,
   );
-  const skillRatings = useMemo(
-    () => (feedback?.skillRatings ?? []).filter((entry) => entry.skill.trim().length > 0),
-    [feedback?.skillRatings],
-  );
-  const groupedSkillRatings = useMemo(() => {
+  const groupedSkillRatings = (() => {
     const next: Partial<Record<ParentSkillGroup, typeof skillRatings>> = {};
     for (const entry of skillRatings) {
       const group = getParentGroup(entry.skill as FootballSkill);
       next[group] = [...(next[group] ?? []), entry];
     }
     return next;
-  }, [skillRatings]);
+  })();
 
   if (!feedback) {
     return (
       <SurfaceCard style={styles.card}>
         <Column gap="sm">
           <ThemedText style={styles.title}>Coach Feedback</ThemedText>
-          <ThemedText style={[styles.emptyTitle, { color: colors.muted }]}>No feedback yet</ThemedText>
+          <ThemedText style={[styles.emptyTitle, { color: colors.muted }]}>
+            No feedback yet
+          </ThemedText>
           <ThemedText style={[styles.emptyBody, { color: colors.muted }]}>
             After the next session, your coach will share notes and skill ratings here.
           </ThemedText>
@@ -171,7 +179,9 @@ export const CoachSaysCard = memo(function CoachSaysCard({
         {feedback.overallPerformance > 0 || feedback.effortRating > 0 ? (
           <Row align="baseline" gap="micro">
             <ThemedText style={styles.heroScore}>
-              {feedback.overallPerformance > 0 ? feedback.overallPerformance : feedback.effortRating}
+              {feedback.overallPerformance > 0
+                ? feedback.overallPerformance
+                : feedback.effortRating}
             </ThemedText>
             <ThemedText style={[styles.heroLabel, { color: colors.muted }]}>
               /5 {feedback.overallPerformance > 0 ? 'performance' : 'effort'}
@@ -202,12 +212,10 @@ export const CoachSaysCard = memo(function CoachSaysCard({
           >
             <View style={[styles.quoteAccent, { backgroundColor: withAlpha(colors.tint, 0.62) }]} />
             <Column gap="xxs" style={styles.quoteBody}>
-              <ThemedText style={styles.quote}>
-                {feedback.publicSummary}
-              </ThemedText>
+              <ThemedText style={styles.quote}>{feedback.publicSummary}</ThemedText>
               <Row align="center" gap="xxs" style={styles.attributionRow}>
                 <ThemedText style={[styles.attribution, { color: colors.muted }]}>
-                  — {feedback.coachName}, {formatDate(feedback.createdAt)}
+                  {feedback.coachName}, {formatDate(feedback.createdAt)}
                 </ThemedText>
                 {coachBadge ? <CoachBadge coach={coachBadge} /> : null}
               </Row>
@@ -234,7 +242,7 @@ export const CoachSaysCard = memo(function CoachSaysCard({
           </Row>
         ) : null}
 
-        {(sessionContextLabel || feedback.positionPlayed) ? (
+        {sessionContextLabel || feedback.positionPlayed ? (
           <Row wrap gap="xxs">
             {sessionContextLabel ? (
               <Row
@@ -288,14 +296,22 @@ export const CoachSaysCard = memo(function CoachSaysCard({
 
                 return (
                   <Column key={group} gap="xxs">
-                    <ThemedText style={[styles.groupTitle, { color: colors.muted }]}>{group}</ThemedText>
+                    <ThemedText style={[styles.groupTitle, { color: colors.muted }]}>
+                      {group}
+                    </ThemedText>
                     {entries.map((entry) => {
                       const dots = toFivePointDots(entry.rating);
                       const previousDots =
-                        typeof entry.previousRating === 'number' ? toFivePointDots(entry.previousRating) : undefined;
+                        typeof entry.previousRating === 'number'
+                          ? toFivePointDots(entry.previousRating)
+                          : undefined;
                       const trend =
                         typeof previousDots === 'number'
-                          ? (dots > previousDots ? 'improving' : dots < previousDots ? 'declining' : 'consistent')
+                          ? dots > previousDots
+                            ? 'improving'
+                            : dots < previousDots
+                              ? 'declining'
+                              : 'consistent'
                           : 'consistent';
                       const trendColor =
                         trend === 'improving'
@@ -304,18 +320,21 @@ export const CoachSaysCard = memo(function CoachSaysCard({
                             ? withAlpha(colors.error, 0.82)
                             : withAlpha(colors.muted, 0.82);
                       const trendGlyph =
-                        trend === 'improving' ? '\u2191' : trend === 'declining' ? '\u2193' : '\u2212';
+                        trend === 'improving'
+                          ? '\u2191'
+                          : trend === 'declining'
+                            ? '\u2193'
+                            : '\u2212';
                       const cornerKey = mapSkillToCorner(entry.skill);
                       const barColor = CORNER_COLORS[cornerKey] ?? colors.tint;
 
                       const parentSubs = SKILL_SUB_SKILLS[entry.skill as FootballSkill] ?? [];
-                      const workedOnSubs = (feedback.skillsWorkedOn ?? []).filter((tag) => parentSubs.includes(tag));
+                      const workedOnSubs = (feedback.skillsWorkedOn ?? []).filter((tag) =>
+                        parentSubs.includes(tag),
+                      );
 
                       return (
-                        <Column
-                          key={`${group}_${entry.skill}_${entry.rating}`}
-                          gap="micro"
-                        >
+                        <Column key={`${group}_${entry.skill}_${entry.rating}`} gap="micro">
                           <View
                             style={[
                               styles.skillRow,
@@ -348,7 +367,9 @@ export const CoachSaysCard = memo(function CoachSaysCard({
                                     { backgroundColor: withAlpha(barColor, 0.08) },
                                   ]}
                                 >
-                                  <ThemedText style={[styles.subSkillText, { color: colors.muted }]}>
+                                  <ThemedText
+                                    style={[styles.subSkillText, { color: colors.muted }]}
+                                  >
                                     {sub}
                                   </ThemedText>
                                 </View>
@@ -379,9 +400,7 @@ export const CoachSaysCard = memo(function CoachSaysCard({
         {trimmedImprovements ? (
           <Column gap="xxs">
             <ThemedText style={styles.sectionTitle}>Improvements</ThemedText>
-            <ThemedText style={styles.improvementText}>
-              {trimmedImprovements}
-            </ThemedText>
+            <ThemedText style={styles.improvementText}>{trimmedImprovements}</ThemedText>
           </Column>
         ) : null}
 
@@ -415,7 +434,9 @@ export const CoachSaysCard = memo(function CoachSaysCard({
         {/* Homework */}
         {hasHomework ? (
           <Column gap="xs">
-            <View style={[styles.homeworkDivider, { backgroundColor: withAlpha(colors.border, 0.5) }]} />
+            <View
+              style={[styles.homeworkDivider, { backgroundColor: withAlpha(colors.border, 0.5) }]}
+            />
             <Clickable
               onPress={toggleHomework}
               style={styles.homeworkToggle}
@@ -459,7 +480,13 @@ export const CoachSaysCard = memo(function CoachSaysCard({
                       ]}
                     >
                       <Ionicons
-                        name={homework.proofType === 'video' ? 'videocam' : homework.proofType === 'photo' ? 'image' : 'checkmark-circle'}
+                        name={
+                          homework.proofType === 'video'
+                            ? 'videocam'
+                            : homework.proofType === 'photo'
+                              ? 'image'
+                              : 'checkmark-circle'
+                        }
                         size={16}
                         color={colors.success}
                       />
@@ -540,7 +567,7 @@ export const CoachSaysCard = memo(function CoachSaysCard({
       </Column>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

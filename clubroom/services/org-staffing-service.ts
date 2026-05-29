@@ -7,7 +7,15 @@ import type {
   SessionOffering,
   UserRole,
 } from '@/constants/types';
-import { type Result, type ServiceError, err, ok, storageError, unauthorized, validationError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  err,
+  ok,
+  storageError,
+  unauthorized,
+  validationError,
+} from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import { apiClient } from '@/services/api-client';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
@@ -21,11 +29,8 @@ import {
   formatOrganizationRoleLabel,
   isClubStaffRole,
 } from '@/contracts/club-governance';
-
 const logger = createLogger('OrgStaffingService');
-
 const ACTIVE_OFFERING_STATUSES = new Set<SessionOffering['status']>(['active', 'full']);
-
 export interface OrgStaffMember {
   userId: string;
   label: string;
@@ -36,7 +41,6 @@ export interface OrgStaffMember {
   upcomingLoad: number;
   nextSessionAt?: string;
 }
-
 export interface OrgWorkItem {
   offeringId: string;
   title: string;
@@ -55,14 +59,12 @@ export interface OrgWorkItem {
   linkedBookingCount: number;
   isRecurring: boolean;
 }
-
 export interface OrgStaffingSummary {
   activeOrgSessions: number;
   assignedToday: number;
   upcomingAssignedLoad: number;
   unassignedCount: number;
 }
-
 export interface OrgStaffingConsoleData {
   club: Club;
   viewerMembership: ClubMembership;
@@ -73,17 +75,14 @@ export interface OrgStaffingConsoleData {
   assignedWork: OrgWorkItem[];
   summary: OrgStaffingSummary;
 }
-
 function getStartOfTodayMs(): number {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 }
-
 function isUpcomingOffering(offering: SessionOffering, startOfTodayMs: number): boolean {
   const scheduledMs = new Date(offering.scheduledAt).getTime();
   return Number.isFinite(scheduledMs) && scheduledMs >= startOfTodayMs;
 }
-
 function isTodayOffering(offering: SessionOffering): boolean {
   const scheduled = new Date(offering.scheduledAt);
   const now = new Date();
@@ -93,23 +92,18 @@ function isTodayOffering(offering: SessionOffering): boolean {
     scheduled.getDate() === now.getDate()
   );
 }
-
 function getAssignableCoachId(offering: SessionOffering): string | null {
   return offering.assigneeCoachId || offering.ownerCoachId || offering.coachId || null;
 }
-
 function canPostAsClubMembership(membership: ClubMembership): boolean {
   return membership.canPostAsClub === true || isClubStaffRole(membership.role);
 }
-
 function isAssignmentManager(membership: ClubMembership): boolean {
   return canManageClubAssignments(membership.role);
 }
-
 function sortMembers(a: OrgStaffMember, b: OrgStaffMember): number {
   return compareOrganizationRoles(a.role, b.role) || a.label.localeCompare(b.label);
 }
-
 function toWorkItem(
   offering: SessionOffering,
   linkedBookingCount: number,
@@ -117,7 +111,6 @@ function toWorkItem(
 ): OrgWorkItem {
   const ownerCoachId = offering.ownerCoachId || offering.coachId;
   const assigneeCoachId = getAssignableCoachId(offering) || undefined;
-
   return {
     offeringId: offering.id,
     title: offering.title,
@@ -128,7 +121,9 @@ function toWorkItem(
     currentParticipants: getSessionOfferingHeadcount(offering),
     maxParticipants: offering.maxParticipants,
     createdByName: offering.createdByUserId
-      ? userNameById.get(offering.createdByUserId) || offering.createdByName || offering.createdByUserId
+      ? userNameById.get(offering.createdByUserId) ||
+        offering.createdByName ||
+        offering.createdByUserId
       : offering.createdByName,
     createdByRole: offering.createdByRole,
     ownerCoachId,
@@ -141,7 +136,6 @@ function toWorkItem(
     isRecurring: offering.isRecurring,
   };
 }
-
 class OrgStaffingService {
   async getConsoleData(
     clubId: string,
@@ -155,38 +149,36 @@ class OrgStaffingService {
           ),
         );
       }
-
       const [club, memberships, offerings, bookings] = await Promise.all([
         socialFeedService.getClub(clubId),
         socialFeedService.getClubMemberships(clubId),
         apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
         apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
       ]);
-
       if (!club) {
         return err(validationError('Club not found'));
       }
-
       const viewerMembership = memberships.find(
         (membership) => membership.userId === viewerUserId && membership.status === 'active',
       );
       if (!viewerMembership) {
         return err(unauthorized('You are not an active member of this club'));
       }
-
       const staffMemberships = memberships.filter((membership) => isClubStaffRole(membership.role));
       const userIds = Array.from(
         new Set([
           ...staffMemberships.map((membership) => membership.userId),
-          ...offerings
-            .filter((offering) => offering.clubId === clubId && offering.actingAs === 'club')
-            .flatMap((offering) => [
+          ...offerings.flatMap((offering) => {
+            if (offering.clubId !== clubId || offering.actingAs !== 'club') {
+              return [];
+            }
+            return [
               offering.createdByUserId,
               offering.ownerCoachId,
               offering.assigneeCoachId,
               offering.coachId,
-            ])
-            .filter((value): value is string => Boolean(value)),
+            ].flatMap((value) => (value ? [value] : []));
+          }),
         ]),
       );
       const usersResult = await userService.getUsersByIds(userIds);
@@ -196,7 +188,6 @@ class OrgStaffingService {
           userNameById.set(user.id, user.name?.trim() || user.id);
         });
       }
-
       const startOfTodayMs = getStartOfTodayMs();
       const activeOrgOfferings = offerings
         .filter(
@@ -207,7 +198,6 @@ class OrgStaffingService {
             isUpcomingOffering(offering, startOfTodayMs),
         )
         .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
-
       const getLinkedBookingCount = (offering: SessionOffering): number => {
         const linkedEntityIds = new Set<string>([offering.id]);
         if (offering.sourceEntityId) {
@@ -221,7 +211,6 @@ class OrgStaffingService {
             linkedEntityIds.has(booking.sessionSourceEntityId as string),
         ).length;
       };
-
       const staff = staffMemberships
         .map((membership) => {
           const assignedOfferings = activeOrgOfferings.filter(
@@ -239,19 +228,16 @@ class OrgStaffingService {
           } satisfies OrgStaffMember;
         })
         .sort(sortMembers);
-
-      const unassignedWork = activeOrgOfferings
-        .filter((offering) => !offering.assigneeCoachId)
-        .map((offering) =>
-          toWorkItem(offering, getLinkedBookingCount(offering), userNameById),
-        );
-
-      const assignedWork = activeOrgOfferings
-        .filter((offering) => Boolean(offering.assigneeCoachId))
-        .map((offering) =>
-          toWorkItem(offering, getLinkedBookingCount(offering), userNameById),
-        );
-
+      const unassignedWork = activeOrgOfferings.flatMap((offering) =>
+        !offering.assigneeCoachId
+          ? [toWorkItem(offering, getLinkedBookingCount(offering), userNameById)]
+          : [],
+      );
+      const assignedWork = activeOrgOfferings.flatMap((offering) =>
+        Boolean(offering.assigneeCoachId)
+          ? [toWorkItem(offering, getLinkedBookingCount(offering), userNameById)]
+          : [],
+      );
       return ok({
         club,
         viewerMembership,
@@ -268,18 +254,29 @@ class OrgStaffingService {
         },
       });
     } catch (error) {
-      logger.error('Failed to load org staffing console', { clubId, viewerUserId, error });
+      logger.error('Failed to load org staffing console', {
+        clubId,
+        viewerUserId,
+        error,
+      });
       return err(storageError('Failed to load staffing console'));
     }
   }
-
   async assignOffering(params: {
     clubId: string;
     offeringId: string;
     assigneeCoachId: string;
     actorUserId: string;
     actorRole?: UserRole;
-  }): Promise<Result<{ offering: SessionOffering; updatedBookingIds: string[] }, ServiceError>> {
+  }): Promise<
+    Result<
+      {
+        offering: SessionOffering;
+        updatedBookingIds: string[];
+      },
+      ServiceError
+    >
+  > {
     try {
       if (!apiClient.isMockMode) {
         return err(
@@ -288,7 +285,6 @@ class OrgStaffingService {
           ),
         );
       }
-
       const [memberships, offerings, bookings, assigneeResult, actorResult] = await Promise.all([
         socialFeedService.getClubMemberships(params.clubId),
         apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
@@ -296,16 +292,15 @@ class OrgStaffingService {
         userService.getUserById(params.assigneeCoachId),
         userService.getUserById(params.actorUserId),
       ]);
-
       const actorMembership = memberships.find(
         (membership) => membership.userId === params.actorUserId && membership.status === 'active',
       );
       if (!actorMembership || !isAssignmentManager(actorMembership)) {
         return err(unauthorized('Only owners, admins, and head coaches can assign club work'));
       }
-
       const assigneeMembership = memberships.find(
-        (membership) => membership.userId === params.assigneeCoachId && membership.status === 'active',
+        (membership) =>
+          membership.userId === params.assigneeCoachId && membership.status === 'active',
       );
       if (!assigneeMembership) {
         return err(validationError('Selected staff member is not active in this club'));
@@ -317,22 +312,18 @@ class OrgStaffingService {
           ),
         );
       }
-
       const offeringIndex = offerings.findIndex((entry) => entry.id === params.offeringId);
       if (offeringIndex === -1) {
         return err(validationError('Session offering not found'));
       }
-
       const offering = offerings[offeringIndex];
       if (offering.actingAs !== 'club' || offering.clubId !== params.clubId) {
         return err(validationError('Only club-owned sessions can be reassigned from org staffing'));
       }
-
       const previousAssigneeId = getAssignableCoachId(offering);
       if (previousAssigneeId === params.assigneeCoachId) {
         return err(validationError('This session is already assigned to that coach'));
       }
-
       const nowIso = new Date().toISOString();
       const actorName =
         actorResult.success && actorResult.data.name?.trim()
@@ -342,7 +333,6 @@ class OrgStaffingService {
         assigneeResult.success && assigneeResult.data.name?.trim()
           ? assigneeResult.data.name.trim()
           : params.assigneeCoachId;
-
       const updatedOffering: SessionOffering = {
         ...offering,
         coachId: params.assigneeCoachId,
@@ -368,15 +358,12 @@ class OrgStaffingService {
           },
         ],
       };
-
       const nextOfferings = [...offerings];
       nextOfferings[offeringIndex] = updatedOffering;
-
       const linkedEntityIds = new Set<string>([offering.id]);
       if (offering.sourceEntityId) {
         linkedEntityIds.add(offering.sourceEntityId);
       }
-
       const updatedBookingIds: string[] = [];
       const updatedLinkedBookings: Booking[] = [];
       const nextBookings = bookings.map((booking) => {
@@ -386,7 +373,6 @@ class OrgStaffingService {
         if (!booking.sessionSourceEntityId || !linkedEntityIds.has(booking.sessionSourceEntityId)) {
           return booking;
         }
-
         updatedBookingIds.push(booking.id);
         const nextBooking: Booking = {
           ...booking,
@@ -396,7 +382,6 @@ class OrgStaffingService {
           assigneeCoachId: params.assigneeCoachId,
         };
         updatedLinkedBookings.push(nextBooking);
-
         emitTyped(ServiceEvents.BOOKING_UPDATED, {
           bookingId: booking.id,
           userId: params.actorUserId,
@@ -406,15 +391,12 @@ class OrgStaffingService {
             ownerCoachId: params.assigneeCoachId,
           },
         });
-
         return nextBooking;
       });
-
       await Promise.all([
         apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, nextOfferings),
         apiClient.set(STORAGE_KEYS.BOOKINGS, nextBookings),
       ]);
-
       await bookingCommunicationsService.notifyAssignmentChange({
         clubId: params.clubId,
         offering: updatedOffering,
@@ -425,7 +407,6 @@ class OrgStaffingService {
         nextAssigneeId: params.assigneeCoachId,
         nextAssigneeName: selectedAssigneeName,
       });
-
       emitTyped(ServiceEvents.SESSION_UPDATED, {
         sessionId: offering.id,
         changes: {
@@ -434,7 +415,6 @@ class OrgStaffingService {
           ownerCoachId: params.assigneeCoachId,
         },
       });
-
       logger.info('org_assignment_updated', {
         clubId: params.clubId,
         offeringId: params.offeringId,
@@ -443,13 +423,17 @@ class OrgStaffingService {
         toCoachId: params.assigneeCoachId,
         updatedBookingCount: updatedBookingIds.length,
       });
-
-      return ok({ offering: updatedOffering, updatedBookingIds });
+      return ok({
+        offering: updatedOffering,
+        updatedBookingIds,
+      });
     } catch (error) {
-      logger.error('Failed to assign org offering', { params, error });
+      logger.error('Failed to assign org offering', {
+        params,
+        error,
+      });
       return err(storageError('Failed to update session assignment'));
     }
   }
 }
-
 export const orgStaffingService = new OrgStaffingService();

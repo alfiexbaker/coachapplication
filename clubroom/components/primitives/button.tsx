@@ -6,7 +6,8 @@ import { useTheme } from '@/hooks/useTheme';
 
 export interface ButtonProps {
   onPress: () => void;
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  label?: string;
   disabled?: boolean;
   style?: ViewStyle | ViewStyle[];
   variant?: 'primary' | 'secondary' | 'outline';
@@ -17,6 +18,7 @@ export interface ButtonProps {
 export function Button({
   onPress,
   children,
+  label,
   disabled = false,
   style,
   variant = 'primary',
@@ -77,11 +79,7 @@ export function Button({
       disabled={disabled}
       onPress={onPress}
     >
-      {typeof children === 'string' ? (
-        <ThemedText style={[styles.buttonLabel, { color: getTextColor() }]}>{children}</ThemedText>
-      ) : (
-        children
-      )}
+      {label ? <ThemedText style={[styles.buttonLabel, { color: getTextColor() }]}>{label}</ThemedText> : children}
     </Pressable>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -46,17 +46,17 @@ export function useVideoUpload() {
 
   const isUploading = IN_PROGRESS_STAGES.has(uploadStage);
 
-  const handleVideoSelected = useCallback((data: VideoData) => {
+  const handleVideoSelected = (data: VideoData) => {
     setVideoData(data);
     setUploadStage('idle');
-  }, []);
+  };
 
-  const clearSelectedVideo = useCallback(() => {
+  const clearSelectedVideo = () => {
     setVideoData(null);
     setUploadStage('idle');
-  }, []);
+  };
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = async () => {
     if (!videoData) {
       uiFeedback.showToast('Please select a video to upload.');
       return;
@@ -97,7 +97,7 @@ export function useVideoUpload() {
       setUploadStage('failed');
       uiFeedback.showToast('There was an error uploading your video. Please try again.', 'error');
     }
-  }, [videoData, title, description, currentUser]);
+  };
 
   const canSubmit = !!videoData && !!title.trim() && !isUploading;
   const uploadStatusMessage = UPLOAD_STAGE_MESSAGES[uploadStage];

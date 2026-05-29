@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState, startTransition } from 'react';
 import { ActivityIndicator, Linking, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import MapView, { Marker, type MapPressEvent, type Region } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -18,6 +18,8 @@ import {
 import type { AddLocationPickerProps, LocationCoordinates } from './add-location-picker.types';
 import { uiFeedback } from '@/services/ui-feedback';
 
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
+
 const DEFAULT_COORDINATES: LocationCoordinates = {
   latitude: 51.5246,
   longitude: -0.0675,
@@ -31,6 +33,8 @@ const DEFAULT_DELTA = {
 function normalizeLocation(value: string): string {
   return value.trim();
 }
+
+const EMPTY_SAVED_LOCATIONS: NonNullable<AddLocationPickerProps['savedLocations']> = [];
 
 function formatAddress(address: Location.LocationGeocodedAddress): string {
   const lineOneParts = [address.name, address.street].filter(
@@ -56,11 +60,11 @@ function toRegion(coordinates: LocationCoordinates, currentRegion: Region | null
   };
 }
 
-export default memo(function AddLocationPicker({
+export default function AddLocationPicker({
   value,
   venueName = '',
   coordinates,
-  savedLocations = [],
+  savedLocations = EMPTY_SAVED_LOCATIONS,
   onChangeValue,
   onChangeVenueName,
   onChangeCoordinates,
@@ -70,10 +74,7 @@ export default memo(function AddLocationPicker({
 }: AddLocationPickerProps) {
   const { colors: palette } = useTheme();
   const mapRef = useRef<MapView>(null);
-  const initialCoordinates = useMemo(
-    () => coordinates ?? defaultCoordinates ?? DEFAULT_COORDINATES,
-    [coordinates, defaultCoordinates],
-  );
+  const initialCoordinates = coordinates ?? defaultCoordinates ?? DEFAULT_COORDINATES;
 
   const [mapRegion, setMapRegion] = useState<Region>(() => ({
     latitude: initialCoordinates.latitude,
@@ -94,18 +95,14 @@ export default memo(function AddLocationPicker({
   const lastAnimatedCoordinatesKeyRef = useRef('');
 
   const normalizedValue = normalizeLocation(value);
-  const presetLocations = useMemo(
-    () => dedupeLocationPresets([...savedLocations, ...COACH_LOCATION_FALLBACK_PRESETS]).slice(0, 8),
-    [savedLocations],
-  );
-  const selectedPreset = useMemo(
-    () => findMatchingLocationPreset(presetLocations, normalizedValue, coordinates),
-    [coordinates, normalizedValue, presetLocations],
-  );
+  const presetLocations = dedupeLocationPresets([...savedLocations, ...COACH_LOCATION_FALLBACK_PRESETS]).slice(0, 8);
+  const selectedPreset = findMatchingLocationPreset(presetLocations, normalizedValue, coordinates);
   const hasPresetValue = selectedPreset !== null;
 
   useEffect(() => {
-    setSavedFeedback(false);
+    startTransition(() => {
+      setSavedFeedback(false);
+    });
   }, [normalizedValue]);
 
   useEffect(() => {
@@ -113,86 +110,84 @@ export default memo(function AddLocationPicker({
     if (lastAnimatedCoordinatesKeyRef.current === coordinatesKey) return;
     lastAnimatedCoordinatesKeyRef.current = coordinatesKey;
 
-    setMapRegion((currentRegion) => {
-      const nextRegion = toRegion(coordinates, currentRegion);
-      mapRef.current?.animateToRegion(nextRegion, 260);
-      return nextRegion;
+    startTransition(() => {
+      setMapRegion((currentRegion) => {
+        const nextRegion = toRegion(coordinates, currentRegion);
+        mapRef.current?.animateToRegion(nextRegion, 260);
+        return nextRegion;
+      });
     });
   }, [coordinates, coordinatesKey]);
 
-  const focusMap = useCallback((nextCoordinates: LocationCoordinates) => {
+  const focusMap = (nextCoordinates: LocationCoordinates) => {
     lastAnimatedCoordinatesKeyRef.current = `${nextCoordinates.latitude.toFixed(6)}:${nextCoordinates.longitude.toFixed(6)}`;
     setMapRegion((currentRegion) => {
       const nextRegion = toRegion(nextCoordinates, currentRegion);
       mapRef.current?.animateToRegion(nextRegion, 260);
       return nextRegion;
     });
-  }, []);
+  };
 
-  const reverseGeocode = useCallback(
-    async (nextCoordinates: LocationCoordinates) => {
-      setIsResolvingAddress(true);
-      try {
-        const resolved = await Location.reverseGeocodeAsync(nextCoordinates);
-        const topAddress = resolved[0];
-        if (!topAddress) return;
-        const formatted = formatAddress(topAddress);
-        if (formatted.length > 0) {
-          onChangeValue(formatted);
-        }
-      } catch {
-        // Best-effort only; keep manual text unchanged when reverse lookup fails.
-      } finally {
-        setIsResolvingAddress(false);
+  const reverseGeocode = async (nextCoordinates: LocationCoordinates) => {
+    setIsResolvingAddress(true);
+
+    return await runAsyncTryCatchFinally(async () => {
+      const resolved = await Location.reverseGeocodeAsync(nextCoordinates);
+      const topAddress = resolved[0];
+      if (!topAddress) return;
+      const formatted = formatAddress(topAddress);
+      if (formatted.length > 0) {
+        onChangeValue(formatted);
       }
-    },
-    [onChangeValue],
-  );
+    }, async error => {
+      // Best-effort only; keep manual text unchanged when reverse lookup fails.
+    }, () => {
+      setIsResolvingAddress(false);
+    });
+  };
 
-  const geocodeAddress = useCallback(
-    async (query: string, options?: { silent?: boolean }) => {
-      const normalized = normalizeLocation(query);
-      if (normalized.length < 3) {
-        if (!options?.silent) {
-          setInlineError('Enter at least 3 characters to search an address.');
-        }
-        return false;
+  const geocodeAddress = async (query: string, options?: { silent?: boolean }) => {
+    const normalized = normalizeLocation(query);
+    if (normalized.length < 3) {
+      if (!options?.silent) {
+        setInlineError('Enter at least 3 characters to search an address.');
       }
+      return false;
+    }
 
-      setIsSearching(true);
-      try {
-        const matches = await Location.geocodeAsync(normalized);
-        if (matches.length === 0) {
-          onChangeCoordinates(null);
-          if (!options?.silent) {
-            setInlineError('Address not found. Try adding city or postcode for a better match.');
-          }
-          return false;
-        }
+    setIsSearching(true);
 
-        const nextCoordinates: LocationCoordinates = {
-          latitude: matches[0].latitude,
-          longitude: matches[0].longitude,
-        };
-        onChangeCoordinates(nextCoordinates);
-        focusMap(nextCoordinates);
-        setInlineError(null);
-        setPermissionDenied(false);
-        return true;
-      } catch {
+    return await runAsyncTryCatchFinally(async () => {
+      const matches = await Location.geocodeAsync(normalized);
+      if (matches.length === 0) {
         onChangeCoordinates(null);
         if (!options?.silent) {
-          setInlineError('Could not search this location right now.');
+          setInlineError('Address not found. Try adding city or postcode for a better match.');
         }
         return false;
-      } finally {
-        setIsSearching(false);
       }
-    },
-    [focusMap, onChangeCoordinates],
-  );
 
-  const handleUseCurrentLocation = useCallback(async () => {
+      const nextCoordinates: LocationCoordinates = {
+        latitude: matches[0].latitude,
+        longitude: matches[0].longitude,
+      };
+      onChangeCoordinates(nextCoordinates);
+      focusMap(nextCoordinates);
+      setInlineError(null);
+      setPermissionDenied(false);
+      return true;
+    }, async error => {
+      onChangeCoordinates(null);
+      if (!options?.silent) {
+        setInlineError('Could not search this location right now.');
+      }
+      return false;
+    }, () => {
+      setIsSearching(false);
+    });
+  };
+
+  const handleUseCurrentLocation = async () => {
     // S-40: Privacy warning before using GPS
     const proceed = await new Promise<boolean>((resolve) => {
       uiFeedback.alert(
@@ -207,7 +202,8 @@ export default memo(function AddLocationPicker({
     if (!proceed) return;
 
     setIsLocating(true);
-    try {
+
+    return await runAsyncTryCatchFinally(async () => {
       const permission = await Location.requestForegroundPermissionsAsync();
       if (permission.status !== 'granted') {
         setPermissionDenied(true);
@@ -229,68 +225,56 @@ export default memo(function AddLocationPicker({
       await reverseGeocode(nextCoordinates);
       setInlineError(null);
       setPermissionDenied(false);
-    } catch {
+    }, async error => {
       setPermissionDenied(false);
       setInlineError('Unable to get location. Check signal and try again.');
-    } finally {
+    }, () => {
       setIsLocating(false);
+    });
+  };
+
+  const handlePinCoordinates = (nextCoordinates: LocationCoordinates) => {
+    onChangeCoordinates(nextCoordinates);
+    focusMap(nextCoordinates);
+    void reverseGeocode(nextCoordinates);
+  };
+
+  const handleMapPress = (event: MapPressEvent) => {
+    handlePinCoordinates(event.nativeEvent.coordinate);
+  };
+
+  const handleSavedLocationPress = async (preset: (typeof presetLocations)[number]) => {
+    if (onSelectSavedLocation) {
+      onSelectSavedLocation(preset);
+    } else {
+      onChangeValue(preset.address);
+      onChangeCoordinates(preset.coordinates ?? null);
     }
-  }, [focusMap, onChangeCoordinates, reverseGeocode]);
+    setInlineError(null);
+    setPermissionDenied(false);
 
-  const handlePinCoordinates = useCallback(
-    (nextCoordinates: LocationCoordinates) => {
-      onChangeCoordinates(nextCoordinates);
-      focusMap(nextCoordinates);
-      void reverseGeocode(nextCoordinates);
-    },
-    [focusMap, onChangeCoordinates, reverseGeocode],
-  );
+    if (preset.coordinates) {
+      focusMap(preset.coordinates);
+      setIsEditorOpen(false);
+      return;
+    }
 
-  const handleMapPress = useCallback(
-    (event: MapPressEvent) => {
-      handlePinCoordinates(event.nativeEvent.coordinate);
-    },
-    [handlePinCoordinates],
-  );
+    const matched = await geocodeAddress(preset.address);
+    if (matched) {
+      setIsEditorOpen(false);
+    }
+  };
 
-  const handleSavedLocationPress = useCallback(
-    async (preset: (typeof presetLocations)[number]) => {
-      if (onSelectSavedLocation) {
-        onSelectSavedLocation(preset);
-      } else {
-        onChangeValue(preset.address);
-        onChangeCoordinates(preset.coordinates ?? null);
-      }
-      setInlineError(null);
-      setPermissionDenied(false);
+  const handleTextChange = (nextValue: string) => {
+    onChangeValue(nextValue);
+    setInlineError(null);
+    setPermissionDenied(false);
+    if (coordinates && nextValue.trim() !== value.trim()) {
+      onChangeCoordinates(null);
+    }
+  };
 
-      if (preset.coordinates) {
-        focusMap(preset.coordinates);
-        setIsEditorOpen(false);
-        return;
-      }
-
-      const matched = await geocodeAddress(preset.address);
-      if (matched) {
-        setIsEditorOpen(false);
-      }
-    },
-    [focusMap, geocodeAddress, onChangeCoordinates, onChangeValue, onSelectSavedLocation],
-  );
-
-  const handleTextChange = useCallback(
-    (nextValue: string) => {
-      onChangeValue(nextValue);
-      setInlineError(null);
-      setPermissionDenied(false);
-      if (coordinates && nextValue.trim() !== value.trim()) {
-        onChangeCoordinates(null);
-      }
-    },
-    [coordinates, onChangeCoordinates, onChangeValue, value],
-  );
-
-  const handleSavePreset = useCallback(() => {
+  const handleSavePreset = () => {
     if (!onSavePreset) return;
     if (normalizedValue.length < 3) {
       setInlineError('Search or drop a pin, then save this preset.');
@@ -309,7 +293,7 @@ export default memo(function AddLocationPicker({
     setSavedFeedback(true);
     setInlineError(null);
     setPermissionDenied(false);
-  }, [coordinates, normalizedValue, onSavePreset, selectedPreset?.label, venueName]);
+  };
 
   const selectedPrimaryLabel =
     venueName.trim() || selectedPreset?.label || normalizedValue || 'Drop a pin and add a location';
@@ -641,7 +625,7 @@ export default memo(function AddLocationPicker({
       )}
     </Column>
   );
-});
+}
 
 const styles = StyleSheet.create({
   flex: {

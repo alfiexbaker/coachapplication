@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -37,9 +37,9 @@ function BookingCoachViewInner({
   onMarkAsPaid,
 }: BookingCoachViewProps) {
   const { colors: palette } = useTheme();
-  const handleOpenReconciler = useCallback(() => {
+  const handleOpenReconciler = () => {
     router.push(Routes.EARNINGS);
-  }, []);
+  };
 
   if (booking.status === 'Completed') {
     const objectives = (booking as BookingSummary & { objectives?: string[] }).objectives || [];
@@ -207,7 +207,7 @@ function BookingCoachViewInner({
   );
 }
 
-export const BookingCoachView = React.memo(BookingCoachViewInner);
+export const BookingCoachView = BookingCoachViewInner;
 
 const styles = StyleSheet.create({
   actions: {

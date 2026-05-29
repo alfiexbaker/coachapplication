@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import {
   FlatList,
@@ -48,7 +48,7 @@ interface QuickRatePagerItemProps {
   onMediaIdsChange: (athleteId: string, mediaIds: string[]) => void;
 }
 
-const QuickRatePagerItem = memo(function QuickRatePagerItem({
+const QuickRatePagerItem = function QuickRatePagerItem({
   athlete,
   rating,
   width,
@@ -62,7 +62,7 @@ const QuickRatePagerItem = memo(function QuickRatePagerItem({
     return (
       <View style={[styles.cardWrap, { width }]}>
         <SurfaceCard>
-          <ThemedText style={styles.loadingText}>Loading athlete rating...</ThemedText>
+          <ThemedText style={styles.loadingText}>Loading athlete rating…</ThemedText>
         </SurfaceCard>
       </View>
     );
@@ -81,9 +81,9 @@ const QuickRatePagerItem = memo(function QuickRatePagerItem({
       />
     </View>
   );
-});
+};
 
-export const QuickRateStep = memo(function QuickRateStep({
+export const QuickRateStep = function QuickRateStep({
   athletes,
   ratingsByAthleteId,
   currentIndex,
@@ -101,7 +101,7 @@ export const QuickRateStep = memo(function QuickRateStep({
   const { width: windowWidth } = useWindowDimensions();
   const flatListRef = useRef<FlatList<QuickRateAthlete>>(null);
   const previousIndexRef = useRef(currentIndex);
-  const cardWidth = useMemo(() => Math.max(windowWidth - Spacing.md * 2, 280), [windowWidth]);
+  const cardWidth = Math.max(windowWidth - Spacing.md * 2, 280);
 
   // Time tracker
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -121,7 +121,7 @@ export const QuickRateStep = memo(function QuickRateStep({
     };
   }, [athletes.length]);
 
-  const ratedCount = useMemo(() => {
+  const ratedCount = (() => {
     let count = 0;
     for (const athlete of athletes) {
       const rating = ratingsByAthleteId[athlete.athleteId];
@@ -131,7 +131,7 @@ export const QuickRateStep = memo(function QuickRateStep({
       }
     }
     return count;
-  }, [athletes, ratingsByAthleteId]);
+  })();
 
   const clampedIndex = Math.max(0, Math.min(currentIndex, Math.max(athletes.length - 1, 0)));
   const canGoPrev = clampedIndex > 0;
@@ -141,57 +141,40 @@ export const QuickRateStep = memo(function QuickRateStep({
     previousIndexRef.current = clampedIndex;
   }, [clampedIndex]);
 
-  const scrollToIndex = useCallback(
-    (index: number) => {
-      const nextIndex = Math.max(0, Math.min(index, Math.max(athletes.length - 1, 0)));
-      flatListRef.current?.scrollToOffset({
-        offset: nextIndex * cardWidth,
-        animated: true,
-      });
-      onIndexChange(nextIndex);
-      if (nextIndex !== previousIndexRef.current) {
-        previousIndexRef.current = nextIndex;
-        void HapticPatterns.tap();
-      }
-    },
-    [athletes.length, cardWidth, onIndexChange],
-  );
+  const scrollToIndex = (index: number) => {
+    const nextIndex = Math.max(0, Math.min(index, Math.max(athletes.length - 1, 0)));
+    flatListRef.current?.scrollToOffset({
+      offset: nextIndex * cardWidth,
+      animated: true,
+    });
+    onIndexChange(nextIndex);
+    if (nextIndex !== previousIndexRef.current) {
+      previousIndexRef.current = nextIndex;
+      void HapticPatterns.tap();
+    }
+  };
 
-  const handleMomentumEnd = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const rawIndex = Math.round(event.nativeEvent.contentOffset.x / cardWidth);
-      const nextIndex = Math.max(0, Math.min(rawIndex, Math.max(athletes.length - 1, 0)));
-      onIndexChange(nextIndex);
-      if (nextIndex !== previousIndexRef.current) {
-        previousIndexRef.current = nextIndex;
-        void HapticPatterns.tap();
-      }
-    },
-    [athletes.length, cardWidth, onIndexChange],
-  );
+  const handleMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const rawIndex = Math.round(event.nativeEvent.contentOffset.x / cardWidth);
+    const nextIndex = Math.max(0, Math.min(rawIndex, Math.max(athletes.length - 1, 0)));
+    onIndexChange(nextIndex);
+    if (nextIndex !== previousIndexRef.current) {
+      previousIndexRef.current = nextIndex;
+      void HapticPatterns.tap();
+    }
+  };
 
-  const renderItem = useCallback<ListRenderItem<QuickRateAthlete>>(
-    ({ item }) => (
-      <QuickRatePagerItem
-        athlete={item}
-        rating={ratingsByAthleteId[item.athleteId] ?? null}
-        width={cardWidth}
-        onPositionChange={onPositionChange}
-        onSkillChange={onSkillChange}
-        onEffortChange={onEffortChange}
-        onBadgePress={onBadgePress}
-        onMediaIdsChange={onMediaIdsChange}
-      />
-    ),
-    [
-      cardWidth,
-      onBadgePress,
-      onPositionChange,
-      onSkillChange,
-      onEffortChange,
-      onMediaIdsChange,
-      ratingsByAthleteId,
-    ],
+  const renderItem: ListRenderItem<QuickRateAthlete> = ({ item }) => (
+    <QuickRatePagerItem
+      athlete={item}
+      rating={ratingsByAthleteId[item.athleteId] ?? null}
+      width={cardWidth}
+      onPositionChange={onPositionChange}
+      onSkillChange={onSkillChange}
+      onEffortChange={onEffortChange}
+      onBadgePress={onBadgePress}
+      onMediaIdsChange={onMediaIdsChange}
+    />
   );
 
   if (athletes.length === 0) {
@@ -220,7 +203,7 @@ export const QuickRateStep = memo(function QuickRateStep({
 
       {isPrefilling && (
         <ThemedText style={[styles.prefillText, { color: colors.muted }]}>
-          Pulling previous ratings...
+          Pulling previous ratings…
         </ThemedText>
       )}
 
@@ -306,7 +289,7 @@ export const QuickRateStep = memo(function QuickRateStep({
       </Row>
     </Column>
   );
-});
+};
 
 const styles = StyleSheet.create({
   cardWrap: {

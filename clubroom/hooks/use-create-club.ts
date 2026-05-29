@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
@@ -7,6 +7,8 @@ import type { ClubRole, OrganizationCommercialMode } from '@/constants/types';
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
 import { socialFeedService } from '@/services/social-feed-service';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('CreateClub');
 
@@ -50,19 +52,19 @@ export function useCreateClub() {
     firstStaffRole !== 'COACH';
   useUnsavedChangesWarning(isDirty && !isSubmitting);
 
-  const setName = useCallback((value: string) => {
+  const setName = (value: string) => {
     setNameState(value);
-  }, []);
-  const handleNameBlur = useCallback(() => {
+  };
+  const handleNameBlur = () => {
     setNameTouched(true);
     setNameState((prev) => prev.trim());
-  }, []);
+  };
 
-  const handleBadgeChange = useCallback((t: string) => {
+  const handleBadgeChange = (t: string) => {
     setBadge(t.toUpperCase().slice(0, 4));
-  }, []);
+  };
 
-  const handleCreate = useCallback(async () => {
+  const handleCreate = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
     if (!isValid || !currentUser) {
@@ -71,7 +73,7 @@ export function useCreateClub() {
     }
     logger.action('CreateClub', { name, city });
 
-    try {
+    return await runAsyncTryCatchFinally(async () => {
       const result = await socialFeedService.createClub({
         ownerId: currentUser.id,
         name: trimmedName,
@@ -100,25 +102,13 @@ export function useCreateClub() {
           inviteRole: result.data.firstStaffInvite?.role,
         }),
       );
-    } catch (error) {
+    }, async error => {
       logger.error('CreateClubFailed', error);
       uiFeedback.showToast('Failed to create club. Please try again.', 'error');
-    } finally {
+    }, () => {
       setIsSubmitting(false);
-    }
-  }, [
-    badge,
-    city,
-    commercialMode,
-    country,
-    currentUser,
-    firstStaffRole,
-    isSubmitting,
-    isValid,
-    name,
-    tagline,
-    trimmedName,
-  ]);
+    });
+  };
 
   const previewBadge = badge || name.slice(0, 3).toUpperCase() || 'ABC';
   const previewName = name || 'Your Club Name';

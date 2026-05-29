@@ -380,18 +380,25 @@ export const matchService = {
       const match = matchesCache[index];
 
       // Add players who aren't already invited
+      const selectedPlayerIndexByAthleteId = new Map(
+        match.selectedPlayers.map((player, playerIndex) => [player.athleteId, playerIndex]),
+      );
+      const playersToNotify: typeof input.players = [];
       for (const player of input.players) {
-        const existingIndex = match.selectedPlayers.findIndex(
-          (p) => p.athleteId === player.athleteId,
-        );
+        const existingIndex = selectedPlayerIndexByAthleteId.get(player.athleteId) ?? -1;
         if (existingIndex === -1) {
           match.selectedPlayers.push({
             athleteId: player.athleteId,
             parentId: player.parentId,
             status: 'INVITED',
           });
+          selectedPlayerIndexByAthleteId.set(player.athleteId, match.selectedPlayers.length - 1);
+          playersToNotify.push(player);
+        }
+      }
 
-          // Create notification for parent
+      await Promise.all(
+        playersToNotify.map(async (player) => {
           const athleteName = await resolveUserName(player.athleteId, 'Athlete');
           const notification: NotificationItem = {
             id: apiClient.generateId(`notif_match_${player.athleteId}`),
@@ -403,8 +410,8 @@ export const matchService = {
             actionLabel: 'Respond',
           };
           await notificationService.create(notification);
-        }
-      }
+        }),
+      );
 
       match.updatedAt = new Date().toISOString();
       matchesCache[index] = match;
@@ -490,10 +497,15 @@ export const matchService = {
       const match = matchesCache[index];
 
       // Update player statuses based on lineup
+      const selectedPlayerIndexByAthleteId = new Map(
+        match.selectedPlayers.map((player, playerIndex) => [player.athleteId, playerIndex]),
+      );
+      const lineupNotifications: {
+        player: (typeof match.selectedPlayers)[number];
+        isReserve: boolean;
+      }[] = [];
       for (const lineupPlayer of input.lineup) {
-        const playerIndex = match.selectedPlayers.findIndex(
-          (p) => p.athleteId === lineupPlayer.athleteId,
-        );
+        const playerIndex = selectedPlayerIndexByAthleteId.get(lineupPlayer.athleteId) ?? -1;
 
         if (playerIndex !== -1) {
           const player = match.selectedPlayers[playerIndex];
@@ -505,22 +517,26 @@ export const matchService = {
             position: lineupPlayer.position,
             jerseyNumber: lineupPlayer.jerseyNumber,
           };
+          lineupNotifications.push({ player, isReserve: Boolean(lineupPlayer.isReserve) });
+        }
+      }
 
-          // Send notification to parent
+      await Promise.all(
+        lineupNotifications.map(async ({ player, isReserve }) => {
           const athleteName = await resolveUserName(player.athleteId, 'Athlete');
           const notification: NotificationItem = {
             id: apiClient.generateId(`notif_lineup_${player.athleteId}`),
             type: 'booking',
-            title: lineupPlayer.isReserve ? 'Reserve Selection' : 'Match Selection',
-            body: lineupPlayer.isReserve
+            title: isReserve ? 'Reserve Selection' : 'Match Selection',
+            body: isReserve
               ? `${athleteName} is on the bench for ${match.title}`
               : `${athleteName} has been selected to play in ${match.title}!`,
             timeLabel: 'Just now',
             read: false,
           };
           await notificationService.create(notification);
-        }
-      }
+        }),
+      );
 
       match.status = 'LINEUP_SET';
       match.updatedAt = new Date().toISOString();
@@ -617,17 +633,19 @@ export const matchService = {
       await saveToStorage(matchesCache);
 
       // Notify all players
-      for (const player of match.selectedPlayers) {
-        const notification: NotificationItem = {
-          id: apiClient.generateId(`notif_cancel_${player.athleteId}`),
-          type: 'booking',
-          title: 'Match Cancelled',
-          body: `${match.title} on ${formatMatchDate(match.date)} has been cancelled.`,
-          timeLabel: 'Just now',
-          read: false,
-        };
-        await notificationService.create(notification);
-      }
+      await Promise.all(
+        match.selectedPlayers.map((player) => {
+          const notification: NotificationItem = {
+            id: apiClient.generateId(`notif_cancel_${player.athleteId}`),
+            type: 'booking',
+            title: 'Match Cancelled',
+            body: `${match.title} on ${formatMatchDate(match.date)} has been cancelled.`,
+            timeLabel: 'Just now',
+            read: false,
+          };
+          return notificationService.create(notification);
+        }),
+      );
 
       return ok(match);
     }
@@ -729,7 +747,10 @@ export const matchService = {
   /**
    * Get match type color from palette (theme-aware)
    */
-  getMatchTypeColor(type: MatchType, palette: { info: string; success: string; accent: string; warning: string }): string {
+  getMatchTypeColor(
+    type: MatchType,
+    palette: { info: string; success: string; accent: string; warning: string },
+  ): string {
     const colors: Record<MatchType, string> = {
       FRIENDLY: palette.info,
       LEAGUE: palette.success,

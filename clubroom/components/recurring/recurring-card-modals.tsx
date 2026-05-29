@@ -1,7 +1,3 @@
-/**
- * RecurringCard — Generic confirmation modal for pause/cancel actions.
- */
-import { memo } from 'react';
 import { View, StyleSheet, Modal, TextInput, Keyboard } from 'react-native';
 
 import { ThemedView } from '@/components/themed-view';
@@ -26,7 +22,7 @@ interface RecurringConfirmModalProps {
   destructive?: boolean;
 }
 
-export const RecurringConfirmModal = memo(function RecurringConfirmModal({
+export const RecurringConfirmModal = function RecurringConfirmModal({
   visible,
   title,
   description,
@@ -78,22 +74,19 @@ export const RecurringConfirmModal = memo(function RecurringConfirmModal({
             maxLength={500}
           />
           <Row gap="sm" justify="center">
-            <Button variant="outline" onPress={onCancel}>
-              {destructive ? 'Go Back' : 'Cancel'}
-            </Button>
+            <Button variant="outline" onPress={onCancel} label={destructive ? 'Go Back' : 'Cancel'} />
             <Button
               onPress={onConfirm}
               disabled={loading}
               style={destructive ? { backgroundColor: palette.error } : undefined}
-            >
-              {loading ? loadingLabel : confirmLabel}
-            </Button>
+              label={loading ? loadingLabel : confirmLabel}
+            />
           </Row>
         </ThemedView>
       </View>
     </Modal>
   );
-});
+};
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },

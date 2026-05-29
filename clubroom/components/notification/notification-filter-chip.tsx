@@ -5,7 +5,7 @@
  * Memoized to avoid re-renders in the horizontal ScrollView.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -23,7 +23,7 @@ interface NotificationFilterChipProps {
   onPress: () => void;
 }
 
-export const NotificationFilterChip = memo(function NotificationFilterChip({
+export const NotificationFilterChip = function NotificationFilterChip({
   label,
   icon,
   isActive,
@@ -57,7 +57,7 @@ export const NotificationFilterChip = memo(function NotificationFilterChip({
       </Row>
     </Clickable>
   );
-});
+};
 
 const styles = StyleSheet.create({
   filterChip: {

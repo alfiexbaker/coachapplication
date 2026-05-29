@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { FlatList, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
@@ -30,7 +30,7 @@ const THUMB_SIZE = 80;
 const THUMB_SPACING = Spacing.xs;
 
 function sortByCapturedAtDesc<T extends { capturedAt: string }>(items: T[]): T[] {
-  return [...items].sort(
+  return Array.from(items).toSorted(
     (left, right) => new Date(right.capturedAt).getTime() - new Date(left.capturedAt).getTime(),
   );
 }
@@ -42,7 +42,7 @@ function formatDuration(seconds: number): string {
   return `${mins}:${String(secs).padStart(2, '0')}`;
 }
 
-export const MediaStrip = memo(function MediaStrip({
+export const MediaStrip = function MediaStrip({
   photos,
   video,
   onPressOverflow,
@@ -53,10 +53,10 @@ export const MediaStrip = memo(function MediaStrip({
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [videoVisible, setVideoVisible] = useState(false);
 
-  const sortedPhotos = useMemo(() => sortByCapturedAtDesc(photos), [photos]);
+  const sortedPhotos = sortByCapturedAtDesc(photos);
   const hasMedia = sortedPhotos.length > 0 || Boolean(video);
 
-  const displayItems = useMemo<DisplayItem[]>(() => {
+  const displayItems: DisplayItem[] = (() => {
     const sessionItems: TimelineMediaItem[] = [
       ...sortedPhotos.map((photo, index) => ({
         id: `photo_${photo.uri}`,
@@ -70,14 +70,14 @@ export const MediaStrip = memo(function MediaStrip({
     if (video) {
       sessionItems.push({
         id: `video_${video.uri}`,
-        type: 'video',
+        type: 'video' as const,
         thumbnailUri: video.thumbnailUri,
         duration: video.duration,
         capturedAt: video.capturedAt,
       });
     }
 
-    const sorted: TimelineMediaItem[] = [...sessionItems].sort(
+    const sorted: TimelineMediaItem[] = Array.from(sessionItems).toSorted(
       (left, right) =>
         new Date(right.capturedAt).getTime() - new Date(left.capturedAt).getTime(),
     );
@@ -91,101 +91,95 @@ export const MediaStrip = memo(function MediaStrip({
       ...visible,
       {
         id: 'overflow',
-        type: 'overflow',
+        type: 'overflow' as const,
         count: sorted.length - visible.length,
         total: sorted.length,
         hiddenStartIndex: visible.length,
       },
     ];
-  }, [maxVisible, sortedPhotos, video]);
+  })();
 
-  const handlePress = useCallback(
-    (item: DisplayItem) => {
-      if (item.type === 'photo') {
-        setActivePhotoIndex(item.photoIndex);
-        setPhotoViewerVisible(true);
-        return;
-      }
-      if (item.type === 'video') {
-        setVideoVisible(true);
-        return;
-      }
-      onPressOverflow?.();
-      const hiddenTarget = displayItems[item.hiddenStartIndex];
-      if (hiddenTarget?.type === 'photo') {
-        setActivePhotoIndex(hiddenTarget.photoIndex);
-        setPhotoViewerVisible(true);
-      } else if (hiddenTarget?.type === 'video') {
-        setVideoVisible(true);
-      }
-    },
-    [displayItems, onPressOverflow],
-  );
+  const handlePress = (item: DisplayItem) => {
+    if (item.type === 'photo') {
+      setActivePhotoIndex(item.photoIndex);
+      setPhotoViewerVisible(true);
+      return;
+    }
+    if (item.type === 'video') {
+      setVideoVisible(true);
+      return;
+    }
+    onPressOverflow?.();
+    const hiddenTarget = displayItems[item.hiddenStartIndex];
+    if (hiddenTarget?.type === 'photo') {
+      setActivePhotoIndex(hiddenTarget.photoIndex);
+      setPhotoViewerVisible(true);
+    } else if (hiddenTarget?.type === 'video') {
+      setVideoVisible(true);
+    }
+  };
 
-  const renderItem = useCallback(
-    ({ item }: { item: DisplayItem }) => {
-      if (item.type === 'overflow') {
-        return (
-          <Clickable
-            style={[
-              styles.thumb,
-              styles.overflow,
-              {
-                borderColor: colors.border,
-                backgroundColor: withAlpha(colors.border, 0.26),
-              },
-            ]}
-            onPress={() => handlePress(item)}
-            accessibilityLabel={`Open ${item.count} more media items`}
-            accessibilityRole="button"
-          >
-            <ThemedText style={styles.overflowText}>+{item.count}</ThemedText>
-            <ThemedText style={[styles.overflowSubtext, { color: colors.muted }]}>
-              of {item.total}
-            </ThemedText>
-          </Clickable>
-        );
-      }
-
+  const renderItem = ({ item }: { item: DisplayItem }) => {
+    if (item.type === 'overflow') {
       return (
         <Clickable
           style={[
             styles.thumb,
+            styles.overflow,
             {
-              borderColor: withAlpha(colors.border, 0.9),
+              borderColor: colors.border,
+              backgroundColor: withAlpha(colors.border, 0.26),
             },
           ]}
           onPress={() => handlePress(item)}
-          accessibilityLabel={item.type === 'video' ? 'Open session video' : 'Open session photo'}
+          accessibilityLabel={`Open ${item.count} more media items`}
           accessibilityRole="button"
         >
-          <ExpoImage source={{ uri: item.thumbnailUri }} style={styles.image} contentFit="cover" />
-          {item.type === 'video' ? (
-            <>
-              <Row
-                align="center"
-                justify="center"
-                style={[
-                  styles.playOverlay,
-                  {
-                    backgroundColor: withAlpha(colors.text, 0.4),
-                  },
-                ]}
-              >
-                <Ionicons name="play" size={18} color={colors.onPrimary} />
-              </Row>
-              <Row style={[styles.durationBadge, { backgroundColor: withAlpha(colors.text, 0.64) }]}>
-                <ThemedText style={[styles.durationText, { color: colors.onPrimary }]}>
-                  {formatDuration(item.duration)}
-                </ThemedText>
-              </Row>
-            </>
-          ) : null}
+          <ThemedText style={styles.overflowText}>+{item.count}</ThemedText>
+          <ThemedText style={[styles.overflowSubtext, { color: colors.muted }]}>
+            of {item.total}
+          </ThemedText>
         </Clickable>
       );
-    },
-    [colors.border, colors.onPrimary, colors.text, handlePress],
-  );
+    }
+
+    return (
+      <Clickable
+        style={[
+          styles.thumb,
+          {
+            borderColor: withAlpha(colors.border, 0.9),
+          },
+        ]}
+        onPress={() => handlePress(item)}
+        accessibilityLabel={item.type === 'video' ? 'Open session video' : 'Open session photo'}
+        accessibilityRole="button"
+      >
+        <ExpoImage source={{ uri: item.thumbnailUri }} style={styles.image} contentFit="cover" />
+        {item.type === 'video' ? (
+          <>
+            <Row
+              align="center"
+              justify="center"
+              style={[
+                styles.playOverlay,
+                {
+                  backgroundColor: withAlpha(colors.text, 0.4),
+                },
+              ]}
+            >
+              <Ionicons name="play" size={18} color={colors.onPrimary} />
+            </Row>
+            <Row style={[styles.durationBadge, { backgroundColor: withAlpha(colors.text, 0.64) }]}>
+              <ThemedText style={[styles.durationText, { color: colors.onPrimary }]}>
+                {formatDuration(item.duration)}
+              </ThemedText>
+            </Row>
+          </>
+        ) : null}
+      </Clickable>
+    );
+  };
 
   if (!hasMedia) {
     return (
@@ -240,7 +234,7 @@ export const MediaStrip = memo(function MediaStrip({
       />
     </>
   );
-});
+};
 
 const styles = StyleSheet.create({
   list: {

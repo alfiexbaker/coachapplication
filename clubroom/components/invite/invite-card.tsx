@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
@@ -42,7 +42,7 @@ function getStatusBadge(
   }
 }
 
-export const InviteCard = memo(function InviteCard({
+export const InviteCard = function InviteCard({
   invite,
   respondingTo,
   onAccept,
@@ -58,7 +58,7 @@ export const InviteCard = memo(function InviteCard({
   const coachName = getSessionInviteCoachName(invite);
   const athleteNames = getSessionInviteAthleteNames(invite);
   const firstSlot = invite.proposedSlots[0];
-  const compactSlotSummary = useMemo(() => {
+  const compactSlotSummary = (() => {
     if (!firstSlot) return 'No proposed times';
     const dateLabel = formatInUserTimezone(`${firstSlot.date}T${firstSlot.startTime || '00:00'}`, {
       weekday: 'short',
@@ -67,7 +67,7 @@ export const InviteCard = memo(function InviteCard({
     });
     const extraCount = Math.max(0, invite.proposedSlots.length - 1);
     return `${dateLabel} ${firstSlot.startTime}${extraCount > 0 ? ` (+${extraCount} more)` : ''}`;
-  }, [firstSlot, invite.proposedSlots.length]);
+  })();
 
   return (
     <SurfaceCard style={styles.card}>
@@ -171,9 +171,9 @@ export const InviteCard = memo(function InviteCard({
               Proposed time{invite.proposedSlots.length > 1 ? 's' : ''}:
             </ThemedText>
             <Row style={styles.slotsList}>
-              {invite.proposedSlots.slice(0, 3).map((slot, index) => (
+              {invite.proposedSlots.slice(0, 3).map((slot) => (
                 <Row
-                  key={index}
+                  key={slot.id ?? `${slot.date}:${slot.startTime}:${slot.endTime}`}
                   style={[
                     styles.slotChip,
                     { backgroundColor: palette.surface, borderColor: palette.border },
@@ -247,7 +247,7 @@ export const InviteCard = memo(function InviteCard({
               >
                 {isResponding ? (
                   <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>
-                    Booking...
+                    Booking…
                   </ThemedText>
                 ) : (
                   <>
@@ -283,7 +283,7 @@ export const InviteCard = memo(function InviteCard({
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },

@@ -290,29 +290,31 @@ class VerificationService {
 
       for (const [coachId, verification] of Object.entries(allStatuses)) {
         let needsUpdate = false;
+        const backgroundCheckExpiresAt = verification.backgroundCheck.expiresAt;
+        const insuranceExpiresAt = verification.insurance.expiresAt;
 
         // Check DBS expiry
         if (
           verification.backgroundCheck.status === 'VERIFIED' &&
-          verification.backgroundCheck.expiresAt &&
-          new Date(verification.backgroundCheck.expiresAt) <= now
+          backgroundCheckExpiresAt &&
+          new Date(backgroundCheckExpiresAt) <= now
         ) {
           verification.backgroundCheck.status = 'EXPIRED';
           needsUpdate = true;
           expiredCount++;
-          logger.warn('DBS verification expired', { coachId, expiryDate: verification.backgroundCheck.expiresAt });
+          logger.warn('DBS verification expired', { coachId, expiryDate: backgroundCheckExpiresAt });
           emitTyped(ServiceEvents.VERIFICATION_EXPIRED, {
             coachId,
             verificationType: 'dbs',
-            expiredAt: verification.backgroundCheck.expiresAt,
+            expiredAt: backgroundCheckExpiresAt,
           });
         }
 
         // Check insurance expiry
         if (
           verification.insurance.status === 'VERIFIED' &&
-          verification.insurance.expiresAt &&
-          new Date(verification.insurance.expiresAt) <= now
+          insuranceExpiresAt &&
+          new Date(insuranceExpiresAt) <= now
         ) {
           verification.insurance.status = 'EXPIRED';
           needsUpdate = true;
@@ -320,7 +322,7 @@ class VerificationService {
           emitTyped(ServiceEvents.VERIFICATION_EXPIRED, {
             coachId,
             verificationType: 'insurance',
-            expiredAt: verification.insurance.expiresAt,
+            expiredAt: insuranceExpiresAt,
           });
         }
 
@@ -372,6 +374,7 @@ class VerificationService {
 
       const now = new Date();
       const warningThresholds = [30, 14, 7, 1];
+      const warningThresholdSet = new Set(warningThresholds);
       let warningsSent = 0;
 
       for (const [coachId, verification] of Object.entries(allStatuses)) {
@@ -383,7 +386,7 @@ class VerificationService {
             const daysUntilExpiry = Math.ceil(
               (new Date(item.expiresAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
             );
-            if (warningThresholds.includes(daysUntilExpiry)) {
+            if (warningThresholdSet.has(daysUntilExpiry)) {
               emitTyped(ServiceEvents.VERIFICATION_EXPIRING_SOON, {
                 coachId,
                 verificationType: type,

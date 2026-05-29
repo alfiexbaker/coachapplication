@@ -25,12 +25,14 @@ import { useAuth } from '@/hooks/use-auth';
 import { BookingSummary } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import {
-  ExtendedBooking,
-  formatBookingDateTime,
-  getBookingStatusColor,
   CompactBookingCard,
   DetailedBookingCard,
 } from './unified-booking-sections';
+import {
+  type ExtendedBooking,
+  formatBookingDateTime,
+  getBookingStatusColor,
+} from './unified-booking-helpers';
 import { Row } from '@/components/primitives';
 import {
   getBookingStatusLabel,

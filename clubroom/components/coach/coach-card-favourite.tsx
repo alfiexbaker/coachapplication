@@ -1,7 +1,3 @@
-/**
- * FavouriteCard — Coach card for favourites list with remove action.
- */
-import { memo, useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -12,7 +8,8 @@ import { ThemedText } from '@/components/themed-text';
 import { CoachAvatar } from './coach-card-header';
 import { CompactRating } from './coach-card-reviews';
 import { LocationDisplay } from './coach-card-availability';
-import { InlinePrice, formatPrice } from './coach-card-services';
+import { InlinePrice } from './coach-card-services';
+import { formatPrice } from './coach-card-services-helpers';
 import { InlineFavouriteIcon, BookButton } from './coach-card-cta';
 import type { FavouriteVariantProps } from './coach-card-shared';
 import { Row } from '@/components/primitives';
@@ -26,9 +23,9 @@ function FavouriteCardInner({
   isFavourite = true,
   index = 0,
 }: FavouriteVariantProps) {
-  const handleBook = useCallback(() => {
+  const handleBook = () => {
     onBook?.(coach.id);
-  }, [onBook, coach.id]);
+  };
   const priceStr = formatPrice(coach.pricePerHour, coach.priceMin, coach.priceMax);
 
   return (
@@ -84,7 +81,7 @@ function FavouriteCardInner({
   );
 }
 
-export const FavouriteCard = memo(FavouriteCardInner);
+export const FavouriteCard = FavouriteCardInner;
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.sm, marginBottom: Spacing.sm },

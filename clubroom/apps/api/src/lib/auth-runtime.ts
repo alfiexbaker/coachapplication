@@ -2,30 +2,33 @@ import crypto from 'node:crypto';
 import { env } from '@clubroom/config';
 import { getApiDataBackend } from './data-backend.js';
 import { getDbFixtureStore } from './db-fixture-store.js';
-import { badRequest, forbidden, notFound, serviceUnavailable, unauthorized } from './http-errors.js';
+import {
+  badRequest,
+  forbidden,
+  notFound,
+  serviceUnavailable,
+  unauthorized,
+} from './http-errors.js';
 import { getMarketplaceSeedStore } from './marketplace-seed-store.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from './prisma-runtime.js';
-
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
-
 const ACCESS_TOKEN_TTL_SEC = 15 * 60;
 const REFRESH_TOKEN_TTL_SEC = 7 * 24 * 60 * 60;
 const DEFAULT_DEV_JWT_SECRET = 'clubroom-dev-jwt-secret-change-me';
 const CLOCK_SKEW_SEC = 30;
-
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
-const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
-const asNumber = (value: unknown): number | undefined => (typeof value === 'number' ? value : undefined);
+const asString = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
+const asNumber = (value: unknown): number | undefined =>
+  typeof value === 'number' ? value : undefined;
 const asBoolean = (value: unknown): boolean | undefined =>
   typeof value === 'boolean' ? value : undefined;
 const isoNow = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
-
 type AccountType = 'COACH' | 'PARENT' | 'ATHLETE';
 type AppRole = 'COACH' | 'USER' | 'ADMIN';
 type JwtTokenUse = 'access' | 'refresh';
-
 interface JwtClaims {
   aud: string;
   exp: number;
@@ -39,7 +42,6 @@ interface JwtClaims {
   token_use: JwtTokenUse;
   uid: string;
 }
-
 interface SessionRecord {
   id: string;
   userId: string;
@@ -53,7 +55,6 @@ interface SessionRecord {
   revokeReason: string | null;
   userAgent: string | null;
 }
-
 interface DeviceRecord {
   id: string;
   userId: string;
@@ -62,7 +63,6 @@ interface DeviceRecord {
   lastSeenAt: string | null;
   revokedAt: string | null;
 }
-
 interface AuthIdentity {
   authProviderSubject: string;
   email: string;
@@ -70,7 +70,6 @@ interface AuthIdentity {
   roles: string[];
   tokenEpoch: number;
 }
-
 interface AuthUserRecord {
   authProvider: string;
   authProviderSubject: string;
@@ -79,7 +78,6 @@ interface AuthUserRecord {
   name: string;
   tokenEpoch: number;
 }
-
 export interface AuthContext {
   exp: number;
   roles: string[];
@@ -88,7 +86,6 @@ export interface AuthContext {
   subject: string;
   userId: string;
 }
-
 interface ExternalJwtClaims {
   aud: string | string[];
   exp: number;
@@ -97,7 +94,6 @@ interface ExternalJwtClaims {
   sid?: string;
   sub: string;
 }
-
 type VerifiedAccessToken =
   | {
       provider: 'local';
@@ -107,7 +103,6 @@ type VerifiedAccessToken =
       provider: 'oidc';
       claims: ExternalJwtClaims;
     };
-
 interface JwkKey {
   alg?: string;
   e?: string;
@@ -116,13 +111,11 @@ interface JwkKey {
   n?: string;
   use?: string;
 }
-
 export interface AuthTokens {
   accessToken: string;
   expiresAt: number;
   refreshToken: string;
 }
-
 export interface ApiUserProfile {
   id: string;
   email: string;
@@ -163,12 +156,10 @@ export interface ApiUserProfile {
   roles: string[];
   appRole: AppRole;
 }
-
 export interface AuthLoginResult {
   user: ApiUserProfile;
   tokens: AuthTokens;
 }
-
 export interface AuthSessionSummary {
   id: string;
   current: boolean;
@@ -185,7 +176,6 @@ export interface AuthSessionSummary {
     revokedAt: string | null;
   } | null;
 }
-
 interface RegisterInput {
   email: string;
   password: string;
@@ -200,52 +190,53 @@ interface RegisterInput {
   isOrganization?: boolean;
   organizationName?: string;
 }
-
 type ApiUserProfileUpdate = Omit<Partial<ApiUserProfile>, 'photoUrl'> & {
   photoUrl?: string | null;
 };
-
 interface MemoryPasswordCredential {
   passwordHash: string;
   userId: string;
 }
-
 interface MemoryDeviceRecord extends DeviceRecord {
   createdAt: string;
   updatedAt: string;
 }
-
 interface MemorySessionRecord extends SessionRecord {
   createdAt: string;
   ipHash: string | null;
   updatedAt: string;
 }
-
 const memoryPasswordCredentials = new Map<string, MemoryPasswordCredential>();
 const memoryDevices = new Map<string, MemoryDeviceRecord>();
 const memorySessions = new Map<string, MemorySessionRecord>();
-
 export function resetAuthRuntimeForTests(): void {
   memoryPasswordCredentials.clear();
   memoryDevices.clear();
   memorySessions.clear();
 }
-
-function splitName(fullName: string | undefined): { firstName: string; lastName: string } {
+function splitName(fullName: string | undefined): {
+  firstName: string;
+  lastName: string;
+} {
   const raw = (fullName ?? '').trim();
   if (!raw) {
-    return { firstName: 'Clubroom', lastName: 'User' };
+    return {
+      firstName: 'Clubroom',
+      lastName: 'User',
+    };
   }
   const parts = raw.split(/\s+/);
   if (parts.length === 1) {
-    return { firstName: parts[0], lastName: 'User' };
+    return {
+      firstName: parts[0],
+      lastName: 'User',
+    };
   }
   return {
     firstName: parts[0],
     lastName: parts.slice(1).join(' '),
   };
 }
-
 function inferAccountType(roles: string[]): AccountType {
   if (roles.includes('coach') || roles.includes('club_admin') || roles.includes('security_admin')) {
     return 'COACH';
@@ -255,7 +246,6 @@ function inferAccountType(roles: string[]): AccountType {
   }
   return 'PARENT';
 }
-
 function inferAppRole(roles: string[], accountType: AccountType): AppRole {
   if (roles.includes('club_admin') || roles.includes('security_admin')) {
     return 'ADMIN';
@@ -265,7 +255,6 @@ function inferAppRole(roles: string[], accountType: AccountType): AppRole {
   }
   return 'USER';
 }
-
 function expectedPasswordForRoles(roles: string[]): string {
   if (roles.includes('club_admin') || roles.includes('security_admin')) {
     return 'admin';
@@ -275,47 +264,36 @@ function expectedPasswordForRoles(roles: string[]): string {
   }
   return 'user';
 }
-
 function isSeedLikeRuntime(): boolean {
   return getApiDataBackend() === 'seed' || shouldUseDbFixtureFallback();
 }
-
 function getJwtSecret(): Buffer {
   if (env.API_JWT_SECRET?.trim()) {
     return Buffer.from(env.API_JWT_SECRET.trim(), 'utf8');
   }
-
   if (env.NODE_ENV === 'production') {
     throw serviceUnavailable('API_JWT_SECRET is required for production JWT auth');
   }
-
   return Buffer.from(DEFAULT_DEV_JWT_SECRET, 'utf8');
 }
-
 function getLocalJwtIssuer(): string {
   return env.API_JWT_ISSUER ?? 'https://api.clubroom.local';
 }
-
 function getExternalJwtIssuer(): string | null {
   return env.AUTH0_ISSUER_URL?.trim() || null;
 }
-
 function getJwtAudience(): string {
   return env.API_JWT_AUDIENCE ?? env.AUTH0_AUDIENCE ?? 'clubroom-mobile';
 }
-
 function encodeBase64Url(value: Buffer | string): string {
   return Buffer.from(value).toString('base64url');
 }
-
 function decodeBase64Url(value: string): Buffer {
   return Buffer.from(value, 'base64url');
 }
-
 function createJwtSignature(input: string): Buffer {
   return crypto.createHmac('sha256', getJwtSecret()).update(input).digest();
 }
-
 function parseJwtJson(segment: string): Record<string, unknown> {
   try {
     return JSON.parse(decodeBase64Url(segment).toString('utf8')) as Record<string, unknown>;
@@ -323,7 +301,6 @@ function parseJwtJson(segment: string): Record<string, unknown> {
     throw unauthorized('Invalid JWT payload');
   }
 }
-
 function parseJwtParts(token: string): [string, string, string] {
   const parts = token.split('.');
   if (parts.length !== 3) {
@@ -331,33 +308,39 @@ function parseJwtParts(token: string): [string, string, string] {
   }
   return parts as [string, string, string];
 }
-
-let externalJwksCache: { issuer: string; keys: JwkKey[]; expiresAt: number } | null = null;
-
+let externalJwksCache: {
+  issuer: string;
+  keys: JwkKey[];
+  expiresAt: number;
+} | null = null;
 function getJwksUrl(issuer: string): URL {
   const normalizedIssuer = issuer.endsWith('/') ? issuer : `${issuer}/`;
   return new URL('.well-known/jwks.json', normalizedIssuer);
 }
-
 async function fetchExternalJwkSet(issuer: string): Promise<JwkKey[]> {
   const nowMs = Date.now();
-  if (externalJwksCache && externalJwksCache.issuer === issuer && externalJwksCache.expiresAt > nowMs) {
+  if (
+    externalJwksCache &&
+    externalJwksCache.issuer === issuer &&
+    externalJwksCache.expiresAt > nowMs
+  ) {
     return externalJwksCache.keys;
   }
-
   const response = await fetch(getJwksUrl(issuer));
   if (!response.ok) {
     throw unauthorized('Unable to load external JWKS');
   }
-
-  const payload = (await response.json()) as { keys?: unknown };
+  const payload = (await response.json()) as {
+    keys?: unknown;
+  };
   const keys = Array.isArray(payload.keys)
-    ? payload.keys.filter((candidate): candidate is JwkKey => Boolean(candidate && typeof candidate === 'object'))
+    ? payload.keys.filter((candidate): candidate is JwkKey =>
+        Boolean(candidate && typeof candidate === 'object'),
+      )
     : [];
   if (keys.length === 0) {
     throw unauthorized('External JWKS did not contain any keys');
   }
-
   const cacheControl = response.headers.get('cache-control') ?? '';
   const maxAgeMatch = cacheControl.match(/max-age=(\d+)/);
   const maxAgeSec = maxAgeMatch ? Number.parseInt(maxAgeMatch[1] ?? '300', 10) : 300;
@@ -368,8 +351,11 @@ async function fetchExternalJwkSet(issuer: string): Promise<JwkKey[]> {
   };
   return keys;
 }
-
-function signJwt(params: Omit<JwtClaims, 'aud' | 'exp' | 'iat' | 'iss'> & { expiresInSec: number }): string {
+function signJwt(
+  params: Omit<JwtClaims, 'aud' | 'exp' | 'iat' | 'iss'> & {
+    expiresInSec: number;
+  },
+): string {
   const nowSec = Math.floor(Date.now() / 1000);
   const payload: JwtClaims = {
     aud: getJwtAudience(),
@@ -393,36 +379,31 @@ function signJwt(params: Omit<JwtClaims, 'aud' | 'exp' | 'iat' | 'iss'> & { expi
   const signature = encodeBase64Url(createJwtSignature(`${encodedHeader}.${encodedPayload}`));
   return `${encodedHeader}.${encodedPayload}.${signature}`;
 }
-
 function ensureStringClaim(value: unknown, label: string): string {
   if (typeof value !== 'string' || !value.trim()) {
     throw unauthorized(`JWT ${label} claim is required`);
   }
   return value;
 }
-
 function verifyLocalJwt(token: string, expectedTokenUse: JwtTokenUse): JwtClaims {
   const [encodedHeader, encodedPayload, encodedSignature] = parseJwtParts(token);
   const header = parseJwtJson(encodedHeader);
   if (header.alg !== 'HS256' || header.typ !== 'JWT') {
     throw unauthorized('Unsupported JWT header');
   }
-
   const expectedSignature = createJwtSignature(`${encodedHeader}.${encodedPayload}`);
   const actualSignature = decodeBase64Url(encodedSignature);
   if (
-    expectedSignature.length !== actualSignature.length
-    || !crypto.timingSafeEqual(expectedSignature, actualSignature)
+    expectedSignature.length !== actualSignature.length ||
+    !crypto.timingSafeEqual(expectedSignature, actualSignature)
   ) {
     throw unauthorized('Invalid JWT signature');
   }
-
   const payload = parseJwtJson(encodedPayload);
   const tokenUse = payload.token_use;
   if (tokenUse !== 'access' && tokenUse !== 'refresh') {
     throw unauthorized('JWT token use is invalid');
   }
-
   const claims: JwtClaims = {
     aud: ensureStringClaim(payload.aud, 'aud'),
     exp: typeof payload.exp === 'number' ? payload.exp : NaN,
@@ -430,7 +411,10 @@ function verifyLocalJwt(token: string, expectedTokenUse: JwtTokenUse): JwtClaims
     iss: ensureStringClaim(payload.iss, 'iss'),
     jti: ensureStringClaim(payload.jti, 'jti'),
     roles: Array.isArray(payload.roles)
-      ? payload.roles.map((value) => String(value)).filter(Boolean)
+      ? payload.roles.flatMap((value) => {
+          const role = String(value);
+          return role ? [role] : [];
+        })
       : [],
     sid: ensureStringClaim(payload.sid, 'sid'),
     sub: ensureStringClaim(payload.sub, 'sub'),
@@ -438,20 +422,22 @@ function verifyLocalJwt(token: string, expectedTokenUse: JwtTokenUse): JwtClaims
     token_use: tokenUse,
     uid: ensureStringClaim(payload.uid, 'uid'),
   };
-
   if (claims.iss !== getLocalJwtIssuer()) {
     throw unauthorized('JWT issuer is invalid');
   }
   if (claims.aud !== getJwtAudience()) {
     throw unauthorized('JWT audience is invalid');
   }
-  if (!Number.isFinite(claims.iat) || !Number.isFinite(claims.exp) || !Number.isFinite(claims.token_epoch)) {
+  if (
+    !Number.isFinite(claims.iat) ||
+    !Number.isFinite(claims.exp) ||
+    !Number.isFinite(claims.token_epoch)
+  ) {
     throw unauthorized('JWT timing claims are invalid');
   }
   if (claims.token_use !== expectedTokenUse) {
     throw unauthorized('JWT token use is invalid');
   }
-
   const nowSec = Math.floor(Date.now() / 1000);
   if (claims.iat > nowSec + CLOCK_SKEW_SEC) {
     throw unauthorized('JWT issued-at claim is invalid');
@@ -459,31 +445,35 @@ function verifyLocalJwt(token: string, expectedTokenUse: JwtTokenUse): JwtClaims
   if (claims.exp <= nowSec - CLOCK_SKEW_SEC) {
     throw unauthorized('JWT has expired');
   }
-
   return claims;
 }
-
 function ensureBearerExternalClaim(value: unknown, label: string): string {
   if (typeof value !== 'string' || !value.trim()) {
     throw unauthorized(`JWT ${label} claim is required`);
   }
   return value.trim();
 }
-
 function ensureAudienceClaim(value: unknown): string | string[] {
   if (typeof value === 'string' && value.trim()) {
     return value.trim();
   }
   if (Array.isArray(value)) {
-    const audiences = value.map((entry) => String(entry).trim()).filter(Boolean);
+    const audiences = value.flatMap((entry) => {
+      const audience = String(entry).trim();
+      return audience ? [audience] : [];
+    });
     if (audiences.length > 0) {
       return audiences;
     }
   }
   throw unauthorized('JWT aud claim is required');
 }
-
-function getSigningInput(token: string): { header: Record<string, unknown>; payload: Record<string, unknown>; signedValue: string; signature: Buffer } {
+function getSigningInput(token: string): {
+  header: Record<string, unknown>;
+  payload: Record<string, unknown>;
+  signedValue: string;
+  signature: Buffer;
+} {
   const [encodedHeader, encodedPayload, encodedSignature] = parseJwtParts(token);
   return {
     header: parseJwtJson(encodedHeader),
@@ -492,26 +482,22 @@ function getSigningInput(token: string): { header: Record<string, unknown>; payl
     signature: decodeBase64Url(encodedSignature),
   };
 }
-
 async function verifyExternalAccessToken(token: string): Promise<ExternalJwtClaims> {
   const issuer = getExternalJwtIssuer();
   if (!issuer) {
     throw unauthorized('External JWT issuer is not configured');
   }
-
   const { header, payload, signedValue, signature } = getSigningInput(token);
   const algorithm = ensureStringClaim(header.alg, 'alg');
   if (algorithm !== 'RS256') {
     throw unauthorized('Unsupported external JWT algorithm');
   }
-
   const keyId = ensureStringClaim(header.kid, 'kid');
   const jwks = await fetchExternalJwkSet(issuer);
   const jwk = jwks.find((candidate) => candidate.kid === keyId);
   if (!jwk || jwk.kty !== 'RSA' || !jwk.n || !jwk.e) {
     throw unauthorized('Matching external JWKS key was not found');
   }
-
   const publicKey = crypto.createPublicKey({
     format: 'jwk',
     key: {
@@ -520,12 +506,10 @@ async function verifyExternalAccessToken(token: string): Promise<ExternalJwtClai
       e: jwk.e,
     },
   });
-
   const verified = crypto.verify('RSA-SHA256', Buffer.from(signedValue), publicKey, signature);
   if (!verified) {
     throw unauthorized('Invalid external JWT signature');
   }
-
   const claims: ExternalJwtClaims = {
     aud: ensureAudienceClaim(payload.aud),
     exp: typeof payload.exp === 'number' ? payload.exp : NaN,
@@ -534,11 +518,9 @@ async function verifyExternalAccessToken(token: string): Promise<ExternalJwtClai
     sid: typeof payload.sid === 'string' && payload.sid.trim() ? payload.sid : undefined,
     sub: ensureBearerExternalClaim(payload.sub, 'sub'),
   };
-
   if (claims.iss !== issuer) {
     throw unauthorized('JWT issuer is invalid');
   }
-
   const expectedAudience = getJwtAudience();
   const audiences = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
   if (!audiences.includes(expectedAudience)) {
@@ -547,7 +529,6 @@ async function verifyExternalAccessToken(token: string): Promise<ExternalJwtClai
   if (!Number.isFinite(claims.exp)) {
     throw unauthorized('JWT expiry claim is invalid');
   }
-
   const nowSec = Math.floor(Date.now() / 1000);
   if (typeof claims.iat === 'number' && claims.iat > nowSec + CLOCK_SKEW_SEC) {
     throw unauthorized('JWT issued-at claim is invalid');
@@ -555,10 +536,8 @@ async function verifyExternalAccessToken(token: string): Promise<ExternalJwtClai
   if (claims.exp <= nowSec - CLOCK_SKEW_SEC) {
     throw unauthorized('JWT has expired');
   }
-
   return claims;
 }
-
 async function verifyAccessToken(token: string): Promise<VerifiedAccessToken> {
   const { header, payload } = getSigningInput(token);
   if (header.alg === 'HS256' && payload.iss === getLocalJwtIssuer()) {
@@ -567,82 +546,71 @@ async function verifyAccessToken(token: string): Promise<VerifiedAccessToken> {
       claims: verifyLocalJwt(token, 'access'),
     };
   }
-
   return {
     provider: 'oidc',
     claims: await verifyExternalAccessToken(token),
   };
 }
-
 function randomHex(bytes = 16): string {
   return crypto.randomBytes(bytes).toString('hex');
 }
-
 function hashPassword(password: string): string {
   const salt = randomHex(16);
   const derived = crypto.scryptSync(password, salt, 64).toString('hex');
   return `scrypt$${salt}$${derived}`;
 }
-
 function verifyPasswordHash(password: string, passwordHash: string): boolean {
   const [algorithm, salt, expectedHash] = passwordHash.split('$');
   if (algorithm !== 'scrypt' || !salt || !expectedHash) {
     return false;
   }
-
   const actualHash = crypto.scryptSync(password, salt, 64);
   const expected = Buffer.from(expectedHash, 'hex');
   return expected.length === actualHash.length && crypto.timingSafeEqual(expected, actualHash);
 }
-
 function normalizeChildRelationshipType(value: unknown): 'PARENT_CHILD' | 'GUARDIAN' {
   return typeof value === 'string' && value.toUpperCase() === 'GUARDIAN'
     ? 'GUARDIAN'
     : 'PARENT_CHILD';
 }
-
 function findRoleRows(tables: SeedTables, userId: string): string[] {
-  return asRows(tables.userRoleMemberships)
-    .filter((row) => asString(row.userId) === userId && asString(row.revokedAt) == null)
-    .map((row) => asString(row.role))
-    .filter((role): role is string => Boolean(role));
+  return asRows(tables.userRoleMemberships).flatMap((row) => {
+    if (!(asString(row.userId) === userId && asString(row.revokedAt) == null)) return [];
+    const mapped = asString(row.role);
+    return Boolean(mapped) ? [mapped] : [];
+  });
 }
-
 function findUserByEmail(tables: SeedTables, email: string): SeedRow | undefined {
   const normalizedEmail = email.trim().toLowerCase();
   return asRows(tables.users).find((row) => asString(row.email)?.toLowerCase() === normalizedEmail);
 }
-
 function findUserProfileRow(tables: SeedTables, userId: string): SeedRow | undefined {
   return asRows(tables.userProfiles).find((row) => asString(row.userId) === userId);
 }
-
 function findCoachProfileRow(tables: SeedTables, userId: string): SeedRow | undefined {
   return asRows(tables.coachProfiles).find((row) => asString(row.userId) === userId);
 }
-
 function buildChildren(tables: SeedTables, userId: string) {
   const athletes = asRows(tables.athletes);
-  return asRows(tables.guardianChildLinks)
-    .filter((row) => asString(row.guardianUserId) === userId)
-    .map((row) => {
-      const athleteId = asString(row.athleteId) ?? '';
-      const athlete = athletes.find((candidate) => asString(candidate.id) === athleteId);
-      return {
+  return asRows(tables.guardianChildLinks).flatMap((row) => {
+    if (!(asString(row.guardianUserId) === userId)) return [];
+    const athleteId = asString(row.athleteId) ?? '';
+    const athlete = athletes.find((candidate) => asString(candidate.id) === athleteId);
+    return [
+      {
         childId: athleteId,
         childName: asString(athlete?.displayName) ?? 'Child',
         relationshipType: normalizeChildRelationshipType(row.relationshipType),
         addedAt: asString(row.createdAt) ?? isoNow(),
-      };
-    });
+      },
+    ];
+  });
 }
-
 function buildApiUserProfileFromTables(tables: SeedTables, userId: string): ApiUserProfile {
   const user = asRows(tables.users).find((row) => asString(row.id) === userId);
   if (!user) {
     throw forbidden(`Authenticated user ${userId} does not exist`);
   }
-
   const userProfile = findUserProfileRow(tables, userId) ?? {};
   const coachProfile = findCoachProfileRow(tables, userId) ?? {};
   const roles = findRoleRows(tables, userId);
@@ -653,7 +621,6 @@ function buildApiUserProfileFromTables(tables: SeedTables, userId: string): ApiU
   const phone = asString(userProfile.phoneE164);
   const createdAt = asString(user.createdAt) ?? asString(userProfile.createdAt) ?? isoNow();
   const updatedAt = asString(user.updatedAt) ?? asString(userProfile.updatedAt) ?? createdAt;
-
   return {
     id: userId,
     email: asString(user.email) ?? '',
@@ -697,7 +664,6 @@ function buildApiUserProfileFromTables(tables: SeedTables, userId: string): ApiU
     appRole,
   };
 }
-
 function getActiveTables(): SeedTables | null {
   if (getApiDataBackend() === 'seed') {
     return getMarketplaceSeedStore().tables;
@@ -707,13 +673,11 @@ function getActiveTables(): SeedTables | null {
   }
   return null;
 }
-
 function loadAuthIdentityFromTables(tables: SeedTables, user: SeedRow): AuthIdentity {
   const userId = asString(user.id);
   if (!userId) {
     throw unauthorized('User id is required');
   }
-
   return {
     authProviderSubject: asString(user.authProviderSubject) ?? `clubroom|${userId}`,
     email: asString(user.email) ?? '',
@@ -722,27 +686,29 @@ function loadAuthIdentityFromTables(tables: SeedTables, user: SeedRow): AuthIden
     tokenEpoch: asNumber(user.tokenEpoch) ?? 0,
   };
 }
-
 async function loadAuthIdentityByEmail(email: string): Promise<AuthIdentity | null> {
   const tables = getActiveTables();
   if (tables) {
     const user = findUserByEmail(tables, email);
     return user ? loadAuthIdentityFromTables(tables, user) : null;
   }
-
   const prisma = getPrismaClientOrThrow();
   const user = await prisma.user.findFirst({
-    where: { email: email.trim().toLowerCase() },
+    where: {
+      email: email.trim().toLowerCase(),
+    },
     include: {
       roles: {
-        where: { revokedAt: null, active: true },
+        where: {
+          revokedAt: null,
+          active: true,
+        },
       },
     },
   });
   if (!user || !user.email) {
     return null;
   }
-
   return {
     authProviderSubject: user.authProviderSubject,
     email: user.email,
@@ -751,27 +717,29 @@ async function loadAuthIdentityByEmail(email: string): Promise<AuthIdentity | nu
     tokenEpoch: user.tokenEpoch,
   };
 }
-
 async function loadAuthIdentityByUserId(userId: string): Promise<AuthIdentity | null> {
   const tables = getActiveTables();
   if (tables) {
     const user = asRows(tables.users).find((row) => asString(row.id) === userId);
     return user ? loadAuthIdentityFromTables(tables, user) : null;
   }
-
   const prisma = getPrismaClientOrThrow();
   const user = await prisma.user.findUnique({
-    where: { id: userId },
+    where: {
+      id: userId,
+    },
     include: {
       roles: {
-        where: { revokedAt: null, active: true },
+        where: {
+          revokedAt: null,
+          active: true,
+        },
       },
     },
   });
   if (!user || !user.email) {
     return null;
   }
-
   return {
     authProviderSubject: user.authProviderSubject,
     email: user.email,
@@ -780,27 +748,29 @@ async function loadAuthIdentityByUserId(userId: string): Promise<AuthIdentity | 
     tokenEpoch: user.tokenEpoch,
   };
 }
-
 async function loadAuthIdentityBySubject(subject: string): Promise<AuthIdentity | null> {
   const tables = getActiveTables();
   if (tables) {
     const user = asRows(tables.users).find((row) => asString(row.authProviderSubject) === subject);
     return user ? loadAuthIdentityFromTables(tables, user) : null;
   }
-
   const prisma = getPrismaClientOrThrow();
   const user = await prisma.user.findFirst({
-    where: { authProviderSubject: subject },
+    where: {
+      authProviderSubject: subject,
+    },
     include: {
       roles: {
-        where: { revokedAt: null, active: true },
+        where: {
+          revokedAt: null,
+          active: true,
+        },
       },
     },
   });
   if (!user || !user.email) {
     return null;
   }
-
   return {
     authProviderSubject: user.authProviderSubject,
     email: user.email,
@@ -809,13 +779,14 @@ async function loadAuthIdentityBySubject(subject: string): Promise<AuthIdentity 
     tokenEpoch: user.tokenEpoch,
   };
 }
-
 async function loadAuthUserRecordById(userId: string): Promise<AuthUserRecord> {
   const tables = getActiveTables();
   if (tables) {
     const user = asRows(tables.users).find((row) => asString(row.id) === userId);
     if (!user) {
-      throw notFound('User not found', { userId });
+      throw notFound('User not found', {
+        userId,
+      });
     }
     return {
       authProvider: asString(user.authProvider) ?? 'clubroom',
@@ -826,11 +797,16 @@ async function loadAuthUserRecordById(userId: string): Promise<AuthUserRecord> {
       tokenEpoch: asNumber(user.tokenEpoch) ?? 0,
     };
   }
-
   const prisma = getPrismaClientOrThrow();
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
   if (!user || !user.email) {
-    throw notFound('User not found', { userId });
+    throw notFound('User not found', {
+      userId,
+    });
   }
   return {
     authProvider: user.authProvider,
@@ -841,59 +817,67 @@ async function loadAuthUserRecordById(userId: string): Promise<AuthUserRecord> {
     tokenEpoch: user.tokenEpoch,
   };
 }
-
 async function getPasswordCredentialHash(userId: string): Promise<string | null> {
   if (getApiDataBackend() !== 'db' || shouldUseDbFixtureFallback()) {
     return memoryPasswordCredentials.get(userId)?.passwordHash ?? null;
   }
-
   const prisma = getPrismaClientOrThrow();
-  const credential = await prisma.passwordCredential.findUnique({ where: { userId } });
+  const credential = await prisma.passwordCredential.findUnique({
+    where: {
+      userId,
+    },
+  });
   return credential?.passwordHash ?? null;
 }
-
 async function setPasswordCredentialHash(userId: string, passwordHash: string): Promise<void> {
   if (getApiDataBackend() !== 'db' || shouldUseDbFixtureFallback()) {
-    memoryPasswordCredentials.set(userId, { userId, passwordHash });
+    memoryPasswordCredentials.set(userId, {
+      userId,
+      passwordHash,
+    });
     return;
   }
-
   const prisma = getPrismaClientOrThrow();
   await prisma.passwordCredential.upsert({
-    where: { userId },
-    create: { userId, passwordHash },
-    update: { passwordHash },
+    where: {
+      userId,
+    },
+    create: {
+      userId,
+      passwordHash,
+    },
+    update: {
+      passwordHash,
+    },
   });
 }
-
 async function verifyUserPassword(identity: AuthIdentity, password: string): Promise<boolean> {
   const storedHash = await getPasswordCredentialHash(identity.id);
   if (storedHash) {
     return verifyPasswordHash(password, storedHash);
   }
-
   if (!isSeedLikeRuntime()) {
     return false;
   }
-
   return password === expectedPasswordForRoles(identity.roles);
 }
-
 function normalizeUserAgent(userAgent: string | undefined): string {
   const trimmed = (userAgent ?? '').trim();
   return trimmed || 'ClubroomApi/1.0';
 }
-
 function inferDevicePlatform(userAgent: string): string {
   const normalized = userAgent.toLowerCase();
   if (normalized.includes('ios')) return 'ios';
   if (normalized.includes('android')) return 'android';
-  if (normalized.includes('mac os') || normalized.includes('windows') || normalized.includes('linux')) {
+  if (
+    normalized.includes('mac os') ||
+    normalized.includes('windows') ||
+    normalized.includes('linux')
+  ) {
     return 'web';
   }
   return 'api';
 }
-
 function buildSessionSummary(params: {
   currentSessionId?: string | null;
   device?: DeviceRecord | null;
@@ -919,7 +903,6 @@ function buildSessionSummary(params: {
       : null,
   };
 }
-
 async function createSessionRecord(userId: string, userAgent?: string): Promise<SessionRecord> {
   const normalizedUserAgent = normalizeUserAgent(userAgent);
   const now = new Date();
@@ -927,7 +910,6 @@ async function createSessionRecord(userId: string, userAgent?: string): Promise<
   const expiresAt = new Date(now.getTime() + REFRESH_TOKEN_TTL_SEC * 1000).toISOString();
   const deviceLabel = normalizedUserAgent.slice(0, 120);
   const platform = inferDevicePlatform(normalizedUserAgent);
-
   if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
     const prisma = getPrismaClientOrThrow();
     const device = await prisma.userDevice.create({
@@ -967,7 +949,6 @@ async function createSessionRecord(userId: string, userAgent?: string): Promise<
       userAgent: session.userAgent ?? null,
     };
   }
-
   const deviceId = newId('udv');
   const sessionId = newId('ses');
   const device: MemoryDeviceRecord = {
@@ -1000,37 +981,13 @@ async function createSessionRecord(userId: string, userAgent?: string): Promise<
   memorySessions.set(sessionId, session);
   return session;
 }
-
 async function getSessionRecordById(sessionId: string): Promise<SessionRecord | null> {
   if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
     const prisma = getPrismaClientOrThrow();
-    const session = await prisma.authSession.findUnique({ where: { id: sessionId } });
-    if (!session) {
-      return null;
-    }
-    return {
-      id: session.id,
-      userId: session.userId,
-      userDeviceId: session.userDeviceId ?? null,
-      jwtId: session.jwtId ?? '',
-      refreshTokenId: session.refreshTokenId ?? '',
-      issuedAt: session.issuedAt.toISOString(),
-      expiresAt: session.expiresAt?.toISOString() ?? null,
-      lastSeenAt: session.lastSeenAt?.toISOString() ?? null,
-      revokedAt: session.revokedAt?.toISOString() ?? null,
-      revokeReason: session.revokeReason ?? null,
-      userAgent: session.userAgent ?? null,
-    };
-  }
-
-  return memorySessions.get(sessionId) ?? null;
-}
-
-async function getSessionRecordByRefreshTokenId(refreshTokenId: string): Promise<SessionRecord | null> {
-  if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
-    const prisma = getPrismaClientOrThrow();
-    const session = await prisma.authSession.findFirst({
-      where: { refreshTokenId },
+    const session = await prisma.authSession.findUnique({
+      where: {
+        id: sessionId,
+      },
     });
     if (!session) {
       return null;
@@ -1049,7 +1006,35 @@ async function getSessionRecordByRefreshTokenId(refreshTokenId: string): Promise
       userAgent: session.userAgent ?? null,
     };
   }
-
+  return memorySessions.get(sessionId) ?? null;
+}
+async function getSessionRecordByRefreshTokenId(
+  refreshTokenId: string,
+): Promise<SessionRecord | null> {
+  if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+    const prisma = getPrismaClientOrThrow();
+    const session = await prisma.authSession.findFirst({
+      where: {
+        refreshTokenId,
+      },
+    });
+    if (!session) {
+      return null;
+    }
+    return {
+      id: session.id,
+      userId: session.userId,
+      userDeviceId: session.userDeviceId ?? null,
+      jwtId: session.jwtId ?? '',
+      refreshTokenId: session.refreshTokenId ?? '',
+      issuedAt: session.issuedAt.toISOString(),
+      expiresAt: session.expiresAt?.toISOString() ?? null,
+      lastSeenAt: session.lastSeenAt?.toISOString() ?? null,
+      revokedAt: session.revokedAt?.toISOString() ?? null,
+      revokeReason: session.revokeReason ?? null,
+      userAgent: session.userAgent ?? null,
+    };
+  }
   for (const session of memorySessions.values()) {
     if (session.refreshTokenId === refreshTokenId) {
       return session;
@@ -1057,7 +1042,6 @@ async function getSessionRecordByRefreshTokenId(refreshTokenId: string): Promise
   }
   return null;
 }
-
 async function rotateSessionRecord(
   sessionId: string,
   userId: string,
@@ -1066,11 +1050,12 @@ async function rotateSessionRecord(
   const normalizedUserAgent = normalizeUserAgent(userAgent);
   const now = new Date();
   const expiresAt = new Date(now.getTime() + REFRESH_TOKEN_TTL_SEC * 1000);
-
   if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
     const prisma = getPrismaClientOrThrow();
     const session = await prisma.authSession.update({
-      where: { id: sessionId },
+      where: {
+        id: sessionId,
+      },
       data: {
         userId,
         jwtId: newId('jwt'),
@@ -1084,7 +1069,9 @@ async function rotateSessionRecord(
     });
     if (session.userDeviceId) {
       await prisma.userDevice.update({
-        where: { id: session.userDeviceId },
+        where: {
+          id: session.userDeviceId,
+        },
         data: {
           lastSeenAt: now,
           deviceLabel: normalizedUserAgent.slice(0, 120),
@@ -1107,7 +1094,6 @@ async function rotateSessionRecord(
       userAgent: session.userAgent ?? null,
     };
   }
-
   const session = memorySessions.get(sessionId);
   if (!session) {
     throw unauthorized('Session not found');
@@ -1134,25 +1120,31 @@ async function rotateSessionRecord(
   }
   return session;
 }
-
 async function touchSessionRecord(session: SessionRecord): Promise<void> {
   const now = new Date();
   const nowIso = now.toISOString();
   if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
     const prisma = getPrismaClientOrThrow();
     await prisma.authSession.update({
-      where: { id: session.id },
-      data: { lastSeenAt: now },
+      where: {
+        id: session.id,
+      },
+      data: {
+        lastSeenAt: now,
+      },
     });
     if (session.userDeviceId) {
       await prisma.userDevice.update({
-        where: { id: session.userDeviceId },
-        data: { lastSeenAt: now },
+        where: {
+          id: session.userDeviceId,
+        },
+        data: {
+          lastSeenAt: now,
+        },
       });
     }
     return;
   }
-
   const mutableSession = memorySessions.get(session.id);
   if (mutableSession) {
     mutableSession.lastSeenAt = nowIso;
@@ -1166,7 +1158,6 @@ async function touchSessionRecord(session: SessionRecord): Promise<void> {
     }
   }
 }
-
 function isSessionActive(session: SessionRecord | null, userId?: string): session is SessionRecord {
   if (!session) {
     return false;
@@ -1182,7 +1173,6 @@ function isSessionActive(session: SessionRecord | null, userId?: string): sessio
   }
   return true;
 }
-
 async function revokeSessionRecord(params: {
   reason: string;
   sessionId: string;
@@ -1195,10 +1185,8 @@ async function revokeSessionRecord(params: {
   if (params.userId && session.userId !== params.userId) {
     throw unauthorized('Session does not belong to authenticated user');
   }
-
   const now = new Date();
   const nowIso = now.toISOString();
-
   if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
     const prisma = getPrismaClientOrThrow();
     const updated = session.revokedAt
@@ -1210,7 +1198,9 @@ async function revokeSessionRecord(params: {
         };
     if (!session.revokedAt) {
       await prisma.authSession.update({
-        where: { id: session.id },
+        where: {
+          id: session.id,
+        },
         data: {
           revokedAt: now,
           revokeReason: params.reason,
@@ -1219,7 +1209,6 @@ async function revokeSessionRecord(params: {
     }
     return updated;
   }
-
   const mutableSession = memorySessions.get(params.sessionId);
   if (!mutableSession) {
     throw unauthorized('Session not found');
@@ -1231,7 +1220,6 @@ async function revokeSessionRecord(params: {
   }
   return mutableSession;
 }
-
 async function listSessionRecords(
   userId: string,
   currentSessionId?: string | null,
@@ -1239,9 +1227,15 @@ async function listSessionRecords(
   if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
     const prisma = getPrismaClientOrThrow();
     const sessions = await prisma.authSession.findMany({
-      where: { userId },
-      include: { device: true },
-      orderBy: { issuedAt: 'desc' },
+      where: {
+        userId,
+      },
+      include: {
+        device: true,
+      },
+      orderBy: {
+        issuedAt: 'desc',
+      },
     });
     return sessions.map((session) =>
       buildSessionSummary({
@@ -1272,39 +1266,55 @@ async function listSessionRecords(
       }),
     );
   }
-
   return [...memorySessions.values()]
     .filter((session) => session.userId === userId)
     .sort((left, right) => Date.parse(right.issuedAt) - Date.parse(left.issuedAt))
     .map((session) =>
       buildSessionSummary({
         currentSessionId,
-        device: session.userDeviceId ? memoryDevices.get(session.userDeviceId) ?? null : null,
+        device: session.userDeviceId ? (memoryDevices.get(session.userDeviceId) ?? null) : null,
         session,
       }),
     );
 }
-
 async function revokeAllSessionRecords(
   userId: string,
   excludeSessionId?: string | null,
-): Promise<{ retainedSessionId: string | null; revokedCount: number; revokedSessionIds: string[] }> {
+): Promise<{
+  retainedSessionId: string | null;
+  revokedCount: number;
+  revokedSessionIds: string[];
+}> {
   if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
     const prisma = getPrismaClientOrThrow();
     const sessions = await prisma.authSession.findMany({
       where: {
         userId,
         revokedAt: null,
-        ...(excludeSessionId ? { NOT: { id: excludeSessionId } } : {}),
+        ...(excludeSessionId
+          ? {
+              NOT: {
+                id: excludeSessionId,
+              },
+            }
+          : {}),
       },
-      select: { id: true },
+      select: {
+        id: true,
+      },
     });
     if (sessions.length > 0) {
       await prisma.authSession.updateMany({
         where: {
           userId,
           revokedAt: null,
-          ...(excludeSessionId ? { NOT: { id: excludeSessionId } } : {}),
+          ...(excludeSessionId
+            ? {
+                NOT: {
+                  id: excludeSessionId,
+                },
+              }
+            : {}),
         },
         data: {
           revokedAt: new Date(),
@@ -1318,7 +1328,6 @@ async function revokeAllSessionRecords(
       revokedSessionIds: sessions.map((session) => session.id),
     };
   }
-
   const revokedSessionIds: string[] = [];
   const nowIso = isoNow();
   for (const session of memorySessions.values()) {
@@ -1336,14 +1345,12 @@ async function revokeAllSessionRecords(
     session.updatedAt = nowIso;
     revokedSessionIds.push(session.id);
   }
-
   return {
     retainedSessionId: excludeSessionId ?? null,
     revokedCount: revokedSessionIds.length,
     revokedSessionIds,
   };
 }
-
 function buildTokens(identity: AuthIdentity, session: SessionRecord): AuthTokens {
   const accessToken = signJwt({
     expiresInSec: ACCESS_TOKEN_TTL_SEC,
@@ -1366,15 +1373,15 @@ function buildTokens(identity: AuthIdentity, session: SessionRecord): AuthTokens
     uid: identity.id,
   });
   const accessClaims = verifyLocalJwt(accessToken, 'access');
-
   return {
     accessToken,
     expiresAt: accessClaims.exp * 1000,
     refreshToken,
   };
 }
-
-export async function resolveAuthContextFromBearerToken(token: string): Promise<AuthContext | null> {
+export async function resolveAuthContextFromBearerToken(
+  token: string,
+): Promise<AuthContext | null> {
   let claims!: JwtClaims;
   try {
     const verified = await verifyAccessToken(token);
@@ -1397,7 +1404,6 @@ export async function resolveAuthContextFromBearerToken(token: string): Promise<
   } catch {
     return null;
   }
-
   const session = await getSessionRecordById(claims.sid);
   if (!isSessionActive(session, claims.uid)) {
     return null;
@@ -1405,7 +1411,6 @@ export async function resolveAuthContextFromBearerToken(token: string): Promise<
   if (session.jwtId !== claims.jti) {
     return null;
   }
-
   const identity = await loadAuthIdentityByUserId(claims.uid);
   if (!identity) {
     return null;
@@ -1413,7 +1418,6 @@ export async function resolveAuthContextFromBearerToken(token: string): Promise<
   if (identity.authProviderSubject !== claims.sub || identity.tokenEpoch !== claims.token_epoch) {
     return null;
   }
-
   await touchSessionRecord(session);
   return {
     exp: claims.exp,
@@ -1424,7 +1428,6 @@ export async function resolveAuthContextFromBearerToken(token: string): Promise<
     userId: identity.id,
   };
 }
-
 export async function createSessionByEmail(
   email: string,
   password: string,
@@ -1434,41 +1437,38 @@ export async function createSessionByEmail(
   if (!identity || identity.roles.length === 0) {
     throw unauthorized('Invalid email or password');
   }
-
   const validPassword = await verifyUserPassword(identity, password);
   if (!validPassword) {
     throw unauthorized('Invalid email or password');
   }
-
   const session = await createSessionRecord(identity.id, userAgent);
   return {
     user: await getAuthUserProfile(identity.id),
     tokens: buildTokens(identity, session),
   };
 }
-
 function pushTableRow(tables: SeedTables, table: string, row: SeedRow): void {
   if (!Array.isArray(tables[table])) {
     tables[table] = [];
   }
   tables[table].push(row);
 }
-
 async function createUserInCurrentBackend(input: RegisterInput): Promise<AuthIdentity> {
   const normalizedEmail = input.email.trim().toLowerCase();
   const tables = getActiveTables();
   const role =
-    input.accountType === 'COACH' ? 'coach' : input.accountType === 'ATHLETE' ? 'athlete' : 'parent';
-
+    input.accountType === 'COACH'
+      ? 'coach'
+      : input.accountType === 'ATHLETE'
+        ? 'athlete'
+        : 'parent';
   if (tables) {
     if (findUserByEmail(tables, normalizedEmail)) {
       throw badRequest('An account with this email already exists');
     }
-
     const userId = newId('usr');
     const now = isoNow();
     const authProviderSubject = `clubroom|${userId}`;
-
     pushTableRow(tables, 'users', {
       id: userId,
       authProvider: 'clubroom',
@@ -1487,7 +1487,6 @@ async function createUserInCurrentBackend(input: RegisterInput): Promise<AuthIde
       updatedAt: now,
       deletedAt: null,
     });
-
     pushTableRow(tables, 'userProfiles', {
       userId,
       bio: '',
@@ -1506,7 +1505,6 @@ async function createUserInCurrentBackend(input: RegisterInput): Promise<AuthIde
       createdAt: now,
       updatedAt: now,
     });
-
     pushTableRow(tables, 'userRoleMemberships', {
       id: newId('urm'),
       userId,
@@ -1517,7 +1515,6 @@ async function createUserInCurrentBackend(input: RegisterInput): Promise<AuthIde
       updatedAt: now,
       revokedAt: null,
     });
-
     if (input.accountType === 'COACH') {
       pushTableRow(tables, 'coachProfiles', {
         userId,
@@ -1533,7 +1530,6 @@ async function createUserInCurrentBackend(input: RegisterInput): Promise<AuthIde
         deletedAt: null,
       });
     }
-
     if (input.accountType === 'ATHLETE') {
       pushTableRow(tables, 'athletes', {
         id: newId('ath'),
@@ -1551,7 +1547,6 @@ async function createUserInCurrentBackend(input: RegisterInput): Promise<AuthIde
         avatarUrl: null,
       });
     }
-
     return {
       authProviderSubject,
       email: normalizedEmail,
@@ -1560,19 +1555,20 @@ async function createUserInCurrentBackend(input: RegisterInput): Promise<AuthIde
       tokenEpoch: 0,
     };
   }
-
   const prisma = getPrismaClientOrThrow();
   const existing = await prisma.user.findFirst({
-    where: { email: normalizedEmail },
-    select: { id: true },
+    where: {
+      email: normalizedEmail,
+    },
+    select: {
+      id: true,
+    },
   });
   if (existing) {
     throw badRequest('An account with this email already exists');
   }
-
   const userId = newId('usr');
   const authProviderSubject = `clubroom|${userId}`;
-
   await prisma.user.create({
     data: {
       id: userId,
@@ -1627,7 +1623,6 @@ async function createUserInCurrentBackend(input: RegisterInput): Promise<AuthIde
         : {}),
     },
   });
-
   if (input.accountType === 'ATHLETE') {
     await prisma.athlete.create({
       data: {
@@ -1640,7 +1635,6 @@ async function createUserInCurrentBackend(input: RegisterInput): Promise<AuthIde
       },
     });
   }
-
   return {
     authProviderSubject,
     email: normalizedEmail,
@@ -1649,7 +1643,6 @@ async function createUserInCurrentBackend(input: RegisterInput): Promise<AuthIde
     tokenEpoch: 0,
   };
 }
-
 export async function registerAuthUser(
   input: RegisterInput,
   userAgent?: string,
@@ -1662,7 +1655,6 @@ export async function registerAuthUser(
     tokens: buildTokens(identity, session),
   };
 }
-
 export async function refreshAuthSession(
   refreshToken: string,
   userAgent?: string,
@@ -1675,7 +1667,6 @@ export async function refreshAuthSession(
   if (session.refreshTokenId !== claims.jti) {
     throw unauthorized('Invalid refresh token');
   }
-
   const identity = await loadAuthIdentityByUserId(claims.uid);
   if (!identity) {
     throw unauthorized('Session expired. Please log in again.');
@@ -1683,19 +1674,19 @@ export async function refreshAuthSession(
   if (identity.authProviderSubject !== claims.sub || identity.tokenEpoch !== claims.token_epoch) {
     throw unauthorized('Session expired. Please log in again.');
   }
-
   const rotatedSession = await rotateSessionRecord(session.id, identity.id, userAgent);
   return buildTokens(identity, rotatedSession);
 }
-
 export async function revokeAuthSession(params: {
   reason?: string;
   refreshToken?: string;
   sessionId?: string;
   userId?: string;
-}): Promise<{ revokedAt: string; sessionId: string }> {
+}): Promise<{
+  revokedAt: string;
+  sessionId: string;
+}> {
   let sessionId = params.sessionId;
-
   if (!sessionId && params.refreshToken) {
     const claims = verifyLocalJwt(params.refreshToken, 'refresh');
     const session = await getSessionRecordByRefreshTokenId(claims.jti);
@@ -1704,11 +1695,9 @@ export async function revokeAuthSession(params: {
     }
     sessionId = session.id;
   }
-
   if (!sessionId) {
     throw badRequest('Session id or refresh token is required');
   }
-
   const session = await revokeSessionRecord({
     reason: params.reason ?? 'self_revoke',
     sessionId,
@@ -1719,39 +1708,46 @@ export async function revokeAuthSession(params: {
     sessionId,
   };
 }
-
 export async function listAuthSessions(
   userId: string,
   currentSessionId?: string | null,
 ): Promise<AuthSessionSummary[]> {
   return listSessionRecords(userId, currentSessionId);
 }
-
 export async function revokeAllAuthSessionsForUser(
   userId: string,
   excludeSessionId?: string | null,
-): Promise<{ retainedSessionId: string | null; revokedCount: number; revokedSessionIds: string[] }> {
+): Promise<{
+  retainedSessionId: string | null;
+  revokedCount: number;
+  revokedSessionIds: string[];
+}> {
   return revokeAllSessionRecords(userId, excludeSessionId);
 }
-
 export async function revokeAuthSessionForUser(
   userId: string,
   sessionId: string,
   currentSessionId?: string | null,
-): Promise<{ currentSessionRevoked: boolean; session: AuthSessionSummary }> {
+): Promise<{
+  currentSessionRevoked: boolean;
+  session: AuthSessionSummary;
+}> {
   const revokedSession = await revokeSessionRecord({
     reason: 'self_revoke',
     sessionId,
     userId,
   });
-
   let device: DeviceRecord | null = null;
   if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
     if (revokedSession.userDeviceId) {
       const prisma = getPrismaClientOrThrow();
       const sessionWithDevice = await prisma.authSession.findUnique({
-        where: { id: revokedSession.id },
-        include: { device: true },
+        where: {
+          id: revokedSession.id,
+        },
+        include: {
+          device: true,
+        },
       });
       if (sessionWithDevice?.device) {
         device = {
@@ -1767,7 +1763,6 @@ export async function revokeAuthSessionForUser(
   } else if (revokedSession.userDeviceId) {
     device = memoryDevices.get(revokedSession.userDeviceId) ?? null;
   }
-
   return {
     currentSessionRevoked: Boolean(currentSessionId && sessionId === currentSessionId),
     session: buildSessionSummary({
@@ -1777,52 +1772,65 @@ export async function revokeAuthSessionForUser(
     }),
   };
 }
-
 export async function checkEmailAvailable(email: string): Promise<boolean> {
   const normalizedEmail = email.trim().toLowerCase();
   const tables = getActiveTables();
   if (tables) {
     return !Boolean(findUserByEmail(tables, normalizedEmail));
   }
-
   const prisma = getPrismaClientOrThrow();
   const existing = await prisma.user.findFirst({
-    where: { email: normalizedEmail },
-    select: { id: true },
+    where: {
+      email: normalizedEmail,
+    },
+    select: {
+      id: true,
+    },
   });
   return !existing;
 }
-
 export async function getAuthUserProfile(userId: string): Promise<ApiUserProfile> {
   const tables = getActiveTables();
   if (tables) {
     return buildApiUserProfileFromTables(tables, userId);
   }
-
   const prisma = getPrismaClientOrThrow();
   const [user, profile, coachProfile, roleMemberships, guardianLinks] = await Promise.all([
     prisma.user.findUnique({
-      where: { id: userId },
+      where: {
+        id: userId,
+      },
     }),
     prisma.userProfile.findUnique({
-      where: { userId },
+      where: {
+        userId,
+      },
     }),
     prisma.coachProfile.findUnique({
-      where: { userId },
+      where: {
+        userId,
+      },
     }),
     prisma.userRoleMembership.findMany({
-      where: { userId, revokedAt: null, active: true },
+      where: {
+        userId,
+        revokedAt: null,
+        active: true,
+      },
     }),
     prisma.guardianChildLink.findMany({
-      where: { guardianUserId: userId, deletedAt: null },
-      include: { athlete: true },
+      where: {
+        guardianUserId: userId,
+        deletedAt: null,
+      },
+      include: {
+        athlete: true,
+      },
     }),
   ]);
-
   if (!user || !user.email) {
     throw forbidden(`Authenticated user ${userId} does not exist`);
   }
-
   const roles = roleMemberships.map((role) => role.role);
   const accountType = inferAccountType(roles);
   const appRole = inferAppRole(roles, accountType);
@@ -1833,7 +1841,6 @@ export async function getAuthUserProfile(userId: string): Promise<ApiUserProfile
     relationshipType: normalizeChildRelationshipType(link.relationshipType),
     addedAt: link.createdAt.toISOString(),
   }));
-
   return {
     id: user.id,
     email: user.email,
@@ -1860,9 +1867,10 @@ export async function getAuthUserProfile(userId: string): Promise<ApiUserProfile
     yearsExperience: coachProfile?.yearsExperience ?? undefined,
     specializations: coachProfile?.specialties.length ? coachProfile.specialties : undefined,
     bio: coachProfile?.bio ?? profile?.bio ?? undefined,
-    hourlyRate: typeof coachProfile?.sessionRateMinor === 'number'
-      ? Math.round(coachProfile.sessionRateMinor / 100)
-      : undefined,
+    hourlyRate:
+      typeof coachProfile?.sessionRateMinor === 'number'
+        ? Math.round(coachProfile.sessionRateMinor / 100)
+        : undefined,
     isVerified: user.isVerified || coachProfile?.dbsChecked === true,
     isLive: user.isLive ?? undefined,
     onboardingComplete: user.onboardingComplete,
@@ -1872,7 +1880,6 @@ export async function getAuthUserProfile(userId: string): Promise<ApiUserProfile
     appRole,
   };
 }
-
 export async function updateAuthUserProfile(
   userId: string,
   updates: ApiUserProfileUpdate,
@@ -1882,12 +1889,10 @@ export async function updateAuthUserProfile(
     const users = asRows(tables.users);
     const userProfiles = asRows(tables.userProfiles);
     const coachProfiles = asRows(tables.coachProfiles);
-
     const user = users.find((row) => asString(row.id) === userId);
     if (!user) {
       throw forbidden(`Authenticated user ${userId} does not exist`);
     }
-
     let profile = userProfiles.find((row) => asString(row.userId) === userId);
     if (!profile) {
       profile = {
@@ -1897,7 +1902,6 @@ export async function updateAuthUserProfile(
       };
       userProfiles.push(profile);
     }
-
     const fullName = [updates.firstName, updates.lastName].filter(Boolean).join(' ').trim();
     if (fullName) {
       user.name = fullName;
@@ -1906,9 +1910,9 @@ export async function updateAuthUserProfile(
     if (updates.photoUrl !== undefined) user.avatarUrl = updates.photoUrl ?? null;
     if (updates.isVerified !== undefined) user.isVerified = updates.isVerified;
     if (updates.isLive !== undefined) user.isLive = updates.isLive;
-    if (updates.onboardingComplete !== undefined) user.onboardingComplete = updates.onboardingComplete;
+    if (updates.onboardingComplete !== undefined)
+      user.onboardingComplete = updates.onboardingComplete;
     user.updatedAt = isoNow();
-
     if (updates.phone !== undefined) profile.phoneE164 = updates.phone;
     if (updates.dateOfBirth !== undefined) profile.dateOfBirth = updates.dateOfBirth;
     if (updates.addressLine !== undefined) profile.addressLine = updates.addressLine;
@@ -1923,7 +1927,6 @@ export async function updateAuthUserProfile(
     if (updates.organizationName !== undefined) profile.organizationName = updates.organizationName;
     if (updates.bio !== undefined) profile.bio = updates.bio;
     profile.updatedAt = isoNow();
-
     const roles = findRoleRows(tables, userId);
     const isCoachLike = roles.includes('coach') || roles.includes('club_admin');
     if (isCoachLike) {
@@ -1936,105 +1939,204 @@ export async function updateAuthUserProfile(
         };
         coachProfiles.push(coachProfile);
       }
-
       if (updates.specializations !== undefined) coachProfile.specialties = updates.specializations;
-      if (updates.certifications !== undefined) coachProfile.qualifications = updates.certifications;
-      if (updates.yearsExperience !== undefined) coachProfile.yearsExperience = updates.yearsExperience;
+      if (updates.certifications !== undefined)
+        coachProfile.qualifications = updates.certifications;
+      if (updates.yearsExperience !== undefined)
+        coachProfile.yearsExperience = updates.yearsExperience;
       if (updates.bio !== undefined) coachProfile.bio = updates.bio;
       if (updates.hourlyRate !== undefined) {
         coachProfile.sessionRateMinor = Math.max(0, Math.round(updates.hourlyRate * 100));
       }
       coachProfile.updatedAt = isoNow();
     }
-
     return buildApiUserProfileFromTables(tables, userId);
   }
-
   const prisma = getPrismaClientOrThrow();
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
   if (!user) {
     throw forbidden(`Authenticated user ${userId} does not exist`);
   }
-
   const fullName = [updates.firstName, updates.lastName].filter(Boolean).join(' ').trim();
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      ...(fullName ? { name: fullName } : {}),
-      ...(updates.email ? { email: updates.email.toLowerCase() } : {}),
-      ...(updates.photoUrl !== undefined ? { avatarUrl: updates.photoUrl } : {}),
-      ...(updates.isVerified !== undefined ? { isVerified: updates.isVerified } : {}),
-      ...(updates.isLive !== undefined ? { isLive: updates.isLive } : {}),
-      ...(updates.onboardingComplete !== undefined
-        ? { onboardingComplete: updates.onboardingComplete }
-        : {}),
-    },
-  });
-
-  await prisma.userProfile.upsert({
-    where: { userId },
-    create: {
-      userId,
-      bio: updates.bio,
-      addressLine: updates.addressLine,
-      city: updates.city,
-      postcode: updates.postcode,
-      country: updates.country,
-      dateOfBirth: updates.dateOfBirth ? new Date(updates.dateOfBirth) : undefined,
-      phoneE164: updates.phone,
-      skillLevel: updates.skillLevel,
-      position: updates.position,
-      sport: updates.sport,
-      goals: updates.goals ?? [],
-      isOrganization: updates.isOrganization,
-      organizationName: updates.organizationName,
-    },
-    update: {
-      ...(updates.bio !== undefined ? { bio: updates.bio } : {}),
-      ...(updates.addressLine !== undefined ? { addressLine: updates.addressLine } : {}),
-      ...(updates.city !== undefined ? { city: updates.city } : {}),
-      ...(updates.postcode !== undefined ? { postcode: updates.postcode } : {}),
-      ...(updates.country !== undefined ? { country: updates.country } : {}),
-      ...(updates.dateOfBirth !== undefined
-        ? { dateOfBirth: updates.dateOfBirth ? new Date(updates.dateOfBirth) : null }
-        : {}),
-      ...(updates.phone !== undefined ? { phoneE164: updates.phone } : {}),
-      ...(updates.skillLevel !== undefined ? { skillLevel: updates.skillLevel } : {}),
-      ...(updates.position !== undefined ? { position: updates.position } : {}),
-      ...(updates.sport !== undefined ? { sport: updates.sport } : {}),
-      ...(updates.goals !== undefined ? { goals: updates.goals } : {}),
-      ...(updates.isOrganization !== undefined ? { isOrganization: updates.isOrganization } : {}),
-      ...(updates.organizationName !== undefined
-        ? { organizationName: updates.organizationName }
-        : {}),
-    },
-  });
-
-  const identity = await loadAuthIdentityByUserId(userId);
-  const isCoachLike = Boolean(identity?.roles.includes('coach') || identity?.roles.includes('club_admin'));
+  const [, , identity] = await Promise.all([
+    prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        ...(fullName
+          ? {
+              name: fullName,
+            }
+          : {}),
+        ...(updates.email
+          ? {
+              email: updates.email.toLowerCase(),
+            }
+          : {}),
+        ...(updates.photoUrl !== undefined
+          ? {
+              avatarUrl: updates.photoUrl,
+            }
+          : {}),
+        ...(updates.isVerified !== undefined
+          ? {
+              isVerified: updates.isVerified,
+            }
+          : {}),
+        ...(updates.isLive !== undefined
+          ? {
+              isLive: updates.isLive,
+            }
+          : {}),
+        ...(updates.onboardingComplete !== undefined
+          ? {
+              onboardingComplete: updates.onboardingComplete,
+            }
+          : {}),
+      },
+    }),
+    prisma.userProfile.upsert({
+      where: {
+        userId,
+      },
+      create: {
+        userId,
+        bio: updates.bio,
+        addressLine: updates.addressLine,
+        city: updates.city,
+        postcode: updates.postcode,
+        country: updates.country,
+        dateOfBirth: updates.dateOfBirth ? new Date(updates.dateOfBirth) : undefined,
+        phoneE164: updates.phone,
+        skillLevel: updates.skillLevel,
+        position: updates.position,
+        sport: updates.sport,
+        goals: updates.goals ?? [],
+        isOrganization: updates.isOrganization,
+        organizationName: updates.organizationName,
+      },
+      update: {
+        ...(updates.bio !== undefined
+          ? {
+              bio: updates.bio,
+            }
+          : {}),
+        ...(updates.addressLine !== undefined
+          ? {
+              addressLine: updates.addressLine,
+            }
+          : {}),
+        ...(updates.city !== undefined
+          ? {
+              city: updates.city,
+            }
+          : {}),
+        ...(updates.postcode !== undefined
+          ? {
+              postcode: updates.postcode,
+            }
+          : {}),
+        ...(updates.country !== undefined
+          ? {
+              country: updates.country,
+            }
+          : {}),
+        ...(updates.dateOfBirth !== undefined
+          ? {
+              dateOfBirth: updates.dateOfBirth ? new Date(updates.dateOfBirth) : null,
+            }
+          : {}),
+        ...(updates.phone !== undefined
+          ? {
+              phoneE164: updates.phone,
+            }
+          : {}),
+        ...(updates.skillLevel !== undefined
+          ? {
+              skillLevel: updates.skillLevel,
+            }
+          : {}),
+        ...(updates.position !== undefined
+          ? {
+              position: updates.position,
+            }
+          : {}),
+        ...(updates.sport !== undefined
+          ? {
+              sport: updates.sport,
+            }
+          : {}),
+        ...(updates.goals !== undefined
+          ? {
+              goals: updates.goals,
+            }
+          : {}),
+        ...(updates.isOrganization !== undefined
+          ? {
+              isOrganization: updates.isOrganization,
+            }
+          : {}),
+        ...(updates.organizationName !== undefined
+          ? {
+              organizationName: updates.organizationName,
+            }
+          : {}),
+      },
+    }),
+    loadAuthIdentityByUserId(userId),
+  ]);
+  const isCoachLike = Boolean(
+    identity?.roles.includes('coach') || identity?.roles.includes('club_admin'),
+  );
   if (isCoachLike) {
     await prisma.coachProfile.upsert({
-      where: { userId },
+      where: {
+        userId,
+      },
       create: {
         userId,
         bio: updates.bio ?? '',
         yearsExperience: updates.yearsExperience,
         sessionRateMinor:
-          typeof updates.hourlyRate === 'number' ? Math.max(0, Math.round(updates.hourlyRate * 100)) : null,
+          typeof updates.hourlyRate === 'number'
+            ? Math.max(0, Math.round(updates.hourlyRate * 100))
+            : null,
         specialties: updates.specializations ?? [],
         qualifications: updates.certifications ?? [],
       },
       update: {
-        ...(updates.bio !== undefined ? { bio: updates.bio } : {}),
-        ...(updates.yearsExperience !== undefined ? { yearsExperience: updates.yearsExperience } : {}),
-        ...(updates.hourlyRate !== undefined
-          ? { sessionRateMinor: Math.max(0, Math.round(updates.hourlyRate * 100)) }
+        ...(updates.bio !== undefined
+          ? {
+              bio: updates.bio,
+            }
           : {}),
-        ...(updates.specializations !== undefined ? { specialties: updates.specializations } : {}),
-        ...(updates.certifications !== undefined ? { qualifications: updates.certifications } : {}),
+        ...(updates.yearsExperience !== undefined
+          ? {
+              yearsExperience: updates.yearsExperience,
+            }
+          : {}),
+        ...(updates.hourlyRate !== undefined
+          ? {
+              sessionRateMinor: Math.max(0, Math.round(updates.hourlyRate * 100)),
+            }
+          : {}),
+        ...(updates.specializations !== undefined
+          ? {
+              specialties: updates.specializations,
+            }
+          : {}),
+        ...(updates.certifications !== undefined
+          ? {
+              qualifications: updates.certifications,
+            }
+          : {}),
       },
     });
   }
-
   return getAuthUserProfile(userId);
 }

@@ -1,4 +1,4 @@
-import React, { memo, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
@@ -38,7 +38,7 @@ interface ParticleProps {
   delay: number;
 }
 
-const Particle = memo(function Particle({
+const Particle = function Particle({
   size,
   color,
   startX,
@@ -52,23 +52,20 @@ const Particle = memo(function Particle({
   const opacity = useSharedValue(0);
 
   useEffect(() => {
-    opacity.value = withTiming(1, { duration: 600 });
-    progress.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration, easing: Easing.inOut(Easing.sin) }),
-        withTiming(0, { duration, easing: Easing.inOut(Easing.sin) }),
+    opacity.set(withTiming(1, { duration: 600 }));
+    progress.set(
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration, easing: Easing.inOut(Easing.sin) }),
+          withTiming(0, { duration, easing: Easing.inOut(Easing.sin) }),
+        ),
+        -1,
+        false,
       ),
-      -1,
-      false,
     );
   }, [delayMs, duration, opacity, progress]);
 
   const style = useAnimatedStyle(() => ({
-    position: 'absolute' as const,
-    width: size,
-    height: size,
-    borderRadius: size / 2,
-    backgroundColor: color,
     opacity: opacity.value * 0.12,
     transform: [
       { translateX: startX + progress.value * driftX },
@@ -76,11 +73,25 @@ const Particle = memo(function Particle({
     ],
   }));
 
-  return <Animated.View pointerEvents="none" style={style} />;
-});
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: 'absolute',
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: color,
+        },
+        style,
+      ]}
+    />
+  );
+};
 
 // ─── Pulsing icon ───
-const PulsingIcon = memo(function PulsingIcon({
+const PulsingIcon = function PulsingIcon({
   name,
   color,
 }: {
@@ -90,13 +101,15 @@ const PulsingIcon = memo(function PulsingIcon({
   const pulse = useSharedValue(1);
 
   useEffect(() => {
-    pulse.value = withRepeat(
-      withSequence(
-        withTiming(1.12, { duration: 1200, easing: Easing.inOut(Easing.sin) }),
-        withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.sin) }),
+    pulse.set(
+      withRepeat(
+        withSequence(
+          withTiming(1.12, { duration: 1200, easing: Easing.inOut(Easing.sin) }),
+          withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.sin) }),
+        ),
+        -1,
+        false,
       ),
-      -1,
-      false,
     );
   }, [pulse]);
 
@@ -109,9 +122,13 @@ const PulsingIcon = memo(function PulsingIcon({
       <Ionicons name={name} size={28} color={color} />
     </Animated.View>
   );
-});
+};
 
-function getHeroCopy(moment: MomentData, athleteName: string, isParentView: boolean): {
+function getHeroCopy(
+  moment: MomentData,
+  athleteName: string,
+  isParentView: boolean,
+): {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   title: string;
   subtitle: string;
@@ -122,9 +139,10 @@ function getHeroCopy(moment: MomentData, athleteName: string, isParentView: bool
       const coachFirstName = moment.feedback?.coachName?.split(' ')[0];
       return {
         icon: 'chatbubble-ellipses',
-        title: isParentView && coachFirstName
-          ? `Coach ${coachFirstName} just rated ${athleteName}`
-          : 'New Feedback',
+        title:
+          isParentView && coachFirstName
+            ? `Coach ${coachFirstName} just rated ${athleteName}`
+            : 'New Feedback',
         subtitle: moment.feedback?.publicSummary || `Coach feedback is ready for ${athleteName}.`,
         accentKey: 'tint',
       };
@@ -148,9 +166,7 @@ function getHeroCopy(moment: MomentData, athleteName: string, isParentView: bool
     case 'skill_level_up':
       return {
         icon: 'trending-up',
-        title: isParentView
-          ? `${athleteName} levelled up`
-          : 'Skill Level Up',
+        title: isParentView ? `${athleteName} levelled up` : 'Skill Level Up',
         subtitle: `${athleteName} moved up a level in training this week.`,
         accentKey: 'info',
       };
@@ -234,7 +250,7 @@ const PARTICLES: Omit<ParticleProps, 'color'>[] = [
   { size: 4, startX: 310, startY: 40, driftX: -15, driftY: -5, duration: 3200, delay: 500 },
 ];
 
-export const MomentHero = memo(function MomentHero({
+export const MomentHero = function MomentHero({
   moment,
   athleteName,
   isParentView = false,
@@ -249,8 +265,8 @@ export const MomentHero = memo(function MomentHero({
   const entryOpacity = useSharedValue(0);
 
   useEffect(() => {
-    entryOpacity.value = withTiming(1, { duration: 300 });
-    entryScale.value = withSpring(1, { damping: 14, stiffness: 120 });
+    entryOpacity.set(withTiming(1, { duration: 300 }));
+    entryScale.set(withSpring(1, { damping: 14, stiffness: 120 }));
   }, [entryOpacity, entryScale]);
 
   const entryStyle = useAnimatedStyle(() => ({
@@ -270,8 +286,8 @@ export const MomentHero = memo(function MomentHero({
         ]}
       >
         {/* Floating ambient particles */}
-        {PARTICLES.map((p, i) => (
-          <Particle key={`particle-${i}`} {...p} color={accent} />
+        {PARTICLES.map((p) => (
+          <Particle key={`${p.startX}:${p.startY}:${p.delay}`} {...p} color={accent} />
         ))}
 
         <Column gap="sm" style={styles.content}>
@@ -281,7 +297,9 @@ export const MomentHero = memo(function MomentHero({
             </View>
             <Column gap="xxs" style={styles.textBlock}>
               <ThemedText style={styles.title}>{copy.title}</ThemedText>
-              <ThemedText style={[styles.subtitle, { color: colors.muted }]}>{copy.subtitle}</ThemedText>
+              <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
+                {copy.subtitle}
+              </ThemedText>
             </Column>
           </Row>
 
@@ -304,7 +322,7 @@ export const MomentHero = memo(function MomentHero({
       </View>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

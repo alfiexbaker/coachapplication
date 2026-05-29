@@ -3,13 +3,15 @@
  * Manages form state for creating recurring availability slots.
  */
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 
 import { router } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
 import { availabilityService } from '@/services/availability-service';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('AddTemplate');
 
@@ -47,11 +49,11 @@ export function useAddTemplate() {
   const [bufferMinutes, setBufferMinutes] = useState(15);
   const [saving, setSaving] = useState(false);
 
-  const handleDaySelect = useCallback((index: number) => {
+  const handleDaySelect = (index: number) => {
     setDayOfWeek(index as DayIndex);
-  }, []);
+  };
 
-  const handleSave = useCallback(async () => {
+  const handleSave = async () => {
     if (!currentUser?.id) return;
     if (startTime >= endTime) {
       uiFeedback.showToast('End time must be after start time', 'error');
@@ -64,7 +66,8 @@ export function useAddTemplate() {
     };
 
     setSaving(true);
-    try {
+
+    return await runAsyncTryCatchFinally(async () => {
       const existingTemplates = await availabilityService.getTemplates(currentUser.id);
       const nextStart = toMinutes(startTime);
       const nextEnd = toMinutes(endTime);
@@ -92,13 +95,13 @@ export function useAddTemplate() {
       uiFeedback.showToast('Your availability has been updated');
 router.back();
       logger.success('TemplateAdded', { dayOfWeek, startTime, endTime });
-    } catch (error) {
+    }, async error => {
       logger.error('Failed to add template', error);
       uiFeedback.showToast('Failed to add availability template', 'error');
-    } finally {
+    }, () => {
       setSaving(false);
-    }
-  }, [currentUser?.id, dayOfWeek, startTime, endTime, maxSlots, bufferMinutes]);
+    });
+  };
 
   return {
     dayOfWeek,

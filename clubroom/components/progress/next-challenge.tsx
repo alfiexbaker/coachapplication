@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
@@ -29,7 +29,7 @@ function challengeProgressLabel(challenge: ProgressChallenge): string {
   return `${challenge.currentValue}/${challenge.targetValue}`;
 }
 
-export const NextChallenge = memo(function NextChallenge({
+export const NextChallenge = function NextChallenge({
   challenge,
   isNewUser,
 }: NextChallengeProps) {
@@ -39,35 +39,32 @@ export const NextChallenge = memo(function NextChallenge({
   const metricPop = useSharedValue(0);
   const completeGlow = useSharedValue(0);
   const previousProgress = useRef(progress);
-  const daysRemaining = useMemo(
-    () => (challenge ? calculateDaysRemaining(challenge.expiresAt) : 0),
-    [challenge],
-  );
+  const daysRemaining = (challenge ? calculateDaysRemaining(challenge.expiresAt) : 0);
 
   useEffect(() => {
-    progressRatio.value = withSpring(progress / 100, {
+    progressRatio.set(withSpring(progress / 100, {
       damping: 16,
       stiffness: 110,
-    });
+    }));
 
     if (progress > previousProgress.current) {
-      metricPop.value = withSequence(
+      metricPop.set(withSequence(
         withTiming(1, { duration: 120 }),
         withTiming(0, { duration: 140 }),
-      );
+      ));
     }
     if (progress >= 100 && previousProgress.current < 100) {
-      completeGlow.value = withSequence(
+      completeGlow.set(withSequence(
         withTiming(1, { duration: 180, easing: Easing.out(Easing.quad) }),
         withTiming(0, { duration: 260, easing: Easing.inOut(Easing.quad) }),
-      );
+      ));
       void HapticPatterns.challengeComplete();
     }
     previousProgress.current = progress;
   }, [completeGlow, metricPop, progress, progressRatio]);
 
   const progressFillStyle = useAnimatedStyle(() => ({
-    width: `${Math.max(0, Math.min(1, progressRatio.value)) * 100}%`,
+    transform: [{ scaleX: Math.max(0, Math.min(1, progressRatio.value)) }],
   }));
 
   const metricStyle = useAnimatedStyle(() => ({
@@ -194,7 +191,7 @@ export const NextChallenge = memo(function NextChallenge({
       </Column>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {
@@ -217,8 +214,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   progressFill: {
+    width: '100%',
     height: '100%',
     borderRadius: Radii.pill,
+    transformOrigin: 'left center',
   },
   progressGlow: {
     ...StyleSheet.absoluteFillObject,

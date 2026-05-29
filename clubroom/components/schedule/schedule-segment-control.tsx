@@ -2,7 +2,7 @@
  * ScheduleSegmentControl — Sessions | Availability toggle.
  */
 
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -17,14 +17,14 @@ interface Props {
   onSegmentChange: (s: Segment) => void;
 }
 
-export const ScheduleSegmentControl = memo(function ScheduleSegmentControl({
+export const ScheduleSegmentControl = function ScheduleSegmentControl({
   segment,
   onSegmentChange,
 }: Props) {
   const { colors } = useTheme();
 
-  const selectSessions = useCallback(() => onSegmentChange('sessions'), [onSegmentChange]);
-  const selectAvailability = useCallback(() => onSegmentChange('availability'), [onSegmentChange]);
+  const selectSessions = () => onSegmentChange('sessions');
+  const selectAvailability = () => onSegmentChange('availability');
 
   return (
     <View style={[styles.container, { paddingHorizontal: Spacing.lg }]}>
@@ -70,7 +70,7 @@ export const ScheduleSegmentControl = memo(function ScheduleSegmentControl({
       </Row>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: {

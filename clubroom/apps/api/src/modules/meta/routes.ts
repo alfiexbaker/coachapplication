@@ -1,43 +1,46 @@
-import type { FastifyPluginAsync } from 'fastify';
-import { env } from '@clubroom/config';
-import { getApiDataBackend } from '../../lib/data-backend.js';
-import { isPrivilegedAdminAuth } from '../../lib/authz.js';
-import { forbidden } from '../../lib/http-errors.js';
-import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
-
+import type { FastifyPluginAsync } from "fastify";
+import { env } from "@clubroom/config";
+import { getApiDataBackend } from "../../lib/data-backend.js";
+import { isPrivilegedAdminAuth } from "../../lib/authz.js";
+import { forbidden } from "../../lib/http-errors.js";
+import { getMarketplaceSeedStore } from "../../lib/marketplace-seed-store.js";
 type SeedRow = Record<string, unknown>;
-
-const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
-const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
-const asNumber = (value: unknown): number | undefined => (typeof value === 'number' ? value : undefined);
-
+const asRows = (value: unknown): SeedRow[] =>
+  Array.isArray(value) ? (value as SeedRow[]) : [];
+const asString = (value: unknown): string | undefined =>
+  typeof value === "string" ? value : undefined;
+const asNumber = (value: unknown): number | undefined =>
+  typeof value === "number" ? value : undefined;
 const metaRoutes: FastifyPluginAsync = async (app) => {
-  app.get('/meta/version', async () => ({
-    service: 'clubroom-api',
-    version: '0.1.0-scaffold',
-    apiVersion: 'v1',
+  app.get("/meta/version", async () => ({
+    service: "clubroom-api",
+    version: "0.1.0-scaffold",
+    apiVersion: "v1",
     apiDataBackend: getApiDataBackend(),
     marketplaceSeedEnabled: env.API_MARKETPLACE_SEED_ENABLED,
   }));
-
-  app.get('/meta/seed-health', async (request) => {
+  app.get("/meta/seed-health", async (request) => {
     if (!request.auth?.userId) {
-      throw forbidden('Authenticated user is required');
+      throw forbidden("Authenticated user is required");
     }
     if (!isPrivilegedAdminAuth(request.auth)) {
-      throw forbidden('Seed health is restricted to privileged administrators');
+      throw forbidden("Seed health is restricted to privileged administrators");
     }
-
     const store = getMarketplaceSeedStore();
     const tables = store.tables;
     const entries = Object.entries(tables);
     const tableCount = entries.length;
-    const rowCount = entries.reduce((sum, [, rows]) => sum + asRows(rows).length, 0);
+    const rowCount = entries.reduce(
+      (sum, [, rows]) => sum + asRows(rows).length,
+      0,
+    );
     const emptyTables = entries
-      .filter(([, rows]) => asRows(rows).length === 0)
-      .map(([table]) => table)
+      .flatMap((item) =>
+        (([, rows]) => asRows(rows).length === 0)(item)
+          ? [(([table]) => table)(item)]
+          : [],
+      )
       .sort((a, b) => a.localeCompare(b));
-
     const users = asRows(tables.users);
     const roleMemberships = asRows(tables.userRoleMemberships);
     const familyMemberships = asRows(tables.familyMemberships);
@@ -48,18 +51,18 @@ const metaRoutes: FastifyPluginAsync = async (app) => {
     const availabilityTemplates = asRows(tables.availabilityTemplates);
     const availabilityOverrides = asRows(tables.availabilityOverrides);
     const invoices = asRows(tables.invoices);
-
     const userIdsWithFamily = new Set(
-      familyMemberships
-        .map((row) => asString(row.userId))
-        .filter((userId): userId is string => Boolean(userId)),
+      familyMemberships.flatMap((row) => {
+        const mapped = asString(row.userId);
+        return Boolean(mapped) ? [mapped] : [];
+      }),
     );
     const userIdsWithClub = new Set(
-      clubMemberships
-        .map((row) => asString(row.userId))
-        .filter((userId): userId is string => Boolean(userId)),
+      clubMemberships.flatMap((row) => {
+        const mapped = asString(row.userId);
+        return Boolean(mapped) ? [mapped] : [];
+      }),
     );
-
     const rolesByUserId = new Map<string, Set<string>>();
     for (const row of roleMemberships) {
       const userId = asString(row.userId);
@@ -71,84 +74,110 @@ const metaRoutes: FastifyPluginAsync = async (app) => {
       roles.add(role);
       rolesByUserId.set(userId, roles);
     }
-
-    const roleCounts = [...rolesByUserId.values()].reduce<Record<string, number>>((acc, roles) => {
+    const roleCounts = [...rolesByUserId.values()].reduce<
+      Record<string, number>
+    >((acc, roles) => {
       for (const role of roles) {
         acc[role] = (acc[role] ?? 0) + 1;
       }
       return acc;
     }, {});
-
     const coachIds = new Set(
-      coachProfiles
-        .map((row) => asString(row.userId))
-        .filter((userId): userId is string => Boolean(userId)),
+      coachProfiles.flatMap((row) => {
+        const mapped = asString(row.userId);
+        return Boolean(mapped) ? [mapped] : [];
+      }),
     );
     const coachIdsWithOfferings = new Set(
-      offerings
-        .map((row) => asString(row.coachUserId))
-        .filter((userId): userId is string => Boolean(userId)),
+      offerings.flatMap((row) => {
+        const mapped = asString(row.coachUserId);
+        return Boolean(mapped) ? [mapped] : [];
+      }),
     );
     const coachIdsWithAvailability = new Set(
-      availabilityTemplates
-        .map((row) => asString(row.coachUserId))
-        .filter((userId): userId is string => Boolean(userId)),
+      availabilityTemplates.flatMap((row) => {
+        const mapped = asString(row.coachUserId);
+        return Boolean(mapped) ? [mapped] : [];
+      }),
     );
     const coachIdsWithOfferingsAndAvailability = new Set(
       [...coachIds].filter(
-        (userId) => coachIdsWithOfferings.has(userId) && coachIdsWithAvailability.has(userId),
+        (userId) =>
+          coachIdsWithOfferings.has(userId) &&
+          coachIdsWithAvailability.has(userId),
       ),
     );
-
-    const parentUserIds = [...rolesByUserId.entries()]
-      .filter(([, roles]) => roles.has('parent'))
-      .map(([userId]) => userId);
-    const parentUserIdsWithoutFamily = parentUserIds.filter((userId) => !userIdsWithFamily.has(userId));
-    const parentUserIdsWithKids = new Set(
-      guardianChildLinks
-        .map((row) => asString(row.guardianUserId))
-        .filter((userId): userId is string => Boolean(userId)),
+    const parentUserIds = [...rolesByUserId.entries()].flatMap((item) =>
+      (([, roles]) => roles.has("parent"))(item)
+        ? [(([userId]) => userId)(item)]
+        : [],
     );
-    const parentUserIdsWithoutKids = parentUserIds.filter((userId) => !parentUserIdsWithKids.has(userId));
-
-    const standaloneUserIds = users
-      .map((row) => asString(row.id))
-      .filter((userId): userId is string => Boolean(userId))
-      .filter((userId) => !userIdsWithFamily.has(userId) && !userIdsWithClub.has(userId));
-
-    const memberUserIds = [...rolesByUserId.entries()]
-      .filter(([, roles]) => roles.has('member'))
-      .map(([userId]) => userId);
-
-    const standaloneMemberUserIds = standaloneUserIds.filter((userId) => memberUserIds.includes(userId));
-    const clubLinkedMemberUserIds = memberUserIds.filter((userId) => userIdsWithClub.has(userId));
-
+    const parentUserIdsWithoutFamily = parentUserIds.filter(
+      (userId) => !userIdsWithFamily.has(userId),
+    );
+    const parentUserIdsWithKids = new Set(
+      guardianChildLinks.flatMap((row) => {
+        const mapped = asString(row.guardianUserId);
+        return Boolean(mapped) ? [mapped] : [];
+      }),
+    );
+    const parentUserIdsWithoutKids = parentUserIds.filter(
+      (userId) => !parentUserIdsWithKids.has(userId),
+    );
+    const standaloneUserIds = users.flatMap((row) => {
+      const mapped = (() => {
+        return asString(row.id);
+      })();
+      return Boolean(mapped) &&
+        !userIdsWithFamily.has(mapped) &&
+        !userIdsWithClub.has(mapped)
+        ? [mapped]
+        : [];
+    });
+    const memberUserIds = [...rolesByUserId.entries()].flatMap((item) =>
+      (([, roles]) => roles.has("member"))(item)
+        ? [(([userId]) => userId)(item)]
+        : [],
+    );
+    const standaloneMemberUserIds = standaloneUserIds.filter((userId) =>
+      memberUserIds.includes(userId),
+    );
+    const clubLinkedMemberUserIds = memberUserIds.filter((userId) =>
+      userIdsWithClub.has(userId),
+    );
     const coachOfferingCounts = new Map<string, number>();
     for (const offering of offerings) {
       const coachUserId = asString(offering.coachUserId);
       if (!coachUserId) {
         continue;
       }
-      coachOfferingCounts.set(coachUserId, (coachOfferingCounts.get(coachUserId) ?? 0) + 1);
+      coachOfferingCounts.set(
+        coachUserId,
+        (coachOfferingCounts.get(coachUserId) ?? 0) + 1,
+      );
     }
-
     const coachAvailabilityWindowSets = new Map<string, Set<string>>();
     for (const row of availabilityTemplates) {
       const coachUserId = asString(row.coachUserId);
       const dayOfWeek = asNumber(row.dayOfWeek);
       const startTimeLocal = asString(row.startTimeLocal);
       const endTimeLocal = asString(row.endTimeLocal);
-      if (!coachUserId || dayOfWeek === undefined || !startTimeLocal || !endTimeLocal) {
+      if (
+        !coachUserId ||
+        dayOfWeek === undefined ||
+        !startTimeLocal ||
+        !endTimeLocal
+      ) {
         continue;
       }
-      const windows = coachAvailabilityWindowSets.get(coachUserId) ?? new Set<string>();
+      const windows =
+        coachAvailabilityWindowSets.get(coachUserId) ?? new Set<string>();
       windows.add(`${dayOfWeek}:${startTimeLocal}-${endTimeLocal}`);
       coachAvailabilityWindowSets.set(coachUserId, windows);
     }
-
     const availabilityWindows = new Set(
-      availabilityTemplates
-        .map((row) => {
+      availabilityTemplates.flatMap((row) => {
+        const mapped = (() => {
           const dayOfWeek = asNumber(row.dayOfWeek);
           const startTimeLocal = asString(row.startTimeLocal);
           const endTimeLocal = asString(row.endTimeLocal);
@@ -156,25 +185,28 @@ const metaRoutes: FastifyPluginAsync = async (app) => {
             return undefined;
           }
           return `${dayOfWeek}:${startTimeLocal}-${endTimeLocal}`;
-        })
-        .filter((value): value is string => Boolean(value)),
+        })();
+        return Boolean(mapped) ? [mapped] : [];
+      }),
     );
     const offeringDurations = new Set(
-      offerings
-        .map((row) => asNumber(row.durationMinutes))
-        .filter((duration): duration is number => duration !== undefined),
+      offerings.flatMap((row) => {
+        const mapped = asNumber(row.durationMinutes);
+        return mapped !== undefined ? [mapped] : [];
+      }),
     );
     const offeringServiceTypes = new Set(
-      offerings
-        .map((row) => asString(row.serviceType))
-        .filter((serviceType): serviceType is string => Boolean(serviceType)),
+      offerings.flatMap((row) => {
+        const mapped = asString(row.serviceType);
+        return Boolean(mapped) ? [mapped] : [];
+      }),
     );
     const availabilityDaysCovered = new Set(
-      availabilityTemplates
-        .map((row) => asNumber(row.dayOfWeek))
-        .filter((day): day is number => day !== undefined),
+      availabilityTemplates.flatMap((row) => {
+        const mapped = asNumber(row.dayOfWeek);
+        return mapped !== undefined ? [mapped] : [];
+      }),
     );
-
     return {
       seedVersion: store.version,
       generatedAt: new Date().toISOString(),
@@ -186,7 +218,8 @@ const metaRoutes: FastifyPluginAsync = async (app) => {
         userCount: users.length,
         usersConnectedToClub: userIdsWithClub.size,
         usersNotConnectedToClub: users.length - userIdsWithClub.size,
-        parentsWithFamily: parentUserIds.length - parentUserIdsWithoutFamily.length,
+        parentsWithFamily:
+          parentUserIds.length - parentUserIdsWithoutFamily.length,
         parentsWithoutFamily: parentUserIdsWithoutFamily.length,
         parentsWithKids: parentUserIds.length - parentUserIdsWithoutKids.length,
         parentsWithoutKids: parentUserIdsWithoutKids.length,
@@ -196,7 +229,8 @@ const metaRoutes: FastifyPluginAsync = async (app) => {
         coachesTotal: coachIds.size,
         coachesWithOfferings: coachIdsWithOfferings.size,
         coachesWithAvailability: coachIdsWithAvailability.size,
-        coachesWithOfferingsAndAvailability: coachIdsWithOfferingsAndAvailability.size,
+        coachesWithOfferingsAndAvailability:
+          coachIdsWithOfferingsAndAvailability.size,
         coachesWithMultipleOfferings: [...coachIds].filter(
           (userId) => (coachOfferingCounts.get(userId) ?? 0) >= 2,
         ).length,
@@ -204,16 +238,21 @@ const metaRoutes: FastifyPluginAsync = async (app) => {
           (userId) => (coachAvailabilityWindowSets.get(userId)?.size ?? 0) >= 2,
         ).length,
         coachesWithAvailabilityOverrides: new Set(
-          availabilityOverrides
-            .map((row) => asString(row.coachUserId))
-            .filter((userId): userId is string => Boolean(userId)),
+          availabilityOverrides.flatMap((row) => {
+            const mapped = asString(row.coachUserId);
+            return Boolean(mapped) ? [mapped] : [];
+          }),
         ).size,
         offeringServiceTypeCount: offeringServiceTypes.size,
         offeringDurationCount: offeringDurations.size,
         availabilityWindowCount: availabilityWindows.size,
         availabilityDayCoverage: availabilityDaysCovered.size,
-        invoicePaidCount: invoices.filter((row) => asString(row.status) === 'PAID').length,
-        invoiceOutstandingCount: invoices.filter((row) => asString(row.status) === 'SENT').length,
+        invoicePaidCount: invoices.filter(
+          (row) => asString(row.status) === "PAID",
+        ).length,
+        invoiceOutstandingCount: invoices.filter(
+          (row) => asString(row.status) === "SENT",
+        ).length,
       },
       sections: {
         identity: {
@@ -253,5 +292,4 @@ const metaRoutes: FastifyPluginAsync = async (app) => {
     };
   });
 };
-
 export default metaRoutes;

@@ -5,7 +5,7 @@
  * Only rendered when the user is a coach.
  */
 
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -28,19 +28,13 @@ export interface ClubAdminActionsProps {
   clubId: string;
 }
 
-export const ClubAdminActions = memo(function ClubAdminActions({ clubId }: ClubAdminActionsProps) {
+export const ClubAdminActions = function ClubAdminActions({ clubId }: ClubAdminActionsProps) {
   const { colors } = useTheme();
 
-  const goSettings = useCallback(
-    () => router.push(Routes.clubSettings({ clubId, section: 'details' })),
-    [clubId],
-  );
-  const goInvites = useCallback(
-    () => router.push(Routes.clubSettings({ clubId, section: 'invites' })),
-    [clubId],
-  );
-  const goDashboard = useCallback(() => router.push(Routes.clubDashboard(clubId)), [clubId]);
-  const goCalendar = useCallback(() => router.push(Routes.clubCalendar(clubId)), [clubId]);
+  const goSettings = () => router.push(Routes.clubSettings({ clubId, section: 'details' }));
+  const goInvites = () => router.push(Routes.clubSettings({ clubId, section: 'invites' }));
+  const goDashboard = () => router.push(Routes.clubDashboard(clubId));
+  const goCalendar = () => router.push(Routes.clubCalendar(clubId));
 
   const actions: AdminAction[] = [
     { key: 'settings', icon: 'settings-outline', label: 'Settings', route: goSettings },
@@ -66,7 +60,7 @@ export const ClubAdminActions = memo(function ClubAdminActions({ clubId }: ClubA
       ))}
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

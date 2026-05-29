@@ -5,7 +5,7 @@
  * Memoized for FlatList performance.
  */
 
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -39,7 +39,7 @@ function getStatusInfo(item: InviteCode, palette: ReturnType<typeof useTheme>['c
   return { statusColor, statusLabel };
 }
 
-export const InviteCodeCard = memo(function InviteCodeCard({
+export const InviteCodeCard = function InviteCodeCard({
   item,
   onDeactivate,
   onCopy,
@@ -47,13 +47,13 @@ export const InviteCodeCard = memo(function InviteCodeCard({
   const { colors: palette } = useTheme();
   const { statusColor, statusLabel } = getStatusInfo(item, palette);
 
-  const handleDeactivate = useCallback(() => {
+  const handleDeactivate = () => {
     onDeactivate(item.id);
-  }, [item.id, onDeactivate]);
+  };
 
-  const handleCopy = useCallback(() => {
+  const handleCopy = () => {
     onCopy(item.code);
-  }, [item.code, onCopy]);
+  };
 
   return (
     <SurfaceCard style={styles.codeCard}>
@@ -111,7 +111,7 @@ export const InviteCodeCard = memo(function InviteCodeCard({
       </Clickable>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   codeCard: {

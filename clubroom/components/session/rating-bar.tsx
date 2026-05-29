@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   interpolateColor,
@@ -41,7 +41,7 @@ interface SegmentProps {
   height: number;
 }
 
-const Segment = memo(function Segment({
+const Segment = function Segment({
   filled,
   isGhost,
   isFirst,
@@ -56,7 +56,7 @@ const Segment = memo(function Segment({
   const scale = useSharedValue(1);
 
   useEffect(() => {
-    progress.value = withTiming(filled ? 1 : 0, { duration: 180 });
+    progress.set(withTiming(filled ? 1 : 0, { duration: 180 }));
   }, [filled, progress]);
 
   // Ghost segments (previous value) get a subtle tint even when not filled
@@ -71,13 +71,13 @@ const Segment = memo(function Segment({
     transform: [{ scaleY: scale.value }],
   }));
 
-  const handlePress = useCallback(() => {
-    scale.value = withSequence(
+  const handlePress = () => {
+    scale.set(withSequence(
       withTiming(1.15, { duration: 80 }),
       withTiming(1, { duration: 100 }),
-    );
+    ));
     onPress();
-  }, [onPress, scale]);
+  };
 
   const radius = height / 2;
 
@@ -102,11 +102,11 @@ const Segment = memo(function Segment({
       />
     </Animated.View>
   );
-});
+};
 
 // ─── RatingBar ───────────────────────────────────────────────────────────────
 
-export const RatingBar = memo(function RatingBar({
+export const RatingBar = function RatingBar({
   value,
   onChange,
   height = 28,
@@ -119,14 +119,11 @@ export const RatingBar = memo(function RatingBar({
 
   const normalizedValue =
     typeof value === 'number' && value >= 1 && value <= 5 ? Math.round(value) : null;
-  const handlePress = useCallback(
-    (rating: number) => {
-      void HapticPatterns.tap();
-      if (rating < 1) return;
-      onChange(Math.max(1, rating));
-    },
-    [onChange],
-  );
+  const handlePress = (rating: number) => {
+    void HapticPatterns.tap();
+    if (rating < 1) return;
+    onChange(Math.max(1, rating));
+  };
 
   const safePrevious = previousValue && previousValue > 0 ? Math.round(previousValue) : 0;
 
@@ -161,7 +158,7 @@ export const RatingBar = memo(function RatingBar({
       ) : null}
     </View>
   );
-});
+};
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 

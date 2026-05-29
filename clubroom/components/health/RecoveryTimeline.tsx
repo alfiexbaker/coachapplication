@@ -31,7 +31,7 @@ export function RecoveryTimeline({ injury, showProgress = true }: RecoveryTimeli
   const daysUntilRecovery = injuryService.getDaysUntilRecovery(injury);
   const expectedProgress = injuryService.calculateExpectedProgress(injury);
 
-  const sortedNotes = [...injury.notes].sort(
+  const sortedNotes = Array.from(injury.notes).toSorted(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
 

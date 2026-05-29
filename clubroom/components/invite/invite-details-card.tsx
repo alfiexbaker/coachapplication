@@ -2,7 +2,7 @@
  * InviteDetailsCard — Shows session type, focus, price, and notes.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -42,7 +42,7 @@ function DetailRow({
   );
 }
 
-export const InviteDetailsCard = memo(function InviteDetailsCard({
+export const InviteDetailsCard = function InviteDetailsCard({
   invite,
   colors,
   delay = 150,
@@ -76,7 +76,7 @@ export const InviteDetailsCard = memo(function InviteDetailsCard({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

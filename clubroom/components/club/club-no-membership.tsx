@@ -5,7 +5,7 @@
  * Different messaging for coaches vs parents/athletes.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -34,7 +34,7 @@ const PARENT_BENEFITS = [
   'Connect with coaches and other families',
 ];
 
-export const ClubNoMembership = memo(function ClubNoMembership({
+export const ClubNoMembership = function ClubNoMembership({
   isCoach,
   onJoin,
 }: ClubNoMembershipProps) {
@@ -64,7 +64,7 @@ export const ClubNoMembership = memo(function ClubNoMembership({
       </SurfaceCard>
     </ScrollView>
   );
-});
+};
 
 const styles = StyleSheet.create({
   scroll: {

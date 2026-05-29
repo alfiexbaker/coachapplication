@@ -26,11 +26,11 @@ function formatPrice(price?: number, currency: string = 'GBP'): string {
   }
 
   try {
-    return new Intl.NumberFormat('en-GB', {
+    return price.toLocaleString('en-GB', {
       style: 'currency',
       currency,
       maximumFractionDigits: price % 1 === 0 ? 0 : 2,
-    }).format(price);
+    });
   } catch {
     return `${currency} ${price}`;
   }

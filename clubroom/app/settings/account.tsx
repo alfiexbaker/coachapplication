@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -30,7 +29,7 @@ export default function AccountSettingsScreen() {
     handleDeleteAccount,
     handleDeactivateAccount,
   } = useAccountSettings();
-  const memberSinceLabel = useMemo(() => {
+  const memberSinceLabel = (() => {
     const maybeCreatedAt =
       currentUser && typeof currentUser === 'object' && 'createdAt' in currentUser
         ? (currentUser as { createdAt?: string }).createdAt
@@ -40,7 +39,7 @@ export default function AccountSettingsScreen() {
     fallback.setMonth(fallback.getMonth() - 3);
     const date = parsed && !Number.isNaN(parsed.getTime()) ? parsed : fallback;
     return date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-  }, [currentUser]);
+  })();
 
   return (
     <SettingsFormScreen title="Account">
@@ -67,7 +66,7 @@ export default function AccountSettingsScreen() {
                 <Clickable onPress={() => setEditingEmail(false)} accessibilityLabel="Cancel email edit" accessibilityRole="button">
                   <ThemedText style={{ color: colors.muted }}>Cancel</ThemedText>
                 </Clickable>
-                <Button onPress={handleSaveEmail} accessibilityLabel="Save email">Save</Button>
+                <Button onPress={handleSaveEmail} accessibilityLabel="Save email" label="Save" />
               </Row>
             </View>
           ) : (
@@ -104,7 +103,7 @@ export default function AccountSettingsScreen() {
                 <Clickable onPress={() => setEditingPhone(false)} accessibilityLabel="Cancel phone edit" accessibilityRole="button">
                   <ThemedText style={{ color: colors.muted }}>Cancel</ThemedText>
                 </Clickable>
-                <Button onPress={handleSavePhone} accessibilityLabel="Save phone number">Save</Button>
+                <Button onPress={handleSavePhone} accessibilityLabel="Save phone number" label="Save" />
               </Row>
             </View>
           ) : (

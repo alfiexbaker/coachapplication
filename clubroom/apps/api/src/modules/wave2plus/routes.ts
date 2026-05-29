@@ -27,7 +27,11 @@ import { resolveTrustAccessRepository } from '../../repositories/p0/trust-access
 import { resolveCommunityMediaRepository } from '../../repositories/p0/community-media-repository.js';
 import { resolveVideoAuthorityRepository } from '../../repositories/p0/video-authority-repository.js';
 import { normalizeForJson } from '../../repositories/p0/normalize.js';
-import { completeUploadSession, createSignedReadUrl, createUploadInit } from '../../lib/storage-runtime.js';
+import {
+  completeUploadSession,
+  createSignedReadUrl,
+  createUploadInit,
+} from '../../lib/storage-runtime.js';
 
 type SeedRow = Record<string, unknown>;
 
@@ -37,7 +41,9 @@ const asString = (value: unknown): string | undefined =>
 const asNumber = (value: unknown): number | undefined =>
   typeof value === 'number' ? value : undefined;
 const coerceMetadata = (value: unknown): Record<string, unknown> =>
-  value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 const nowIso = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 const INVOICE_STATUSES = ['DRAFT', 'SENT', 'PAID', 'VOID', 'WRITTEN_OFF'] as const;
@@ -188,8 +194,16 @@ const notificationChannelSettingsSchema = z
 const notificationQuietHoursSchema = z
   .object({
     enabled: z.boolean().optional(),
-    startTime: z.string().trim().regex(/^\d{2}:\d{2}$/).optional(),
-    endTime: z.string().trim().regex(/^\d{2}:\d{2}$/).optional(),
+    startTime: z
+      .string()
+      .trim()
+      .regex(/^\d{2}:\d{2}$/)
+      .optional(),
+    endTime: z
+      .string()
+      .trim()
+      .regex(/^\d{2}:\d{2}$/)
+      .optional(),
     timezone: z.string().trim().min(1).max(80).optional(),
   })
   .strict();
@@ -197,7 +211,10 @@ const notificationQuietHoursSchema = z
 const notificationTypePreferenceSchema = z
   .object({
     enabled: z.boolean().optional(),
-    channels: z.array(z.enum(['PUSH', 'EMAIL', 'SMS'])).max(3).optional(),
+    channels: z
+      .array(z.enum(['PUSH', 'EMAIL', 'SMS']))
+      .max(3)
+      .optional(),
   })
   .strict();
 
@@ -223,7 +240,10 @@ const notificationPreferenceUpdateSchema = z
 const groupMessageCreateRequestSchema = z.object({
   body: z.string().trim().min(1).max(2000),
   idempotencyKey: z.string().trim().min(8).max(120).optional(),
-  attachments: z.array(z.unknown()).max(0, 'Message attachments require backend media proof before send').optional(),
+  attachments: z
+    .array(z.unknown())
+    .max(0, 'Message attachments require backend media proof before send')
+    .optional(),
 });
 
 const postCreateRequestSchema = z.object({
@@ -233,7 +253,10 @@ const postCreateRequestSchema = z.object({
   visibility: z.enum(['PUBLIC', 'CLUB', 'GROUP', 'PRIVATE']).optional(),
   metadata: z.record(z.unknown()).optional(),
   idempotencyKey: z.string().trim().min(8).max(120).optional(),
-  attachments: z.array(z.unknown()).max(0, 'Post attachments require backend media proof before publishing').optional(),
+  attachments: z
+    .array(z.unknown())
+    .max(0, 'Post attachments require backend media proof before publishing')
+    .optional(),
 });
 
 const postCommentCreateRequestSchema = z.object({
@@ -880,23 +903,24 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
 
-    const detail = await getInvoiceDetail(invoiceId);
-    if (!detail) {
-      throw notFound('Invoice not found', { invoiceId });
-    }
-
-    await recordAuditEvent({
-      request,
-      action: 'invoice.refund_approve',
-      resourceType: 'invoice',
-      resourceId: invoiceId,
-      subjectUserId: asString(detail.invoice.userId) ?? null,
-      result: 'SUCCESS',
-      metadata: {
-        reused: refund.reused,
-        amountMinor: body.amountMinor ?? asNumber(invoice.totalMinor) ?? null,
-        refundId: asString(coerceMetadata(refund.refund.metadataJson).refundId) ?? null,
-      },
+    const detail = await getInvoiceDetail(invoiceId).then(async (invoiceDetail) => {
+      if (!invoiceDetail) {
+        throw notFound('Invoice not found', { invoiceId });
+      }
+      await recordAuditEvent({
+        request,
+        action: 'invoice.refund_approve',
+        resourceType: 'invoice',
+        resourceId: invoiceId,
+        subjectUserId: asString(invoiceDetail.invoice.userId) ?? null,
+        result: 'SUCCESS',
+        metadata: {
+          reused: refund.reused,
+          amountMinor: body.amountMinor ?? asNumber(invoice.totalMinor) ?? null,
+          refundId: asString(coerceMetadata(refund.refund.metadataJson).refundId) ?? null,
+        },
+      });
+      return invoiceDetail;
     });
 
     reply.code(refund.reused ? 200 : 201);
@@ -942,20 +966,21 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       message: body.message,
     });
 
-    await recordAuditEvent({
-      request,
-      action: 'invoice.reminder',
-      resourceType: 'invoice',
-      resourceId: invoiceId,
-      subjectUserId:
-        asString(reminder.invoice.payerUserId) ?? asString(reminder.invoice.userId) ?? null,
-      result: 'SUCCESS',
-      metadata: {
-        sentAt: reminder.sentAt,
-      },
-    });
-
-    const detail = await getInvoiceDetail(invoiceId);
+    const [detail] = await Promise.all([
+      getInvoiceDetail(invoiceId),
+      recordAuditEvent({
+        request,
+        action: 'invoice.reminder',
+        resourceType: 'invoice',
+        resourceId: invoiceId,
+        subjectUserId:
+          asString(reminder.invoice.payerUserId) ?? asString(reminder.invoice.userId) ?? null,
+        result: 'SUCCESS',
+        metadata: {
+          sentAt: reminder.sentAt,
+        },
+      }),
+    ]);
     return reply.send({
       invoice: detail?.invoice ?? reminder.invoice,
       reminder: reminder.reminder,
@@ -1100,16 +1125,17 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     }
     await assertCanReadAthleteHealth(request, athleteId);
 
-    const progress = await getAthleteProgressPayload(athleteId);
-
-    await recordAuditEvent({
-      request,
-      action: 'athlete_progress.read',
-      resourceType: 'athlete_progress',
-      resourceId: athleteId,
-      result: 'SUCCESS',
-      sensitiveRead: true,
-    });
+    const [progress] = await Promise.all([
+      getAthleteProgressPayload(athleteId),
+      recordAuditEvent({
+        request,
+        action: 'athlete_progress.read',
+        resourceType: 'athlete_progress',
+        resourceId: athleteId,
+        result: 'SUCCESS',
+        sensitiveRead: true,
+      }),
+    ]);
 
     return reply.send({
       athleteId,

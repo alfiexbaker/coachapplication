@@ -5,15 +5,17 @@ import { badRequest, conflict, forbidden, notFound } from '../../lib/http-errors
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
 import { normalizeForJson } from './normalize.js';
-
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
-
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
-const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
-const asBoolean = (value: unknown): boolean | undefined => (typeof value === 'boolean' ? value : undefined);
+const asString = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
+const asBoolean = (value: unknown): boolean | undefined =>
+  typeof value === 'boolean' ? value : undefined;
 const coerceMetadata = (value: unknown): Record<string, unknown> =>
-  value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 const normalizeAs = <T>(value: unknown): T => normalizeForJson(value) as unknown as T;
 const nowIso = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
@@ -23,21 +25,17 @@ const THREAD_MESSAGE_CREATE_ENDPOINT_KEY = 'community.thread-message.create';
 const POST_COMMENT_CREATE_ENDPOINT_KEY = 'community.post-comment.create';
 const POST_CREATE_ENDPOINT_KEY = 'community.post.create';
 const STAFF_POST_ROLES = new Set(['ADMIN', 'CLUB_ADMIN', 'COACH', 'HEAD_COACH', 'OWNER', 'STAFF']);
-
 interface StoreProvider {
   version: string;
   tables: SeedTables;
 }
-
 export interface CommunityMediaAccessParams {
   authUserId: string;
   isPrivilegedAdmin: boolean;
 }
-
 export interface PostListParams extends CommunityMediaAccessParams {
   communityGroupId?: string;
 }
-
 export interface PostCreateParams extends CommunityMediaAccessParams {
   clubId?: string;
   communityGroupId?: string;
@@ -46,80 +44,64 @@ export interface PostCreateParams extends CommunityMediaAccessParams {
   metadata?: Record<string, unknown>;
   idempotencyKey?: string;
 }
-
 export interface PostCommentListParams extends CommunityMediaAccessParams {
   postId: string;
 }
-
 export interface PostCommentReadParams extends CommunityMediaAccessParams {
   commentId: string;
 }
-
 export interface PostCommentCreateParams extends CommunityMediaAccessParams {
   postId: string;
   content: string;
   parentCommentId?: string;
   idempotencyKey?: string;
 }
-
 export interface PostCommentDeleteParams extends CommunityMediaAccessParams {
   commentId: string;
 }
-
 export interface PostCommentReactionParams extends CommunityMediaAccessParams {
   commentId: string;
 }
-
 export interface GroupMessageCreateParams extends CommunityMediaAccessParams {
   communityGroupId: string;
   body: string;
   idempotencyKey?: string;
 }
-
 export interface ThreadMessageCreateParams extends CommunityMediaAccessParams {
   messageThreadId: string;
   body: string;
   idempotencyKey?: string;
 }
-
 export interface MessageDeleteParams extends CommunityMediaAccessParams {
   messageId: string;
 }
-
 export interface GroupMessageReadParams extends CommunityMediaAccessParams {
   communityGroupId: string;
 }
-
 export interface CommunityGroupListResult {
   groups: SeedRow[];
   dataVersion: string | null;
 }
-
 export interface PostListResult {
   posts: SeedRow[];
   dataVersion: string | null;
 }
-
 export interface PostMutationResult {
   post: SeedRow;
   dataVersion: string | null;
 }
-
 export interface PostCommentListResult {
   comments: SeedRow[];
   dataVersion: string | null;
 }
-
 export interface PostCommentMutationResult {
   comment: SeedRow;
   dataVersion: string | null;
 }
-
 export interface MessageThreadListResult {
   threads: SeedRow[];
   dataVersion: string | null;
 }
-
 export interface NotificationListResult {
   notifications: SeedRow[];
   preferences: SeedRow | null;
@@ -128,22 +110,18 @@ export interface NotificationListResult {
   unreadCount: number;
   dataVersion: string | null;
 }
-
 export interface NotificationMutationParams extends CommunityMediaAccessParams {
   notificationId: string;
 }
-
 export interface NotificationMutationResult {
   notification: SeedRow;
   dataVersion: string | null;
 }
-
 export interface NotificationBulkMutationResult {
   notifications: SeedRow[];
   unreadCount: number;
   dataVersion: string | null;
 }
-
 export interface NotificationPreferenceUpdateParams extends CommunityMediaAccessParams {
   channels?: {
     push?: boolean;
@@ -156,34 +134,38 @@ export interface NotificationPreferenceUpdateParams extends CommunityMediaAccess
     endTime?: string;
     timezone?: string;
   };
-  typePreferences?: Record<string, { enabled?: boolean; channels?: string[] }>;
-  mutedCoaches?: Array<{ coachId: string; reason?: string | null }>;
+  typePreferences?: Record<
+    string,
+    {
+      enabled?: boolean;
+      channels?: string[];
+    }
+  >;
+  mutedCoaches?: Array<{
+    coachId: string;
+    reason?: string | null;
+  }>;
 }
-
 export interface NotificationPreferenceMutationResult {
   preferences: SeedRow;
   mutedSources: SeedRow[];
   quietHours: SeedRow | null;
   dataVersion: string | null;
 }
-
 export interface GroupMessageCreateResult {
   message: SeedRow;
   thread: SeedRow;
   dataVersion: string | null;
 }
-
 export interface MessageMutationResult {
   message: SeedRow;
   thread: SeedRow;
   dataVersion: string | null;
 }
-
 export interface GroupMessageReadResult {
   thread: SeedRow | null;
   dataVersion: string | null;
 }
-
 export interface CommunityMediaRepository {
   listCommunityGroups(params: CommunityMediaAccessParams): Promise<CommunityGroupListResult>;
   listPosts(params: PostListParams): Promise<PostListResult>;
@@ -196,24 +178,27 @@ export interface CommunityMediaRepository {
   listMessageThreads(params: CommunityMediaAccessParams): Promise<MessageThreadListResult>;
   listNotifications(params: CommunityMediaAccessParams): Promise<NotificationListResult>;
   markNotificationRead(params: NotificationMutationParams): Promise<NotificationMutationResult>;
-  markAllNotificationsRead(params: CommunityMediaAccessParams): Promise<NotificationBulkMutationResult>;
+  markAllNotificationsRead(
+    params: CommunityMediaAccessParams,
+  ): Promise<NotificationBulkMutationResult>;
   dismissNotification(params: NotificationMutationParams): Promise<NotificationMutationResult>;
-  dismissAllNotifications(params: CommunityMediaAccessParams): Promise<NotificationBulkMutationResult>;
-  updateNotificationPreferences(params: NotificationPreferenceUpdateParams): Promise<NotificationPreferenceMutationResult>;
+  dismissAllNotifications(
+    params: CommunityMediaAccessParams,
+  ): Promise<NotificationBulkMutationResult>;
+  updateNotificationPreferences(
+    params: NotificationPreferenceUpdateParams,
+  ): Promise<NotificationPreferenceMutationResult>;
   createGroupMessage(params: GroupMessageCreateParams): Promise<GroupMessageCreateResult>;
   createThreadMessage(params: ThreadMessageCreateParams): Promise<MessageMutationResult>;
   deleteMessage(params: MessageDeleteParams): Promise<MessageMutationResult>;
   markGroupMessagesRead(params: GroupMessageReadParams): Promise<GroupMessageReadResult>;
 }
-
 function isActiveMembership(row: SeedRow): boolean {
   return asString(row.deletedAt) == null && asBoolean(row.active) !== false;
 }
-
 function activeRows(rows: SeedRow[]): SeedRow[] {
   return rows.filter((row) => asString(row.deletedAt) == null);
 }
-
 function ensureRows(tables: SeedTables, key: string): SeedRow[] {
   const existing = tables[key];
   if (Array.isArray(existing)) {
@@ -223,25 +208,24 @@ function ensureRows(tables: SeedTables, key: string): SeedRow[] {
   tables[key] = created;
   return created;
 }
-
 function readableCommunityGroupIds(tables: SeedTables, authUserId: string): Set<string> {
   return new Set(
-    asRows(tables.communityGroupMemberships)
-      .filter((row) => isActiveMembership(row) && asString(row.userId) === authUserId)
-      .map((row) => asString(row.communityGroupId))
-      .filter((groupId): groupId is string => Boolean(groupId)),
+    asRows(tables.communityGroupMemberships).flatMap((row) => {
+      if (!(isActiveMembership(row) && asString(row.userId) === authUserId)) return [];
+      const mapped = asString(row.communityGroupId);
+      return Boolean(mapped) ? [mapped] : [];
+    }),
   );
 }
-
 function readableClubIdsForUser(tables: SeedTables, authUserId: string): Set<string> {
   return new Set(
-    asRows(tables.clubMemberships)
-      .filter((row) => isActiveMembership(row) && asString(row.userId) === authUserId)
-      .map((row) => asString(row.clubId))
-      .filter((clubId): clubId is string => Boolean(clubId)),
+    asRows(tables.clubMemberships).flatMap((row) => {
+      if (!(isActiveMembership(row) && asString(row.userId) === authUserId)) return [];
+      const mapped = asString(row.clubId);
+      return Boolean(mapped) ? [mapped] : [];
+    }),
   );
 }
-
 function hashGroupMessageCreateRequest(params: GroupMessageCreateParams): string {
   return crypto
     .createHash('sha256')
@@ -253,7 +237,6 @@ function hashGroupMessageCreateRequest(params: GroupMessageCreateParams): string
     )
     .digest('hex');
 }
-
 function hashThreadMessageCreateRequest(params: ThreadMessageCreateParams): string {
   return crypto
     .createHash('sha256')
@@ -265,7 +248,6 @@ function hashThreadMessageCreateRequest(params: ThreadMessageCreateParams): stri
     )
     .digest('hex');
 }
-
 function hashPostCommentCreateRequest(params: PostCommentCreateParams): string {
   return crypto
     .createHash('sha256')
@@ -278,7 +260,6 @@ function hashPostCommentCreateRequest(params: PostCommentCreateParams): string {
     )
     .digest('hex');
 }
-
 function stableJson(value: unknown): string {
   if (value === undefined) {
     return 'null';
@@ -294,7 +275,6 @@ function stableJson(value: unknown): string {
   }
   return JSON.stringify(value);
 }
-
 function hashPostCreateRequest(params: PostCreateParams): string {
   return crypto
     .createHash('sha256')
@@ -309,7 +289,6 @@ function hashPostCreateRequest(params: PostCreateParams): string {
     )
     .digest('hex');
 }
-
 function assertMatchingIdempotencyRequest(
   row: SeedRow,
   requestHash: string,
@@ -319,45 +298,51 @@ function assertMatchingIdempotencyRequest(
     throw conflict(message);
   }
 }
-
 function normalizeRole(value: unknown): string {
-  return String(value ?? '').trim().toUpperCase();
+  return String(value ?? '')
+    .trim()
+    .toUpperCase();
 }
-
 function canStaffPostWithRole(value: unknown): boolean {
   return STAFF_POST_ROLES.has(normalizeRole(value));
 }
-
 function hydrateStorePost(tables: SeedTables, post: SeedRow): SeedRow {
   return {
     ...post,
     author: storeUserSummary(tables, asString(post.authorUserId)),
   };
 }
-
 function visibleStoreClub(tables: SeedTables, clubId: string | undefined): SeedRow | null {
   if (!clubId) {
     return null;
   }
   return activeRows(asRows(tables.clubs)).find((row) => asString(row.id) === clubId) ?? null;
 }
-
-function activeStoreCommunityGroup(tables: SeedTables, groupId: string | undefined): SeedRow | null {
+function activeStoreCommunityGroup(
+  tables: SeedTables,
+  groupId: string | undefined,
+): SeedRow | null {
   if (!groupId) {
     return null;
   }
-  return activeRows(asRows(tables.communityGroups)).find((row) => asString(row.id) === groupId) ?? null;
+  return (
+    activeRows(asRows(tables.communityGroups)).find((row) => asString(row.id) === groupId) ?? null
+  );
 }
-
 function assertCanCreateStorePost(
   tables: SeedTables,
   params: PostCreateParams,
-): { clubId: string | null; communityGroupId: string | null; visibility: string } {
+): {
+  clubId: string | null;
+  communityGroupId: string | null;
+  visibility: string;
+} {
   const group = activeStoreCommunityGroup(tables, params.communityGroupId);
   if (params.communityGroupId && !group) {
-    throw notFound('Community group not found', { communityGroupId: params.communityGroupId });
+    throw notFound('Community group not found', {
+      communityGroupId: params.communityGroupId,
+    });
   }
-
   const groupClubId = asString(group?.clubId);
   if (params.clubId && groupClubId && params.clubId !== groupClubId) {
     throw badRequest('Post clubId must match the community group clubId', {
@@ -365,15 +350,15 @@ function assertCanCreateStorePost(
       communityGroupId: params.communityGroupId,
     });
   }
-
   const clubId = params.clubId ?? groupClubId ?? null;
   if (!clubId && !params.communityGroupId) {
     throw badRequest('A clubId or communityGroupId is required for staff-led feed posting');
   }
   if (clubId && !visibleStoreClub(tables, clubId)) {
-    throw notFound('Club not found', { clubId });
+    throw notFound('Club not found', {
+      clubId,
+    });
   }
-
   if (!params.isPrivilegedAdmin) {
     const groupMembership = params.communityGroupId
       ? asRows(tables.communityGroupMemberships).find(
@@ -391,22 +376,22 @@ function assertCanCreateStorePost(
             asString(row.userId) === params.authUserId,
         )
       : undefined;
-
-    if (!canStaffPostWithRole(groupMembership?.role) && !canStaffPostWithRole(clubMembership?.role)) {
+    if (
+      !canStaffPostWithRole(groupMembership?.role) &&
+      !canStaffPostWithRole(clubMembership?.role)
+    ) {
       throw forbidden('Only active staff can create feed posts for this club or group', {
         clubId,
         communityGroupId: params.communityGroupId,
       });
     }
   }
-
   return {
     clubId,
     communityGroupId: params.communityGroupId ?? null,
     visibility: params.visibility ?? (params.communityGroupId ? 'GROUP' : 'CLUB'),
   };
 }
-
 function storeUserSummary(tables: SeedTables, userId: string | undefined): SeedRow | null {
   if (!userId) {
     return null;
@@ -418,16 +403,22 @@ function storeUserSummary(tables: SeedTables, userId: string | undefined): SeedR
     avatarUrl: asString(user?.avatarUrl) ?? null,
   };
 }
-
 function getStoreCommentReactionState(
   tables: SeedTables,
   commentId: string | undefined,
   authUserId: string | undefined,
-): { likesCount: number; likedByCurrentUser: boolean; likes: string[] } {
+): {
+  likesCount: number;
+  likedByCurrentUser: boolean;
+  likes: string[];
+} {
   if (!commentId) {
-    return { likesCount: 0, likedByCurrentUser: false, likes: [] };
+    return {
+      likesCount: 0,
+      likedByCurrentUser: false,
+      likes: [],
+    };
   }
-
   const likes = asRows(tables.postCommentReactions).filter(
     (row) =>
       asString(row.commentId) === commentId &&
@@ -442,7 +433,6 @@ function getStoreCommentReactionState(
     likes: likedByCurrentUser && authUserId ? [authUserId] : [],
   };
 }
-
 function hydrateStorePostComment(
   tables: SeedTables,
   comment: SeedRow,
@@ -455,7 +445,6 @@ function hydrateStorePostComment(
     ...reactionState,
   };
 }
-
 function assertReadableStorePost(
   tables: SeedTables,
   postId: string,
@@ -464,13 +453,13 @@ function assertReadableStorePost(
 ): SeedRow {
   const post = activeRows(asRows(tables.posts)).find((row) => asString(row.id) === postId);
   if (!post) {
-    throw notFound('Post not found', { postId });
+    throw notFound('Post not found', {
+      postId,
+    });
   }
-
   if (isPrivilegedAdmin || asString(post.authorUserId) === authUserId) {
     return post;
   }
-
   const postGroupId = asString(post.communityGroupId);
   const postClubId = asString(post.clubId);
   const readableGroupIds = readableCommunityGroupIds(tables, authUserId);
@@ -481,10 +470,10 @@ function assertReadableStorePost(
   ) {
     return post;
   }
-
-  throw forbidden('Post is not visible to authenticated user', { postId });
+  throw forbidden('Post is not visible to authenticated user', {
+    postId,
+  });
 }
-
 function assertValidStoreParentComment(
   tables: SeedTables,
   postId: string,
@@ -493,10 +482,7 @@ function assertValidStoreParentComment(
   if (!parentCommentId) {
     return;
   }
-
-  const parent = asRows(tables.postComments).find(
-    (row) => asString(row.id) === parentCommentId,
-  );
+  const parent = asRows(tables.postComments).find((row) => asString(row.id) === parentCommentId);
   if (!parent || asString(parent.postId) !== postId) {
     throw badRequest('Parent comment must belong to the target post', {
       postId,
@@ -504,7 +490,9 @@ function assertValidStoreParentComment(
     });
   }
   if (asBoolean(parent.isDeleted) === true || asString(parent.deletedAt) != null) {
-    throw badRequest('Cannot reply to a deleted comment', { parentCommentId });
+    throw badRequest('Cannot reply to a deleted comment', {
+      parentCommentId,
+    });
   }
   if (asString(parent.parentCommentId)) {
     throw badRequest('Cannot reply to a reply; comments support one reply level', {
@@ -512,7 +500,6 @@ function assertValidStoreParentComment(
     });
   }
 }
-
 function refreshStorePostCommentCount(
   tables: SeedTables,
   post: SeedRow,
@@ -530,7 +517,6 @@ function refreshStorePostCommentCount(
   post.updatedByUserId = authUserId;
   post.version = Number(post.version ?? 1) + 1;
 }
-
 function groupThreadForStore(tables: SeedTables, communityGroupId: string): SeedRow | undefined {
   return activeRows(asRows(tables.messageThreads)).find(
     (row) =>
@@ -538,7 +524,6 @@ function groupThreadForStore(tables: SeedTables, communityGroupId: string): Seed
       String(row.threadType ?? '').toUpperCase() === 'GROUP',
   );
 }
-
 function hydrateStoreMessage(tables: SeedTables, message: SeedRow): SeedRow {
   const messageId = asString(message.id);
   return {
@@ -546,7 +531,6 @@ function hydrateStoreMessage(tables: SeedTables, message: SeedRow): SeedRow {
     receipts: asRows(tables.messageReceipts).filter((row) => asString(row.messageId) === messageId),
   };
 }
-
 function hydrateStoreThread(tables: SeedTables, thread: SeedRow): SeedRow {
   const threadId = asString(thread.id);
   const messages = activeRows(asRows(tables.messages)).filter(
@@ -560,7 +544,6 @@ function hydrateStoreThread(tables: SeedTables, thread: SeedRow): SeedRow {
     messages: messages.map((message) => hydrateStoreMessage(tables, message)),
   };
 }
-
 function refreshStoreThreadLastMessage(
   tables: SeedTables,
   thread: SeedRow,
@@ -568,48 +551,67 @@ function refreshStoreThreadLastMessage(
   now: string,
 ): void {
   const threadId = asString(thread.id);
-  const latestMessage = activeRows(asRows(tables.messages))
-    .filter((row) => asString(row.messageThreadId) === threadId)
-    .sort(
-      (left, right) =>
-        Date.parse(asString(right.createdAt) ?? '') - Date.parse(asString(left.createdAt) ?? ''),
-    )[0];
-
+  const latestMessage = activeRows(asRows(tables.messages)).reduce<SeedRow | undefined>(
+    (latest, row) => {
+      if (asString(row.messageThreadId) !== threadId) {
+        return latest;
+      }
+      if (!latest) {
+        return row;
+      }
+      return Date.parse(asString(row.createdAt) ?? '') >
+        Date.parse(asString(latest.createdAt) ?? '')
+        ? row
+        : latest;
+    },
+    undefined,
+  );
   thread.lastMessageAt = asString(latestMessage?.createdAt) ?? null;
   thread.updatedAt = now;
   thread.updatedByUserId = authUserId;
   thread.version = Number(thread.version ?? 1) + 1;
 }
-
 function isVisibleNotification(row: SeedRow): boolean {
-  return asString(row.dismissedAt) == null && String(row.status ?? '').toUpperCase() !== 'DISMISSED';
+  return (
+    asString(row.dismissedAt) == null && String(row.status ?? '').toUpperCase() !== 'DISMISSED'
+  );
 }
-
 function notificationUnreadCount(rows: SeedRow[]): number {
   return rows.filter((row) => isVisibleNotification(row) && asString(row.status) !== 'READ').length;
 }
-
 function storeNotificationsForUser(tables: SeedTables, authUserId: string): SeedRow[] {
   return asRows(tables.notifications).filter((row) => asString(row.userId) === authUserId);
 }
-
 function activeMutedSourcesForUser(tables: SeedTables, authUserId: string): SeedRow[] {
   return asRows(tables.mutedSources).filter(
     (row) => asString(row.userId) === authUserId && asString(row.unmutedAt) == null,
   );
 }
-
 function quietHoursForUser(tables: SeedTables, authUserId: string): SeedRow | null {
   return asRows(tables.quietHours).find((row) => asString(row.userId) === authUserId) ?? null;
 }
-
 function normalizeTypePreferences(
-  value: Record<string, { enabled?: boolean; channels?: string[] }> | undefined,
-): Record<string, { enabled: boolean; channels: string[] }> | undefined {
+  value:
+    | Record<
+        string,
+        {
+          enabled?: boolean;
+          channels?: string[];
+        }
+      >
+    | undefined,
+):
+  | Record<
+      string,
+      {
+        enabled: boolean;
+        channels: string[];
+      }
+    >
+  | undefined {
   if (!value) {
     return undefined;
   }
-
   return Object.fromEntries(
     Object.entries(value).map(([key, entry]) => [
       key,
@@ -622,7 +624,6 @@ function normalizeTypePreferences(
     ]),
   );
 }
-
 function ensureStoreNotificationPreference(
   tables: SeedTables,
   authUserId: string,
@@ -633,7 +634,6 @@ function ensureStoreNotificationPreference(
   if (existing) {
     return existing;
   }
-
   const created: SeedRow = {
     userId: authUserId,
     pushEnabled: true,
@@ -646,22 +646,26 @@ function ensureStoreNotificationPreference(
   preferences.push(created);
   return created;
 }
-
 function findMutableStoreNotification(
   tables: SeedTables,
   notificationId: string,
   authUserId: string,
 ): SeedRow {
-  const notification = asRows(tables.notifications).find((row) => asString(row.id) === notificationId);
+  const notification = asRows(tables.notifications).find(
+    (row) => asString(row.id) === notificationId,
+  );
   if (!notification) {
-    throw notFound('Notification not found', { notificationId });
+    throw notFound('Notification not found', {
+      notificationId,
+    });
   }
   if (asString(notification.userId) !== authUserId) {
-    throw forbidden('Notification does not belong to authenticated user', { notificationId });
+    throw forbidden('Notification does not belong to authenticated user', {
+      notificationId,
+    });
   }
   return notification;
 }
-
 function activeGroupMemberships(tables: SeedTables, communityGroupId: string): SeedRow[] {
   return asRows(tables.communityGroupMemberships).filter(
     (row) =>
@@ -670,7 +674,6 @@ function activeGroupMemberships(tables: SeedTables, communityGroupId: string): S
       Boolean(asString(row.userId)),
   );
 }
-
 function assertCanWriteStoreGroupMessages(
   tables: SeedTables,
   communityGroupId: string,
@@ -680,9 +683,10 @@ function assertCanWriteStoreGroupMessages(
     (row) => asString(row.id) === communityGroupId,
   );
   if (!group) {
-    throw notFound('Community group not found', { communityGroupId });
+    throw notFound('Community group not found', {
+      communityGroupId,
+    });
   }
-
   const isMember = activeGroupMemberships(tables, communityGroupId).some(
     (row) => asString(row.userId) === authUserId,
   );
@@ -691,10 +695,8 @@ function assertCanWriteStoreGroupMessages(
       communityGroupId,
     });
   }
-
   return group;
 }
-
 function activeStoreThreadParticipant(
   tables: SeedTables,
   messageThreadId: string,
@@ -707,7 +709,6 @@ function activeStoreThreadParticipant(
       asString(row.leftAt) == null,
   );
 }
-
 function assertCanWriteStoreThreadMessages(
   tables: SeedTables,
   messageThreadId: string,
@@ -717,42 +718,51 @@ function assertCanWriteStoreThreadMessages(
     (row) => asString(row.id) === messageThreadId,
   );
   if (!thread) {
-    throw notFound('Message thread not found', { messageThreadId });
+    throw notFound('Message thread not found', {
+      messageThreadId,
+    });
   }
-
   if (!activeStoreThreadParticipant(tables, messageThreadId, authUserId)) {
     throw forbidden('Message thread does not belong to authenticated user', {
       messageThreadId,
     });
   }
-
   return thread;
 }
-
 function assertCanDeleteStoreMessage(
   tables: SeedTables,
   messageId: string,
   authUserId: string,
   isPrivilegedAdmin: boolean,
-): { message: SeedRow; thread: SeedRow } {
+): {
+  message: SeedRow;
+  thread: SeedRow;
+} {
   const message = asRows(tables.messages).find((row) => asString(row.id) === messageId);
   if (!message) {
-    throw notFound('Message not found', { messageId });
+    throw notFound('Message not found', {
+      messageId,
+    });
   }
   if (asString(message.deletedAt) != null) {
-    throw conflict('Message is already deleted', { messageId });
+    throw conflict('Message is already deleted', {
+      messageId,
+    });
   }
-
   const messageThreadId = asString(message.messageThreadId);
   const thread = activeRows(asRows(tables.messageThreads)).find(
     (row) => asString(row.id) === messageThreadId,
   );
   if (!thread || !messageThreadId) {
-    throw notFound('Message thread not found', { messageId });
+    throw notFound('Message thread not found', {
+      messageId,
+    });
   }
-
   if (isPrivilegedAdmin) {
-    return { message, thread };
+    return {
+      message,
+      thread,
+    };
   }
   if (!activeStoreThreadParticipant(tables, messageThreadId, authUserId)) {
     throw forbidden('Message thread does not belong to authenticated user', {
@@ -764,10 +774,11 @@ function assertCanDeleteStoreMessage(
       messageId,
     });
   }
-
-  return { message, thread };
+  return {
+    message,
+    thread,
+  };
 }
-
 function ensureStoreGroupThread(
   tables: SeedTables,
   group: SeedRow,
@@ -797,18 +808,24 @@ function ensureStoreGroupThread(
       ensureRows(tables, 'messageThreads').push(created);
       return created;
     })();
-
   const participants = ensureRows(tables, 'messageParticipants');
+  const threadParticipantByUserId = new Map(
+    participants.flatMap((row) => {
+      if (asString(row.messageThreadId) !== asString(thread.id)) {
+        return [];
+      }
+      const userId = asString(row.userId);
+      return userId ? [[userId, row] as const] : [];
+    }),
+  );
   for (const membership of activeGroupMemberships(tables, communityGroupId)) {
     const userId = asString(membership.userId) as string;
-    const existing = participants.find(
-      (row) => asString(row.messageThreadId) === asString(thread.id) && asString(row.userId) === userId,
-    );
+    const existing = threadParticipantByUserId.get(userId);
     if (existing) {
       existing.leftAt = null;
       continue;
     }
-    participants.push({
+    const createdParticipant = {
       id: newId('mpr'),
       messageThreadId: asString(thread.id),
       userId,
@@ -817,12 +834,12 @@ function ensureStoreGroupThread(
       muted: false,
       joinedAt: now,
       leftAt: null,
-    });
+    };
+    participants.push(createdParticipant);
+    threadParticipantByUserId.set(userId, createdParticipant);
   }
-
   return thread;
 }
-
 function findSeedGroupMessageCreateIdempotency(params: {
   tables: SeedTables;
   authUserId: string;
@@ -831,7 +848,6 @@ function findSeedGroupMessageCreateIdempotency(params: {
   if (!params.body.idempotencyKey) {
     return null;
   }
-
   const requestHash = hashGroupMessageCreateRequest(params.body);
   const entry = asRows(params.tables.idempotencyKeys).find(
     (row) =>
@@ -842,7 +858,6 @@ function findSeedGroupMessageCreateIdempotency(params: {
   if (!entry) {
     return null;
   }
-
   assertMatchingIdempotencyRequest(
     entry,
     requestHash,
@@ -850,7 +865,6 @@ function findSeedGroupMessageCreateIdempotency(params: {
   );
   return normalizeAs<GroupMessageCreateResult>(entry.responseBodyJson);
 }
-
 function recordSeedGroupMessageCreateIdempotency(params: {
   tables: SeedTables;
   authUserId: string;
@@ -861,7 +875,6 @@ function recordSeedGroupMessageCreateIdempotency(params: {
   if (!params.body.idempotencyKey) {
     return;
   }
-
   ensureRows(params.tables, 'idempotencyKeys').push({
     id: newId('idk'),
     userId: params.authUserId,
@@ -874,7 +887,6 @@ function recordSeedGroupMessageCreateIdempotency(params: {
     expiresAt: new Date(Date.parse(params.now) + IDEMPOTENCY_TTL_MS).toISOString(),
   });
 }
-
 function findSeedThreadMessageCreateIdempotency(params: {
   tables: SeedTables;
   authUserId: string;
@@ -883,7 +895,6 @@ function findSeedThreadMessageCreateIdempotency(params: {
   if (!params.body.idempotencyKey) {
     return null;
   }
-
   const requestHash = hashThreadMessageCreateRequest(params.body);
   const entry = asRows(params.tables.idempotencyKeys).find(
     (row) =>
@@ -894,7 +905,6 @@ function findSeedThreadMessageCreateIdempotency(params: {
   if (!entry) {
     return null;
   }
-
   assertMatchingIdempotencyRequest(
     entry,
     requestHash,
@@ -902,7 +912,6 @@ function findSeedThreadMessageCreateIdempotency(params: {
   );
   return normalizeAs<MessageMutationResult>(entry.responseBodyJson);
 }
-
 function recordSeedThreadMessageCreateIdempotency(params: {
   tables: SeedTables;
   authUserId: string;
@@ -913,7 +922,6 @@ function recordSeedThreadMessageCreateIdempotency(params: {
   if (!params.body.idempotencyKey) {
     return;
   }
-
   ensureRows(params.tables, 'idempotencyKeys').push({
     id: newId('idk'),
     userId: params.authUserId,
@@ -926,7 +934,6 @@ function recordSeedThreadMessageCreateIdempotency(params: {
     expiresAt: new Date(Date.parse(params.now) + IDEMPOTENCY_TTL_MS).toISOString(),
   });
 }
-
 function findSeedPostCreateIdempotency(params: {
   tables: SeedTables;
   authUserId: string;
@@ -935,7 +942,6 @@ function findSeedPostCreateIdempotency(params: {
   if (!params.body.idempotencyKey) {
     return null;
   }
-
   const requestHash = hashPostCreateRequest(params.body);
   const entry = asRows(params.tables.idempotencyKeys).find(
     (row) =>
@@ -946,7 +952,6 @@ function findSeedPostCreateIdempotency(params: {
   if (!entry) {
     return null;
   }
-
   assertMatchingIdempotencyRequest(
     entry,
     requestHash,
@@ -954,7 +959,6 @@ function findSeedPostCreateIdempotency(params: {
   );
   return normalizeAs<PostMutationResult>(entry.responseBodyJson);
 }
-
 function recordSeedPostCreateIdempotency(params: {
   tables: SeedTables;
   authUserId: string;
@@ -965,7 +969,6 @@ function recordSeedPostCreateIdempotency(params: {
   if (!params.body.idempotencyKey) {
     return;
   }
-
   ensureRows(params.tables, 'idempotencyKeys').push({
     id: newId('idk'),
     userId: params.authUserId,
@@ -978,7 +981,6 @@ function recordSeedPostCreateIdempotency(params: {
     expiresAt: new Date(Date.parse(params.now) + IDEMPOTENCY_TTL_MS).toISOString(),
   });
 }
-
 function findSeedPostCommentCreateIdempotency(params: {
   tables: SeedTables;
   authUserId: string;
@@ -987,7 +989,6 @@ function findSeedPostCommentCreateIdempotency(params: {
   if (!params.body.idempotencyKey) {
     return null;
   }
-
   const requestHash = hashPostCommentCreateRequest(params.body);
   const entry = asRows(params.tables.idempotencyKeys).find(
     (row) =>
@@ -998,7 +999,6 @@ function findSeedPostCommentCreateIdempotency(params: {
   if (!entry) {
     return null;
   }
-
   assertMatchingIdempotencyRequest(
     entry,
     requestHash,
@@ -1006,7 +1006,6 @@ function findSeedPostCommentCreateIdempotency(params: {
   );
   return normalizeAs<PostCommentMutationResult>(entry.responseBodyJson);
 }
-
 function recordSeedPostCommentCreateIdempotency(params: {
   tables: SeedTables;
   authUserId: string;
@@ -1017,7 +1016,6 @@ function recordSeedPostCommentCreateIdempotency(params: {
   if (!params.body.idempotencyKey) {
     return;
   }
-
   ensureRows(params.tables, 'idempotencyKeys').push({
     id: newId('idk'),
     userId: params.authUserId,
@@ -1030,71 +1028,71 @@ function recordSeedPostCommentCreateIdempotency(params: {
     expiresAt: new Date(Date.parse(params.now) + IDEMPOTENCY_TTL_MS).toISOString(),
   });
 }
-
 class StoreCommunityMediaRepository implements CommunityMediaRepository {
   constructor(private readonly storeProvider: () => StoreProvider) {}
-
   async listCommunityGroups(params: CommunityMediaAccessParams): Promise<CommunityGroupListResult> {
     const store = this.storeProvider();
     const readableGroupIds = readableCommunityGroupIds(store.tables, params.authUserId);
     const memberships = asRows(store.tables.communityGroupMemberships).filter(isActiveMembership);
-
     return {
-      groups: activeRows(asRows(store.tables.communityGroups))
-        .filter((row) => readableGroupIds.has(asString(row.id) ?? ''))
-        .map((group) => ({
-          ...group,
-          memberships: memberships.filter(
-            (row) => asString(row.communityGroupId) === asString(group.id),
-          ),
-        })),
+      groups: activeRows(asRows(store.tables.communityGroups)).flatMap((row) =>
+        readableGroupIds.has(asString(row.id) ?? '')
+          ? [
+              {
+                ...row,
+                memberships: memberships.filter(
+                  (row) => asString(row.communityGroupId) === asString(row.id),
+                ),
+              },
+            ]
+          : [],
+      ),
       dataVersion: store.version,
     };
   }
-
   async listPosts(params: PostListParams): Promise<PostListResult> {
     const store = this.storeProvider();
     const readableGroupIds = readableCommunityGroupIds(store.tables, params.authUserId);
     const readableClubIds = readableClubIdsForUser(store.tables, params.authUserId);
-
     if (params.communityGroupId && !readableGroupIds.has(params.communityGroupId)) {
       throw forbidden('Community group does not belong to authenticated user', {
         communityGroupId: params.communityGroupId,
       });
     }
-
-    const posts = activeRows(asRows(store.tables.posts))
-      .filter((row) => {
-        if (params.communityGroupId) {
-          return asString(row.communityGroupId) === params.communityGroupId;
-        }
-        const postGroupId = asString(row.communityGroupId);
-        const postClubId = asString(row.clubId);
-        return (
-          asString(row.authorUserId) === params.authUserId
-          || (postGroupId ? readableGroupIds.has(postGroupId) : false)
-          || (postClubId ? readableClubIds.has(postClubId) : false)
-        );
-      })
-      .map((post) => {
-        const postId = asString(post.id);
-        return {
-          ...post,
+    const posts = activeRows(asRows(store.tables.posts)).flatMap((row) => {
+      if (
+        !(() => {
+          if (params.communityGroupId) {
+            return asString(row.communityGroupId) === params.communityGroupId;
+          }
+          const postGroupId = asString(row.communityGroupId);
+          const postClubId = asString(row.clubId);
+          return (
+            asString(row.authorUserId) === params.authUserId ||
+            (postGroupId ? readableGroupIds.has(postGroupId) : false) ||
+            (postClubId ? readableClubIds.has(postClubId) : false)
+          );
+        })()
+      )
+        return [];
+      const postId = asString(row.id);
+      return [
+        {
+          ...row,
           comments: activeRows(asRows(store.tables.postComments)).filter(
-            (row) =>
-              asString(row.postId) === postId
-              && asBoolean(row.isDeleted) !== true,
+            (row) => asString(row.postId) === postId && asBoolean(row.isDeleted) !== true,
           ),
-          reactions: asRows(store.tables.postReactions).filter((row) => asString(row.postId) === postId),
-        };
-      });
-
+          reactions: asRows(store.tables.postReactions).filter(
+            (row) => asString(row.postId) === postId,
+          ),
+        },
+      ];
+    });
     return {
       posts,
       dataVersion: store.version,
     };
   }
-
   async createPost(params: PostCreateParams): Promise<PostMutationResult> {
     const store = this.storeProvider();
     const scope = assertCanCreateStorePost(store.tables, params);
@@ -1106,7 +1104,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     if (replay) {
       return replay;
     }
-
     const content = params.content.trim();
     if (!content) {
       throw badRequest('Post content cannot be empty');
@@ -1114,7 +1111,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     if (content.length > 4000) {
       throw badRequest('Post content must be 4000 characters or fewer');
     }
-
     const now = nowIso();
     const post: SeedRow = {
       id: newId('pst'),
@@ -1135,7 +1131,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       deletedByUserId: null,
     };
     ensureRows(store.tables, 'posts').push(post);
-
     if (scope.communityGroupId) {
       const group = activeStoreCommunityGroup(store.tables, scope.communityGroupId);
       if (group) {
@@ -1144,7 +1139,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
         group.version = Number(group.version ?? 1) + 1;
       }
     }
-
     const response: PostMutationResult = {
       post: hydrateStorePost(store.tables, post),
       dataVersion: store.version,
@@ -1158,7 +1152,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     });
     return response;
   }
-
   async listPostComments(params: PostCommentListParams): Promise<PostCommentListResult> {
     const store = this.storeProvider();
     assertReadableStorePost(
@@ -1167,7 +1160,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       params.authUserId,
       params.isPrivilegedAdmin,
     );
-
     const comments = asRows(store.tables.postComments)
       .filter((row) => asString(row.postId) === params.postId)
       .sort(
@@ -1175,38 +1167,33 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
           Date.parse(asString(left.createdAt) ?? '') - Date.parse(asString(right.createdAt) ?? ''),
       )
       .map((comment) => hydrateStorePostComment(store.tables, comment, params.authUserId));
-
     return {
       comments,
       dataVersion: store.version,
     };
   }
-
   async getPostComment(params: PostCommentReadParams): Promise<PostCommentMutationResult> {
     const store = this.storeProvider();
     const comment = asRows(store.tables.postComments).find(
       (row) => asString(row.id) === params.commentId,
     );
     if (!comment) {
-      throw notFound('Comment not found', { commentId: params.commentId });
+      throw notFound('Comment not found', {
+        commentId: params.commentId,
+      });
     }
     const postId = asString(comment.postId);
     if (!postId) {
-      throw notFound('Post not found', { commentId: params.commentId });
+      throw notFound('Post not found', {
+        commentId: params.commentId,
+      });
     }
-    assertReadableStorePost(
-      store.tables,
-      postId,
-      params.authUserId,
-      params.isPrivilegedAdmin,
-    );
-
+    assertReadableStorePost(store.tables, postId, params.authUserId, params.isPrivilegedAdmin);
     return {
       comment: hydrateStorePostComment(store.tables, comment, params.authUserId),
       dataVersion: store.version,
     };
   }
-
   async createPostComment(params: PostCommentCreateParams): Promise<PostCommentMutationResult> {
     const store = this.storeProvider();
     const post = assertReadableStorePost(
@@ -1223,7 +1210,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     if (replay) {
       return replay;
     }
-
     const content = params.content.trim();
     if (!content) {
       throw badRequest('Comment content cannot be empty');
@@ -1231,9 +1217,7 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     if (content.length > 2000) {
       throw badRequest('Comment must be 2000 characters or fewer');
     }
-
     assertValidStoreParentComment(store.tables, params.postId, params.parentCommentId);
-
     const now = nowIso();
     const comment: SeedRow = {
       id: newId('cmt'),
@@ -1248,7 +1232,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     };
     ensureRows(store.tables, 'postComments').push(comment);
     refreshStorePostCommentCount(store.tables, post, params.authUserId, now);
-
     const response: PostCommentMutationResult = {
       comment: hydrateStorePostComment(store.tables, comment, params.authUserId),
       dataVersion: store.version,
@@ -1262,18 +1245,21 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     });
     return response;
   }
-
   async deletePostComment(params: PostCommentDeleteParams): Promise<PostCommentMutationResult> {
     const store = this.storeProvider();
     const comment = asRows(store.tables.postComments).find(
       (row) => asString(row.id) === params.commentId,
     );
     if (!comment) {
-      throw notFound('Comment not found', { commentId: params.commentId });
+      throw notFound('Comment not found', {
+        commentId: params.commentId,
+      });
     }
     const postId = asString(comment.postId);
     if (!postId) {
-      throw notFound('Post not found', { commentId: params.commentId });
+      throw notFound('Post not found', {
+        commentId: params.commentId,
+      });
     }
     const post = assertReadableStorePost(
       store.tables,
@@ -1281,51 +1267,51 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       params.authUserId,
       params.isPrivilegedAdmin,
     );
-
     if (!params.isPrivilegedAdmin && asString(comment.authorUserId) !== params.authUserId) {
       throw forbidden('Only the comment author or privileged admin can delete this comment', {
         commentId: params.commentId,
       });
     }
     if (asBoolean(comment.isDeleted) === true || asString(comment.deletedAt) != null) {
-      throw conflict('Comment is already deleted', { commentId: params.commentId });
+      throw conflict('Comment is already deleted', {
+        commentId: params.commentId,
+      });
     }
-
     const now = nowIso();
     comment.content = '[deleted]';
     comment.isDeleted = true;
     comment.deletedAt = now;
     comment.updatedAt = now;
     refreshStorePostCommentCount(store.tables, post, params.authUserId, now);
-
     return {
       comment: hydrateStorePostComment(store.tables, comment, params.authUserId),
       dataVersion: store.version,
     };
   }
-
-  async togglePostCommentReaction(params: PostCommentReactionParams): Promise<PostCommentMutationResult> {
+  async togglePostCommentReaction(
+    params: PostCommentReactionParams,
+  ): Promise<PostCommentMutationResult> {
     const store = this.storeProvider();
     const comment = asRows(store.tables.postComments).find(
       (row) => asString(row.id) === params.commentId,
     );
     if (!comment) {
-      throw notFound('Comment not found', { commentId: params.commentId });
+      throw notFound('Comment not found', {
+        commentId: params.commentId,
+      });
     }
     const postId = asString(comment.postId);
     if (!postId) {
-      throw notFound('Post not found', { commentId: params.commentId });
+      throw notFound('Post not found', {
+        commentId: params.commentId,
+      });
     }
-    assertReadableStorePost(
-      store.tables,
-      postId,
-      params.authUserId,
-      params.isPrivilegedAdmin,
-    );
+    assertReadableStorePost(store.tables, postId, params.authUserId, params.isPrivilegedAdmin);
     if (asBoolean(comment.isDeleted) === true || asString(comment.deletedAt) != null) {
-      throw badRequest('Cannot react to a deleted comment', { commentId: params.commentId });
+      throw badRequest('Cannot react to a deleted comment', {
+        commentId: params.commentId,
+      });
     }
-
     const reactions = ensureRows(store.tables, 'postCommentReactions');
     const existingIndex = reactions.findIndex(
       (row) =>
@@ -1344,34 +1330,32 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
         createdAt: nowIso(),
       });
     }
-
     return {
       comment: hydrateStorePostComment(store.tables, comment, params.authUserId),
       dataVersion: store.version,
     };
   }
-
   async listMessageThreads(params: CommunityMediaAccessParams): Promise<MessageThreadListResult> {
     const store = this.storeProvider();
     const participants = asRows(store.tables.messageParticipants).filter(
       (row) => asString(row.leftAt) == null,
     );
     const myThreadIds = new Set(
-      participants
-        .filter((row) => asString(row.userId) === params.authUserId)
-        .map((row) => asString(row.messageThreadId))
-        .filter((threadId): threadId is string => Boolean(threadId)),
+      participants.flatMap((row) => {
+        if (!(asString(row.userId) === params.authUserId)) return [];
+        const mapped = asString(row.messageThreadId);
+        return Boolean(mapped) ? [mapped] : [];
+      }),
     );
-
     return {
-      threads: activeRows(asRows(store.tables.messageThreads))
-        .filter((thread) => myThreadIds.has(asString(thread.id) ?? ''))
-        .map((thread) => {
-          const threadId = asString(thread.id);
-          const messages = activeRows(asRows(store.tables.messages)).filter(
-            (row) => asString(row.messageThreadId) === threadId,
-          );
-          return {
+      threads: activeRows(asRows(store.tables.messageThreads)).flatMap((thread) => {
+        if (!myThreadIds.has(asString(thread.id) ?? '')) return [];
+        const threadId = asString(thread.id);
+        const messages = activeRows(asRows(store.tables.messages)).filter(
+          (row) => asString(row.messageThreadId) === threadId,
+        );
+        return [
+          {
             ...thread,
             participants: participants.filter((row) => asString(row.messageThreadId) === threadId),
             messages: messages.map((message) => ({
@@ -1380,18 +1364,17 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
                 (row) => asString(row.messageId) === asString(message.id),
               ),
             })),
-          };
-        }),
+          },
+        ];
+      }),
       dataVersion: store.version,
     };
   }
-
   async listNotifications(params: CommunityMediaAccessParams): Promise<NotificationListResult> {
     const store = this.storeProvider();
     const notifications = asRows(store.tables.notifications).filter(
       (row) => asString(row.userId) === params.authUserId,
     );
-
     return {
       notifications,
       preferences:
@@ -1399,18 +1382,18 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
           (row) => asString(row.userId) === params.authUserId,
         ) ?? null,
       mutedSources: asRows(store.tables.mutedSources).filter(
-        (row) =>
-          asString(row.userId) === params.authUserId
-          && asString(row.unmutedAt) == null,
+        (row) => asString(row.userId) === params.authUserId && asString(row.unmutedAt) == null,
       ),
       quietHours:
-        asRows(store.tables.quietHours).find((row) => asString(row.userId) === params.authUserId) ?? null,
+        asRows(store.tables.quietHours).find((row) => asString(row.userId) === params.authUserId) ??
+        null,
       unreadCount: notificationUnreadCount(notifications),
       dataVersion: store.version,
     };
   }
-
-  async markNotificationRead(params: NotificationMutationParams): Promise<NotificationMutationResult> {
+  async markNotificationRead(
+    params: NotificationMutationParams,
+  ): Promise<NotificationMutationResult> {
     const store = this.storeProvider();
     const notification = findMutableStoreNotification(
       store.tables,
@@ -1426,8 +1409,9 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       dataVersion: store.version,
     };
   }
-
-  async markAllNotificationsRead(params: CommunityMediaAccessParams): Promise<NotificationBulkMutationResult> {
+  async markAllNotificationsRead(
+    params: CommunityMediaAccessParams,
+  ): Promise<NotificationBulkMutationResult> {
     const store = this.storeProvider();
     const notifications = storeNotificationsForUser(store.tables, params.authUserId);
     const now = nowIso();
@@ -1442,8 +1426,9 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       dataVersion: store.version,
     };
   }
-
-  async dismissNotification(params: NotificationMutationParams): Promise<NotificationMutationResult> {
+  async dismissNotification(
+    params: NotificationMutationParams,
+  ): Promise<NotificationMutationResult> {
     const store = this.storeProvider();
     const notification = findMutableStoreNotification(
       store.tables,
@@ -1459,8 +1444,9 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       dataVersion: store.version,
     };
   }
-
-  async dismissAllNotifications(params: CommunityMediaAccessParams): Promise<NotificationBulkMutationResult> {
+  async dismissAllNotifications(
+    params: CommunityMediaAccessParams,
+  ): Promise<NotificationBulkMutationResult> {
     const store = this.storeProvider();
     const notifications = storeNotificationsForUser(store.tables, params.authUserId);
     const now = nowIso();
@@ -1475,7 +1461,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       dataVersion: store.version,
     };
   }
-
   async updateNotificationPreferences(
     params: NotificationPreferenceUpdateParams,
   ): Promise<NotificationPreferenceMutationResult> {
@@ -1485,7 +1470,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     preferences.pushEnabled = params.channels?.push ?? preferences.pushEnabled ?? true;
     preferences.emailEnabled = params.channels?.email ?? preferences.emailEnabled ?? true;
     preferences.smsEnabled = params.channels?.sms ?? preferences.smsEnabled ?? false;
-
     const typePreferences = normalizeTypePreferences(params.typePreferences);
     if (typePreferences) {
       const existingSettings = coerceMetadata(preferences.settingsJson);
@@ -1495,7 +1479,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       };
     }
     preferences.updatedAt = now;
-
     let quietHours = quietHoursForUser(store.tables, params.authUserId);
     if (params.quietHours) {
       if (!quietHours) {
@@ -1511,12 +1494,12 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
         ensureRows(store.tables, 'quietHours').push(quietHours);
       }
       quietHours.enabled = params.quietHours.enabled ?? quietHours.enabled ?? false;
-      quietHours.startTimeLocal = params.quietHours.startTime ?? quietHours.startTimeLocal ?? '22:00';
+      quietHours.startTimeLocal =
+        params.quietHours.startTime ?? quietHours.startTimeLocal ?? '22:00';
       quietHours.endTimeLocal = params.quietHours.endTime ?? quietHours.endTimeLocal ?? '07:00';
       quietHours.timeZone = params.quietHours.timezone ?? quietHours.timeZone ?? 'Europe/London';
       quietHours.updatedAt = now;
     }
-
     if (params.mutedCoaches) {
       const desired = new Map(
         params.mutedCoaches.map((coach) => [coach.coachId, coach.reason ?? null] as const),
@@ -1548,7 +1531,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
         });
       }
     }
-
     return {
       preferences,
       mutedSources: activeMutedSourcesForUser(store.tables, params.authUserId),
@@ -1556,7 +1538,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       dataVersion: store.version,
     };
   }
-
   async createGroupMessage(params: GroupMessageCreateParams): Promise<GroupMessageCreateResult> {
     const store = this.storeProvider();
     const replay = findSeedGroupMessageCreateIdempotency({
@@ -1567,9 +1548,12 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     if (replay) {
       return replay;
     }
-
     const now = nowIso();
-    const group = assertCanWriteStoreGroupMessages(store.tables, params.communityGroupId, params.authUserId);
+    const group = assertCanWriteStoreGroupMessages(
+      store.tables,
+      params.communityGroupId,
+      params.authUserId,
+    );
     const thread = ensureStoreGroupThread(store.tables, group, params.authUserId, now);
     const threadId = asString(thread.id) as string;
     const message: SeedRow = {
@@ -1584,7 +1568,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       updatedAt: now,
     };
     ensureRows(store.tables, 'messages').push(message);
-
     const receipts = ensureRows(store.tables, 'messageReceipts');
     for (const participant of asRows(store.tables.messageParticipants).filter(
       (row) => asString(row.messageThreadId) === threadId && asString(row.leftAt) == null,
@@ -1606,7 +1589,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
         participant.lastReadAt = now;
       }
     }
-
     thread.lastMessageAt = now;
     thread.updatedAt = now;
     thread.updatedByUserId = params.authUserId;
@@ -1614,7 +1596,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     group.updatedAt = now;
     group.updatedByUserId = params.authUserId;
     group.version = Number(group.version ?? 1) + 1;
-
     const response: GroupMessageCreateResult = {
       message: hydrateStoreMessage(store.tables, message),
       thread: hydrateStoreThread(store.tables, thread),
@@ -1629,7 +1610,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     });
     return response;
   }
-
   async createThreadMessage(params: ThreadMessageCreateParams): Promise<MessageMutationResult> {
     const store = this.storeProvider();
     const replay = findSeedThreadMessageCreateIdempotency({
@@ -1640,7 +1620,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     if (replay) {
       return replay;
     }
-
     const body = params.body.trim();
     if (!body) {
       throw badRequest('Message body cannot be empty');
@@ -1648,7 +1627,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     if (body.length > 4000) {
       throw badRequest('Message body must be 4000 characters or fewer');
     }
-
     const now = nowIso();
     const thread = assertCanWriteStoreThreadMessages(
       store.tables,
@@ -1668,7 +1646,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       updatedAt: now,
     };
     ensureRows(store.tables, 'messages').push(message);
-
     const receipts = ensureRows(store.tables, 'messageReceipts');
     for (const participant of asRows(store.tables.messageParticipants).filter(
       (row) => asString(row.messageThreadId) === threadId && asString(row.leftAt) == null,
@@ -1690,12 +1667,10 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
         participant.lastReadAt = now;
       }
     }
-
     thread.lastMessageAt = now;
     thread.updatedAt = now;
     thread.updatedByUserId = params.authUserId;
     thread.version = Number(thread.version ?? 1) + 1;
-
     const response: MessageMutationResult = {
       message: hydrateStoreMessage(store.tables, message),
       thread: hydrateStoreThread(store.tables, thread),
@@ -1710,7 +1685,6 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     });
     return response;
   }
-
   async deleteMessage(params: MessageDeleteParams): Promise<MessageMutationResult> {
     const store = this.storeProvider();
     const { message, thread } = assertCanDeleteStoreMessage(
@@ -1719,46 +1693,52 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       params.authUserId,
       params.isPrivilegedAdmin,
     );
-
     const now = nowIso();
     message.content = '[deleted]';
     message.deletedAt = now;
     message.updatedAt = now;
     refreshStoreThreadLastMessage(store.tables, thread, params.authUserId, now);
-
     return {
       message: hydrateStoreMessage(store.tables, message),
       thread: hydrateStoreThread(store.tables, thread),
       dataVersion: store.version,
     };
   }
-
   async markGroupMessagesRead(params: GroupMessageReadParams): Promise<GroupMessageReadResult> {
     const store = this.storeProvider();
     assertCanWriteStoreGroupMessages(store.tables, params.communityGroupId, params.authUserId);
     const thread = groupThreadForStore(store.tables, params.communityGroupId);
     if (!thread) {
-      return { thread: null, dataVersion: store.version };
+      return {
+        thread: null,
+        dataVersion: store.version,
+      };
     }
-
     const now = nowIso();
     const threadId = asString(thread.id) as string;
     const messages = activeRows(asRows(store.tables.messages)).filter(
       (row) => asString(row.messageThreadId) === threadId,
     );
     const receipts = ensureRows(store.tables, 'messageReceipts');
+    const receiptByMessageId = new Map(
+      receipts.flatMap((row) => {
+        if (asString(row.userId) !== params.authUserId) {
+          return [];
+        }
+        const messageId = asString(row.messageId);
+        return messageId ? [[messageId, row] as const] : [];
+      }),
+    );
     for (const message of messages) {
       const messageId = asString(message.id) as string;
-      const existing = receipts.find(
-        (row) => asString(row.messageId) === messageId && asString(row.userId) === params.authUserId,
-      );
+      const existing = receiptByMessageId.get(messageId);
       if (existing) {
         existing.deliveredAt = asString(existing.deliveredAt) ?? now;
         existing.readAt = now;
         existing.updatedAt = now;
         continue;
       }
-      receipts.push({
+      const createdReceipt = {
         id: newId('mrc'),
         messageId,
         userId: params.authUserId,
@@ -1766,9 +1746,10 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
         readAt: now,
         createdAt: now,
         updatedAt: now,
-      });
+      };
+      receipts.push(createdReceipt);
+      receiptByMessageId.set(messageId, createdReceipt);
     }
-
     const participant = asRows(store.tables.messageParticipants).find(
       (row) =>
         asString(row.messageThreadId) === threadId &&
@@ -1778,17 +1759,14 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     if (participant) {
       participant.lastReadAt = now;
     }
-
     return {
       thread: hydrateStoreThread(store.tables, thread),
       dataVersion: store.version,
     };
   }
 }
-
 class PrismaCommunityMediaRepository implements CommunityMediaRepository {
   private readonly fallback = new StoreCommunityMediaRepository(() => getDbFixtureStore());
-
   private async getReadableCommunityGroupIds(authUserId: string): Promise<string[]> {
     const prisma = getPrismaClientOrThrow();
     const memberships = await prisma.communityGroupMembership.findMany({
@@ -1797,11 +1775,12 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         active: true,
         deletedAt: null,
       },
-      select: { communityGroupId: true },
+      select: {
+        communityGroupId: true,
+      },
     });
     return memberships.map((row) => row.communityGroupId);
   }
-
   private async getReadableClubIds(authUserId: string): Promise<string[]> {
     const prisma = getPrismaClientOrThrow();
     const memberships = await prisma.clubMembership.findMany({
@@ -1810,11 +1789,12 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         active: true,
         deletedAt: null,
       },
-      select: { clubId: true },
+      select: {
+        clubId: true,
+      },
     });
     return memberships.map((row) => row.clubId);
   }
-
   private async assertReadablePost(
     postId: string,
     authUserId: string,
@@ -1828,13 +1808,13 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       },
     });
     if (!post) {
-      throw notFound('Post not found', { postId });
+      throw notFound('Post not found', {
+        postId,
+      });
     }
-
     if (isPrivilegedAdmin || post.authorUserId === authUserId) {
       return normalizeAs<SeedRow>(post);
     }
-
     const [groupMembership, clubMembership] = await Promise.all([
       post.communityGroupId
         ? prisma.communityGroupMembership.findFirst({
@@ -1844,7 +1824,9 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
               active: true,
               deletedAt: null,
             },
-            select: { id: true },
+            select: {
+              id: true,
+            },
           })
         : Promise.resolve(null),
       post.clubId
@@ -1855,17 +1837,19 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
               active: true,
               deletedAt: null,
             },
-            select: { id: true },
+            select: {
+              id: true,
+            },
           })
         : Promise.resolve(null),
     ]);
     if (groupMembership || clubMembership) {
       return normalizeAs<SeedRow>(post);
     }
-
-    throw forbidden('Post is not visible to authenticated user', { postId });
+    throw forbidden('Post is not visible to authenticated user', {
+      postId,
+    });
   }
-
   private async assertCanCreatePost(params: PostCreateParams): Promise<{
     clubId: string | null;
     communityGroupId: string | null;
@@ -1874,34 +1858,43 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     const prisma = getPrismaClientOrThrow();
     const group = params.communityGroupId
       ? await prisma.communityGroup.findFirst({
-          where: { id: params.communityGroupId, deletedAt: null },
+          where: {
+            id: params.communityGroupId,
+            deletedAt: null,
+          },
         })
       : null;
     if (params.communityGroupId && !group) {
-      throw notFound('Community group not found', { communityGroupId: params.communityGroupId });
+      throw notFound('Community group not found', {
+        communityGroupId: params.communityGroupId,
+      });
     }
-
     if (params.clubId && group?.clubId && params.clubId !== group.clubId) {
       throw badRequest('Post clubId must match the community group clubId', {
         clubId: params.clubId,
         communityGroupId: params.communityGroupId,
       });
     }
-
     const clubId = params.clubId ?? group?.clubId ?? null;
     if (!clubId && !params.communityGroupId) {
       throw badRequest('A clubId or communityGroupId is required for staff-led feed posting');
     }
     if (clubId) {
       const club = await prisma.club.findFirst({
-        where: { id: clubId, deletedAt: null },
-        select: { id: true },
+        where: {
+          id: clubId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
       });
       if (!club) {
-        throw notFound('Club not found', { clubId });
+        throw notFound('Club not found', {
+          clubId,
+        });
       }
     }
-
     if (!params.isPrivilegedAdmin) {
       const [groupMembership, clubMembership] = await Promise.all([
         params.communityGroupId
@@ -1912,7 +1905,9 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
                 active: true,
                 deletedAt: null,
               },
-              select: { role: true },
+              select: {
+                role: true,
+              },
             })
           : Promise.resolve(null),
         clubId
@@ -1923,48 +1918,58 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
                 active: true,
                 deletedAt: null,
               },
-              select: { role: true },
+              select: {
+                role: true,
+              },
             })
           : Promise.resolve(null),
       ]);
-      if (!canStaffPostWithRole(groupMembership?.role) && !canStaffPostWithRole(clubMembership?.role)) {
+      if (
+        !canStaffPostWithRole(groupMembership?.role) &&
+        !canStaffPostWithRole(clubMembership?.role)
+      ) {
         throw forbidden('Only active staff can create feed posts for this club or group', {
           clubId,
           communityGroupId: params.communityGroupId,
         });
       }
     }
-
     return {
       clubId,
       communityGroupId: params.communityGroupId ?? null,
       visibility: params.visibility ?? (params.communityGroupId ? 'GROUP' : 'CLUB'),
     };
   }
-
   private async hydratePosts(posts: SeedRow[]): Promise<SeedRow[]> {
     if (posts.length === 0) {
       return [];
     }
-
     const userIds = Array.from(
       new Set(
-        posts
-          .map((post) => asString(post.authorUserId))
-          .filter((userId): userId is string => Boolean(userId)),
+        posts.flatMap((post) => {
+          const mapped = asString(post.authorUserId);
+          return Boolean(mapped) ? [mapped] : [];
+        }),
       ),
     );
     const prisma = getPrismaClientOrThrow();
     const users = normalizeAs<SeedRow[]>(
       userIds.length > 0
         ? await prisma.user.findMany({
-            where: { id: { in: userIds } },
-            select: { id: true, name: true, avatarUrl: true },
+            where: {
+              id: {
+                in: userIds,
+              },
+            },
+            select: {
+              id: true,
+              name: true,
+              avatarUrl: true,
+            },
           })
         : [],
     );
     const usersById = new Map(users.map((user) => [asString(user.id), user] as const));
-
     return posts.map((post) => {
       const authorUserId = asString(post.authorUserId);
       const user = authorUserId ? usersById.get(authorUserId) : undefined;
@@ -1980,28 +1985,36 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       };
     });
   }
-
   private async hydratePostComments(comments: SeedRow[], authUserId?: string): Promise<SeedRow[]> {
     if (comments.length === 0) {
       return [];
     }
-
-    const commentIds = comments
-      .map((comment) => asString(comment.id))
-      .filter((commentId): commentId is string => Boolean(commentId));
+    const commentIds = comments.flatMap((comment) => {
+      const mapped = asString(comment.id);
+      return Boolean(mapped) ? [mapped] : [];
+    });
     const userIds = Array.from(
       new Set(
-        comments
-          .map((comment) => asString(comment.authorUserId))
-          .filter((userId): userId is string => Boolean(userId)),
+        comments.flatMap((comment) => {
+          const mapped = asString(comment.authorUserId);
+          return Boolean(mapped) ? [mapped] : [];
+        }),
       ),
     );
     const prisma = getPrismaClientOrThrow();
     const users = normalizeAs<SeedRow[]>(
       userIds.length > 0
         ? await prisma.user.findMany({
-            where: { id: { in: userIds } },
-            select: { id: true, name: true, avatarUrl: true },
+            where: {
+              id: {
+                in: userIds,
+              },
+            },
+            select: {
+              id: true,
+              name: true,
+              avatarUrl: true,
+            },
           })
         : [],
     );
@@ -2010,7 +2023,9 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       commentIds.length > 0
         ? await prisma.postCommentReaction.findMany({
             where: {
-              commentId: { in: commentIds },
+              commentId: {
+                in: commentIds,
+              },
               reaction: 'LIKE',
             },
           })
@@ -2028,7 +2043,6 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         likedCommentIds.add(commentId);
       }
     }
-
     return comments.map((comment) => {
       const authorUserId = asString(comment.authorUserId);
       const user = authorUserId ? usersById.get(authorUserId) : undefined;
@@ -2043,17 +2057,15 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
               avatarUrl: asString(user?.avatarUrl) ?? null,
             }
           : null,
-        likesCount: commentId ? likesCountByCommentId.get(commentId) ?? 0 : 0,
+        likesCount: commentId ? (likesCountByCommentId.get(commentId) ?? 0) : 0,
         likedByCurrentUser,
         likes: likedByCurrentUser && authUserId ? [authUserId] : [],
       };
     });
   }
-
   private async hydratePostComment(comment: SeedRow, authUserId?: string): Promise<SeedRow> {
     return (await this.hydratePostComments([comment], authUserId))[0] as SeedRow;
   }
-
   private async assertValidPrismaParentComment(
     postId: string,
     parentCommentId: string | undefined,
@@ -2061,10 +2073,11 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     if (!parentCommentId) {
       return;
     }
-
     const prisma = getPrismaClientOrThrow();
     const parent = await prisma.postComment.findUnique({
-      where: { id: parentCommentId },
+      where: {
+        id: parentCommentId,
+      },
     });
     if (!parent || parent.postId !== postId) {
       throw badRequest('Parent comment must belong to the target post', {
@@ -2073,7 +2086,9 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       });
     }
     if (parent.isDeleted || parent.deletedAt) {
-      throw badRequest('Cannot reply to a deleted comment', { parentCommentId });
+      throw badRequest('Cannot reply to a deleted comment', {
+        parentCommentId,
+      });
     }
     if (parent.parentCommentId) {
       throw badRequest('Cannot reply to a reply; comments support one reply level', {
@@ -2081,7 +2096,6 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       });
     }
   }
-
   private async assertCanWriteGroupMessages(
     communityGroupId: string,
     authUserId: string,
@@ -2092,12 +2106,15 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         id: communityGroupId,
         deletedAt: null,
       },
-      select: { id: true },
+      select: {
+        id: true,
+      },
     });
     if (!group) {
-      throw notFound('Community group not found', { communityGroupId });
+      throw notFound('Community group not found', {
+        communityGroupId,
+      });
     }
-
     const membership = await prisma.communityGroupMembership.findFirst({
       where: {
         communityGroupId,
@@ -2105,7 +2122,9 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         active: true,
         deletedAt: null,
       },
-      select: { id: true },
+      select: {
+        id: true,
+      },
     });
     if (!membership) {
       throw forbidden('Community group does not belong to authenticated user', {
@@ -2113,7 +2132,6 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       });
     }
   }
-
   private async assertCanWriteThreadMessages(
     messageThreadId: string,
     authUserId: string,
@@ -2124,19 +2142,24 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         id: messageThreadId,
         deletedAt: null,
       },
-      select: { id: true },
+      select: {
+        id: true,
+      },
     });
     if (!thread) {
-      throw notFound('Message thread not found', { messageThreadId });
+      throw notFound('Message thread not found', {
+        messageThreadId,
+      });
     }
-
     const participant = await prisma.messageParticipant.findFirst({
       where: {
         messageThreadId,
         userId: authUserId,
         leftAt: null,
       },
-      select: { id: true },
+      select: {
+        id: true,
+      },
     });
     if (!participant) {
       throw forbidden('Message thread does not belong to authenticated user', {
@@ -2144,43 +2167,56 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       });
     }
   }
-
   private async getHydratedThread(threadId: string): Promise<SeedRow> {
     const prisma = getPrismaClientOrThrow();
     const thread = await prisma.messageThread.findUnique({
-      where: { id: threadId },
+      where: {
+        id: threadId,
+      },
       include: {
         participants: {
-          where: { leftAt: null },
+          where: {
+            leftAt: null,
+          },
         },
         messages: {
-          where: { deletedAt: null },
-          include: { receipts: true },
-          orderBy: { createdAt: 'asc' },
+          where: {
+            deletedAt: null,
+          },
+          include: {
+            receipts: true,
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
         },
       },
     });
     if (!thread) {
-      throw notFound('Message thread not found', { threadId });
+      throw notFound('Message thread not found', {
+        threadId,
+      });
     }
     return normalizeAs<SeedRow>(thread);
   }
-
   async listCommunityGroups(params: CommunityMediaAccessParams): Promise<CommunityGroupListResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.listCommunityGroups(params);
     }
-
     const readableGroupIds = await this.getReadableCommunityGroupIds(params.authUserId);
     if (readableGroupIds.length === 0) {
-      return { groups: [], dataVersion: null };
+      return {
+        groups: [],
+        dataVersion: null,
+      };
     }
-
     const prisma = getPrismaClientOrThrow();
     const groups = normalizeAs<SeedRow[]>(
       await prisma.communityGroup.findMany({
         where: {
-          id: { in: readableGroupIds },
+          id: {
+            in: readableGroupIds,
+          },
           deletedAt: null,
         },
         include: {
@@ -2191,30 +2227,29 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
             },
           },
         },
-        orderBy: { updatedAt: 'desc' },
+        orderBy: {
+          updatedAt: 'desc',
+        },
       }),
     );
-
     return {
       groups,
       dataVersion: null,
     };
   }
-
   async listPosts(params: PostListParams): Promise<PostListResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.listPosts(params);
     }
-
-    const readableGroupIds = await this.getReadableCommunityGroupIds(params.authUserId);
-    const readableClubIds = await this.getReadableClubIds(params.authUserId);
-
+    const [readableGroupIds, readableClubIds] = await Promise.all([
+      this.getReadableCommunityGroupIds(params.authUserId),
+      this.getReadableClubIds(params.authUserId),
+    ]);
     if (params.communityGroupId && !readableGroupIds.includes(params.communityGroupId)) {
       throw forbidden('Community group does not belong to authenticated user', {
         communityGroupId: params.communityGroupId,
       });
     }
-
     const prisma = getPrismaClientOrThrow();
     const posts = normalizeAs<SeedRow[]>(
       await prisma.post.findMany({
@@ -2226,9 +2261,19 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
               }
             : {
                 OR: [
-                  { authorUserId: params.authUserId },
-                  { communityGroupId: { in: readableGroupIds } },
-                  { clubId: { in: readableClubIds } },
+                  {
+                    authorUserId: params.authUserId,
+                  },
+                  {
+                    communityGroupId: {
+                      in: readableGroupIds,
+                    },
+                  },
+                  {
+                    clubId: {
+                      in: readableClubIds,
+                    },
+                  },
                 ],
               }),
         },
@@ -2238,25 +2283,26 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
               deletedAt: null,
               isDeleted: false,
             },
-            orderBy: { createdAt: 'asc' },
+            orderBy: {
+              createdAt: 'asc',
+            },
           },
           reactions: true,
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: {
+          createdAt: 'desc',
+        },
       }),
     );
-
     return {
       posts: await this.hydratePosts(posts),
       dataVersion: null,
     };
   }
-
   async createPost(params: PostCreateParams): Promise<PostMutationResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.createPost(params);
     }
-
     const scope = await this.assertCanCreatePost(params);
     const prisma = getPrismaClientOrThrow();
     const requestHash = hashPostCreateRequest(params);
@@ -2279,7 +2325,6 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         return normalizeAs<PostMutationResult>(existing.responseBodyJson);
       }
     }
-
     const content = params.content.trim();
     if (!content) {
       throw badRequest('Post content cannot be empty');
@@ -2287,10 +2332,8 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     if (content.length > 4000) {
       throw badRequest('Post content must be 4000 characters or fewer');
     }
-
     const now = new Date();
-    let response: PostMutationResult | null = null;
-    await prisma.$transaction(async (tx) => {
+    const response = await prisma.$transaction(async (tx): Promise<PostMutationResult> => {
       const post = await tx.post.create({
         data: {
           id: newId('pst'),
@@ -2311,22 +2354,30 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
           deletedByUserId: null,
         },
       });
-
       if (scope.communityGroupId) {
         await tx.communityGroup.update({
-          where: { id: scope.communityGroupId },
+          where: {
+            id: scope.communityGroupId,
+          },
           data: {
             updatedByUserId: params.authUserId,
-            version: { increment: 1 },
+            version: {
+              increment: 1,
+            },
           },
         });
       }
-
       const author = await tx.user.findUnique({
-        where: { id: params.authUserId },
-        select: { id: true, name: true, avatarUrl: true },
+        where: {
+          id: params.authUserId,
+        },
+        select: {
+          id: true,
+          name: true,
+          avatarUrl: true,
+        },
       });
-      response = {
+      const postResponse: PostMutationResult = {
         post: {
           ...normalizeAs<SeedRow>(post),
           author: author
@@ -2339,7 +2390,6 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         },
         dataVersion: null,
       };
-
       if (params.idempotencyKey) {
         await tx.idempotencyKey.create({
           data: {
@@ -2349,82 +2399,62 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
             idempotencyKey: params.idempotencyKey,
             requestHash,
             responseStatus: 201,
-            responseBodyJson: response as never,
+            responseBodyJson: postResponse as never,
             expiresAt: new Date(now.getTime() + IDEMPOTENCY_TTL_MS),
           },
         });
       }
+      return postResponse;
     });
-
-    if (!response) {
-      throw notFound('Post was not created');
-    }
     return response;
   }
-
   async listPostComments(params: PostCommentListParams): Promise<PostCommentListResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.listPostComments(params);
     }
-
-    await this.assertReadablePost(
-      params.postId,
-      params.authUserId,
-      params.isPrivilegedAdmin,
-    );
-
+    await this.assertReadablePost(params.postId, params.authUserId, params.isPrivilegedAdmin);
     const prisma = getPrismaClientOrThrow();
     const comments = normalizeAs<SeedRow[]>(
       await prisma.postComment.findMany({
         where: {
           postId: params.postId,
         },
-        orderBy: { createdAt: 'asc' },
+        orderBy: {
+          createdAt: 'asc',
+        },
       }),
     );
-
     return {
       comments: await this.hydratePostComments(comments, params.authUserId),
       dataVersion: null,
     };
   }
-
   async getPostComment(params: PostCommentReadParams): Promise<PostCommentMutationResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.getPostComment(params);
     }
-
     const prisma = getPrismaClientOrThrow();
     const comment = await prisma.postComment.findUnique({
-      where: { id: params.commentId },
+      where: {
+        id: params.commentId,
+      },
     });
     if (!comment) {
-      throw notFound('Comment not found', { commentId: params.commentId });
+      throw notFound('Comment not found', {
+        commentId: params.commentId,
+      });
     }
-
-    await this.assertReadablePost(
-      comment.postId,
-      params.authUserId,
-      params.isPrivilegedAdmin,
-    );
-
+    await this.assertReadablePost(comment.postId, params.authUserId, params.isPrivilegedAdmin);
     return {
       comment: await this.hydratePostComment(normalizeAs<SeedRow>(comment), params.authUserId),
       dataVersion: null,
     };
   }
-
   async createPostComment(params: PostCommentCreateParams): Promise<PostCommentMutationResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.createPostComment(params);
     }
-
-    await this.assertReadablePost(
-      params.postId,
-      params.authUserId,
-      params.isPrivilegedAdmin,
-    );
-
+    await this.assertReadablePost(params.postId, params.authUserId, params.isPrivilegedAdmin);
     const prisma = getPrismaClientOrThrow();
     const requestHash = hashPostCommentCreateRequest(params);
     if (params.idempotencyKey) {
@@ -2446,7 +2476,6 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         return normalizeAs<PostCommentMutationResult>(existing.responseBodyJson);
       }
     }
-
     const content = params.content.trim();
     if (!content) {
       throw badRequest('Comment content cannot be empty');
@@ -2455,46 +2484,48 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       throw badRequest('Comment must be 2000 characters or fewer');
     }
     await this.assertValidPrismaParentComment(params.postId, params.parentCommentId);
-
     const now = new Date();
-    let response: PostCommentMutationResult | null = null;
-
-    await prisma.$transaction(async (tx) => {
-      const comment = await tx.postComment.create({
-        data: {
-          id: newId('cmt'),
-          postId: params.postId,
-          authorUserId: params.authUserId,
-          parentCommentId: params.parentCommentId ?? null,
-          content,
-          isDeleted: false,
-          deletedAt: null,
-          createdAt: now,
-          updatedAt: now,
-        },
-      });
-
-      const commentsCount = await tx.postComment.count({
-        where: {
-          postId: params.postId,
-          isDeleted: false,
-          deletedAt: null,
-        },
-      });
-      await tx.post.update({
-        where: { id: params.postId },
-        data: {
-          commentsCount,
-          updatedByUserId: params.authUserId,
-          version: { increment: 1 },
-        },
-      });
-
-      const author = await tx.user.findUnique({
-        where: { id: params.authUserId },
-        select: { id: true, name: true, avatarUrl: true },
-      });
-      response = {
+    const response = await prisma.$transaction(async (tx): Promise<PostCommentMutationResult> => {
+      const [comment, author] = await Promise.all([
+        tx.postComment.create({
+          data: {
+            id: newId('cmt'),
+            postId: params.postId,
+            authorUserId: params.authUserId,
+            parentCommentId: params.parentCommentId ?? null,
+            content,
+            isDeleted: false,
+            deletedAt: null,
+            createdAt: now,
+            updatedAt: now,
+          },
+        }),
+        tx.user.findUnique({
+          where: {
+            id: params.authUserId,
+          },
+          select: {
+            id: true,
+            name: true,
+            avatarUrl: true,
+          },
+        }),
+        tx.post.update({
+          where: {
+            id: params.postId,
+          },
+          data: {
+            commentsCount: {
+              increment: 1,
+            },
+            updatedByUserId: params.authUserId,
+            version: {
+              increment: 1,
+            },
+          },
+        }),
+      ]);
+      const commentResponse: PostCommentMutationResult = {
         comment: {
           ...normalizeAs<SeedRow>(comment),
           author: author
@@ -2510,7 +2541,6 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         },
         dataVersion: null,
       };
-
       if (params.idempotencyKey) {
         await tx.idempotencyKey.create({
           data: {
@@ -2520,108 +2550,108 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
             idempotencyKey: params.idempotencyKey,
             requestHash,
             responseStatus: 201,
-            responseBodyJson: response as never,
+            responseBodyJson: commentResponse as never,
             expiresAt: new Date(now.getTime() + IDEMPOTENCY_TTL_MS),
           },
         });
       }
+      return commentResponse;
     });
-
-    if (!response) {
-      throw notFound('Comment was not created');
-    }
     return response;
   }
-
   async deletePostComment(params: PostCommentDeleteParams): Promise<PostCommentMutationResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.deletePostComment(params);
     }
-
     const prisma = getPrismaClientOrThrow();
     const comment = await prisma.postComment.findUnique({
-      where: { id: params.commentId },
+      where: {
+        id: params.commentId,
+      },
     });
     if (!comment) {
-      throw notFound('Comment not found', { commentId: params.commentId });
-    }
-
-    await this.assertReadablePost(
-      comment.postId,
-      params.authUserId,
-      params.isPrivilegedAdmin,
-    );
-
-    if (!params.isPrivilegedAdmin && comment.authorUserId !== params.authUserId) {
-      throw forbidden('Only the comment author or privileged admin can delete this comment', {
+      throw notFound('Comment not found', {
         commentId: params.commentId,
       });
     }
-    if (comment.isDeleted || comment.deletedAt) {
-      throw conflict('Comment is already deleted', { commentId: params.commentId });
-    }
 
+    await this.assertReadablePost(comment.postId, params.authUserId, params.isPrivilegedAdmin).then(
+      () => {
+        if (!params.isPrivilegedAdmin && comment.authorUserId !== params.authUserId) {
+          throw forbidden('Only the comment author or privileged admin can delete this comment', {
+            commentId: params.commentId,
+          });
+        }
+        if (comment.isDeleted || comment.deletedAt) {
+          throw conflict('Comment is already deleted', {
+            commentId: params.commentId,
+          });
+        }
+      },
+    );
     const now = new Date();
-    let updatedComment: SeedRow | null = null;
-    await prisma.$transaction(async (tx) => {
-      const updated = await tx.postComment.update({
-        where: { id: params.commentId },
-        data: {
-          content: '[deleted]',
-          isDeleted: true,
-          deletedAt: now,
-          updatedAt: now,
-        },
-      });
-      const commentsCount = await tx.postComment.count({
-        where: {
-          postId: comment.postId,
-          isDeleted: false,
-          deletedAt: null,
-        },
-      });
-      await tx.post.update({
-        where: { id: comment.postId },
-        data: {
-          commentsCount,
-          updatedByUserId: params.authUserId,
-          version: { increment: 1 },
-        },
-      });
-      updatedComment = normalizeAs<SeedRow>(updated);
+    const updatedComment = await prisma.$transaction(async (tx): Promise<SeedRow> => {
+      const [updated] = await Promise.all([
+        tx.postComment.update({
+          where: {
+            id: params.commentId,
+          },
+          data: {
+            content: '[deleted]',
+            isDeleted: true,
+            deletedAt: now,
+            updatedAt: now,
+          },
+        }),
+        tx.post.update({
+          where: {
+            id: comment.postId,
+          },
+          data: {
+            commentsCount: {
+              decrement: 1,
+            },
+            updatedByUserId: params.authUserId,
+            version: {
+              increment: 1,
+            },
+          },
+        }),
+      ]);
+      return normalizeAs<SeedRow>(updated);
     });
-
-    if (!updatedComment) {
-      throw notFound('Comment was not deleted');
-    }
     return {
       comment: await this.hydratePostComment(updatedComment, params.authUserId),
       dataVersion: null,
     };
   }
-
-  async togglePostCommentReaction(params: PostCommentReactionParams): Promise<PostCommentMutationResult> {
+  async togglePostCommentReaction(
+    params: PostCommentReactionParams,
+  ): Promise<PostCommentMutationResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.togglePostCommentReaction(params);
     }
-
     const prisma = getPrismaClientOrThrow();
     const comment = await prisma.postComment.findUnique({
-      where: { id: params.commentId },
+      where: {
+        id: params.commentId,
+      },
     });
     if (!comment) {
-      throw notFound('Comment not found', { commentId: params.commentId });
+      throw notFound('Comment not found', {
+        commentId: params.commentId,
+      });
     }
 
-    await this.assertReadablePost(
-      comment.postId,
-      params.authUserId,
-      params.isPrivilegedAdmin,
+    await this.assertReadablePost(comment.postId, params.authUserId, params.isPrivilegedAdmin).then(
+      () => {
+        if (comment.isDeleted || comment.deletedAt) {
+          throw badRequest('Cannot react to a deleted comment', {
+            commentId: params.commentId,
+          });
+        }
+      },
     );
-    if (comment.isDeleted || comment.deletedAt) {
-      throw badRequest('Cannot react to a deleted comment', { commentId: params.commentId });
-    }
-
     await prisma.$transaction(async (tx) => {
       const existing = await tx.postCommentReaction.findUnique({
         where: {
@@ -2634,11 +2664,12 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       });
       if (existing) {
         await tx.postCommentReaction.delete({
-          where: { id: existing.id },
+          where: {
+            id: existing.id,
+          },
         });
         return;
       }
-
       await tx.postCommentReaction.create({
         data: {
           id: newId('pcr'),
@@ -2648,72 +2679,86 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         },
       });
     });
-
     return {
       comment: await this.hydratePostComment(normalizeAs<SeedRow>(comment), params.authUserId),
       dataVersion: null,
     };
   }
-
   async listMessageThreads(params: CommunityMediaAccessParams): Promise<MessageThreadListResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.listMessageThreads(params);
     }
-
     const prisma = getPrismaClientOrThrow();
     const participantRows = await prisma.messageParticipant.findMany({
       where: {
         userId: params.authUserId,
         leftAt: null,
       },
-      select: { messageThreadId: true },
+      select: {
+        messageThreadId: true,
+      },
     });
     const threadIds = participantRows.map((row) => row.messageThreadId);
     if (threadIds.length === 0) {
-      return { threads: [], dataVersion: null };
+      return {
+        threads: [],
+        dataVersion: null,
+      };
     }
-
     const threads = normalizeAs<SeedRow[]>(
       await prisma.messageThread.findMany({
         where: {
-          id: { in: threadIds },
+          id: {
+            in: threadIds,
+          },
           deletedAt: null,
         },
         include: {
           participants: {
-            where: { leftAt: null },
+            where: {
+              leftAt: null,
+            },
           },
           messages: {
-            where: { deletedAt: null },
+            where: {
+              deletedAt: null,
+            },
             include: {
               receipts: true,
             },
-            orderBy: { createdAt: 'asc' },
+            orderBy: {
+              createdAt: 'asc',
+            },
           },
         },
-        orderBy: { updatedAt: 'desc' },
+        orderBy: {
+          updatedAt: 'desc',
+        },
       }),
     );
-
     return {
       threads,
       dataVersion: null,
     };
   }
-
   async listNotifications(params: CommunityMediaAccessParams): Promise<NotificationListResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.listNotifications(params);
     }
-
     const prisma = getPrismaClientOrThrow();
     const [notifications, preferences, mutedSources, quietHours] = await Promise.all([
       prisma.notification.findMany({
-        where: { userId: params.authUserId },
-        orderBy: { createdAt: 'desc' },
+        where: {
+          userId: params.authUserId,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
       }),
       prisma.notificationPreference.findUnique({
-        where: { userId: params.authUserId },
+        where: {
+          userId: params.authUserId,
+        },
       }),
       prisma.mutedSource.findMany({
         where: {
@@ -2722,12 +2767,12 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         },
       }),
       prisma.quietHours.findUnique({
-        where: { userId: params.authUserId },
+        where: {
+          userId: params.authUserId,
+        },
       }),
     ]);
-
     const normalizedNotifications = normalizeAs<SeedRow[]>(notifications);
-
     return {
       notifications: normalizedNotifications,
       preferences: normalizeAs<SeedRow | null>(preferences),
@@ -2737,27 +2782,32 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       dataVersion: null,
     };
   }
-
-  async markNotificationRead(params: NotificationMutationParams): Promise<NotificationMutationResult> {
+  async markNotificationRead(
+    params: NotificationMutationParams,
+  ): Promise<NotificationMutationResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.markNotificationRead(params);
     }
-
     const prisma = getPrismaClientOrThrow();
     const notification = await prisma.notification.findUnique({
-      where: { id: params.notificationId },
+      where: {
+        id: params.notificationId,
+      },
     });
     if (!notification) {
-      throw notFound('Notification not found', { notificationId: params.notificationId });
+      throw notFound('Notification not found', {
+        notificationId: params.notificationId,
+      });
     }
     if (notification.userId !== params.authUserId) {
       throw forbidden('Notification does not belong to authenticated user', {
         notificationId: params.notificationId,
       });
     }
-
     const updated = await prisma.notification.update({
-      where: { id: params.notificationId },
+      where: {
+        id: params.notificationId,
+      },
       data: {
         status: 'READ',
         readAt: notification.readAt ?? new Date(),
@@ -2768,19 +2818,21 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       dataVersion: null,
     };
   }
-
-  async markAllNotificationsRead(params: CommunityMediaAccessParams): Promise<NotificationBulkMutationResult> {
+  async markAllNotificationsRead(
+    params: CommunityMediaAccessParams,
+  ): Promise<NotificationBulkMutationResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.markAllNotificationsRead(params);
     }
-
     const prisma = getPrismaClientOrThrow();
     const now = new Date();
     await prisma.notification.updateMany({
       where: {
         userId: params.authUserId,
         dismissedAt: null,
-        status: { not: 'DISMISSED' },
+        status: {
+          not: 'DISMISSED',
+        },
       },
       data: {
         status: 'READ',
@@ -2789,8 +2841,12 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     });
     const notifications = normalizeAs<SeedRow[]>(
       await prisma.notification.findMany({
-        where: { userId: params.authUserId },
-        orderBy: { createdAt: 'desc' },
+        where: {
+          userId: params.authUserId,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
       }),
     );
     return {
@@ -2799,27 +2855,32 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       dataVersion: null,
     };
   }
-
-  async dismissNotification(params: NotificationMutationParams): Promise<NotificationMutationResult> {
+  async dismissNotification(
+    params: NotificationMutationParams,
+  ): Promise<NotificationMutationResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.dismissNotification(params);
     }
-
     const prisma = getPrismaClientOrThrow();
     const notification = await prisma.notification.findUnique({
-      where: { id: params.notificationId },
+      where: {
+        id: params.notificationId,
+      },
     });
     if (!notification) {
-      throw notFound('Notification not found', { notificationId: params.notificationId });
+      throw notFound('Notification not found', {
+        notificationId: params.notificationId,
+      });
     }
     if (notification.userId !== params.authUserId) {
       throw forbidden('Notification does not belong to authenticated user', {
         notificationId: params.notificationId,
       });
     }
-
     const updated = await prisma.notification.update({
-      where: { id: params.notificationId },
+      where: {
+        id: params.notificationId,
+      },
       data: {
         status: 'DISMISSED',
         dismissedAt: notification.dismissedAt ?? new Date(),
@@ -2830,19 +2891,21 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       dataVersion: null,
     };
   }
-
-  async dismissAllNotifications(params: CommunityMediaAccessParams): Promise<NotificationBulkMutationResult> {
+  async dismissAllNotifications(
+    params: CommunityMediaAccessParams,
+  ): Promise<NotificationBulkMutationResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.dismissAllNotifications(params);
     }
-
     const prisma = getPrismaClientOrThrow();
     const now = new Date();
     await prisma.notification.updateMany({
       where: {
         userId: params.authUserId,
         dismissedAt: null,
-        status: { not: 'DISMISSED' },
+        status: {
+          not: 'DISMISSED',
+        },
       },
       data: {
         status: 'DISMISSED',
@@ -2851,8 +2914,12 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     });
     const notifications = normalizeAs<SeedRow[]>(
       await prisma.notification.findMany({
-        where: { userId: params.authUserId },
-        orderBy: { createdAt: 'desc' },
+        where: {
+          userId: params.authUserId,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
       }),
     );
     return {
@@ -2861,126 +2928,171 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       dataVersion: null,
     };
   }
-
   async updateNotificationPreferences(
     params: NotificationPreferenceUpdateParams,
   ): Promise<NotificationPreferenceMutationResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.updateNotificationPreferences(params);
     }
-
     const prisma = getPrismaClientOrThrow();
     const now = new Date();
     const existing = await prisma.notificationPreference.findUnique({
-      where: { userId: params.authUserId },
+      where: {
+        userId: params.authUserId,
+      },
     });
     const existingSettings = coerceMetadata(existing?.settingsJson);
     const typePreferences = normalizeTypePreferences(params.typePreferences);
-
-    const preferences = await prisma.notificationPreference.upsert({
-      where: { userId: params.authUserId },
-      create: {
-        userId: params.authUserId,
-        pushEnabled: params.channels?.push ?? true,
-        emailEnabled: params.channels?.email ?? true,
-        smsEnabled: params.channels?.sms ?? false,
-        settingsJson: {
-          ...existingSettings,
-          ...(typePreferences ? { typePreferences } : {}),
+    const quietHoursPromise = params.quietHours
+      ? prisma.quietHours.upsert({
+          where: {
+            userId: params.authUserId,
+          },
+          create: {
+            userId: params.authUserId,
+            enabled: params.quietHours.enabled ?? false,
+            startTimeLocal: params.quietHours.startTime ?? '22:00',
+            endTimeLocal: params.quietHours.endTime ?? '07:00',
+            timeZone: params.quietHours.timezone ?? 'Europe/London',
+            createdAt: now,
+            updatedAt: now,
+          },
+          update: {
+            ...(params.quietHours.enabled == null
+              ? {}
+              : {
+                  enabled: params.quietHours.enabled,
+                }),
+            ...(params.quietHours.startTime == null
+              ? {}
+              : {
+                  startTimeLocal: params.quietHours.startTime,
+                }),
+            ...(params.quietHours.endTime == null
+              ? {}
+              : {
+                  endTimeLocal: params.quietHours.endTime,
+                }),
+            ...(params.quietHours.timezone == null
+              ? {}
+              : {
+                  timeZone: params.quietHours.timezone,
+                }),
+          },
+        })
+      : prisma.quietHours.findUnique({
+          where: {
+            userId: params.authUserId,
+          },
+        });
+    const existingCoachMutesPromise = params.mutedCoaches
+      ? prisma.mutedSource.findMany({
+          where: {
+            userId: params.authUserId,
+            sourceType: 'coach',
+          },
+        })
+      : Promise.resolve(null);
+    const [preferences, quietHours, existingCoachMutes] = await Promise.all([
+      prisma.notificationPreference.upsert({
+        where: {
+          userId: params.authUserId,
         },
-        createdAt: now,
-        updatedAt: now,
-      },
-      update: {
-        ...(params.channels?.push == null ? {} : { pushEnabled: params.channels.push }),
-        ...(params.channels?.email == null ? {} : { emailEnabled: params.channels.email }),
-        ...(params.channels?.sms == null ? {} : { smsEnabled: params.channels.sms }),
-        ...(typePreferences
-          ? {
-              settingsJson: {
-                ...existingSettings,
-                typePreferences,
-              },
-            }
-          : {}),
-      },
-    });
-
-    let quietHours = await prisma.quietHours.findUnique({
-      where: { userId: params.authUserId },
-    });
-    if (params.quietHours) {
-      quietHours = await prisma.quietHours.upsert({
-        where: { userId: params.authUserId },
         create: {
           userId: params.authUserId,
-          enabled: params.quietHours.enabled ?? false,
-          startTimeLocal: params.quietHours.startTime ?? '22:00',
-          endTimeLocal: params.quietHours.endTime ?? '07:00',
-          timeZone: params.quietHours.timezone ?? 'Europe/London',
+          pushEnabled: params.channels?.push ?? true,
+          emailEnabled: params.channels?.email ?? true,
+          smsEnabled: params.channels?.sms ?? false,
+          settingsJson: {
+            ...existingSettings,
+            ...(typePreferences
+              ? {
+                  typePreferences,
+                }
+              : {}),
+          },
           createdAt: now,
           updatedAt: now,
         },
         update: {
-          ...(params.quietHours.enabled == null ? {} : { enabled: params.quietHours.enabled }),
-          ...(params.quietHours.startTime == null ? {} : { startTimeLocal: params.quietHours.startTime }),
-          ...(params.quietHours.endTime == null ? {} : { endTimeLocal: params.quietHours.endTime }),
-          ...(params.quietHours.timezone == null ? {} : { timeZone: params.quietHours.timezone }),
+          ...(params.channels?.push == null
+            ? {}
+            : {
+                pushEnabled: params.channels.push,
+              }),
+          ...(params.channels?.email == null
+            ? {}
+            : {
+                emailEnabled: params.channels.email,
+              }),
+          ...(params.channels?.sms == null
+            ? {}
+            : {
+                smsEnabled: params.channels.sms,
+              }),
+          ...(typePreferences
+            ? {
+                settingsJson: {
+                  ...existingSettings,
+                  typePreferences,
+                },
+              }
+            : {}),
         },
-      });
-    }
-
-    if (params.mutedCoaches) {
+      }),
+      quietHoursPromise,
+      existingCoachMutesPromise,
+    ]);
+    if (params.mutedCoaches && existingCoachMutes) {
       const desired = new Map(
         params.mutedCoaches.map((coach) => [coach.coachId, coach.reason ?? null] as const),
       );
-      const existingCoachMutes = await prisma.mutedSource.findMany({
-        where: {
-          userId: params.authUserId,
-          sourceType: 'coach',
-        },
-      });
-      await Promise.all(
-        existingCoachMutes.map((source) => {
-          if (!desired.has(source.sourceId)) {
-            return prisma.mutedSource.update({
-              where: { id: source.id },
-              data: { unmutedAt: source.unmutedAt ?? now },
-            });
-          }
-          const reason = desired.get(source.sourceId);
-          desired.delete(source.sourceId);
+      const muteWrites = existingCoachMutes.map((source) => {
+        if (!desired.has(source.sourceId)) {
           return prisma.mutedSource.update({
-            where: { id: source.id },
+            where: {
+              id: source.id,
+            },
             data: {
-              reason,
-              unmutedAt: null,
+              unmutedAt: source.unmutedAt ?? now,
             },
           });
-        }),
-      );
-      for (const [coachId, reason] of desired.entries()) {
-        await prisma.mutedSource.create({
+        }
+        const reason = desired.get(source.sourceId);
+        desired.delete(source.sourceId);
+        return prisma.mutedSource.update({
+          where: {
+            id: source.id,
+          },
           data: {
-            id: newId('mut'),
-            userId: params.authUserId,
-            sourceType: 'coach',
-            sourceId: coachId,
             reason,
-            mutedAt: now,
             unmutedAt: null,
           },
         });
-      }
+      });
+      muteWrites.push(
+        ...Array.from(desired.entries()).map(([coachId, reason]) =>
+          prisma.mutedSource.create({
+            data: {
+              id: newId('mut'),
+              userId: params.authUserId,
+              sourceType: 'coach',
+              sourceId: coachId,
+              reason,
+              mutedAt: now,
+              unmutedAt: null,
+            },
+          }),
+        ),
+      );
+      await Promise.all(muteWrites);
     }
-
     const mutedSources = await prisma.mutedSource.findMany({
       where: {
         userId: params.authUserId,
         unmutedAt: null,
       },
     });
-
     return {
       preferences: normalizeAs<SeedRow>(preferences),
       mutedSources: normalizeAs<SeedRow[]>(mutedSources),
@@ -2988,14 +3100,11 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       dataVersion: null,
     };
   }
-
   async createGroupMessage(params: GroupMessageCreateParams): Promise<GroupMessageCreateResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.createGroupMessage(params);
     }
-
     await this.assertCanWriteGroupMessages(params.communityGroupId, params.authUserId);
-
     const requestHash = hashGroupMessageCreateRequest(params);
     const prisma = getPrismaClientOrThrow();
     if (params.idempotencyKey) {
@@ -3013,41 +3122,41 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         return normalizeAs<GroupMessageCreateResult>(existing.responseBodyJson);
       }
     }
-
     const now = new Date();
-    let response: GroupMessageCreateResult | null = null;
-
-    await prisma.$transaction(async (tx) => {
-      const group = await tx.communityGroup.findFirst({
-        where: {
-          id: params.communityGroupId,
-          deletedAt: null,
-        },
-      });
+    const response = await prisma.$transaction(async (tx): Promise<GroupMessageCreateResult> => {
+      const [group, memberships, existingThread] = await Promise.all([
+        tx.communityGroup.findFirst({
+          where: {
+            id: params.communityGroupId,
+            deletedAt: null,
+          },
+        }),
+        tx.communityGroupMembership.findMany({
+          where: {
+            communityGroupId: params.communityGroupId,
+            active: true,
+            deletedAt: null,
+          },
+        }),
+        tx.messageThread.findFirst({
+          where: {
+            communityGroupId: params.communityGroupId,
+            threadType: 'GROUP',
+            deletedAt: null,
+          },
+        }),
+      ]);
       if (!group) {
-        throw notFound('Community group not found', { communityGroupId: params.communityGroupId });
-      }
-
-      const memberships = await tx.communityGroupMembership.findMany({
-        where: {
+        throw notFound('Community group not found', {
           communityGroupId: params.communityGroupId,
-          active: true,
-          deletedAt: null,
-        },
-      });
+        });
+      }
       if (!memberships.some((row) => row.userId === params.authUserId)) {
         throw forbidden('Community group does not belong to authenticated user', {
           communityGroupId: params.communityGroupId,
         });
       }
-
-      let thread = await tx.messageThread.findFirst({
-        where: {
-          communityGroupId: params.communityGroupId,
-          threadType: 'GROUP',
-          deletedAt: null,
-        },
-      });
+      let thread = existingThread;
       if (!thread) {
         thread = await tx.messageThread.create({
           data: {
@@ -3066,111 +3175,129 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
           },
         });
       }
-
-      for (const membership of memberships) {
-        await tx.messageParticipant.upsert({
-          where: {
-            messageThreadId_userId: {
-              messageThreadId: thread.id,
-              userId: membership.userId,
+      const messageId = newId('msg');
+      const [message, hydratedThread] = await Promise.all([
+        tx.message.create({
+          data: {
+            id: messageId,
+            messageThreadId: thread.id,
+            senderUserId: params.authUserId,
+            content: params.body,
+            attachmentsJson: [],
+            createdAt: now,
+            updatedAt: now,
+            receipts: {
+              createMany: {
+                data: memberships.map((membership) => ({
+                  id: newId('mrc'),
+                  userId: membership.userId,
+                  deliveredAt: now,
+                  readAt: membership.userId === params.authUserId ? now : null,
+                  createdAt: now,
+                  updatedAt: now,
+                })),
+                skipDuplicates: true,
+              },
             },
           },
-          create: {
-            id: newId('mpr'),
-            messageThreadId: thread.id,
-            userId: membership.userId,
-            role: membership.role,
-            lastReadAt: null,
-            muted: false,
-            joinedAt: now,
-            leftAt: null,
+        }),
+        Promise.all(
+          memberships.map((membership) =>
+            tx.messageParticipant.upsert({
+              where: {
+                messageThreadId_userId: {
+                  messageThreadId: thread.id,
+                  userId: membership.userId,
+                },
+              },
+              create: {
+                id: newId('mpr'),
+                messageThreadId: thread.id,
+                userId: membership.userId,
+                role: membership.role,
+                lastReadAt: membership.userId === params.authUserId ? now : null,
+                muted: false,
+                joinedAt: now,
+                leftAt: null,
+              },
+              update: {
+                role: membership.role,
+                leftAt: null,
+                ...(membership.userId === params.authUserId
+                  ? {
+                      lastReadAt: now,
+                    }
+                  : {}),
+              },
+            }),
+          ),
+        ),
+        tx.messageThread.update({
+          where: {
+            id: thread.id,
           },
-          update: {
-            role: membership.role,
-            leftAt: null,
+          data: {
+            lastMessageAt: now,
+            updatedByUserId: params.authUserId,
+            version: {
+              increment: 1,
+            },
           },
-        });
-      }
-
-      const message = await tx.message.create({
-        data: {
-          id: newId('msg'),
-          messageThreadId: thread.id,
-          senderUserId: params.authUserId,
-          content: params.body,
-          attachmentsJson: [],
-          createdAt: now,
-          updatedAt: now,
-        },
-      });
-
-      await tx.messageReceipt.createMany({
-        data: memberships.map((membership) => ({
-          id: newId('mrc'),
-          messageId: message.id,
-          userId: membership.userId,
-          deliveredAt: now,
-          readAt: membership.userId === params.authUserId ? now : null,
-          createdAt: now,
-          updatedAt: now,
-        })),
-        skipDuplicates: true,
-      });
-
-      await tx.messageParticipant.updateMany({
-        where: {
-          messageThreadId: thread.id,
-          userId: params.authUserId,
-        },
-        data: {
-          lastReadAt: now,
-        },
-      });
-
-      await tx.messageThread.update({
-        where: { id: thread.id },
-        data: {
-          lastMessageAt: now,
-          updatedByUserId: params.authUserId,
-          version: { increment: 1 },
-        },
-      });
-
-      await tx.communityGroup.update({
-        where: { id: group.id },
-        data: {
-          updatedByUserId: params.authUserId,
-          version: { increment: 1 },
-        },
-      });
-
-      const hydratedThread = await tx.messageThread.findUnique({
-        where: { id: thread.id },
-        include: {
-          participants: {
-            where: { leftAt: null },
+        }),
+        tx.communityGroup.update({
+          where: {
+            id: group.id,
           },
-          messages: {
-            where: { deletedAt: null },
-            include: { receipts: true },
-            orderBy: { createdAt: 'asc' },
+          data: {
+            updatedByUserId: params.authUserId,
+            version: {
+              increment: 1,
+            },
           },
-        },
-      });
+        }),
+      ]).then((transactionResults) =>
+        tx.messageThread
+          .findUnique({
+            where: {
+              id: thread.id,
+            },
+            include: {
+              participants: {
+                where: {
+                  leftAt: null,
+                },
+              },
+              messages: {
+                where: {
+                  deletedAt: null,
+                },
+                include: {
+                  receipts: true,
+                },
+                orderBy: {
+                  createdAt: 'asc',
+                },
+              },
+            },
+          })
+          .then((threadResult) => [transactionResults[0], threadResult] as const),
+      );
       if (!hydratedThread) {
-        throw notFound('Message thread not found', { threadId: thread.id });
+        throw notFound('Message thread not found', {
+          threadId: thread.id,
+        });
       }
       const hydratedMessage = hydratedThread.messages.find((row) => row.id === message.id);
       if (!hydratedMessage) {
-        throw notFound('Message not found', { messageId: message.id });
+        throw notFound('Message not found', {
+          messageId: message.id,
+        });
       }
-
-      response = {
+      const messageResponse: GroupMessageCreateResult = {
         message: normalizeAs<SeedRow>(hydratedMessage),
         thread: normalizeAs<SeedRow>(hydratedThread),
         dataVersion: null,
       };
-
       if (params.idempotencyKey) {
         await tx.idempotencyKey.create({
           data: {
@@ -3180,26 +3307,20 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
             idempotencyKey: params.idempotencyKey,
             requestHash,
             responseStatus: 201,
-            responseBodyJson: response as never,
+            responseBodyJson: messageResponse as never,
             expiresAt: new Date(now.getTime() + IDEMPOTENCY_TTL_MS),
           },
         });
       }
+      return messageResponse;
     });
-
-    if (!response) {
-      throw notFound('Message was not created');
-    }
     return response;
   }
-
   async createThreadMessage(params: ThreadMessageCreateParams): Promise<MessageMutationResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.createThreadMessage(params);
     }
-
     await this.assertCanWriteThreadMessages(params.messageThreadId, params.authUserId);
-
     const body = params.body.trim();
     if (!body) {
       throw badRequest('Message body cannot be empty');
@@ -3207,7 +3328,6 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     if (body.length > 4000) {
       throw badRequest('Message body must be 4000 characters or fewer');
     }
-
     const requestHash = hashThreadMessageCreateRequest(params);
     const prisma = getPrismaClientOrThrow();
     if (params.idempotencyKey) {
@@ -3229,10 +3349,8 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         return normalizeAs<MessageMutationResult>(existing.responseBodyJson);
       }
     }
-
     const now = new Date();
-    let response: MessageMutationResult | null = null;
-    await prisma.$transaction(async (tx) => {
+    const response = await prisma.$transaction(async (tx): Promise<MessageMutationResult> => {
       const participants = await tx.messageParticipant.findMany({
         where: {
           messageThreadId: params.messageThreadId,
@@ -3244,77 +3362,94 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
           messageThreadId: params.messageThreadId,
         });
       }
-
-      const message = await tx.message.create({
-        data: {
-          id: newId('msg'),
-          messageThreadId: params.messageThreadId,
-          senderUserId: params.authUserId,
-          content: body,
-          attachmentsJson: [],
-          createdAt: now,
-          updatedAt: now,
-        },
-      });
-
-      await tx.messageReceipt.createMany({
-        data: participants.map((participant) => ({
-          id: newId('mrc'),
-          messageId: message.id,
-          userId: participant.userId,
-          deliveredAt: now,
-          readAt: participant.userId === params.authUserId ? now : null,
-          createdAt: now,
-          updatedAt: now,
-        })),
-        skipDuplicates: true,
-      });
-
-      await tx.messageParticipant.updateMany({
-        where: {
-          messageThreadId: params.messageThreadId,
-          userId: params.authUserId,
-          leftAt: null,
-        },
-        data: { lastReadAt: now },
-      });
-
-      await tx.messageThread.update({
-        where: { id: params.messageThreadId },
-        data: {
-          lastMessageAt: now,
-          updatedByUserId: params.authUserId,
-          version: { increment: 1 },
-        },
-      });
-
+      const messageId = newId('msg');
+      await Promise.all([
+        tx.message.create({
+          data: {
+            id: messageId,
+            messageThreadId: params.messageThreadId,
+            senderUserId: params.authUserId,
+            content: body,
+            attachmentsJson: [],
+            createdAt: now,
+            updatedAt: now,
+            receipts: {
+              createMany: {
+                data: participants.map((participant) => ({
+                  id: newId('mrc'),
+                  userId: participant.userId,
+                  deliveredAt: now,
+                  readAt: participant.userId === params.authUserId ? now : null,
+                  createdAt: now,
+                  updatedAt: now,
+                })),
+                skipDuplicates: true,
+              },
+            },
+          },
+        }),
+        tx.messageParticipant.updateMany({
+          where: {
+            messageThreadId: params.messageThreadId,
+            userId: params.authUserId,
+            leftAt: null,
+          },
+          data: {
+            lastReadAt: now,
+          },
+        }),
+        tx.messageThread.update({
+          where: {
+            id: params.messageThreadId,
+          },
+          data: {
+            lastMessageAt: now,
+            updatedByUserId: params.authUserId,
+            version: {
+              increment: 1,
+            },
+          },
+        }),
+      ]);
       const hydratedThread = await tx.messageThread.findUnique({
-        where: { id: params.messageThreadId },
+        where: {
+          id: params.messageThreadId,
+        },
         include: {
           participants: {
-            where: { leftAt: null },
+            where: {
+              leftAt: null,
+            },
           },
           messages: {
-            where: { deletedAt: null },
-            include: { receipts: true },
-            orderBy: { createdAt: 'asc' },
+            where: {
+              deletedAt: null,
+            },
+            include: {
+              receipts: true,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
           },
         },
       });
       if (!hydratedThread) {
-        throw notFound('Message thread not found', { threadId: params.messageThreadId });
+        throw notFound('Message thread not found', {
+          threadId: params.messageThreadId,
+        });
       }
-      const hydratedMessage = hydratedThread.messages.find((row) => row.id === message.id);
+      const hydratedMessage = hydratedThread.messages.find((row) => row.id === messageId);
       if (!hydratedMessage) {
-        throw notFound('Message not found', { messageId: message.id });
+        throw notFound('Message not found', {
+          messageId,
+        });
       }
-
-      response = {
+      const messageResponse: MessageMutationResult = {
         message: normalizeAs<SeedRow>(hydratedMessage),
         thread: normalizeAs<SeedRow>(hydratedThread),
         dataVersion: null,
       };
-
       if (params.idempotencyKey) {
         await tx.idempotencyKey.create({
           data: {
@@ -3324,35 +3459,35 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
             idempotencyKey: params.idempotencyKey,
             requestHash,
             responseStatus: 201,
-            responseBodyJson: response as never,
+            responseBodyJson: messageResponse as never,
             expiresAt: new Date(now.getTime() + IDEMPOTENCY_TTL_MS),
           },
         });
       }
+      return messageResponse;
     });
-
-    if (!response) {
-      throw notFound('Message was not created');
-    }
     return response;
   }
-
   async deleteMessage(params: MessageDeleteParams): Promise<MessageMutationResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.deleteMessage(params);
     }
-
     const prisma = getPrismaClientOrThrow();
     const message = await prisma.message.findUnique({
-      where: { id: params.messageId },
+      where: {
+        id: params.messageId,
+      },
     });
     if (!message) {
-      throw notFound('Message not found', { messageId: params.messageId });
+      throw notFound('Message not found', {
+        messageId: params.messageId,
+      });
     }
     if (message.deletedAt) {
-      throw conflict('Message is already deleted', { messageId: params.messageId });
+      throw conflict('Message is already deleted', {
+        messageId: params.messageId,
+      });
     }
-
     if (!params.isPrivilegedAdmin) {
       const participant = await prisma.messageParticipant.findFirst({
         where: {
@@ -3360,7 +3495,9 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
           userId: params.authUserId,
           leftAt: null,
         },
-        select: { id: true },
+        select: {
+          id: true,
+        },
       });
       if (!participant) {
         throw forbidden('Message thread does not belong to authenticated user', {
@@ -3373,57 +3510,63 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         });
       }
     }
-
     const now = new Date();
-    let deletedMessage: SeedRow | null = null;
-    await prisma.$transaction(async (tx) => {
-      const updated = await tx.message.update({
-        where: { id: params.messageId },
-        data: {
-          content: '[deleted]',
-          deletedAt: now,
-          updatedAt: now,
-        },
-        include: { receipts: true },
-      });
-
-      const latestMessage = await tx.message.findFirst({
-        where: {
-          messageThreadId: message.messageThreadId,
-          deletedAt: null,
-        },
-        orderBy: { createdAt: 'desc' },
-        select: { createdAt: true },
-      });
+    const deletedMessage = await prisma.$transaction(async (tx): Promise<SeedRow> => {
+      const [updated, latestMessage] = await Promise.all([
+        tx.message.update({
+          where: {
+            id: params.messageId,
+          },
+          data: {
+            content: '[deleted]',
+            deletedAt: now,
+            updatedAt: now,
+          },
+          include: {
+            receipts: true,
+          },
+        }),
+        tx.message.findFirst({
+          where: {
+            messageThreadId: message.messageThreadId,
+            id: {
+              not: params.messageId,
+            },
+            deletedAt: null,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          select: {
+            createdAt: true,
+          },
+        }),
+      ]);
       await tx.messageThread.update({
-        where: { id: message.messageThreadId },
+        where: {
+          id: message.messageThreadId,
+        },
         data: {
           lastMessageAt: latestMessage?.createdAt ?? null,
           updatedByUserId: params.authUserId,
-          version: { increment: 1 },
+          version: {
+            increment: 1,
+          },
         },
       });
-
-      deletedMessage = normalizeAs<SeedRow>(updated);
+      return normalizeAs<SeedRow>(updated);
     });
-
-    if (!deletedMessage) {
-      throw notFound('Message was not deleted');
-    }
     return {
       message: deletedMessage,
       thread: await this.getHydratedThread(message.messageThreadId),
       dataVersion: null,
     };
   }
-
   async markGroupMessagesRead(params: GroupMessageReadParams): Promise<GroupMessageReadResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.markGroupMessagesRead(params);
     }
-
     await this.assertCanWriteGroupMessages(params.communityGroupId, params.authUserId);
-
     const prisma = getPrismaClientOrThrow();
     const thread = await prisma.messageThread.findFirst({
       where: {
@@ -3431,12 +3574,16 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         threadType: 'GROUP',
         deletedAt: null,
       },
-      select: { id: true },
+      select: {
+        id: true,
+      },
     });
     if (!thread) {
-      return { thread: null, dataVersion: null };
+      return {
+        thread: null,
+        dataVersion: null,
+      };
     }
-
     const now = new Date();
     await prisma.$transaction(async (tx) => {
       const messages = await tx.message.findMany({
@@ -3444,55 +3591,56 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
           messageThreadId: thread.id,
           deletedAt: null,
         },
-        select: { id: true },
+        select: {
+          id: true,
+        },
       });
-
-      for (const message of messages) {
-        await tx.messageReceipt.upsert({
+      await Promise.all([
+        Promise.all(
+          messages.map((message) =>
+            tx.messageReceipt.upsert({
+              where: {
+                messageId_userId: {
+                  messageId: message.id,
+                  userId: params.authUserId,
+                },
+              },
+              create: {
+                id: newId('mrc'),
+                messageId: message.id,
+                userId: params.authUserId,
+                deliveredAt: now,
+                readAt: now,
+                createdAt: now,
+                updatedAt: now,
+              },
+              update: {
+                deliveredAt: now,
+                readAt: now,
+              },
+            }),
+          ),
+        ),
+        tx.messageParticipant.updateMany({
           where: {
-            messageId_userId: {
-              messageId: message.id,
-              userId: params.authUserId,
-            },
-          },
-          create: {
-            id: newId('mrc'),
-            messageId: message.id,
+            messageThreadId: thread.id,
             userId: params.authUserId,
-            deliveredAt: now,
-            readAt: now,
-            createdAt: now,
-            updatedAt: now,
+            leftAt: null,
           },
-          update: {
-            deliveredAt: now,
-            readAt: now,
+          data: {
+            lastReadAt: now,
           },
-        });
-      }
-
-      await tx.messageParticipant.updateMany({
-        where: {
-          messageThreadId: thread.id,
-          userId: params.authUserId,
-          leftAt: null,
-        },
-        data: {
-          lastReadAt: now,
-        },
-      });
+        }),
+      ]);
     });
-
     return {
       thread: await this.getHydratedThread(thread.id),
       dataVersion: null,
     };
   }
 }
-
 const seedRepository = new StoreCommunityMediaRepository(() => getMarketplaceSeedStore());
 const prismaRepository = new PrismaCommunityMediaRepository();
-
 export function resolveCommunityMediaRepository(): CommunityMediaRepository {
   return getApiDataBackend() === 'db' ? prismaRepository : seedRepository;
 }

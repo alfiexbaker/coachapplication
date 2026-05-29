@@ -67,8 +67,10 @@ interface AllowedReturnTarget {
 function parseAllowedReturnTargets(): AllowedReturnTarget[] {
   return (env.API_PAYMENT_ALLOWED_RETURN_ORIGINS ?? '')
     .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean)
+    .flatMap((value) => {
+      const trimmed = value.trim();
+      return trimmed ? [trimmed] : [];
+    })
     .map((value) => {
       try {
         const parsed = new URL(value);

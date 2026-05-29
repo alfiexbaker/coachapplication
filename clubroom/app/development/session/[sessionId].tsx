@@ -1,5 +1,4 @@
-import { StyleSheet, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -95,13 +94,10 @@ export default function SessionDetailScreen() {
   );
 
   const renderStateShell = (content: ReactNode) => (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {header}
       {content}
-    </SafeAreaView>
+    </View>
   );
 
   if (!resolvedSessionId) {
@@ -149,11 +145,8 @@ export default function SessionDetailScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
-    >
-      <ScrollView contentContainerStyle={styles.content}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
         <PageHeader
           title="Session Feedback"
           showBack
@@ -227,7 +220,11 @@ export default function SessionDetailScreen() {
           onPress={handleRaiseConcern}
           style={({ pressed }) => [
             styles.concernBtn,
-            { borderColor: colors.error, backgroundColor: colors.surface, opacity: pressed ? 0.85 : 1 },
+            {
+              borderColor: colors.error,
+              backgroundColor: colors.surface,
+              opacity: pressed ? 0.85 : 1,
+            },
           ]}
         >
           <Row align="center" justify="center" gap="xs">
@@ -249,7 +246,7 @@ export default function SessionDetailScreen() {
           <Row align="center" justify="center" gap="xs">
             {saving ? (
               <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>
-                Saving...
+                Saving…
               </ThemedText>
             ) : (
               <>
@@ -262,7 +259,7 @@ export default function SessionDetailScreen() {
           </Row>
         </Clickable>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

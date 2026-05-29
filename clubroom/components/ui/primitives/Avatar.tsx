@@ -11,7 +11,7 @@
  *   <Avatar uri={imageUrl} size="xl" />
  */
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, startTransition } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 
@@ -87,11 +87,25 @@ const INDICATOR_BORDER_MAP: Record<AvatarSize, number> = {
   xl: 3,
 };
 
+function clearRetryTimeout(ref: { current: ReturnType<typeof setTimeout> | null }) {
+  if (ref.current) {
+    clearTimeout(ref.current);
+    ref.current = null;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-function AvatarInner({ uri, name, size = 'md', online, isOnline, accessibilityLabel }: AvatarProps) {
+function AvatarInner({
+  uri,
+  name,
+  size = 'md',
+  online,
+  isOnline,
+  accessibilityLabel,
+}: AvatarProps) {
   const { colors } = useTheme();
   const [hasError, setHasError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -110,35 +124,33 @@ function AvatarInner({ uri, name, size = 'md', online, isOnline, accessibilityLa
       ? `${name}'s profile photo${isOnlineResolved ? ', online' : ''}`
       : `User profile photo${isOnlineResolved ? ', online' : ''}`);
 
+  // react-doctor-disable-next-line react-doctor/no-reset-all-state-on-prop-change -- image retry state must reset when the avatar URI changes.
   useEffect(() => {
-    if (retryTimeoutRef.current) {
-      clearTimeout(retryTimeoutRef.current);
-      retryTimeoutRef.current = null;
-    }
-    setHasError(false);
-    setRetryCount(0);
+    clearRetryTimeout(retryTimeoutRef);
+    startTransition(() => {
+      setHasError(false);
+    });
+    startTransition(() => {
+      setRetryCount(0);
+    });
   }, [uri]);
 
   useEffect(() => {
     return () => {
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
-        retryTimeoutRef.current = null;
-      }
+      clearRetryTimeout(retryTimeoutRef);
     };
   }, []);
 
-  const themedStyles = useMemo(
-    () => ({
-      image: { backgroundColor: colors.border },
-      placeholder: {
-        backgroundColor: withAlpha(colors.tint, 0.09),
-      },
-      initials: { color: colors.tint },
-      indicator: { borderColor: colors.surface },
-    }),
-    [colors],
-  );
+  const themedStyles = {
+    image: { backgroundColor: colors.border },
+
+    placeholder: {
+      backgroundColor: withAlpha(colors.tint, 0.09),
+    },
+
+    initials: { color: colors.tint },
+    indicator: { borderColor: colors.surface },
+  };
 
   const handleImageError = () => {
     if (!uri) {
@@ -167,7 +179,9 @@ function AvatarInner({ uri, name, size = 'md', online, isOnline, accessibilityLa
     >
       {showImage ? (
         <Image
-          source={{ uri: retryCount > 0 ? `${uri}${uri.includes('?') ? '&' : '?'}retry=${retryCount}` : uri }}
+          source={{
+            uri: retryCount > 0 ? `${uri}${uri.includes('?') ? '&' : '?'}retry=${retryCount}` : uri,
+          }}
           style={[
             themedStyles.image,
             {
@@ -229,7 +243,7 @@ function AvatarInner({ uri, name, size = 'md', online, isOnline, accessibilityLa
   );
 }
 
-export const Avatar = React.memo(AvatarInner);
+export const Avatar = AvatarInner;
 
 // ---------------------------------------------------------------------------
 // Styles (color-independent)

@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -13,16 +13,8 @@ import { Invoice } from '@/constants/types';
 import { invoiceService } from '@/services/invoice-service';
 import { userService } from '@/services/user-service';
 
-import { getStatusIcon, formatDate, CompactInvoiceRow, getInvoiceStatusColor } from './invoice-card-sections';
-
-// Re-export extracted components for backward compat
-export {
-  getStatusIcon,
-  formatDate,
-  formatShortDate,
-  CompactInvoiceRow,
-  getInvoiceStatusColor,
-} from './invoice-card-sections';
+import { CompactInvoiceRow } from './invoice-card-sections';
+import { getStatusIcon, formatDate, getInvoiceStatusColor } from './invoice-card-helpers';
 export type { CompactInvoiceRowProps } from './invoice-card-sections';
 
 interface InvoiceCardProps {
@@ -38,7 +30,7 @@ function getCachedUserLabel(id?: string, fallback = 'Unknown User'): string {
   return userNameCache.get(id) ?? 'Loading...';
 }
 
-export const InvoiceCard = memo(function InvoiceCard({ invoice, compact = false, onPress }: InvoiceCardProps) {
+export const InvoiceCard = function InvoiceCard({ invoice, compact = false, onPress }: InvoiceCardProps) {
   const { colors: palette } = useTheme();
   const statusColor = getInvoiceStatusColor(invoice.status, palette);
   const [athleteName, setAthleteName] = useState(() =>
@@ -87,10 +79,10 @@ export const InvoiceCard = memo(function InvoiceCard({ invoice, compact = false,
     };
   }, [invoice.athleteId, invoice.coachId]);
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     if (onPress) onPress();
     else router.push(Routes.invoice(invoice.id));
-  }, [invoice.id, onPress]);
+  };
 
   if (compact) {
     return <CompactInvoiceRow invoice={invoice} onPress={handlePress} palette={palette} />;
@@ -159,7 +151,7 @@ export const InvoiceCard = memo(function InvoiceCard({ invoice, compact = false,
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },

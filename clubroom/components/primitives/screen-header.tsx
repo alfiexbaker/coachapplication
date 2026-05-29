@@ -139,15 +139,3 @@ const styles = StyleSheet.create({
   },
   actionLabel: { ...Typography.smallSemiBold },
 });
-
-// SIMPLE TYPOGRAPHY - Same everywhere
-export const SCREEN_TYPOGRAPHY = {
-  // ALL headers use this - no exceptions
-  title: {
-    ...Typography.title,
-    letterSpacing: -0.3,
-  },
-  subtitle: {
-    ...Typography.caption,
-  },
-} as const;

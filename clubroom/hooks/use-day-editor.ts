@@ -1,16 +1,14 @@
 /**
  * useDayEditor — State, effects, validation, and handlers for DayEditorSheet.
  */
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { PanResponder, Dimensions, Platform } from 'react-native';
+import { useState, useEffect, useRef, startTransition } from 'react';
+import { PanResponder, Platform, useWindowDimensions } from 'react-native';
 import { useSharedValue, withTiming, runOnJS } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 import type { AvailabilityTemplate, AvailabilityOverride } from '@/constants/types';
 import type { DayEditorScope } from '@/components/coach/day-editor-sheet';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-export const SHEET_MAX_HEIGHT = Math.min(SCREEN_HEIGHT * 0.84, SCREEN_HEIGHT - 40);
 export const SHEET_FOOTER_HEIGHT = 108;
 
 export const DAYS_FULL = [
@@ -85,6 +83,7 @@ export function useDayEditor({
   onDeleteTemplate,
   onAddVenue,
 }: UseDayEditorParams) {
+  const { height } = useWindowDimensions();
   const dayName = DAYS_FULL[dayOfWeek];
 
   const [scope, setScope] = useState<DayEditorScope>(defaultScope ?? 'recurring');
@@ -96,83 +95,115 @@ export function useDayEditor({
   const [repeatWeeks, setRepeatWeeks] = useState(4);
 
   // Animation
-  const slideAnim = useSharedValue(SCREEN_HEIGHT);
+  const slideAnim = useSharedValue(height);
   const overlayOpacity = useSharedValue(0);
 
   // Sync form state
   useEffect(() => {
     if (!visible) return;
-    setScope(defaultScope ?? 'recurring');
+    startTransition(() => {
+      setScope(defaultScope ?? 'recurring');
+    });
 
     if (template) {
-      setStartTime(template.startTime);
-      setEndTime(template.endTime);
-      setLocation(template.location ?? '');
+      startTransition(() => {
+        setStartTime(template.startTime);
+      });
+      startTransition(() => {
+        setEndTime(template.endTime);
+      });
+      startTransition(() => {
+        setLocation(template.location ?? '');
+      });
     } else if (existingOverride?.customSlots?.length) {
       const slot = existingOverride.customSlots[0];
-      setStartTime(slot.startTime);
-      setEndTime(slot.endTime);
-      setLocation(slot.location ?? '');
+      startTransition(() => {
+        setStartTime(slot.startTime);
+      });
+      startTransition(() => {
+        setEndTime(slot.endTime);
+      });
+      startTransition(() => {
+        setLocation(slot.location ?? '');
+      });
     } else if (existingTemplatesForDay && existingTemplatesForDay.length > 0) {
-      const sorted = [...existingTemplatesForDay].sort((a, b) =>
+      const sorted = Array.from(existingTemplatesForDay).toSorted((a, b) =>
         a.endTime.localeCompare(b.endTime),
       );
       const lastEnd = sorted[sorted.length - 1].endTime;
       const lastEndMins = timeToMinutes(lastEnd);
       const smartStart = Math.min(lastEndMins + 15, 23 * 60 + 45);
       const smartEnd = Math.min(smartStart + 120, 24 * 60);
-      setStartTime(minutesToTime(smartStart));
-      setEndTime(minutesToTime(smartEnd));
-      setLocation('');
+      startTransition(() => {
+        setStartTime(minutesToTime(smartStart));
+      });
+      startTransition(() => {
+        setEndTime(minutesToTime(smartEnd));
+      });
+      startTransition(() => {
+        setLocation('');
+      });
     } else {
-      setStartTime('09:00');
-      setEndTime('17:00');
-      setLocation('');
+      startTransition(() => {
+        setStartTime('09:00');
+      });
+      startTransition(() => {
+        setEndTime('17:00');
+      });
+      startTransition(() => {
+        setLocation('');
+      });
     }
-    setShowAddVenueInput(false);
-    setNewVenueLabel('');
-    setRepeatWeeks(4);
+    startTransition(() => {
+      setShowAddVenueInput(false);
+    });
+    startTransition(() => {
+      setNewVenueLabel('');
+    });
+    startTransition(() => {
+      setRepeatWeeks(4);
+    });
   }, [visible, template, existingOverride, existingTemplatesForDay, defaultScope]);
 
   // Animate in/out
   useEffect(() => {
     if (visible) {
-      slideAnim.value = withTiming(0, { duration: 300 });
-      overlayOpacity.value = withTiming(1, { duration: 200 });
+      slideAnim.set(withTiming(0, { duration: 300 }));
+      overlayOpacity.set(withTiming(1, { duration: 200 }));
     } else {
-      slideAnim.value = withTiming(SCREEN_HEIGHT, { duration: 250 });
-      overlayOpacity.value = withTiming(0, { duration: 150 });
+      slideAnim.set(withTiming(height, { duration: 250 }));
+      overlayOpacity.set(withTiming(0, { duration: 150 }));
     }
-  }, [visible, slideAnim, overlayOpacity]);
+  }, [height, visible, slideAnim, overlayOpacity]);
 
   // Pan responder
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dy) > 5,
-      onPanResponderMove: (_, gesture) => {
-        if (gesture.dy > 0) slideAnim.value = gesture.dy;
-      },
-      onPanResponderRelease: (_, gesture) => {
-        if (gesture.dy > 80) {
-          slideAnim.value = withTiming(SCREEN_HEIGHT, { duration: 250 });
-          overlayOpacity.value = withTiming(0, { duration: 150 }, (finished) => {
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dy) > 5,
+    onPanResponderMove: (_, gesture) => {
+      if (gesture.dy > 0) slideAnim.set(gesture.dy);
+    },
+    onPanResponderRelease: (_, gesture) => {
+      if (gesture.dy > 80) {
+        slideAnim.set(withTiming(height, { duration: 250 }));
+        overlayOpacity.set(
+          withTiming(0, { duration: 150 }, (finished) => {
             if (finished) runOnJS(onClose)();
-          });
-        } else {
-          slideAnim.value = withTiming(0, { duration: 200 });
-        }
-      },
-    }),
-  ).current;
+          }),
+        );
+      } else {
+        slideAnim.set(withTiming(0, { duration: 200 }));
+      }
+    },
+  });
 
-  const isValid = useMemo(() => {
+  const isValid = (() => {
     const [startH, startM] = startTime.split(':').map(Number);
     const [endH, endM] = endTime.split(':').map(Number);
     return endH * 60 + endM > startH * 60 + startM;
-  }, [startTime, endTime]);
+  })();
 
-  const overlapWarning = useMemo(() => {
+  const overlapWarning = (() => {
     if (!existingTemplatesForDay || existingTemplatesForDay.length === 0) return null;
     const currentStart = timeToMinutes(startTime);
     const currentEnd = timeToMinutes(endTime);
@@ -188,11 +219,11 @@ export function useDayEditor({
       }
     }
     return null;
-  }, [startTime, endTime, existingTemplatesForDay, template]);
+  })();
 
   const isNewTimeBlock = !template && (existingTemplatesForDay?.length ?? 0) > 0;
 
-  const durationLabel = useMemo(() => {
+  const durationLabel = (() => {
     const [startH, startM] = startTime.split(':').map(Number);
     const [endH, endM] = endTime.split(':').map(Number);
     const mins = endH * 60 + endM - (startH * 60 + startM);
@@ -200,15 +231,15 @@ export function useDayEditor({
     const hours = Math.floor(mins / 60);
     const remainder = mins % 60;
     return remainder === 0 ? `${hours}h` : `${hours}h ${remainder}m`;
-  }, [startTime, endTime]);
+  })();
 
-  const formattedDate = useMemo(() => {
+  const formattedDate = (() => {
     if (!dateStr) return '';
     const d = new Date(dateStr + 'T00:00:00');
     return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  }, [dateStr]);
+  })();
 
-  const saveLabel = useMemo(() => {
+  const saveLabel = (() => {
     if (scope === 'recurring') {
       return `Save for Every ${dayName}`;
     }
@@ -216,26 +247,23 @@ export function useDayEditor({
       return `Save for ${repeatWeeks} Weeks`;
     }
     return `Save for This ${dayName}`;
-  }, [scope, dayName, repeatWeeks]);
+  })();
 
-  const handleStartTimeChange = useCallback(
-    (newTime: string) => {
-      setStartTime(newTime);
-      const [newStartH, newStartM] = newTime.split(':').map(Number);
-      const [currentEndH, currentEndM] = endTime.split(':').map(Number);
-      const newStartMins = newStartH * 60 + newStartM;
-      const currentEndMins = currentEndH * 60 + currentEndM;
-      if (currentEndMins <= newStartMins) {
-        const newEndMins = Math.min(newStartMins + 120, 20 * 60);
-        const h = Math.floor(newEndMins / 60);
-        const m = newEndMins % 60;
-        setEndTime(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
-      }
-    },
-    [endTime],
-  );
+  const handleStartTimeChange = (newTime: string) => {
+    setStartTime(newTime);
+    const [newStartH, newStartM] = newTime.split(':').map(Number);
+    const [currentEndH, currentEndM] = endTime.split(':').map(Number);
+    const newStartMins = newStartH * 60 + newStartM;
+    const currentEndMins = currentEndH * 60 + currentEndM;
+    if (currentEndMins <= newStartMins) {
+      const newEndMins = Math.min(newStartMins + 120, 20 * 60);
+      const h = Math.floor(newEndMins / 60);
+      const m = newEndMins % 60;
+      setEndTime(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+    }
+  };
 
-  const handleSave = useCallback(() => {
+  const handleSave = () => {
     if (!isValid) return;
     if (Platform.OS !== 'web')
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -253,43 +281,28 @@ export function useDayEditor({
         repeatWeeks,
       });
     }
-  }, [
-    isValid,
-    scope,
-    dayOfWeek,
-    startTime,
-    endTime,
-    location,
-    dateStr,
-    repeatWeeks,
-    onSaveRecurring,
-    onSaveOverride,
-    onSaveRepeatedOverride,
-  ]);
+  };
 
-  const handleDelete = useCallback(() => {
+  const handleDelete = () => {
     if (!template || !onDeleteTemplate) return;
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onDeleteTemplate(template.id);
-  }, [template, onDeleteTemplate]);
+  };
 
-  const handleAddVenue = useCallback(
-    (labelOverride?: string) => {
-      const nextLabel = (labelOverride ?? newVenueLabel).trim();
-      if (!nextLabel || !onAddVenue) return;
-      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      onAddVenue(nextLabel);
-      setLocation(nextLabel);
-      setNewVenueLabel('');
-      setShowAddVenueInput(false);
-    },
-    [newVenueLabel, onAddVenue],
-  );
+  const handleAddVenue = (labelOverride?: string) => {
+    const nextLabel = (labelOverride ?? newVenueLabel).trim();
+    if (!nextLabel || !onAddVenue) return;
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onAddVenue(nextLabel);
+    setLocation(nextLabel);
+    setNewVenueLabel('');
+    setShowAddVenueInput(false);
+  };
 
-  const handleScopeChange = useCallback((newScope: DayEditorScope) => {
+  const handleScopeChange = (newScope: DayEditorScope) => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setScope(newScope);
-  }, []);
+  };
 
   return {
     dayName,

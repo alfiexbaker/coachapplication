@@ -126,9 +126,8 @@ export default function MultiWeekScreen() {
                 onPress={c.handleShowConfirmation}
                 disabled={c.selectedWeeks.size === 0}
                 style={styles.footerButton}
-              >
-                {`Review ${c.selectedWeeks.size} Week${c.selectedWeeks.size !== 1 ? 's' : ''}`}
-              </Button>
+                label={`Review ${c.selectedWeeks.size} Week${c.selectedWeeks.size !== 1 ? 's' : ''}`}
+              />
             </View>
           ) : null}
         </>

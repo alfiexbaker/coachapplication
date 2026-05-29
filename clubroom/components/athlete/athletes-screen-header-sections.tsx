@@ -23,7 +23,7 @@ type HeaderProps = {
   onFilterChange: (value: FilterType) => void;
 };
 
-export const AthletesListHeader = React.memo(function AthletesListHeader({
+export const AthletesListHeader = function AthletesListHeader({
   colors,
   roster,
   searchQuery,
@@ -44,10 +44,7 @@ export const AthletesListHeader = React.memo(function AthletesListHeader({
   return (
     <View style={styles.headerContent}>
       <View
-        style={[
-          styles.controlsPanel,
-          { backgroundColor: colors.card, borderColor: colors.border },
-        ]}
+        style={[styles.controlsPanel, { backgroundColor: colors.card, borderColor: colors.border }]}
       >
         <Row
           style={[
@@ -107,9 +104,7 @@ export const AthletesListHeader = React.memo(function AthletesListHeader({
                       style={[
                         styles.filterCount,
                         {
-                          backgroundColor: selected
-                            ? 'transparent'
-                            : colors.card,
+                          backgroundColor: selected ? 'transparent' : colors.card,
                         },
                       ]}
                     >
@@ -131,13 +126,13 @@ export const AthletesListHeader = React.memo(function AthletesListHeader({
       </View>
     </View>
   );
-});
+};
 
 type EmptyProps = {
   colors: ThemeColors;
 };
 
-export const AthletesSearchEmptyState = React.memo(function AthletesSearchEmptyState({
+const renderAthletesSearchEmptyState = function renderAthletesSearchEmptyState({
   colors,
 }: EmptyProps) {
   return (
@@ -149,15 +144,20 @@ export const AthletesSearchEmptyState = React.memo(function AthletesSearchEmptyS
       </ThemedText>
     </View>
   );
-});
+};
+export const AthletesSearchEmptyState = renderAthletesSearchEmptyState;
 
-export const renderAthleteCard = ({
+// react-doctor-disable-next-line react-doctor/only-export-components -- public non-component export is intentional in this module boundary.
+const renderAthleteCardItem = function renderAthleteCardItem({
   item,
   upcomingSessions,
 }: {
   item: RosterEntry;
   upcomingSessions: Record<string, Booking>;
-}) => <AthleteCard athlete={item} upcomingSession={upcomingSessions[item.athleteId]} />;
+}) {
+  return <AthleteCard athlete={item} upcomingSession={upcomingSessions[item.athleteId]} />;
+};
+export const AthleteCardItem = renderAthleteCardItem;
 
 const styles = StyleSheet.create({
   headerContent: {

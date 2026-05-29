@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 
 import { useChildContext } from '@/hooks/use-child-context';
@@ -67,45 +67,22 @@ export function useChildProgress() {
     isParent,
   } = useChildContext();
 
-  const [activeTab, setActiveTab] = useState<ProgressTab>(paramTab);
-  const [selectedChildId, setSelectedChildId] = useState<string | undefined>(paramChildId);
-
-  useEffect(() => {
-    setActiveTab(paramTab);
-  }, [paramTab]);
+  const [selectedTab, setSelectedTab] = useState<ProgressTab | null>(null);
+  const [selectedChildId, setSelectedChildId] = useState<string | undefined>();
+  const activeTab = selectedTab ?? paramTab;
 
   // Derive switcher children from context
-  const switcherChildren = useMemo<SwitcherChild[]>(
-    () =>
-      contextChildren.map((c) => ({
-        id: c.id,
-        name: c.name,
-        initials: c.initials,
-        colorCode: c.colorCode,
-      })),
-    [contextChildren],
-  );
+  const switcherChildren = contextChildren.map((c) => ({
+    id: c.id,
+    name: c.name,
+    initials: c.initials,
+    colorCode: c.colorCode,
+  }));
 
-  // Default to context active child or param child or first child
-  useEffect(() => {
-    if (!selectedChildId || selectedChildId === paramChildId) {
-      const defaultId = contextActiveChildId || paramChildId || contextChildren[0]?.id;
-      if (defaultId) {
-        setSelectedChildId(defaultId);
-      }
-    }
-  }, [contextChildren, contextActiveChildId, paramChildId, selectedChildId]);
+  const effectiveChildId =
+    selectedChildId ?? contextActiveChildId ?? paramChildId ?? contextChildren[0]?.id;
 
-  const effectiveChildId = selectedChildId || paramChildId;
-
-  useEffect(() => {
-    if (!effectiveChildId || effectiveChildId === contextActiveChildId) {
-      return;
-    }
-    void setActiveChildId(effectiveChildId);
-  }, [effectiveChildId, contextActiveChildId, setActiveChildId]);
-
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     if (!effectiveChildId) {
       return err(serviceError('VALIDATION', 'Missing child id for progress screen.'));
     }
@@ -114,15 +91,14 @@ export function useChildProgress() {
       const contextChild = contextChildren.find((child) => child.id === effectiveChildId);
       const profile = await childService.getChild(effectiveChildId);
       const resolvedProfile = contextChild?.profile ?? profile ?? null;
-      const childData =
-        contextChild
-          ? { id: contextChild.id, name: contextChild.fullName || contextChild.name }
-          : resolvedProfile
-            ? {
-                id: resolvedProfile.id,
-                name: `${resolvedProfile.firstName} ${resolvedProfile.lastName}`.trim(),
-              }
-            : undefined;
+      const childData = contextChild
+        ? { id: contextChild.id, name: contextChild.fullName || contextChild.name }
+        : resolvedProfile
+          ? {
+              id: resolvedProfile.id,
+              name: `${resolvedProfile.firstName} ${resolvedProfile.lastName}`.trim(),
+            }
+          : undefined;
 
       const progressData = await progressService.getAthleteProgress(effectiveChildId, 'parent');
       progressData.athleteName = childData?.name || 'Athlete';
@@ -150,7 +126,7 @@ export function useChildProgress() {
       logger.error('Failed to load child progress', error);
       return err(serviceError('UNKNOWN', 'Failed to load child progress data.', error));
     }
-  }, [effectiveChildId, contextChildren]);
+  };
 
   const {
     data,
@@ -178,30 +154,27 @@ export function useChildProgress() {
   const progress = data?.progress ?? null;
   const feedback = data?.feedback ?? [];
   const badges = data?.badges ?? [];
+  const setActiveTab = (tab: ProgressTab) => {
+    setSelectedTab(tab);
+  };
 
-  const handleSelectChild = useCallback(
-    (childId: string) => {
-      setSelectedChildId(childId);
-      setActiveTab('profile');
-      void setActiveChildId(childId);
-    },
-    [setActiveChildId],
-  );
+  const handleSelectChild = (childId: string) => {
+    setSelectedChildId(childId);
+    setSelectedTab('profile');
+    void setActiveChildId(childId);
+  };
 
-  const getTrendInfo = useCallback(
-    (palette: { success: string; error: string; muted: string }) => {
-      if (!progress) return { icon: 'remove', color: palette.muted, label: 'No Data' };
-      switch (progress.overallTrend) {
-        case 'improving':
-          return { icon: 'trending-up', color: palette.success, label: 'Improving' };
-        case 'declining':
-          return { icon: 'trending-down', color: palette.error, label: 'Needs Attention' };
-        default:
-          return { icon: 'remove', color: palette.muted, label: 'Steady Progress' };
-      }
-    },
-    [progress],
-  );
+  const getTrendInfo = (palette: { success: string; error: string; muted: string }) => {
+    if (!progress) return { icon: 'remove', color: palette.muted, label: 'No Data' };
+    switch (progress.overallTrend) {
+      case 'improving':
+        return { icon: 'trending-up', color: palette.success, label: 'Improving' };
+      case 'declining':
+        return { icon: 'trending-down', color: palette.error, label: 'Needs Attention' };
+      default:
+        return { icon: 'remove', color: palette.muted, label: 'Steady Progress' };
+    }
+  };
 
   return {
     loading: status === 'loading',
@@ -250,9 +223,11 @@ export function useChildProgress() {
     activeTab: ProgressTab;
     setActiveTab: (tab: ProgressTab) => void;
     handleRefresh: () => void;
-    getTrendInfo: (
-      palette: { success: string; error: string; muted: string },
-    ) => { icon: string; color: string; label: string };
+    getTrendInfo: (palette: { success: string; error: string; muted: string }) => {
+      icon: string;
+      color: string;
+      label: string;
+    };
     switcherChildren: SwitcherChild[];
     selectedChildId: string | undefined;
     activeChildId: string | undefined;

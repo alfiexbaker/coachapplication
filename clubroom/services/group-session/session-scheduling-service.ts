@@ -10,34 +10,50 @@
  * - GET /v1/group-sessions?athleteId=X - Child training sessions
  */
 
-import { api } from '@/constants/config';
-import { createLogger } from '@/utils/logger';
-import { toDateStr } from '@/utils/format';
-import type { GroupSession, GroupSessionSchedule, RecurringPattern } from '@/constants/types';
-import { loadSessions } from './session-crud-service';
-import { loadRegistrations } from './session-registration-service';
-import { groupSessionAuthorityService } from './group-session-authority-service';
-
+import { api } from "@/constants/config";
+import { createLogger } from "@/utils/logger";
+import { toDateStr } from "@/utils/format";
+import type {
+  GroupSession,
+  GroupSessionSchedule,
+  RecurringPattern,
+} from "@/constants/types";
+import { loadSessions } from "./session-crud-service";
+import { loadRegistrations } from "./session-registration-service";
+import { groupSessionAuthorityService } from "./group-session-authority-service";
 const USE_MOCK = api.useMock;
-const _logger = createLogger('SessionSchedulingService');
+const _logger = createLogger("SessionSchedulingService");
 
 // Day of week labels
-const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const ACTIVE_CLUB_SESSION_STATUSES: GroupSession['status'][] = ['PUBLISHED', 'FULL'];
-
+const DAY_LABELS = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+const ACTIVE_CLUB_SESSION_STATUSES: GroupSession["status"][] = [
+  "PUBLISHED",
+  "FULL",
+];
 function isTrainingSession(session: GroupSession): boolean {
-  return session.sessionType === 'TRAINING' || session.sessionType === 'TEAM_TRAINING';
+  return (
+    session.sessionType === "TRAINING" ||
+    session.sessionType === "TEAM_TRAINING"
+  );
 }
-
-function getUpcomingScheduleEntry(session: GroupSession): GroupSessionSchedule | null {
+function getUpcomingScheduleEntry(
+  session: GroupSession,
+): GroupSessionSchedule | null {
   const today = toDateStr(new Date());
   return session.schedule.find((entry) => entry.date >= today) || null;
 }
-
 function sortSessionsByUpcomingDate(sessions: GroupSession[]): GroupSession[] {
   return sessions.sort((left, right) => {
-    const leftDate = getUpcomingScheduleEntry(left)?.date || '';
-    const rightDate = getUpcomingScheduleEntry(right)?.date || '';
+    const leftDate = getUpcomingScheduleEntry(left)?.date || "";
+    const rightDate = getUpcomingScheduleEntry(right)?.date || "";
     return leftDate.localeCompare(rightDate);
   });
 }
@@ -57,14 +73,15 @@ export const sessionSchedulingService = {
         sessionsCache.filter(
           (session) =>
             session.clubId === clubId &&
-            session.sessionType === 'TRAINING' &&
+            session.sessionType === "TRAINING" &&
             ACTIVE_CLUB_SESSION_STATUSES.includes(session.status) &&
             Boolean(getUpcomingScheduleEntry(session)),
         ),
       );
     }
-
-    const result = await groupSessionAuthorityService.listSessions({ clubId });
+    const result = await groupSessionAuthorityService.listSessions({
+      clubId,
+    });
     if (!result.success) {
       throw new Error(result.error.message);
     }
@@ -77,7 +94,6 @@ export const sessionSchedulingService = {
       ),
     );
   },
-
   /**
    * Get all upcoming club-linked group sessions that behave like training activities.
    *
@@ -96,8 +112,9 @@ export const sessionSchedulingService = {
         ),
       );
     }
-
-    const result = await groupSessionAuthorityService.listSessions({ clubId });
+    const result = await groupSessionAuthorityService.listSessions({
+      clubId,
+    });
     if (!result.success) {
       throw new Error(result.error.message);
     }
@@ -109,7 +126,6 @@ export const sessionSchedulingService = {
       ),
     );
   },
-
   /**
    * Get training sessions for a squad
    */
@@ -120,14 +136,15 @@ export const sessionSchedulingService = {
         sessionsCache.filter(
           (session) =>
             session.squadId === squadId &&
-            session.sessionType === 'TRAINING' &&
+            session.sessionType === "TRAINING" &&
             ACTIVE_CLUB_SESSION_STATUSES.includes(session.status) &&
             Boolean(getUpcomingScheduleEntry(session)),
         ),
       );
     }
-
-    const result = await groupSessionAuthorityService.listSessions({ squadId });
+    const result = await groupSessionAuthorityService.listSessions({
+      squadId,
+    });
     if (!result.success) {
       throw new Error(result.error.message);
     }
@@ -140,7 +157,6 @@ export const sessionSchedulingService = {
       ),
     );
   },
-
   /**
    * Get all upcoming training sessions (for parent's child)
    */
@@ -148,23 +164,24 @@ export const sessionSchedulingService = {
     if (USE_MOCK) {
       const registrationsCache = await loadRegistrations();
       const sessionsCache = await loadSessions();
-
-      const registeredSessionIds = registrationsCache
-        .filter((r) => r.athleteId === childId && r.status !== 'CANCELLED')
-        .map((r) => r.sessionId);
-
+      const registeredSessionIds = registrationsCache.flatMap((r) =>
+        r.athleteId === childId && r.status !== "CANCELLED"
+          ? [r.sessionId]
+          : [],
+      );
       return sortSessionsByUpcomingDate(
         sessionsCache.filter(
           (session) =>
             registeredSessionIds.includes(session.id) &&
-            session.sessionType === 'TRAINING' &&
+            session.sessionType === "TRAINING" &&
             ACTIVE_CLUB_SESSION_STATUSES.includes(session.status) &&
             Boolean(getUpcomingScheduleEntry(session)),
         ),
       );
     }
-
-    const result = await groupSessionAuthorityService.listSessions({ athleteId: childId });
+    const result = await groupSessionAuthorityService.listSessions({
+      athleteId: childId,
+    });
     if (!result.success) {
       throw new Error(result.error.message);
     }
@@ -177,14 +194,12 @@ export const sessionSchedulingService = {
       ),
     );
   },
-
   /**
    * Format day of week for display
    */
   formatDayOfWeek(day: number): string {
     return DAY_LABELS[day] || `Day ${day}`;
   },
-
   /**
    * Format recurring pattern for display
    */
@@ -192,7 +207,6 @@ export const sessionSchedulingService = {
     const day = DAY_LABELS[pattern.dayOfWeek];
     return `${day}s ${pattern.startTime} - ${pattern.endTime}`;
   },
-
   /**
    * Get next upcoming date for a training session
    */

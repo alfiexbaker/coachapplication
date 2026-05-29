@@ -1,23 +1,12 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
+import { DAYS_SHORT } from './availability-week-grid-helpers';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
-
-// ─── Constants ──────────────────────────────────────────────────
-
-export const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-export const HOURS = Array.from({ length: 13 }, (_, i) => i + 7); // 7am to 7pm
-
-export const formatHourLabel = (hour: number): string => {
-  if (hour === 12) return '12p';
-  if (hour > 12) return `${hour - 12}p`;
-  return `${hour}a`;
-};
 
 // ─── GridLegend ─────────────────────────────────────────────────
 
@@ -25,7 +14,7 @@ export interface GridLegendProps {
   palette: ThemeColors;
 }
 
-export const GridLegend = memo(function GridLegend({ palette }: GridLegendProps) {
+export const GridLegend = function GridLegend({ palette }: GridLegendProps) {
   return (
     <Row style={styles.legendRow}>
       <View style={[styles.legendDot, { backgroundColor: palette.success }]} />
@@ -33,7 +22,7 @@ export const GridLegend = memo(function GridLegend({ palette }: GridLegendProps)
       <ThemedText style={[styles.legendHint, { color: palette.muted }]}>Tap to toggle</ThemedText>
     </Row>
   );
-});
+};
 
 // ─── DayColumnHeaders ───────────────────────────────────────────
 
@@ -43,7 +32,7 @@ export interface DayColumnHeadersProps {
   palette: ThemeColors;
 }
 
-export const DayColumnHeaders = memo(function DayColumnHeaders({
+export const DayColumnHeaders = function DayColumnHeaders({
   todayIndex,
   dayCounts,
   palette,
@@ -73,7 +62,7 @@ export const DayColumnHeaders = memo(function DayColumnHeaders({
       })}
     </Row>
   );
-});
+};
 
 // ─── Styles ─────────────────────────────────────────────────────
 

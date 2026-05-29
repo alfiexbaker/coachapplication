@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from 'react';
+import { useState } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -198,7 +198,7 @@ export default function BookingsScreen() {
 
 // ─── Segment Control ──────────────────────────────────────────────
 
-const SegmentControl = memo(function SegmentControl({
+const SegmentControl = function SegmentControl({
   activeTab,
   onTabChange,
 }: {
@@ -207,16 +207,13 @@ const SegmentControl = memo(function SegmentControl({
 }) {
   const { colors: palette } = useTheme();
 
-  const handlePress = useCallback(
-    (tab: BookingsTab) => {
-      if (tab === activeTab) return;
-      if (Platform.OS !== 'web') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      }
-      onTabChange(tab);
-    },
-    [activeTab, onTabChange],
-  );
+  const handlePress = (tab: BookingsTab) => {
+    if (tab === activeTab) return;
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    onTabChange(tab);
+  };
 
   return (
     <Row gap="xs" style={styles.segmentRow}>
@@ -264,11 +261,11 @@ const SegmentControl = memo(function SegmentControl({
       </Clickable>
     </Row>
   );
-});
+};
 
 // ─── Create Pills (Coach only) ───────────────────────────────────
 
-const CreatePills = memo(function CreatePills({
+const CreatePills = function CreatePills({
   onDirectPress,
   onGroupPress,
 }: {
@@ -300,7 +297,7 @@ const CreatePills = memo(function CreatePills({
       </Clickable>
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: {

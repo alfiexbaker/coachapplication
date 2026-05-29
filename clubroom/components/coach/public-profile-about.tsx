@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
@@ -20,7 +20,7 @@ interface PublicProfileAboutProps {
   onBook: () => void;
 }
 
-export const PublicProfileAbout = memo(function PublicProfileAbout({
+export const PublicProfileAbout = function PublicProfileAbout({
   coach,
   sessionOfferings,
   offeringSummary,
@@ -52,7 +52,7 @@ export const PublicProfileAbout = memo(function PublicProfileAbout({
       />
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: { padding: Spacing.md, gap: Spacing.md },

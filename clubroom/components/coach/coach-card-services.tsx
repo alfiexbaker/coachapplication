@@ -12,16 +12,15 @@ import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/useTheme';
 
 import {
-  formatPrice,
   SpecialtyTags,
   FocusBadge,
   InlinePrice,
 } from './coach-card-services-sections';
+import { formatPrice } from './coach-card-services-helpers';
 import { Row } from '@/components/primitives';
 
 // Re-export extracted components for backward compat
 export {
-  formatPrice,
   SpecialtyTags,
   FocusBadge,
   InlinePrice,

@@ -3,7 +3,7 @@
  * Manages all state, data loading, and handlers for the unified athlete detail view.
  */
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Platform } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -86,85 +86,70 @@ export function useAthleteDetail(athleteId: string) {
     dataKey: athleteId ?? null,
   });
 
-  const handleUpdateStatus = useCallback(
-    async (newStatus: RosterEntry['status']) => {
-      if (!data?.entry) return;
-      await rosterService.updateStatus(coachId, data.entry.athleteId, newStatus);
-      setShowStatusModal(false);
-      onRefresh();
-    },
-    [coachId, data, onRefresh],
-  );
+  const handleUpdateStatus = async (newStatus: RosterEntry['status']) => {
+    if (!data?.entry) return;
+    await rosterService.updateStatus(coachId, data.entry.athleteId, newStatus);
+    setShowStatusModal(false);
+    onRefresh();
+  };
 
-  const handleUpdateFocus = useCallback(
-    async (focus: FootballObjective) => {
-      if (!data?.entry) return;
-      await rosterService.updatePrimaryFocus(coachId, data.entry.athleteId, focus);
-      onRefresh();
-    },
-    [coachId, data, onRefresh],
-  );
+  const handleUpdateFocus = async (focus: FootballObjective) => {
+    if (!data?.entry) return;
+    await rosterService.updatePrimaryFocus(coachId, data.entry.athleteId, focus);
+    onRefresh();
+  };
 
-  const handleAddNote = useCallback(
-    async (content: string) => {
-      if (!data?.entry) return;
-      await rosterService.addNote(coachId, data.entry.athleteId, content);
-      onRefresh();
-    },
-    [coachId, data, onRefresh],
-  );
+  const handleAddNote = async (content: string) => {
+    if (!data?.entry) return;
+    await rosterService.addNote(coachId, data.entry.athleteId, content);
+    onRefresh();
+  };
 
-  const handleDeleteNote = useCallback(
-    async (noteId: string) => {
-      if (!data?.entry) return;
-      uiFeedback.alert('Delete Note', 'Are you sure?', [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            await rosterService.deleteNote(coachId, data.entry.athleteId, noteId);
-            onRefresh();
-          },
+  const handleDeleteNote = async (noteId: string) => {
+    if (!data?.entry) return;
+    uiFeedback.alert('Delete Note', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await rosterService.deleteNote(coachId, data.entry.athleteId, noteId);
+          onRefresh();
         },
-      ]);
-    },
-    [coachId, data, onRefresh],
-  );
+      },
+    ]);
+  };
 
-  const handleTagRemove = useCallback(
-    async (tag: string) => {
-      if (!data?.entry) return;
-      const tags = data.entry.tags.filter((t) => t !== tag);
-      await rosterService.updateTags(coachId, data.entry.athleteId, tags);
-      onRefresh();
-    },
-    [coachId, data, onRefresh],
-  );
+  const handleTagRemove = async (tag: string) => {
+    if (!data?.entry) return;
+    const tags = data.entry.tags.filter((t) => t !== tag);
+    await rosterService.updateTags(coachId, data.entry.athleteId, tags);
+    onRefresh();
+  };
 
-  const handleTagAdd = useCallback(() => setShowTagsModal(true), []);
+  const handleTagAdd = () => setShowTagsModal(true);
 
-  const handleAddTagSubmit = useCallback(async () => {
+  const handleAddTagSubmit = async () => {
     if (!data?.entry || !newTag.trim()) return;
     const tags = [...data.entry.tags, newTag.trim().toLowerCase()];
     await rosterService.updateTags(coachId, data.entry.athleteId, tags);
     setNewTag('');
     setShowTagsModal(false);
     onRefresh();
-  }, [coachId, data, newTag, onRefresh]);
+  };
 
-  const handleRaiseConcern = useCallback(() => {
+  const handleRaiseConcern = () => {
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
     router.push(Routes.rosterAthleteConcern(athleteId));
-  }, [athleteId]);
+  };
 
-  const handleOpenHealth = useCallback(() => {
+  const handleOpenHealth = () => {
     router.push(Routes.rosterAthleteHealth(athleteId));
-  }, [athleteId]);
+  };
 
-  const handleBlockFamily = useCallback(async () => {
+  const handleBlockFamily = async () => {
     if (!data?.entry?.parentId) {
       uiFeedback.showToast('No family contact is linked to this athlete.', 'error');
       return;
@@ -172,9 +157,9 @@ export function useAthleteDetail(athleteId: string) {
 
     const familyLabel = data.entry.parentName?.trim() || `${getRosterAthleteName(data.entry)}'s family`;
     await blockUser(data.entry.parentId, familyLabel);
-  }, [blockUser, data?.entry]);
+  };
 
-  const handleRemove = useCallback(() => {
+  const handleRemove = () => {
     if (!data?.entry) return;
     const athleteName = getRosterAthleteName(data.entry);
     uiFeedback.alert(
@@ -192,14 +177,14 @@ export function useAthleteDetail(athleteId: string) {
         },
       ],
     );
-  }, [coachId, data]);
+  };
 
-  const openStatusModal = useCallback(() => setShowStatusModal(true), []);
-  const closeStatusModal = useCallback(() => setShowStatusModal(false), []);
-  const closeTagsModal = useCallback(() => {
+  const openStatusModal = () => setShowStatusModal(true);
+  const closeStatusModal = () => setShowStatusModal(false);
+  const closeTagsModal = () => {
     setShowTagsModal(false);
     setNewTag('');
-  }, []);
+  };
 
   return {
     coachId,

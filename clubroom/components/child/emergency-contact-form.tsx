@@ -1,4 +1,4 @@
-import { memo, useState, useCallback } from 'react';
+import { useState } from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -33,7 +33,7 @@ interface EmergencyContactFormProps {
   onCancel: () => void;
 }
 
-export const EmergencyContactForm = memo(function EmergencyContactForm({
+export const EmergencyContactForm = function EmergencyContactForm({
   contact,
   onSave,
   onCancel,
@@ -50,30 +50,30 @@ export const EmergencyContactForm = memo(function EmergencyContactForm({
 
   const isValid = name.trim() && relationship.trim() && phone.trim() && !phoneError && !emailError;
 
-  const handlePhoneChange = useCallback((text: string) => {
+  const handlePhoneChange = (text: string) => {
     const sanitized = text.replace(/[^0-9\s+()-]/g, '');
     setPhone(sanitized);
     if (phoneError) setPhoneError(undefined);
-  }, [phoneError]);
+  };
 
-  const handlePhoneBlur = useCallback(() => {
+  const handlePhoneBlur = () => {
     if (phone.trim() && !validateUKPhone(phone)) {
       setPhoneError('Please enter a valid UK phone number');
     }
-  }, [phone]);
+  };
 
-  const handleEmailChange = useCallback((text: string) => {
+  const handleEmailChange = (text: string) => {
     setEmail(text.trim().toLowerCase());
     if (emailError) setEmailError(undefined);
-  }, [emailError]);
+  };
 
-  const handleEmailBlur = useCallback(() => {
+  const handleEmailBlur = () => {
     if (email.trim() && !validateEmail(email)) {
       setEmailError('Please enter a valid email address');
     }
-  }, [email]);
+  };
 
-  const handleSave = useCallback(() => {
+  const handleSave = () => {
     const errors: string[] = [];
     if (!name.trim()) errors.push('Name is required');
     if (!relationship.trim()) errors.push('Relationship is required');
@@ -94,7 +94,7 @@ export const EmergencyContactForm = memo(function EmergencyContactForm({
       canPickup,
       isPrimary,
     });
-  }, [name, relationship, phone, email, canPickup, isPrimary, onSave]);
+  };
 
   const inputStyle = [styles.input, { borderColor: colors.border, color: colors.text }];
 
@@ -202,12 +202,10 @@ export const EmergencyContactForm = memo(function EmergencyContactForm({
         />
       )}
 
-      <Button onPress={handleSave} disabled={!isValid}>
-        {contact ? 'Save Changes' : 'Add Contact'}
-      </Button>
+      <Button onPress={handleSave} disabled={!isValid} label={contact ? 'Save Changes' : 'Add Contact'} />
     </SurfaceCard>
   );
-});
+};
 
 function ToggleRow({
   label,

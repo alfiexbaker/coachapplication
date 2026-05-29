@@ -140,9 +140,7 @@ export default function CoachProfileScreen() {
                 ))}
               </Row>
             </View>
-            <Button onPress={() => void p.handleBlock()} variant="outline">
-              Block Coach
-            </Button>
+            <Button onPress={() => void p.handleBlock()} variant="outline" label="Block Coach" />
           </View>
         ) : null}
 
@@ -232,9 +230,7 @@ export default function CoachProfileScreen() {
               £{p.coach.minPrice}
             </ThemedText>
           </View>
-          <Button onPress={p.handleBook} style={{ flex: 1 }} disabled={p.isBlocked}>
-            Book Session
-          </Button>
+          <Button onPress={p.handleBook} style={{ flex: 1 }} disabled={p.isBlocked} label="Book Session" />
         </Row>
       )}
     </>,

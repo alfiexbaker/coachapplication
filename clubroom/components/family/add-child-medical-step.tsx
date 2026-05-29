@@ -148,5 +148,5 @@ function AddChildMedicalStepInner(props: AddChildMedicalStepProps) {
 
 // ─── Exports ────────────────────────────────────────────────────
 
-export const AddChildMedicalStep = React.memo(AddChildMedicalStepInner);
+export const AddChildMedicalStep = AddChildMedicalStepInner;
 export default AddChildMedicalStep;

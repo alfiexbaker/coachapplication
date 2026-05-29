@@ -1,15 +1,4 @@
-/**
- * Extracted sub-components for FeedFilters.
- *
- * FEED_FILTERS — filter definitions.
- * FilterTabsContent — horizontal filter tabs.
- * ClubPillRow — club pill row with overflow.
- * EmptyFeedNoClubs — empty state when user has no clubs.
- * EmptyFeedFiltered — empty state when filter yields no posts.
- */
-
-import { memo } from 'react';
-import { ScrollView, View } from 'react-native';
+import { FlatList, View, type ListRenderItemInfo } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -22,18 +11,7 @@ import type { ThemeColors } from '@/hooks/useTheme';
 import type { Club } from '@/constants/types';
 import type { FeedFilter } from './feed-filters';
 import { styles } from './feed-filters-styles';
-
-// ─── Constants ───────────────────────────────────────────────────────────────
-
-export const FEED_FILTERS: { key: FeedFilter; label: string; icon: string }[] = [
-  { key: 'all', label: 'All', icon: 'grid-outline' },
-  { key: 'session_announcement', label: 'Sessions', icon: 'fitness-outline' },
-  { key: 'announcement', label: 'Announcements', icon: 'megaphone-outline' },
-  { key: 'achievement', label: 'Achievements', icon: 'trophy-outline' },
-  { key: 'photo', label: 'Photos', icon: 'images-outline' },
-  { key: 'video', label: 'Videos', icon: 'videocam-outline' },
-  { key: 'event', label: 'Events', icon: 'calendar-outline' },
-];
+import { FEED_FILTERS } from './feed-filters-helpers';
 
 // ─── FilterTabsContent ───────────────────────────────────────────────────────
 
@@ -43,44 +21,76 @@ interface FilterTabsContentProps {
   palette: ThemeColors;
 }
 
-export const FilterTabsContent = memo(function FilterTabsContent({
+export const FilterTabsContent = function FilterTabsContent({
   activeFilter,
   onFilterChange,
   palette,
 }: FilterTabsContentProps) {
+  const filterItems = getFeedFilterTabItems(activeFilter, onFilterChange, palette);
+
   return (
-    <ScrollView
+    <FlatList
       horizontal
+      data={filterItems}
+      keyExtractor={keyFeedFilterTabItem}
+      renderItem={renderFeedFilterTabItem}
       showsHorizontalScrollIndicator={false}
       style={styles.filterScroll}
       contentContainerStyle={styles.filterContainer}
-    >
-      {FEED_FILTERS.map((filter) => (
-        <Clickable
-          key={filter.key}
-          style={[
-            styles.filterTab,
-            activeFilter === filter.key && {
-              backgroundColor: withAlpha(palette.tint, 0.09),
-              borderColor: palette.tint,
-            },
-            { borderColor: palette.border },
-          ]}
-          onPress={() => onFilterChange(filter.key)}
-        >
-          <ThemedText
-            style={[
-              styles.filterLabel,
-              { color: activeFilter === filter.key ? palette.tint : palette.muted },
-            ]}
-          >
-            {filter.label}
-          </ThemedText>
-        </Clickable>
-      ))}
-    </ScrollView>
+    />
   );
-});
+};
+
+interface FeedFilterTabItem {
+  key: FeedFilter;
+  label: string;
+  isActive: boolean;
+  palette: ThemeColors;
+  onPress: () => void;
+}
+
+function getFeedFilterTabItems(
+  activeFilter: FeedFilter,
+  onFilterChange: (filter: FeedFilter) => void,
+  palette: ThemeColors,
+): FeedFilterTabItem[] {
+  return FEED_FILTERS.map((filter) => ({
+    key: filter.key,
+    label: filter.label,
+    isActive: activeFilter === filter.key,
+    palette,
+    onPress: () => onFilterChange(filter.key),
+  }));
+}
+
+function keyFeedFilterTabItem(item: FeedFilterTabItem) {
+  return item.key;
+}
+
+function renderFeedFilterTabItem({ item }: ListRenderItemInfo<FeedFilterTabItem>) {
+  return (
+    <Clickable
+      style={[
+        styles.filterTab,
+        item.isActive && {
+          backgroundColor: withAlpha(item.palette.tint, 0.09),
+          borderColor: item.palette.tint,
+        },
+        { borderColor: item.palette.border },
+      ]}
+      onPress={item.onPress}
+    >
+      <ThemedText
+        style={[
+          styles.filterLabel,
+          { color: item.isActive ? item.palette.tint : item.palette.muted },
+        ]}
+      >
+        {item.label}
+      </ThemedText>
+    </Clickable>
+  );
+}
 
 // ─── ClubPillRow ─────────────────────────────────────────────────────────────
 
@@ -89,7 +99,7 @@ interface ClubPillRowProps {
   palette: ThemeColors;
 }
 
-export const ClubPillRow = memo(function ClubPillRow({ clubs, palette }: ClubPillRowProps) {
+export const ClubPillRow = function ClubPillRow({ clubs, palette }: ClubPillRowProps) {
   if (clubs.length === 0) return null;
 
   return (
@@ -131,7 +141,7 @@ export const ClubPillRow = memo(function ClubPillRow({ clubs, palette }: ClubPil
       )}
     </Row>
   );
-});
+};
 
 // ─── EmptyFeedNoClubs ────────────────────────────────────────────────────────
 
@@ -140,7 +150,7 @@ interface EmptyFeedNoClubsProps {
   palette: ThemeColors;
 }
 
-export const EmptyFeedNoClubs = memo(function EmptyFeedNoClubs({
+export const EmptyFeedNoClubs = function EmptyFeedNoClubs({
   isCoach,
   palette,
 }: EmptyFeedNoClubsProps) {
@@ -183,7 +193,7 @@ export const EmptyFeedNoClubs = memo(function EmptyFeedNoClubs({
       </Row>
     </View>
   );
-});
+};
 
 // ─── EmptyFeedFiltered ───────────────────────────────────────────────────────
 
@@ -192,7 +202,7 @@ interface EmptyFeedFilteredProps {
   palette: ThemeColors;
 }
 
-export const EmptyFeedFiltered = memo(function EmptyFeedFiltered({
+export const EmptyFeedFiltered = function EmptyFeedFiltered({
   filter,
   palette,
 }: EmptyFeedFilteredProps) {
@@ -212,6 +222,4 @@ export const EmptyFeedFiltered = memo(function EmptyFeedFiltered({
       </ThemedText>
     </View>
   );
-});
-
-export { styles };
+};

@@ -551,9 +551,10 @@ export abstract class BaseService<T extends BaseEntity> {
       const data = await this.loadFromStorage();
       const now = new Date().toISOString();
       let deletedCount = 0;
+      const idSet = new Set(ids);
 
       for (let i = 0; i < data.length; i++) {
-        if (ids.includes(data[i].id) && !data[i].deletedAt) {
+        if (idSet.has(data[i].id) && !data[i].deletedAt) {
           data[i] = {
             ...data[i],
             deletedAt: now,

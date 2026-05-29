@@ -1,6 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef, startTransition } from 'react';
 import {
-  View, StyleSheet, Modal, TextInput, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+  View,
+  StyleSheet,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Clickable } from '@/components/primitives/clickable';
@@ -8,13 +15,8 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { SessionTemplate, SessionType } from '@/constants/session-types';
-import {
-  DURATION_OPTIONS,
-  TYPE_OPTIONS,
-  SegmentSelector,
-  CapacityStepper,
-  PriceInput,
-} from './session-type-modal-sections';
+import { SegmentSelector, CapacityStepper, PriceInput } from './session-type-modal-sections';
+import { DURATION_OPTIONS, TYPE_OPTIONS } from './session-type-modal-helpers';
 import { Row } from '@/components/primitives';
 import { uiFeedback } from '@/services/ui-feedback';
 interface SessionTypeModalProps {
@@ -31,6 +33,75 @@ interface SessionTypeModalProps {
   onDelete?: () => void;
   existing?: SessionTemplate | null;
 }
+
+interface SessionTypeFormSetters {
+  setName: (value: string) => void;
+  setType: (value: SessionType) => void;
+  setDuration: (value: number) => void;
+  setCapacity: (value: number) => void;
+  setPrice: (value: string) => void;
+  setDescription: (value: string) => void;
+}
+
+interface CapacityManualRef {
+  current: boolean;
+}
+
+function resetSessionTypeForm(
+  setters: SessionTypeFormSetters,
+  capacityManuallySetRef: CapacityManualRef,
+) {
+  startTransition(() => {
+    setters.setName('');
+  });
+  startTransition(() => {
+    setters.setType('1-to-1');
+  });
+  startTransition(() => {
+    setters.setDuration(60);
+  });
+  startTransition(() => {
+    setters.setCapacity(1);
+  });
+  startTransition(() => {
+    setters.setPrice('');
+  });
+  startTransition(() => {
+    setters.setDescription('');
+  });
+  startTransition(() => {
+    capacityManuallySetRef.current = false;
+  });
+}
+
+function populateSessionTypeForm(
+  existing: SessionTemplate,
+  setters: SessionTypeFormSetters,
+  capacityManuallySetRef: CapacityManualRef,
+) {
+  startTransition(() => {
+    setters.setName(existing.name);
+  });
+  startTransition(() => {
+    setters.setType(existing.type);
+  });
+  startTransition(() => {
+    setters.setDuration(existing.duration);
+  });
+  startTransition(() => {
+    setters.setCapacity(existing.capacity);
+  });
+  startTransition(() => {
+    setters.setPrice(existing.defaultPrice > 0 ? String(existing.defaultPrice) : '');
+  });
+  startTransition(() => {
+    setters.setDescription(existing.description || '');
+  });
+  startTransition(() => {
+    capacityManuallySetRef.current = true;
+  });
+}
+
 export function SessionTypeModal({
   visible,
   onClose,
@@ -45,40 +116,35 @@ export function SessionTypeModal({
   const [capacity, setCapacity] = useState(1);
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
-  const [capacityManuallySet, setCapacityManuallySet] = useState(false);
-  const resetForm = useCallback(() => {
-    setName('');
-    setType('1-to-1');
-    setDuration(60);
-    setCapacity(1);
-    setPrice('');
-    setDescription('');
-    setCapacityManuallySet(false);
-  }, []);
+  const capacityManuallySetRef = useRef(false);
 
   useEffect(() => {
+    const setters = {
+      setName,
+      setType,
+      setDuration,
+      setCapacity,
+      setPrice,
+      setDescription,
+    };
+
     if (visible) {
       if (existing) {
-        setName(existing.name);
-        setType(existing.type);
-        setDuration(existing.duration);
-        setCapacity(existing.capacity);
-        setPrice(existing.defaultPrice > 0 ? String(existing.defaultPrice) : '');
-        setDescription(existing.description || '');
-        setCapacityManuallySet(true);
+        populateSessionTypeForm(existing, setters, capacityManuallySetRef);
       } else {
-        resetForm();
+        resetSessionTypeForm(setters, capacityManuallySetRef);
       }
     } else {
-      resetForm();
+      resetSessionTypeForm(setters, capacityManuallySetRef);
     }
-  }, [visible, existing, resetForm]);
+  }, [visible, existing]);
   const trimmedName = name.trim();
   const isValid = trimmedName.length >= 3;
   const handleSave = () => {
     if (!isValid) return;
     Keyboard.dismiss();
-    if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (Platform.OS !== 'web')
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onSave({
       name: name.trim(),
       type,
@@ -99,7 +165,8 @@ export function SessionTypeModal({
         text: 'Delete',
         style: 'destructive',
         onPress: () => {
-          if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          if (Platform.OS !== 'web')
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
           onDelete?.();
         },
       },
@@ -113,7 +180,11 @@ export function SessionTypeModal({
       return;
     }
     setType(key);
-    if ((key === 'small-group' || key === 'clinic') && capacity === 1 && !capacityManuallySet) {
+    if (
+      (key === 'small-group' || key === 'clinic') &&
+      capacity === 1 &&
+      !capacityManuallySetRef.current
+    ) {
       setCapacity(8);
     }
   };
@@ -182,7 +253,7 @@ export function SessionTypeModal({
             <CapacityStepper
               value={capacity}
               onChange={(next) => {
-                setCapacityManuallySet(true);
+                capacityManuallySetRef.current = true;
                 setCapacity(next);
               }}
               palette={palette}

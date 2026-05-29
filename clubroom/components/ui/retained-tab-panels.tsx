@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, startTransition } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 export interface RetainedTabPanel<T extends string> {
@@ -21,13 +21,15 @@ export function RetainedTabPanels<T extends string>({
   const [visitedTabs, setVisitedTabs] = useState<Set<T>>(() => new Set([activeTab]));
 
   useEffect(() => {
-    setVisitedTabs((current) => {
-      if (current.has(activeTab)) {
-        return current;
-      }
-      const next = new Set(current);
-      next.add(activeTab);
-      return next;
+    startTransition(() => {
+      setVisitedTabs((current) => {
+        if (current.has(activeTab)) {
+          return current;
+        }
+        const next = new Set(current);
+        next.add(activeTab);
+        return next;
+      });
     });
   }, [activeTab]);
 

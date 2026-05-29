@@ -244,9 +244,7 @@ export default function MedicalInfoScreen() {
           ))}
         </SurfaceCard>
 
-        <Button onPress={handleSave} disabled={saving}>
-          {saving ? 'Saving...' : 'Save Medical Information'}
-        </Button>
+        <Button onPress={handleSave} disabled={saving} label={saving ? 'Saving...' : 'Save Medical Information'} />
       </ScrollView>
     </ChildScreenState>
   );

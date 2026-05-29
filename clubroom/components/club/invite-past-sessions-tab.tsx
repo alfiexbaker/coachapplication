@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -20,7 +19,7 @@ interface InvitePastSessionsTabProps {
   onSelectAll: () => void;
 }
 
-export const InvitePastSessionsTab = memo(function InvitePastSessionsTab({
+export const InvitePastSessionsTab = function InvitePastSessionsTab({
   searchQuery,
   onSearchChange,
   filteredUsers,
@@ -148,7 +147,7 @@ export const InvitePastSessionsTab = memo(function InvitePastSessionsTab({
       )}
     </>
   );
-});
+};
 
 const styles = StyleSheet.create({
   searchContainer: {

@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -20,7 +20,7 @@ interface EmergencyDetailsProps {
   onCallDoctor: () => void;
 }
 
-export const EmergencyDetails = memo(function EmergencyDetails({
+export const EmergencyDetails = function EmergencyDetails({
   data,
   onCallContact,
   onCallDoctor,
@@ -42,14 +42,14 @@ export const EmergencyDetails = memo(function EmergencyDetails({
               <ThemedText type="defaultSemiBold">Medical Alerts</ThemedText>
             </Row>
             <Row wrap gap="xs">
-              {data.allergies.map((a, i) => (
-                <MedicalAlertBadge key={`allergy-${i}`} type="allergy" label={a} />
+              {data.allergies.map((a) => (
+                <MedicalAlertBadge key={`allergy-${a}`} type="allergy" label={a} />
               ))}
-              {data.conditions.map((c, i) => (
-                <MedicalAlertBadge key={`condition-${i}`} type="condition" label={c} />
+              {data.conditions.map((c) => (
+                <MedicalAlertBadge key={`condition-${c}`} type="condition" label={c} />
               ))}
-              {data.medications.map((m, i) => (
-                <MedicalAlertBadge key={`medication-${i}`} type="medication" label={m} />
+              {data.medications.map((m) => (
+                <MedicalAlertBadge key={`medication-${m}`} type="medication" label={m} />
               ))}
             </Row>
             {data.restrictions.length > 0 && (
@@ -224,7 +224,7 @@ export const EmergencyDetails = memo(function EmergencyDetails({
       </ThemedText>
     </>
   );
-});
+};
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.md },

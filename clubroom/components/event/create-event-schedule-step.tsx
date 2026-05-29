@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -22,12 +22,12 @@ function CreateEventScheduleStepInner({
   rsvpDeadline,
   onFieldChange,
 }: CreateEventScheduleStepProps) {
-  const today = useMemo(() => new Date(), []);
+  const today = new Date();
 
-  const handleDate = useCallback((v: string) => onFieldChange('date', v), [onFieldChange]);
-  const handleStart = useCallback((v: string) => onFieldChange('startTime', v), [onFieldChange]);
-  const handleEnd = useCallback((v: string) => onFieldChange('endTime', v), [onFieldChange]);
-  const handleRsvp = useCallback((v: string) => onFieldChange('rsvpDeadline', v), [onFieldChange]);
+  const handleDate = (v: string) => onFieldChange('date', v);
+  const handleStart = (v: string) => onFieldChange('startTime', v);
+  const handleEnd = (v: string) => onFieldChange('endTime', v);
+  const handleRsvp = (v: string) => onFieldChange('rsvpDeadline', v);
 
   return (
     <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
@@ -73,7 +73,7 @@ function CreateEventScheduleStepInner({
   );
 }
 
-export const CreateEventScheduleStep = React.memo(CreateEventScheduleStepInner);
+export const CreateEventScheduleStep = CreateEventScheduleStepInner;
 
 const styles = StyleSheet.create({
   stepContent: {

@@ -1,7 +1,3 @@
-/**
- * SubscribeSummary — Summary card showing subscription details.
- */
-import { memo } from 'react';
 import { StyleSheet } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
@@ -77,7 +73,7 @@ function SubscribeSummaryInner({
   );
 }
 
-export const SubscribeSummary = memo(SubscribeSummaryInner);
+export const SubscribeSummary = SubscribeSummaryInner;
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },

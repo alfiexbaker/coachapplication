@@ -1,4 +1,3 @@
-import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -19,11 +18,11 @@ interface TaskCardProps {
   onOpenTask: (task: PracticeTask) => void;
 }
 
-export const TaskCard = memo(function TaskCard({ task, nowTs, isSyncing = false, onOpenTask }: TaskCardProps) {
+export const TaskCard = function TaskCard({ task, nowTs, isSyncing = false, onOpenTask }: TaskCardProps) {
   const { colors } = useTheme();
   const timing = deriveTaskTiming(task, nowTs);
 
-  const badgeColor = useMemo(() => {
+  const badgeColor = (() => {
     if (timing === 'overdue') {
       return colors.error;
     }
@@ -34,7 +33,7 @@ export const TaskCard = memo(function TaskCard({ task, nowTs, isSyncing = false,
       return colors.success;
     }
     return colors.tint;
-  }, [colors.error, colors.success, colors.tint, colors.warning, timing]);
+  })();
 
   return (
     <SurfaceCard
@@ -113,7 +112,7 @@ export const TaskCard = memo(function TaskCard({ task, nowTs, isSyncing = false,
       </Column>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   cardTitle: {

@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
@@ -27,7 +27,7 @@ interface AddRecoveryNoteProps {
   delay?: number;
 }
 
-export const AddRecoveryNote = memo(function AddRecoveryNote({
+export const AddRecoveryNote = function AddRecoveryNote({
   colors,
   showAddNote,
   noteText,
@@ -99,22 +99,19 @@ export const AddRecoveryNote = memo(function AddRecoveryNote({
           </View>
 
           <Row gap="sm">
-            <Button variant="secondary" onPress={onCancelAddNote} style={styles.button}>
-              Cancel
-            </Button>
+            <Button variant="secondary" onPress={onCancelAddNote} style={styles.button} label="Cancel" />
             <Button
               onPress={onSaveNote}
               disabled={!noteText.trim() || saving}
               style={styles.button}
-            >
-              {saving ? 'Saving...' : 'Save Note'}
-            </Button>
+              label={saving ? 'Saving...' : 'Save Note'}
+            />
           </Row>
         </SurfaceCard>
       )}
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   section: { marginTop: Spacing.md, marginBottom: Spacing.xs },

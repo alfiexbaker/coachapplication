@@ -1,4 +1,4 @@
-import React, { memo, useState } from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,17 +10,7 @@ import type { ThemeColors } from '@/hooks/useTheme';
 import type { SessionRsvp } from '@/constants/types';
 import { uiFeedback } from '@/services/ui-feedback';
 
-// --- Helpers ----------------------------------------------------------------
-
-export function computeRSVPNames(rsvps: SessionRsvp[]) {
-  const getName = (r: SessionRsvp) => r.childId || `User ${r.userId.slice(-4)}`;
-  return {
-    goingNames: rsvps.filter((r) => r.status === 'going').map(getName),
-    cantNames: rsvps.filter((r) => r.status === 'not_going').map(getName),
-    maybeNames: rsvps.filter((r) => r.status === 'maybe').map(getName),
-    pendingNames: rsvps.filter((r) => r.status === 'pending').map(getName),
-  };
-}
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 // --- CountBadge -------------------------------------------------------------
 
@@ -31,7 +21,7 @@ type CountBadgeProps = {
   icon: keyof typeof Ionicons.glyphMap;
 };
 
-export const CountBadge = memo(function CountBadge({ count, label, color, icon }: CountBadgeProps) {
+export const CountBadge = function CountBadge({ count, label, color, icon }: CountBadgeProps) {
   return (
     <Row
       align="center"
@@ -44,7 +34,7 @@ export const CountBadge = memo(function CountBadge({ count, label, color, icon }
       <ThemedText style={[styles.countLabel, { color }]}>{label}</ThemedText>
     </Row>
   );
-});
+};
 
 // --- ExpandableList ---------------------------------------------------------
 
@@ -81,8 +71,8 @@ export function ExpandableList({ title, names, color, icon, mutedColor }: Expand
 
       {expanded && (
         <View style={styles.namesList}>
-          {names.map((name, index) => (
-            <Row key={index} align="center" gap="xs">
+          {names.map((name) => (
+            <Row key={name} align="center" gap="xs">
               <View style={[styles.statusDot, { backgroundColor: color }]} />
               <ThemedText style={styles.nameText}>{name}</ThemedText>
             </Row>
@@ -101,7 +91,7 @@ type ProgressIndicatorProps = {
   palette: ThemeColors;
 };
 
-export const ProgressIndicator = memo(function ProgressIndicator({
+export const ProgressIndicator = function ProgressIndicator({
   confirmed,
   total,
   palette,
@@ -123,7 +113,7 @@ export const ProgressIndicator = memo(function ProgressIndicator({
       </ThemedText>
     </View>
   );
-});
+};
 
 // --- ReminderButton ---------------------------------------------------------
 
@@ -134,7 +124,7 @@ type ReminderButtonProps = {
   palette: ThemeColors;
 };
 
-export const ReminderButton = memo(function ReminderButton({
+export const ReminderButton = function ReminderButton({
   pendingCount,
   sessionId,
   sendReminder,
@@ -149,14 +139,22 @@ export const ReminderButton = memo(function ReminderButton({
     }
 
     setSending(true);
-    try {
-      await sendReminder(sessionId);
-      uiFeedback.showToast(`Reminder sent to ${pendingCount} parent${pendingCount !== 1 ? 's' : ''}.`, 'success');
-    } catch {
-      uiFeedback.showToast('Failed to send reminders. Please try again.', 'error');
-    } finally {
-      setSending(false);
-    }
+
+    await runAsyncTryCatchFinally(
+      async () => {
+        await sendReminder(sessionId);
+        uiFeedback.showToast(
+          `Reminder sent to ${pendingCount} parent${pendingCount !== 1 ? 's' : ''}.`,
+          'success',
+        );
+      },
+      async (error) => {
+        uiFeedback.showToast('Failed to send reminders. Please try again.', 'error');
+      },
+      () => {
+        setSending(false);
+      },
+    );
   };
 
   if (pendingCount === 0) return null;
@@ -182,7 +180,7 @@ export const ReminderButton = memo(function ReminderButton({
       </Row>
     </Clickable>
   );
-});
+};
 
 // --- Styles -----------------------------------------------------------------
 

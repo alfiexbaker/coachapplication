@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useEffect, useRef, useState, use } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Modal, StyleSheet, View } from 'react-native';
 
@@ -42,6 +42,58 @@ type AppAlertContextValue = {
 
 const AppAlertContext = createContext<AppAlertContextValue | undefined>(undefined);
 
+function enqueueAlert(
+  title: string,
+  message: string | undefined,
+  buttons: AppAlertButton[] | undefined,
+  idCounter: React.MutableRefObject<number>,
+  setQueue: React.Dispatch<React.SetStateAction<QueuedAlert[]>>,
+) {
+  idCounter.current += 1;
+  setQueue((previous) => [
+    ...previous,
+    {
+      id: idCounter.current,
+      title,
+      message,
+      buttons: normalizeButtons(buttons),
+    },
+  ]);
+}
+
+function enqueueConfirm(
+  {
+    title,
+    message,
+    confirmText = 'Confirm',
+    cancelText = 'Cancel',
+    destructive = false,
+  }: AppAlertConfirmOptions,
+  idCounter: React.MutableRefObject<number>,
+  setQueue: React.Dispatch<React.SetStateAction<QueuedAlert[]>>,
+) {
+  return new Promise<boolean>((resolve) => {
+    enqueueAlert(
+      title,
+      message,
+      [
+        {
+          text: cancelText,
+          style: 'cancel',
+          onPress: () => resolve(false),
+        },
+        {
+          text: confirmText,
+          style: destructive ? 'destructive' : 'default',
+          onPress: () => resolve(true),
+        },
+      ],
+      idCounter,
+      setQueue,
+    );
+  });
+}
+
 function normalizeButtons(buttons?: AppAlertButton[]): AppAlertButton[] {
   if (!buttons || buttons.length === 0) {
     return [{ text: 'OK', style: 'default' }];
@@ -58,77 +110,45 @@ export function AppAlertProvider({ children }: { children: React.ReactNode }) {
   const [queue, setQueue] = useState<QueuedAlert[]>([]);
   const idCounter = useRef(0);
 
-  const showAlert = useCallback((title: string, message?: string, buttons?: AppAlertButton[]) => {
-    idCounter.current += 1;
-    setQueue((previous) => [
-      ...previous,
-      {
-        id: idCounter.current,
-        title,
-        message,
-        buttons: normalizeButtons(buttons),
-      },
-    ]);
-  }, []);
+  const showAlert = (title: string, message?: string, buttons?: AppAlertButton[]) => {
+    enqueueAlert(title, message, buttons, idCounter, setQueue);
+  };
 
-  const dismissCurrent = useCallback(() => {
+  const dismissCurrent = () => {
     setQueue((previous) => previous.slice(1));
-  }, []);
+  };
 
-  const confirm = useCallback(
-    ({ title, message, confirmText = 'Confirm', cancelText = 'Cancel', destructive = false }: AppAlertConfirmOptions) => {
-      return new Promise<boolean>((resolve) => {
-        showAlert(title, message, [
-          {
-            text: cancelText,
-            style: 'cancel',
-            onPress: () => resolve(false),
-          },
-          {
-            text: confirmText,
-            style: destructive ? 'destructive' : 'default',
-            onPress: () => resolve(true),
-          },
-        ]);
-      });
-    },
-    [showAlert],
-  );
+  const confirm = (options: AppAlertConfirmOptions) => enqueueConfirm(options, idCounter, setQueue);
 
-  const handleButtonPress = useCallback(
-    (button?: AppAlertButton) => {
-      dismissCurrent();
-      if (button?.onPress) {
-        setTimeout(() => {
-          button.onPress?.();
-        }, 0);
-      }
-    },
-    [dismissCurrent],
-  );
+  const handleButtonPress = (button?: AppAlertButton) => {
+    dismissCurrent();
+    if (button?.onPress) {
+      setTimeout(() => {
+        button.onPress?.();
+      }, 0);
+    }
+  };
 
   const current = queue[0] ?? null;
 
-  const handleRequestClose = useCallback(() => {
+  const handleRequestClose = () => {
     if (!current) return;
-    const fallbackAction = current.buttons.find((button) => button.style === 'cancel') || current.buttons[0];
+    const fallbackAction =
+      current.buttons.find((button) => button.style === 'cancel') || current.buttons[0];
     handleButtonPress(fallbackAction);
-  }, [current, handleButtonPress]);
+  };
 
-  const value = useMemo<AppAlertContextValue>(
-    () => ({
-      showAlert,
-      confirm,
-    }),
-    [confirm, showAlert],
-  );
+  const value = {
+    showAlert,
+    confirm,
+  };
 
   useEffect(() => {
     return registerAlertPresenter({
-      show: (title, message, buttons) => showAlert(title, message, buttons),
-      confirm: (options) => confirm(options),
+      show: (title, message, buttons) => enqueueAlert(title, message, buttons, idCounter, setQueue),
+      confirm: (options) => enqueueConfirm(options, idCounter, setQueue),
     });
-  }, [confirm, showAlert]);
+  }, []);
 
   return (
     <AppAlertContext.Provider value={value}>
@@ -148,7 +168,7 @@ export function AppAlertProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useAppAlert() {
-  const context = useContext(AppAlertContext);
+  const context = use(AppAlertContext);
   if (!context) {
     throw new Error('useAppAlert must be used within an AppAlertProvider');
   }

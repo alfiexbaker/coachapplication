@@ -5,8 +5,7 @@
  * Shown in the Availability segment of the Schedule tab.
  */
 
-import { View, StyleSheet, ScrollView, Platform } from 'react-native';
-import { useCallback } from 'react';
+import { View, StyleSheet, FlatList, Platform, type ListRenderItemInfo } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -38,10 +37,15 @@ export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: Sess
   const hapticTap = () => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
-  const handleAdd = useCallback(() => {
+  const handleAdd = () => {
     hapticTap();
     onAdd();
-  }, [onAdd]);
+  };
+  const handleTemplatePress = (template: SessionTemplate) => {
+    hapticTap();
+    onPress(template);
+  };
+  const chipItems = getSessionTypeChipItems(templates, selectedId, palette, handleTemplatePress);
 
   if (templates.length === 0) {
     return (
@@ -71,51 +75,15 @@ export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: Sess
       </Row>
 
       <Row style={styles.chipRowWrap}>
-        <ScrollView
+        <FlatList
           horizontal
+          data={chipItems}
+          keyExtractor={keySessionTypeChipItem}
+          renderItem={renderSessionTypeChipItem}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipRow}
           style={styles.chipScroll}
-        >
-          {templates.map((template) => {
-            const icon = TYPE_ICONS[template.type] || 'ellipse-outline';
-            const isSelected = selectedId === template.id;
-
-            return (
-              <Clickable
-                key={template.id}
-                onPress={() => {
-                  hapticTap();
-                  onPress(template);
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={`${template.name}, ${template.duration} minutes, ${template.defaultPrice > 0 ? `£${template.defaultPrice}` : 'Free'}`}
-                accessibilityState={{ selected: isSelected }}
-                style={[
-                  styles.chip,
-                  {
-                    backgroundColor: palette.surface,
-                    borderColor: isSelected ? palette.tint : palette.border,
-                  },
-                ]}
-              >
-                <View style={[styles.chipIcon, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
-                  <Ionicons name={icon} size={16} color={palette.tint} />
-                </View>
-                <View style={styles.chipContent}>
-                  <ThemedText style={[styles.chipName, { color: palette.text }]} numberOfLines={1}>
-                    {template.name}
-                  </ThemedText>
-                  <ThemedText style={[styles.chipDetail, { color: palette.muted }]} numberOfLines={1}>
-                    {template.duration}m ·{' '}
-                    {template.defaultPrice > 0 ? `£${template.defaultPrice}` : 'Free'}
-                  </ThemedText>
-                </View>
-                <Ionicons name="chevron-forward" size={14} color={palette.muted} />
-              </Clickable>
-            );
-          })}
-        </ScrollView>
+        />
         <Clickable
           onPress={handleAdd}
           accessibilityRole="button"
@@ -130,6 +98,67 @@ export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: Sess
         </Clickable>
       </Row>
     </View>
+  );
+}
+
+interface SessionTypeChipItem {
+  key: string;
+  template: SessionTemplate;
+  icon: keyof typeof Ionicons.glyphMap;
+  isSelected: boolean;
+  palette: ReturnType<typeof useTheme>['colors'];
+  onPress: () => void;
+}
+
+function getSessionTypeChipItems(
+  templates: SessionTemplate[],
+  selectedId: string | undefined,
+  palette: ReturnType<typeof useTheme>['colors'],
+  onTemplatePress: (template: SessionTemplate) => void,
+): SessionTypeChipItem[] {
+  return templates.map((template) => ({
+    key: template.id,
+    template,
+    icon: TYPE_ICONS[template.type] || 'ellipse-outline',
+    isSelected: selectedId === template.id,
+    palette,
+    onPress: () => onTemplatePress(template),
+  }));
+}
+
+function keySessionTypeChipItem(item: SessionTypeChipItem) {
+  return item.key;
+}
+
+function renderSessionTypeChipItem({ item }: ListRenderItemInfo<SessionTypeChipItem>) {
+  const { template, palette, isSelected } = item;
+  return (
+    <Clickable
+      onPress={item.onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${template.name}, ${template.duration} minutes, ${template.defaultPrice > 0 ? `£${template.defaultPrice}` : 'Free'}`}
+      accessibilityState={{ selected: isSelected }}
+      style={[
+        styles.chip,
+        {
+          backgroundColor: palette.surface,
+          borderColor: isSelected ? palette.tint : palette.border,
+        },
+      ]}
+    >
+      <View style={[styles.chipIcon, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
+        <Ionicons name={item.icon} size={16} color={palette.tint} />
+      </View>
+      <View style={styles.chipContent}>
+        <ThemedText style={[styles.chipName, { color: palette.text }]} numberOfLines={1}>
+          {template.name}
+        </ThemedText>
+        <ThemedText style={[styles.chipDetail, { color: palette.muted }]} numberOfLines={1}>
+          {template.duration}m · {template.defaultPrice > 0 ? `£${template.defaultPrice}` : 'Free'}
+        </ThemedText>
+      </View>
+      <Ionicons name="chevron-forward" size={14} color={palette.muted} />
+    </Clickable>
   );
 }
 

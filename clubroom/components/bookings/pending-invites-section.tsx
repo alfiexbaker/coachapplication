@@ -5,7 +5,7 @@
  * and a "View all" link when there are more than 3.
  */
 
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -29,16 +29,16 @@ interface PendingInvitesSectionProps {
   onDecline: (invite: SessionInvite) => void;
 }
 
-export const PendingInvitesSection = memo(function PendingInvitesSection({
+export const PendingInvitesSection = function PendingInvitesSection({
   invites,
   onAccept,
   onDecline,
 }: PendingInvitesSectionProps) {
   const { colors: palette } = useTheme();
 
-  const handleViewAll = useCallback(() => {
+  const handleViewAll = () => {
     router.push(Routes.SESSION_INVITES);
-  }, []);
+  };
 
   if (invites.length === 0) return null;
 
@@ -80,7 +80,7 @@ export const PendingInvitesSection = memo(function PendingInvitesSection({
       )}
     </Column>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: {

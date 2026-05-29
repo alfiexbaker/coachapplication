@@ -1,8 +1,3 @@
-/**
- * StepCoachDetails — Coach-specific details step of onboarding.
- */
-
-import { memo } from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
@@ -214,7 +209,7 @@ function StepCoachDetailsInner({
   );
 }
 
-export const StepCoachDetails = memo(StepCoachDetailsInner);
+export const StepCoachDetails = StepCoachDetailsInner;
 
 const styles = StyleSheet.create({
   content: {

@@ -117,15 +117,17 @@ export default function ConsentsScreen() {
   }
 
   if (c.status === 'error') {
-    return renderShell(<ErrorState message={c.error?.message || 'Failed to load consent data.'} onRetry={c.retry} />);
+    return renderShell(
+      <ErrorState message={c.error?.message || 'Failed to load consent data.'} onRetry={c.retry} />,
+    );
   }
 
   return renderShell(
     <>
       {c.summary && (
         <View style={styles.statsContainer}>
-          {[c.consentTypes.slice(0, 2), c.consentTypes.slice(2)].map((row, i) => (
-            <Row key={i} gap="xs" style={styles.statsRow}>
+          {[c.consentTypes.slice(0, 2), c.consentTypes.slice(2)].map((row) => (
+            <Row key={row.join('-')} gap="xs" style={styles.statsRow}>
               {row.map((type) => {
                 const stat = c.summary!.byType[type];
                 return (
@@ -157,7 +159,6 @@ export default function ConsentsScreen() {
             placeholderTextColor={palette.muted}
             value={c.searchQuery}
             onChangeText={c.setSearchQuery}
-
             maxLength={100}
           />
           {c.searchQuery.length > 0 && (

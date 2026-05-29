@@ -1,6 +1,5 @@
 import { Tabs, router, useNavigation, useSegments } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
+import React, { useEffect, useRef, useState, startTransition } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
@@ -18,40 +17,16 @@ import { Routes } from '@/navigation/routes';
 import { useFocusEffect, type EventArg } from '@react-navigation/native';
 import { createLogger } from '@/utils/logger';
 import { getRestrictedTabRoutes } from '@/constants/route-access';
-import { isParentLikeUser } from '@/utils/user-helpers';
+import {
+  isAcceptingBookings,
+  isAdmin,
+  isAthlete,
+  isCoach,
+  isOrganization,
+  isParentLikeUser,
+} from '@/utils/user-helpers';
 
 const logger = createLogger('TabLayout');
-
-type UserWithSimplifiedFields = {
-  role?: UserRole | 'ADMIN';
-  type?: 'USER' | 'COACH';
-  children?: { childId: string; childName: string }[];
-  hasChildren?: boolean;
-  skillLevel?: string;
-  isOrganization?: boolean;
-  isLive?: boolean;
-  isSystemAdmin?: boolean;
-};
-
-export const isAthlete = (user: UserWithSimplifiedFields | null): boolean => {
-  return Boolean(user?.skillLevel);
-};
-
-export const isCoach = (user: UserWithSimplifiedFields | null): boolean => {
-  return user?.type === 'COACH' || user?.role === 'COACH';
-};
-
-export const isOrganization = (user: UserWithSimplifiedFields | null): boolean => {
-  return isCoach(user) && Boolean(user?.isOrganization);
-};
-
-export const isAdmin = (user: UserWithSimplifiedFields | null): boolean => {
-  return Boolean(user?.isSystemAdmin) || user?.role === 'ADMIN';
-};
-
-export const isAcceptingBookings = (user: UserWithSimplifiedFields | null): boolean => {
-  return isCoach(user) && user?.isLive !== false;
-};
 
 type BadgeType = 'messages' | 'notifications';
 
@@ -155,6 +130,29 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
   },
 };
 
+function resolveRoleTabConfig(
+  userRole: UserRole | 'DEFAULT',
+  parentLikeUser: boolean,
+): RoleTabConfig {
+  const baseRoleConfig = ROLE_TAB_CONFIG[userRole] ?? ROLE_TAB_CONFIG.DEFAULT;
+  if (!parentLikeUser || (userRole !== 'USER' && userRole !== 'PARENT')) {
+    return baseRoleConfig;
+  }
+
+  return {
+    ...baseRoleConfig,
+    primary: baseRoleConfig.primary.map((tab) =>
+      tab.name === 'index'
+        ? {
+            ...tab,
+            title: 'Family',
+            icon: 'person.2.fill' as React.ComponentProps<typeof IconSymbol>['name'],
+          }
+        : tab,
+    ),
+  };
+}
+
 export default function TabLayout() {
   const { colors: palette, scheme } = useTheme();
   const { currentUser } = useAuth();
@@ -165,29 +163,34 @@ export default function TabLayout() {
   const notificationBadge = useNotificationBadgeState();
   const [messageCount, setMessageCount] = useState(0);
   const lastRestrictedRouteRef = useRef<string | null>(null);
-  const messageCountRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const loadMessageCount = useCallback(async () => {
-    const unreadResult = await messagingService.getUnreadCount();
-    if (!unreadResult.success) {
-      setMessageCount(0);
-      return;
-    }
-    setMessageCount(unreadResult.data);
-  }, []);
-
-  const scheduleMessageCountRefresh = useCallback(() => {
-    if (messageCountRefreshTimerRef.current) {
-      clearTimeout(messageCountRefreshTimerRef.current);
-    }
-    messageCountRefreshTimerRef.current = setTimeout(() => {
-      void loadMessageCount();
-      messageCountRefreshTimerRef.current = null;
-    }, 150);
-  }, [loadMessageCount]);
 
   useEffect(() => {
-    void loadMessageCount();
+    let active = true;
+    let messageCountRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const loadMessageCount = async () => {
+      const unreadResult = await messagingService.getUnreadCount();
+      if (!active) return;
+      if (!unreadResult.success) {
+        setMessageCount(0);
+        return;
+      }
+      setMessageCount(unreadResult.data);
+    };
+
+    const scheduleMessageCountRefresh = () => {
+      if (messageCountRefreshTimer) {
+        clearTimeout(messageCountRefreshTimer);
+      }
+      messageCountRefreshTimer = setTimeout(() => {
+        void loadMessageCount();
+        messageCountRefreshTimer = null;
+      }, 150);
+    };
+
+    startTransition(() => {
+      void loadMessageCount();
+    });
 
     const unsubscribeMessageSent = onTyped(ServiceEvents.MESSAGE_SENT, scheduleMessageCountRefresh);
     const unsubscribeMessageEdited = onTyped(
@@ -208,8 +211,10 @@ export default function TabLayout() {
     );
 
     return () => {
-      if (messageCountRefreshTimerRef.current) {
-        clearTimeout(messageCountRefreshTimerRef.current);
+      active = false;
+      if (messageCountRefreshTimer) {
+        clearTimeout(messageCountRefreshTimer);
+        messageCountRefreshTimer = null;
       }
       unsubscribeMessageSent();
       unsubscribeMessageEdited();
@@ -217,35 +222,14 @@ export default function TabLayout() {
       unsubscribeMessagesMarkedRead();
       unsubscribeThreadOpened();
     };
-  }, [loadMessageCount, scheduleMessageCountRefresh]);
+  }, []);
 
   const userRole = currentUser?.role ?? 'DEFAULT';
   const parentLikeUser = isParentLikeUser(currentUser);
-  const baseRoleConfig = ROLE_TAB_CONFIG[userRole] ?? ROLE_TAB_CONFIG.DEFAULT;
-  const roleConfig = useMemo(() => {
-    if (!parentLikeUser || (userRole !== 'USER' && userRole !== 'PARENT')) {
-      return baseRoleConfig;
-    }
-
-    return {
-      ...baseRoleConfig,
-      primary: baseRoleConfig.primary.map((tab) =>
-        tab.name === 'index'
-          ? {
-              ...tab,
-              title: 'Family',
-              icon: 'person.2.fill' as React.ComponentProps<typeof IconSymbol>['name'],
-            }
-          : tab,
-      ),
-    };
-  }, [baseRoleConfig, parentLikeUser, userRole]);
-  const hiddenRoutes = useMemo(() => roleConfig.hidden ?? [], [roleConfig.hidden]);
-  const hiddenRouteSet = useMemo(() => new Set(hiddenRoutes), [hiddenRoutes]);
-  const restrictedRouteSet = useMemo(
-    () => getRestrictedTabRoutes(userRole, { isParentLike: parentLikeUser }),
-    [parentLikeUser, userRole],
-  );
+  const roleConfig = resolveRoleTabConfig(userRole, parentLikeUser);
+  const hiddenRoutes = roleConfig.hidden ?? [];
+  const hiddenRouteSet = new Set(hiddenRoutes);
+  const restrictedRouteSet = getRestrictedTabRoutes(userRole, { isParentLike: parentLikeUser });
   const inTabsRouteScope = segments[0] === '(tabs)';
   const secondarySegment = segments.at(1);
   const currentTabSegment =
@@ -254,83 +238,92 @@ export default function TabLayout() {
     currentTabSegment && restrictedRouteSet.has(currentTabSegment) ? currentTabSegment : null;
 
   useEffect(() => {
-    logger.debug('Tab guard config', {
-      role: currentUser?.role,
-      type: currentUser?.type,
-      hasChildrenFlag: currentUser?.hasChildren,
-      childCount: currentUser?.children?.length ?? 0,
+    const currentHiddenRoutes = resolveRoleTabConfig(userRole, parentLikeUser).hidden ?? [];
+    const currentRestrictedRouteSet = getRestrictedTabRoutes(userRole, {
       isParentLike: parentLikeUser,
-      hiddenRoutes,
-      restrictedRoutes: Array.from(restrictedRouteSet),
     });
-  }, [currentUser, hiddenRoutes, parentLikeUser, restrictedRouteSet]);
 
-  const handleRestrictedRoute = useCallback(
-    (routeName: string) => {
-      if (lastRestrictedRouteRef.current === routeName) {
-        logger.debug('Skipping duplicate restricted route toast', { routeName });
-        return;
-      }
-
-      lastRestrictedRouteRef.current = routeName;
-      logger.warn('Restricted tab route blocked', {
-        routeName,
-        role: currentUser?.role,
-        type: currentUser?.type,
-        hasChildrenFlag: currentUser?.hasChildren,
-        childCount: currentUser?.children?.length ?? 0,
-        hiddenRoutes,
-        restrictedRoutes: Array.from(restrictedRouteSet),
-      });
-      router.replace(Routes.HOME_INDEX);
-      showToast('Access restricted', 'error');
-    },
-    [currentUser, hiddenRoutes, restrictedRouteSet, showToast],
-  );
-
-  useEffect(() => {
     logger.debug('Segment guard check', {
       segments,
       inTabsRouteScope,
       tabSegment: currentTabSegment,
-      isHidden: currentTabSegment ? hiddenRouteSet.has(currentTabSegment) : false,
-      isRestricted: currentTabSegment ? restrictedRouteSet.has(currentTabSegment) : false,
+      isHidden: currentTabSegment ? currentHiddenRoutes.includes(currentTabSegment) : false,
+      isRestricted: currentTabSegment ? currentRestrictedRouteSet.has(currentTabSegment) : false,
     });
     if (!currentTabSegment) return;
-    if (!restrictedRouteSet.has(currentTabSegment)) {
+    if (!currentRestrictedRouteSet.has(currentTabSegment)) {
       lastRestrictedRouteRef.current = null;
       return;
     }
 
-    handleRestrictedRoute(currentTabSegment);
+    if (lastRestrictedRouteRef.current === currentTabSegment) {
+      logger.debug('Skipping duplicate restricted route toast', { routeName: currentTabSegment });
+      return;
+    }
+
+    lastRestrictedRouteRef.current = currentTabSegment;
+    logger.warn('Restricted tab route blocked', {
+      routeName: currentTabSegment,
+      role: currentUser?.role,
+      type: currentUser?.type,
+      hasChildrenFlag: currentUser?.hasChildren,
+      childCount: currentUser?.children?.length ?? 0,
+      hiddenRoutes: currentHiddenRoutes,
+      restrictedRoutes: Array.from(currentRestrictedRouteSet),
+    });
+    router.replace(Routes.HOME_INDEX);
+    showToast('Access restricted', 'error');
   }, [
+    currentUser?.children?.length,
+    currentUser?.hasChildren,
+    currentUser?.role,
+    currentUser?.type,
     currentTabSegment,
-    handleRestrictedRoute,
-    hiddenRouteSet,
     inTabsRouteScope,
-    restrictedRouteSet,
+    parentLikeUser,
     segments,
+    showToast,
+    userRole,
   ]);
 
-  useFocusEffect(
-    useCallback(() => {
-      const state = navigation.getState();
-      const currentRoute = state?.routes?.[state.index ?? 0]?.name;
-      logger.debug('Focus guard check', {
-        currentRoute,
-        isHidden: typeof currentRoute === 'string' ? hiddenRouteSet.has(currentRoute) : false,
-        isRestricted:
-          typeof currentRoute === 'string' ? restrictedRouteSet.has(currentRoute) : false,
-      });
-      if (typeof currentRoute !== 'string') return;
-      if (!restrictedRouteSet.has(currentRoute)) {
-        lastRestrictedRouteRef.current = null;
-        return;
-      }
+  useFocusEffect(() => {
+    const currentHiddenRoutes = resolveRoleTabConfig(userRole, parentLikeUser).hidden ?? [];
+    const currentRestrictedRouteSet = getRestrictedTabRoutes(userRole, {
+      isParentLike: parentLikeUser,
+    });
+    const state = navigation.getState();
+    const currentRoute = state?.routes?.[state.index ?? 0]?.name;
+    logger.debug('Focus guard check', {
+      currentRoute,
+      isHidden:
+        typeof currentRoute === 'string' ? currentHiddenRoutes.includes(currentRoute) : false,
+      isRestricted:
+        typeof currentRoute === 'string' ? currentRestrictedRouteSet.has(currentRoute) : false,
+    });
+    if (typeof currentRoute !== 'string') return;
+    if (!currentRestrictedRouteSet.has(currentRoute)) {
+      lastRestrictedRouteRef.current = null;
+      return;
+    }
 
-      handleRestrictedRoute(currentRoute);
-    }, [handleRestrictedRoute, hiddenRouteSet, navigation, restrictedRouteSet]),
-  );
+    if (lastRestrictedRouteRef.current === currentRoute) {
+      logger.debug('Skipping duplicate restricted route toast', { routeName: currentRoute });
+      return;
+    }
+
+    lastRestrictedRouteRef.current = currentRoute;
+    logger.warn('Restricted tab route blocked', {
+      routeName: currentRoute,
+      role: currentUser?.role,
+      type: currentUser?.type,
+      hasChildrenFlag: currentUser?.hasChildren,
+      childCount: currentUser?.children?.length ?? 0,
+      hiddenRoutes: currentHiddenRoutes,
+      restrictedRoutes: Array.from(currentRestrictedRouteSet),
+    });
+    router.replace(Routes.HOME_INDEX);
+    showToast('Access restricted', 'error');
+  });
 
   const getBadgeCount = (badgeType?: BadgeType): number | string | undefined => {
     if (!badgeType) return undefined;
@@ -346,42 +339,35 @@ export default function TabLayout() {
     return notificationBadge.label;
   };
 
-  const handleTabReselectPress = useCallback(
-    (routeName: string) => (e: EventArg<'tabPress', true>) => {
-      const state = navigation.getState();
-      const focusedRoute = state?.routes?.[state.index ?? 0];
-      const isReselect = focusedRoute?.name === routeName;
-      if (!isReselect) return;
+  const handleTabReselectPress = (routeName: string) => (e: EventArg<'tabPress', true>) => {
+    const state = navigation.getState();
+    const focusedRoute = state?.routes?.[state.index ?? 0];
+    const isReselect = focusedRoute?.name === routeName;
+    if (!isReselect) return;
 
-      // Avoid React Navigation's default POP_TO_TOP on tab reselect when the tab
-      // doesn't host a nested stack (dev warning: "POP_TO_TOP was not handled").
-      // Screen hooks still receive tabPress and handle scroll-to-top UX.
+    // Avoid React Navigation's default POP_TO_TOP on tab reselect when the tab
+    // doesn't host a nested stack (dev warning: "POP_TO_TOP was not handled").
+    // Screen hooks still receive tabPress and handle scroll-to-top UX.
+    e.preventDefault();
+  };
+
+  const handlePrimaryTabPress = (routeName: string) => (e: EventArg<'tabPress', true>) => {
+    if (routeName === 'settings') {
+      // Keep the current tab as the underlying page, and stack Settings on top.
+      // This makes one back press return to where the user came from.
       e.preventDefault();
-    },
-    [navigation],
-  );
-
-  const handlePrimaryTabPress = useCallback(
-    (routeName: string) => (e: EventArg<'tabPress', true>) => {
-      if (routeName === 'settings') {
-        // Keep the current tab as the underlying page, and stack Settings on top.
-        // This makes one back press return to where the user came from.
-        e.preventDefault();
-        router.push(Routes.SETTINGS_INDEX);
-        return;
-      }
-      handleTabReselectPress(routeName)(e);
-    },
-    [handleTabReselectPress],
-  );
+      router.push(Routes.SETTINGS_INDEX);
+      return;
+    }
+    handleTabReselectPress(routeName)(e);
+  };
 
   const tabBarHeight = 62 + Math.max(insets.bottom, Spacing.sm);
   const tabBarOptions = {
     tabBarActiveTintColor: palette.tint,
     tabBarInactiveTintColor: palette.tabIconDefault,
     headerShown: false,
-    // @ts-expect-error — Expo Router BottomTabBarButtonProps ref type mismatch with forwardRef
-    tabBarButton: (props: BottomTabBarButtonProps) => <HapticTab {...props} />,
+    tabBarButton: (props: any) => <HapticTab {...props} />,
     tabBarStyle: {
       backgroundColor: palette.surface, // Use surface for cleaner white
       borderTopWidth: 0, // Remove border for sleeker look
@@ -417,18 +403,9 @@ export default function TabLayout() {
     },
   };
 
-  const handleBlockedTabSegment = useCallback(() => {
-    if (!blockedTabSegment) return;
-    handleRestrictedRoute(blockedTabSegment);
-  }, [blockedTabSegment, handleRestrictedRoute]);
-
   return (
     <ErrorBoundary>
-      <RouteAccessGate
-        allowed={!blockedTabSegment}
-        redirectHref={Routes.HOME_INDEX}
-        onBlocked={blockedTabSegment ? handleBlockedTabSegment : undefined}
-      >
+      <RouteAccessGate allowed={!blockedTabSegment} redirectHref={Routes.HOME_INDEX}>
         <Tabs screenOptions={tabBarOptions}>
           {roleConfig.primary.map(({ name, title, icon, badge }) => (
             <Tabs.Screen

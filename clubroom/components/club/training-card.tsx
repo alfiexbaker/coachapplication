@@ -1,4 +1,4 @@
-import { memo, type ComponentProps } from 'react';
+import { type ComponentProps } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { router } from 'expo-router';
@@ -23,7 +23,7 @@ interface TrainingCardProps {
   userHasChildrenView: boolean;
 }
 
-export const TrainingCard = memo(function TrainingCard({
+export const TrainingCard = function TrainingCard({
   session,
   index,
   userHasChildrenView,
@@ -69,29 +69,32 @@ export const TrainingCard = memo(function TrainingCard({
         {/* Details */}
         <View style={styles.details}>
           {session.isRecurring && session.recurringPattern && (
-            <DetailRow icon="repeat" iconColor={colors.tint} colors={colors}>
-              Every {dayName} at {session.recurringPattern.startTime}
-            </DetailRow>
+            <DetailRow
+              icon="repeat"
+              iconColor={colors.tint}
+              colors={colors}
+              label={`Every ${dayName} at ${session.recurringPattern.startTime}`}
+            />
           )}
           {nextDate && (
-            <DetailRow icon="calendar" iconColor={colors.warning} colors={colors}>
-              Next:{' '}
-              {new Date(nextDate.date).toLocaleDateString('en-GB', {
+            <DetailRow
+              icon="calendar"
+              iconColor={colors.warning}
+              colors={colors}
+              label={`Next: ${new Date(nextDate.date).toLocaleDateString('en-GB', {
                 weekday: 'short',
                 month: 'short',
                 day: 'numeric',
-              })}{' '}
-              - {nextDate.startTime} to {nextDate.endTime}
-            </DetailRow>
+              })} - ${nextDate.startTime} to ${nextDate.endTime}`}
+            />
           )}
           <DetailRow
             icon="location"
             iconColor={colors.muted}
             colors={colors}
             textColor={colors.muted}
-          >
-            {session.location}
-          </DetailRow>
+            label={session.location}
+          />
           <Row gap="sm" align="center">
             <View style={[styles.iconCircle, { backgroundColor: withAlpha(colors.muted, 0.09) }]}>
               <Ionicons name="people" size={14} color={colors.muted} />
@@ -136,20 +139,20 @@ export const TrainingCard = memo(function TrainingCard({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 function DetailRow({
   icon,
   iconColor,
   colors,
   textColor,
-  children,
+  label,
 }: {
   icon: IconName;
   iconColor: string;
   colors: { text: string };
   textColor?: string;
-  children: React.ReactNode;
+  label: string;
 }) {
   return (
     <Row gap="sm" align="center">
@@ -160,7 +163,7 @@ function DetailRow({
         style={{ color: textColor || colors.text }}
         numberOfLines={icon === 'location' ? 1 : undefined}
       >
-        {children}
+        {label}
       </ThemedText>
     </Row>
   );

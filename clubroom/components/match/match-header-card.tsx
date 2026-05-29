@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -40,7 +39,7 @@ interface MatchHeaderCardProps {
   isUpcoming: boolean;
 }
 
-export const MatchHeaderCard = memo(function MatchHeaderCard({
+export const MatchHeaderCard = function MatchHeaderCard({
   match,
   isUpcoming,
 }: MatchHeaderCardProps) {
@@ -171,7 +170,7 @@ export const MatchHeaderCard = memo(function MatchHeaderCard({
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { margin: Spacing.md, gap: Spacing.sm },

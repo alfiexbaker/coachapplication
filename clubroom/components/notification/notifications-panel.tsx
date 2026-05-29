@@ -8,7 +8,7 @@
  * Compact mode (limit > 0): simple list of the first N notifications.
  */
 
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -68,64 +68,49 @@ export function NotificationsPanel({
     }
   }, [refreshToken, refresh]);
 
-  const handleShare = useCallback(
-    async (item: ExtendedNotificationItem) => {
-      logger.info('badge_view_event', {
-        notificationId: item.id,
-        badgeTitle: item.badgeTitle,
-        athleteName: item.athleteName,
-      });
+  const handleShare = async (item: ExtendedNotificationItem) => {
+    logger.info('badge_view_event', {
+      notificationId: item.id,
+      badgeTitle: item.badgeTitle,
+      athleteName: item.athleteName,
+    });
 
-      if (item.badgeAwardId) {
-        await markAsRead(item.id);
-        router.push(Routes.developmentBadgesHighlight(item.badgeAwardId));
-      }
-    },
-    [markAsRead],
-  );
+    if (item.badgeAwardId) {
+      await markAsRead(item.id);
+      router.push(Routes.developmentBadgesHighlight(item.badgeAwardId));
+    }
+  };
 
-  const handleAddToFeed = useCallback(
-    async (item: ExtendedNotificationItem) => {
-      logger.info('badge_add_to_feed', {
-        notificationId: item.id,
-        badgeTitle: item.badgeTitle,
-        athleteName: item.athleteName,
-        badgeAwardId: item.badgeAwardId,
-      });
+  const handleAddToFeed = async (item: ExtendedNotificationItem) => {
+    logger.info('badge_add_to_feed', {
+      notificationId: item.id,
+      badgeTitle: item.badgeTitle,
+      athleteName: item.athleteName,
+      badgeAwardId: item.badgeAwardId,
+    });
 
-      if (item.badgeAwardId) {
-        await badgeService.postBadgeToFeed(item.badgeAwardId);
-        await notificationService.markHandled(item.id);
-      }
+    if (item.badgeAwardId) {
+      await badgeService.postBadgeToFeed(item.badgeAwardId);
+      await notificationService.markHandled(item.id);
+    }
 
-      refresh();
-    },
-    [refresh],
-  );
+    refresh();
+  };
 
-  const handleNotificationPress = useCallback(
-    async (id: string) => {
-      const result = await notificationService.markHandled(id);
-      if (!result.success) {
-        await markAsRead(id);
-      }
-    },
-    [markAsRead],
-  );
+  const handleNotificationPress = async (id: string) => {
+    const result = await notificationService.markHandled(id);
+    if (!result.success) {
+      await markAsRead(id);
+    }
+  };
 
-  const handleNotificationDismiss = useCallback(
-    async (id: string) => {
-      await dismissNotification(id);
-    },
-    [dismissNotification],
-  );
+  const handleNotificationDismiss = async (id: string) => {
+    await dismissNotification(id);
+  };
 
-  const handleNotificationMute = useCallback(
-    async (item: ExtendedNotificationItem) => {
-      await muteNotificationType(item);
-    },
-    [muteNotificationType],
-  );
+  const handleNotificationMute = async (item: ExtendedNotificationItem) => {
+    await muteNotificationType(item);
+  };
 
   const visibleItems = limit > 0 ? notifications.slice(0, limit) : notifications;
 

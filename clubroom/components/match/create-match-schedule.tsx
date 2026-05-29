@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -20,7 +20,7 @@ interface CreateMatchScheduleProps {
   onNotesChange: (val: string) => void;
 }
 
-export const CreateMatchSchedule = memo(function CreateMatchSchedule({
+export const CreateMatchSchedule = function CreateMatchSchedule({
   date,
   kickoffTime,
   meetTime,
@@ -97,7 +97,7 @@ export const CreateMatchSchedule = memo(function CreateMatchSchedule({
       </View>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   stepContent: { gap: Spacing.md },

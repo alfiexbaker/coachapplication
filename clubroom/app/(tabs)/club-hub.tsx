@@ -6,7 +6,7 @@
  * ClubFeedListHeader (composed list header above feed posts).
  */
 
-import { useCallback, memo, useEffect } from 'react';
+import { useEffect } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -40,45 +40,33 @@ export default function ClubHubScreen() {
     router.replace(Routes.club(hub.membership.clubId));
   }, [hub.isTeamStaff, hub.membership?.clubId]);
 
-  const feedKeyExtractor = useCallback((item: ClubFeedPost) => item.id, []);
+  const feedKeyExtractor = (item: ClubFeedPost) => item.id;
 
-  const renderFeedPost = useCallback(
-    ({ item }: { item: ClubFeedPost }) => (
-      <View style={styles.feedPostItem}>
-        <FeedPost
-          post={item}
-          canPin={hub.canManagePosts}
-          onPinToggle={hub.handlePinToggle}
-          onLike={hub.handleLikePost}
-          onComment={hub.handleCommentPost}
-          onShare={hub.handleSharePost}
-        />
-      </View>
-    ),
-    [
-      hub.canManagePosts,
-      hub.handlePinToggle,
-      hub.handleLikePost,
-      hub.handleCommentPost,
-      hub.handleSharePost,
-    ],
+  const renderFeedPost = ({ item }: { item: ClubFeedPost }) => (
+    <View style={styles.feedPostItem}>
+      <FeedPost
+        post={item}
+        canPin={hub.canManagePosts}
+        onPinToggle={hub.handlePinToggle}
+        onLike={hub.handleLikePost}
+        onComment={hub.handleCommentPost}
+        onShare={hub.handleSharePost}
+      />
+    </View>
   );
 
-  const handleCreatePost = useCallback(() => {
+  const handleCreatePost = () => {
     if (!hub.membership?.clubId) return;
     router.push(Routes.modalCreateClubPost({ clubId: hub.membership.clubId, audience: 'club' }));
-  }, [hub.membership?.clubId]);
+  };
 
-  const toggleMembers = useCallback(() => {
+  const toggleMembers = () => {
     setShowMembersSection(!showMembersSection);
-  }, [showMembersSection, setShowMembersSection]);
+  };
 
-  const handleConfirmRemoval = useCallback(
-    (reason: string, customReason?: string) => {
-      handleConfirmMemberRemoval(reason as MemberRemovalReason, customReason);
-    },
-    [handleConfirmMemberRemoval],
-  );
+  const handleConfirmRemoval = (reason: string, customReason?: string) => {
+    handleConfirmMemberRemoval(reason as MemberRemovalReason, customReason);
+  };
 
   // ─── No membership ────────────────────────────────────────────
   if (!hub.membership) {
@@ -179,7 +167,7 @@ interface FeedEmptyStateProps {
   onCreatePost: () => void;
 }
 
-const FeedEmptyState = memo(function FeedEmptyState({
+const FeedEmptyState = function FeedEmptyState({
   feedFilter,
   canCreatePosts,
   onCreatePost,
@@ -209,7 +197,7 @@ const FeedEmptyState = memo(function FeedEmptyState({
       )}
     </View>
   );
-});
+};
 
 // ─── Styles ────────────────────────────────────────────────────────
 

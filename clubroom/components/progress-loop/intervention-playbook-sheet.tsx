@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 
@@ -39,7 +39,7 @@ interface InterventionPlaybookSheetProps {
   onOpenHistory: (row: CoachFollowUpItem) => Promise<void>;
 }
 
-export const InterventionPlaybookSheet = memo(function InterventionPlaybookSheet({
+export const InterventionPlaybookSheet = function InterventionPlaybookSheet({
   row,
   isBusy,
   onClose,
@@ -49,7 +49,7 @@ export const InterventionPlaybookSheet = memo(function InterventionPlaybookSheet
 }: InterventionPlaybookSheetProps) {
   const { colors } = useTheme();
   const sheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['46%', '76%'], []);
+  const snapPoints = ['46%', '76%'];
 
   useEffect(() => {
     if (!row) {
@@ -59,16 +59,13 @@ export const InterventionPlaybookSheet = memo(function InterventionPlaybookSheet
     sheetRef.current?.snapToIndex(0);
   }, [row]);
 
-  const handleSheetChange = useCallback(
-    (index: number) => {
-      if (index < 0) {
-        onClose();
-      }
-    },
-    [onClose],
-  );
+  const handleSheetChange = (index: number) => {
+    if (index < 0) {
+      onClose();
+    }
+  };
 
-  const reasons = useMemo(() => (row ? buildFlagReasons(row) : []), [row]);
+  const reasons = (row ? buildFlagReasons(row) : []);
 
   return (
     <BottomSheet
@@ -169,7 +166,7 @@ export const InterventionPlaybookSheet = memo(function InterventionPlaybookSheet
       )}
     </BottomSheet>
   );
-});
+};
 
 const styles = StyleSheet.create({
   sheetBackground: {

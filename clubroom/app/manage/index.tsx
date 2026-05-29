@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { PageContainer } from '@/components/primitives/page-container';
@@ -23,7 +23,7 @@ export default function ManageRedirectScreen() {
   const { clubId } = useLocalSearchParams<{ clubId?: string }>();
   const hasCoachAccess = isCoach(currentUser) || isAdmin(currentUser);
 
-  const loadTarget = useCallback(async (): Promise<Result<ManageRedirectTarget, ServiceError>> => {
+  const loadTarget = async (): Promise<Result<ManageRedirectTarget, ServiceError>> => {
     if (!hasCoachAccess || !currentUser?.id) {
       return ok({ href: null });
     }
@@ -40,7 +40,7 @@ export default function ManageRedirectScreen() {
     } catch (error) {
       return err(serviceError('UNKNOWN', 'Failed to open operations.', error));
     }
-  }, [clubId, currentUser?.id, hasCoachAccess]);
+  };
 
   const { data, status, error, retry } = useScreen<ManageRedirectTarget>({
     load: loadTarget,

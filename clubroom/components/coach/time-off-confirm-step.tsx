@@ -1,7 +1,3 @@
-/**
- * TimeOffConfirmStep — Confirm save step: summary, conflicts, actions.
- */
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -119,7 +115,7 @@ function TimeOffConfirmStepInner({
   );
 }
 
-export const TimeOffConfirmStep = memo(TimeOffConfirmStepInner);
+export const TimeOffConfirmStep = TimeOffConfirmStepInner;
 
 const styles = StyleSheet.create({
   content: { gap: Spacing.md },

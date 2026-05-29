@@ -27,10 +27,11 @@ interface RatingFilterProps {
 }
 
 const RATINGS = [5, 4, 3, 2, 1];
+const EMPTY_DISTRIBUTION: RatingDistribution[] = [];
 
 export function RatingFilter({
   selectedRating,
-  distribution = [],
+  distribution = EMPTY_DISTRIBUTION,
   totalCount,
   onChange,
 }: RatingFilterProps) {

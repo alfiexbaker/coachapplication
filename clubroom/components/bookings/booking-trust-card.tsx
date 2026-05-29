@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -13,7 +12,7 @@ interface BookingTrustCardProps {
   relationshipContext: BookingRelationshipContext;
 }
 
-export const BookingTrustCard = memo(function BookingTrustCard({
+export const BookingTrustCard = function BookingTrustCard({
   relationshipContext,
 }: BookingTrustCardProps) {
   const { colors } = useTheme();
@@ -74,7 +73,7 @@ export const BookingTrustCard = memo(function BookingTrustCard({
       </View>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

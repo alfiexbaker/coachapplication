@@ -274,7 +274,7 @@ export async function flushQueue(): Promise<Result<FlushResult, ServiceError>> {
     let processed = 0;
     const failedActions: string[] = [];
 
-    for (const action of queue) {
+    const processAction = async (action: QueuedAction) => {
       const hasConflict = await detectConflict(action);
       if (hasConflict) {
         const strategy = action.conflictStrategy ?? 'overwrite';
@@ -293,7 +293,7 @@ export async function flushQueue(): Promise<Result<FlushResult, ServiceError>> {
             willRetry: false,
           });
           processed++;
-          continue;
+          return;
         }
 
         logger.warn('Queue conflict detected, proceeding with strategy', {
@@ -324,7 +324,12 @@ export async function flushQueue(): Promise<Result<FlushResult, ServiceError>> {
           willRetry: true,
         });
       }
-    }
+    };
+
+    await queue.reduce(
+      (previous, action) => previous.then(() => processAction(action)),
+      Promise.resolve(),
+    );
 
     const remaining = queue.length - processed;
     const result: FlushResult = {

@@ -1,6 +1,4 @@
-import { useCallback, useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
@@ -76,7 +74,7 @@ export default function ClubSetupCompleteScreen() {
   const inviteCode = typeof params.inviteCode === 'string' ? params.inviteCode : '';
   const inviteRole = typeof params.inviteRole === 'string' ? params.inviteRole : '';
 
-  const loadClub = useCallback(async (): Promise<Result<Club, ServiceError>> => {
+  const loadClub = async (): Promise<Result<Club, ServiceError>> => {
     if (!clubId) {
       return err(serviceError('VALIDATION', 'Missing club setup context.'));
     }
@@ -88,13 +86,16 @@ export default function ClubSetupCompleteScreen() {
       }
       return ok(nextClub);
     } catch (loadError) {
-      return err(
-        serviceError('UNKNOWN', 'Club setup details could not be loaded.', loadError),
-      );
+      return err(serviceError('UNKNOWN', 'Club setup details could not be loaded.', loadError));
     }
-  }, [clubId]);
+  };
 
-  const { data: club, status, error, retry } = useScreen<Club>({
+  const {
+    data: club,
+    status,
+    error,
+    retry,
+  } = useScreen<Club>({
     load: loadClub,
     deps: [clubId],
     isEmpty: () => false,
@@ -102,10 +103,10 @@ export default function ClubSetupCompleteScreen() {
     dataKey: `club-setup-complete:${clubId || 'missing'}`,
   });
 
-  const firstStaffRoleLabel = useMemo(() => {
+  const firstStaffRoleLabel = (() => {
     const parsed = parseOrganizationRole(inviteRole);
     return parsed ? formatOrganizationRoleLabel(parsed) : null;
-  }, [inviteRole]);
+  })();
 
   const handleCopyCode = async (code: string) => {
     await Clipboard.setStringAsync(code);
@@ -114,22 +115,16 @@ export default function ClubSetupCompleteScreen() {
 
   if (status === 'loading') {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <PageHeader title="Club Setup" subtitle="Finalizing setup" showBack centerTitle />
         <LoadingState variant="detail" />
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (status === 'error' || !club) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <PageHeader title="Club Setup" showBack centerTitle />
         <ErrorState
           title="Club setup unavailable"
@@ -137,17 +132,18 @@ export default function ClubSetupCompleteScreen() {
           error={error ?? undefined}
           onRetry={clubId ? retry : () => router.replace(Routes.MY_CLUBS)}
         />
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <PageHeader title="Club Setup" centerTitle />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <SurfaceCard style={styles.heroCard}>
           <View style={[styles.heroBadge, { backgroundColor: withAlpha(colors.tint, 0.1) }]}>
             <Ionicons name="checkmark-circle-outline" size={28} color={colors.tint} />
@@ -240,7 +236,7 @@ export default function ClubSetupCompleteScreen() {
           </Row>
         </Clickable>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

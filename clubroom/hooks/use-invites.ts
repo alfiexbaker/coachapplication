@@ -3,7 +3,7 @@
  * Manages invite list, tab filtering, accept/decline/rsvp, slot picking.
  */
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
@@ -13,6 +13,8 @@ import { createLogger } from '@/utils/logger';
 import { getSessionInviteCoachName } from '@/utils/session-invite-display';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('InvitesScreen');
 
@@ -39,7 +41,7 @@ export function useInvites() {
   const [tabFilter, setTabFilter] = useState<TabFilter>('pending');
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
 
-  const loadInvites = useCallback(async () => {
+  const loadInvites = async () => {
     if (!currentUser) {
       return ok<InvitesLoadData>({ invites: [] });
     }
@@ -52,7 +54,7 @@ export function useInvites() {
       logger.error('Failed to load invites', loadError);
       return err(serviceError('UNKNOWN', 'Failed to load invites. Please try again.', loadError));
     }
-  }, [currentUser]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<InvitesLoadData>({
     load: loadInvites,
@@ -75,118 +77,108 @@ export function useInvites() {
   ).length;
   const maybeCount = invites.filter((i) => i.status === 'MAYBE').length;
 
-  const handleAcceptInvite = useCallback(
-    async (invite: SessionInvite, selectedSlot: TimeSlot) => {
-      setRespondingTo(invite.id);
-      try {
-        const result = await sessionInviteService.respondToInvite({
+  const handleAcceptInvite = async (invite: SessionInvite, selectedSlot: TimeSlot) => {
+    setRespondingTo(invite.id);
+
+    return await runAsyncTryCatchFinally(async () => {
+      const result = await sessionInviteService.respondToInvite({
+        inviteId: invite.id,
+        response: 'ACCEPTED',
+        selectedSlot,
+      });
+      if (!result.success) {
+        uiFeedback.showToast(result.error?.message ?? 'Could not create the booking. Please try again.', 'error');
+        logger.error('Invite acceptance failed', {
           inviteId: invite.id,
-          response: 'ACCEPTED',
-          selectedSlot,
+          error: result.error?.message,
         });
-        if (!result.success) {
-          uiFeedback.showToast(result.error?.message ?? 'Could not create the booking. Please try again.', 'error');
-          logger.error('Invite acceptance failed', {
-            inviteId: invite.id,
-            error: result.error?.message,
-          });
-          return;
-        }
-        const coachName = getSessionInviteCoachName(invite);
-        uiFeedback.showToast(`Session with ${coachName} on ${new Date(selectedSlot.date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} at ${selectedSlot.startTime} has been booked.`, 'success');
-        onRefresh();
-      } catch {
-        uiFeedback.showToast('Failed to accept invite. Please try again.', 'error');
-      } finally {
-        setRespondingTo(null);
-      }
-    },
-    [onRefresh],
-  );
-
-  const handleDeclineInvite = useCallback(
-    (invite: SessionInvite) => {
-      const coachName = getSessionInviteCoachName(invite);
-      uiFeedback.alert(
-        'Decline Invite',
-        `Are you sure you want to decline this invite from ${coachName}?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Decline',
-            style: 'destructive',
-            onPress: async () => {
-              setRespondingTo(invite.id);
-              try {
-                await sessionInviteService.respondToInvite({
-                  inviteId: invite.id,
-                  response: 'DECLINED',
-                });
-                onRefresh();
-              } catch {
-                uiFeedback.showToast('Failed to decline invite.', 'error');
-              } finally {
-                setRespondingTo(null);
-              }
-            },
-          },
-        ],
-      );
-    },
-    [onRefresh],
-  );
-
-  const showSlotPicker = useCallback(
-    (invite: SessionInvite) => {
-      if (invite.proposedSlots.length === 1) {
-        handleAcceptInvite(invite, invite.proposedSlots[0]);
         return;
       }
-      void (async () => {
-        const selected = await uiFeedback.choose({
-          title: 'Select Time Slot',
-          message: 'Choose a time that works for you:',
-          options: invite.proposedSlots.map((slot, index) => ({
-            id: String(index),
-            label: `${new Date(slot.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} at ${slot.startTime}`,
-          })),
-          cancelText: 'Cancel',
-        });
+      const coachName = getSessionInviteCoachName(invite);
+      uiFeedback.showToast(`Session with ${coachName} on ${new Date(selectedSlot.date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} at ${selectedSlot.startTime} has been booked.`, 'success');
+      onRefresh();
+    }, async error => {
+      uiFeedback.showToast('Failed to accept invite. Please try again.', 'error');
+    }, () => {
+      setRespondingTo(null);
+    });
+  };
 
-        if (selected === null) return;
-        const slotIndex = Number.parseInt(selected, 10);
-        const slot = invite.proposedSlots[slotIndex];
-        if (!slot) return;
-        await handleAcceptInvite(invite, slot);
-      })();
-    },
-    [handleAcceptInvite],
-  );
+  const handleDeclineInvite = (invite: SessionInvite) => {
+    const coachName = getSessionInviteCoachName(invite);
+    uiFeedback.alert(
+      'Decline Invite',
+      `Are you sure you want to decline this invite from ${coachName}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Decline',
+          style: 'destructive',
+          onPress: async () => {
+            setRespondingTo(invite.id);
 
-  const handleRsvp = useCallback(
-    async (inviteId: string, rsvpStatus: 'going' | 'maybe' | 'cant_go') => {
-      if (!currentUser) return;
-      try {
-        const result = await inviteRsvpService.respondToInvite(
-          inviteId,
-          currentUser.id,
-          currentUser.fullName || currentUser.username || 'User',
-          rsvpStatus,
-          undefined,
-          undefined,
-          currentUser.avatar,
-        );
-        if (!result.success) {
-          uiFeedback.showToast(result.error.message, 'error');
-          return;
-        }
-        onRefresh();
-      } catch {
-        uiFeedback.showToast('Failed to respond. Please try again.', 'error');
+            await runAsyncTryCatchFinally(async () => {
+              await sessionInviteService.respondToInvite({
+                inviteId: invite.id,
+                response: 'DECLINED',
+              });
+              onRefresh();
+            }, async error => {
+              uiFeedback.showToast('Failed to decline invite.', 'error');
+            }, () => {
+              setRespondingTo(null);
+            });
+          },
+        },
+      ],
+    );
+  };
+
+  const showSlotPicker = (invite: SessionInvite) => {
+    if (invite.proposedSlots.length === 1) {
+      handleAcceptInvite(invite, invite.proposedSlots[0]);
+      return;
+    }
+    void (async () => {
+      const selected = await uiFeedback.choose({
+        title: 'Select Time Slot',
+        message: 'Choose a time that works for you:',
+        options: invite.proposedSlots.map((slot, index) => ({
+          id: String(index),
+          label: `${new Date(slot.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} at ${slot.startTime}`,
+        })),
+        cancelText: 'Cancel',
+      });
+
+      if (selected === null) return;
+      const slotIndex = Number.parseInt(selected, 10);
+      const slot = invite.proposedSlots[slotIndex];
+      if (!slot) return;
+      await handleAcceptInvite(invite, slot);
+    })();
+  };
+
+  const handleRsvp = async (inviteId: string, rsvpStatus: 'going' | 'maybe' | 'cant_go') => {
+    if (!currentUser) return;
+    try {
+      const result = await inviteRsvpService.respondToInvite(
+        inviteId,
+        currentUser.id,
+        currentUser.fullName || currentUser.username || 'User',
+        rsvpStatus,
+        undefined,
+        undefined,
+        currentUser.avatar,
+      );
+      if (!result.success) {
+        uiFeedback.showToast(result.error.message, 'error');
+        return;
       }
-    },
-    [currentUser, onRefresh],
-  );
+      onRefresh();
+    } catch {
+      uiFeedback.showToast('Failed to respond. Please try again.', 'error');
+    }
+  };
 
   return {
     invites,

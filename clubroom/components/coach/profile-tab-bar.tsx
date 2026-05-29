@@ -57,7 +57,7 @@ function ProfileTabBarInner({ activeTab, onTabChange }: ProfileTabsProps) {
   );
 }
 
-export const ProfileTabBar = React.memo(ProfileTabBarInner);
+export const ProfileTabBar = ProfileTabBarInner;
 export default ProfileTabBar;
 
 const styles = StyleSheet.create({

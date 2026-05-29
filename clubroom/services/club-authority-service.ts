@@ -184,13 +184,19 @@ function mapClub(club: ApiClub): Club {
     memberCount: memberships.length,
     coachCount: coaches.length,
     squadCount: club.squads?.length ?? 0,
-    ownerId: (memberships.find((membership) => toContractRole(membership.role) === 'OWNER')?.userId ?? club.createdByUserId ?? '').replace(/^usr_/, ''),
+    ownerId: (
+      memberships.find((membership) => toContractRole(membership.role) === 'OWNER')?.userId ??
+      club.createdByUserId ??
+      ''
+    ).replace(/^usr_/, ''),
     inviteCode: club.inviteCode ?? '',
   };
 }
 
 class ClubAuthorityService {
-  async listClubs(): Promise<Result<{ clubs: Club[]; memberships: ClubMembership[] }, ServiceError>> {
+  async listClubs(): Promise<
+    Result<{ clubs: Club[]; memberships: ClubMembership[] }, ServiceError>
+  > {
     if (api.useMock) {
       const currentUser = await authService.getCurrentUser();
       if (!currentUser?.id) {
@@ -217,9 +223,9 @@ class ClubAuthorityService {
     }
 
     const clubs = result.data.clubs.map(mapClub);
-    const memberships = result.data.clubs
-      .flatMap((club) => club.memberships ?? [])
-      .map(mapMembership);
+    const memberships = result.data.clubs.flatMap((club) =>
+      (club.memberships ?? []).map(mapMembership),
+    );
 
     await socialFeedService.syncAuthorityClubs(
       result.data.clubs.map((club) => ({
@@ -254,7 +260,10 @@ class ClubAuthorityService {
     return ok(inviteCodes);
   }
 
-  async createInviteCode(clubId: string, role: ClubRole): Promise<Result<ClubInvite, ServiceError>> {
+  async createInviteCode(
+    clubId: string,
+    role: ClubRole,
+  ): Promise<Result<ClubInvite, ServiceError>> {
     if (api.useMock) {
       return socialFeedService.generateInviteCode(clubId, 'system', role);
     }
@@ -264,11 +273,14 @@ class ClubAuthorityService {
       return headersResult;
     }
 
-    const result = await apiFetch<{ inviteCode: ApiClubInviteCode }>(`/v1/clubs/${clubId}/invite-codes`, {
-      method: 'POST',
-      headers: headersResult.data,
-      body: JSON.stringify({ role }),
-    });
+    const result = await apiFetch<{ inviteCode: ApiClubInviteCode }>(
+      `/v1/clubs/${clubId}/invite-codes`,
+      {
+        method: 'POST',
+        headers: headersResult.data,
+        body: JSON.stringify({ role }),
+      },
+    );
     if (!result.success) {
       return err(result.error);
     }
@@ -343,7 +355,17 @@ class ClubAuthorityService {
 
   async joinWithCode(
     code: string,
-  ): Promise<Result<{ outcome: JoinClubResponse['outcome']; club: Club; membership?: ClubMembership | null; invite?: PendingClubInvite | null }, ServiceError>> {
+  ): Promise<
+    Result<
+      {
+        outcome: JoinClubResponse['outcome'];
+        club: Club;
+        membership?: ClubMembership | null;
+        invite?: PendingClubInvite | null;
+      },
+      ServiceError
+    >
+  > {
     if (api.useMock) {
       const currentUser = await authService.getCurrentUser();
       if (!currentUser?.id) {
@@ -353,7 +375,9 @@ class ClubAuthorityService {
       if (!result.success) {
         return err(result.error);
       }
-      const club = socialFeedService.getUserClubs(currentUser.id).find((candidate) => candidate.id === result.data.clubId);
+      const club = socialFeedService
+        .getUserClubs(currentUser.id)
+        .find((candidate) => candidate.id === result.data.clubId);
       return ok({
         outcome: 'joined',
         club: club ?? {
@@ -398,11 +422,16 @@ class ClubAuthorityService {
     const membership = result.data.membership ? mapMembership(result.data.membership) : null;
 
     if (membership) {
-      await socialFeedService.syncJoinedClub(
-        club,
-        membership,
-        [{ code: result.data.club.inviteCode, clubId: club.id, createdBy: '', role: 'MEMBER', expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), remainingUses: 999 }],
-      );
+      await socialFeedService.syncJoinedClub(club, membership, [
+        {
+          code: result.data.club.inviteCode,
+          clubId: club.id,
+          createdBy: '',
+          role: 'MEMBER',
+          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+          remainingUses: 999,
+        },
+      ]);
     }
 
     return ok({
@@ -437,7 +466,9 @@ class ClubAuthorityService {
   async respondToInvite(
     inviteId: string,
     response: 'accepted' | 'declined',
-  ): Promise<Result<{ invite: PendingClubInvite; membership?: ClubMembership | null }, ServiceError>> {
+  ): Promise<
+    Result<{ invite: PendingClubInvite; membership?: ClubMembership | null }, ServiceError>
+  > {
     if (api.useMock) {
       return err(serviceError('UNKNOWN', 'Club invite response is only available in API mode.'));
     }
@@ -447,11 +478,14 @@ class ClubAuthorityService {
       return headersResult;
     }
 
-    const result = await apiFetch<RespondToClubInviteResponse>(`/v1/clubs/invites/${inviteId}/respond`, {
-      method: 'POST',
-      headers: headersResult.data,
-      body: JSON.stringify({ response }),
-    });
+    const result = await apiFetch<RespondToClubInviteResponse>(
+      `/v1/clubs/invites/${inviteId}/respond`,
+      {
+        method: 'POST',
+        headers: headersResult.data,
+        body: JSON.stringify({ response }),
+      },
+    );
     if (!result.success) {
       return err(result.error);
     }

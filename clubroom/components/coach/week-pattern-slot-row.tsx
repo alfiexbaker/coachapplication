@@ -1,8 +1,3 @@
-/**
- * WeekPatternSlotRow — Single slot row in the weekly availability grid.
- * Also includes the "Add time block" sub-row.
- */
-import { memo, useCallback } from 'react';
 import { View, StyleSheet, Platform, type ViewStyle, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -49,13 +44,13 @@ function SlotRowInner(props: WeekPatternSlotRowProps) {
     onPress,
   } = props;
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
-  }, [onPress]);
-  const handleOverrideInfo = useCallback(() => {
+  };
+  const handleOverrideInfo = () => {
     uiFeedback.showToast('This yellow dot means the normal weekly slot was overridden for a specific date.');
-  }, []);
+  };
 
   const rowStyle: ViewStyle = {
     ...styles.dayRow,
@@ -146,7 +141,7 @@ function SlotRowInner(props: WeekPatternSlotRowProps) {
   );
 }
 
-export const WeekPatternSlotRow = memo(SlotRowInner);
+export const WeekPatternSlotRow = SlotRowInner;
 
 // ---- Add Block Row ----
 
@@ -159,10 +154,10 @@ interface AddBlockRowProps {
 function AddBlockRowInner({ dayIndex, showSeparator, onPress }: AddBlockRowProps) {
   const { colors: palette } = useTheme();
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
-  }, [onPress]);
+  };
 
   const rowStyle: ViewStyle = {
     ...styles.addBlockRow,
@@ -180,7 +175,7 @@ function AddBlockRowInner({ dayIndex, showSeparator, onPress }: AddBlockRowProps
   );
 }
 
-export const WeekPatternAddBlockRow = memo(AddBlockRowInner);
+export const WeekPatternAddBlockRow = AddBlockRowInner;
 
 const styles = StyleSheet.create({
   dayRow: {

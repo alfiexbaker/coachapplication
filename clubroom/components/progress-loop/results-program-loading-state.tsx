@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Column } from '@/components/primitives/column';
@@ -11,7 +10,7 @@ interface ResultsProgramLoadingStateProps {
   isCoachView: boolean;
 }
 
-export const ResultsProgramLoadingState = memo(function ResultsProgramLoadingState({
+export const ResultsProgramLoadingState = function ResultsProgramLoadingState({
   isCoachView,
 }: ResultsProgramLoadingStateProps) {
   return (
@@ -56,7 +55,7 @@ export const ResultsProgramLoadingState = memo(function ResultsProgramLoadingSta
       </Column>
     </Column>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: {

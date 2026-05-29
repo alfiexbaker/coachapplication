@@ -2,7 +2,7 @@
  * ScheduleDayDetail — Selected day card showing sessions or empty state.
  */
 
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -26,7 +26,7 @@ interface Props {
   onCreateSession?: (dateStr: string) => void;
 }
 
-export const ScheduleDayDetail = memo(function ScheduleDayDetail({
+export const ScheduleDayDetail = function ScheduleDayDetail({
   day,
   businessFilter = 'all',
   onSessionPress,
@@ -34,9 +34,9 @@ export const ScheduleDayDetail = memo(function ScheduleDayDetail({
 }: Props) {
   const { colors } = useTheme();
 
-  const handleAdjust = useCallback(() => {
+  const handleAdjust = () => {
     onAdjustDay(day.dateStr);
-  }, [onAdjustDay, day.dateStr]);
+  };
 
   return (
     <Animated.View entering={FadeInDown.delay(300).springify()}>
@@ -111,7 +111,7 @@ export const ScheduleDayDetail = memo(function ScheduleDayDetail({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

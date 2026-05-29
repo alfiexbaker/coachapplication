@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Text,
   TextInput,
@@ -63,41 +63,35 @@ function InputInner({
   const { colors } = useTheme();
   const [isFocused, setIsFocused] = useState(false);
 
-  const handleFocus = useCallback(
-    (e: Parameters<NonNullable<TextInputProps['onFocus']>>[0]) => {
-      setIsFocused(true);
-      onFocus?.(e);
-    },
-    [onFocus],
-  );
+  const markInputFocused = (e: Parameters<NonNullable<TextInputProps['onFocus']>>[0]) => {
+    setIsFocused(true);
+    onFocus?.(e);
+  };
 
-  const handleBlur = useCallback(
-    (e: Parameters<NonNullable<TextInputProps['onBlur']>>[0]) => {
-      setIsFocused(false);
-      onBlur?.(e);
-    },
-    [onBlur],
-  );
+  const markInputBlurred = (e: Parameters<NonNullable<TextInputProps['onBlur']>>[0]) => {
+    setIsFocused(false);
+    onBlur?.(e);
+  };
 
   const hasError = Boolean(error);
   const borderColor = hasError ? colors.error : isFocused ? colors.tint : colors.border;
 
-  const themedStyles = useMemo(
-    () => ({
-      label: { color: colors.muted },
-      input: {
-        backgroundColor: colors.surface,
-        color: colors.text,
-      },
-      disabled: {
-        backgroundColor: colors.surfaceSecondary,
-        opacity: 0.6,
-      },
-      error: { color: colors.error },
-      helper: { color: colors.muted },
-    }),
-    [colors],
-  );
+  const themedStyles = ({
+    label: { color: colors.muted },
+
+    input: {
+      backgroundColor: colors.surface,
+      color: colors.text,
+    },
+
+    disabled: {
+      backgroundColor: colors.surfaceSecondary,
+      opacity: 0.6,
+    },
+
+    error: { color: colors.error },
+    helper: { color: colors.muted },
+  });
 
   return (
     <View style={[styles.container, style]}>
@@ -125,8 +119,8 @@ function InputInner({
           maxLength={maxLength}
           returnKeyType={returnKeyType}
           onSubmitEditing={onSubmitEditing}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
+          onFocus={markInputFocused}
+          onBlur={markInputBlurred}
           style={[
             styles.input,
             themedStyles.input,
@@ -154,4 +148,4 @@ function InputInner({
   );
 }
 
-export const Input = React.memo(InputInner);
+export const Input = InputInner;

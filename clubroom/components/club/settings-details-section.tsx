@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -19,7 +19,7 @@ interface SettingsDetailsSectionProps {
   onSave: () => void;
 }
 
-export const SettingsDetailsSection = memo(function SettingsDetailsSection({
+export const SettingsDetailsSection = function SettingsDetailsSection({
   editName,
   editTagline,
   editCity,
@@ -71,7 +71,7 @@ export const SettingsDetailsSection = memo(function SettingsDetailsSection({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.md },

@@ -1,11 +1,3 @@
-/**
- * Map Content — Web
- *
- * Web cannot render react-native-maps. Provides a premium coach list
- * with a subtle app-download CTA. No fake maps.
- */
-
-import { memo } from 'react';
 import { FlatList, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,18 +21,18 @@ const ListSeparator = () => <View style={{ height: Spacing.sm }} />;
 
 // ─── SkillChip ─────────────────────────────────────────────────────────────
 
-const SkillChip = memo(function SkillChip({ label }: { label: string }) {
+const SkillChip = function SkillChip({ label }: { label: string }) {
   const { colors: palette } = useTheme();
   return (
     <View style={[styles.skillChip, { backgroundColor: withAlpha(palette.tint, 0.08) }]}>
       <ThemedText style={[styles.skillChipText, { color: palette.tint }]}>{label}</ThemedText>
     </View>
   );
-});
+};
 
 // ─── CoachListCard ─────────────────────────────────────────────────────────
 
-const CoachListCard = memo(function CoachListCard({
+const CoachListCard = function CoachListCard({
   coach,
   selected,
   onPress,
@@ -167,11 +159,11 @@ const CoachListCard = memo(function CoachListCard({
       </Row>
     </SurfaceCard>
   );
-});
+};
 
 // ─── SheetHeader ──────────────────────────────────────────────────────────
 
-const SheetHeader = memo(function SheetHeader({ count }: { count: number }) {
+const SheetHeader = function SheetHeader({ count }: { count: number }) {
   const { colors: palette } = useTheme();
   return (
     <Row align="center" gap="xs" style={styles.listHeader}>
@@ -183,7 +175,7 @@ const SheetHeader = memo(function SheetHeader({ count }: { count: number }) {
       </View>
     </Row>
   );
-});
+};
 
 // ─── MapContent (Web) ──────────────────────────────────────────────────────
 

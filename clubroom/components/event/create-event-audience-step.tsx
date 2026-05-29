@@ -211,7 +211,7 @@ function CreateEventAudienceStepInner({
   );
 }
 
-export const CreateEventAudienceStep = React.memo(CreateEventAudienceStepInner);
+export const CreateEventAudienceStep = CreateEventAudienceStepInner;
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 

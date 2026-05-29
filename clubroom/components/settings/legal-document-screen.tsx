@@ -1,5 +1,4 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { FlatList, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import { Stack, router } from 'expo-router';
 
 import { PageHeader } from '@/components/primitives/page-header';
@@ -18,18 +17,12 @@ interface LegalDocumentScreenProps {
   sections: LegalDocumentSection[];
 }
 
-export function LegalDocumentScreen({
-  title,
-  lastUpdated,
-  sections,
-}: LegalDocumentScreenProps) {
+export function LegalDocumentScreen({ title, lastUpdated, sections }: LegalDocumentScreenProps) {
   const { colors: palette } = useTheme();
+  const sectionItems = getLegalSectionItems(sections, palette.text);
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
       <PageHeader
@@ -40,23 +33,46 @@ export function LegalDocumentScreen({
         centerTitle
       />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <ThemedText style={[styles.lastUpdated, { color: palette.muted }]}>
-          Last updated: {lastUpdated}
-        </ThemedText>
+      <FlatList
+        data={sectionItems}
+        keyExtractor={keyLegalSectionItem}
+        renderItem={renderLegalSectionItem}
+        ListHeaderComponent={
+          <ThemedText style={[styles.lastUpdated, { color: palette.muted }]}>
+            Last updated: {lastUpdated}
+          </ThemedText>
+        }
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      />
+    </View>
+  );
+}
 
-        {sections.map((section) => (
-          <View key={section.title}>
-            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-              {section.title}
-            </ThemedText>
-            <ThemedText style={[styles.body, { color: palette.text }]}>
-              {section.body}
-            </ThemedText>
-          </View>
-        ))}
-      </ScrollView>
-    </SafeAreaView>
+interface LegalSectionItem extends LegalDocumentSection {
+  textColor: string;
+}
+
+function getLegalSectionItems(
+  sections: LegalDocumentSection[],
+  textColor: string,
+): LegalSectionItem[] {
+  return sections.map((section) => ({ ...section, textColor }));
+}
+
+function keyLegalSectionItem(item: LegalSectionItem) {
+  return item.title;
+}
+
+function renderLegalSectionItem({ item }: ListRenderItemInfo<LegalSectionItem>) {
+  return (
+    <View>
+      <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+        {item.title}
+      </ThemedText>
+      <ThemedText style={[styles.body, { color: item.textColor }]}>{item.body}</ThemedText>
+    </View>
   );
 }
 

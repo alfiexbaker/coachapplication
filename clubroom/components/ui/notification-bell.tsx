@@ -22,13 +22,13 @@ interface NotificationBellProps {
 
 export function NotificationBell({ size = 24, color }: NotificationBellProps) {
   const { colors: palette } = useTheme();
-  const router = useRouter();
+  const { push } = useRouter();
   const badgeState = useNotificationBadgeState();
 
   const iconColor = color || palette.text;
 
   const handlePress = () => {
-    router.push(Routes.NOTIFICATIONS);
+    push(Routes.NOTIFICATIONS);
   };
 
   return (

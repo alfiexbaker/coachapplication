@@ -3,7 +3,7 @@
  * WeekPatternGrid, session type chips, take time off, booking rules.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -16,7 +16,8 @@ import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { AvailabilityTemplate, AvailabilityOverride } from '@/constants/types';
 import type { SessionTemplate } from '@/constants/session-types';
-import { DemoBanner, isDemoMode } from '@/utils/demo-mode';
+import { DemoBanner } from '@/utils/demo-mode';
+import { isDemoMode } from '@/utils/demo-mode-helpers';
 
 interface Props {
   templates: AvailabilityTemplate[];
@@ -33,7 +34,7 @@ interface Props {
   onRulesOpen: () => void;
 }
 
-export const ScheduleAvailabilitySegment = memo(function ScheduleAvailabilitySegment({
+export const ScheduleAvailabilitySegment = function ScheduleAvailabilitySegment({
   templates,
   overrides,
   blockedDates,
@@ -113,7 +114,7 @@ export const ScheduleAvailabilitySegment = memo(function ScheduleAvailabilitySeg
       )}
     </ScrollView>
   );
-});
+};
 
 const styles = StyleSheet.create({
   content: {

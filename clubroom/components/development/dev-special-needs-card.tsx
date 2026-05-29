@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
@@ -14,7 +14,7 @@ export interface DevSpecialNeedsCardProps {
   onPress: () => void;
 }
 
-export const DevSpecialNeedsCard = memo(function DevSpecialNeedsCard({
+export const DevSpecialNeedsCard = function DevSpecialNeedsCard({
   childProfile,
   colors,
   onPress,
@@ -77,7 +77,7 @@ export const DevSpecialNeedsCard = memo(function DevSpecialNeedsCard({
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

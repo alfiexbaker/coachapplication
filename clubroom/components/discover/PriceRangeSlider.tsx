@@ -1,7 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState, startTransition } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  type SharedValue,
+} from 'react-native-reanimated';
+import type { PanGesture } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
@@ -40,6 +46,62 @@ function createDebounce<T extends unknown[]>(fn: (...args: T) => void, ms: numbe
   return debounced;
 }
 
+function formatPriceRangeValue(value: number): string {
+  return `£${value}`;
+}
+
+function createMinGesture({
+  maxPosition,
+  minPosition,
+  positionToValue,
+  handleMinChange,
+}: {
+  maxPosition: SharedValue<number>;
+  minPosition: SharedValue<number>;
+  positionToValue: (position: number) => number;
+  handleMinChange: (newMin: number, immediate?: boolean) => void;
+}) {
+  return Gesture.Pan()
+    .onUpdate((event) => {
+      const newPosition = Math.max(
+        0,
+        Math.min(event.absoluteX - SLIDER_PADDING, maxPosition.value - THUMB_SIZE),
+      );
+      minPosition.set(newPosition);
+      runOnJS(handleMinChange)(positionToValue(newPosition), false);
+    })
+    .onEnd(() => {
+      runOnJS(handleMinChange)(positionToValue(minPosition.value), true);
+    });
+}
+
+function createMaxGesture({
+  minPosition,
+  maxPosition,
+  sliderWidth,
+  positionToValue,
+  handleMaxChange,
+}: {
+  minPosition: SharedValue<number>;
+  maxPosition: SharedValue<number>;
+  sliderWidth: number;
+  positionToValue: (position: number) => number;
+  handleMaxChange: (newMax: number, immediate?: boolean) => void;
+}) {
+  return Gesture.Pan()
+    .onUpdate((event) => {
+      const newPosition = Math.max(
+        minPosition.value + THUMB_SIZE,
+        Math.min(event.absoluteX - SLIDER_PADDING, sliderWidth),
+      );
+      maxPosition.set(newPosition);
+      runOnJS(handleMaxChange)(positionToValue(newPosition), false);
+    })
+    .onEnd(() => {
+      runOnJS(handleMaxChange)(positionToValue(maxPosition.value), true);
+    });
+}
+
 export function PriceRangeSlider({
   min,
   max,
@@ -47,53 +109,51 @@ export function PriceRangeSlider({
   currentMax,
   step = 5,
   onChange,
-  formatValue = (v) => `£${v}`,
+  formatValue = formatPriceRangeValue,
 }: PriceRangeSliderProps) {
   const { colors: palette, scheme } = useTheme();
   const [sliderWidth, setSliderWidth] = useState(0);
-  const debouncedOnChangeRef = useRef<ReturnType<typeof createDebounce<[number, number]>> | null>(null);
-
-  const valueToPosition = useCallback(
-    (value: number) => {
-      const range = max - min;
-      if (range === 0) return 0;
-      return ((value - min) / range) * sliderWidth;
-    },
-    [min, max, sliderWidth],
+  const debouncedOnChangeRef = useRef<ReturnType<typeof createDebounce<[number, number]>> | null>(
+    null,
   );
 
-  const positionToValue = useCallback(
-    (position: number) => {
-      const range = max - min;
-      const rawValue = (position / sliderWidth) * range + min;
-      const steppedValue = Math.round(rawValue / step) * step;
-      return Math.max(min, Math.min(max, steppedValue));
-    },
-    [min, max, step, sliderWidth],
-  );
+  const valueToPosition = (value: number) => {
+    const range = max - min;
+    if (range === 0) return 0;
+    return ((value - min) / range) * sliderWidth;
+  };
+
+  const positionToValue = (position: number) => {
+    const range = max - min;
+    const rawValue = (position / sliderWidth) * range + min;
+    const steppedValue = Math.round(rawValue / step) * step;
+    return Math.max(min, Math.min(max, steppedValue));
+  };
 
   const minPosition = useSharedValue(valueToPosition(currentMin));
   const maxPosition = useSharedValue(valueToPosition(currentMax));
+  const [minGesture, setMinGesture] = useState<PanGesture | null>(null);
+  const [maxGesture, setMaxGesture] = useState<PanGesture | null>(null);
 
   if (sliderWidth > 0) {
     const newMinPos = valueToPosition(currentMin);
     const newMaxPos = valueToPosition(currentMax);
     if (Math.abs(minPosition.value - newMinPos) > 1) {
-      minPosition.value = newMinPos;
+      minPosition.set(newMinPos);
     }
     if (Math.abs(maxPosition.value - newMaxPos) > 1) {
-      maxPosition.value = newMaxPos;
+      maxPosition.set(newMaxPos);
     }
   }
 
-  const emitChangeImmediately = useCallback((nextMin: number, nextMax: number) => {
+  const emitChangeImmediately = (nextMin: number, nextMax: number) => {
     debouncedOnChangeRef.current?.cancel();
     onChange(nextMin, nextMax);
-  }, [onChange]);
+  };
 
-  const debouncedOnChange = useMemo(
-    () => createDebounce((nextMin: number, nextMax: number) => onChange(nextMin, nextMax), ON_CHANGE_DEBOUNCE_MS),
-    [onChange],
+  const debouncedOnChange = createDebounce(
+    (nextMin: number, nextMax: number) => onChange(nextMin, nextMax),
+    ON_CHANGE_DEBOUNCE_MS,
   );
 
   useEffect(() => {
@@ -103,65 +163,69 @@ export function PriceRangeSlider({
     };
   }, [debouncedOnChange]);
 
-  const handleMinChange = useCallback(
-    (newMin: number, immediate = false) => {
-      const minGap = Math.max(MIN_GAP, step);
-      const boundary = currentMax - minGap;
-      const clampedMin = Math.min(newMin, boundary);
-      if (newMin > boundary && Platform.OS !== 'web') {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      }
-      if (immediate) {
-        emitChangeImmediately(clampedMin, currentMax);
-      } else {
-        debouncedOnChange(clampedMin, currentMax);
-      }
-    },
-    [currentMax, step, debouncedOnChange, emitChangeImmediately],
-  );
+  const handleMinChange = (newMin: number, immediate = false) => {
+    const minGap = Math.max(MIN_GAP, step);
+    const boundary = currentMax - minGap;
+    const clampedMin = Math.min(newMin, boundary);
+    if (newMin > boundary && Platform.OS !== 'web') {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    if (immediate) {
+      emitChangeImmediately(clampedMin, currentMax);
+    } else {
+      debouncedOnChange(clampedMin, currentMax);
+    }
+  };
 
-  const handleMaxChange = useCallback(
-    (newMax: number, immediate = false) => {
-      const minGap = Math.max(MIN_GAP, step);
-      const boundary = currentMin + minGap;
-      const clampedMax = Math.max(newMax, boundary);
-      if (newMax < boundary && Platform.OS !== 'web') {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      }
-      if (immediate) {
-        emitChangeImmediately(currentMin, clampedMax);
-      } else {
-        debouncedOnChange(currentMin, clampedMax);
-      }
-    },
-    [currentMin, step, debouncedOnChange, emitChangeImmediately],
-  );
+  const handleMaxChange = (newMax: number, immediate = false) => {
+    const minGap = Math.max(MIN_GAP, step);
+    const boundary = currentMin + minGap;
+    const clampedMax = Math.max(newMax, boundary);
+    if (newMax < boundary && Platform.OS !== 'web') {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    if (immediate) {
+      emitChangeImmediately(currentMin, clampedMax);
+    } else {
+      debouncedOnChange(currentMin, clampedMax);
+    }
+  };
+  const positionToValueRef = useRef(positionToValue);
+  const handleMinChangeRef = useRef(handleMinChange);
+  const handleMaxChangeRef = useRef(handleMaxChange);
 
-  const minGesture = Gesture.Pan()
-    .onUpdate((event) => {
-      const newPosition = Math.max(
-        0,
-        Math.min(event.absoluteX - SLIDER_PADDING, maxPosition.value - THUMB_SIZE),
+  useEffect(() => {
+    positionToValueRef.current = positionToValue;
+    handleMinChangeRef.current = handleMinChange;
+    handleMaxChangeRef.current = handleMaxChange;
+  });
+
+  useEffect(() => {
+    startTransition(() => {
+      setMinGesture(() =>
+        createMinGesture({
+          maxPosition,
+          minPosition,
+          positionToValue: (position) => positionToValueRef.current(position),
+          handleMinChange: (newMin, immediate) => handleMinChangeRef.current(newMin, immediate),
+        }),
       );
-      minPosition.value = newPosition;
-      runOnJS(handleMinChange)(positionToValue(newPosition), false);
-    })
-    .onEnd(() => {
-      runOnJS(handleMinChange)(positionToValue(minPosition.value), true);
     });
+  }, [maxPosition, minPosition]);
 
-  const maxGesture = Gesture.Pan()
-    .onUpdate((event) => {
-      const newPosition = Math.max(
-        minPosition.value + THUMB_SIZE,
-        Math.min(event.absoluteX - SLIDER_PADDING, sliderWidth),
+  useEffect(() => {
+    startTransition(() => {
+      setMaxGesture(() =>
+        createMaxGesture({
+          minPosition,
+          maxPosition,
+          sliderWidth,
+          positionToValue: (position) => positionToValueRef.current(position),
+          handleMaxChange: (newMax, immediate) => handleMaxChangeRef.current(newMax, immediate),
+        }),
       );
-      maxPosition.value = newPosition;
-      runOnJS(handleMaxChange)(positionToValue(newPosition), false);
-    })
-    .onEnd(() => {
-      runOnJS(handleMaxChange)(positionToValue(maxPosition.value), true);
     });
+  }, [maxPosition, minPosition, sliderWidth]);
 
   const minThumbStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: minPosition.value }],
@@ -172,8 +236,15 @@ export function PriceRangeSlider({
   }));
 
   const rangeStyle = useAnimatedStyle(() => ({
-    left: minPosition.value + THUMB_SIZE / 2,
-    right: sliderWidth - maxPosition.value + THUMB_SIZE / 2,
+    transform: [
+      { translateX: minPosition.value + THUMB_SIZE / 2 },
+      {
+        scaleX:
+          sliderWidth > 0
+            ? Math.max(0, maxPosition.value - minPosition.value - THUMB_SIZE) / sliderWidth
+            : 0,
+      },
+    ],
   }));
 
   return (
@@ -195,7 +266,21 @@ export function PriceRangeSlider({
           style={[styles.activeRange, { backgroundColor: palette.tint }, rangeStyle]}
         />
 
-        <GestureDetector gesture={minGesture}>
+        {minGesture ? (
+          <GestureDetector gesture={minGesture}>
+            <Animated.View
+              style={[
+                styles.thumb,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: palette.tint,
+                  ...Shadows[scheme].subtle,
+                },
+                minThumbStyle,
+              ]}
+            />
+          </GestureDetector>
+        ) : (
           <Animated.View
             style={[
               styles.thumb,
@@ -207,9 +292,23 @@ export function PriceRangeSlider({
               minThumbStyle,
             ]}
           />
-        </GestureDetector>
+        )}
 
-        <GestureDetector gesture={maxGesture}>
+        {maxGesture ? (
+          <GestureDetector gesture={maxGesture}>
+            <Animated.View
+              style={[
+                styles.thumb,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: palette.tint,
+                  ...Shadows[scheme].subtle,
+                },
+                maxThumbStyle,
+              ]}
+            />
+          </GestureDetector>
+        ) : (
           <Animated.View
             style={[
               styles.thumb,
@@ -221,7 +320,7 @@ export function PriceRangeSlider({
               maxThumbStyle,
             ]}
           />
-        </GestureDetector>
+        )}
       </View>
 
       <Row style={styles.rangeLabels}>
@@ -268,8 +367,11 @@ const styles = StyleSheet.create({
   },
   activeRange: {
     position: 'absolute',
+    left: SLIDER_PADDING,
+    width: '100%',
     height: TRACK_HEIGHT,
     borderRadius: TRACK_HEIGHT / 2,
+    transformOrigin: 'left center',
   },
   thumb: {
     position: 'absolute',

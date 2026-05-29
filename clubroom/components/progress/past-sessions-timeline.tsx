@@ -1,4 +1,3 @@
-import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInRight } from 'react-native-reanimated';
@@ -26,14 +25,14 @@ function performanceToColor(performance: number, colors: { error: string; warnin
   return colors.success;
 }
 
-export const PastSessionsTimeline = memo(function PastSessionsTimeline({
+export const PastSessionsTimeline = function PastSessionsTimeline({
   sessions,
   onViewOlder,
   onOpenMediaGallery,
 }: PastSessionsTimelineProps) {
   const { colors } = useTheme();
-  const visibleSessions = useMemo(() => sessions.slice(0, 6), [sessions]);
-  const deltaBySessionId = useMemo(() => {
+  const visibleSessions = sessions.slice(0, 6);
+  const deltaBySessionId = (() => {
     const deltas: Record<string, PastSessionDelta | null> = {};
 
     visibleSessions.forEach((current, index) => {
@@ -65,7 +64,7 @@ export const PastSessionsTimeline = memo(function PastSessionsTimeline({
     });
 
     return deltas;
-  }, [visibleSessions]);
+  })();
 
   return (
     <SurfaceCard style={styles.card}>
@@ -159,7 +158,7 @@ export const PastSessionsTimeline = memo(function PastSessionsTimeline({
       </Column>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

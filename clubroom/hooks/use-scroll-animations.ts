@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useRef } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import {
   Extrapolation,
@@ -28,35 +28,29 @@ export function useScrollAnimations(): ScrollAnimationController {
   const sectionOffsets = useSharedValue<Record<string, number>>({});
   const layoutHandlerCache = useRef<Record<string, (event: LayoutChangeEvent) => void>>({});
 
-  const onViewportLayout = useCallback(
-    (event: LayoutChangeEvent) => {
-      viewportHeight.value = Math.max(1, event.nativeEvent.layout.height);
-    },
-    [viewportHeight],
-  );
+  const onViewportLayout = (event: LayoutChangeEvent) => {
+    viewportHeight.set(Math.max(1, event.nativeEvent.layout.height));
+  };
 
-  const createSectionLayoutHandler = useCallback(
-    (sectionKey: string) => {
-      if (!layoutHandlerCache.current[sectionKey]) {
-        layoutHandlerCache.current[sectionKey] = (event: LayoutChangeEvent) => {
-          const nextY = event.nativeEvent.layout.y;
-          if (sectionOffsets.value[sectionKey] === nextY) {
-            return;
-          }
-          sectionOffsets.value = {
-            ...sectionOffsets.value,
-            [sectionKey]: nextY,
-          };
-        };
-      }
-      return layoutHandlerCache.current[sectionKey];
-    },
-    [sectionOffsets],
-  );
+  const createSectionLayoutHandler = (sectionKey: string) => {
+    if (!layoutHandlerCache.current[sectionKey]) {
+      layoutHandlerCache.current[sectionKey] = (event: LayoutChangeEvent) => {
+        const nextY = event.nativeEvent.layout.y;
+        if (sectionOffsets.value[sectionKey] === nextY) {
+          return;
+        }
+        sectionOffsets.set({
+          ...sectionOffsets.value,
+          [sectionKey]: nextY,
+        });
+      };
+    }
+    return layoutHandlerCache.current[sectionKey];
+  };
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
-      scrollY.value = event.contentOffset.y;
+      scrollY.set(event.contentOffset.y);
     },
   });
 

@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
@@ -11,18 +11,20 @@ import { Column, Row } from '@/components/primitives';
 import { CoachReviewProofSummary } from '@/components/coach/coach-review-proof-summary';
 import { formatReviewContext } from '@/utils/coach-review-proof';
 
-/** Renders 5 star icons for a given rating. Shared with hero. */
-export function renderStars(rating: number, color: string) {
+const STAR_KEYS = ['star-1', 'star-2', 'star-3', 'star-4', 'star-5'] as const;
+
+export function RatingStars({ rating, color }: { rating: number; color: string }) {
   const stars = [];
   const full = Math.floor(rating);
   const hasHalf = rating % 1 >= 0.5;
-  for (let i = 0; i < 5; i++) {
-    if (i < full) stars.push(<Ionicons key={i} name="star" size={14} color={color} />);
-    else if (i === full && hasHalf)
-      stars.push(<Ionicons key={i} name="star-half" size={14} color={color} />);
-    else stars.push(<Ionicons key={i} name="star-outline" size={14} color={color} />);
+  for (const key of STAR_KEYS) {
+    const starPosition = stars.length;
+    if (starPosition < full) stars.push(<Ionicons key={key} name="star" size={14} color={color} />);
+    else if (starPosition === full && hasHalf)
+      stars.push(<Ionicons key={key} name="star-half" size={14} color={color} />);
+    else stars.push(<Ionicons key={key} name="star-outline" size={14} color={color} />);
   }
-  return stars;
+  return <>{stars}</>;
 }
 
 interface CoachDetailReviewsProps {
@@ -30,7 +32,7 @@ interface CoachDetailReviewsProps {
   reviews: PublicReview[];
 }
 
-export const CoachDetailReviews = memo(function CoachDetailReviews({
+export const CoachDetailReviews = function CoachDetailReviews({
   coach,
   reviews,
 }: CoachDetailReviewsProps) {
@@ -41,7 +43,9 @@ export const CoachDetailReviews = memo(function CoachDetailReviews({
       <SurfaceCard style={styles.ratingsSummary}>
         <View style={styles.ratingBig}>
           <ThemedText style={styles.ratingNumber}>{coach.rating.toFixed(1)}</ThemedText>
-          <Row style={styles.starsRow}>{renderStars(coach.rating, palette.warning)}</Row>
+          <Row style={styles.starsRow}>
+            <RatingStars rating={coach.rating} color={palette.warning} />
+          </Row>
           <ThemedText style={{ color: palette.muted }}>
             {coach.reviewCount} review{coach.reviewCount !== 1 ? 's' : ''}
           </ThemedText>
@@ -81,7 +85,9 @@ export const CoachDetailReviews = memo(function CoachDetailReviews({
                       </View>
                     ) : null}
                   </Row>
-                  <Row style={styles.starsRow}>{renderStars(review.rating, palette.warning)}</Row>
+                  <Row style={styles.starsRow}>
+                    <RatingStars rating={review.rating} color={palette.warning} />
+                  </Row>
                   {formatReviewContext(review) ? (
                     <ThemedText style={[styles.reviewContext, { color: palette.muted }]}>
                       {formatReviewContext(review)}
@@ -131,7 +137,7 @@ export const CoachDetailReviews = memo(function CoachDetailReviews({
       )}
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   tabContent: { padding: Spacing.lg, gap: Spacing.md },

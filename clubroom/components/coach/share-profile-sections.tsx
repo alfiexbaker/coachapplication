@@ -7,7 +7,7 @@
  * ShareSlugEditor — editable custom URL slug.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { View, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -25,7 +25,7 @@ interface ShareUrlBoxProps {
   palette: ThemeColors;
 }
 
-export const ShareUrlBox = memo(function ShareUrlBox({ url, palette }: ShareUrlBoxProps) {
+export const ShareUrlBox = function ShareUrlBox({ url, palette }: ShareUrlBoxProps) {
   return (
     <Row
       style={[styles.urlBox, { backgroundColor: palette.background, borderColor: palette.border }]}
@@ -36,7 +36,7 @@ export const ShareUrlBox = memo(function ShareUrlBox({ url, palette }: ShareUrlB
       </ThemedText>
     </Row>
   );
-});
+};
 
 // ─── ShareActionRow ──────────────────────────────────────────────────────────
 
@@ -53,7 +53,7 @@ interface ShareActionRowProps {
   bgOverride?: string;
 }
 
-export const ShareActionRow = memo(function ShareActionRow({
+export const ShareActionRow = function ShareActionRow({
   icon,
   title,
   subtitle,
@@ -86,7 +86,7 @@ export const ShareActionRow = memo(function ShareActionRow({
       )}
     </Clickable>
   );
-});
+};
 
 // ─── ShareQrSection ──────────────────────────────────────────────────────────
 
@@ -95,7 +95,7 @@ interface ShareQrSectionProps {
   palette: ThemeColors;
 }
 
-export const ShareQrSection = memo(function ShareQrSection({ url, palette }: ShareQrSectionProps) {
+export const ShareQrSection = function ShareQrSection({ url, palette }: ShareQrSectionProps) {
   return (
     <View style={styles.qrSection}>
       <ThemedText style={[Typography.heading, { color: palette.text, marginBottom: Spacing.sm }]}>
@@ -119,7 +119,7 @@ export const ShareQrSection = memo(function ShareQrSection({ url, palette }: Sha
       </View>
     </View>
   );
-});
+};
 
 // ─── ShareSlugEditor ─────────────────────────────────────────────────────────
 
@@ -133,7 +133,7 @@ interface ShareSlugEditorProps {
   palette: ThemeColors;
 }
 
-export const ShareSlugEditor = memo(function ShareSlugEditor({
+export const ShareSlugEditor = function ShareSlugEditor({
   slug,
   editing,
   onChangeSlug,
@@ -202,4 +202,4 @@ export const ShareSlugEditor = memo(function ShareSlugEditor({
       )}
     </View>
   );
-});
+};

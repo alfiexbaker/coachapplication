@@ -11,7 +11,7 @@
  *   <Card variant="flat" padding={false}>...</Card>
  */
 
-import React, { useCallback, useMemo } from 'react';
+import React from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
@@ -63,21 +63,23 @@ function CardInner({
   const { colors, scheme } = useTheme();
   const scale = useSharedValue(1);
 
-  const handlePressIn = useCallback(() => {
-    scale.value = withSpring(PRESS_SCALE, SPRING_CONFIG);
-  }, [scale]);
+  const handlePressIn = () => {
+    scale.set(withSpring(PRESS_SCALE, SPRING_CONFIG));
+  };
 
-  const handlePressOut = useCallback(() => {
-    scale.value = withSpring(1, SPRING_CONFIG);
-  }, [scale]);
+  const handlePressOut = () => {
+    scale.set(withSpring(1, SPRING_CONFIG));
+  };
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
-  const themedBase = useMemo(() => ({ backgroundColor: colors.surface }), [colors]);
+  const themedBase = ({
+    backgroundColor: colors.surface,
+  });
 
-  const variantStyle = useMemo(() => {
+  const variantStyle = (() => {
     switch (variant) {
       case 'elevated':
         return Shadows[scheme].card;
@@ -87,7 +89,7 @@ function CardInner({
       default:
         return undefined;
     }
-  }, [variant, colors, scheme]);
+  })();
 
   const paddingStyle = padding ? styles.padded : undefined;
 
@@ -111,7 +113,7 @@ function CardInner({
   );
 }
 
-export const Card = React.memo(CardInner);
+export const Card = CardInner;
 
 // ---------------------------------------------------------------------------
 // Styles (color-independent)

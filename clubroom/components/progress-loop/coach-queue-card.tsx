@@ -1,4 +1,3 @@
-import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -57,7 +56,7 @@ interface CoachQueueCardProps {
   onPressHistory: (row: CoachFollowUpItem) => void;
 }
 
-export const CoachQueueCard = memo(function CoachQueueCard({
+export const CoachQueueCard = function CoachQueueCard({
   row,
   nowTs,
   selectionMode,
@@ -68,7 +67,7 @@ export const CoachQueueCard = memo(function CoachQueueCard({
   onPressHistory,
 }: CoachQueueCardProps) {
   const { colors } = useTheme();
-  const riskColor = useMemo(() => {
+  const riskColor = (() => {
     if (row.risk === 'high') {
       return colors.error;
     }
@@ -76,9 +75,9 @@ export const CoachQueueCard = memo(function CoachQueueCard({
       return colors.warning;
     }
     return colors.success;
-  }, [colors.error, colors.success, colors.warning, row.risk]);
+  })();
 
-  const nextDueLabel = useMemo(() => formatNextDueLabel(row.nextDueAt, nowTs), [nowTs, row.nextDueAt]);
+  const nextDueLabel = formatNextDueLabel(row.nextDueAt, nowTs);
 
   const cardBorderColor = selected ? withAlpha(colors.tint, 0.55) : colors.border;
 
@@ -201,7 +200,7 @@ export const CoachQueueCard = memo(function CoachQueueCard({
       </Column>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -15,7 +14,7 @@ interface MatchPlayerListProps {
   match: Match;
 }
 
-export const MatchPlayerList = memo(function MatchPlayerList({ match }: MatchPlayerListProps) {
+export const MatchPlayerList = function MatchPlayerList({ match }: MatchPlayerListProps) {
   const { colors } = useTheme();
 
   if (match.selectedPlayers.length === 0) return null;
@@ -61,7 +60,7 @@ export const MatchPlayerList = memo(function MatchPlayerList({ match }: MatchPla
       </View>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },

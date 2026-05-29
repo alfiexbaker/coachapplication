@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -17,7 +16,7 @@ interface SpecialNeedsHeroProps {
   lastUpdated?: string;
 }
 
-export const SpecialNeedsHero = memo(function SpecialNeedsHero({
+export const SpecialNeedsHero = function SpecialNeedsHero({
   name,
   avatar,
   totalCount,
@@ -57,7 +56,7 @@ export const SpecialNeedsHero = memo(function SpecialNeedsHero({
       </Row>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   heroCard: { padding: Spacing.sm },

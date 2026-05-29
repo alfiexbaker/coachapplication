@@ -16,7 +16,7 @@ interface BookingDeliveryOutcomeCardProps {
   onOpenProgress?: () => void;
 }
 
-export const BookingDeliveryOutcomeCard = React.memo(function BookingDeliveryOutcomeCard({
+export const BookingDeliveryOutcomeCard = function BookingDeliveryOutcomeCard({
   childName,
   summary,
   onOpenProgress,
@@ -93,7 +93,7 @@ export const BookingDeliveryOutcomeCard = React.memo(function BookingDeliveryOut
       ) : null}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.md, padding: Spacing.lg },

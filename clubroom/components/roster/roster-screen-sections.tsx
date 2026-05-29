@@ -16,11 +16,7 @@ type HeaderProps = {
   onBack: () => void;
 };
 
-export const RosterHeader = React.memo(function RosterHeader({
-  colors,
-  total,
-  onBack,
-}: HeaderProps) {
+export const RosterHeader = function RosterHeader({ colors, total, onBack }: HeaderProps) {
   return (
     <Row align="center" gap="md" style={styles.header}>
       <Clickable onPress={onBack} hitSlop={8} accessibilityLabel="Go back">
@@ -32,14 +28,14 @@ export const RosterHeader = React.memo(function RosterHeader({
       </View>
     </Row>
   );
-});
+};
 
 type StatsProps = {
   colors: ThemeColors;
   stats: RosterStats | null;
 };
 
-export const RosterStatsRow = React.memo(function RosterStatsRow({ colors, stats }: StatsProps) {
+const renderRosterStatsRow = function renderRosterStatsRow({ colors, stats }: StatsProps) {
   if (!stats) return null;
 
   const statusStats: { status: RosterEntry['status']; count: number; color: string }[] = [
@@ -68,7 +64,8 @@ export const RosterStatsRow = React.memo(function RosterStatsRow({ colors, stats
       </View>
     </Row>
   );
-});
+};
+export const RosterStatsRow = renderRosterStatsRow;
 
 type SearchProps = {
   colors: ThemeColors;
@@ -78,7 +75,7 @@ type SearchProps = {
   onToggleFilters: () => void;
 };
 
-export const RosterSearchBar = React.memo(function RosterSearchBar({
+const renderRosterSearchBar = function renderRosterSearchBar({
   colors,
   searchQuery,
   onSearchChange,
@@ -100,9 +97,8 @@ export const RosterSearchBar = React.memo(function RosterSearchBar({
           value={searchQuery}
           onChangeText={onSearchChange}
           accessibilityLabel="Search athletes"
-
-            maxLength={100}
-          />
+          maxLength={100}
+        />
         {searchQuery.length > 0 ? (
           <Clickable accessibilityLabel="Clear search" onPress={() => onSearchChange('')}>
             <Ionicons name="close-circle" size={18} color={colors.muted} />
@@ -132,7 +128,8 @@ export const RosterSearchBar = React.memo(function RosterSearchBar({
       </Clickable>
     </Row>
   );
-});
+};
+export const RosterSearchBar = renderRosterSearchBar;
 
 const styles = StyleSheet.create({
   header: {

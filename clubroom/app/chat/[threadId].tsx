@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, useCallback, type ReactNode } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState, type ReactNode, startTransition } from 'react';
+import { FlatList, RefreshControl, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,7 +25,10 @@ import { messagingService } from '@/services/messaging-service';
 import { ChatMessage, ChatThreadSummary } from '@/constants/types';
 import { combineResults, err, ok, validationError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
-import { getMessageThreadPreview, primeMessageThreadPreview } from '@/utils/message-thread-preview-cache';
+import {
+  getMessageThreadPreview,
+  primeMessageThreadPreview,
+} from '@/utils/message-thread-preview-cache';
 
 type ChatScreenData = {
   thread: ChatThreadSummary | null;
@@ -34,6 +37,8 @@ type ChatScreenData = {
 
 export default function ChatScreen() {
   const { currentUser } = useAuth();
+  const currentUserId = currentUser?.id;
+  const currentActorId = currentUserId || 'current_user';
   const { blockUser } = useBlockUserAction();
   const { threadId, prefill } = useLocalSearchParams<{ threadId: string; prefill?: string }>();
   const [showSafetyBanner, setShowSafetyBanner] = useState(true);
@@ -42,7 +47,7 @@ export default function ChatScreen() {
   const clearedThreadsRef = useRef<Set<string>>(new Set());
   const previewThread = getMessageThreadPreview(threadId);
 
-  const loadChat = useCallback(async () => {
+  const loadChat = async () => {
     if (!threadId) {
       return err(validationError('Thread not specified'));
     }
@@ -57,7 +62,7 @@ export default function ChatScreen() {
     const [threads, messages] = combined.data;
     const thread = threads.find((entry) => entry.id === threadId) ?? threads[0] ?? null;
     return ok({ thread, messages });
-  }, [threadId]);
+  };
 
   const {
     data,
@@ -94,15 +99,19 @@ export default function ChatScreen() {
   useEffect(() => {
     const postingAsOptions = thread?.postingAsOptions ?? [];
     if (postingAsOptions.length === 0) {
-      setPostingAs(undefined);
+      startTransition(() => {
+        setPostingAs(undefined);
+      });
       return;
     }
 
-    setPostingAs((currentPostingAs) =>
-      currentPostingAs && postingAsOptions.includes(currentPostingAs)
-        ? currentPostingAs
-        : postingAsOptions[0],
-    );
+    startTransition(() => {
+      setPostingAs((currentPostingAs) =>
+        currentPostingAs && postingAsOptions.includes(currentPostingAs)
+          ? currentPostingAs
+          : postingAsOptions[0],
+      );
+    });
   }, [thread?.id, thread?.postingAsOptions]);
 
   const handleSend = async (body: string) => {
@@ -124,11 +133,9 @@ export default function ChatScreen() {
           threadId: thread.id,
           userId: 'coach_demo',
         });
-        void messagingService.simulateIncoming(
-          thread.id,
-          'Thanks, see you then.',
-          thread.title || 'Coach',
-        ).then(() => onRefresh());
+        void messagingService
+          .simulateIncoming(thread.id, 'Thanks, see you then.', thread.title || 'Coach')
+          .then(() => onRefresh());
       }, 900);
       return;
     }
@@ -140,13 +147,13 @@ export default function ChatScreen() {
 
     emitTyped(ServiceEvents.THREAD_OPENED, {
       threadId,
-      userId: currentUser?.id || 'current_user',
+      userId: currentActorId,
     });
 
     if (clearedThreadsRef.current.has(threadId)) return;
     clearedThreadsRef.current.add(threadId);
     void messagingService.markThreadRead(threadId);
-  }, [threadId]);
+  }, [threadId, currentActorId]);
 
   useEffect(() => {
     if (!threadId) return;
@@ -154,7 +161,7 @@ export default function ChatScreen() {
     const unsubTyping = onTyped(ServiceEvents.USER_TYPING, (event) => {
       if (event.threadId !== threadId) return;
       setTypingUsers((prev) => {
-        if (event.userId === (currentUser?.id || 'current_user')) return prev;
+        if (event.userId === currentActorId) return prev;
         if (prev[event.userId] === event.userName) return prev;
         return { ...prev, [event.userId]: event.userName };
       });
@@ -172,7 +179,7 @@ export default function ChatScreen() {
       unsubTyping();
       unsubStopped();
     };
-  }, [threadId, currentUser?.id]);
+  }, [threadId, currentActorId]);
 
   const typingNames = Object.values(typingUsers);
   const typingLabel =
@@ -210,7 +217,7 @@ export default function ChatScreen() {
     })();
   };
 
-  const handleThreadMenu = useCallback(() => {
+  const handleThreadMenu = () => {
     if (!thread) return;
 
     void (async () => {
@@ -233,9 +240,13 @@ export default function ChatScreen() {
       });
 
       if (selected === 'block-contact' && thread.counterpartyUserId) {
-        const blocked = await blockUser(thread.counterpartyUserId, thread.title || 'contact', () => {
-          router.back();
-        });
+        const blocked = await blockUser(
+          thread.counterpartyUserId,
+          thread.title || 'contact',
+          () => {
+            router.back();
+          },
+        );
         if (blocked) {
           return;
         }
@@ -245,9 +256,12 @@ export default function ChatScreen() {
         router.push(Routes.SETTINGS_BLOCKED_USERS);
       }
     })();
-  }, [blockUser, thread]);
+  };
   const renderShell = (content: ReactNode) => (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: palette.background }}
+      edges={['top', 'bottom']}
+    >
       {content}
     </SafeAreaView>
   );
@@ -275,6 +289,8 @@ export default function ChatScreen() {
   }
 
   const isGroup = thread.kind === 'group';
+  const messageItems = getChatMessageItems(messages, isGroup, onLongPressMessage);
+  const typingFooter = typingLabel ? <TypingIndicator label={typingLabel} /> : null;
 
   return renderShell(
     <>
@@ -298,23 +314,16 @@ export default function ChatScreen() {
       {isPending ? (
         <SubmitProgressState label="Syncing conversation" style={styles.pendingState} />
       ) : null}
-      <ScrollView
+      <FlatList
         contentContainerStyle={styles.chatContent}
+        data={messageItems}
+        keyExtractor={keyChatMessageItem}
+        renderItem={renderChatMessageItem}
+        ListFooterComponent={typingFooter}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
         }
-      >
-        {messages.map((message) => (
-          <MessageBubble
-            key={message.id}
-            message={message}
-            isOwnMessage={message.sender === 'parent'}
-            onLongPress={() => onLongPressMessage(message)}
-            showSenderLabel={isGroup}
-          />
-        ))}
-        {typingLabel ? <TypingIndicator label={typingLabel} /> : null}
-      </ScrollView>
+      />
       <View style={[styles.chatInput, { borderTopColor: palette.border }]}>
         <ChatInput
           onAttach={() => {}}
@@ -322,7 +331,7 @@ export default function ChatScreen() {
           onSend={handleSend}
           initialValue={prefill}
           threadId={thread?.id}
-          currentUserId={currentUser?.id}
+          currentUserId={currentUserId}
           currentUserName={
             postingAs
               ? `${currentUser?.fullName || currentUser?.username || 'You'} (${postingAs})`
@@ -331,6 +340,43 @@ export default function ChatScreen() {
         />
       </View>
     </>,
+  );
+}
+
+interface ChatMessageItem {
+  key: string;
+  message: ChatMessage;
+  isOwnMessage: boolean;
+  showSenderLabel: boolean;
+  onLongPress: () => void;
+}
+
+function getChatMessageItems(
+  messages: ChatMessage[],
+  isGroup: boolean,
+  onLongPressMessage: (message: ChatMessage) => void,
+): ChatMessageItem[] {
+  return messages.map((message) => ({
+    key: message.id,
+    message,
+    isOwnMessage: message.sender === 'parent',
+    showSenderLabel: isGroup,
+    onLongPress: () => onLongPressMessage(message),
+  }));
+}
+
+function keyChatMessageItem(item: ChatMessageItem): string {
+  return item.key;
+}
+
+function renderChatMessageItem({ item }: ListRenderItemInfo<ChatMessageItem>) {
+  return (
+    <MessageBubble
+      message={item.message}
+      isOwnMessage={item.isOwnMessage}
+      onLongPress={item.onLongPress}
+      showSenderLabel={item.showSenderLabel}
+    />
   );
 }
 

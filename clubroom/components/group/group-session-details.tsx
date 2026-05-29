@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,7 +28,7 @@ interface GroupSessionDetailsProps {
   isRegistered?: boolean;
 }
 
-export const GroupSessionDetails = memo(function GroupSessionDetails({
+export const GroupSessionDetails = function GroupSessionDetails({
   session,
   isRegistered = true,
 }: GroupSessionDetailsProps) {
@@ -55,10 +54,10 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({
   });
   // S-39: Non-participants see only area name, not full address
   const locationLabel = isRegistered
-    ? (session.venueName
+    ? session.venueName
       ? `${session.venueName} · ${session.location}`
-      : session.location)
-    : (session.venueName || session.location?.split(',')[0] || 'Location visible after registration');
+      : session.location
+    : session.venueName || session.location?.split(',')[0] || 'Location visible after registration';
   const handleOpenMap = () => {
     void openLocationInMaps({
       location: session.location,
@@ -88,8 +87,8 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({
       <Animated.View entering={FadeInDown.delay(150).springify()}>
         <SurfaceCard style={styles.card}>
           <ThemedText type="defaultSemiBold">Schedule</ThemedText>
-          {session.schedule.map((sched, idx) => (
-            <Row key={idx} gap="md" align="center">
+          {session.schedule.map((sched) => (
+            <Row key={sched.date} gap="md" align="center">
               <View
                 style={[styles.scheduleIcon, { backgroundColor: withAlpha(colors.tint, 0.09) }]}
               >
@@ -143,7 +142,8 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({
           <Row gap="xs" align="center">
             <Ionicons name="shield-checkmark-outline" size={16} color={colors.muted} />
             <ThemedText style={{ color: colors.muted }}>
-              Booked with {ownershipDisplay.bookedWithLabel}. Billing {ownershipDisplay.billingLabel}. Support {ownershipDisplay.supportLabel}.
+              Booked with {ownershipDisplay.bookedWithLabel}. Billing{' '}
+              {ownershipDisplay.billingLabel}. Support {ownershipDisplay.supportLabel}.
             </ThemedText>
           </Row>
         </SurfaceCard>
@@ -253,7 +253,7 @@ export const GroupSessionDetails = memo(function GroupSessionDetails({
       )}
     </>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },

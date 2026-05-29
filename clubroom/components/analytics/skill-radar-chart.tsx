@@ -1,8 +1,4 @@
-/**
- * SkillRadarChart — The radar/spider chart visualization.
- */
-import { memo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
@@ -12,9 +8,7 @@ import { Spacing, Radii, Typography, Shadows, withAlpha } from '@/constants/them
 import { useTheme } from '@/hooks/useTheme';
 import type { SkillProgress } from '@/constants/types';
 import {
-  RADAR_SIZE,
-  CENTER,
-  RADIUS,
+  getSkillRadarGeometry,
   getSkillColor,
   getSkillLabel,
   getPosition,
@@ -41,11 +35,13 @@ function SkillRadarChartInner({
   comparisonLabel,
 }: SkillRadarChartProps) {
   const { colors: palette, scheme } = useTheme();
+  const { width } = useWindowDimensions();
+  const radar = getSkillRadarGeometry(width);
   const numSkills = skills.length;
 
   return (
     <Animated.View entering={FadeIn}>
-      <View style={[styles.radarContainer, { width: RADAR_SIZE, height: RADAR_SIZE }]}>
+      <View style={[styles.radarContainer, { width: radar.size, height: radar.size }]}>
         {/* Background rings */}
         {RINGS.map((ring) => (
           <View
@@ -53,8 +49,8 @@ function SkillRadarChartInner({
             style={[
               styles.ring,
               {
-                width: (ring / 100) * RADIUS * 2,
-                height: (ring / 100) * RADIUS * 2,
+                width: (ring / 100) * radar.radius * 2,
+                height: (ring / 100) * radar.radius * 2,
                 borderColor: palette.border,
               },
             ]}
@@ -62,16 +58,16 @@ function SkillRadarChartInner({
         ))}
 
         {/* Ring labels */}
-        <View style={[styles.ringLabel, { top: CENTER - RADIUS - 12 }]}>
+        <View style={[styles.ringLabel, { top: radar.center - radar.radius - 12 }]}>
           <ThemedText style={[styles.ringLabelText, { color: palette.muted }]}>100</ThemedText>
         </View>
-        <View style={[styles.ringLabel, { top: CENTER - RADIUS * 0.5 - 12 }]}>
+        <View style={[styles.ringLabel, { top: radar.center - radar.radius * 0.5 - 12 }]}>
           <ThemedText style={[styles.ringLabelText, { color: palette.muted }]}>50</ThemedText>
         </View>
 
         {/* Axis lines and skill labels */}
         {skills.map((skill, index) => {
-          const labelPos = getPosition(index, 118, numSkills);
+          const labelPos = getPosition(index, 118, numSkills, radar);
           const isSelected = selectedSkill?.skillName === skill.skillName;
           const skillColor = getSkillColor(skill.currentLevel);
           return (
@@ -81,13 +77,13 @@ function SkillRadarChartInner({
                   styles.axisLine,
                   {
                     backgroundColor: palette.border,
-                    width: RADIUS,
-                    left: CENTER,
-                    top: CENTER,
+                    width: radar.radius,
+                    left: radar.center,
+                    top: radar.center,
                     transform: [
                       { translateX: -0.5 },
                       { rotate: `${(index * 360) / numSkills - 90}deg` },
-                      { translateX: RADIUS / 2 },
+                      { translateX: radar.radius / 2 },
                     ],
                   },
                 ]}
@@ -131,11 +127,11 @@ function SkillRadarChartInner({
         {/* Comparison polygon */}
         {showComparison && comparisonValues.length === numSkills && (
           <View style={styles.polygon}>
-            {skills.map((_, index) => {
-              const pos = getPosition(index, comparisonValues[index] || 50, numSkills);
+            {skills.map((skill, index) => {
+              const pos = getPosition(index, comparisonValues[index] || 50, numSkills, radar);
               return (
                 <View
-                  key={`comp-${index}`}
+                  key={`comparison-${skill.skillName}`}
                   style={[
                     styles.comparisonPoint,
                     {
@@ -154,7 +150,7 @@ function SkillRadarChartInner({
         {/* Data points */}
         <View style={styles.polygon}>
           {skills.map((skill, index) => {
-            const pos = getPosition(index, skill.currentLevel, numSkills);
+            const pos = getPosition(index, skill.currentLevel, numSkills, radar);
             const isSelected = selectedSkill?.skillName === skill.skillName;
             return (
               <Clickable
@@ -277,7 +273,7 @@ function SkillRadarChartInner({
   );
 }
 
-export const SkillRadarChart = memo(SkillRadarChartInner);
+export const SkillRadarChart = SkillRadarChartInner;
 
 const styles = StyleSheet.create({
   radarContainer: {

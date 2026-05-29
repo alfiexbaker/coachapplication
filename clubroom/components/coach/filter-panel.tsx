@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Modal, StyleSheet, View, ScrollView } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -9,21 +9,19 @@ import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 
 import {
+  FilterSection,
+  PillRow,
+} from './filter-panel-sections';
+import {
   SESSION_TYPE_OPTIONS,
   SPECIALTIES,
   AVAILABILITY_OPTIONS,
   SORT_OPTIONS,
-  FilterSection,
-  PillRow,
-} from './filter-panel-sections';
+} from './filter-panel-helpers';
 import { Row } from '@/components/primitives';
 
 // Re-export extracted components for backward compat
 export {
-  SESSION_TYPE_OPTIONS,
-  SPECIALTIES,
-  AVAILABILITY_OPTIONS,
-  SORT_OPTIONS,
   FilterSection,
   PillRow,
 } from './filter-panel-sections';
@@ -58,10 +56,10 @@ export function FilterPanel({ visible, initialFilters, onClose, onApply }: Props
     });
   };
 
-  const pills = useMemo(
-    () => ({ sessionTypes: SESSION_TYPE_OPTIONS, specialties: SPECIALTIES }),
-    [],
-  );
+  const pills = ({
+    sessionTypes: SESSION_TYPE_OPTIONS,
+    specialties: SPECIALTIES,
+  });
   const reset = () => setFilters(initialFilters);
 
   return (

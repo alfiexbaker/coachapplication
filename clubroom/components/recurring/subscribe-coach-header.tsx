@@ -1,7 +1,3 @@
-/**
- * SubscribeCoachHeader — Coach info card at top of subscribe form.
- */
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -43,7 +39,7 @@ function SubscribeCoachHeaderInner({ coach }: Props) {
   );
 }
 
-export const SubscribeCoachHeader = memo(SubscribeCoachHeaderInner);
+export const SubscribeCoachHeader = SubscribeCoachHeaderInner;
 
 const styles = StyleSheet.create({
   card: { marginBottom: 0 },

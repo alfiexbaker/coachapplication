@@ -5,7 +5,7 @@
  * allows coach to configure sharing preferences before submission.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
@@ -37,7 +37,7 @@ export interface ReviewStepProps {
 // REVIEW STEP
 // ============================================================================
 
-export const ReviewStep = memo(function ReviewStep({
+export const ReviewStep = function ReviewStep({
   colors,
   presentCount,
   absentCount,
@@ -163,7 +163,7 @@ export const ReviewStep = memo(function ReviewStep({
       </SurfaceCard>
     </>
   );
-});
+};
 
 // ============================================================================
 // STYLES

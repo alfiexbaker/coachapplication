@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -19,7 +18,7 @@ interface GroupSessionHeroProps {
   isCoach: boolean;
 }
 
-export const GroupSessionHero = memo(function GroupSessionHero({
+export const GroupSessionHero = function GroupSessionHero({
   session,
   isCoach,
 }: GroupSessionHeroProps) {
@@ -68,7 +67,7 @@ export const GroupSessionHero = memo(function GroupSessionHero({
       </Row>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: { position: 'relative', height: 220 },

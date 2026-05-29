@@ -1,7 +1,3 @@
-/**
- * TemplateTimeSection — Time range picker with duration badge.
- */
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -64,20 +60,20 @@ function TemplateTimeSectionInner({
         />
       </Row>
 
-      {duration && (
+      {duration ? (
         <Row style={[styles.durationBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
           <Ionicons name="time-outline" size={16} color={palette.success} />
           <ThemedText style={{ ...Typography.bodySemiBold, color: palette.success }}>
             {duration} availability{' '}
-            {!isEditing && selectedDays.length > 1 && `× ${selectedDays.length} days`}
+            {!isEditing && selectedDays.length > 1 ? `× ${selectedDays.length} days` : null}
           </ThemedText>
         </Row>
-      )}
+      ) : null}
     </View>
   );
 }
 
-export const TemplateTimeSection = memo(TemplateTimeSectionInner);
+export const TemplateTimeSection = TemplateTimeSectionInner;
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.sm },

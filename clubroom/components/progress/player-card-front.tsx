@@ -1,4 +1,4 @@
-import { Fragment, memo, useEffect, useMemo } from 'react';
+import { Fragment, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -77,14 +77,14 @@ function positionAbbrev(position: PlayerCardData['position']): string {
   return position;
 }
 
-export const PlayerCardFront = memo(function PlayerCardFront({
+export const PlayerCardFront = function PlayerCardFront({
   data,
   tier,
   palette,
   compact = false,
 }: PlayerCardFrontProps) {
-  const nameLines = useMemo(() => splitName(data.name), [data.name]);
-  const initials = useMemo(() => getInitials(data.name), [data.name]);
+  const nameLines = splitName(data.name);
+  const initials = getInitials(data.name);
   const textColor = palette.text;
   const softText = palette.softText;
   const badgeBackground = palette.badgeBackground;
@@ -94,22 +94,22 @@ export const PlayerCardFront = memo(function PlayerCardFront({
 
   const positionalAttributes = data.attributes ?? [];
   const showPositionalAttributes = positionalAttributes.length === 5;
-  const ovr = useMemo(() => computeOvr(data.attributes), [data.attributes]);
-  const posAbbrev = useMemo(() => positionAbbrev(data.position), [data.position]);
+  const ovr = computeOvr(data.attributes);
+  const posAbbrev = positionAbbrev(data.position);
 
   useEffect(() => {
     if (!shimmerEnabled) {
-      shimmerX.value = -160;
+      shimmerX.set(-160);
       return;
     }
-    shimmerX.value = withRepeat(
+    shimmerX.set(withRepeat(
       withSequence(
         withTiming(420, { duration: 2000, easing: Easing.linear }),
         withTiming(-160, { duration: 0 }),
       ),
       -1,
       false,
-    );
+    ));
   }, [shimmerEnabled, shimmerX]);
 
   const shimmerStyle = useAnimatedStyle(() => ({
@@ -275,7 +275,7 @@ export const PlayerCardFront = memo(function PlayerCardFront({
       </Column>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   face: {

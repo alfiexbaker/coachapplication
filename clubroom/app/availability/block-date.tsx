@@ -17,6 +17,8 @@ import { BlockDateForm } from '@/components/availability/block-date-form';
 import { useToast } from '@/components/ui/toast';
 import { uiFeedback } from '@/services/ui-feedback';
 
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
+
 const logger = createLogger('BlockDate');
 
 const REASON_OPTIONS = [
@@ -73,7 +75,8 @@ export default function BlockDateScreen() {
     }
 
     setSaving(true);
-    try {
+
+    await runAsyncTryCatchFinally(async () => {
       await availabilityService.saveOverride({
         coachId: currentUser.id,
         date: toDateStr(selectedDate),
@@ -84,12 +87,12 @@ export default function BlockDateScreen() {
       showToast('Date blocked', 'success');
       router.replace(Routes.AVAILABILITY);
       logger.success('DateBlocked', { date: selectedDate.toISOString(), reason: reasonText });
-    } catch (saveError) {
+    }, async saveError => {
       logger.error('Failed to block date', saveError);
       uiFeedback.showToast('Failed to block date', 'error');
-    } finally {
+    }, () => {
       setSaving(false);
-    }
+    });
   };
 
   if (status === 'loading') {

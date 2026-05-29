@@ -4,7 +4,7 @@
  * Shows: skill overview, progress trend, active goals, recent badges.
  */
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -18,14 +18,16 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { RosterEntry } from '@/constants/types';
 import {
-  type ProgressTrend,
-  getMockSkills,
-  getMockGoals,
-  getMockBadges,
   SkillBar,
   GoalCard,
   BadgeItem,
 } from './athlete-progress-sections';
+import {
+  type ProgressTrend,
+  getMockSkills,
+  getMockGoals,
+  getMockBadges,
+} from './athlete-progress-helpers';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -38,17 +40,17 @@ interface AthleteProgressProps {
 
 function AthleteProgressInner({ athlete, coachId }: AthleteProgressProps) {
   const { colors } = useTheme();
-  const skills = useMemo(() => getMockSkills(athlete), [athlete]);
-  const goals = useMemo(() => getMockGoals(athlete), [athlete]);
-  const badges = useMemo(() => getMockBadges(athlete), [athlete]);
+  const skills = getMockSkills(athlete);
+  const goals = getMockGoals(athlete);
+  const badges = getMockBadges(athlete);
 
-  const overallTrend: ProgressTrend = useMemo(() => {
+  const overallTrend: ProgressTrend = (() => {
     const improving = skills.filter((s) => s.trend === 'improving').length;
     if (improving > skills.length / 2) return 'improving';
     const declining = skills.filter((s) => s.trend === 'declining').length;
     if (declining > skills.length / 2) return 'declining';
     return 'steady';
-  }, [skills]);
+  })();
 
   const trendConfig = {
     improving: { icon: 'trending-up', color: colors.success, label: 'Improving' },
@@ -137,7 +139,7 @@ function AthleteProgressInner({ athlete, coachId }: AthleteProgressProps) {
   );
 }
 
-export const AthleteProgress = React.memo(AthleteProgressInner);
+export const AthleteProgress = AthleteProgressInner;
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 

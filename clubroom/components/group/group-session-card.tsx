@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,7 +42,7 @@ interface GroupSessionCardProps {
   isSingleChild?: boolean;
 }
 
-export const GroupSessionCard = memo(function GroupSessionCard({
+export const GroupSessionCard = function GroupSessionCard({
   session,
   index,
   onPress,
@@ -63,10 +63,13 @@ export const GroupSessionCard = memo(function GroupSessionCard({
   const spotsColor = isFull ? colors.error : spotsLeft <= 3 ? colors.warning : colors.success;
 
   useEffect(() => {
-    setLiveRsvpCounts(rsvpCounts ?? null);
+    startTransition(() => {
+      setLiveRsvpCounts(rsvpCounts ?? null);
+    });
   }, [rsvpCounts]);
 
   useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout> | null = null;
     const unsub = onTyped(ServiceEvents.RSVP_RESPONDED, (event) => {
       if (event.sessionId !== session.id) return;
       setIsUpdatingRsvpCounts(true);
@@ -83,9 +86,14 @@ export const GroupSessionCard = memo(function GroupSessionCard({
         else next.notGoing += 1;
         return next;
       });
-      setTimeout(() => setIsUpdatingRsvpCounts(false), 350);
+      timeout = setTimeout(() => setIsUpdatingRsvpCounts(false), 350);
     });
-    return unsub;
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      unsub();
+    };
   }, [session.id]);
 
   return (
@@ -212,7 +220,7 @@ export const GroupSessionCard = memo(function GroupSessionCard({
               <RsvpMiniBar counts={liveRsvpCounts} />
               {isUpdatingRsvpCounts ? (
                 <ThemedText style={[Typography.micro, { color: colors.muted }]}>
-                  Updating attendance...
+                  Updating attendance…
                 </ThemedText>
               ) : null}
             </View>
@@ -239,7 +247,7 @@ export const GroupSessionCard = memo(function GroupSessionCard({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { padding: 0, overflow: 'hidden' },

@@ -8,6 +8,7 @@
  */
 
 import { apiClient } from './api-client';
+import { registerApiAuthService } from '@/services/auth-service-registry';
 import { createLogger } from '@/utils/logger';
 import { generateId, generateMockToken } from '@/utils/generate-id';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -300,10 +301,13 @@ export const authService = {
       return this._mockRegister(input);
     }
 
-    const result = await apiFetch<{ user: UserProfile; tokens: AuthTokens }>(AUTH_ENDPOINTS.register, {
-      method: 'POST',
-      body: JSON.stringify(input),
-    });
+    const result = await apiFetch<{ user: UserProfile; tokens: AuthTokens }>(
+      AUTH_ENDPOINTS.register,
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+    );
 
     if (!result.success) {
       logger.warn('Registration failed', { email: input.email, error: result.error.message });
@@ -386,9 +390,11 @@ export const authService = {
       }
     }
 
-    await apiClient.remove(STORAGE_KEYS.AUTH_USER);
-    await apiClient.remove(STORAGE_KEYS.AUTH_TOKEN);
-    await apiClient.remove(STORAGE_KEYS.AUTH_TOKENS);
+    await Promise.all([
+      apiClient.remove(STORAGE_KEYS.AUTH_USER),
+      apiClient.remove(STORAGE_KEYS.AUTH_TOKEN),
+      apiClient.remove(STORAGE_KEYS.AUTH_TOKENS),
+    ]);
     currentUser = null;
   },
 
@@ -891,3 +897,5 @@ export const authService = {
     return ok(refreshResult.data.accessToken);
   },
 };
+
+registerApiAuthService(authService);

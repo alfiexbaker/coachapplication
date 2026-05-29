@@ -15,6 +15,7 @@ import { router } from 'expo-router';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 
 import { CancellationPolicyCard } from '@/components/booking/cancellation-policy-card';
 import { ChildSelector } from '@/components/group/child-selector';
@@ -49,6 +50,7 @@ export default function GroupSessionDetailScreen() {
   const { colors } = useTheme();
   const idParam = useRequiredParam('id');
   const hook = useGroupSession();
+  const [nowMs] = useState(() => Date.now());
   const {
     id,
     session,
@@ -149,7 +151,7 @@ export default function GroupSessionDetailScreen() {
   const isCancelled = session.status === 'CANCELLED';
   const isCompleted = session.status === 'COMPLETED';
   const isPastRegistrationDeadline = Boolean(
-    session.registrationDeadline && new Date(session.registrationDeadline).getTime() < Date.now(),
+    session.registrationDeadline && new Date(session.registrationDeadline).getTime() < nowMs,
   );
   const canRegister = isActive && !isCoach && !isFull && !isPastRegistrationDeadline;
   const canJoinWaitlist = isActive && !isCoach && isFull && session.waitlistEnabled;
@@ -405,15 +407,17 @@ export default function GroupSessionDetailScreen() {
                 : `${spotsLeft} ${spotsLeft === 1 ? 'spot' : 'spots'} left`}
             </ThemedText>
           </View>
-          <Button onPress={handleRegister} disabled={registering || isPastRegistrationDeadline}>
-            {registering
+          <Button
+            onPress={handleRegister}
+            disabled={registering || isPastRegistrationDeadline}
+            label={registering
               ? 'Registering...'
               : isPastRegistrationDeadline
                 ? 'Registration Closed'
-              : canRegisterMore
+                : canRegisterMore
                   ? 'Add Child'
                   : 'Register Now'}
-          </Button>
+          />
         </Row>
       )}
     </>,

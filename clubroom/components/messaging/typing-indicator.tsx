@@ -1,5 +1,14 @@
-import { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
+import Animated, {
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
@@ -12,25 +21,42 @@ type TypingIndicatorProps = {
 
 export function TypingIndicator({ label }: TypingIndicatorProps) {
   const { colors: palette } = useTheme();
-  const dotAnim0 = useRef(new Animated.Value(0.4)).current;
-  const dotAnim1 = useRef(new Animated.Value(0.4)).current;
-  const dotAnim2 = useRef(new Animated.Value(0.4)).current;
-  const dotAnims = [dotAnim0, dotAnim1, dotAnim2] as const;
+  const dot0 = useSharedValue(0.35);
+  const dot1 = useSharedValue(0.35);
+  const dot2 = useSharedValue(0.35);
 
   useEffect(() => {
-    const loops = dotAnims.map((anim, index) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(index * 140),
-          Animated.timing(anim, { toValue: 1, duration: 220, useNativeDriver: true }),
-          Animated.timing(anim, { toValue: 0.35, duration: 220, useNativeDriver: true }),
-          Animated.delay(140),
-        ]),
-      ),
-    );
-    loops.forEach((loop) => loop.start());
-    return () => loops.forEach((loop) => loop.stop());
-  }, [dotAnim0, dotAnim1, dotAnim2]);
+    const cycle = () =>
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: 220 }),
+          withTiming(0.35, { duration: 220 }),
+          withDelay(140, withTiming(0.35, { duration: 1 })),
+        ),
+        -1,
+      );
+    dot0.set(cycle());
+    dot1.set(withDelay(140, cycle()));
+    dot2.set(withDelay(280, cycle()));
+    return () => {
+      cancelAnimation(dot0);
+      cancelAnimation(dot1);
+      cancelAnimation(dot2);
+    };
+  }, [dot0, dot1, dot2]);
+
+  const dot0Style = useAnimatedStyle(() => ({
+    opacity: dot0.value,
+    transform: [{ translateY: dot0.value > 0.35 ? -2 : 0 }],
+  }));
+  const dot1Style = useAnimatedStyle(() => ({
+    opacity: dot1.value,
+    transform: [{ translateY: dot1.value > 0.35 ? -2 : 0 }],
+  }));
+  const dot2Style = useAnimatedStyle(() => ({
+    opacity: dot2.value,
+    transform: [{ translateY: dot2.value > 0.35 ? -2 : 0 }],
+  }));
 
   return (
     <Row
@@ -43,26 +69,9 @@ export function TypingIndicator({ label }: TypingIndicatorProps) {
           {label}
         </ThemedText>
       ) : null}
-      {[0, 1, 2].map((dot) => (
-        <Animated.View
-          key={dot}
-          style={[
-            styles.dot,
-            {
-              backgroundColor: palette.icon,
-              opacity: dotAnims[dot],
-              transform: [
-                {
-                  translateY: dotAnims[dot].interpolate({
-                    inputRange: [0.35, 1],
-                    outputRange: [0, -2],
-                  }),
-                },
-              ],
-            },
-          ]}
-        />
-      ))}
+      <Animated.View style={[styles.dot, dot0Style, { backgroundColor: palette.icon }]} />
+      <Animated.View style={[styles.dot, dot1Style, { backgroundColor: palette.icon }]} />
+      <Animated.View style={[styles.dot, dot2Style, { backgroundColor: palette.icon }]} />
     </Row>
   );
 }

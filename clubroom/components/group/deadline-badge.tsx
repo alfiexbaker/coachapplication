@@ -1,11 +1,3 @@
-/**
- * DeadlineBadge — Countdown badge showing time left to respond.
- *
- * Color shifts: green (>48h), amber (24-48h), red (<24h).
- * Shows "2d 5h left" or "Closed" when deadline has passed.
- */
-
-import { memo, useMemo } from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -38,7 +30,7 @@ function formatTimeLeft(ms: number): string {
 function DeadlineBadgeComponent({ deadline, compact = false }: DeadlineBadgeProps) {
   const { colors } = useTheme();
 
-  const { timeLeft, urgencyColor, isClosed } = useMemo(() => {
+  const { timeLeft, urgencyColor, isClosed } = (() => {
     const deadlineDate = new Date(deadline);
     const now = new Date();
     const ms = deadlineDate.getTime() - now.getTime();
@@ -60,7 +52,7 @@ function DeadlineBadgeComponent({ deadline, compact = false }: DeadlineBadgeProp
       urgencyColor: color,
       isClosed: ms <= 0,
     };
-  }, [deadline, colors]);
+  })();
 
   return (
     <Row
@@ -89,7 +81,7 @@ function DeadlineBadgeComponent({ deadline, compact = false }: DeadlineBadgeProp
   );
 }
 
-export const DeadlineBadge = memo(DeadlineBadgeComponent);
+export const DeadlineBadge = DeadlineBadgeComponent;
 
 const styles = StyleSheet.create({
   badge: {

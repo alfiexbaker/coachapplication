@@ -6,7 +6,7 @@
  * Used by app/availability/calendar.tsx
  */
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
@@ -61,7 +61,7 @@ export function useAvailabilityCalendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     if (!currentUser?.id) {
       return ok<AvailabilityCalendarData>({
         templates: [],
@@ -104,7 +104,7 @@ export function useAvailabilityCalendar() {
       logger.error('Failed to load calendar data', error);
       return err(serviceError('UNKNOWN', 'Failed to load availability calendar.', error));
     }
-  }, [currentUser?.id, currentMonth]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<AvailabilityCalendarData>(
     {
@@ -120,7 +120,7 @@ export function useAvailabilityCalendar() {
   const overrides = data?.overrides ?? [];
   const slots = data?.slots ?? [];
 
-  const generateCalendarDays = useCallback((): CalendarDay[] => {
+  const generateCalendarDays = (): CalendarDay[] => {
     const days: CalendarDay[] = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -134,12 +134,14 @@ export function useAvailabilityCalendar() {
     const endDate = new Date(lastDay);
     endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()));
 
+    const overrideByDate = new Map(overrides.map((override) => [override.date, override]));
+
     for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
       const dateStr = toDateStr(date);
       const dayOfWeek = date.getDay();
 
       const hasTemplate = templates.some((t) => t.dayOfWeek === dayOfWeek);
-      const override = overrides.find((o) => o.date === dateStr);
+      const override = overrideByDate.get(dateStr);
       const isBlocked = override?.isBlocked ?? false;
 
       const daySlots = slots.filter((s) => s.date === dateStr);
@@ -158,25 +160,25 @@ export function useAvailabilityCalendar() {
     }
 
     return days;
-  }, [currentMonth, templates, overrides, slots]);
+  };
 
   const calendarDays = generateCalendarDays();
 
-  const navigateMonth = useCallback((direction: number) => {
+  const navigateMonth = (direction: number) => {
     setSelectedDate(null);
     setCurrentMonth((prev) => {
       const newDate = new Date(prev);
       newDate.setMonth(newDate.getMonth() + direction);
       return newDate;
     });
-  }, []);
+  };
 
-  const formatTime = useCallback((time: string) => {
+  const formatTime = (time: string) => {
     const [hours, minutes] = time.split(':').map(Number);
     const period = hours >= 12 ? 'PM' : 'AM';
     const displayHours = hours % 12 || 12;
     return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
-  }, []);
+  };
 
   const selectedSlots = selectedDate ? slots.filter((s) => s.date === toDateStr(selectedDate)) : [];
 

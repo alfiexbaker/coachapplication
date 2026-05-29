@@ -5,7 +5,7 @@
  * (Pending, Accepted, Declined, Expired, Maybe).
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -45,7 +45,7 @@ function getStatusColors(status: InviteStatus, colors: ThemeColors) {
   }
 }
 
-export const InviteStatusBanner = memo(function InviteStatusBanner({
+export const InviteStatusBanner = function InviteStatusBanner({
   status,
   colors,
 }: InviteStatusBannerProps) {
@@ -71,7 +71,7 @@ export const InviteStatusBanner = memo(function InviteStatusBanner({
       </Row>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   banner: {

@@ -10,14 +10,15 @@ import { useTheme } from '@/hooks/useTheme';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
 import {
-  getButtonStyle,
-  getTextColor,
   CurrentRSVPStatus,
   CancelledBanner,
   ClosedBanner,
   FullBanner,
 } from './rsvp-button-sections';
+import { getButtonStyle, getTextColor } from './rsvp-button-helpers';
 import { Row } from '@/components/primitives';
+
+import { runAsyncFinally } from '@/utils/async-control';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -41,11 +42,12 @@ export function RSVPButtons({ event, currentRSVP, onRSVP, disabled = false }: RS
 
   const handleRSVP = async (status: RSVPStatus) => {
     setLoading(status);
-    try {
+
+    await runAsyncFinally(async () => {
       await onRSVP(status);
-    } finally {
+    }, () => {
       setLoading(null);
-    }
+    });
   };
 
   if (event.status === 'CANCELLED') return <CancelledBanner palette={palette} />;

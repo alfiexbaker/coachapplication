@@ -1,8 +1,7 @@
-import React, { memo, useCallback, useRef } from 'react';
-import { Modal, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useRef } from 'react';
+import { Modal, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -12,10 +11,9 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { GroupRegistration } from '@/constants/types';
 import type { AttendanceStatus } from '@/hooks/use-group-roster';
-import {
-  getGroupRegistrationAthleteName,
-  getGroupRegistrationParentName,
-} from '@/utils/group-display';
+import { RollCallParticipantList } from '@/components/group/roll-call-participant-list';
+
+import { runAsyncFinally } from '@/utils/async-control';
 
 export interface RollCallModalProps {
   visible: boolean;
@@ -32,7 +30,7 @@ export interface RollCallModalProps {
   onReportInjury: (registration: GroupRegistration) => void;
 }
 
-export const RollCallModal = memo(function RollCallModal({
+export const RollCallModal = function RollCallModal({
   visible,
   sessionTitle,
   participants,
@@ -48,18 +46,19 @@ export const RollCallModal = memo(function RollCallModal({
 }: RollCallModalProps) {
   const processingParticipantIdsRef = useRef<Set<string>>(new Set());
 
-  const handleMarkStatus = useCallback(
-    async (participantId: string, status: AttendanceStatus) => {
-      if (processingParticipantIdsRef.current.has(participantId)) return;
-      processingParticipantIdsRef.current.add(participantId);
-      try {
+  const handleMarkStatus = async (participantId: string, status: AttendanceStatus) => {
+    if (processingParticipantIdsRef.current.has(participantId)) return;
+    processingParticipantIdsRef.current.add(participantId);
+
+    await runAsyncFinally(
+      async () => {
         await Promise.resolve(onMarkStatus(participantId, status));
-      } finally {
+      },
+      () => {
         processingParticipantIdsRef.current.delete(participantId);
-      }
-    },
-    [onMarkStatus],
-  );
+      },
+    );
+  };
 
   return (
     <Modal
@@ -68,10 +67,7 @@ export const RollCallModal = memo(function RollCallModal({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
-      >
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <Row style={[styles.header, { borderBottomColor: colors.border }]}>
           <Clickable
             onPress={onClose}
@@ -130,89 +126,13 @@ export const RollCallModal = memo(function RollCallModal({
           ))}
         </Animated.View>
 
-        <ScrollView
-          style={{ flex: 1, paddingHorizontal: Spacing.lg }}
-          showsVerticalScrollIndicator={false}
-        >
-          {participants.map((reg, i) => {
-            const status = attendance[reg.id] || 'unmarked';
-            const athleteName = getGroupRegistrationAthleteName(reg);
-            const parentName = getGroupRegistrationParentName(reg);
-            return (
-              <Animated.View
-                key={reg.id}
-                entering={FadeInDown.delay(i * 30).springify()}
-                style={[styles.item, { backgroundColor: colors.surface }]}
-              >
-                <Row gap="md" align="center" style={{ marginBottom: Spacing.sm }}>
-                  <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.12) }]}>
-                    <ThemedText style={[Typography.bodySmallSemiBold, { color: colors.tint }]}>
-                      {athleteName
-                        .split(' ')
-                        .map((n: string) => n[0])
-                        .join('')}
-                    </ThemedText>
-                  </View>
-                  <Column flex>
-                    <ThemedText type="defaultSemiBold">{athleteName}</ThemedText>
-                    {parentName && (
-                      <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-                        Parent: {parentName}
-                      </ThemedText>
-                    )}
-                  </Column>
-                </Row>
-                <Row gap="sm" justify="flex-end">
-                  {(
-                    [
-                      ['present', 'checkmark', colors.success],
-                      ['late', 'time', colors.warning],
-                      ['absent', 'close', colors.error],
-                    ] as const
-                  ).map(([s, icon, color]) => (
-                    <Clickable
-                      key={s}
-                      style={[
-                        styles.actionBtn,
-                        {
-                          backgroundColor: status === s ? color : 'transparent',
-                          borderColor: status === s ? color : colors.border,
-                        },
-                      ]}
-                      onPress={() => {
-                        void handleMarkStatus(reg.id, s);
-                      }}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Mark ${athleteName} as ${s}`}
-                      accessibilityState={{ selected: status === s }}
-                    >
-                      <Ionicons
-                        name={icon}
-                        size={s === 'late' ? 18 : 20}
-                        color={status === s ? colors.onPrimary : color}
-                      />
-                    </Clickable>
-                  ))}
-                  <Clickable
-                    style={[
-                      styles.injuryBtn,
-                      {
-                        backgroundColor: withAlpha(colors.error, 0.09),
-                        borderColor: withAlpha(colors.error, 0.19),
-                      },
-                    ]}
-                    onPress={() => onReportInjury(reg)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Report injury for ${athleteName}`}
-                  >
-                    <Ionicons name="medkit" size={16} color={colors.error} />
-                  </Clickable>
-                </Row>
-              </Animated.View>
-            );
-          })}
-          <View style={{ height: 40 }} />
-        </ScrollView>
+        <RollCallParticipantList
+          participants={participants}
+          attendance={attendance}
+          colors={colors}
+          onMarkStatus={handleMarkStatus}
+          onReportInjury={onReportInjury}
+        />
 
         <Row
           style={[
@@ -243,10 +163,10 @@ export const RollCallModal = memo(function RollCallModal({
             </ThemedText>
           </Clickable>
         </Row>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -266,31 +186,6 @@ const styles = StyleSheet.create({
   },
   statItem: { alignItems: 'center', gap: Spacing.xxs },
   dot: { width: 10, height: 10, borderRadius: Radii.sm },
-  item: { padding: Spacing.md, borderRadius: Radii.md, marginBottom: Spacing.sm },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  injuryBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: Spacing.xxs,
-  },
   quickActions: {
     justifyContent: 'space-around',
     padding: Spacing.md,

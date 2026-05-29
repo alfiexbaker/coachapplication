@@ -79,21 +79,21 @@ class FamilyRecurringService {
           const cancelledFutureBookings = futureLinkedBookings.filter(
             (booking) => booking.status === 'CANCELLED',
           ).length;
-          const coachName = await resolveDisplayName(
-            recurring.coachId,
-            recurring.coachId || 'Coach',
-          );
-          const athleteName = await resolveDisplayName(
-            recurring.athleteId || recurring.userId,
-            recurring.athleteId || recurring.userId || 'Athlete',
-          );
+          const [coachName, athleteName, userName] = await Promise.all([
+            resolveDisplayName(recurring.coachId, recurring.coachId || 'Coach'),
+            resolveDisplayName(
+              recurring.athleteId || recurring.userId,
+              recurring.athleteId || recurring.userId || 'Athlete',
+            ),
+            resolveDisplayName(recurring.userId, recurring.userId || 'Parent'),
+          ]);
 
           return {
             recurring: {
               ...recurring,
               coachName,
               athleteName,
-              userName: await resolveDisplayName(recurring.userId, recurring.userId || 'Parent'),
+              userName,
             },
             coachName,
             athleteName,

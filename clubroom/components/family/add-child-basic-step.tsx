@@ -6,14 +6,13 @@ import type { Gender, Relationship } from '@/services/child-service';
 import type { PositionRole } from '@/types/progress-types';
 
 import {
-  GENDERS,
-  RELATIONSHIPS,
   PhotoUploadSection,
   NameFieldsRow,
   DateOfBirthField,
   OptionChipGrid,
-  styles,
 } from './add-child-basic-step-sections';
+import { GENDERS, RELATIONSHIPS } from './add-child-basic-step-helpers';
+import { styles } from './add-child-basic-step-styles';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -104,5 +103,5 @@ function AddChildBasicStepInner({
 
 // ─── Exports ────────────────────────────────────────────────────
 
-export const AddChildBasicStep = React.memo(AddChildBasicStepInner);
+export const AddChildBasicStep = AddChildBasicStepInner;
 export default AddChildBasicStep;

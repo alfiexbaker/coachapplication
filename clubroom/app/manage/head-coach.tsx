@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 
@@ -296,13 +296,9 @@ export default function HeadCoachOversightScreen() {
 
   const hasCoachAccess = isCoach(currentUser) || isAdmin(currentUser);
 
-  const scopeSquadNames = useMemo(
-    () =>
-      oversight.data?.scope.type === 'assigned_squads'
-        ? oversight.data.squads.map((squad) => squad.name)
-        : [],
-    [oversight.data?.scope.type, oversight.data?.squads],
-  );
+  const scopeSquadNames = oversight.data?.scope.type === 'assigned_squads'
+    ? oversight.data.squads.map((squad) => squad.name)
+    : [];
 
   if (!hasCoachAccess) {
     return (

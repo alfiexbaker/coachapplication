@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -16,7 +15,7 @@ interface MemberSquadAssignmentsProps {
   onToggle: (squadId: string) => void;
 }
 
-export const MemberSquadAssignments = memo(function MemberSquadAssignments({
+export const MemberSquadAssignments = function MemberSquadAssignments({
   squads,
   memberSquadIds,
   onToggle,
@@ -80,7 +79,7 @@ export const MemberSquadAssignments = memo(function MemberSquadAssignments({
       </View>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },

@@ -1,7 +1,3 @@
-/**
- * BlockDateModal — Sections: ModeSelector, QuickDates, HolidayPresets, DatePicker, ReasonSelector, Summary.
- */
-import { memo, useMemo } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -24,7 +20,7 @@ const MODE_OPTIONS = [
   { id: 'holiday' as const, label: 'Holidays', icon: 'gift-outline' },
 ];
 
-export const ModeSelector = memo(function ModeSelector({
+export const ModeSelector = function ModeSelector({
   mode,
   onSelect,
 }: {
@@ -69,10 +65,10 @@ export const ModeSelector = memo(function ModeSelector({
       })}
     </Row>
   );
-});
+};
 
 // --- QuickDates ---
-export const QuickDates = memo(function QuickDates({
+export const QuickDates = function QuickDates({
   startDate,
   onSelect,
 }: {
@@ -80,7 +76,7 @@ export const QuickDates = memo(function QuickDates({
   onSelect: (d: Date) => void;
 }) {
   const { colors: palette } = useTheme();
-  const quickDates = useMemo(() => {
+  const quickDates = (() => {
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -91,7 +87,7 @@ export const QuickDates = memo(function QuickDates({
       { id: 'tomorrow', label: 'Tomorrow', date: tomorrow },
       { id: 'nextweek', label: 'Next Week', date: nextWeek },
     ];
-  }, []);
+  })();
   return (
     <Row style={styles.quickDates}>
       {quickDates.map((qd) => {
@@ -118,10 +114,10 @@ export const QuickDates = memo(function QuickDates({
       })}
     </Row>
   );
-});
+};
 
 // --- HolidayPresets ---
-export const HolidayPresetsGrid = memo(function HolidayPresetsGrid({
+export const HolidayPresetsGrid = function HolidayPresetsGrid({
   selectedPreset,
   onSelect,
 }: {
@@ -174,7 +170,7 @@ export const HolidayPresetsGrid = memo(function HolidayPresetsGrid({
       })}
     </Row>
   );
-});
+};
 
 // --- DatePicker ---
 interface DatePickerSectionProps {
@@ -184,7 +180,7 @@ interface DatePickerSectionProps {
   onAdjust: (target: 'start' | 'end', days: number) => void;
 }
 
-export const DatePickerSection = memo(function DatePickerSection({
+export const DatePickerSection = function DatePickerSection({
   mode,
   startDate,
   endDate,
@@ -214,7 +210,7 @@ export const DatePickerSection = memo(function DatePickerSection({
       )}
     </SurfaceCard>
   );
-});
+};
 
 function DateRow({
   label,
@@ -262,7 +258,7 @@ function DateRow({
 }
 
 // --- ReasonSelector ---
-export const ReasonSelector = memo(function ReasonSelector({
+export const ReasonSelector = function ReasonSelector({
   reason,
   onSelect,
 }: {
@@ -304,10 +300,10 @@ export const ReasonSelector = memo(function ReasonSelector({
       })}
     </Row>
   );
-});
+};
 
 // --- Summary ---
-export const BlockSummary = memo(function BlockSummary({
+export const BlockSummary = function BlockSummary({
   startDate,
   endDate,
   reason,
@@ -341,7 +337,7 @@ export const BlockSummary = memo(function BlockSummary({
       </Row>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   modeSelector: { gap: Spacing.xs },

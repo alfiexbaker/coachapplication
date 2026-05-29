@@ -3,7 +3,7 @@
  * with description, invite players action, and squad access badges.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -57,7 +57,7 @@ function getTypeConfig(
   }
 }
 
-export const InviteTypeCard = memo(function InviteTypeCard({
+export const InviteTypeCard = function InviteTypeCard({
   inviteType,
   squadIds,
   isOwner,
@@ -136,7 +136,7 @@ export const InviteTypeCard = memo(function InviteTypeCard({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

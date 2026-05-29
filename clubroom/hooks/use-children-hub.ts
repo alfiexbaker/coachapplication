@@ -1,12 +1,3 @@
-/**
- * useChildrenHub — Data loading hook for the Children Hub screen.
- *
- * Loads child profiles, per-child stats (sessions, badges, rating),
- * recent badge awards, and active child state.
- */
-
-import { useCallback } from 'react';
-
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen } from '@/hooks/use-screen';
@@ -50,7 +41,7 @@ export function useChildrenHub() {
     refresh: refreshContext,
   } = useChildContext();
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     if (!currentUser?.id) {
       return ok<ChildrenHubData>({
         children: [],
@@ -72,29 +63,39 @@ export function useChildrenHub() {
       const allRecentBadges: BadgeAward[] = [];
       const sessions = await apiClient.get<Session[]>('coach_sessions', []);
 
-      for (const child of childrenData) {
-        const childSessions = sessions.filter((session) => session.athleteId === child.id);
-        const awards = await badgeService.listAwardsForAthlete(child.id);
-        const unseenCount = await badgeService.getUnseenBadgeCount(child.id);
-        const avgRating =
-          childSessions.length > 0
-            ? childSessions.reduce((sum, session) => sum + session.performanceRating, 0) /
-              childSessions.length
-            : 0;
+      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const childStatEntries = await Promise.all(
+        childrenData.map(async (child) => {
+          const childSessions = sessions.filter((session) => session.athleteId === child.id);
+          const [awards, unseenCount] = await Promise.all([
+            badgeService.listAwardsForAthlete(child.id),
+            badgeService.getUnseenBadgeCount(child.id),
+          ]);
+          const avgRating =
+            childSessions.length > 0
+              ? childSessions.reduce((sum, session) => sum + session.performanceRating, 0) /
+                childSessions.length
+              : 0;
 
-        const visibleAwards = awards.filter((award) => award.visibility !== 'coach_only');
-        stats[child.id] = {
-          sessions: childSessions.length,
-          badges: visibleAwards.length,
-          avgRating,
-          unseenBadges: unseenCount,
-        };
-
-        const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-        const recentAwards = visibleAwards.filter(
-          (award) => new Date(award.awardedAt).getTime() > weekAgo,
-        );
-        allRecentBadges.push(...recentAwards);
+          const visibleAwards = awards.filter((award) => award.visibility !== 'coach_only');
+          const recentAwards = visibleAwards.filter(
+            (award) => new Date(award.awardedAt).getTime() > weekAgo,
+          );
+          return {
+            childId: child.id,
+            recentAwards,
+            stats: {
+              sessions: childSessions.length,
+              badges: visibleAwards.length,
+              avgRating,
+              unseenBadges: unseenCount,
+            },
+          };
+        }),
+      );
+      for (const entry of childStatEntries) {
+        stats[entry.childId] = entry.stats;
+        allRecentBadges.push(...entry.recentAwards);
       }
 
       allRecentBadges.sort(
@@ -119,7 +120,7 @@ export function useChildrenHub() {
     } catch (loadError) {
       return err(serviceError('UNKNOWN', 'Failed to load children hub data.', loadError));
     }
-  }, [currentUser?.id, contextChildren]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<ChildrenHubData>({
     load: loadData,
@@ -139,53 +140,44 @@ export function useChildrenHub() {
     totalUnseenBadges: 0,
   };
 
-  const handleViewBadge = useCallback(
-    async (badge: BadgeAward) => {
-      if (!badge.seenByParent) {
-        await badgeService.markSeenByParent(badge.id);
-        onRefresh();
-      }
-    },
-    [onRefresh],
-  );
+  const handleViewBadge = async (badge: BadgeAward) => {
+    if (!badge.seenByParent) {
+      await badgeService.markSeenByParent(badge.id);
+      onRefresh();
+    }
+  };
 
-  const handleSetActiveChild = useCallback(
-    async (childId: string) => {
-      await contextSetActiveChildId(childId);
-      logger.info('active_child_set', { childId });
-    },
-    [contextSetActiveChildId],
-  );
+  const handleSetActiveChild = async (childId: string) => {
+    await contextSetActiveChildId(childId);
+    logger.info('active_child_set', { childId });
+  };
 
-  const handleRemoveChild = useCallback(
-    (childId: string) => {
-      const child = resolved.children.find((c) => c.id === childId);
-      const displayName = child?.nickname || child?.firstName || 'this child';
+  const handleRemoveChild = (childId: string) => {
+    const child = resolved.children.find((c) => c.id === childId);
+    const displayName = child?.nickname || child?.firstName || 'this child';
 
-      uiFeedback.alert(
-        'Remove Child',
-        `Are you sure you want to remove ${displayName} from your account? This cannot be undone.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Remove',
-            style: 'destructive',
-            onPress: async () => {
-              // TRAP 9: mutations stay as service calls, then refresh context
-              await childService.deleteChild(childId);
-              if (activeChildId === childId) {
-                await contextSetActiveChildId(null);
-              }
-              logger.info('child_removed', { childId, displayName });
-              await refreshContext();
-              onRefresh();
-            },
+    uiFeedback.alert(
+      'Remove Child',
+      `Are you sure you want to remove ${displayName} from your account? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            // TRAP 9: mutations stay as service calls, then refresh context
+            await childService.deleteChild(childId);
+            if (activeChildId === childId) {
+              await contextSetActiveChildId(null);
+            }
+            logger.info('child_removed', { childId, displayName });
+            await refreshContext();
+            onRefresh();
           },
-        ],
-      );
-    },
-    [resolved.children, activeChildId, onRefresh, contextSetActiveChildId, refreshContext],
-  );
+        },
+      ],
+    );
+  };
 
   return {
     currentUser,

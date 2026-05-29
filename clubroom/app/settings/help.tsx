@@ -53,7 +53,7 @@ export default function HelpSettingsScreen() {
         <View style={styles.faqList}>
           {FAQ_ITEMS.map((item, index) => (
             <FAQCard
-              key={index}
+              key={item.question}
               item={item}
               expanded={expandedFAQ === index}
               onToggle={() => toggleFAQ(index)}

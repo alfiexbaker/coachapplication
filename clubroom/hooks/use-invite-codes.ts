@@ -4,7 +4,7 @@
  * Manages invite code list, create modal, and code generation.
  */
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
 
 import { useToast } from '@/components/ui/toast';
@@ -52,7 +52,7 @@ export function useInviteCodes(): UseInviteCodesResult {
   const [newCodeText, setNewCodeText] = useState('');
   const [maxUses, setMaxUses] = useState('20');
 
-  const loadCodes = useCallback(async () => {
+  const loadCodes = async () => {
     try {
       const storedCodes = await apiClient.get<InviteCode[]>(
         INVITE_CODES_STORAGE_KEY,
@@ -62,7 +62,7 @@ export function useInviteCodes(): UseInviteCodesResult {
     } catch (loadError) {
       return err(serviceError('UNKNOWN', 'Failed to load invite codes.', loadError));
     }
-  }, []);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<InviteCode[]>({
     load: loadCodes,
@@ -75,7 +75,7 @@ export function useInviteCodes(): UseInviteCodesResult {
 
   const codes = data ?? [];
 
-  const generateCode = useCallback(() => {
+  const generateCode = () => {
     if (!selectedSchool) return;
 
     const code = newCodeText.trim().toUpperCase() || generateRandomCode();
@@ -99,35 +99,29 @@ export function useInviteCodes(): UseInviteCodesResult {
     setNewCodeText('');
     setMaxUses('20');
     setSelectedSchool(null);
-  }, [selectedSchool, newCodeText, maxUses, codes, onRefresh]);
+  };
 
-  const deactivateCode = useCallback(
-    (codeId: string) => {
-      const next = codes.map((code) =>
-        code.id === codeId
-          ? {
-              ...code,
-              status: code.status === 'active' ? ('exhausted' as const) : ('active' as const),
-            }
-          : code,
-      );
-      void apiClient.set(INVITE_CODES_STORAGE_KEY, next);
-      onRefresh();
-    },
-    [codes, onRefresh],
-  );
+  const deactivateCode = (codeId: string) => {
+    const next = codes.map((code) =>
+      code.id === codeId
+        ? {
+            ...code,
+            status: code.status === 'active' ? ('exhausted' as const) : ('active' as const),
+          }
+        : code,
+    );
+    void apiClient.set(INVITE_CODES_STORAGE_KEY, next);
+    onRefresh();
+  };
 
-  const copyToClipboard = useCallback(
-    async (code: string) => {
-      try {
-        await Clipboard.setStringAsync(code);
-        showToast('Invite code copied', 'success');
-      } catch {
-        showToast('Could not copy invite code', 'error');
-      }
-    },
-    [showToast],
-  );
+  const copyToClipboard = async (code: string) => {
+    try {
+      await Clipboard.setStringAsync(code);
+      showToast('Invite code copied', 'success');
+    } catch {
+      showToast('Could not copy invite code', 'error');
+    }
+  };
 
   return {
     codes,

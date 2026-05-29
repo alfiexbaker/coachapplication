@@ -2,7 +2,7 @@
  * ScheduleWeekStrip — Horizontal scrollable week day pills with session/availability dots.
  */
 
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Row } from '@/components/primitives/row';
@@ -26,7 +26,7 @@ interface Props {
   onGoToThisWeek: () => void;
 }
 
-const DayPill = memo(function DayPill({
+const DayPill = function DayPill({
   day,
   index,
   isSelected,
@@ -41,9 +41,9 @@ const DayPill = memo(function DayPill({
   const hasSession = day.sessions.length > 0;
   const hasAvailability = day.availabilitySlots > 0;
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     onPress(index);
-  }, [onPress, index]);
+  };
 
   return (
     <Clickable
@@ -89,9 +89,9 @@ const DayPill = memo(function DayPill({
       )}
     </Clickable>
   );
-});
+};
 
-export const ScheduleWeekStrip = memo(function ScheduleWeekStrip({
+export const ScheduleWeekStrip = function ScheduleWeekStrip({
   weekData,
   selectedDayIndex,
   onDayPress,
@@ -154,7 +154,7 @@ export const ScheduleWeekStrip = memo(function ScheduleWeekStrip({
       </Column>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   sectionTitle: {

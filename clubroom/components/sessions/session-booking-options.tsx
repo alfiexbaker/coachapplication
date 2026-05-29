@@ -1,7 +1,3 @@
-/**
- * SessionBookingOptions — Parent/athlete view: child selector + weeks selector + registered banner.
- */
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
@@ -40,6 +36,7 @@ interface SessionBookingOptionsProps {
   onBookAgain: () => void;
 }
 
+// react-doctor-disable-next-line react-doctor/no-many-boolean-props -- booking option visibility depends on independent registration and capacity facts.
 function SessionBookingOptionsInner({
   isRegistered,
   isSessionInPast,
@@ -289,7 +286,7 @@ function SessionBookingOptionsInner({
   );
 }
 
-export const SessionBookingOptions = memo(SessionBookingOptionsInner);
+export const SessionBookingOptions = SessionBookingOptionsInner;
 
 const styles = StyleSheet.create({
   card: { marginBottom: Spacing.sm, padding: Spacing.md, gap: Spacing.sm },

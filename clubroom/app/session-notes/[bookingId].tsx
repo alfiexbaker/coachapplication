@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode, startTransition } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
@@ -27,7 +27,9 @@ export default function SessionNotesScreen() {
   const { colors: palette } = useScreen<null>({ load: async () => ok(null), isEmpty: () => false });
 
   useEffect(() => {
-    setMode(isCoach && !note ? 'edit' : 'view');
+    startTransition(() => {
+      setMode(isCoach && !note ? 'edit' : 'view');
+    });
   }, [isCoach, note]);
 
   const handleSubmit = async (data: SessionNoteFields) => {
@@ -45,7 +47,7 @@ export default function SessionNotesScreen() {
     }
   };
 
-  const header = useMemo(() => {
+  const header = (() => {
     if (error) {
       return (
         <Row align="center" gap="sm" justify="space-between" style={styles.loadingRow}>
@@ -61,7 +63,7 @@ export default function SessionNotesScreen() {
     }
 
     return null;
-  }, [error, palette.error, palette.tint, refresh]);
+  })();
   const renderShell = (content: ReactNode) => (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top', 'bottom']}>
       {content}

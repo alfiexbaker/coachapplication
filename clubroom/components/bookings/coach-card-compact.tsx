@@ -1,10 +1,3 @@
-/**
- * CoachCardCompact — Small horizontal card for the "Your Coaches" discover section.
- *
- * Shows coach avatar, name, rating, and a "Book" CTA.
- */
-
-import { memo, useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,15 +15,15 @@ interface CoachCardCompactProps {
   onPress: (coachId: string) => void;
 }
 
-export const CoachCardCompact = memo(function CoachCardCompact({
+export const CoachCardCompact = function CoachCardCompact({
   coach,
   onPress,
 }: CoachCardCompactProps) {
   const { colors: palette } = useTheme();
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     onPress(coach.id);
-  }, [coach.id, onPress]);
+  };
 
   return (
     <SurfaceCard
@@ -69,7 +62,7 @@ export const CoachCardCompact = memo(function CoachCardCompact({
       </Column>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

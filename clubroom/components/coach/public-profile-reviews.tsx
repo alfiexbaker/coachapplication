@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,12 +12,14 @@ import { Column, Row } from '@/components/primitives';
 import { CoachReviewProofSummary } from '@/components/coach/coach-review-proof-summary';
 import { formatReviewContext } from '@/utils/coach-review-proof';
 
+const STAR_SLOT_KEYS = ['star-1', 'star-2', 'star-3', 'star-4', 'star-5'] as const;
+
 interface PublicProfileReviewsProps {
   coach: Coach;
   reviews: PublicReview[];
 }
 
-export const PublicProfileReviews = memo(function PublicProfileReviews({
+export const PublicProfileReviews = function PublicProfileReviews({
   coach,
   reviews,
 }: PublicProfileReviewsProps) {
@@ -31,8 +33,8 @@ export const PublicProfileReviews = memo(function PublicProfileReviews({
           {coach.rating.toFixed(1)}
         </ThemedText>
         <Row style={styles.starsRow}>
-          {summaryStars.map((s, i) => (
-            <Ionicons key={i} name={s.name} size={14} color={s.color} />
+          {summaryStars.map((s, starSlot) => (
+            <Ionicons key={STAR_SLOT_KEYS[starSlot]} name={s.name} size={14} color={s.color} />
           ))}
         </Row>
         <ThemedText style={[Typography.small, { color: palette.muted, marginTop: Spacing.xs }]}>
@@ -82,8 +84,13 @@ export const PublicProfileReviews = memo(function PublicProfileReviews({
                       ) : null}
                     </Row>
                     <Row style={styles.starsRow}>
-                      {reviewStars.map((s, i) => (
-                        <Ionicons key={i} name={s.name} size={14} color={s.color} />
+                      {reviewStars.map((s, starSlot) => (
+                        <Ionicons
+                          key={STAR_SLOT_KEYS[starSlot]}
+                          name={s.name}
+                          size={14}
+                          color={s.color}
+                        />
                       ))}
                     </Row>
                     {formatReviewContext(review) ? (
@@ -140,7 +147,7 @@ export const PublicProfileReviews = memo(function PublicProfileReviews({
       )}
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   container: { padding: Spacing.md, gap: Spacing.md },

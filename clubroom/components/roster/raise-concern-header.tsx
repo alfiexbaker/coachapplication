@@ -15,7 +15,7 @@ type HeaderProps = {
   onBack: () => void;
 };
 
-export const RaiseConcernHeader = React.memo(function RaiseConcernHeader({
+export const RaiseConcernHeader = function RaiseConcernHeader({
   colors,
   athleteName,
   onBack,
@@ -35,7 +35,7 @@ export const RaiseConcernHeader = React.memo(function RaiseConcernHeader({
       </Column>
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   flex1: { flex: 1 },

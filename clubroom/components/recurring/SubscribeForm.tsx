@@ -106,17 +106,14 @@ export function SubscribeForm({
 
       <Row gap="sm" style={[styles.footer, { borderTopColor: palette.border }]}>
         {onCancel && (
-          <Button variant="outline" onPress={onCancel} style={styles.cancelButton}>
-            Cancel
-          </Button>
+          <Button variant="outline" onPress={onCancel} style={styles.cancelButton} label="Cancel" />
         )}
         <Button
           onPress={form.handleSubmit}
           disabled={!form.isValid || submitting}
           style={styles.submitButton}
-        >
-          {submitting ? 'Creating...' : 'Start Subscription'}
-        </Button>
+          label={submitting ? 'Creating...' : 'Start Subscription'}
+        />
       </Row>
     </KeyboardAvoidingView>
   );

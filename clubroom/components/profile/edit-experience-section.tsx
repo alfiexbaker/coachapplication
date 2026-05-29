@@ -2,7 +2,7 @@
  * EditExperienceSection — Experience list + add/edit modal for coach profiles.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { Modal, ScrollView, StyleSheet, TextInput, View, Keyboard } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,7 +29,7 @@ interface EditExperienceSectionProps {
   modalError?: string | null;
 }
 
-export const EditExperienceSection = memo(function EditExperienceSection({
+export const EditExperienceSection = function EditExperienceSection({
   colors,
   experiences,
   onOpenModal,
@@ -136,7 +136,7 @@ export const EditExperienceSection = memo(function EditExperienceSection({
                     <ThemedText type="subtitle">{exp.title}</ThemedText>
                     <ThemedText style={styles.org}>{exp.organization}</ThemedText>
                     <ThemedText style={styles.date}>
-                      {start} — {end}
+                      {start} - {end}
                     </ThemedText>
                     {exp.description ? (
                       <ThemedText style={styles.description}>{exp.description}</ThemedText>
@@ -285,7 +285,7 @@ export const EditExperienceSection = memo(function EditExperienceSection({
       </Modal>
     </>
   );
-});
+};
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.md },

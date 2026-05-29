@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState } from 'react';
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { StyleSheet, View, FlatList, ActivityIndicator } from 'react-native';
 
@@ -39,13 +39,13 @@ export function AttendeeList({
   const { colors: palette } = useTheme();
   const [filter, setFilter] = useState<FilterType>('ALL');
 
-  const attendanceMap = useMemo(() => {
+  const attendanceMap = (() => {
     const map = new Map<string, EventAttendance>();
     attendance.forEach((a) => map.set(a.userId, a));
     return map;
-  }, [attendance]);
+  })();
 
-  const filteredData = useMemo(() => {
+  const filteredData = (() => {
     let filtered = rsvps;
 
     switch (filter) {
@@ -72,7 +72,7 @@ export function AttendeeList({
       if (statusDiff !== 0) return statusDiff;
       return new Date(b.respondedAt).getTime() - new Date(a.respondedAt).getTime();
     });
-  }, [rsvps, filter, attendanceMap]);
+  })();
 
   const filterOptions: FilterOption[] = [
     { key: 'ALL', label: 'All', count: rsvps.length },
@@ -81,33 +81,27 @@ export function AttendeeList({
     { key: 'CHECKED_IN', label: 'Checked In', count: attendance.length },
   ];
 
-  const renderAttendeeItem = useCallback(
-    ({ item }: { item: EventRSVP }) => (
-      <AttendeeCard
-        rsvp={item}
-        attendance={attendanceMap.get(item.userId)}
-        onPress={onAttendeePress ? () => onAttendeePress(item.userId) : undefined}
-        showCheckInStatus={attendance.length > 0}
-      />
-    ),
-    [attendanceMap, onAttendeePress, attendance.length],
+  const renderAttendeeItem = ({ item }: { item: EventRSVP }) => (
+    <AttendeeCard
+      rsvp={item}
+      attendance={attendanceMap.get(item.userId)}
+      onPress={onAttendeePress ? () => onAttendeePress(item.userId) : undefined}
+      showCheckInStatus={attendance.length > 0}
+    />
   );
 
-  const attendeeKeyExtractor = useCallback((item: EventRSVP) => item.id, []);
+  const attendeeKeyExtractor = (item: EventRSVP) => item.id;
 
-  const renderFilterItem = useCallback(
-    ({ item }: { item: FilterOption }) => (
-      <AttendeeFilterChip
-        item={item}
-        isActive={filter === item.key}
-        onPress={() => setFilter(item.key)}
-        palette={palette}
-      />
-    ),
-    [filter, palette],
+  const renderFilterItem = ({ item }: { item: FilterOption }) => (
+    <AttendeeFilterChip
+      item={item}
+      isActive={filter === item.key}
+      onPress={() => setFilter(item.key)}
+      palette={palette}
+    />
   );
 
-  const filterKeyExtractor = useCallback((item: FilterOption) => item.key, []);
+  const filterKeyExtractor = (item: FilterOption) => item.key;
 
   if (loading) {
     return (

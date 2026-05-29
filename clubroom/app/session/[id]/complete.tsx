@@ -15,32 +15,36 @@
  * so I can track athlete progress and provide feedback."
  */
 
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
-import { StyleSheet, ScrollView, KeyboardAvoidingView, Platform, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-
-import { Clickable } from '@/components/primitives/clickable';
-import { Row } from '@/components/primitives/row';
-import { ThemedText } from '@/components/themed-text';
-import { PageHeader } from '@/components/primitives/page-header';
-import { ErrorState, SectionSkeleton } from '@/components/ui/screen-states';
-import { Components, Spacing, Typography } from '@/constants/theme';
-import { useTheme } from '@/hooks/useTheme';
-import { useSessionCompletion } from '@/hooks/use-session-completion';
-import { useQuickRate } from '@/hooks/use-quick-rate';
-import { apiClient } from '@/services/api-client';
-import { useAuth } from '@/hooks/use-auth';
-import { Routes } from '@/navigation/routes';
-import { createLogger } from '@/utils/logger';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { buildFeedbackPrefillFromQuickRate } from '@/utils/feedback-prefill';
-import { BadgeAwardModal } from '@/components/badges/badge-award-modal';
-import type { BadgeAward } from '@/constants/types';
-import type { CompletionSummaryData } from '@/hooks/use-session-completion';
-import type { QuickRateInput } from '@/types/progress-types';
-
+import { useState, type ReactNode } from "react";
+import {
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { router, useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { Clickable } from "@/components/primitives/clickable";
+import { Row } from "@/components/primitives/row";
+import { ThemedText } from "@/components/themed-text";
+import { PageHeader } from "@/components/primitives/page-header";
+import { ErrorState, SectionSkeleton } from "@/components/ui/screen-states";
+import { Components, Spacing, Typography } from "@/constants/theme";
+import { useTheme } from "@/hooks/useTheme";
+import { useSessionCompletion } from "@/hooks/use-session-completion";
+import { useQuickRate } from "@/hooks/use-quick-rate";
+import { apiClient } from "@/services/api-client";
+import { useAuth } from "@/hooks/use-auth";
+import { Routes } from "@/navigation/routes";
+import { createLogger } from "@/utils/logger";
+import { STORAGE_KEYS } from "@/constants/storage-keys";
+import { buildFeedbackPrefillFromQuickRate } from "@/utils/feedback-prefill";
+import { BadgeAwardModal } from "@/components/badges/badge-award-modal";
+import type { BadgeAward } from "@/constants/types";
+import type { CompletionSummaryData } from "@/hooks/use-session-completion";
+import type { QuickRateInput } from "@/types/progress-types";
 import {
   AttendanceStep,
   BadgesStep,
@@ -49,26 +53,29 @@ import {
   NotesStep,
   QuickRateStep,
   ReviewStep,
-} from '@/components/session';
-import { CompletionStepIndicator } from '@/components/session/completion-step-indicator';
-import { WizardNavButtons } from '@/components/session/wizard-nav-buttons';
-import { uiFeedback } from '@/services/ui-feedback';
-
-const logger = createLogger('SessionComplete');
+} from "@/components/session";
+import { CompletionStepIndicator } from "@/components/session/completion-step-indicator";
+import { WizardNavButtons } from "@/components/session/wizard-nav-buttons";
+import { uiFeedback } from "@/services/ui-feedback";
+const logger = createLogger("SessionComplete");
 
 // ============================================================================
 // SCREEN
 // ============================================================================
 
 export default function SessionCompleteScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<{
+    id: string;
+  }>();
   const { colors } = useTheme();
   const { currentUser } = useAuth();
-  const [groupMessage, setGroupMessage] = useState('');
+  const [groupMessage, setGroupMessage] = useState("");
   const [showCompletionSummary, setShowCompletionSummary] = useState(false);
-  const [completionSummaryData, setCompletionSummaryData] = useState<CompletionSummaryData | null>(null);
-  const [quickRateBadgeAthleteId, setQuickRateBadgeAthleteId] = useState<string | null>(null);
-
+  const [completionSummaryData, setCompletionSummaryData] =
+    useState<CompletionSummaryData | null>(null);
+  const [quickRateBadgeAthleteId, setQuickRateBadgeAthleteId] = useState<
+    string | null
+  >(null);
   const {
     session,
     loading,
@@ -120,29 +127,27 @@ export default function SessionCompleteScreen() {
     handleBackPress,
     handleComplete,
   } = useSessionCompletion(id);
-
-  const quickRateAthletes = useMemo(
-    () =>
-      attendanceStepData
-        .filter((athlete) => athlete.status === 'present')
-        .map((athlete) => {
-          const athleteRecord = attendance[athlete.registrationId];
-          if (!athleteRecord?.registration.userId) {
-            return null;
-          }
-          return {
-            athleteId: athleteRecord.registration.userId,
-            athleteName: athlete.userName,
-          };
-        })
-        .filter((athlete): athlete is { athleteId: string; athleteName: string } => athlete !== null),
-    [attendance, attendanceStepData],
+  const quickRateAthletes = attendanceStepData.flatMap((item) =>
+    ((athlete) => athlete.status === "present")(item)
+      ? ((athlete) => {
+          const mapped = (() => {
+            const athleteRecord = attendance[athlete.registrationId];
+            if (!athleteRecord?.registration.userId) {
+              return null;
+            }
+            return {
+              athleteId: athleteRecord.registration.userId,
+              athleteName: athlete.userName,
+            };
+          })();
+          return mapped !== null ? [mapped] : [];
+        })(item)
+      : [],
   );
-
-  const effortByAthleteId = useMemo(() => {
+  const effortByAthleteId = (() => {
     const next: Record<string, number> = {};
     for (const athlete of Object.values(attendance)) {
-      if (athlete.status !== 'present') {
+      if (athlete.status !== "present") {
         continue;
       }
       if (!athlete.registration.userId) {
@@ -151,181 +156,164 @@ export default function SessionCompleteScreen() {
       next[athlete.registration.userId] = athlete.effort;
     }
     return next;
-  }, [attendance]);
-
+  })();
   const quickRateEnabledAthletes = quickRateAthletes;
-
   const quickRate = useQuickRate({
     athletes: quickRateEnabledAthletes,
-    sessionId: session?.id ?? '',
-    coachId: currentUser?.id ?? '',
+    sessionId: session?.id ?? "",
+    coachId: currentUser?.id ?? "",
     effortByAthleteId,
   });
-
-  const effectiveQuickRateByAthleteId = useMemo<Record<string, QuickRateInput>>(
-    () => (quickRate.isSkippedAll ? {} : quickRate.ratingsByAthleteId),
-    [quickRate.isSkippedAll, quickRate.ratingsByAthleteId],
-  );
-
-  const completionAthletes = useMemo(
-    () =>
-      presentAthletes
-        .map((athlete) => {
-          const athleteRecord = attendance[athlete.registrationId];
-          if (!athleteRecord?.registration.userId) {
-            return null;
-          }
-          return {
-            registrationId: athlete.registrationId,
-            athleteId: athleteRecord.registration.userId,
-            athleteName: athlete.userName,
-          };
-        })
-        .filter(
-          (
-            athlete,
-          ): athlete is { registrationId: string; athleteId: string; athleteName: string } =>
-            athlete !== null,
-        ),
-    [attendance, presentAthletes],
-  );
-
-  const selectedQuickRateAthlete = useMemo(
-    () =>
-      quickRateEnabledAthletes.find((athlete) => athlete.athleteId === quickRateBadgeAthleteId) ??
-      null,
-    [quickRateEnabledAthletes, quickRateBadgeAthleteId],
-  );
-
-  const quickRateBadgeCount = useMemo(
-    () =>
-      Object.values(effectiveQuickRateByAthleteId).filter((rating) => Boolean(rating.badgeId)).length,
-    [effectiveQuickRateByAthleteId],
-  );
-  const handleExit = useCallback(() => {
+  const effectiveQuickRateByAthleteId = quickRate.isSkippedAll
+    ? {}
+    : quickRate.ratingsByAthleteId;
+  const completionAthletes = presentAthletes.flatMap((athlete) => {
+    const mapped = (() => {
+      const athleteRecord = attendance[athlete.registrationId];
+      if (!athleteRecord?.registration.userId) {
+        return null;
+      }
+      return {
+        registrationId: athlete.registrationId,
+        athleteId: athleteRecord.registration.userId,
+        athleteName: athlete.userName,
+      };
+    })();
+    return mapped !== null ? [mapped] : [];
+  });
+  const selectedQuickRateAthlete =
+    quickRateEnabledAthletes.find(
+      (athlete) => athlete.athleteId === quickRateBadgeAthleteId,
+    ) ?? null;
+  const quickRateBadgeCount = Object.values(
+    effectiveQuickRateByAthleteId,
+  ).filter((rating) => Boolean(rating.badgeId)).length;
+  const handleExit = () => {
     if (router.canGoBack()) {
       router.back();
       return;
     }
     router.replace(Routes.SCHEDULE);
-  }, []);
-
+  };
   const handleSendGroupMessage = async () => {
     const sent = await sendGroupBroadcast(groupMessage);
     if (!sent) {
-      uiFeedback.showToast('Write a group update before sending.');
+      uiFeedback.showToast("Write a group update before sending.");
       return;
     }
-    setGroupMessage('');
-    uiFeedback.showToast('Update pushed to the group thread.', 'success');
+    setGroupMessage("");
+    uiFeedback.showToast("Update pushed to the group thread.", "success");
   };
-
-  const handlePersonalFeedback = useCallback(
-    async (registrationId: string) => {
-      const athleteStep = attendanceStepData.find((a) => a.registrationId === registrationId);
-      const athleteRecord = attendance[registrationId];
-      if (!athleteStep || !athleteRecord || !session || !currentUser) return;
-
-      const athleteUserId = athleteRecord.registration.userId;
-      const quickRateInput = effectiveQuickRateByAthleteId[athleteUserId];
-      const prefill = quickRateInput ? buildFeedbackPrefillFromQuickRate(quickRateInput) : null;
-      const sessionId = `session-${Date.now()}`;
-      const sessionRecord = {
-        id: sessionId,
+  const handlePersonalFeedback = async (registrationId: string) => {
+    const athleteStep = attendanceStepData.find(
+      (a) => a.registrationId === registrationId,
+    );
+    const athleteRecord = attendance[registrationId];
+    if (!athleteStep || !athleteRecord || !session || !currentUser) return;
+    const athleteUserId = athleteRecord.registration.userId;
+    const quickRateInput = effectiveQuickRateByAthleteId[athleteUserId];
+    const prefill = quickRateInput
+      ? buildFeedbackPrefillFromQuickRate(quickRateInput)
+      : null;
+    const sessionId = `session-${Date.now()}`;
+    const sessionRecord = {
+      id: sessionId,
+      athleteId: athleteUserId,
+      athleteName: athleteStep.userName,
+      coachId: currentUser.id,
+      bookingId: session.id,
+      sourceSessionId: session.id,
+      completedAt: new Date().toISOString(),
+      performanceRating: prefill?.performanceRating ?? athleteRecord.effort,
+      skillsWorkedOn: prefill?.skillsWorkedOn ?? [],
+      notes: prefill?.sessionSummary ?? "",
+      videoUrls: [],
+      imageUrls: [],
+      effortRating: prefill?.effortRating ?? athleteRecord.effort,
+      prefillSkillRatings: [],
+      attendance: "ATTENDED",
+    };
+    const sessions = await apiClient.get<Record<string, unknown>[]>(
+      STORAGE_KEYS.COACH_SESSIONS,
+      [],
+    );
+    sessions.push(sessionRecord);
+    await apiClient.set(STORAGE_KEYS.COACH_SESSIONS, sessions);
+    logger.info("Personal feedback session created", {
+      sessionId,
+      athlete: athleteStep.userName,
+    });
+    router.push(
+      Routes.developmentSession(sessionId, {
+        prefillFromQuickRate: "true",
         athleteId: athleteUserId,
-        athleteName: athleteStep.userName,
-        coachId: currentUser.id,
-        bookingId: session.id,
-        sourceSessionId: session.id,
-        completedAt: new Date().toISOString(),
-        performanceRating: prefill?.performanceRating ?? athleteRecord.effort,
-        skillsWorkedOn: prefill?.skillsWorkedOn ?? [],
-        notes: prefill?.sessionSummary ?? '',
-        videoUrls: [],
-        imageUrls: [],
-        effortRating: prefill?.effortRating ?? athleteRecord.effort,
-        prefillSkillRatings: [],
-        attendance: 'ATTENDED',
-      };
-
-      const sessions = await apiClient.get<Record<string, unknown>[]>(STORAGE_KEYS.COACH_SESSIONS, []);
-      sessions.push(sessionRecord);
-      await apiClient.set(STORAGE_KEYS.COACH_SESSIONS, sessions);
-      logger.info('Personal feedback session created', { sessionId, athlete: athleteStep.userName });
-
-      router.push(
-        Routes.developmentSession(sessionId, {
-          prefillFromQuickRate: 'true',
-          athleteId: athleteUserId,
-        }),
-      );
-    },
-    [attendance, attendanceStepData, currentUser, effectiveQuickRateByAthleteId, session],
-  );
-
-  const handleQuickRateBadgePress = useCallback(
-    (athleteId: string) => {
-      setQuickRateBadgeAthleteId(athleteId);
-    },
-    [],
-  );
-
-  const handleQuickRateBadgeAwarded = useCallback(
-    (award: BadgeAward) => {
-      if (quickRateBadgeAthleteId) {
-        quickRate.setBadge(quickRateBadgeAthleteId, award.badgeId);
-      }
-      setQuickRateBadgeAthleteId(null);
-    },
-    [quickRate.setBadge, quickRateBadgeAthleteId],
-  );
-
-  const handleSkipQuickRate = useCallback(() => {
+      }),
+    );
+  };
+  const handleQuickRateBadgePress = (athleteId: string) => {
+    setQuickRateBadgeAthleteId(athleteId);
+  };
+  const handleQuickRateBadgeAwarded = (award: BadgeAward) => {
+    if (quickRateBadgeAthleteId) {
+      quickRate.setBadge(quickRateBadgeAthleteId, award.badgeId);
+    }
+    setQuickRateBadgeAthleteId(null);
+  };
+  const handleSkipQuickRate = () => {
     quickRate.clearAllRatings();
     goToNextStep();
-  }, [goToNextStep, quickRate.clearAllRatings]);
-
-  const handleCompleteWithQuickRate = useCallback(async () => {
-    const completionResult = await handleComplete(effectiveQuickRateByAthleteId);
+  };
+  const handleCompleteWithQuickRate = async () => {
+    const completionResult = await handleComplete(
+      effectiveQuickRateByAthleteId,
+    );
     if (completionResult) {
       setCompletionSummaryData(completionResult);
       setShowCompletionSummary(true);
     }
-  }, [effectiveQuickRateByAthleteId, handleComplete]);
-
+  };
   const handleSendMessage = async (registrationId: string) => {
     const result = await sendMessageParent(registrationId);
     if (!result.ok) {
-      uiFeedback.showToast(result.reason || 'Message could not be sent.', 'error');
+      uiFeedback.showToast(
+        result.reason || "Message could not be sent.",
+        "error",
+      );
       return;
     }
-    uiFeedback.showToast(`Message sent to ${result.targetName}.`, 'success');
+    uiFeedback.showToast(`Message sent to ${result.targetName}.`, "success");
   };
-
-  const handleRaiseConcernByRegistration = useCallback(
-    (registrationId: string) => {
-      const athlete = attendance[registrationId];
-      const athleteId = athlete?.registration.userId;
-      if (!athleteId) {
-        uiFeedback.showToast('Athlete details are missing for this registration.', 'error');
-        return;
-      }
-      router.push(Routes.rosterAthleteConcern(athleteId));
-    },
-    [attendance],
-  );
-
-  const handleRaiseConcernByAthlete = useCallback((athleteId: string) => {
+  const handleRaiseConcernByRegistration = (registrationId: string) => {
+    const athlete = attendance[registrationId];
+    const athleteId = athlete?.registration.userId;
     if (!athleteId) {
-      uiFeedback.showToast('Athlete details are missing for this action.', 'error');
+      uiFeedback.showToast(
+        "Athlete details are missing for this registration.",
+        "error",
+      );
       return;
     }
     router.push(Routes.rosterAthleteConcern(athleteId));
-  }, []);
+  };
+  const handleRaiseConcernByAthlete = (athleteId: string) => {
+    if (!athleteId) {
+      uiFeedback.showToast(
+        "Athlete details are missing for this action.",
+        "error",
+      );
+      return;
+    }
+    router.push(Routes.rosterAthleteConcern(athleteId));
+  };
   const renderScreenShell = (content: ReactNode) => (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top', 'bottom']}
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+        },
+      ]}
+      edges={["top", "bottom"]}
     >
       <PageHeader title="Complete Session" showBack onBackPress={handleExit} />
       {content}
@@ -338,18 +326,23 @@ export default function SessionCompleteScreen() {
 
   if (loading) {
     return renderScreenShell(
-      <ScrollView contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.contentInner}
+        showsVerticalScrollIndicator={false}
+      >
         <SectionSkeleton variant="form" titleWidth="34%" />
       </ScrollView>,
     );
   }
-
   if (error) {
-    return renderScreenShell(<ErrorState message={error} onRetry={loadSession} />);
+    return renderScreenShell(
+      <ErrorState message={error} onRetry={loadSession} />,
+    );
   }
-
   if (!session) {
-    return renderScreenShell(<ErrorState message="Session not found" onRetry={loadSession} />);
+    return renderScreenShell(
+      <ErrorState message="Session not found" onRetry={loadSession} />,
+    );
   }
 
   // ==========================================================================
@@ -359,19 +352,28 @@ export default function SessionCompleteScreen() {
   return (
     <>
       <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top', 'bottom']}
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.background,
+          },
+        ]}
+        edges={["top", "bottom"]}
       >
         <PageHeader
           title="Complete Session"
           subtitle={session.title}
           showBack
-          onBackPress={showCompletionSummary ? () => setShowCompletionSummary(false) : handleBackPress}
+          onBackPress={
+            showCompletionSummary
+              ? () => setShowCompletionSummary(false)
+              : handleBackPress
+          }
         />
 
         <KeyboardAvoidingView
           style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
           <ScrollView
             style={styles.flex}
@@ -388,7 +390,8 @@ export default function SessionCompleteScreen() {
                 photosCaptured={completionSummaryData?.photosCaptured ?? 0}
                 videosRecorded={completionSummaryData?.videosRecorded ?? 0}
                 badgesAwarded={
-                  completionSummaryData?.badgesAwarded ?? totalBadgesAwarded + quickRateBadgeCount
+                  completionSummaryData?.badgesAwarded ??
+                  totalBadgesAwarded + quickRateBadgeCount
                 }
                 athletes={completionSummaryData?.athletes ?? completionAthletes}
                 onOpenAthlete={(athlete) => {
@@ -410,7 +413,7 @@ export default function SessionCompleteScreen() {
                   imageUrls={imageUrls}
                   onGroupMessageChange={setGroupMessage}
                   onUpdateStatus={updateAttendanceStatus}
-                  onSelectAll={() => setAllAttendanceStatus('present')}
+                  onSelectAll={() => setAllAttendanceStatus("present")}
                   onSendGroupMessage={handleSendGroupMessage}
                   onPersonalFeedback={handlePersonalFeedback}
                   onMessage={handleSendMessage}
@@ -446,14 +449,14 @@ export default function SessionCompleteScreen() {
                   colors={colors}
                 />
 
-                {currentStep === 'attendance' && (
+                {currentStep === "attendance" && (
                   <AttendanceStep
                     athletes={attendanceStepData}
                     colors={colors}
                     onUpdateStatus={updateAttendanceStatus}
                   />
                 )}
-                {currentStep === 'quickRate' && (
+                {currentStep === "quickRate" && (
                   <QuickRateStep
                     athletes={quickRateEnabledAthletes}
                     ratingsByAthleteId={quickRate.ratingsByAthleteId}
@@ -472,7 +475,7 @@ export default function SessionCompleteScreen() {
                     isSubmitting={submitting}
                   />
                 )}
-                {currentStep === 'notes' && (
+                {currentStep === "notes" && (
                   <NotesStep
                     colors={colors}
                     sessionSummary={sessionSummary}
@@ -487,7 +490,7 @@ export default function SessionCompleteScreen() {
                     onImprovementsChange={setImprovements}
                   />
                 )}
-                {currentStep === 'badges' && (
+                {currentStep === "badges" && (
                   <BadgesStep
                     presentAthletes={presentAthletes}
                     availableBadges={availableBadges}
@@ -495,7 +498,7 @@ export default function SessionCompleteScreen() {
                     onToggleBadge={toggleBadge}
                   />
                 )}
-                {currentStep === 'summary' && (
+                {currentStep === "summary" && (
                   <ReviewStep
                     colors={colors}
                     presentCount={presentCount}
@@ -539,7 +542,9 @@ export default function SessionCompleteScreen() {
               <Clickable
                 style={[
                   styles.groupCompleteButton,
-                  { backgroundColor: submitting ? colors.muted : colors.tint },
+                  {
+                    backgroundColor: submitting ? colors.muted : colors.tint,
+                  },
                 ]}
                 onPress={() => {
                   void handleCompleteWithQuickRate();
@@ -550,13 +555,31 @@ export default function SessionCompleteScreen() {
               >
                 <Row align="center" justify="center" gap="sm">
                   {submitting ? (
-                    <ThemedText style={[styles.groupCompleteText, { color: colors.onPrimary }]}>
-                      Saving...
+                    <ThemedText
+                      style={[
+                        styles.groupCompleteText,
+                        {
+                          color: colors.onPrimary,
+                        },
+                      ]}
+                    >
+                      Saving…
                     </ThemedText>
                   ) : (
                     <>
-                      <Ionicons name="checkmark-circle" size={20} color={colors.onPrimary} />
-                      <ThemedText style={[styles.groupCompleteText, { color: colors.onPrimary }]}>
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={20}
+                        color={colors.onPrimary}
+                      />
+                      <ThemedText
+                        style={[
+                          styles.groupCompleteText,
+                          {
+                            color: colors.onPrimary,
+                          },
+                        ]}
+                      >
                         Complete Session
                       </ThemedText>
                     </>
@@ -574,7 +597,7 @@ export default function SessionCompleteScreen() {
           athleteId={selectedQuickRateAthlete.athleteId}
           athleteName={selectedQuickRateAthlete.athleteName}
           coachId={currentUser.id}
-          coachName={currentUser.fullName || currentUser.name || 'Coach'}
+          coachName={currentUser.fullName || currentUser.name || "Coach"}
           sessionId={session.id}
           sessionLabel={session.title}
           onClose={() => setQuickRateBadgeAthleteId(null)}
@@ -598,7 +621,7 @@ const styles = StyleSheet.create({
   },
   contentInner: {
     padding: Spacing.md,
-    paddingBottom: Spacing['3xl'],
+    paddingBottom: Spacing["3xl"],
   },
   contentWithStickyFooter: {
     paddingBottom: 120,

@@ -5,7 +5,7 @@
  * concerns about an athlete.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -24,6 +24,8 @@ import { err, ok, serviceError } from '@/types/result';
 import { RaiseConcernHeader } from '@/components/roster/raise-concern-header';
 import { RaiseConcernForm } from '@/components/roster/raise-concern-form';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('RaiseConcern');
 
@@ -82,7 +84,7 @@ export default function RaiseConcernScreen() {
     </SafeAreaView>
   );
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = async () => {
     if (!canSubmit || !type) return;
     if (isEscalationRisk && actionTaken.trim().length < 8) {
       uiFeedback.showToast('For high-risk concerns, include immediate action taken before submitting.', 'error');
@@ -90,7 +92,8 @@ export default function RaiseConcernScreen() {
     }
 
     setSubmitting(true);
-    try {
+
+    await runAsyncTryCatchFinally(async () => {
       const result = await concernService.raiseConcern({
         coachId,
         athleteId,
@@ -115,25 +118,13 @@ router.back();
       } else {
         uiFeedback.showToast(result.error.message, 'error');
       }
-    } catch (submitError) {
+    }, async submitError => {
       logger.error('Failed to submit concern', submitError);
       uiFeedback.showToast('Failed to submit concern. Please try again.', 'error');
-    } finally {
+    }, () => {
       setSubmitting(false);
-    }
-  }, [
-    canSubmit,
-    type,
-    isEscalationRisk,
-    coachId,
-    athleteId,
-    parentId,
-    athleteName,
-    severity,
-    title,
-    description,
-    actionTaken,
-  ]);
+    });
+  };
 
   if (status === 'loading') {
     return renderShell('', <LoadingState variant="form" />);

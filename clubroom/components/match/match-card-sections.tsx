@@ -24,7 +24,7 @@ interface MatchAvailabilityRowProps {
   match: Match;
 }
 
-export const MatchAvailabilityRow = React.memo(function MatchAvailabilityRow({
+export const MatchAvailabilityRow = function MatchAvailabilityRow({
   match,
 }: MatchAvailabilityRowProps) {
   const { colors: palette } = useTheme();
@@ -58,7 +58,7 @@ export const MatchAvailabilityRow = React.memo(function MatchAvailabilityRow({
       </Row>
     </Row>
   );
-});
+};
 
 // ============================================================================
 // PLAYER STATUS ROW (Parent view)
@@ -68,7 +68,7 @@ interface MatchPlayerStatusRowProps {
   match: Match;
 }
 
-export const MatchPlayerStatusRow = React.memo(function MatchPlayerStatusRow({
+export const MatchPlayerStatusRow = function MatchPlayerStatusRow({
   match,
 }: MatchPlayerStatusRowProps) {
   if (match.selectedPlayers.length === 0) return null;
@@ -95,7 +95,7 @@ export const MatchPlayerStatusRow = React.memo(function MatchPlayerStatusRow({
       ))}
     </Row>
   );
-});
+};
 
 // ============================================================================
 // STYLES

@@ -1,7 +1,3 @@
-/**
- * SessionInfoSection — Session details card: title, schedule, location, meta badges, awards.
- */
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Row } from '@/components/primitives/row';
 import { Clickable } from '@/components/primitives/clickable';
@@ -160,7 +156,7 @@ function SessionInfoSectionInner({
   );
 }
 
-export const SessionInfoSection = memo(SessionInfoSectionInner);
+export const SessionInfoSection = SessionInfoSectionInner;
 
 const styles = StyleSheet.create({
   card: { marginBottom: Spacing.sm, padding: Spacing.md, gap: Spacing.sm },

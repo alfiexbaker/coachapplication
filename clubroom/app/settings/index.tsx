@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -31,7 +31,9 @@ export default function SettingsHubScreen() {
 
   useEffect(() => {
     if (!currentUser?.id || !accountHasChildren) {
-      setAllowBookSelf(false);
+      startTransition(() => {
+        setAllowBookSelf(false);
+      });
       return;
     }
     let cancelled = false;
@@ -45,20 +47,17 @@ export default function SettingsHubScreen() {
     };
   }, [accountHasChildren, currentUser?.id]);
 
-  const handleAllowBookSelfChange = useCallback(
-    async (nextValue: boolean) => {
-      if (!currentUser?.id) return;
-      const previousValue = allowBookSelf;
-      setAllowBookSelf(nextValue);
+  const handleAllowBookSelfChange = async (nextValue: boolean) => {
+    if (!currentUser?.id) return;
+    const previousValue = allowBookSelf;
+    setAllowBookSelf(nextValue);
 
-      const success = await bookingSelfSettingService.setEnabled(currentUser.id, nextValue);
-      if (!success) {
-        setAllowBookSelf(previousValue);
-        uiFeedback.showToast('Please try again.');
-      }
-    },
-    [allowBookSelf, currentUser?.id],
-  );
+    const success = await bookingSelfSettingService.setEnabled(currentUser.id, nextValue);
+    if (!success) {
+      setAllowBookSelf(previousValue);
+      uiFeedback.showToast('Please try again.');
+    }
+  };
 
   return (
     <SettingsFormScreen title="Settings">

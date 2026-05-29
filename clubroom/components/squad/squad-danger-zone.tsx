@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -20,7 +20,7 @@ interface SquadDangerZoneProps {
   onCancelDelete: () => void;
 }
 
-export const SquadDangerZone = memo(function SquadDangerZone({
+export const SquadDangerZone = function SquadDangerZone({
   squadName,
   showDeleteConfirm,
   deleting,
@@ -71,7 +71,7 @@ export const SquadDangerZone = memo(function SquadDangerZone({
       )}
     </SurfaceCard>
   );
-});
+};
 
 interface RemoveMemberOverlayProps {
   member: ClubMember | null;
@@ -81,7 +81,7 @@ interface RemoveMemberOverlayProps {
   onCancel: () => void;
 }
 
-export const RemoveMemberOverlay = memo(function RemoveMemberOverlay({
+export const RemoveMemberOverlay = function RemoveMemberOverlay({
   member,
   squadName,
   colors,
@@ -113,7 +113,7 @@ export const RemoveMemberOverlay = memo(function RemoveMemberOverlay({
       </SurfaceCard>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },

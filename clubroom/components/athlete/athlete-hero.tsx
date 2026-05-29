@@ -2,7 +2,7 @@
  * AthleteHero — Profile hero card with avatar, name, age, level, status, tenure.
  */
 
-import React, { useCallback } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -28,7 +28,7 @@ function AthleteHeroInner({ athlete, onStatusPress }: AthleteHeroProps) {
   const statusColor = rosterService.getStatusColor(athlete.status);
   const athleteName = getRosterAthleteName(athlete);
 
-  const tenure = React.useMemo(() => {
+  const tenure = (() => {
     const start = new Date(athlete.startDate);
     const now = new Date();
     const months = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30));
@@ -37,12 +37,12 @@ function AthleteHeroInner({ athlete, onStatusPress }: AthleteHeroProps) {
     const years = Math.floor(months / 12);
     const rem = months % 12;
     return rem > 0 ? `${years}y ${rem}mo` : `${years}y`;
-  }, [athlete.startDate]);
+  })();
 
-  const handleStatusPress = useCallback(() => {
+  const handleStatusPress = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onStatusPress();
-  }, [onStatusPress]);
+  };
 
   return (
     <Animated.View entering={FadeInDown.springify()}>
@@ -94,7 +94,7 @@ function AthleteHeroInner({ athlete, onStatusPress }: AthleteHeroProps) {
   );
 }
 
-export const AthleteHero = React.memo(AthleteHeroInner);
+export const AthleteHero = AthleteHeroInner;
 
 const styles = StyleSheet.create({
   card: {

@@ -1,13 +1,10 @@
 /**
  * Extracted sub-components for BadgeCard.
  *
- * BADGE_TYPE_ICONS / CATEGORY_ICONS — icon maps.
- * getTierColor — metallic tier color helper.
- * formatBadgeDate — date formatting helper.
  * CompactBadgeCardInner — compact row variant (accepts palette).
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,49 +12,9 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { TierNames } from '@/constants/progression';
-import type { AllBadgeWithProgress, BadgeType } from '@/services/badge-service';
+import type { AllBadgeWithProgress } from '@/services/badge-service';
 import type { ThemeColors } from '@/hooks/useTheme';
-
-// ─── Constants ───────────────────────────────────────────────────────────────
-
-export const BADGE_TYPE_ICONS: Record<BadgeType, keyof typeof Ionicons.glyphMap> = {
-  skill: 'ribbon',
-  milestone: 'trophy',
-  streak: 'flame',
-  event: 'star',
-};
-
-export const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  technical: 'football',
-  physical: 'fitness',
-  psychological: 'bulb',
-  social: 'people',
-};
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-export function getTierColor(tier: 1 | 2 | 3 | undefined, fallback: string): string {
-  switch (tier) {
-    case 3:
-      return '#FFD700'; // Decorative: gold tier
-    case 2:
-      return '#C0C0C0'; // Decorative: silver tier
-    case 1:
-      return '#CD7F32'; // Decorative: bronze tier
-    default:
-      return fallback;
-  }
-}
-
-export function formatBadgeDate(dateString?: string): string {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
+import { BADGE_TYPE_ICONS, getTierColor } from './badge-card-helpers';
 
 // ─── CompactBadgeCardInner ───────────────────────────────────────────────────
 
@@ -67,7 +24,7 @@ interface CompactBadgeCardInnerProps {
   palette: ThemeColors;
 }
 
-export const CompactBadgeCardInner = memo(function CompactBadgeCardInner({
+export const CompactBadgeCardInner = function CompactBadgeCardInner({
   badge,
   onPress,
   palette,
@@ -138,7 +95,7 @@ export const CompactBadgeCardInner = memo(function CompactBadgeCardInner({
       )}
     </SurfaceCard>
   );
-});
+};
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 

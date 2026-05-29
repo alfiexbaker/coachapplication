@@ -34,7 +34,10 @@ import type {
   WeekAcceptance,
 } from '@/constants/types';
 import { notificationSenderService } from '../notification/notification-sender';
-import { notificationStore, type ExtendedNotificationItem } from '../notification/notification-store';
+import {
+  notificationStore,
+  type ExtendedNotificationItem,
+} from '../notification/notification-store';
 import { bookingService } from '../booking-service';
 import { inviteHoldService } from '../invite-hold-service';
 import { availabilityService } from '../availability-service';
@@ -48,21 +51,26 @@ import type { Result, ServiceError } from '@/types/result';
 import { ok, err, serviceError, storageError } from '@/types/result';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { sessionInviteAuthorityService } from './session-invite-authority-service';
-
 const logger = createLogger('SessionInviteService');
-
 function isMockMode(): boolean {
   return api.useMock;
 }
-
 function isServiceError(value: unknown): value is ServiceError {
   return Boolean(
-    value
-    && typeof value === 'object'
-    && 'code' in value
-    && typeof (value as { code?: unknown }).code === 'string'
-    && 'message' in value
-    && typeof (value as { message?: unknown }).message === 'string',
+    value &&
+    typeof value === 'object' &&
+    'code' in value &&
+    typeof (
+      value as {
+        code?: unknown;
+      }
+    ).code === 'string' &&
+    'message' in value &&
+    typeof (
+      value as {
+        message?: unknown;
+      }
+    ).message === 'string',
   );
 }
 
@@ -94,10 +102,12 @@ export interface CreateInviteInput {
   isRecurring?: boolean;
   recurrenceWeeks?: number;
   coverImageUrl?: string;
-  locationCoordinates?: { latitude: number; longitude: number };
+  locationCoordinates?: {
+    latitude: number;
+    longitude: number;
+  };
   idempotencyKey?: string;
 }
-
 export interface RespondToInviteInput {
   inviteId: string;
   response: 'ACCEPTED' | 'DECLINED';
@@ -116,8 +126,18 @@ const MOCK_INVITES: SessionInvite[] = [
     athleteIds: ['athlete_1'],
     parentId: 'parent_1',
     proposedSlots: [
-      { date: '2026-02-16', startTime: '16:00', endTime: '17:00', location: 'Hackney Marshes' },
-      { date: '2026-02-20', startTime: '15:00', endTime: '16:00', location: 'Hackney Marshes' },
+      {
+        date: '2026-02-16',
+        startTime: '16:00',
+        endTime: '17:00',
+        location: 'Hackney Marshes',
+      },
+      {
+        date: '2026-02-20',
+        startTime: '15:00',
+        endTime: '16:00',
+        location: 'Hackney Marshes',
+      },
     ],
     sessionType: '1:1 Coaching',
     focus: 'Finishing',
@@ -134,7 +154,12 @@ const MOCK_INVITES: SessionInvite[] = [
     athleteIds: ['athlete_2'],
     parentId: 'parent_1',
     proposedSlots: [
-      { date: '2026-02-17', startTime: '17:00', endTime: '18:00', location: 'Victoria Park' },
+      {
+        date: '2026-02-17',
+        startTime: '17:00',
+        endTime: '18:00',
+        location: 'Victoria Park',
+      },
     ],
     sessionType: '1:1 Coaching',
     focus: 'Goalkeeping',
@@ -151,7 +176,12 @@ const MOCK_INVITES: SessionInvite[] = [
     athleteIds: ['athlete_3'],
     parentId: 'parent_2',
     proposedSlots: [
-      { date: '2026-02-21', startTime: '09:00', endTime: '10:00', location: 'Hackney Marshes' },
+      {
+        date: '2026-02-21',
+        startTime: '09:00',
+        endTime: '10:00',
+        location: 'Hackney Marshes',
+      },
     ],
     sessionType: '1:1 Coaching',
     focus: 'Dribbling',
@@ -184,7 +214,11 @@ const MOCK_INVITES: SessionInvite[] = [
     status: 'PENDING',
     expiresAt: '2026-03-01T23:59:59Z',
     createdAt: '2026-02-10T08:45:00Z',
-    rsvpCounts: { going: 1, maybe: 1, cantGo: 1 },
+    rsvpCounts: {
+      going: 1,
+      maybe: 1,
+      cantGo: 1,
+    },
   },
 ];
 
@@ -193,16 +227,13 @@ const MOCK_INVITES: SessionInvite[] = [
 // ============================================================================
 
 let invitesCache: SessionInvite[] = [...MOCK_INVITES];
-
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
   const userResult = await userService.getUserById(userId);
   if (!userResult.success) {
     return fallback;
   }
-
   return userResult.data.name?.trim() || fallback;
 }
-
 async function resolveAthleteNames(
   athleteIds: string[],
   fallbackNames: string[] = [],
@@ -211,49 +242,45 @@ async function resolveAthleteNames(
   if (uniqueAthleteIds.length === 0) {
     return fallbackNames;
   }
-
   const usersResult = await userService.getUsersByIds(uniqueAthleteIds);
   if (!usersResult.success) {
     return athleteIds.map((_, index) => fallbackNames[index] || `Athlete ${index + 1}`);
   }
-
   const usersById = new Map(usersResult.data.map((user) => [user.id, user.name?.trim() || '']));
   return athleteIds.map(
     (athleteId, index) =>
       usersById.get(athleteId) || fallbackNames[index] || `Athlete ${index + 1}`,
   );
 }
-
 async function resolveInviteTemplateContext(invite: SessionInvite): Promise<{
   sessionTemplateName?: string;
   objectives: string[];
 }> {
-  const fallbackObjectives =
-    invite.focus?.trim().length ? [invite.focus.trim()] : [];
-
+  const fallbackObjectives = invite.focus?.trim().length ? [invite.focus.trim()] : [];
   if (!invite.sessionTemplateId) {
-    return { objectives: fallbackObjectives };
+    return {
+      objectives: fallbackObjectives,
+    };
   }
-
   const template = await sessionTemplateService.getTemplate(invite.sessionTemplateId);
   if (!template) {
-    return { objectives: fallbackObjectives };
+    return {
+      objectives: fallbackObjectives,
+    };
   }
-
   const templateObjectives = Array.from(
     new Set(
-      (template.skillsFocus ?? [])
-        .map((skill) => skill.trim())
-        .filter((skill) => skill.length > 0),
+      (template.skillsFocus ?? []).flatMap((skill) => {
+        const mapped = skill.trim();
+        return mapped.length > 0 ? [mapped] : [];
+      }),
     ),
   );
-
   return {
     sessionTemplateName: template.name,
     objectives: templateObjectives.length > 0 ? templateObjectives : fallbackObjectives,
   };
 }
-
 interface InviteLineageContext {
   sessionSource?: 'direct' | 'event' | 'group';
   sessionSourceEntityId?: string;
@@ -264,17 +291,14 @@ interface InviteLineageContext {
   createdByUserId?: string;
   createdByRole?: SessionOffering['createdByRole'];
 }
-
 async function resolveInviteLineageContext(invite: SessionInvite): Promise<InviteLineageContext> {
   if (!invite.existingSessionId) {
     return {};
   }
-
   const [offerings, groupSessions] = await Promise.all([
     apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
     apiClient.get<GroupSession[]>(STORAGE_KEYS.GROUP_SESSIONS, []),
   ]);
-
   const linkedOffering = offerings.find((offering) => offering.id === invite.existingSessionId);
   if (linkedOffering) {
     return {
@@ -288,8 +312,9 @@ async function resolveInviteLineageContext(invite: SessionInvite): Promise<Invit
       createdByRole: linkedOffering.createdByRole,
     };
   }
-
-  const linkedGroupSession = groupSessions.find((session) => session.id === invite.existingSessionId);
+  const linkedGroupSession = groupSessions.find(
+    (session) => session.id === invite.existingSessionId,
+  );
   if (linkedGroupSession) {
     return {
       sessionSource: 'group',
@@ -302,10 +327,8 @@ async function resolveInviteLineageContext(invite: SessionInvite): Promise<Invit
       createdByRole: linkedGroupSession.createdByRole,
     };
   }
-
   return {};
 }
-
 export async function loadFromStorage(): Promise<SessionInvite[]> {
   try {
     const stored = await apiClient.get<SessionInvite[] | null>(STORAGE_KEYS.SESSION_INVITES, null);
@@ -315,7 +338,6 @@ export async function loadFromStorage(): Promise<SessionInvite[]> {
   }
   return [...MOCK_INVITES];
 }
-
 export async function saveToStorage(invites: SessionInvite[]): Promise<Result<void, ServiceError>> {
   try {
     await apiClient.set(STORAGE_KEYS.SESSION_INVITES, invites);
@@ -325,15 +347,12 @@ export async function saveToStorage(invites: SessionInvite[]): Promise<Result<vo
     return err(storageError(`Failed to save session invites: ${String(error)}`));
   }
 }
-
 export function getInvitesCache(): SessionInvite[] {
   return invitesCache;
 }
-
 export function setInvitesCache(invites: SessionInvite[]): void {
   invitesCache = invites;
 }
-
 export function getMockInvites(): SessionInvite[] {
   return [...MOCK_INVITES];
 }
@@ -363,7 +382,6 @@ export const sessionInviteService = {
       : sessionDetails.athleteNames
         ? [sessionDetails.athleteNames]
         : athleteIds.map((_, i) => `Athlete ${i + 1}`);
-
     let input: CreateInviteInput = {
       ...sessionDetails,
       athleteIds,
@@ -381,8 +399,9 @@ export const sessionInviteService = {
         const takenDesc = validationResults.takenSlots
           .map((s) => `${s.date} ${s.startTime}`)
           .join(', ');
-        logger.warn('Some proposed slots are no longer available', { takenDesc });
-
+        logger.warn('Some proposed slots are no longer available', {
+          takenDesc,
+        });
         if (validationResults.validSlots.length === 0) {
           return err(
             serviceError(
@@ -399,7 +418,6 @@ export const sessionInviteService = {
         };
       }
     }
-
     try {
       const invite = await this._createSingleInvite(input);
       return ok(invite);
@@ -407,7 +425,6 @@ export const sessionInviteService = {
       if (isServiceError(error)) {
         return err(error);
       }
-
       const message = error instanceof Error ? error.message : 'Failed to create invite';
       logger.error('Failed to create invite', {
         coachId: input.coachId,
@@ -418,7 +435,6 @@ export const sessionInviteService = {
       return err(serviceError('UNKNOWN', message, error));
     }
   },
-
   /**
    * Validate proposed slots against current availability
    */
@@ -426,7 +442,10 @@ export const sessionInviteService = {
     coachId: string,
     slots: TimeSlot[],
     sessionTemplateId?: string,
-  ): Promise<{ validSlots: TimeSlot[]; takenSlots: TimeSlot[] }> {
+  ): Promise<{
+    validSlots: TimeSlot[];
+    takenSlots: TimeSlot[];
+  }> {
     const validSlots: TimeSlot[] = [];
     const takenSlots: TimeSlot[] = [];
 
@@ -434,16 +453,13 @@ export const sessionInviteService = {
     const dates = slots.map((s) => s.date).sort();
     const startDate = dates[0];
     const endDate = dates[dates.length - 1];
-
     const invitableSlots = await availabilityService.getInvitableSlots(
       coachId,
       startDate,
       endDate,
       sessionTemplateId,
     );
-
     const invitableKeys = new Set(invitableSlots.map((s) => `${s.date}_${s.startTime}`));
-
     for (const slot of slots) {
       const key = `${slot.date}_${slot.startTime}`;
       if (invitableKeys.has(key)) {
@@ -452,17 +468,17 @@ export const sessionInviteService = {
         takenSlots.push(slot);
       }
     }
-
-    return { validSlots, takenSlots };
+    return {
+      validSlots,
+      takenSlots,
+    };
   },
-
   /**
    * Internal method to create a single invite
    */
   async _createSingleInvite(input: CreateInviteInput): Promise<SessionInvite> {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + (input.expiresInDays || 7));
-
     const newInvite: SessionInvite = {
       id: apiClient.generateId('inv'),
       coachId: input.coachId,
@@ -487,7 +503,11 @@ export const sessionInviteService = {
       recurrenceWeeks: input.recurrenceWeeks,
       coverImageUrl: input.coverImageUrl,
       locationCoordinates: input.locationCoordinates,
-      rsvpCounts: { going: 0, maybe: 0, cantGo: 0 },
+      rsvpCounts: {
+        going: 0,
+        maybe: 0,
+        cantGo: 0,
+      },
     };
 
     // Generate weekSlots for recurring invites
@@ -500,29 +520,36 @@ export const sessionInviteService = {
       );
     }
 
-    // Populate location from availability slots if not already set on proposed slots
-    for (const slot of newInvite.proposedSlots) {
-      if (!slot.location) {
-        try {
-          const availSlots = await availabilityService.getAvailableSlots(
-            input.coachId,
-            slot.date,
-            slot.date,
-            input.duration ?? 60,
-          );
-          const match = availSlots.find(
-            (s) => s.date === slot.date && s.startTime === slot.startTime,
-          );
-          if (match?.location) {
-            slot.location = match.location;
-          }
-        } catch {
-          // Non-critical: location enrichment is best-effort
-        }
-      }
-    }
-
     if (isMockMode()) {
+      // Populate location from availability slots if not already set on proposed slots
+      await Promise.all(
+        newInvite.proposedSlots.map(async (slot) => {
+          if (slot.location) {
+            return;
+          }
+          try {
+            const availSlots = await availabilityService.getAvailableSlots(
+              input.coachId,
+              slot.date,
+              slot.date,
+              input.duration ?? 60,
+            );
+            const slotByDateAndStartTime = new Map(
+              availSlots.map((availableSlot) => [
+                `${availableSlot.date}:${availableSlot.startTime}`,
+                availableSlot,
+              ]),
+            );
+            const match = slotByDateAndStartTime.get(`${slot.date}:${slot.startTime}`);
+            if (match?.location) {
+              slot.location = match.location;
+            }
+          } catch {
+            // Non-critical: location enrichment is best-effort
+          }
+        }),
+      );
+
       invitesCache = await loadFromStorage();
       invitesCache.push(newInvite);
       await saveToStorage(invitesCache);
@@ -544,25 +571,20 @@ export const sessionInviteService = {
         input.athleteNames.length === 1
           ? input.athleteNames[0]
           : `${input.athleteNames.length} athletes`;
-
       await notificationSenderService.notifyParentSessionInvite({
         parentId: input.parentId,
         coachName: input.coachName,
         childName: athleteDisplay,
         inviteId: newInvite.id,
       });
-
       return newInvite;
     }
-
     const result = await sessionInviteAuthorityService.createInvite(input);
     if (!result.success) {
       throw result.error;
     }
-
     return result.data;
   },
-
   /**
    * Accept an invite - CRITICAL: Routes through bookingService.createBooking()
    */
@@ -576,7 +598,6 @@ export const sessionInviteService = {
       selectedSlot,
     });
   },
-
   /**
    * Decline an invite
    */
@@ -586,7 +607,6 @@ export const sessionInviteService = {
       response: 'DECLINED',
     });
   },
-
   /**
    * Respond to an invite (parent action)
    * - ACCEPTED: Creates a booking automatically via bookingService and notifies coach
@@ -596,11 +616,9 @@ export const sessionInviteService = {
     if (isMockMode()) {
       invitesCache = await loadFromStorage();
       const index = invitesCache.findIndex((inv) => inv.id === input.inviteId);
-
       if (index === -1) {
         return err(serviceError('NOT_FOUND', `Invite not found: ${input.inviteId}`));
       }
-
       const invite = invitesCache[index];
 
       // Create notification for coach based on response
@@ -610,14 +628,12 @@ export const sessionInviteService = {
         resolveAthleteNames(invite.athleteIds),
       ]);
       const athleteDisplay = athleteNames.join(', ');
-
       if (input.response === 'ACCEPTED') {
         // CRITICAL FIX: Attempt booking creation FIRST, before changing invite status.
         // If booking fails, the invite stays unchanged (no orphaned ACCEPTED status).
         if (!input.selectedSlot) {
           return err(serviceError('VALIDATION', 'A selected slot is required to accept an invite'));
         }
-
         const scheduledAt = `${input.selectedSlot.date}T${input.selectedSlot.startTime}:00`;
         const endTime = input.selectedSlot.endTime;
         const startTime = input.selectedSlot.startTime;
@@ -630,7 +646,6 @@ export const sessionInviteService = {
           resolveInviteTemplateContext(invite),
           resolveInviteLineageContext(invite),
         ]);
-
         const bookingResult = await bookingService.createBooking({
           coachId: invite.coachId,
           coachName,
@@ -657,10 +672,10 @@ export const sessionInviteService = {
           objectives: templateContext.objectives,
           price: invite.price,
           notes: invite.notes,
-          sessionInviteId: invite.id, // Link booking to invite
+          sessionInviteId: invite.id,
+          // Link booking to invite
           skipAvailabilityValidation: true, // Coach already validated when creating the invite
         });
-
         if (!bookingResult.success) {
           // Booking failed — do NOT change invite status. Return error to caller.
           const reason = bookingResult.error?.message ?? 'Booking creation failed';
@@ -668,14 +683,12 @@ export const sessionInviteService = {
             inviteId: invite.id,
             reason,
           });
-
           emitTyped(ServiceEvents.INVITE_BOOKING_FAILED, {
             inviteId: invite.id,
             coachId: invite.coachId,
             parentId: invite.parentId,
             reason,
           });
-
           return err(serviceError('CONFLICT', reason));
         }
 
@@ -688,12 +701,10 @@ export const sessionInviteService = {
           bookingId: bookingResult.data.id,
         };
         await saveToStorage(invitesCache);
-
         logger.info('Booking created successfully from invite', {
           bookingId: bookingResult.data.id,
           inviteId: invite.id,
         });
-
         emitTyped(ServiceEvents.INVITE_ACCEPTED, {
           inviteId: invite.id,
           bookingId: bookingResult.data.id,
@@ -707,7 +718,6 @@ export const sessionInviteService = {
             location: input.selectedSlot.location,
           },
         });
-
         await notificationSenderService.notifyCoachInviteAccepted({
           coachId: invite.coachId,
           parentName,
@@ -717,7 +727,6 @@ export const sessionInviteService = {
 
         // Release all holds for this invite (accepted slot becomes a booking, others freed)
         await inviteHoldService.releaseHoldsForInvite(invite.id);
-
         return ok(invitesCache[index]);
       }
 
@@ -728,23 +737,20 @@ export const sessionInviteService = {
         respondedAt: new Date().toISOString(),
         selectedSlot: input.selectedSlot,
       };
-
-      await saveToStorage(invitesCache);
-
-      await inviteHoldService.releaseHoldsForInvite(invite.id);
-      await notificationSenderService.notifyCoachInviteDeclined({
-        coachId: invite.coachId,
-        parentName,
-        childName: athleteDisplay,
-        inviteId: invite.id,
-      });
-
+      await Promise.all([
+        saveToStorage(invitesCache),
+        inviteHoldService.releaseHoldsForInvite(invite.id),
+        notificationSenderService.notifyCoachInviteDeclined({
+          coachId: invite.coachId,
+          parentName,
+          childName: athleteDisplay,
+          inviteId: invite.id,
+        }),
+      ]);
       return ok(invitesCache[index]);
     }
-
     return sessionInviteAuthorityService.respondToInvite(input);
   },
-
   /**
    * Cancel an invite (coach action)
    */
@@ -760,7 +766,6 @@ export const sessionInviteService = {
       await inviteHoldService.releaseHoldsForInvite(inviteId);
       return;
     }
-
     const result = await sessionInviteAuthorityService.cancelInvite(inviteId);
     if (!result.success) {
       logger.error('Failed to cancel invite via API', {
@@ -770,7 +775,6 @@ export const sessionInviteService = {
       throw result.error;
     }
   },
-
   /**
    * Send a reminder to the parent for a pending invite.
    */
@@ -778,26 +782,21 @@ export const sessionInviteService = {
     if (isMockMode()) {
       invitesCache = await loadFromStorage();
       const invite = invitesCache.find((inv) => inv.id === inviteId);
-
       if (!invite) {
         return err(serviceError('NOT_FOUND', `Invite not found: ${inviteId}`));
       }
-
       if (invite.status !== 'PENDING') {
         return err(serviceError('VALIDATION', 'Only pending invites can be reminded.'));
       }
-
       if (new Date(invite.expiresAt) <= new Date()) {
         return err(serviceError('VALIDATION', 'Invite has expired.'));
       }
-
       const [coachName, athleteNames] = await Promise.all([
         resolveUserName(invite.coachId, 'Coach'),
         resolveAthleteNames(invite.athleteIds),
       ]);
       const athleteDisplay =
         athleteNames.length === 1 ? athleteNames[0] : `${athleteNames.length} athletes`;
-
       const reminderResult = await notificationStore.create({
         id: apiClient.generateId('notif'),
         type: 'reminder',
@@ -813,18 +812,17 @@ export const sessionInviteService = {
           inviteId: invite.id,
         },
       });
-
       if (!reminderResult.success) {
         return err(reminderResult.error);
       }
-
-      logger.info('Invite reminder sent', { inviteId, parentId: invite.parentId });
+      logger.info('Invite reminder sent', {
+        inviteId,
+        parentId: invite.parentId,
+      });
       return ok(undefined);
     }
-
     return sessionInviteAuthorityService.sendInviteReminder(inviteId);
   },
-
   /**
    * Dismiss/remove an invite from parent's view (parent action)
    * This doesn't delete the invite, just hides it from the parent's list
@@ -840,7 +838,6 @@ export const sessionInviteService = {
       }
       return;
     }
-
     const result = await sessionInviteAuthorityService.dismissInvite(inviteId);
     if (!result.success) {
       logger.error('Failed to dismiss invite via API', {
@@ -850,7 +847,6 @@ export const sessionInviteService = {
       throw result.error;
     }
   },
-
   // ==========================================================================
   // QUERY METHODS - Individual Invites
   // ==========================================================================
@@ -863,7 +859,6 @@ export const sessionInviteService = {
       invitesCache = await loadFromStorage();
       return invitesCache.filter((inv) => accountIdsMatch(inv.coachId, coachId));
     }
-
     const result = await sessionInviteAuthorityService.getCoachInvites(coachId);
     if (!result.success) {
       logger.error('Failed to load coach invites via API', {
@@ -872,10 +867,8 @@ export const sessionInviteService = {
       });
       return [];
     }
-
     return result.data;
   },
-
   /**
    * Get all invites for a parent (received invites)
    * Filters out dismissed invites
@@ -887,7 +880,6 @@ export const sessionInviteService = {
         (inv) => accountIdsMatch(inv.parentId, parentId) && !inv.dismissed,
       );
     }
-
     const result = await sessionInviteAuthorityService.getParentInvites(parentId);
     if (!result.success) {
       logger.error('Failed to load parent invites via API', {
@@ -896,10 +888,8 @@ export const sessionInviteService = {
       });
       return [];
     }
-
     return result.data;
   },
-
   /**
    * Get pending invites for a parent
    */
@@ -911,13 +901,11 @@ export const sessionInviteService = {
         (inv) => inv.status === 'PENDING' && new Date(inv.expiresAt) > new Date(),
       );
     }
-
     const invites = await this.getParentInvites(parentId);
     return invites.filter(
       (inv) => inv.status === 'PENDING' && new Date(inv.expiresAt) > new Date(),
     );
   },
-
   /**
    * Get invite history - all invites
    */
@@ -926,7 +914,6 @@ export const sessionInviteService = {
       invitesCache = await loadFromStorage();
       return invitesCache;
     }
-
     const result = await sessionInviteAuthorityService.getInviteHistory();
     if (!result.success) {
       logger.error('Failed to load invite history via API', {
@@ -934,10 +921,8 @@ export const sessionInviteService = {
       });
       return [];
     }
-
     return result.data;
   },
-
   /**
    * Get a single invite by ID
    */
@@ -946,7 +931,6 @@ export const sessionInviteService = {
       invitesCache = await loadFromStorage();
       return invitesCache.find((inv) => inv.id === inviteId) || null;
     }
-
     const result = await sessionInviteAuthorityService.getInvite(inviteId);
     if (!result.success) {
       logger.error('Failed to load invite detail via API', {
@@ -955,17 +939,14 @@ export const sessionInviteService = {
       });
       return null;
     }
-
     return result.data;
   },
-
   /**
    * Alias for getParentInvites - clearer naming
    */
   async getInvitesForParent(parentId: string): Promise<SessionInvite[]> {
     return this.getParentInvites(parentId);
   },
-
   // ==========================================================================
   // INVITE TYPE FILTERING
   // ==========================================================================
@@ -984,7 +965,6 @@ export const sessionInviteService = {
           !inv.dismissed,
       );
     }
-
     const result = await sessionInviteAuthorityService.getOpenInvites();
     if (!result.success) {
       logger.error('Failed to load open invites via API', {
@@ -992,10 +972,8 @@ export const sessionInviteService = {
       });
       return [];
     }
-
     return result.data;
   },
-
   /**
    * Get closed invites for a specific parent (invite-only sessions)
    */
@@ -1007,7 +985,6 @@ export const sessionInviteService = {
           inv.inviteType === 'CLOSED' && accountIdsMatch(inv.parentId, parentId) && !inv.dismissed,
       );
     }
-
     const result = await sessionInviteAuthorityService.getClosedInvitesForParent(parentId);
     if (!result.success) {
       logger.error('Failed to load closed invites via API', {
@@ -1016,10 +993,8 @@ export const sessionInviteService = {
       });
       return [];
     }
-
     return result.data;
   },
-
   /**
    * Get squad-only invites for a parent who belongs to the relevant squads
    */
@@ -1038,7 +1013,6 @@ export const sessionInviteService = {
         return false;
       });
     }
-
     const result = await sessionInviteAuthorityService.getSquadOnlyInvitesForParent(
       parentId,
       memberSquadIds,
@@ -1051,10 +1025,8 @@ export const sessionInviteService = {
       });
       return [];
     }
-
     return result.data;
   },
-
   /**
    * Get all available invites for a parent, filtered by invite type rules.
    * OPEN: visible to all
@@ -1080,7 +1052,6 @@ export const sessionInviteService = {
         return false;
       });
     }
-
     const result = await sessionInviteAuthorityService.getAvailableInvitesForParent(
       parentId,
       memberSquadIds,
@@ -1093,10 +1064,8 @@ export const sessionInviteService = {
       });
       return [];
     }
-
     return result.data;
   },
-
   /**
    * Clear invite cache (for testing)
    */
@@ -1104,7 +1073,6 @@ export const sessionInviteService = {
     invitesCache = [...MOCK_INVITES];
     await apiClient.remove(STORAGE_KEYS.SESSION_INVITES);
   },
-
   // ==========================================================================
   // MULTI-WEEK / RECURRING INVITE METHODS
   // ==========================================================================
@@ -1120,16 +1088,12 @@ export const sessionInviteService = {
   ): WeekAcceptance[] {
     const weekSlots: WeekAcceptance[] = [];
     const baseSlot = proposedSlots[0];
-
     if (!baseSlot) return weekSlots;
-
     const start = new Date(startDate + 'T00:00:00');
-
     for (let i = 0; i < recurrenceWeeks; i++) {
       const weekDate = new Date(start);
       weekDate.setDate(start.getDate() + i * 7);
       const dateStr = toDateStr(weekDate);
-
       weekSlots.push({
         weekDate: dateStr,
         startTime: baseSlot.startTime,
@@ -1138,10 +1102,8 @@ export const sessionInviteService = {
         accepted: true, // Default all to accepted
       });
     }
-
     return weekSlots;
   },
-
   /**
    * Respond to a recurring invite with per-week acceptance.
    * Creates a BookingSeries for the accepted weeks only.
@@ -1158,24 +1120,14 @@ export const sessionInviteService = {
         ),
       );
     }
-
     invitesCache = await loadFromStorage();
     const index = invitesCache.findIndex((inv) => inv.id === inviteId);
-
     if (index === -1) {
       return err(serviceError('NOT_FOUND', `Invite not found: ${inviteId}`));
     }
-
     const invite = invitesCache[index];
-    const [coachName, parentName, athleteNames] = await Promise.all([
-      resolveUserName(invite.coachId, 'Coach'),
-      resolveUserName(invite.parentId, 'Parent'),
-      resolveAthleteNames(invite.athleteIds),
-    ]);
     const acceptedWeeks = weekAcceptances.filter((w) => w.accepted);
     const declinedWeeks = weekAcceptances.filter((w) => !w.accepted);
-    const lineageContext = await resolveInviteLineageContext(invite);
-
     if (acceptedWeeks.length === 0) {
       // Decline the entire invite
       return this.respondToInvite({
@@ -1183,6 +1135,12 @@ export const sessionInviteService = {
         response: 'DECLINED',
       });
     }
+    const [coachName, parentName, athleteNames, lineageContext] = await Promise.all([
+      resolveUserName(invite.coachId, 'Coach'),
+      resolveUserName(invite.parentId, 'Parent'),
+      resolveAthleteNames(invite.athleteIds),
+      resolveInviteLineageContext(invite),
+    ]);
 
     // Create a multi-week booking series for accepted weeks
     const seriesResult = await multiWeekBookingService.createSeries({
@@ -1211,9 +1169,10 @@ export const sessionInviteService = {
       createdByRole: lineageContext.createdByRole,
       notes: invite.notes,
     });
-
     if (!seriesResult.success) {
-      logger.error('Failed to create series from recurring invite', { error: seriesResult.error });
+      logger.error('Failed to create series from recurring invite', {
+        error: seriesResult.error,
+      });
       return err(seriesResult.error);
     }
 
@@ -1228,7 +1187,6 @@ export const sessionInviteService = {
       declinedWeeks: declinedWeeks.map((w) => w.weekDate),
       bookingId: seriesResult.data.bookingIds[0], // Link to first booking
     };
-
     await saveToStorage(invitesCache);
 
     // Notify coach
@@ -1244,20 +1202,20 @@ export const sessionInviteService = {
       recipientId: invite.coachId,
       recipientRole: 'coach',
       deepLink: `/session-invites/${invite.id}`,
-      data: { inviteId: invite.id },
+      data: {
+        inviteId: invite.id,
+      },
     };
     await notificationStore.create(notification);
 
     // Release holds
     await inviteHoldService.releaseHoldsForInvite(invite.id);
-
     logger.info('Recurring invite responded', {
       inviteId,
       acceptedCount: acceptedWeeks.length,
       declinedCount: declinedWeeks.length,
       seriesId: seriesResult.data.id,
     });
-
     return ok(invitesCache[index]);
   },
 };

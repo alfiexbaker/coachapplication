@@ -22,8 +22,92 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useDiscoverSessions, SKILL_FILTERS, TYPE_FILTERS } from '@/hooks/use-discover-sessions';
 import { Routes } from '@/navigation/routes';
-import type { FootballObjective } from '@/constants/types';
+import type { SessionOffering } from '@/constants/types';
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
+
+type TypeFilterItem = (typeof TYPE_FILTERS)[number];
+type SkillFilterItem = (typeof SKILL_FILTERS)[number];
+type Palette = ReturnType<typeof useTheme>['colors'];
+
+function renderTypeFilterPill({
+  item,
+  typeFilter,
+  palette,
+  onSelect,
+}: {
+  item: TypeFilterItem;
+  typeFilter: TypeFilterItem['value'];
+  palette: Palette;
+  onSelect: (value: TypeFilterItem['value']) => void;
+}) {
+  const selected = typeFilter === item.value;
+  return (
+    <Clickable
+      style={[
+        styles.filterPill,
+        {
+          backgroundColor: selected ? palette.tint : 'transparent',
+          borderColor: selected ? palette.tint : palette.border,
+        },
+      ]}
+      onPress={() => onSelect(item.value)}
+    >
+      <ThemedText
+        style={[
+          styles.filterText,
+          { color: selected ? palette.onPrimary : palette.text },
+        ]}
+      >
+        {item.label}
+      </ThemedText>
+    </Clickable>
+  );
+}
+
+function renderSkillFilterPill({
+  item,
+  skillFilter,
+  palette,
+  onSelect,
+}: {
+  item: SkillFilterItem;
+  skillFilter: SkillFilterItem['value'];
+  palette: Palette;
+  onSelect: (value: SkillFilterItem['value']) => void;
+}) {
+  const selected = skillFilter === item.value;
+  return (
+    <Clickable
+      style={[
+        styles.filterPill,
+        {
+          backgroundColor: selected ? palette.tint : 'transparent',
+          borderColor: selected ? palette.tint : palette.border,
+        },
+      ]}
+      onPress={() => onSelect(item.value)}
+    >
+      <ThemedText
+        style={[
+          styles.filterText,
+          { color: selected ? palette.onPrimary : palette.text },
+        ]}
+      >
+        {item.label}
+      </ThemedText>
+    </Clickable>
+  );
+}
+
+function renderOfferingCard({
+  item,
+  onPress,
+}: {
+  item: SessionOffering;
+  onPress: (offering: SessionOffering) => void;
+}) {
+  return <SessionOfferingCard offering={item} onPress={() => onPress(item)} />;
+}
 
 export default function DiscoverSessionsScreen() {
   const { colors: palette } = useTheme();
@@ -49,6 +133,22 @@ export default function DiscoverSessionsScreen() {
       {content}
     </SafeAreaView>
   );
+  const renderTypeFilterItem = ({ item }: { item: TypeFilterItem }) =>
+    renderTypeFilterPill({
+      item,
+      typeFilter: c.typeFilter,
+      palette,
+      onSelect: c.setTypeFilter,
+    });
+  const renderSkillFilterItem = ({ item }: { item: SkillFilterItem }) =>
+    renderSkillFilterPill({
+      item,
+      skillFilter: c.skillFilter,
+      palette,
+      onSelect: c.setSkillFilter,
+    });
+  const renderOfferingItem = ({ item }: { item: SessionOffering }) =>
+    renderOfferingCard({ item, onPress: c.handleOfferingPress });
 
   if (c.loading) {
     return renderShell(<LoadingState variant="list" />);
@@ -121,27 +221,7 @@ export default function DiscoverSessionsScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterList}
           keyExtractor={(item) => item.value || 'all-types'}
-          renderItem={({ item }) => (
-            <Clickable
-              style={[
-                styles.filterPill,
-                {
-                  backgroundColor: c.typeFilter === item.value ? palette.tint : 'transparent',
-                  borderColor: c.typeFilter === item.value ? palette.tint : palette.border,
-                },
-              ]}
-              onPress={() => c.setTypeFilter(item.value as typeof c.typeFilter)}
-            >
-              <ThemedText
-                style={[
-                  styles.filterText,
-                  { color: c.typeFilter === item.value ? palette.onPrimary : palette.text },
-                ]}
-              >
-                {item.label}
-              </ThemedText>
-            </Clickable>
-          )}
+          renderItem={renderTypeFilterItem}
         />
       </View>
 
@@ -155,27 +235,7 @@ export default function DiscoverSessionsScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterList}
           keyExtractor={(item) => item.value || 'all-skills'}
-          renderItem={({ item }) => (
-            <Clickable
-              style={[
-                styles.filterPill,
-                {
-                  backgroundColor: c.skillFilter === item.value ? palette.tint : 'transparent',
-                  borderColor: c.skillFilter === item.value ? palette.tint : palette.border,
-                },
-              ]}
-              onPress={() => c.setSkillFilter(item.value as FootballObjective | '')}
-            >
-              <ThemedText
-                style={[
-                  styles.filterText,
-                  { color: c.skillFilter === item.value ? palette.onPrimary : palette.text },
-                ]}
-              >
-                {item.label}
-              </ThemedText>
-            </Clickable>
-          )}
+          renderItem={renderSkillFilterItem}
         />
       </View>
 
@@ -185,9 +245,7 @@ export default function DiscoverSessionsScreen() {
         accessibilityRole="list"
         data={c.filteredOfferings}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <SessionOfferingCard offering={item} onPress={() => c.handleOfferingPress(item)} />
-        )}
+        renderItem={renderOfferingItem}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         refreshControl={

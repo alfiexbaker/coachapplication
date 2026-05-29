@@ -6,8 +6,7 @@ import { Row } from '@/components/primitives/row';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
-import { memo, useCallback, useMemo } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 
 import { Chip } from '@/components/primitives/chip';
 import { Clickable } from '@/components/primitives/clickable';
@@ -18,11 +17,18 @@ import type { BadgeAward, Club } from '@/constants/types';
 import { formatDate } from '@/hooks/use-home-screen';
 import type { HomeClubHighlight, HomeResult } from '@/hooks/use-home-screen';
 import { useTheme } from '@/hooks/useTheme';
+import type { ThemeColors } from '@/hooks/useTheme';
 import { getBookingClubOwnershipContext } from '@/utils/booking-display';
 import { formatTime } from '@/utils/format';
 
 const QUICK_ACTION_DEFS = [
-  { id: 'find_coach', icon: 'search', label: 'Find Coach', route: Routes.DISCOVER_MAP, primary: true },
+  {
+    id: 'find_coach',
+    icon: 'search',
+    label: 'Find Coach',
+    route: Routes.DISCOVER_MAP,
+    primary: true,
+  },
   {
     id: 'my_progress',
     icon: 'analytics',
@@ -36,7 +42,7 @@ const QUICK_ACTION_DEFS = [
 
 type QuickActionId = (typeof QUICK_ACTION_DEFS)[number]['id'];
 
-const QuickActionTile = memo(function QuickActionTile({
+const QuickActionTile = function QuickActionTile({
   icon,
   label,
   primary,
@@ -84,10 +90,10 @@ const QuickActionTile = memo(function QuickActionTile({
       </Column>
     </Clickable>
   );
-});
+};
 
 // --- StatsRow ---
-export const StatsRow = memo(function StatsRow({
+export const StatsRow = function StatsRow({
   stats,
 }: {
   stats: { sessions: number; badges: number; level: number };
@@ -145,7 +151,7 @@ export const StatsRow = memo(function StatsRow({
       ))}
     </Row>
   );
-});
+};
 
 // --- StreakCard ---
 interface StreakInfo {
@@ -154,7 +160,7 @@ interface StreakInfo {
   daysToNextMilestone: number;
   streakLabel: string;
 }
-export const StreakCard = memo(function StreakCard({ streakInfo }: { streakInfo: StreakInfo }) {
+export const StreakCard = function StreakCard({ streakInfo }: { streakInfo: StreakInfo }) {
   const { colors: palette } = useTheme();
   return (
     <Clickable
@@ -203,22 +209,18 @@ export const StreakCard = memo(function StreakCard({ streakInfo }: { streakInfo:
       </Row>
     </Clickable>
   );
-});
+};
 
 // --- QuickActions ---
-export const QuickActionsGrid = memo(function QuickActionsGrid() {
-  const handlePress = useCallback((route: Href) => {
+export const QuickActionsGrid = function QuickActionsGrid() {
+  const handlePress = (route: Href) => {
     router.push(route);
-  }, []);
+  };
 
-  const actions = useMemo(
-    () =>
-      QUICK_ACTION_DEFS.map((action) => ({
-        ...action,
-        onPress: () => handlePress(action.route),
-      })),
-    [handlePress],
-  );
+  const actions = QUICK_ACTION_DEFS.map((action) => ({
+    ...action,
+    onPress: () => handlePress(action.route),
+  }));
   return (
     <Row wrap gap="sm">
       {actions.map((action) => (
@@ -232,7 +234,7 @@ export const QuickActionsGrid = memo(function QuickActionsGrid() {
       ))}
     </Row>
   );
-});
+};
 
 // --- NextSession ---
 interface Booking {
@@ -259,7 +261,7 @@ function getSessionTypeLabel(booking: Booking): string {
   return '1-to-1 session';
 }
 
-export const NextSessionCard = memo(function NextSessionCard({ booking }: { booking?: Booking }) {
+export const NextSessionCard = function NextSessionCard({ booking }: { booking?: Booking }) {
   const { colors: palette } = useTheme();
   if (!booking) {
     return (
@@ -272,7 +274,10 @@ export const NextSessionCard = memo(function NextSessionCard({ booking }: { book
             <ThemedText type="defaultSemiBold" style={styles.noSessionTitle} numberOfLines={1}>
               No upcoming sessions
             </ThemedText>
-            <ThemedText style={[styles.noSessionSubtitle, { color: palette.muted }]} numberOfLines={2}>
+            <ThemedText
+              style={[styles.noSessionSubtitle, { color: palette.muted }]}
+              numberOfLines={2}
+            >
               Book your next session to keep training momentum.
             </ThemedText>
           </View>
@@ -295,9 +300,7 @@ export const NextSessionCard = memo(function NextSessionCard({ booking }: { book
   return (
     <SurfaceCard
       style={styles.nextSession}
-      onPress={() =>
-        router.push(Routes.booking(booking.id, { returnTo: Routes.HOME as string }))
-      }
+      onPress={() => router.push(Routes.booking(booking.id, { returnTo: Routes.HOME as string }))}
     >
       <Row align="center" gap="sm">
         <View
@@ -379,15 +382,17 @@ export const NextSessionCard = memo(function NextSessionCard({ booking }: { book
       </View>
     </SurfaceCard>
   );
-});
+};
 
 // --- RecentBadges ---
-export const RecentBadgesSection = memo(function RecentBadgesSection({
+export const RecentBadgesSection = function RecentBadgesSection({
   badges,
 }: {
   badges: BadgeAward[];
 }) {
   const { colors: palette } = useTheme();
+  const badgeItems = getRecentBadgeItems(badges, palette);
+
   if (badges.length === 0) return null;
   return (
     <View style={styles.section}>
@@ -396,39 +401,59 @@ export const RecentBadgesSection = memo(function RecentBadgesSection({
           Recent Badges
         </ThemedText>
         <Clickable onPress={() => router.push(Routes.DEVELOPMENT_MY_PROGRESS)}>
-          <ThemedText style={{ ...Typography.small, color: palette.tint }}>View Progress</ThemedText>
+          <ThemedText style={{ ...Typography.small, color: palette.tint }}>
+            View Progress
+          </ThemedText>
         </Clickable>
       </Row>
-      <ScrollView
+      <FlatList
         horizontal
         showsHorizontalScrollIndicator={false}
+        data={badgeItems}
+        keyExtractor={keyRecentBadgeItem}
+        renderItem={renderRecentBadgeItem}
         contentContainerStyle={styles.badgesScroll}
-      >
-        {badges.map((badge) => (
-          <View
-            key={badge.id}
-            style={[styles.badgeCard, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
-          >
-            <View style={[styles.badgeIconCircle, { backgroundColor: palette.tint }]}>
-              <Ionicons name="ribbon" size={18} color={palette.surface} />
-            </View>
-            <ThemedText style={styles.badgeLabel} numberOfLines={1}>
-              {badge.badgeLabel}
-            </ThemedText>
-            {badge.badgeCategory && (
-              <Chip dense style={{ marginTop: Spacing.xxs }}>
-                {badge.badgeCategory}
-              </Chip>
-            )}
-          </View>
-        ))}
-      </ScrollView>
+      />
     </View>
   );
-});
+};
+
+interface RecentBadgeItem {
+  key: string;
+  badge: BadgeAward;
+  palette: ThemeColors;
+}
+
+function getRecentBadgeItems(badges: BadgeAward[], palette: ThemeColors): RecentBadgeItem[] {
+  return badges.map((badge) => ({
+    key: badge.id,
+    badge,
+    palette,
+  }));
+}
+
+function keyRecentBadgeItem(item: RecentBadgeItem): string {
+  return item.key;
+}
+
+function renderRecentBadgeItem({ item }: ListRenderItemInfo<RecentBadgeItem>) {
+  return (
+    <View style={[styles.badgeCard, { backgroundColor: withAlpha(item.palette.tint, 0.06) }]}>
+      <View style={[styles.badgeIconCircle, { backgroundColor: item.palette.tint }]}>
+        <Ionicons name="ribbon" size={18} color={item.palette.surface} />
+      </View>
+      <ThemedText style={styles.badgeLabel} numberOfLines={1}>
+        {item.badge.badgeLabel}
+      </ThemedText>
+      {item.badge.badgeCategory ? (
+        <Chip dense style={{ marginTop: Spacing.xxs }} label={item.badge.badgeCategory} />
+      ) : null}
+    </View>
+  );
+}
 
 // --- MyClubs ---
-export const MyClubsSection = memo(function MyClubsSection({ clubs }: { clubs: Club[] }) {
+export const MyClubsSection = function MyClubsSection({ clubs }: { clubs: Club[] }) {
   const { colors: palette } = useTheme();
   if (clubs.length === 0) return null;
   return (
@@ -463,9 +488,9 @@ export const MyClubsSection = memo(function MyClubsSection({ clubs }: { clubs: C
       ))}
     </View>
   );
-});
+};
 
-export const RecentResultsSection = memo(function RecentResultsSection({
+export const RecentResultsSection = function RecentResultsSection({
   results,
 }: {
   results: HomeResult[];
@@ -520,9 +545,9 @@ export const RecentResultsSection = memo(function RecentResultsSection({
       ))}
     </View>
   );
-});
+};
 
-export const ClubHighlightsSection = memo(function ClubHighlightsSection({
+export const ClubHighlightsSection = function ClubHighlightsSection({
   highlights,
 }: {
   highlights: HomeClubHighlight[];
@@ -548,14 +573,14 @@ export const ClubHighlightsSection = memo(function ClubHighlightsSection({
           <Column gap="xs">
             <Row align="center" gap="xs">
               <View
-                style={[
-                  styles.highlightIcon,
-                  { backgroundColor: withAlpha(palette.tint, 0.08) },
-                ]}
+                style={[styles.highlightIcon, { backgroundColor: withAlpha(palette.tint, 0.08) }]}
               >
                 <Ionicons name="newspaper-outline" size={14} color={palette.tint} />
               </View>
-              <ThemedText style={[styles.highlightMeta, { color: palette.muted }]} numberOfLines={1}>
+              <ThemedText
+                style={[styles.highlightMeta, { color: palette.muted }]}
+                numberOfLines={1}
+              >
                 {highlight.clubName} · {formatDate(highlight.createdAt)}
               </ThemedText>
             </Row>
@@ -570,7 +595,7 @@ export const ClubHighlightsSection = memo(function ClubHighlightsSection({
       ))}
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   statsRow: {

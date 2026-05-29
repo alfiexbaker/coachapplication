@@ -1,4 +1,4 @@
-import { memo, useCallback, type ComponentProps } from 'react';
+import { type ComponentProps } from 'react';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -37,30 +37,24 @@ const POSITION_OPTIONS: Array<{
   { key: 'ATT', shortLabel: 'ATT', icon: 'football-outline' },
 ];
 
-export const PositionSelector = memo(function PositionSelector(props: PositionSelectorProps) {
+export const PositionSelector = function PositionSelector(props: PositionSelectorProps) {
   const { colors } = useTheme();
   const isMulti = props.multiSelect === true;
 
-  const isActive = useCallback(
-    (key: PositionRole): boolean => {
-      if (isMulti) {
-        return (props as MultiSelectProps).value.includes(key);
-      }
-      return key === (props as SingleSelectProps).value;
-    },
-    [isMulti, props],
-  );
+  const isActive = (key: PositionRole): boolean => {
+    if (isMulti) {
+      return (props as MultiSelectProps).value.includes(key);
+    }
+    return key === (props as SingleSelectProps).value;
+  };
 
-  const handlePress = useCallback(
-    (key: PositionRole) => {
-      if (isMulti) {
-        (props as MultiSelectProps).onToggle(key);
-      } else {
-        (props as SingleSelectProps).onChange(key);
-      }
-    },
-    [isMulti, props],
-  );
+  const handlePress = (key: PositionRole) => {
+    if (isMulti) {
+      (props as MultiSelectProps).onToggle(key);
+    } else {
+      (props as SingleSelectProps).onChange(key);
+    }
+  };
 
   return (
     <Row gap="xs" wrap>
@@ -96,7 +90,7 @@ export const PositionSelector = memo(function PositionSelector(props: PositionSe
       })}
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   option: {

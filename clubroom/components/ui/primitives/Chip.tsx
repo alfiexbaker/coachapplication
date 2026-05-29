@@ -9,7 +9,7 @@
  *   <Chip label="Filter" removable onRemove={handleRemove} />
  */
 
-import React, { useCallback, useMemo } from 'react';
+import React from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -53,23 +53,21 @@ function ChipInner({
   disabled = false,
 }: ChipProps) {
   const { colors } = useTheme();
-  const handleRemove = useCallback(() => {
+  const handleRemove = () => {
     onRemove?.();
-  }, [onRemove]);
+  };
 
-  const themedStyles = useMemo(
-    () => ({
-      selected: {
-        backgroundColor: withAlpha(colors.tint, 0.06),
-        borderColor: colors.tint,
-      },
-      unselected: {
-        backgroundColor: colors.surface,
-        borderColor: colors.border,
-      },
-    }),
-    [colors],
-  );
+  const themedStyles = ({
+    selected: {
+      backgroundColor: withAlpha(colors.tint, 0.06),
+      borderColor: colors.tint,
+    },
+
+    unselected: {
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+    },
+  });
 
   const iconColor = selected ? colors.tint : colors.muted;
 
@@ -109,7 +107,7 @@ function ChipInner({
   );
 }
 
-export const Chip = React.memo(ChipInner);
+export const Chip = ChipInner;
 
 // ---------------------------------------------------------------------------
 // Styles (color-independent)

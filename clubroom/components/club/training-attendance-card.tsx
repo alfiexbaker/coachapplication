@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -8,7 +7,7 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
-export const TrainingAttendanceCard = memo(function TrainingAttendanceCard() {
+export const TrainingAttendanceCard = function TrainingAttendanceCard() {
   const { colors } = useTheme();
 
   return (
@@ -26,7 +25,7 @@ export const TrainingAttendanceCard = memo(function TrainingAttendanceCard() {
       </Row>
     </SurfaceCard>
   );
-});
+};
 
 function StatItem({ value, label, color }: { value: string; label: string; color: string }) {
   const { colors } = useTheme();

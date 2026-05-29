@@ -1,7 +1,3 @@
-/**
- * DayEditorExistingBlocks — Shows existing time blocks for the day being edited.
- */
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -40,8 +36,8 @@ function DayEditorExistingBlocksInner({
           on {dayName}
         </ThemedText>
       </Row>
-      {[...existingTemplatesForDay]
-        .sort((a, b) => a.startTime.localeCompare(b.startTime))
+      {Array.from(existingTemplatesForDay)
+        .toSorted((a, b) => a.startTime.localeCompare(b.startTime))
         .map((t) => {
           const isCurrentEdit = currentTemplateId === t.id;
           return (
@@ -84,7 +80,7 @@ function DayEditorExistingBlocksInner({
   );
 }
 
-export const DayEditorExistingBlocks = memo(DayEditorExistingBlocksInner);
+export const DayEditorExistingBlocks = DayEditorExistingBlocksInner;
 
 const styles = StyleSheet.create({
   section: { padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 1, gap: Spacing.xxs },

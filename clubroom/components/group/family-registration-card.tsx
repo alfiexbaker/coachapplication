@@ -1,11 +1,3 @@
-/**
- * FamilyRegistrationCard — Per-child registration card with RSVP buttons.
- *
- * Shows registration status (registered/waitlisted), child name,
- * cancel button, and one-tap RSVP buttons for active sessions.
- */
-
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -98,7 +90,7 @@ function FamilyRegistrationCardComponent({
   );
 }
 
-export const FamilyRegistrationCard = memo(FamilyRegistrationCardComponent);
+export const FamilyRegistrationCard = FamilyRegistrationCardComponent;
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.md },

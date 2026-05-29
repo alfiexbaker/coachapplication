@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -9,40 +9,37 @@ import { useTheme } from '@/hooks/useTheme';
 import { rosterService } from '@/services/roster-service';
 import type { RosterEntry } from '@/constants/types';
 
-export const AthleteStatsRow = React.memo(function AthleteStatsRow({
+export const AthleteStatsRow = function AthleteStatsRow({
   athlete,
 }: {
   athlete: RosterEntry;
 }) {
   const { colors } = useTheme();
 
-  const stats = useMemo(
-    () => [
-      {
-        icon: 'calendar' as const,
-        value: String(athlete.totalSessions),
-        label: 'Sessions',
-        color: colors.tint,
-      },
-      ...(athlete.averageRating
-        ? [
-            {
-              icon: 'star' as const,
-              value: athlete.averageRating.toFixed(1),
-              label: 'Avg Rating',
-              color: colors.rating,
-            },
-          ]
-        : []),
-      {
-        icon: 'cash' as const,
-        value: rosterService.formatRevenue(athlete.totalRevenue),
-        label: 'Revenue',
-        color: colors.success,
-      },
-    ],
-    [athlete, colors],
-  );
+  const stats = [
+    {
+      icon: 'calendar' as const,
+      value: String(athlete.totalSessions),
+      label: 'Sessions',
+      color: colors.tint,
+    },
+    ...(athlete.averageRating
+      ? [
+          {
+            icon: 'star' as const,
+            value: athlete.averageRating.toFixed(1),
+            label: 'Avg Rating',
+            color: colors.rating,
+          },
+        ]
+      : []),
+    {
+      icon: 'cash' as const,
+      value: rosterService.formatRevenue(athlete.totalRevenue),
+      label: 'Revenue',
+      color: colors.success,
+    },
+  ];
 
   return (
     <Row gap="sm">
@@ -55,7 +52,7 @@ export const AthleteStatsRow = React.memo(function AthleteStatsRow({
       ))}
     </Row>
   );
-});
+};
 
 const styles = StyleSheet.create({
   statCard: {

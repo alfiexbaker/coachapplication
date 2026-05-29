@@ -71,17 +71,17 @@ function ProgressBarInner({
 
   useEffect(() => {
     if (animated) {
-      widthValue.value = withSpring(clampedProgress, {
+      widthValue.set(withSpring(clampedProgress, {
         damping: 20,
         stiffness: 200,
-      });
+      }));
     } else {
-      widthValue.value = clampedProgress;
+      widthValue.set(clampedProgress);
     }
   }, [animated, clampedProgress, widthValue]);
 
   const fillStyle = useAnimatedStyle(() => ({
-    width: `${widthValue.value * 100}%`,
+    transform: [{ scaleX: widthValue.value }],
   }));
 
   return (
@@ -99,7 +99,7 @@ function ProgressBarInner({
   );
 }
 
-export const ProgressBar = React.memo(ProgressBarInner);
+export const ProgressBar = ProgressBarInner;
 
 // ---------------------------------------------------------------------------
 // Styles (color-independent)
@@ -111,6 +111,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   fill: {
+    width: '100%',
     height: '100%',
+    transformOrigin: 'left center',
   },
 });

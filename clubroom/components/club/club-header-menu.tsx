@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { Modal, StyleSheet, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,7 +28,7 @@ interface ClubHeaderMenuProps {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export const ClubHeaderMenu = memo(function ClubHeaderMenu({
+export const ClubHeaderMenu = function ClubHeaderMenu({
   visible,
   clubName,
   inviteCode,
@@ -77,7 +76,7 @@ export const ClubHeaderMenu = memo(function ClubHeaderMenu({
                 </ThemedText>
                 <ThemedText
                   type="defaultSemiBold"
-                  style={{ ...Typography.heading, color: palette.tint, letterSpacing: 2 }}
+                  style={{ ...Typography.heading, color: palette.tint }}
                 >
                   {inviteCode}
                 </ThemedText>
@@ -96,9 +95,9 @@ export const ClubHeaderMenu = memo(function ClubHeaderMenu({
 
           {/* Menu Items */}
           <View style={styles.menuItems}>
-            {menuItems.map((item, index) => (
+            {menuItems.map((item) => (
               <Clickable
-                key={index}
+                key={item.label}
                 style={[
                   styles.menuItem,
                   {
@@ -120,7 +119,7 @@ export const ClubHeaderMenu = memo(function ClubHeaderMenu({
       </View>
     </Modal>
   );
-});
+};
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 

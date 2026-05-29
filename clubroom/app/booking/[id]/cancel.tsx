@@ -8,7 +8,6 @@
 
 import React, { type ReactNode } from 'react';
 import { ScrollView, StyleSheet, TextInput, View, Switch, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -38,13 +37,10 @@ export default function CancelBookingScreen() {
     onBackPress: () => void;
     content: ReactNode;
   }) => (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       <PageHeader title={title} showBack onBackPress={onBackPress} />
       {content}
-    </SafeAreaView>
+    </View>
   );
 
   if (cancel.status === 'loading' && !cancel.sessionTime) {
@@ -52,7 +48,11 @@ export default function CancelBookingScreen() {
       title: 'Cancel Booking',
       onBackPress: () => router.back(),
       content: (
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
           <SectionSkeleton variant="detail" titleWidth="34%" />
           <SectionSkeleton variant="form" titleWidth="28%" />
         </ScrollView>
@@ -91,10 +91,7 @@ export default function CancelBookingScreen() {
 
   // Main details step
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: palette.background }]}
-      edges={['top', 'bottom']}
-    >
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
       <PageHeader
         title={cancel.isCoach ? 'Cancel Session' : 'Cancel Booking'}
         showBack
@@ -102,6 +99,7 @@ export default function CancelBookingScreen() {
       />
 
       <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -178,7 +176,6 @@ export default function CancelBookingScreen() {
             onChangeText={cancel.setNote}
             multiline
             numberOfLines={4}
-
             maxLength={500}
           />
         </SurfaceCard>
@@ -212,7 +209,6 @@ export default function CancelBookingScreen() {
             />
           </Row>
         </SurfaceCard>
-
       </ScrollView>
 
       {/* Footer */}
@@ -257,7 +253,7 @@ export default function CancelBookingScreen() {
           </Clickable>
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

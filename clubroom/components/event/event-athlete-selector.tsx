@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, memo } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -9,6 +9,8 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { clubService, type ClubMember } from '@/services/club-service';
 import { Row } from '@/components/primitives';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -29,45 +31,49 @@ function InlineAthleteSelectorInner({
   const [athletes, setAthletes] = useState<ClubMember[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadAthletes = useCallback(async () => {
-    setLoading(true);
-    try {
-      const members = await clubService.getMembers(clubId);
-      setAthletes(members.filter((m) => m.role === 'MEMBER' && m.status === 'active'));
-    } catch {
-      setAthletes([]);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    const loadAthletes = async () => {
+      setLoading(true);
+
+      await runAsyncTryCatchFinally(
+        async () => {
+          const members = await clubService.getMembers(clubId);
+          setAthletes(members.filter((m) => m.role === 'MEMBER' && m.status === 'active'));
+        },
+        async () => {
+          setAthletes([]);
+        },
+        () => {
+          setLoading(false);
+        },
+      );
+    };
+
+    startTransition(() => {
+      void loadAthletes();
+    });
   }, [clubId]);
 
-  useEffect(() => {
-    loadAthletes();
-  }, [loadAthletes]);
+  const toggleAthlete = (userId: string) => {
+    const newSelection = selectedAthleteIds.includes(userId)
+      ? selectedAthleteIds.filter((id) => id !== userId)
+      : [...selectedAthleteIds, userId];
+    onSelectionChange(newSelection);
+  };
 
-  const toggleAthlete = useCallback(
-    (userId: string) => {
-      const newSelection = selectedAthleteIds.includes(userId)
-        ? selectedAthleteIds.filter((id) => id !== userId)
-        : [...selectedAthleteIds, userId];
-      onSelectionChange(newSelection);
-    },
-    [selectedAthleteIds, onSelectionChange],
-  );
-
-  const selectAll = useCallback(() => {
+  const selectAll = () => {
     onSelectionChange(athletes.map((a) => a.userId));
-  }, [athletes, onSelectionChange]);
+  };
 
-  const selectNone = useCallback(() => {
+  const selectNone = () => {
     onSelectionChange([]);
-  }, [onSelectionChange]);
+  };
 
   if (loading) {
     return (
       <SurfaceCard style={styles.selectorCard}>
         <ThemedText style={{ ...Typography.small, color: palette.muted }}>
-          Loading athletes...
+          Loading athletes…
         </ThemedText>
       </SurfaceCard>
     );
@@ -98,7 +104,13 @@ function InlineAthleteSelectorInner({
           <Clickable
             onPress={selectAll}
             disabled={selectedAthleteIds.length === athletes.length}
-            style={[styles.quickActionButton, { backgroundColor: withAlpha(palette.tint, 0.06), opacity: selectedAthleteIds.length === athletes.length ? 0.5 : 1 }]}
+            style={[
+              styles.quickActionButton,
+              {
+                backgroundColor: withAlpha(palette.tint, 0.06),
+                opacity: selectedAthleteIds.length === athletes.length ? 0.5 : 1,
+              },
+            ]}
           >
             <Ionicons name="checkmark-done" size={14} color={palette.tint} />
             <ThemedText style={{ color: palette.tint, ...Typography.caption }}>
@@ -110,10 +122,17 @@ function InlineAthleteSelectorInner({
             disabled={selectedAthleteIds.length === 0}
             style={[
               styles.quickActionButton,
-              { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1, opacity: selectedAthleteIds.length === 0 ? 0.5 : 1 },
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.border,
+                borderWidth: 1,
+                opacity: selectedAthleteIds.length === 0 ? 0.5 : 1,
+              },
             ]}
           >
-            <ThemedText style={{ ...Typography.caption, color: palette.text }}>Deselect All ({selectedAthleteIds.length})</ThemedText>
+            <ThemedText style={{ ...Typography.caption, color: palette.text }}>
+              Deselect All ({selectedAthleteIds.length})
+            </ThemedText>
           </Clickable>
         </Row>
       )}
@@ -172,7 +191,7 @@ function InlineAthleteSelectorInner({
   );
 }
 
-export const InlineAthleteSelector = memo(InlineAthleteSelectorInner);
+export const InlineAthleteSelector = InlineAthleteSelectorInner;
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 

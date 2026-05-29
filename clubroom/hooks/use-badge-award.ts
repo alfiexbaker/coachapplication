@@ -1,12 +1,14 @@
 /**
  * useBadgeAward — State and handlers for badge award modal.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import * as Haptics from 'expo-haptics';
 import { badgeService } from '@/services/badge-service';
 import type { BadgeAward, BadgeDefinition } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { BADGE_REASONS } from '@/components/badges/badge-award-helpers';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('BadgeAwardModal');
 
@@ -42,19 +44,25 @@ export function useBadgeAward(opts: UseBadgeAwardOptions) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const selectedBadge = definitions.find((d) => d.id === selectedBadgeId);
+  const effectiveSelectedBadgeId = selectedBadgeId ?? definitions[0]?.id ?? null;
+  const selectedBadge = definitions.find((d) => d.id === effectiveSelectedBadgeId);
 
   useEffect(() => {
     if (!visible) return;
-    setError(null);
-    setNote(initialNote ?? '');
-    setSelectedReason(initialReason ?? BADGE_REASONS[0]);
+    startTransition(() => {
+      setError(null);
+    });
+    startTransition(() => {
+      setNote(initialNote ?? '');
+    });
+    startTransition(() => {
+      setSelectedReason(initialReason ?? BADGE_REASONS[0]);
+    });
     badgeService.listDefinitions().then((defs) => {
       setDefinitions(defs);
-      if (!selectedBadgeId && defs.length > 0) setSelectedBadgeId(defs[0].id);
     });
     logger.info('badge_award_opened', { athleteId, sessionId, coachId });
-  }, [visible, athleteId, coachId, sessionId, initialNote, initialReason, selectedBadgeId]);
+  }, [visible, athleteId, coachId, sessionId, initialNote, initialReason]);
 
   const handleBadgeSelect = (badgeId: string) => {
     Haptics.selectionAsync();
@@ -70,51 +78,56 @@ export function useBadgeAward(opts: UseBadgeAwardOptions) {
   };
 
   const handleSubmit = async () => {
-    if (!selectedBadgeId) {
+    if (!effectiveSelectedBadgeId) {
       setError('Please select a badge');
       return;
     }
     setIsSubmitting(true);
     setError(null);
-    try {
-      const result = await badgeService.awardBadge({
-        badgeId: selectedBadgeId,
-        athleteId,
-        athleteName: resolvedAthleteName,
-        coachId,
-        coachName,
-        sessionId,
-        reason: selectedReason,
-        note: note.trim(),
-        visibility: 'supporters',
-        context: sessionId ? 'session' : 'athlete_profile',
-      });
-      if (!result.success) {
-        setError(result.error.message);
+
+    return await runAsyncTryCatchFinally(
+      async () => {
+        const result = await badgeService.awardBadge({
+          badgeId: effectiveSelectedBadgeId,
+          athleteId,
+          athleteName: resolvedAthleteName,
+          coachId,
+          coachName,
+          sessionId,
+          reason: selectedReason,
+          note: note.trim(),
+          visibility: 'supporters',
+          context: sessionId ? 'session' : 'athlete_profile',
+        });
+        if (!result.success) {
+          setError(result.error.message);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          return;
+        }
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        onAwarded?.(result.data);
+        logger.info('badge_award_submitted', {
+          athleteId,
+          sessionId,
+          badgeId: effectiveSelectedBadgeId,
+          reason: selectedReason,
+        });
+        return result;
+      },
+      async (err) => {
+        setError(err instanceof Error ? err.message : 'Failed to award badge');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        return;
-      }
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      onAwarded?.(result.data);
-      logger.info('badge_award_submitted', {
-        athleteId,
-        sessionId,
-        badgeId: selectedBadgeId,
-        reason: selectedReason,
-      });
-      return result;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to award badge');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      return undefined;
-    } finally {
-      setIsSubmitting(false);
-    }
+        return undefined;
+      },
+      () => {
+        setIsSubmitting(false);
+      },
+    );
   };
 
   return {
     definitions,
-    selectedBadgeId,
+    selectedBadgeId: effectiveSelectedBadgeId,
     selectedBadge,
     selectedReason,
     note,

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
@@ -7,6 +7,8 @@ import { uiFeedback } from '@/services/ui-feedback';
 import { createLogger } from '@/utils/logger';
 import type { VerificationStatus } from '@/constants/types';
 import { err, serviceError, type ServiceError } from '@/types/result';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('useInsuranceVerification');
 
@@ -29,7 +31,7 @@ export function useInsuranceVerification() {
   const coachId = currentUser?.id ?? null;
   const [submitting, setSubmitting] = useState(false);
 
-  const loadStatus = useCallback(async () => {
+  const loadStatus = async () => {
     if (!coachId) {
       return err(serviceError('UNAUTHORIZED', 'Sign in as a coach to view verification status.'));
     }
@@ -39,7 +41,7 @@ export function useInsuranceVerification() {
       logger.error('Failed to load verification status:', result.error);
     }
     return result;
-  }, [coachId]);
+  };
 
   const {
     data: status,
@@ -59,11 +61,12 @@ export function useInsuranceVerification() {
 
   const loading = screenStatus === 'loading';
 
-  const handleUpload = useCallback(async () => {
+  const handleUpload = async () => {
     if (!coachId) return;
 
     setSubmitting(true);
-    try {
+
+    await runAsyncTryCatchFinally(async () => {
       const result = await verificationService.mockApproveVerification(coachId, 'insurance');
       if (result.success) {
         onRefresh();
@@ -71,13 +74,13 @@ export function useInsuranceVerification() {
       } else {
         uiFeedback.showToast(result.error.message, 'error');
       }
-    } catch (error) {
+    }, async error => {
       logger.error('Failed to verify insurance:', error);
       uiFeedback.showToast('Failed to verify insurance.', 'error');
-    } finally {
+    }, () => {
       setSubmitting(false);
-    }
-  }, [coachId, onRefresh]);
+    });
+  };
 
   const isVerified = status?.insurance.status === 'VERIFIED';
   const isPending = status?.insurance.status === 'PENDING';

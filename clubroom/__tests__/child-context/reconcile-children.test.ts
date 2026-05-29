@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import test, { describe } from 'node:test';
 
-import { attachMembershipData, reconcileChildren, getInitials } from '../../hooks/use-child-context';
+import { attachMembershipData, reconcileChildren, getInitials } from '../../hooks/child-context-helpers';
 import type { ChildReference } from '../../constants/user-types';
 import type { ChildProfile } from '../../services/child-service';
 import type { ClubSquad, SquadMember } from '../../constants/types';

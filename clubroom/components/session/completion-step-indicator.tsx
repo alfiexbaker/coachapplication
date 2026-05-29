@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 
 import { ProgressStepper } from '@/components/ui/primitives';
@@ -20,7 +20,7 @@ interface CompletionStepIndicatorProps {
 // COMPONENT
 // ============================================================================
 
-export const CompletionStepIndicator = memo(function CompletionStepIndicator({
+export const CompletionStepIndicator = function CompletionStepIndicator({
   currentStep,
   currentStepIndex,
 }: CompletionStepIndicatorProps) {
@@ -37,7 +37,7 @@ export const CompletionStepIndicator = memo(function CompletionStepIndicator({
       style={styles.wrapper}
     />
   );
-});
+};
 
 // ============================================================================
 // STYLES

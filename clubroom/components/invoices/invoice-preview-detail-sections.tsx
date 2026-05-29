@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -18,7 +18,7 @@ interface InvoiceSessionDetailsProps {
   palette: ThemeColors;
 }
 
-export const InvoiceSessionDetails = memo(function InvoiceSessionDetails({
+export const InvoiceSessionDetails = function InvoiceSessionDetails({
   invoice,
   palette,
 }: InvoiceSessionDetailsProps) {
@@ -69,7 +69,7 @@ export const InvoiceSessionDetails = memo(function InvoiceSessionDetails({
           </Row>
         )}
 
-        {invoice.sessionDuration && (
+        {invoice.sessionDuration != null && (
           <Row align="flex-start" gap="sm">
             <Ionicons name="time-outline" size={18} color={palette.muted} />
             <View style={styles.detailContent}>
@@ -83,14 +83,14 @@ export const InvoiceSessionDetails = memo(function InvoiceSessionDetails({
       </View>
     </SurfaceCard>
   );
-});
+};
 
 interface InvoicePricingCardProps {
   invoice: Invoice;
   palette: ThemeColors;
 }
 
-export const InvoicePricingCard = memo(function InvoicePricingCard({
+export const InvoicePricingCard = function InvoicePricingCard({
   invoice,
   palette,
 }: InvoicePricingCardProps) {
@@ -118,7 +118,7 @@ export const InvoicePricingCard = memo(function InvoicePricingCard({
       </View>
     </SurfaceCard>
   );
-});
+};
 
 interface InvoiceVoidCardProps {
   voidReason: string;
@@ -126,7 +126,7 @@ interface InvoiceVoidCardProps {
   palette: ThemeColors;
 }
 
-export const InvoiceVoidCard = memo(function InvoiceVoidCard({
+export const InvoiceVoidCard = function InvoiceVoidCard({
   voidReason,
   voidedAt,
   palette,
@@ -147,7 +147,7 @@ export const InvoiceVoidCard = memo(function InvoiceVoidCard({
       )}
     </SurfaceCard>
   );
-});
+};
 
 interface InvoiceSentInfoProps {
   sentTo: string;
@@ -155,7 +155,7 @@ interface InvoiceSentInfoProps {
   palette: ThemeColors;
 }
 
-export const InvoiceSentInfo = memo(function InvoiceSentInfo({
+export const InvoiceSentInfo = function InvoiceSentInfo({
   sentTo,
   sentAt,
   palette,
@@ -168,4 +168,4 @@ export const InvoiceSentInfo = memo(function InvoiceSentInfo({
       </ThemedText>
     </Row>
   );
-});
+};

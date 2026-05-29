@@ -6,7 +6,7 @@
  * MatchInfoCard — shared match info section (date, time, venue).
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,7 +28,7 @@ interface MatchInfoCardProps {
   palette: ThemeColors;
 }
 
-export const MatchInfoCard = memo(function MatchInfoCard({
+export const MatchInfoCard = function MatchInfoCard({
   match,
   player,
   palette,
@@ -76,7 +76,7 @@ export const MatchInfoCard = memo(function MatchInfoCard({
       )}
     </View>
   );
-});
+};
 
 // ─── SelectedCard ───────────────────────────────────────────────────────────
 
@@ -86,7 +86,7 @@ interface SelectedCardProps {
   palette: ThemeColors;
 }
 
-export const SelectedCard = memo(function SelectedCard({
+const renderSelectedCard = function renderSelectedCard({
   match,
   player,
   palette,
@@ -130,7 +130,8 @@ export const SelectedCard = memo(function SelectedCard({
       <MatchInfoCard match={match} player={player} palette={palette} />
     </SurfaceCard>
   );
-});
+};
+export const SelectedCard = renderSelectedCard;
 
 // ─── RespondedCard ──────────────────────────────────────────────────────────
 
@@ -141,7 +142,7 @@ interface RespondedCardProps {
   palette: ThemeColors;
 }
 
-export const RespondedCard = memo(function RespondedCard({
+const renderRespondedCard = function renderRespondedCard({
   match,
   player,
   onChangeResponse,
@@ -216,7 +217,8 @@ export const RespondedCard = memo(function RespondedCard({
       </Clickable>
     </SurfaceCard>
   );
-});
+};
+export const RespondedCard = renderRespondedCard;
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 

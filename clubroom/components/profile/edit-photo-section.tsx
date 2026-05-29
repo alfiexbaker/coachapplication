@@ -2,7 +2,7 @@
  * EditPhotoSection — Cover photo + profile photo for Edit Profile.
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +21,7 @@ interface EditPhotoSectionProps {
   onPickImage: (type: 'profile' | 'cover') => void;
 }
 
-export const EditPhotoSection = memo(function EditPhotoSection({
+export const EditPhotoSection = function EditPhotoSection({
   colors,
   userIsCoach,
   coverPhotoUrl,
@@ -81,7 +81,7 @@ export const EditPhotoSection = memo(function EditPhotoSection({
       </SurfaceCard>
     </>
   );
-});
+};
 
 const styles = StyleSheet.create({
   section: { gap: Spacing.md },

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import { View, StyleSheet, TextInput, Platform, ScrollView, Modal, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -49,22 +49,27 @@ export function InjuryDetailsStep({
   onShowRecoveryPicker,
 }: InjuryDetailsStepProps) {
   const { colors: palette, isDark } = useTheme();
-  const defaultRecoveryDate = useMemo(() => {
+  const [today] = useState(() => new Date());
+  const defaultRecoveryDate = (() => {
     const next = new Date(occurredAt);
     next.setDate(next.getDate() + 14);
     return next;
-  }, [occurredAt]);
-  const [draftOccurredAt, setDraftOccurredAt] = useState(occurredAt);
+  })();
+  const [draftOccurredAt, setDraftOccurredAt] = useState(() => occurredAt);
   const [draftExpectedRecovery, setDraftExpectedRecovery] = useState(expectedRecovery ?? defaultRecoveryDate);
 
   useEffect(() => {
     if (!showOccurredPicker) return;
-    setDraftOccurredAt(occurredAt);
+    startTransition(() => {
+      setDraftOccurredAt(occurredAt);
+    });
   }, [showOccurredPicker, occurredAt]);
 
   useEffect(() => {
     if (!showRecoveryPicker) return;
-    setDraftExpectedRecovery(expectedRecovery ?? defaultRecoveryDate);
+    startTransition(() => {
+      setDraftExpectedRecovery(expectedRecovery ?? defaultRecoveryDate);
+    });
   }, [showRecoveryPicker, expectedRecovery, defaultRecoveryDate]);
 
   const closeOccurredPicker = () => onShowOccurredPicker(false);
@@ -216,7 +221,7 @@ export function InjuryDetailsStep({
                   onChange={(_, date) => {
                     if (date) setDraftOccurredAt(date);
                   }}
-                  maximumDate={new Date()}
+                  maximumDate={today}
                 />
               </View>
             </View>
@@ -230,7 +235,7 @@ export function InjuryDetailsStep({
               onShowOccurredPicker(false);
               if (date) onOccurredAtChange(date);
             }}
-            maximumDate={new Date()}
+            maximumDate={today}
           />
         )
       )}

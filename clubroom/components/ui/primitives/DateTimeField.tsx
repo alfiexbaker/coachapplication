@@ -6,7 +6,7 @@
  * and Android native dialog. Displays en-GB formatted values.
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Platform, Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,15 +16,15 @@ import { Row } from '@/components/primitives/row';
 import { useTheme } from '@/hooks/useTheme';
 import { toDateStr } from '@/utils/format';
 
+import { IOSPickerModal } from './date-time-field-sections';
 import {
   parseDateValue,
   parseTimeValue,
   formatTimeString,
   displayDate,
   displayTime,
-  IOSPickerModal,
   styles,
-} from './date-time-field-sections';
+} from './date-time-field-helpers';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -72,47 +72,41 @@ function DateTimeFieldInner({
   const hasError = Boolean(error);
   const borderColor = hasError ? colors.error : colors.border;
 
-  const handlePress = useCallback(() => {
+  const handlePress = () => {
     if (disabled) return;
     setTempDate(currentDate);
     setShowPicker(true);
-  }, [disabled, currentDate]);
+  };
 
-  const handleChange = useCallback(
-    (_event: DateTimePickerEvent, selected?: Date) => {
-      if (Platform.OS === 'android') {
-        setShowPicker(false);
-        if (_event.type === 'set' && selected) {
-          onChange(mode === 'date' ? toDateStr(selected) : formatTimeString(selected));
-        }
-      } else {
-        if (selected) setTempDate(selected);
+  const updateSelectedDateTime = (_event: DateTimePickerEvent, selected?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowPicker(false);
+      if (_event.type === 'set' && selected) {
+        onChange(mode === 'date' ? toDateStr(selected) : formatTimeString(selected));
       }
-    },
-    [mode, onChange],
-  );
+    } else {
+      if (selected) setTempDate(selected);
+    }
+  };
 
-  const handleIOSDone = useCallback(() => {
+  const handleIOSDone = () => {
     setShowPicker(false);
     if (tempDate) {
       onChange(mode === 'date' ? toDateStr(tempDate) : formatTimeString(tempDate));
     }
-  }, [mode, onChange, tempDate]);
+  };
 
-  const handleIOSCancel = useCallback(() => {
+  const handleIOSCancel = () => {
     setShowPicker(false);
     setTempDate(null);
-  }, []);
+  };
 
-  const themedStyles = useMemo(
-    () => ({
-      button: { backgroundColor: colors.surface },
-      disabled: { backgroundColor: colors.surfaceSecondary, opacity: 0.6 },
-      text: { color: colors.text },
-      placeholder: { color: colors.muted },
-    }),
-    [colors],
-  );
+  const themedStyles = ({
+    button: { backgroundColor: colors.surface },
+    disabled: { backgroundColor: colors.surfaceSecondary, opacity: 0.6 },
+    text: { color: colors.text },
+    placeholder: { color: colors.muted },
+  });
 
   return (
     <View style={[styles.container, style]}>
@@ -146,7 +140,7 @@ function DateTimeFieldInner({
           mode={mode}
           tempDate={tempDate}
           currentDate={currentDate}
-          onChange={handleChange}
+          onChange={updateSelectedDateTime}
           onDone={handleIOSDone}
           onCancel={handleIOSCancel}
           minimumDate={minimumDate}
@@ -162,7 +156,7 @@ function DateTimeFieldInner({
           value={currentDate}
           mode={mode}
           display="default"
-          onChange={handleChange}
+          onChange={updateSelectedDateTime}
           minimumDate={minimumDate}
           maximumDate={maximumDate}
           minuteInterval={minuteInterval}
@@ -173,4 +167,4 @@ function DateTimeFieldInner({
   );
 }
 
-export const DateTimeField = React.memo(DateTimeFieldInner);
+export const DateTimeField = DateTimeFieldInner;

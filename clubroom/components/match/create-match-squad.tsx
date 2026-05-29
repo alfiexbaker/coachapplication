@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, Switch, View } from 'react-native';
 import { Column } from '@/components/primitives/column';
 import { Clickable } from '@/components/primitives/clickable';
@@ -22,7 +22,7 @@ interface CreateMatchSquadProps {
   onCreateSquad?: () => void;
 }
 
-export const CreateMatchSquad = memo(function CreateMatchSquad({
+export const CreateMatchSquad = function CreateMatchSquad({
   squads,
   selectedSquadId,
   squadMemberCount,
@@ -123,7 +123,7 @@ export const CreateMatchSquad = memo(function CreateMatchSquad({
       )}
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   stepContent: { gap: Spacing.md },

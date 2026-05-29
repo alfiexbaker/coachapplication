@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -31,6 +31,8 @@ import { Routes } from '@/navigation/routes';
 import { uiFeedback } from '@/services/ui-feedback';
 import { Skeleton, SkeletonCircle, SkeletonCluster, SkeletonPill, SkeletonText } from '@/components/ui/skeleton';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('GroupChatScreen');
 
@@ -141,7 +143,7 @@ export default function GroupChatScreen() {
   const [showRolePickerModal, setShowRolePickerModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'chat' | 'manage'>('chat');
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     if (!groupId) return ok<GroupChatData>({ group: null, messages: [] });
 
     try {
@@ -165,7 +167,7 @@ export default function GroupChatScreen() {
         serviceError('UNKNOWN', 'Failed to load group data. Pull down to refresh.', loadError),
       );
     }
-  }, [groupId, parentId]);
+  };
 
   const {
     data,
@@ -195,13 +197,14 @@ export default function GroupChatScreen() {
     !hasRequestedTruthfulFrame;
   const shouldShowGroupSkeleton = showLoadingState || isGroupChangePending;
 
-  const handleSend = useCallback(async () => {
+  const handleSend = async () => {
     if (!inputValue.trim() || !groupId || sending) return;
 
     const messageText = inputValue.trim();
     setInputValue('');
     setSending(true);
-    try {
+
+    return await runAsyncTryCatchFinally(async () => {
       const sendResult = await communityService.sendGroupMessage(
         groupId,
         parentId,
@@ -214,16 +217,16 @@ export default function GroupChatScreen() {
         return;
       }
       retry();
-    } catch (sendError) {
+    }, async sendError => {
       logger.error('Failed to send message:', sendError);
       uiFeedback.showToast('Could not send your message. Please try again.', 'error');
       setInputValue(messageText);
-    } finally {
+    }, () => {
       setSending(false);
-    }
-  }, [groupId, inputValue, sending, parentId, parentName, retry]);
+    });
+  };
 
-  const handleLeaveGroup = useCallback(() => {
+  const handleLeaveGroup = () => {
     uiFeedback.alert('Leave Group', 'Are you sure you want to leave this group?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -244,7 +247,7 @@ export default function GroupChatScreen() {
         },
       },
     ]);
-  }, [groupId, parentId]);
+  };
 
   const currentMember = group?.members.find((member) => member.parentId === parentId);
   const currentRole = currentMember?.role ?? 'MEMBER';
@@ -256,51 +259,45 @@ export default function GroupChatScreen() {
   const assignableRoles = communityGroupService.getAssignableRoles(currentRole);
   const roleBreakdown = group ? communityGroupService.getRoleBreakdown(group.members) : null;
 
-  const handleMemberManage = useCallback(
-    (member: GroupMember) => {
-      if (member.parentId === parentId) return;
-      setSelectedMember(member);
-      setShowRolePickerModal(true);
-    },
-    [parentId],
-  );
+  const handleMemberManage = (member: GroupMember) => {
+    if (member.parentId === parentId) return;
+    setSelectedMember(member);
+    setShowRolePickerModal(true);
+  };
 
-  const handleRoleChange = useCallback(
-    async (newRole: GroupMemberRole) => {
-      if (!selectedMember || !groupId) return;
-      try {
-        const result = await communityService.changeMemberRole({
-          groupId,
-          requesterId: parentId,
-          memberId: selectedMember.parentId,
-          newRole,
-        });
-        if (!result.success) {
-          uiFeedback.showToast(result.error.message, 'error');
-          return;
-        }
-        setShowRolePickerModal(false);
-        setSelectedMember(null);
-        retry();
-      } catch (changeError) {
-        uiFeedback.showToast(String(changeError), 'error');
+  const handleRoleChange = async (newRole: GroupMemberRole) => {
+    if (!selectedMember || !groupId) return;
+    try {
+      const result = await communityService.changeMemberRole({
+        groupId,
+        requesterId: parentId,
+        memberId: selectedMember.parentId,
+        newRole,
+      });
+      if (!result.success) {
+        uiFeedback.showToast(result.error.message, 'error');
+        return;
       }
-    },
-    [selectedMember, groupId, parentId, retry],
-  );
+      setShowRolePickerModal(false);
+      setSelectedMember(null);
+      retry();
+    } catch (changeError) {
+      uiFeedback.showToast(String(changeError), 'error');
+    }
+  };
 
-  const handleOpenSessionInvite = useCallback(() => {
+  const handleOpenSessionInvite = () => {
     router.push(Routes.SESSION_INVITES_GROUP);
-  }, []);
+  };
 
-  const handleOpenClubInvite = useCallback(() => {
+  const handleOpenClubInvite = () => {
     router.push(Routes.CLUB_INVITE_MEMBERS);
-  }, []);
+  };
 
-  const handleOpenClubHub = useCallback(() => {
+  const handleOpenClubHub = () => {
     if (!group?.clubId) return;
     router.push(Routes.clubHub({ clubId: group.clubId }));
-  }, [group?.clubId]);
+  };
 
   const renderStateShell = (content: ReactNode) => (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>

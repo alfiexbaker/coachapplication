@@ -44,19 +44,20 @@ const FAMILY_ACTIONS = [
   },
 ] as const;
 
+const FAMILY_HEADER = (
+  <PageHeader
+    title="Family"
+    subtitle="Choose the family action you need"
+    showBack
+  />
+);
+
 export default function FamilyOverviewScreen() {
   const { colors: palette } = useTheme();
   const handleBookSession = () => router.push(Routes.BOOK_COACH);
-  const header = (
-    <PageHeader
-      title="Family"
-      subtitle="Choose the family action you need"
-      showBack
-    />
-  );
 
   return (
-    <PageContainer header={header} gap={Spacing.md}>
+    <PageContainer header={FAMILY_HEADER} gap={Spacing.md}>
       <Animated.View entering={FadeInDown.delay(50).springify()}>
         <SurfaceCard
           style={[

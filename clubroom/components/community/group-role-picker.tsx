@@ -140,7 +140,7 @@ function GroupRolePickerInner({
   );
 }
 
-export const GroupRolePicker = React.memo(GroupRolePickerInner);
+export const GroupRolePicker = GroupRolePickerInner;
 
 // ---------------------------------------------------------------------------
 // Styles

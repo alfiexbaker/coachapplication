@@ -10,7 +10,7 @@
  * Phase 5, Multi-Child Sprint.
  */
 
-import { useMemo, useState, useCallback } from 'react';
+import { useState } from 'react';
 import type {
   FamilyCalendarEvent,
   ScheduleConflict,
@@ -65,7 +65,7 @@ export function detectScheduleConflicts(
   if (eligible.length < 2) return [];
 
   // 2. Sort by start time ascending
-  const sorted = [...eligible].sort(
+  const sorted = Array.from(eligible).toSorted(
     (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
   );
 
@@ -141,35 +141,23 @@ export function useScheduleConflicts({
   // Intentional: conflicts should re-surface on next visit.
   const [dismissedDates, setDismissedDates] = useState<Set<string>>(new Set());
 
-  const dismissDay = useCallback((dateStr: string) => {
+  const dismissDay = (dateStr: string) => {
     setDismissedDates((prev) => {
       const next = new Set(prev);
       next.add(dateStr);
       return next;
     });
-  }, []);
+  };
 
-  const isDayDismissed = useCallback(
-    (dateStr: string) => dismissedDates.has(dateStr),
-    [dismissedDates],
-  );
+  const isDayDismissed = (dateStr: string) => dismissedDates.has(dateStr);
 
   // Core detection — memoized, O(n log n) per invocation
-  const conflicts = useMemo<ScheduleConflict[]>(
-    () => detectScheduleConflicts(events, isMultiChild),
-    [events, isMultiChild],
-  );
+  const conflicts = detectScheduleConflicts(events, isMultiChild);
 
   // Build reverse-index: eventId → ScheduleConflict[]
-  const conflictsByEventId = useMemo<ConflictsByEventId>(
-    () => buildConflictsByEventId(conflicts),
-    [conflicts],
-  );
+  const conflictsByEventId = buildConflictsByEventId(conflicts);
 
-  const getConflictsForEvent = useCallback(
-    (eventId: string): ScheduleConflict[] => conflictsByEventId.get(eventId) ?? [],
-    [conflictsByEventId],
-  );
+  const getConflictsForEvent = (eventId: string): ScheduleConflict[] => conflictsByEventId.get(eventId) ?? [];
 
   return {
     conflicts,

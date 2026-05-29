@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -17,7 +17,7 @@ type HeaderProps = {
   onOpenMenu?: () => void;
 };
 
-export const ChatScreenHeader = React.memo(function ChatScreenHeader({
+export const ChatScreenHeader = function ChatScreenHeader({
   colors,
   thread,
   onBack,
@@ -45,18 +45,25 @@ export const ChatScreenHeader = React.memo(function ChatScreenHeader({
         </ThemedText>
       </View>
       {isGroup && thread.groupType ? (
-        <Chip dense>
-          {thread.groupType === 'club' ? 'Club' : thread.groupType === 'squad' ? 'Squad' : 'Class'}
-        </Chip>
+        <Chip
+          dense
+          label={
+            thread.groupType === 'club' ? 'Club' : thread.groupType === 'squad' ? 'Squad' : 'Class'
+          }
+        />
       ) : null}
       {onOpenMenu ? (
-        <Clickable onPress={onOpenMenu} style={styles.backButton} accessibilityLabel="Open conversation options">
+        <Clickable
+          onPress={onOpenMenu}
+          style={styles.backButton}
+          accessibilityLabel="Open conversation options"
+        >
           <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
         </Clickable>
       ) : null}
     </Row>
   );
-});
+};
 
 type SafetyProps = {
   colors: ThemeColors;
@@ -64,7 +71,7 @@ type SafetyProps = {
   onDismiss: () => void;
 };
 
-export const ChatSafetyBanner = React.memo(function ChatSafetyBanner({
+const renderChatSafetyBanner = function renderChatSafetyBanner({
   colors,
   showSafetyBanner,
   onDismiss,
@@ -92,7 +99,8 @@ export const ChatSafetyBanner = React.memo(function ChatSafetyBanner({
       </Clickable>
     </Row>
   );
-});
+};
+export const ChatSafetyBanner = renderChatSafetyBanner;
 
 type PostingAsProps = {
   colors: ThemeColors;
@@ -101,7 +109,7 @@ type PostingAsProps = {
   onSelect: (value: string) => void;
 };
 
-export const ChatPostingAsSelector = React.memo(function ChatPostingAsSelector({
+const renderChatPostingAsSelector = function renderChatPostingAsSelector({
   colors,
   thread,
   postingAs,
@@ -109,43 +117,73 @@ export const ChatPostingAsSelector = React.memo(function ChatPostingAsSelector({
 }: PostingAsProps) {
   const isGroup = thread.kind === 'group';
   if (!isGroup || !thread.postingAsOptions?.length) return null;
+  const postingAsItems = getPostingAsItems(thread.postingAsOptions, postingAs, onSelect, colors);
 
   return (
-    <ScrollView
+    <FlatList
       horizontal
+      data={postingAsItems}
+      keyExtractor={keyPostingAsItem}
+      renderItem={renderPostingAsItem}
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={[styles.postingAsRow, { borderColor: colors.border }]}
-    >
-      {thread.postingAsOptions.map((option) => {
-        const selected = postingAs === option;
-        return (
-          <Clickable
-            key={option}
-            onPress={() => onSelect(option)}
-            style={[
-              styles.postingAsChip,
-              {
-                backgroundColor: selected ? withAlpha(colors.tint, 0.09) : colors.surface,
-                borderColor: selected ? colors.tint : colors.border,
-              },
-            ]}
-          >
-            <Row align="center" gap="xs">
-              <Ionicons
-                name={selected ? 'checkmark-circle' : 'person-circle-outline'}
-                size={16}
-                color={selected ? colors.tint : colors.icon}
-              />
-              <ThemedText style={{ color: selected ? colors.text : colors.muted }}>
-                Post as {option}
-              </ThemedText>
-            </Row>
-          </Clickable>
-        );
-      })}
-    </ScrollView>
+    />
   );
-});
+};
+export const ChatPostingAsSelector = renderChatPostingAsSelector;
+
+interface PostingAsItem {
+  key: string;
+  option: string;
+  selected: boolean;
+  colors: ThemeColors;
+  onPress: () => void;
+}
+
+function getPostingAsItems(
+  options: string[],
+  postingAs: string | undefined,
+  onSelect: (value: string) => void,
+  colors: ThemeColors,
+): PostingAsItem[] {
+  return options.map((option) => ({
+    key: option,
+    option,
+    selected: postingAs === option,
+    colors,
+    onPress: () => onSelect(option),
+  }));
+}
+
+function keyPostingAsItem(item: PostingAsItem) {
+  return item.key;
+}
+
+function renderPostingAsItem({ item }: ListRenderItemInfo<PostingAsItem>) {
+  return (
+    <Clickable
+      onPress={item.onPress}
+      style={[
+        styles.postingAsChip,
+        {
+          backgroundColor: item.selected ? withAlpha(item.colors.tint, 0.09) : item.colors.surface,
+          borderColor: item.selected ? item.colors.tint : item.colors.border,
+        },
+      ]}
+    >
+      <Row align="center" gap="xs">
+        <Ionicons
+          name={item.selected ? 'checkmark-circle' : 'person-circle-outline'}
+          size={16}
+          color={item.selected ? item.colors.tint : item.colors.icon}
+        />
+        <ThemedText style={{ color: item.selected ? item.colors.text : item.colors.muted }}>
+          Post as {item.option}
+        </ThemedText>
+      </Row>
+    </Clickable>
+  );
+}
 
 const styles = StyleSheet.create({
   chatHeader: {

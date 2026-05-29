@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ScrollView, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -37,6 +37,12 @@ export default function SessionInvitesScreen() {
   const { isParent: userHasChildren, isMultiChild, getChildById } = useChildContext();
   const [mode, setMode] = useState<ViewMode>(userIsCoach ? 'sent' : 'received');
   const [filter, setFilter] = useState<FilterMode>('all');
+  const modeRef = useRef(mode);
+
+  useEffect(() => {
+    modeRef.current = mode;
+  });
+
   const {
     data: invites,
     status,
@@ -48,8 +54,9 @@ export default function SessionInvitesScreen() {
   } = useScreen({
     load: async () => {
       if (!currentUser?.id) return ok([] as SessionInvite[]);
+      const requestedMode = modeRef.current;
       const data =
-        mode === 'sent'
+        requestedMode === 'sent'
           ? await sessionInviteService.getCoachInvites(currentUser.id)
           : await sessionInviteService.getParentInvites(currentUser.id);
       return ok(data);
@@ -71,14 +78,14 @@ export default function SessionInvitesScreen() {
   const loading = status === 'loading' && resolvedInvites.length === 0;
   const screenError = status === 'error' && resolvedInvites.length === 0 ? error : null;
 
-  const pendingCount = useMemo(() => {
+  const pendingCount = (() => {
     return resolvedInvites.filter((i) => {
       const isPending = i.status === 'PENDING';
       return isPending && new Date(i.expiresAt) > new Date();
     }).length;
-  }, [resolvedInvites]);
+  })();
 
-  const filteredInvites = useMemo(() => {
+  const filteredInvites = (() => {
     return resolvedInvites.filter((invite) => {
       if (filter === 'all') return true;
       if (filter === 'pending') {
@@ -87,97 +94,88 @@ export default function SessionInvitesScreen() {
       if (filter === 'responded') return invite.status !== 'PENDING';
       return true;
     });
-  }, [resolvedInvites, filter]);
+  })();
 
   const showModeToggle = userIsCoach && userHasChildren;
   const showFilterChips =
     (mode === 'received' || (!userIsCoach && userHasChildren)) && resolvedInvites.length > 0;
-  const handleCreateInvite = useCallback(() => {
+  const handleCreateInvite = () => {
     router.push(Routes.SESSION_INVITES_CREATE);
-  }, []);
-  const handleOpenInvite = useCallback((inviteId: string) => {
+  };
+  const handleOpenInvite = (inviteId: string) => {
     router.push(Routes.sessionInvite(inviteId));
-  }, []);
-  const handleQuickDecline = useCallback(
-    async (invite: SessionInvite) => {
-      const coachName = getSessionInviteCoachName(invite);
-      uiFeedback.alert(
-        'Decline Invite',
-        `Are you sure you want to decline the session invite from Coach ${coachName}?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Decline',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                await sessionInviteService.respondToInvite({
-                  inviteId: invite.id,
-                  response: 'DECLINED',
-                });
-                uiFeedback.showToast('Invite declined. The coach has been notified.', 'success');
-                onRefresh();
-              } catch {
-                uiFeedback.showToast('Failed to decline invite. Please try again.', 'error');
-              }
-            },
-          },
-        ],
-      );
-    },
-    [onRefresh],
-  );
-
-  const handleCancelInvite = useCallback(
-    async (invite: SessionInvite) => {
-      const athleteNames = getSessionInviteAthleteNames(invite);
-      uiFeedback.alert(
-        'Cancel Invite',
-        `Are you sure you want to cancel this invite to ${athleteNames.join(', ')}?`,
-        [
-          { text: 'Keep', style: 'cancel' },
-          {
-            text: 'Cancel Invite',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                await sessionInviteService.cancelInvite(invite.id);
-                uiFeedback.showToast('Invite cancelled.', 'success');
-                onRefresh();
-              } catch {
-                uiFeedback.showToast('Failed to cancel invite. Please try again.', 'error');
-              }
-            },
-          },
-        ],
-      );
-    },
-    [onRefresh],
-  );
-
-  const handleDismissInvite = useCallback(
-    async (invite: SessionInvite) => {
-      uiFeedback.alert('Remove Invite', 'Remove this invite from your list?', [
-        { text: 'Keep', style: 'cancel' },
+  };
+  const handleQuickDecline = async (invite: SessionInvite) => {
+    const coachName = getSessionInviteCoachName(invite);
+    uiFeedback.alert(
+      'Decline Invite',
+      `Are you sure you want to decline the session invite from Coach ${coachName}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Remove',
+          text: 'Decline',
           style: 'destructive',
           onPress: async () => {
             try {
-              await sessionInviteService.dismissInvite(invite.id);
+              await sessionInviteService.respondToInvite({
+                inviteId: invite.id,
+                response: 'DECLINED',
+              });
+              uiFeedback.showToast('Invite declined. The coach has been notified.', 'success');
               onRefresh();
             } catch {
-              uiFeedback.showToast('Failed to remove invite. Please try again.', 'error');
+              uiFeedback.showToast('Failed to decline invite. Please try again.', 'error');
             }
           },
         },
-      ]);
-    },
-    [onRefresh],
-  );
+      ],
+    );
+  };
 
-  const handleChangeMode = useCallback((newMode: ViewMode) => setMode(newMode), []);
-  const handleChangeFilter = useCallback((newFilter: FilterMode) => setFilter(newFilter), []);
+  const handleCancelInvite = async (invite: SessionInvite) => {
+    const athleteNames = getSessionInviteAthleteNames(invite);
+    uiFeedback.alert(
+      'Cancel Invite',
+      `Are you sure you want to cancel this invite to ${athleteNames.join(', ')}?`,
+      [
+        { text: 'Keep', style: 'cancel' },
+        {
+          text: 'Cancel Invite',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await sessionInviteService.cancelInvite(invite.id);
+              uiFeedback.showToast('Invite cancelled.', 'success');
+              onRefresh();
+            } catch {
+              uiFeedback.showToast('Failed to cancel invite. Please try again.', 'error');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleDismissInvite = async (invite: SessionInvite) => {
+    uiFeedback.alert('Remove Invite', 'Remove this invite from your list?', [
+      { text: 'Keep', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await sessionInviteService.dismissInvite(invite.id);
+            onRefresh();
+          } catch {
+            uiFeedback.showToast('Failed to remove invite. Please try again.', 'error');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleChangeMode = (newMode: ViewMode) => setMode(newMode);
+  const handleChangeFilter = (newFilter: FilterMode) => setFilter(newFilter);
   const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}

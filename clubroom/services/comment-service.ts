@@ -153,7 +153,7 @@ function mapApiComment(comment: ApiPostComment, context?: CommentApiContext): Th
 }
 
 function buildCommentThreads(comments: ThreadedComment[]): CommentThread[] {
-  const postComments = [...comments].sort(
+  const postComments = Array.from(comments).toSorted(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
 

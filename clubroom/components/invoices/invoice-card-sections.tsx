@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,57 +6,11 @@ import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { invoiceService } from '@/services/invoice-service';
-import type { Invoice, InvoiceStatus } from '@/constants/types';
+import type { Invoice } from '@/constants/types';
 import type { useTheme } from '@/hooks/useTheme';
+import { formatShortDate, getInvoiceStatusColor } from './invoice-card-helpers';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
-type IoniconsName = keyof typeof Ionicons.glyphMap;
-
-/** Theme-aware invoice status color mapping */
-export function getInvoiceStatusColor(status: InvoiceStatus, palette: ThemeColors): string {
-  const map: Record<InvoiceStatus, string> = {
-    DRAFT: palette.muted,
-    SENT: palette.tint,
-    PAID: palette.success,
-    VOID: palette.error,
-    WRITTEN_OFF: palette.muted,
-  };
-  return map[status];
-}
-
-// ─── Helpers ────────────────────────────────────────────────────
-
-export function getStatusIcon(status: InvoiceStatus): IoniconsName {
-  switch (status) {
-    case 'DRAFT':
-      return 'document-outline';
-    case 'SENT':
-      return 'paper-plane-outline';
-    case 'PAID':
-      return 'checkmark-circle-outline';
-    case 'VOID':
-      return 'close-circle-outline';
-    default:
-      return 'document-outline';
-  }
-}
-
-export function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-export function formatShortDate(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-}
 
 // ─── CompactInvoiceRow ──────────────────────────────────────────
 
@@ -67,7 +20,7 @@ export interface CompactInvoiceRowProps {
   palette: ThemeColors;
 }
 
-export const CompactInvoiceRow = memo(function CompactInvoiceRow({
+export const CompactInvoiceRow = function CompactInvoiceRow({
   invoice,
   onPress,
   palette,
@@ -101,7 +54,7 @@ export const CompactInvoiceRow = memo(function CompactInvoiceRow({
       <Ionicons name="chevron-forward" size={18} color={palette.muted} />
     </Clickable>
   );
-});
+};
 
 // ─── Styles ─────────────────────────────────────────────────────
 

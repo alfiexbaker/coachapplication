@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -9,6 +9,8 @@ import { mediaService } from '@/services/media-service';
 import { createLogger } from '@/utils/logger';
 import type { PhotoAsset, VideoAsset } from '@/types/progress-types';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('UseSessionMedia');
 
@@ -103,28 +105,25 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
   const [recordingSeconds, setRecordingSeconds] = useState(10);
   const isUploadingPhotosRef = useRef(false);
 
-  const mediaIds = useMemo(() => {
+  const mediaIds = (() => {
     const photoUris = photos.map((photo) => photo.uri);
     return video ? [...photoUris, video.uri] : photoUris;
-  }, [photos, video]);
+  })();
 
-  const persistMedia = useCallback(
-    async (nextPhotos: PhotoAsset[], nextVideo: VideoAsset | null) => {
-      const saveResult = await mediaService.saveSessionMedia({
-        sessionId,
-        athleteId,
-        coachId,
-        photos: nextPhotos,
-        video: nextVideo,
-        createdAt: new Date().toISOString(),
-      });
+  const persistMedia = async (nextPhotos: PhotoAsset[], nextVideo: VideoAsset | null) => {
+    const saveResult = await mediaService.saveSessionMedia({
+      sessionId,
+      athleteId,
+      coachId,
+      photos: nextPhotos,
+      video: nextVideo,
+      createdAt: new Date().toISOString(),
+    });
 
-      if (!saveResult.success) {
-        logger.error('Failed to persist session media', saveResult.error);
-      }
-    },
-    [athleteId, coachId, sessionId],
-  );
+    if (!saveResult.success) {
+      logger.error('Failed to persist session media', saveResult.error);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -148,13 +147,13 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
     };
   }, [athleteId, sessionId]);
 
-  const closeCamera = useCallback(() => {
+  const closeCamera = () => {
     setCameraVisible(false);
     setIsRecording(false);
     setRecordingSeconds(10);
-  }, []);
+  };
 
-  const takePhoto = useCallback(async () => {
+  const takePhoto = async () => {
     if (isUploadingPhotosRef.current) return;
     if (photos.length >= MAX_PHOTOS) {
       uiFeedback.showToast('Maximum 3 photos per session.');
@@ -163,7 +162,7 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
 
     if (Platform.OS === 'web') {
       isUploadingPhotosRef.current = true;
-      try {
+      await runAsyncTryCatchFinally(async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
           allowsMultipleSelection: false,
@@ -181,20 +180,20 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
         const nextPhotos = [...photos, photoAsset];
         setPhotos(nextPhotos);
         await persistMedia(nextPhotos, video);
-      } catch (error) {
+      }, async (error) => {
         logger.error('Failed to select photo from library', error);
         uiFeedback.showToast('Unable to save photo. Please try again.', 'error');
-      } finally {
+      }, () => {
         isUploadingPhotosRef.current = false;
-      }
+      });
       return;
     }
 
     setCameraMode('photo');
     setCameraVisible(true);
-  }, [persistMedia, photos, video]);
+  };
 
-  const recordVideo = useCallback(async () => {
+  const recordVideo = async () => {
     if (video && MAX_VIDEOS === 1) {
       uiFeedback.showToast('Maximum 1 video per session.');
       return;
@@ -207,74 +206,66 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
 
     setCameraMode('video');
     setCameraVisible(true);
-  }, [video]);
+  };
 
-  const handlePhotoCaptured = useCallback(
-    async (payload: CapturedPhotoPayload) => {
-      if (isUploadingPhotosRef.current) {
-        closeCamera();
+  const handlePhotoCaptured = async (payload: CapturedPhotoPayload) => {
+    if (isUploadingPhotosRef.current) {
+      closeCamera();
+      return;
+    }
+    isUploadingPhotosRef.current = true;
+
+    return await runAsyncTryCatchFinally(async () => {
+      if (photos.length >= MAX_PHOTOS) {
+        uiFeedback.showToast('Maximum 3 photos per session.');
         return;
       }
-      isUploadingPhotosRef.current = true;
-      try {
-        if (photos.length >= MAX_PHOTOS) {
-          uiFeedback.showToast('Maximum 3 photos per session.');
-          return;
-        }
-        const photoAsset = await processPhotoAsset(payload);
-        const nextPhotos = [...photos, photoAsset];
-        if (nextPhotos.length > MAX_PHOTOS) {
-          uiFeedback.showToast('Maximum 3 photos per session.');
-          return;
-        }
-        setPhotos(nextPhotos);
-        await persistMedia(nextPhotos, video);
-      } catch (error) {
-        logger.error('Failed to process captured photo', error);
-        uiFeedback.showToast('Unable to save photo. Please try again.', 'error');
-      } finally {
-        isUploadingPhotosRef.current = false;
-        closeCamera();
-      }
-    },
-    [closeCamera, persistMedia, photos, video],
-  );
-
-  const handleVideoCaptured = useCallback(
-    async (payload: CapturedVideoPayload) => {
-      try {
-        const videoAsset = await processVideoAsset(payload);
-        setVideo(videoAsset);
-        await persistMedia(photos, videoAsset);
-      } catch (error) {
-        logger.error('Failed to process captured video', error);
-        uiFeedback.showToast('Unable to save video. Please try again.', 'error');
-      } finally {
-        closeCamera();
-      }
-    },
-    [closeCamera, persistMedia, photos],
-  );
-
-  const removeMedia = useCallback(
-    async (uri: string) => {
-      const result = await mediaService.removeSessionMediaAsset(sessionId, athleteId, uri);
-      if (!result.success) {
-        logger.error('Failed to remove media', result.error);
+      const photoAsset = await processPhotoAsset(payload);
+      const nextPhotos = [...photos, photoAsset];
+      if (nextPhotos.length > MAX_PHOTOS) {
+        uiFeedback.showToast('Maximum 3 photos per session.');
         return;
       }
+      setPhotos(nextPhotos);
+      await persistMedia(nextPhotos, video);
+    }, async error => {
+      logger.error('Failed to process captured photo', error);
+      uiFeedback.showToast('Unable to save photo. Please try again.', 'error');
+    }, () => {
+      isUploadingPhotosRef.current = false;
+      closeCamera();
+    });
+  };
 
-      if (!result.data) {
-        setPhotos([]);
-        setVideo(null);
-        return;
-      }
+  const handleVideoCaptured = async (payload: CapturedVideoPayload) => {
+    await runAsyncTryCatchFinally(async () => {
+      const videoAsset = await processVideoAsset(payload);
+      setVideo(videoAsset);
+      await persistMedia(photos, videoAsset);
+    }, async error => {
+      logger.error('Failed to process captured video', error);
+      uiFeedback.showToast('Unable to save video. Please try again.', 'error');
+    }, () => {
+      closeCamera();
+    });
+  };
 
-      setPhotos(result.data.photos);
-      setVideo(result.data.video);
-    },
-    [athleteId, sessionId],
-  );
+  const removeMedia = async (uri: string) => {
+    const result = await mediaService.removeSessionMediaAsset(sessionId, athleteId, uri);
+    if (!result.success) {
+      logger.error('Failed to remove media', result.error);
+      return;
+    }
+
+    if (!result.data) {
+      setPhotos([]);
+      setVideo(null);
+      return;
+    }
+
+    setPhotos(result.data.photos);
+    setVideo(result.data.video);
+  };
 
   return {
     photos,

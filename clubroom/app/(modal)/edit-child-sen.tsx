@@ -195,9 +195,12 @@ export default function EditChildSenScreen() {
 
       {/* Save footer */}
       <View style={[styles.footer, { borderTopColor: palette.border }]}>
-        <Button onPress={c.saveNotes} disabled={c.saving} style={{ flex: 1 }}>
-          {c.saving ? 'Saving...' : 'Save Changes'}
-        </Button>
+        <Button
+          onPress={c.saveNotes}
+          disabled={c.saving}
+          style={{ flex: 1 }}
+          label={c.saving ? 'Saving...' : 'Save Changes'}
+        />
       </View>
     </SafeAreaView>
   );

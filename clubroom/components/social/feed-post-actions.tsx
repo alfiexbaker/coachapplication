@@ -1,4 +1,3 @@
-import { memo, useCallback } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,7 +21,7 @@ interface FeedPostActionsProps {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export const FeedPostActions = memo(function FeedPostActions({
+export const FeedPostActions = function FeedPostActions({
   postId,
   reactionCount,
   commentCount,
@@ -32,26 +31,26 @@ export const FeedPostActions = memo(function FeedPostActions({
 }: FeedPostActionsProps) {
   const { colors: palette } = useTheme();
 
-  const handleLike = useCallback(() => {
+  const handleLike = () => {
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     onLike(postId);
-  }, [onLike, postId]);
+  };
 
-  const handleComment = useCallback(() => {
+  const handleComment = () => {
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     onComment(postId);
-  }, [onComment, postId]);
+  };
 
-  const handleShare = useCallback(() => {
+  const handleShare = () => {
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     onShare(postId);
-  }, [onShare, postId]);
+  };
 
   return (
     <Row gap="lg" style={styles.feedFooter}>
@@ -87,7 +86,7 @@ export const FeedPostActions = memo(function FeedPostActions({
       </Clickable>
     </Row>
   );
-});
+};
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 

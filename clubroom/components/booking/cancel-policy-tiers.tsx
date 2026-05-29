@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
@@ -15,7 +15,7 @@ interface CancelPolicyTiersProps {
   refundCalc: RefundCalculation | null;
 }
 
-export const CancelPolicyTiers = memo(function CancelPolicyTiers({
+export const CancelPolicyTiers = function CancelPolicyTiers({
   policy,
   sortedTiers,
   refundCalc,
@@ -38,7 +38,10 @@ export const CancelPolicyTiers = memo(function CancelPolicyTiers({
           const tierColor = getTierColour(tier, palette);
 
           return (
-            <View key={index} style={styles.tierContainer}>
+            <View
+              key={`${tier.hoursBeforeSession}:${tier.refundPercentage}:${tier.description}`}
+              style={styles.tierContainer}
+            >
               {index > 0 && (
                 <View style={[styles.connector, { backgroundColor: palette.border }]} />
               )}
@@ -83,7 +86,7 @@ export const CancelPolicyTiers = memo(function CancelPolicyTiers({
       </View>
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { padding: Spacing.md, gap: Spacing.sm },
@@ -117,5 +120,9 @@ const styles = StyleSheet.create({
     borderRadius: Radii.xs,
   },
   activeText: { ...Typography.micro, textTransform: 'uppercase', letterSpacing: 0.5 },
-  tierDesc: { ...Typography.caption, marginTop: Spacing.micro, lineHeight: Typography.micro.lineHeight },
+  tierDesc: {
+    ...Typography.caption,
+    marginTop: Spacing.micro,
+    lineHeight: Typography.micro.lineHeight,
+  },
 });

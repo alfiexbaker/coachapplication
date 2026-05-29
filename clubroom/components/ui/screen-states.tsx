@@ -22,7 +22,8 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { useTheme } from '@/hooks/useTheme';
 import { Skeleton, SkeletonCircle, SkeletonPill } from './skeleton';
-import { VARIANT_MAP, type LoadingScope, type LoadingVariant } from './screen-states-sections';
+import type { LoadingScope, LoadingVariant } from './screen-states-sections';
+import { VARIANT_MAP } from './screen-states-variants';
 import type { ServiceError } from '@/types/result';
 
 // Re-export EmptyState for convenience (single source of truth)

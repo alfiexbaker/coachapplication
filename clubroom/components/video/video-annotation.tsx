@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import { View, StyleSheet, TextInput, Modal, ScrollView, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -11,6 +11,8 @@ import type { VideoAnnotation, VideoAnnotationType } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { ANNOTATION_TYPES, formatTime } from './video-annotation-helpers';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 // ─── Re-exports ─────────────────────────────────────────────────────────────
 
@@ -41,7 +43,7 @@ export function AddAnnotationModal({
 }: AddAnnotationModalProps) {
   const { colors: palette } = useTheme();
 
-  const [timestamp, setTimestamp] = useState(currentTime);
+  const [timestamp, setTimestamp] = useState(() => currentTime);
   const [label, setLabel] = useState('');
   const [note, setNote] = useState('');
   const [type, setType] = useState<VideoAnnotationType>('TECHNIQUE');
@@ -49,7 +51,9 @@ export function AddAnnotationModal({
 
   useEffect(() => {
     if (!visible) return;
-    setTimestamp(Math.min(Math.max(0, currentTime), Math.max(0, duration)));
+    startTransition(() => {
+      setTimestamp(Math.min(Math.max(0, currentTime), Math.max(0, duration)));
+    });
   }, [visible, currentTime, duration]);
 
   const handleSave = async () => {
@@ -74,15 +78,16 @@ export function AddAnnotationModal({
       return;
     }
     setSaving(true);
-    try {
+
+    await runAsyncTryCatchFinally(async () => {
       await onSave({ timestamp, label: label.trim(), note: note.trim() || undefined, type });
       handleClose();
-    } catch (error) {
+    }, async error => {
       logger.error('Failed to save annotation', error);
       uiFeedback.showToast('Failed to save annotation. Please try again.', 'error');
-    } finally {
+    }, () => {
       setSaving(false);
-    }
+    });
   };
 
   const handleClose = () => {

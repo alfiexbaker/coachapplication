@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +19,7 @@ interface SettingsSquadsSectionProps {
   onCreateSquad: () => void;
 }
 
-export const SettingsSquadsSection = memo(function SettingsSquadsSection({
+export const SettingsSquadsSection = function SettingsSquadsSection({
   squads,
   colors,
   onCreateSquad,
@@ -82,7 +82,7 @@ export const SettingsSquadsSection = memo(function SettingsSquadsSection({
       </SurfaceCard>
     </Animated.View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.md },

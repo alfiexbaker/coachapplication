@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Clickable } from '@/components/primitives/clickable';
@@ -23,7 +23,7 @@ interface PostDetailCardProps {
   onLike: () => void;
 }
 
-export const PostDetailCard = memo(function PostDetailCard({
+export const PostDetailCard = function PostDetailCard({
   authorName,
   initials,
   title,
@@ -86,7 +86,7 @@ export const PostDetailCard = memo(function PostDetailCard({
       <ThemedText style={styles.commentsHeading}>Comments ({commentCount})</ThemedText>
     </View>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: {

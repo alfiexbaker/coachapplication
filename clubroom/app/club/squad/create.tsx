@@ -291,7 +291,7 @@ export default function CreateSquadScreen() {
             <Row align="center" justify="center" gap="sm">
               {isSubmitting ? (
                 <ThemedText style={[Typography.subheading, { color: colors.onPrimary }]}>
-                  Creating...
+                  Creating…
                 </ThemedText>
               ) : (
                 <>

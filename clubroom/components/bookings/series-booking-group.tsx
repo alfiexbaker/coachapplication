@@ -7,7 +7,7 @@
  * Includes progress bar showing completed/total.
  */
 
-import { useState, useCallback, memo } from 'react';
+import { useState } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -22,12 +22,9 @@ import { useTheme } from '@/hooks/useTheme';
 import type { BookingSummary } from '@/constants/types';
 import { BookingOwnershipBlock } from '@/components/bookings/booking-ownership-block';
 
-import { formatBookingDate, SeriesWeekRow } from './series-booking-group-sections';
+import { SeriesWeekRow } from './series-booking-group-sections';
+import { formatBookingDate } from './series-booking-group-helpers';
 import { Row } from '@/components/primitives';
-
-// Re-export extracted components for backward compat
-export { getStatusColor, formatBookingDate, SeriesWeekRow } from './series-booking-group-sections';
-export type { SeriesWeekRowProps } from './series-booking-group-sections';
 
 interface SeriesBookingGroupProps {
   seriesId: string;
@@ -36,7 +33,7 @@ interface SeriesBookingGroupProps {
   onBookingPress?: (booking: BookingSummary) => void;
 }
 
-export const SeriesBookingGroup = memo(function SeriesBookingGroup({
+export const SeriesBookingGroup = function SeriesBookingGroup({
   seriesId,
   bookings,
   coachName,
@@ -45,14 +42,14 @@ export const SeriesBookingGroup = memo(function SeriesBookingGroup({
   const { colors: palette } = useTheme();
   const [expanded, setExpanded] = useState(false);
 
-  const toggleExpanded = useCallback(() => {
+  const toggleExpanded = () => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     setExpanded((prev) => !prev);
-  }, []);
+  };
 
-  const sorted = [...bookings].sort(
+  const sorted = Array.from(bookings).toSorted(
     (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
   );
 
@@ -162,7 +159,7 @@ export const SeriesBookingGroup = memo(function SeriesBookingGroup({
       )}
     </SurfaceCard>
   );
-});
+};
 
 const styles = StyleSheet.create({
   card: { gap: Spacing.sm },

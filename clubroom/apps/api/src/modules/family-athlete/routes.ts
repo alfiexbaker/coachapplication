@@ -1,5 +1,5 @@
-import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
-import { z } from 'zod';
+import type { FastifyPluginAsync, FastifyRequest } from "fastify";
+import { z } from "zod";
 import {
   athleteIdSchema,
   consentsResponseSchema,
@@ -17,26 +17,24 @@ import {
   updateInjuryRequestSchema,
   updateMedicalRecordRequestSchema,
   upsertConsentsRequestSchema,
-} from '@clubroom/shared-contracts';
-import { ApiProblemError, forbidden, notFound } from '../../lib/http-errors.js';
+} from "@clubroom/shared-contracts";
+import { ApiProblemError, forbidden, notFound } from "../../lib/http-errors.js";
 import {
   assertCanReadAthleteHealth,
   assertCanReadAthleteMedical,
   assertCanWriteAthleteHealth,
   assertCanWriteAthleteMedical,
   isPrivilegedAdminAuth,
-} from '../../lib/authz.js';
-import { recordAuditEvent } from '../../lib/audit-runtime.js';
+} from "../../lib/authz.js";
+import { recordAuditEvent } from "../../lib/audit-runtime.js";
 import {
   decorateFamilyAthleteRecord,
   resolveFamilyAthleteRepository,
-} from '../../repositories/p0/family-athlete-repository.js';
-import { resolveFamilyRepository } from '../../repositories/p0/family-repository.js';
-
+} from "../../repositories/p0/family-athlete-repository.js";
+import { resolveFamilyRepository } from "../../repositories/p0/family-repository.js";
 type SeedRow = Record<string, unknown>;
-type Gender = 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY';
-type Relationship = 'SON' | 'DAUGHTER' | 'WARD' | 'GRANDCHILD' | 'OTHER';
-
+type Gender = "MALE" | "FEMALE" | "OTHER" | "PREFER_NOT_TO_SAY";
+type Relationship = "SON" | "DAUGHTER" | "WARD" | "GRANDCHILD" | "OTHER";
 interface DisabilityRecord {
   id?: string;
   type: string;
@@ -47,19 +45,23 @@ interface DisabilityRecord {
   triggers?: string[];
   calmingStrategies?: string[];
 }
-
 interface SpecialNeedRecord {
   id?: string;
-  category: 'PHYSICAL' | 'LEARNING' | 'SENSORY' | 'BEHAVIORAL' | 'MEDICAL' | 'OTHER';
+  category:
+    | "PHYSICAL"
+    | "LEARNING"
+    | "SENSORY"
+    | "BEHAVIORAL"
+    | "MEDICAL"
+    | "OTHER";
   name: string;
   description?: string;
-  severity?: 'MILD' | 'MODERATE' | 'SEVERE';
+  severity?: "MILD" | "MODERATE" | "SEVERE";
   accommodationsNeeded?: string[];
   parentHints?: string;
 }
-
-const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
-
+const asString = (value: unknown): string | undefined =>
+  typeof value === "string" ? value : undefined;
 const disabilitySchema = z.object({
   id: z.string().optional(),
   type: z.string().min(1),
@@ -70,25 +72,34 @@ const disabilitySchema = z.object({
   triggers: z.array(z.string()).optional(),
   calmingStrategies: z.array(z.string()).optional(),
 });
-
 const specialNeedSchema = z.object({
   id: z.string().optional(),
-  category: z.enum(['PHYSICAL', 'LEARNING', 'SENSORY', 'BEHAVIORAL', 'MEDICAL', 'OTHER']),
+  category: z.enum([
+    "PHYSICAL",
+    "LEARNING",
+    "SENSORY",
+    "BEHAVIORAL",
+    "MEDICAL",
+    "OTHER",
+  ]),
   name: z.string().min(1),
   description: z.string().optional(),
-  severity: z.enum(['MILD', 'MODERATE', 'SEVERE']).optional(),
+  severity: z.enum(["MILD", "MODERATE", "SEVERE"]).optional(),
   accommodationsNeeded: z.array(z.string()).optional(),
   parentHints: z.string().optional(),
 });
-
 const createAthleteRequestSchema = z.object({
   familyId: familyIdSchema,
   firstName: z.string().trim().min(1),
   lastName: z.string().trim().min(1),
   nickname: z.string().trim().optional(),
   dateOfBirth: z.string().trim().optional(),
-  gender: z.enum(['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY']).default('PREFER_NOT_TO_SAY'),
-  relationship: z.enum(['SON', 'DAUGHTER', 'WARD', 'GRANDCHILD', 'OTHER']).default('OTHER'),
+  gender: z
+    .enum(["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"])
+    .default("PREFER_NOT_TO_SAY"),
+  relationship: z
+    .enum(["SON", "DAUGHTER", "WARD", "GRANDCHILD", "OTHER"])
+    .default("OTHER"),
   primaryPosition: z.string().trim().nullable().optional(),
   photoUrl: z.string().trim().optional(),
   disabilities: z.array(disabilitySchema).optional(),
@@ -96,21 +107,34 @@ const createAthleteRequestSchema = z.object({
   communicationNotes: z.string().trim().optional(),
   behavioralNotes: z.string().trim().optional(),
 });
-
-const updateAthleteRequestSchema = createAthleteRequestSchema.omit({ familyId: true }).partial();
+const updateAthleteRequestSchema = createAthleteRequestSchema
+  .omit({
+    familyId: true,
+  })
+  .partial();
 const guardianInviteIdSchema = z.string().regex(/^ginv_[A-Za-z0-9-]+$/);
 const familyGuardianIdSchema = z.string().trim().min(1);
-
-function resolveParentIdFromAthlete(athlete: Record<string, unknown>): string | null {
-  const guardians = Array.isArray(athlete.guardians) ? (athlete.guardians as SeedRow[]) : [];
+function resolveParentIdFromAthlete(
+  athlete: Record<string, unknown>,
+): string | null {
+  const guardians = Array.isArray(athlete.guardians)
+    ? (athlete.guardians as SeedRow[])
+    : [];
   const primary = guardians.find((row) => row.isPrimary === true);
-  return asString(primary?.guardianUserId) ?? asString(guardians[0]?.guardianUserId) ?? null;
+  return (
+    asString(primary?.guardianUserId) ??
+    asString(guardians[0]?.guardianUserId) ??
+    null
+  );
 }
-
-function decorateAthlete(athlete: Record<string, unknown>): Record<string, unknown> {
-  return decorateFamilyAthleteRecord(athlete, resolveParentIdFromAthlete(athlete));
+function decorateAthlete(
+  athlete: Record<string, unknown>,
+): Record<string, unknown> {
+  return decorateFamilyAthleteRecord(
+    athlete,
+    resolveParentIdFromAthlete(athlete),
+  );
 }
-
 async function ensureCanReadAthleteProfile(
   request: FastifyRequest,
   athleteId: string,
@@ -118,91 +142,105 @@ async function ensureCanReadAthleteProfile(
 ): Promise<void> {
   const authUserId = request.auth?.userId;
   if (!authUserId) {
-    throw forbidden('Authenticated user is required');
+    throw forbidden("Authenticated user is required");
   }
   if (isPrivilegedAdminAuth(request.auth)) {
     return;
   }
-
   const repository = resolveFamilyAthleteRepository();
   if (await repository.hasFamilyMembership(familyId, authUserId)) {
     return;
   }
-
   await assertCanReadAthleteHealth(request, athleteId);
 }
-
 const ensureAuthUserId = (userId?: string) => {
   if (!userId) {
-    throw forbidden('Authenticated user is required');
+    throw forbidden("Authenticated user is required");
   }
   return userId;
 };
-
 export function resetFamilyAthleteRouteStateForTests(): void {}
-
-function auditResultForError(error: unknown): 'DENY' | 'ERROR' {
-  if (error instanceof ApiProblemError && [400, 403, 409].includes(error.status)) {
-    return 'DENY';
+function auditResultForError(error: unknown): "DENY" | "ERROR" {
+  if (
+    error instanceof ApiProblemError &&
+    [400, 403, 409].includes(error.status)
+  ) {
+    return "DENY";
   }
-  return 'ERROR';
+  return "ERROR";
 }
-
 const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
-  app.get('/families/:familyId', async (request, reply) => {
-    const familyId = familyIdSchema.parse((request.params as { familyId: string }).familyId);
+  app.get("/families/:familyId", async (request, reply) => {
+    const familyId = familyIdSchema.parse(
+      (
+        request.params as {
+          familyId: string;
+        }
+      ).familyId,
+    );
     const authUserId = ensureAuthUserId(request.auth?.userId);
     const isClubAdmin = isPrivilegedAdminAuth(request.auth);
-
     const repository = resolveFamilyRepository();
-    const aggregate = await repository.getFamilyAggregate(familyId, authUserId, isClubAdmin);
+    const aggregate = await repository.getFamilyAggregate(
+      familyId,
+      authUserId,
+      isClubAdmin,
+    );
     await recordAuditEvent({
       request,
-      action: 'family.read',
-      resourceType: 'family',
+      action: "family.read",
+      resourceType: "family",
       resourceId: familyId,
-      result: 'SUCCESS',
+      result: "SUCCESS",
       sensitiveRead: true,
       metadata: {
         athleteCount: aggregate.athletes.length,
       },
     });
-
     return reply.send({
       family: aggregate.family,
       memberships: aggregate.memberships,
-      athletes: aggregate.athletes
-        .filter((athlete) => !asString(athlete.deletedAt))
-        .map((athlete) => decorateAthlete(athlete)),
+      athletes: aggregate.athletes.flatMap((athlete) =>
+        !asString(athlete.deletedAt) ? [decorateAthlete(athlete)] : [],
+      ),
       guardianInvites: aggregate.guardianInvites,
       pendingGuardianInvites: aggregate.guardianInvites,
       seedVersion: aggregate.dataVersion,
       requestId: request.requestId,
     });
   });
-
-  app.get('/me/guardian-invites', async (request, reply) => {
+  app.get("/me/guardian-invites", async (request, reply) => {
     const authUserId = ensureAuthUserId(request.auth?.userId);
     const repository = resolveFamilyRepository();
     const invites = await repository.listGuardianInvitesForUser(authUserId);
     await recordAuditEvent({
       request,
-      action: 'family_guardian_invite.list',
-      resourceType: 'family_guardian_invite',
+      action: "family_guardian_invite.list",
+      resourceType: "family_guardian_invite",
       resourceId: authUserId,
-      result: 'SUCCESS',
+      result: "SUCCESS",
       sensitiveRead: true,
-      metadata: { count: invites.length },
+      metadata: {
+        count: invites.length,
+      },
     });
-    return reply.send(guardianInviteListResponseSchema.parse({ invites }));
+    return reply.send(
+      guardianInviteListResponseSchema.parse({
+        invites,
+      }),
+    );
   });
-
-  app.post('/families/:familyId/guardians', async (request, reply) => {
-    const familyId = familyIdSchema.parse((request.params as { familyId: string }).familyId);
+  app.post("/families/:familyId/guardians", async (request, reply) => {
+    const familyId = familyIdSchema.parse(
+      (
+        request.params as {
+          familyId: string;
+        }
+      ).familyId,
+    );
     const authUserId = ensureAuthUserId(request.auth?.userId);
     const body = createGuardianInviteRequestSchema.parse(request.body);
     const repository = resolveFamilyRepository();
-
     try {
       const result = await repository.createGuardianInvite({
         familyId,
@@ -216,11 +254,11 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
       });
       await recordAuditEvent({
         request,
-        action: 'family_guardian_invite.create',
-        resourceType: 'family_guardian_invite',
+        action: "family_guardian_invite.create",
+        resourceType: "family_guardian_invite",
         resourceId: result.invite.id,
         subjectUserId: null,
-        result: 'SUCCESS',
+        result: "SUCCESS",
         metadata: {
           familyId,
           inviteeEmail: result.invite.inviteeEmail,
@@ -228,15 +266,14 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
           replayed: result.replayed,
         },
       });
-
       return reply
         .code(result.replayed ? 200 : 201)
         .send(guardianInviteResponseSchema.parse(result.invite));
     } catch (error) {
       await recordAuditEvent({
         request,
-        action: 'family_guardian_invite.create',
-        resourceType: 'family_guardian_invite',
+        action: "family_guardian_invite.create",
+        resourceType: "family_guardian_invite",
         resourceId: null,
         result: auditResultForError(error),
         metadata: {
@@ -248,20 +285,28 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
       throw error;
     }
   });
-
-  app.post('/guardian-invites/:inviteId/accept', async (request, reply) => {
-    const inviteId = guardianInviteIdSchema.parse((request.params as { inviteId: string }).inviteId);
+  app.post("/guardian-invites/:inviteId/accept", async (request, reply) => {
+    const inviteId = guardianInviteIdSchema.parse(
+      (
+        request.params as {
+          inviteId: string;
+        }
+      ).inviteId,
+    );
     const authUserId = ensureAuthUserId(request.auth?.userId);
     const repository = resolveFamilyRepository();
-
     try {
-      const result = await repository.respondGuardianInvite(inviteId, authUserId, 'ACCEPTED');
+      const result = await repository.respondGuardianInvite(
+        inviteId,
+        authUserId,
+        "ACCEPTED",
+      );
       await recordAuditEvent({
         request,
-        action: 'family_guardian_invite.accept',
-        resourceType: 'family_guardian_invite',
+        action: "family_guardian_invite.accept",
+        resourceType: "family_guardian_invite",
         resourceId: inviteId,
-        result: 'SUCCESS',
+        result: "SUCCESS",
         metadata: {
           familyId: result.familyId,
           replayed: result.replayed,
@@ -275,28 +320,36 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     } catch (error) {
       await recordAuditEvent({
         request,
-        action: 'family_guardian_invite.accept',
-        resourceType: 'family_guardian_invite',
+        action: "family_guardian_invite.accept",
+        resourceType: "family_guardian_invite",
         resourceId: inviteId,
         result: auditResultForError(error),
       });
       throw error;
     }
   });
-
-  app.post('/guardian-invites/:inviteId/decline', async (request, reply) => {
-    const inviteId = guardianInviteIdSchema.parse((request.params as { inviteId: string }).inviteId);
+  app.post("/guardian-invites/:inviteId/decline", async (request, reply) => {
+    const inviteId = guardianInviteIdSchema.parse(
+      (
+        request.params as {
+          inviteId: string;
+        }
+      ).inviteId,
+    );
     const authUserId = ensureAuthUserId(request.auth?.userId);
     const repository = resolveFamilyRepository();
-
     try {
-      const result = await repository.respondGuardianInvite(inviteId, authUserId, 'DECLINED');
+      const result = await repository.respondGuardianInvite(
+        inviteId,
+        authUserId,
+        "DECLINED",
+      );
       await recordAuditEvent({
         request,
-        action: 'family_guardian_invite.decline',
-        resourceType: 'family_guardian_invite',
+        action: "family_guardian_invite.decline",
+        resourceType: "family_guardian_invite",
         resourceId: inviteId,
-        result: 'SUCCESS',
+        result: "SUCCESS",
         metadata: {
           familyId: result.familyId,
           replayed: result.replayed,
@@ -310,90 +363,133 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     } catch (error) {
       await recordAuditEvent({
         request,
-        action: 'family_guardian_invite.decline',
-        resourceType: 'family_guardian_invite',
+        action: "family_guardian_invite.decline",
+        resourceType: "family_guardian_invite",
         resourceId: inviteId,
         result: auditResultForError(error),
       });
       throw error;
     }
   });
-
-  app.delete('/families/:familyId/guardian-invites/:inviteId', async (request, reply) => {
-    const familyId = familyIdSchema.parse((request.params as { familyId: string }).familyId);
-    const inviteId = guardianInviteIdSchema.parse((request.params as { inviteId: string }).inviteId);
-    const authUserId = ensureAuthUserId(request.auth?.userId);
-    const repository = resolveFamilyRepository();
-
-    try {
-      const cancelled = await repository.cancelGuardianInvite(familyId, inviteId, authUserId);
-      if (!cancelled) {
-        throw notFound('Guardian invitation not found', { inviteId });
+  app.delete(
+    "/families/:familyId/guardian-invites/:inviteId",
+    async (request, reply) => {
+      const familyId = familyIdSchema.parse(
+        (
+          request.params as {
+            familyId: string;
+          }
+        ).familyId,
+      );
+      const inviteId = guardianInviteIdSchema.parse(
+        (
+          request.params as {
+            inviteId: string;
+          }
+        ).inviteId,
+      );
+      const authUserId = ensureAuthUserId(request.auth?.userId);
+      const repository = resolveFamilyRepository();
+      try {
+        const cancelled = await repository.cancelGuardianInvite(
+          familyId,
+          inviteId,
+          authUserId,
+        );
+        if (!cancelled) {
+          throw notFound("Guardian invitation not found", {
+            inviteId,
+          });
+        }
+        await recordAuditEvent({
+          request,
+          action: "family_guardian_invite.cancel",
+          resourceType: "family_guardian_invite",
+          resourceId: inviteId,
+          result: "SUCCESS",
+          metadata: {
+            familyId,
+          },
+        });
+        return reply.code(204).send();
+      } catch (error) {
+        await recordAuditEvent({
+          request,
+          action: "family_guardian_invite.cancel",
+          resourceType: "family_guardian_invite",
+          resourceId: inviteId,
+          result: auditResultForError(error),
+          metadata: {
+            familyId,
+          },
+        });
+        throw error;
       }
-      await recordAuditEvent({
-        request,
-        action: 'family_guardian_invite.cancel',
-        resourceType: 'family_guardian_invite',
-        resourceId: inviteId,
-        result: 'SUCCESS',
-        metadata: { familyId },
-      });
-      return reply.code(204).send();
-    } catch (error) {
-      await recordAuditEvent({
-        request,
-        action: 'family_guardian_invite.cancel',
-        resourceType: 'family_guardian_invite',
-        resourceId: inviteId,
-        result: auditResultForError(error),
-        metadata: { familyId },
-      });
-      throw error;
-    }
-  });
-
-  app.delete('/families/:familyId/guardians/:guardianId', async (request, reply) => {
-    const familyId = familyIdSchema.parse((request.params as { familyId: string }).familyId);
-    const guardianId = familyGuardianIdSchema.parse((request.params as { guardianId: string }).guardianId);
-    const authUserId = ensureAuthUserId(request.auth?.userId);
-    const repository = resolveFamilyRepository();
-
-    try {
-      const removed = await repository.removeGuardian(familyId, guardianId, authUserId);
-      if (!removed) {
-        throw notFound('Guardian not found', { guardianId });
+    },
+  );
+  app.delete(
+    "/families/:familyId/guardians/:guardianId",
+    async (request, reply) => {
+      const familyId = familyIdSchema.parse(
+        (
+          request.params as {
+            familyId: string;
+          }
+        ).familyId,
+      );
+      const guardianId = familyGuardianIdSchema.parse(
+        (
+          request.params as {
+            guardianId: string;
+          }
+        ).guardianId,
+      );
+      const authUserId = ensureAuthUserId(request.auth?.userId);
+      const repository = resolveFamilyRepository();
+      try {
+        const removed = await repository.removeGuardian(
+          familyId,
+          guardianId,
+          authUserId,
+        );
+        if (!removed) {
+          throw notFound("Guardian not found", {
+            guardianId,
+          });
+        }
+        await recordAuditEvent({
+          request,
+          action: "family_guardian.remove",
+          resourceType: "family_guardian",
+          resourceId: guardianId,
+          result: "SUCCESS",
+          metadata: {
+            familyId,
+          },
+        });
+        return reply.code(204).send();
+      } catch (error) {
+        await recordAuditEvent({
+          request,
+          action: "family_guardian.remove",
+          resourceType: "family_guardian",
+          resourceId: guardianId,
+          result: auditResultForError(error),
+          metadata: {
+            familyId,
+          },
+        });
+        throw error;
       }
-      await recordAuditEvent({
-        request,
-        action: 'family_guardian.remove',
-        resourceType: 'family_guardian',
-        resourceId: guardianId,
-        result: 'SUCCESS',
-        metadata: { familyId },
-      });
-      return reply.code(204).send();
-    } catch (error) {
-      await recordAuditEvent({
-        request,
-        action: 'family_guardian.remove',
-        resourceType: 'family_guardian',
-        resourceId: guardianId,
-        result: auditResultForError(error),
-        metadata: { familyId },
-      });
-      throw error;
-    }
-  });
-
-  app.post('/athletes', async (request, reply) => {
+    },
+  );
+  app.post("/athletes", async (request, reply) => {
     const authUserId = ensureAuthUserId(request.auth?.userId);
     const body = createAthleteRequestSchema.parse(request.body);
     const repository = resolveFamilyAthleteRepository();
-
     if (!(await repository.hasFamilyMembership(body.familyId, authUserId))) {
-      throw forbidden('Not allowed to manage this family');
+      throw forbidden("Not allowed to manage this family");
     }
-
     const athlete = await repository.createAthlete(
       {
         familyId: body.familyId,
@@ -414,65 +510,73 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     );
     await recordAuditEvent({
       request,
-      action: 'athlete.create',
-      resourceType: 'athlete',
+      action: "athlete.create",
+      resourceType: "athlete",
       resourceId: athlete.id as string,
-      result: 'SUCCESS',
+      result: "SUCCESS",
       metadata: {
         familyId: body.familyId,
       },
     });
-
     return reply.code(201).send({
       athleteId: athlete.id,
       ...athlete,
     });
   });
-
-  app.get('/athletes/:athleteId', async (request, reply) => {
-    const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
+  app.get("/athletes/:athleteId", async (request, reply) => {
+    const athleteId = athleteIdSchema.parse(
+      (
+        request.params as {
+          athleteId: string;
+        }
+      ).athleteId,
+    );
     const repository = resolveFamilyAthleteRepository();
     const familyId = await repository.resolveAthleteFamilyId(athleteId);
-
     if (familyId) {
       await ensureCanReadAthleteProfile(request, athleteId, familyId);
     } else {
       await assertCanReadAthleteHealth(request, athleteId);
     }
-
     const athlete = await repository.getAthlete(athleteId);
     if (!athlete) {
-      throw notFound('Athlete not found', { athleteId });
+      throw notFound("Athlete not found", {
+        athleteId,
+      });
     }
     await recordAuditEvent({
       request,
-      action: 'athlete.read',
-      resourceType: 'athlete',
+      action: "athlete.read",
+      resourceType: "athlete",
       resourceId: athleteId,
-      result: 'SUCCESS',
+      result: "SUCCESS",
       sensitiveRead: true,
     });
-
     return reply.send({
       athleteId,
       ...athlete,
     });
   });
-
-  app.patch('/athletes/:athleteId', async (request, reply) => {
+  app.patch("/athletes/:athleteId", async (request, reply) => {
     const authUserId = ensureAuthUserId(request.auth?.userId);
-    const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
+    const athleteId = athleteIdSchema.parse(
+      (
+        request.params as {
+          athleteId: string;
+        }
+      ).athleteId,
+    );
     const body = updateAthleteRequestSchema.parse(request.body);
     const repository = resolveFamilyAthleteRepository();
     const familyId = await repository.resolveAthleteFamilyId(athleteId);
-
     if (!familyId) {
-      throw notFound('Athlete not found', { athleteId });
+      throw notFound("Athlete not found", {
+        athleteId,
+      });
     }
     if (!(await repository.hasFamilyMembership(familyId, authUserId))) {
-      throw forbidden('Not allowed to manage this family');
+      throw forbidden("Not allowed to manage this family");
     }
-
     const athlete = await repository.updateAthlete(
       athleteId,
       {
@@ -491,56 +595,66 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
       },
       authUserId,
     );
-
     if (!athlete) {
-      throw notFound('Athlete not found', { athleteId });
+      throw notFound("Athlete not found", {
+        athleteId,
+      });
     }
     await recordAuditEvent({
       request,
-      action: 'athlete.update',
-      resourceType: 'athlete',
+      action: "athlete.update",
+      resourceType: "athlete",
       resourceId: athleteId,
-      result: 'SUCCESS',
+      result: "SUCCESS",
     });
-
     return reply.send({
       athleteId,
       ...athlete,
     });
   });
-
-  app.delete('/athletes/:athleteId', async (request, reply) => {
+  app.delete("/athletes/:athleteId", async (request, reply) => {
     const authUserId = ensureAuthUserId(request.auth?.userId);
-    const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
+    const athleteId = athleteIdSchema.parse(
+      (
+        request.params as {
+          athleteId: string;
+        }
+      ).athleteId,
+    );
     const repository = resolveFamilyAthleteRepository();
     const familyId = await repository.resolveAthleteFamilyId(athleteId);
-
     if (!familyId) {
-      throw notFound('Athlete not found', { athleteId });
+      throw notFound("Athlete not found", {
+        athleteId,
+      });
     }
     if (!(await repository.hasFamilyMembership(familyId, authUserId))) {
-      throw forbidden('Not allowed to manage this family');
+      throw forbidden("Not allowed to manage this family");
     }
-
     const deleted = await repository.deleteAthlete(athleteId, authUserId);
     if (!deleted) {
-      throw notFound('Athlete not found', { athleteId });
+      throw notFound("Athlete not found", {
+        athleteId,
+      });
     }
     await recordAuditEvent({
       request,
-      action: 'athlete.delete',
-      resourceType: 'athlete',
+      action: "athlete.delete",
+      resourceType: "athlete",
       resourceId: athleteId,
-      result: 'SUCCESS',
+      result: "SUCCESS",
     });
-
     return reply.code(204).send();
   });
-
-  app.get('/athletes/:athleteId/injuries', async (request, reply) => {
-    const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
+  app.get("/athletes/:athleteId/injuries", async (request, reply) => {
+    const athleteId = athleteIdSchema.parse(
+      (
+        request.params as {
+          athleteId: string;
+        }
+      ).athleteId,
+    );
     await assertCanReadAthleteHealth(request, athleteId);
-
     const repository = resolveFamilyAthleteRepository();
     const injuries = await repository.listInjuries(athleteId);
     const payload = injuriesResponseSchema.parse({
@@ -549,26 +663,29 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     });
     await recordAuditEvent({
       request,
-      action: 'athlete_injury.read',
-      resourceType: 'athlete_injury',
+      action: "athlete_injury.read",
+      resourceType: "athlete_injury",
       resourceId: athleteId,
-      result: 'SUCCESS',
+      result: "SUCCESS",
       sensitiveRead: true,
       metadata: {
         count: injuries.length,
       },
     });
-
     return reply.send(payload);
   });
-
-  app.post('/athletes/:athleteId/injuries', async (request, reply) => {
-    const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
+  app.post("/athletes/:athleteId/injuries", async (request, reply) => {
+    const athleteId = athleteIdSchema.parse(
+      (
+        request.params as {
+          athleteId: string;
+        }
+      ).athleteId,
+    );
     await assertCanWriteAthleteHealth(request, athleteId);
     const body = createInjuryRequestSchema.parse(request.body);
     const createdByUserId = ensureAuthUserId(request.auth?.userId);
     const repository = resolveFamilyAthleteRepository();
-
     const injury = await repository.createInjury(
       athleteId,
       {
@@ -583,28 +700,33 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     );
     await recordAuditEvent({
       request,
-      action: 'athlete_injury.create',
-      resourceType: 'athlete_injury',
+      action: "athlete_injury.create",
+      resourceType: "athlete_injury",
       resourceId: injury.id,
-      result: 'SUCCESS',
+      result: "SUCCESS",
       metadata: {
         athleteId,
       },
     });
-
     return reply.status(201).send(injury);
   });
-
-  app.patch('/injuries/:injuryId', async (request, reply) => {
-    const injuryId = injuryIdSchema.parse((request.params as { injuryId: string }).injuryId);
+  app.patch("/injuries/:injuryId", async (request, reply) => {
+    const injuryId = injuryIdSchema.parse(
+      (
+        request.params as {
+          injuryId: string;
+        }
+      ).injuryId,
+    );
     const body = updateInjuryRequestSchema.parse(request.body);
     const repository = resolveFamilyAthleteRepository();
     const current = await repository.getInjury(injuryId);
     if (!current) {
-      throw notFound('Injury record not found', { injuryId });
+      throw notFound("Injury record not found", {
+        injuryId,
+      });
     }
     await assertCanWriteAthleteHealth(request, current.athleteId);
-
     const updated = await repository.updateInjury(
       injuryId,
       {
@@ -618,48 +740,57 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
       },
       ensureAuthUserId(request.auth?.userId),
     );
-
     if (!updated) {
-      throw notFound('Injury record not found', { injuryId });
+      throw notFound("Injury record not found", {
+        injuryId,
+      });
     }
     await recordAuditEvent({
       request,
-      action: 'athlete_injury.update',
-      resourceType: 'athlete_injury',
+      action: "athlete_injury.update",
+      resourceType: "athlete_injury",
       resourceId: injuryId,
-      result: 'SUCCESS',
+      result: "SUCCESS",
       metadata: {
         athleteId: current.athleteId,
       },
     });
-
     return reply.send(updated);
   });
-
-  app.get('/athletes/:athleteId/medical', async (request, reply) => {
-    const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
+  app.get("/athletes/:athleteId/medical", async (request, reply) => {
+    const athleteId = athleteIdSchema.parse(
+      (
+        request.params as {
+          athleteId: string;
+        }
+      ).athleteId,
+    );
     await assertCanReadAthleteMedical(request, athleteId);
     const userId = ensureAuthUserId(request.auth?.userId);
     const repository = resolveFamilyAthleteRepository();
     const record = await repository.getMedical(athleteId, userId);
     await recordAuditEvent({
       request,
-      action: 'medical.read',
-      resourceType: 'child_medical_record',
+      action: "medical.read",
+      resourceType: "child_medical_record",
       resourceId: athleteId,
-      result: 'SUCCESS',
+      result: "SUCCESS",
       sensitiveRead: true,
     });
     return reply.send(medicalRecordResponseSchema.parse(record));
   });
-
-  app.patch('/athletes/:athleteId/medical', async (request, reply) => {
-    const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
+  app.patch("/athletes/:athleteId/medical", async (request, reply) => {
+    const athleteId = athleteIdSchema.parse(
+      (
+        request.params as {
+          athleteId: string;
+        }
+      ).athleteId,
+    );
     await assertCanWriteAthleteMedical(request, athleteId);
     const body = updateMedicalRecordRequestSchema.parse(request.body);
     const userId = ensureAuthUserId(request.auth?.userId);
     const repository = resolveFamilyAthleteRepository();
-
     const updated = await repository.upsertMedical(
       athleteId,
       {
@@ -678,82 +809,103 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     );
     await recordAuditEvent({
       request,
-      action: 'medical.update',
-      resourceType: 'child_medical_record',
+      action: "medical.update",
+      resourceType: "child_medical_record",
       resourceId: athleteId,
-      result: 'SUCCESS',
+      result: "SUCCESS",
     });
-
     return reply.send(medicalRecordResponseSchema.parse(updated));
   });
-
-  app.get('/athletes/:athleteId/emergency-contacts', async (request, reply) => {
-    const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
+  app.get("/athletes/:athleteId/emergency-contacts", async (request, reply) => {
+    const athleteId = athleteIdSchema.parse(
+      (
+        request.params as {
+          athleteId: string;
+        }
+      ).athleteId,
+    );
     await assertCanReadAthleteMedical(request, athleteId);
     const userId = ensureAuthUserId(request.auth?.userId);
     const repository = resolveFamilyAthleteRepository();
     const record = await repository.getEmergencyContacts(athleteId, userId);
     await recordAuditEvent({
       request,
-      action: 'emergency_contacts.read',
-      resourceType: 'child_emergency_contact',
+      action: "emergency_contacts.read",
+      resourceType: "child_emergency_contact",
       resourceId: athleteId,
-      result: 'SUCCESS',
+      result: "SUCCESS",
       sensitiveRead: true,
     });
     return reply.send(emergencyContactsResponseSchema.parse(record));
   });
-
-  app.patch('/athletes/:athleteId/emergency-contacts', async (request, reply) => {
-    const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
-    await assertCanWriteAthleteMedical(request, athleteId);
-    const body = updateEmergencyContactsRequestSchema.parse(request.body);
-    const userId = ensureAuthUserId(request.auth?.userId);
-    const repository = resolveFamilyAthleteRepository();
-
-    const updated = await repository.replaceEmergencyContacts(
-      athleteId,
-      { contacts: body.contacts },
-      userId,
+  app.patch(
+    "/athletes/:athleteId/emergency-contacts",
+    async (request, reply) => {
+      const athleteId = athleteIdSchema.parse(
+        (
+          request.params as {
+            athleteId: string;
+          }
+        ).athleteId,
+      );
+      await assertCanWriteAthleteMedical(request, athleteId);
+      const body = updateEmergencyContactsRequestSchema.parse(request.body);
+      const userId = ensureAuthUserId(request.auth?.userId);
+      const repository = resolveFamilyAthleteRepository();
+      const updated = await repository.replaceEmergencyContacts(
+        athleteId,
+        {
+          contacts: body.contacts,
+        },
+        userId,
+      );
+      await recordAuditEvent({
+        request,
+        action: "emergency_contacts.update",
+        resourceType: "child_emergency_contact",
+        resourceId: athleteId,
+        result: "SUCCESS",
+        metadata: {
+          count: body.contacts.length,
+        },
+      });
+      return reply.send(emergencyContactsResponseSchema.parse(updated));
+    },
+  );
+  app.get("/athletes/:athleteId/consents", async (request, reply) => {
+    const athleteId = athleteIdSchema.parse(
+      (
+        request.params as {
+          athleteId: string;
+        }
+      ).athleteId,
     );
-    await recordAuditEvent({
-      request,
-      action: 'emergency_contacts.update',
-      resourceType: 'child_emergency_contact',
-      resourceId: athleteId,
-      result: 'SUCCESS',
-      metadata: {
-        count: body.contacts.length,
-      },
-    });
-
-    return reply.send(emergencyContactsResponseSchema.parse(updated));
-  });
-
-  app.get('/athletes/:athleteId/consents', async (request, reply) => {
-    const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
     await assertCanReadAthleteMedical(request, athleteId);
     const userId = ensureAuthUserId(request.auth?.userId);
     const repository = resolveFamilyAthleteRepository();
     const record = await repository.getConsents(athleteId, userId);
     await recordAuditEvent({
       request,
-      action: 'consents.read',
-      resourceType: 'child_consent',
+      action: "consents.read",
+      resourceType: "child_consent",
       resourceId: athleteId,
-      result: 'SUCCESS',
+      result: "SUCCESS",
       sensitiveRead: true,
     });
     return reply.send(consentsResponseSchema.parse(record));
   });
-
-  app.put('/athletes/:athleteId/consents', async (request, reply) => {
-    const athleteId = athleteIdSchema.parse((request.params as { athleteId: string }).athleteId);
+  app.put("/athletes/:athleteId/consents", async (request, reply) => {
+    const athleteId = athleteIdSchema.parse(
+      (
+        request.params as {
+          athleteId: string;
+        }
+      ).athleteId,
+    );
     await assertCanWriteAthleteMedical(request, athleteId);
     const body = upsertConsentsRequestSchema.parse(request.body);
     const userId = ensureAuthUserId(request.auth?.userId);
     const repository = resolveFamilyAthleteRepository();
-
     const updated = await repository.replaceConsents(
       athleteId,
       {
@@ -769,17 +921,15 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
     );
     await recordAuditEvent({
       request,
-      action: 'consents.update',
-      resourceType: 'child_consent',
+      action: "consents.update",
+      resourceType: "child_consent",
       resourceId: athleteId,
-      result: 'SUCCESS',
+      result: "SUCCESS",
       metadata: {
         count: body.consents.length,
       },
     });
-
     return reply.send(consentsResponseSchema.parse(updated));
   });
 };
-
 export default familyAthleteRoutes;

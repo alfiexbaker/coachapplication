@@ -4,7 +4,7 @@
  * Shows upcoming sessions list + past sessions list with notes preview.
  */
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -71,14 +71,14 @@ function AthleteSessionsInner({ athlete, coachId }: AthleteSessionsProps) {
     dataKey: athlete.athleteId,
   });
   const sessions = sessionsData ?? [];
+  const [nowMs] = useState(() => Date.now());
 
-  const { upcoming, past } = useMemo(() => {
-    const now = Date.now();
+  const { upcoming, past } = (() => {
     const up: Booking[] = [];
     const pa: Booking[] = [];
 
     sessions.forEach((s) => {
-      if (new Date(s.scheduledAt).getTime() > now) {
+      if (new Date(s.scheduledAt).getTime() > nowMs) {
         up.push(s);
       } else {
         pa.push(s);
@@ -89,19 +89,16 @@ function AthleteSessionsInner({ athlete, coachId }: AthleteSessionsProps) {
     pa.sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime());
 
     return { upcoming: up, past: pa };
-  }, [sessions]);
+  })();
 
-  const renderSectionSkeleton = useCallback(
-    (variant: 'upcoming' | 'past') => (
-      <Column gap="sm" style={styles.container}>
-        <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-          {variant === 'upcoming' ? 'Upcoming' : 'Past'}
-        </ThemedText>
-        <SessionItemSkeleton showNeedsNotesBadge={variant === 'past'} />
-        <SessionItemSkeleton showNeedsNotesBadge={variant === 'past'} />
-      </Column>
-    ),
-    [],
+  const renderSectionSkeleton = (variant: 'upcoming' | 'past') => (
+    <Column gap="sm" style={styles.container}>
+      <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+        {variant === 'upcoming' ? 'Upcoming' : 'Past'}
+      </ThemedText>
+      <SessionItemSkeleton showNeedsNotesBadge={variant === 'past'} />
+      <SessionItemSkeleton showNeedsNotesBadge={variant === 'past'} />
+    </Column>
   );
 
   if (showLoadingState) {
@@ -200,7 +197,7 @@ function AthleteSessionsInner({ athlete, coachId }: AthleteSessionsProps) {
   );
 }
 
-export const AthleteSessions = React.memo(AthleteSessionsInner);
+export const AthleteSessions = AthleteSessionsInner;
 
 // ============================================================================
 // STYLES

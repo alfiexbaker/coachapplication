@@ -51,6 +51,10 @@ async function resolveAthleteNames(athleteIds: string[]): Promise<string[]> {
   );
 }
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unknown error';
+}
+
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
@@ -125,20 +129,29 @@ export const bulkInviteService = {
     const successful: SessionInvite[] = [];
     const failed: { input: CreateInviteInput; error: string }[] = [];
 
-    for (const input of inputs) {
-      try {
-        const invite = await sessionInviteService._createSingleInvite({
-          ...input,
-          groupId: input.groupId ?? groupId,
-        });
-        successful.push(invite);
-      } catch (error) {
-        failed.push({
-          input,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
+    const results = await Promise.all(
+      inputs.map(async (input) => {
+        try {
+          const invite = await sessionInviteService._createSingleInvite({
+            ...input,
+            groupId: input.groupId ?? groupId,
+          });
+          return { invite, input, error: null };
+        } catch (error) {
+          return { invite: null, input, error: getErrorMessage(error) };
+        }
+      }),
+    );
+    results.forEach((result) => {
+      if (result.invite) {
+        successful.push(result.invite);
+        return;
       }
-    }
+      failed.push({
+        input: result.input,
+        error: result.error ?? 'Unknown error',
+      });
+    });
 
     return { successful, failed, groupId };
   },
@@ -213,11 +226,11 @@ export const bulkInviteService = {
    * Creates individual session invites for each parent
    */
   async inviteSquadToSession(input: InviteSquadToSessionInput): Promise<BulkInviteResult> {
-    const members = await squadService.getSquadMembers(input.squadId);
-    const squad = await squadService.getSquad(input.squadId);
-
-    // Verify all athletes are on coach's roster
-    const roster = await rosterService.getRoster(input.coachId);
+    const [members, squad, roster] = await Promise.all([
+      squadService.getSquadMembers(input.squadId),
+      squadService.getSquad(input.squadId),
+      rosterService.getRoster(input.coachId),
+    ]);
     const rosterAthleteIds = new Set(roster.map((r) => r.athleteId));
     const unauthorizedMembers = members.filter((m) => !rosterAthleteIds.has(m.athleteId));
     if (unauthorizedMembers.length > 0) {
@@ -245,39 +258,54 @@ export const bulkInviteService = {
     const errors: BulkInviteError[] = [];
 
     // Create invite for each parent
-    for (const [parentId, athletes] of parentMap.entries()) {
-      try {
-        const athleteIds = athletes.map((a) => a.athleteId);
-        const [athleteNames, parentName] = await Promise.all([
-          resolveAthleteNames(athleteIds),
-          resolveUserName(parentId, 'Parent'),
-        ]);
+    const parentInviteResults = await Promise.all(
+      Array.from(parentMap.entries()).map(async ([parentId, athletes]) => {
+        try {
+          const athleteIds = athletes.map((a) => a.athleteId);
+          const [athleteNames, parentName] = await Promise.all([
+            resolveAthleteNames(athleteIds),
+            resolveUserName(parentId, 'Parent'),
+          ]);
 
-        await sessionInviteService._createSingleInvite({
-          coachId: input.coachId,
-          coachName: input.coachName,
-          coachPhotoUrl: input.coachPhotoUrl,
-          clubName: input.clubName || squad?.name,
-          athleteIds,
-          athleteNames,
-          parentId,
-          parentName,
-          proposedSlots: input.proposedSlots,
-          sessionType: input.sessionType,
-          focus: input.focus,
-          notes: input.notes ? `[${squad?.name}] ${input.notes}` : `Squad Training: ${squad?.name}`,
-          price: input.price,
-          groupId,
-        });
-        sent++;
-      } catch (error) {
-        failed++;
+          await sessionInviteService._createSingleInvite({
+            coachId: input.coachId,
+            coachName: input.coachName,
+            coachPhotoUrl: input.coachPhotoUrl,
+            clubName: input.clubName || squad?.name,
+            athleteIds,
+            athleteNames,
+            parentId,
+            parentName,
+            proposedSlots: input.proposedSlots,
+            sessionType: input.sessionType,
+            focus: input.focus,
+            notes: input.notes
+              ? `[${squad?.name}] ${input.notes}`
+              : `Squad Training: ${squad?.name}`,
+            price: input.price,
+            groupId,
+          });
+          return { sent: 1, failed: 0, error: null, memberId: athletes[0].athleteId };
+        } catch (error) {
+          return {
+            sent: 0,
+            failed: 1,
+            error: getErrorMessage(error),
+            memberId: athletes[0].athleteId,
+          };
+        }
+      }),
+    );
+    parentInviteResults.forEach((result) => {
+      sent += result.sent;
+      failed += result.failed;
+      if (result.error) {
         errors.push({
-          memberId: athletes[0].athleteId,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          memberId: result.memberId,
+          error: result.error,
         });
       }
-    }
+    });
 
     // Track squad invite
     const squadInvite: SquadInvite = {
@@ -326,8 +354,10 @@ export const bulkInviteService = {
       ServiceError
     >
   > {
-    const squad = await squadService.getSquad(input.squadId);
-    const members = await squadService.getSquadMembers(input.squadId);
+    const [squad, members] = await Promise.all([
+      squadService.getSquad(input.squadId),
+      squadService.getSquadMembers(input.squadId),
+    ]);
 
     if (!squad) {
       return err(notFound('Squad', input.squadId));
@@ -346,9 +376,11 @@ export const bulkInviteService = {
         coachId: input.coachId,
         unauthorizedCount: unauthorizedAthletes.length,
       });
-      return err(validationError(
-        `Cannot invite ${unauthorizedAthletes.length} athlete(s) - not on your roster`,
-      ));
+      return err(
+        validationError(
+          `Cannot invite ${unauthorizedAthletes.length} athlete(s) - not on your roster`,
+        ),
+      );
     }
 
     const groupId = `squad_bulk_${input.squadId}_${Date.now()}`;
@@ -366,62 +398,69 @@ export const bulkInviteService = {
     });
 
     // Create invites for each parent
-    for (const [parentId, athletes] of parentMap.entries()) {
-      try {
-        const athleteIds = athletes.map((a) => a.athleteId);
-        const [athleteNames, parentName] = await Promise.all([
-          resolveAthleteNames(athleteIds),
-          resolveUserName(parentId, 'Parent'),
-        ]);
+    const parentInviteResults = await Promise.all(
+      Array.from(parentMap.entries()).map(async ([parentId, athletes]) => {
+        try {
+          const athleteIds = athletes.map((a) => a.athleteId);
+          const [athleteNames, parentName] = await Promise.all([
+            resolveAthleteNames(athleteIds),
+            resolveUserName(parentId, 'Parent'),
+          ]);
 
-        const invite = await sessionInviteService._createSingleInvite({
-          coachId: input.coachId,
-          coachName: input.coachName,
-          coachPhotoUrl: input.coachPhotoUrl,
-          clubName: input.clubName || squad.name,
-          athleteIds,
-          athleteNames,
-          parentId,
-          parentName,
-          proposedSlots: input.proposedSlots,
-          sessionType: input.sessionType,
-          focus: input.focus,
-          notes: input.notes ? `[${squad.name}] ${input.notes}` : `Squad Training: ${squad.name}`,
-          price: input.price,
-          expiresInDays: input.expiresInDays ?? 7,
-          groupId,
-        });
+          const invite = await sessionInviteService._createSingleInvite({
+            coachId: input.coachId,
+            coachName: input.coachName,
+            coachPhotoUrl: input.coachPhotoUrl,
+            clubName: input.clubName || squad.name,
+            athleteIds,
+            athleteNames,
+            parentId,
+            parentName,
+            proposedSlots: input.proposedSlots,
+            sessionType: input.sessionType,
+            focus: input.focus,
+            notes: input.notes ? `[${squad.name}] ${input.notes}` : `Squad Training: ${squad.name}`,
+            price: input.price,
+            expiresInDays: input.expiresInDays ?? 7,
+            groupId,
+          });
 
-        // Mark all athletes for this parent as sent
-        athletes.forEach((athlete) => {
+          return { athletes, inviteId: invite.id, error: null };
+        } catch (error) {
+          return { athletes, inviteId: null, error: getErrorMessage(error) };
+        }
+      }),
+    );
+    parentInviteResults.forEach((result) => {
+      if (result.inviteId) {
+        result.athletes.forEach((athlete) => {
           invitedMembers.push({
             memberId: athlete.id,
             athleteId: athlete.athleteId,
             parentId: athlete.parentId,
-            inviteId: invite.id,
+            inviteId: result.inviteId,
             status: 'SENT',
           });
           sent++;
         });
-      } catch (error) {
-        // Mark all athletes for this parent as failed
-        athletes.forEach((athlete) => {
-          invitedMembers.push({
-            memberId: athlete.id,
-            athleteId: athlete.athleteId,
-            parentId: athlete.parentId,
-            status: 'FAILED',
-            failureReason: error instanceof Error ? error.message : 'Unknown error',
-          });
-          errors.push({
-            memberId: athlete.id,
-            error: error instanceof Error ? error.message : 'Unknown error',
-            code: 'UNKNOWN',
-          });
-          failed++;
-        });
+        return;
       }
-    }
+      result.athletes.forEach((athlete) => {
+        invitedMembers.push({
+          memberId: athlete.id,
+          athleteId: athlete.athleteId,
+          parentId: athlete.parentId,
+          status: 'FAILED',
+          failureReason: result.error ?? 'Unknown error',
+        });
+        errors.push({
+          memberId: athlete.id,
+          error: result.error ?? 'Unknown error',
+          code: 'UNKNOWN',
+        });
+        failed++;
+      });
+    });
 
     const result: BulkInviteResult = {
       sent,
@@ -447,37 +486,35 @@ export const bulkInviteService = {
     // Save to storage
     let squadSessionInvitesCache = await loadSquadSessionInvites();
     squadSessionInvitesCache.push(squadInvite);
-    await saveSquadSessionInvites(squadSessionInvitesCache);
-
-    // Create history entry
-    await squadInviteService.addToInviteHistory({
-      id: groupId,
-      squadId: input.squadId,
-      sessionId: input.sessionId,
-      sessionType: input.sessionType,
-      focus: input.focus,
-      sentAt: new Date().toISOString(),
-      sentBy: input.coachId,
-      inviteCount: sent,
-      acceptedCount: 0,
-      declinedCount: 0,
-      pendingCount: sent,
-      status: 'ACTIVE',
-    });
-
-    // Send summary notification to coach
-    await notificationService.create({
-      id: `notif_bulk_${Date.now()}`,
-      type: 'booking',
-      notificationType: 'SESSION_INVITE',
-      title: 'Squad Invites Sent',
-      body: `${sent} invite${sent !== 1 ? 's' : ''} sent to ${squad.name}${failed > 0 ? ` (${failed} failed)` : ''}`,
-      timeLabel: 'Just now',
-      recipientId: input.coachId,
-      recipientRole: 'coach',
-      deepLink: `/invites`,
-      data: { squadId: input.squadId },
-    });
+    await Promise.all([
+      saveSquadSessionInvites(squadSessionInvitesCache),
+      squadInviteService.addToInviteHistory({
+        id: groupId,
+        squadId: input.squadId,
+        sessionId: input.sessionId,
+        sessionType: input.sessionType,
+        focus: input.focus,
+        sentAt: new Date().toISOString(),
+        sentBy: input.coachId,
+        inviteCount: sent,
+        acceptedCount: 0,
+        declinedCount: 0,
+        pendingCount: sent,
+        status: 'ACTIVE',
+      }),
+      notificationService.create({
+        id: `notif_bulk_${Date.now()}`,
+        type: 'booking',
+        notificationType: 'SESSION_INVITE',
+        title: 'Squad Invites Sent',
+        body: `${sent} invite${sent !== 1 ? 's' : ''} sent to ${squad.name}${failed > 0 ? ` (${failed} failed)` : ''}`,
+        timeLabel: 'Just now',
+        recipientId: input.coachId,
+        recipientRole: 'coach',
+        deepLink: `/invites`,
+        data: { squadId: input.squadId },
+      }),
+    ]);
 
     return ok({ squadInvite, result });
   },
@@ -502,15 +539,16 @@ export const bulkInviteService = {
     // Get all members from all known squads
     const clubSquads = await squadService.getSquads('club_lions');
     const selectedMembers: SquadMember[] = [];
+    const selectedMemberIdSet = new Set(input.memberIds);
 
-    for (const squad of clubSquads) {
-      const members = await squadService.getSquadMembers(squad.id);
-      members.forEach((m) => {
-        if (input.memberIds.includes(m.id)) {
-          selectedMembers.push(m);
-        }
-      });
-    }
+    const squadMemberGroups = await Promise.all(
+      clubSquads.map((squad) => squadService.getSquadMembers(squad.id)),
+    );
+    squadMemberGroups.flat().forEach((m) => {
+      if (selectedMemberIdSet.has(m.id)) {
+        selectedMembers.push(m);
+      }
+    });
 
     if (selectedMembers.length === 0) {
       return err(validationError('No valid members found for the provided IDs'));
@@ -530,60 +568,69 @@ export const bulkInviteService = {
       parentMap.set(m.parentId, [...existing, m]);
     });
 
-    for (const [parentId, athletes] of parentMap.entries()) {
-      try {
-        const athleteIds = athletes.map((a) => a.athleteId);
-        const [athleteNames, parentName] = await Promise.all([
-          resolveAthleteNames(athleteIds),
-          resolveUserName(parentId, 'Parent'),
-        ]);
+    const selectedParentInviteResults = await Promise.all(
+      Array.from(parentMap.entries()).map(async ([parentId, athletes]) => {
+        try {
+          const athleteIds = athletes.map((a) => a.athleteId);
+          const [athleteNames, parentName] = await Promise.all([
+            resolveAthleteNames(athleteIds),
+            resolveUserName(parentId, 'Parent'),
+          ]);
 
-        const invite = await sessionInviteService._createSingleInvite({
-          coachId: input.coachId,
-          coachName: input.coachName,
-          coachPhotoUrl: input.coachPhotoUrl,
-          clubName: input.clubName,
-          athleteIds,
-          athleteNames,
-          parentId,
-          parentName,
-          proposedSlots: input.proposedSlots,
-          sessionType: input.sessionType,
-          focus: input.focus,
-          notes: input.notes,
-          price: input.price,
-          expiresInDays: input.expiresInDays ?? 7,
-          groupId,
-        });
+          const invite = await sessionInviteService._createSingleInvite({
+            coachId: input.coachId,
+            coachName: input.coachName,
+            coachPhotoUrl: input.coachPhotoUrl,
+            clubName: input.clubName,
+            athleteIds,
+            athleteNames,
+            parentId,
+            parentName,
+            proposedSlots: input.proposedSlots,
+            sessionType: input.sessionType,
+            focus: input.focus,
+            notes: input.notes,
+            price: input.price,
+            expiresInDays: input.expiresInDays ?? 7,
+            groupId,
+          });
 
-        athletes.forEach((athlete) => {
+          return { athletes, inviteId: invite.id, error: null };
+        } catch (error) {
+          return { athletes, inviteId: null, error: getErrorMessage(error) };
+        }
+      }),
+    );
+    selectedParentInviteResults.forEach((result) => {
+      if (result.inviteId) {
+        result.athletes.forEach((athlete) => {
           invitedMembers.push({
             memberId: athlete.id,
             athleteId: athlete.athleteId,
             parentId: athlete.parentId,
-            inviteId: invite.id,
+            inviteId: result.inviteId,
             status: 'SENT',
           });
           sent++;
         });
-      } catch (error) {
-        athletes.forEach((athlete) => {
-          invitedMembers.push({
-            memberId: athlete.id,
-            athleteId: athlete.athleteId,
-            parentId: athlete.parentId,
-            status: 'FAILED',
-            failureReason: error instanceof Error ? error.message : 'Unknown error',
-          });
-          errors.push({
-            memberId: athlete.id,
-            error: error instanceof Error ? error.message : 'Unknown error',
-            code: 'UNKNOWN',
-          });
-          failed++;
-        });
+        return;
       }
-    }
+      result.athletes.forEach((athlete) => {
+        invitedMembers.push({
+          memberId: athlete.id,
+          athleteId: athlete.athleteId,
+          parentId: athlete.parentId,
+          status: 'FAILED',
+          failureReason: result.error ?? 'Unknown error',
+        });
+        errors.push({
+          memberId: athlete.id,
+          error: result.error ?? 'Unknown error',
+          code: 'UNKNOWN',
+        });
+        failed++;
+      });
+    });
 
     const result: BulkInviteResult = {
       sent,

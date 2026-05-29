@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ScrollView,
@@ -33,6 +33,8 @@ import {
   type StoredCoachReview,
 } from '@/services/review-sync-service';
 import { uiFeedback } from '@/services/ui-feedback';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('ReviewScreen');
 let _reviewSubmitLock: Promise<void> = Promise.resolve();
@@ -73,7 +75,7 @@ export default function ReviewScreen() {
     text: string;
   } | null>(null);
 
-  const loadBooking = useCallback(async () => {
+  const loadBooking = async () => {
     if (!bookingId) {
       return ok<BookingInfo | null>(null);
     }
@@ -119,7 +121,7 @@ export default function ReviewScreen() {
         ),
       );
     }
-  }, [bookingId, currentUser?.id]);
+  };
 
   const {
     data: loadedBooking,
@@ -144,91 +146,75 @@ export default function ReviewScreen() {
   }, [bookingId, loadedBooking]);
 
   const existingReview = booking?.existingReview;
-  const reviewFromStorage = useMemo(
-    () =>
-      existingReview
-        ? {
-            rating: existingReview.rating,
-            text: existingReview.text || existingReview.content || '',
-          }
-        : null,
-    [existingReview],
-  );
+  const reviewFromStorage = existingReview
+    ? {
+        rating: existingReview.rating,
+        text: existingReview.text || existingReview.content || '',
+      }
+    : null;
   const isSubmitted = submitted || Boolean(reviewFromStorage);
   const visibleReview = submittedReview ?? reviewFromStorage;
 
-  const handleSubmitReview = useCallback(
-    async (payload: { rating: number; text: string; categories: Record<string, number> }) => {
-      if (isSubmitting) return;
-      setIsSubmitting(true);
+  const handleSubmitReview = async (payload: { rating: number; text: string; categories: Record<string, number> }) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
-      try {
-        if (!booking || !bookingId) {
-          uiFeedback.showToast('This session could not be reviewed.', 'error');
-          return;
-        }
+    return await runAsyncTryCatchFinally(async () => {
+      if (!booking || !bookingId) {
+        uiFeedback.showToast('This session could not be reviewed.', 'error');
+        return;
+      }
 
-        if (booking.status !== 'COMPLETED') {
-          uiFeedback.showToast('You can review a coach once the session is completed.');
-          return;
-        }
+      if (booking.status !== 'COMPLETED') {
+        uiFeedback.showToast('You can review a coach once the session is completed.');
+        return;
+      }
 
-        const persistedReview = await withReviewSubmitLock(async () => {
-          return submitBookingReview({
-            booking,
-            rating: payload.rating,
-            text: payload.text,
-            categories: payload.categories,
-            currentUser,
-          });
-        });
-
-        if (!persistedReview.success) {
-          uiFeedback.showToast(persistedReview.error.message, 'error');
-          return;
-        }
-
-        if (persistedReview.data.reused) {
-          setSubmitted(true);
-          setSubmittedReview({
-            rating: persistedReview.data.review.rating,
-            text: persistedReview.data.review.text || persistedReview.data.review.content || '',
-          });
-          uiFeedback.showToast('You already reviewed this session.');
-          return;
-        }
-
-        logger.info('Review submitted', {
-          bookingId,
-          coachId: booking.coachId,
+      const persistedReview = await withReviewSubmitLock(async () => {
+        return submitBookingReview({
+          booking,
           rating: payload.rating,
+          text: payload.text,
+          categories: payload.categories,
+          currentUser,
         });
+      });
 
+      if (!persistedReview.success) {
+        uiFeedback.showToast(persistedReview.error.message, 'error');
+        return;
+      }
+
+      if (persistedReview.data.reused) {
+        setSubmitted(true);
         setSubmittedReview({
           rating: persistedReview.data.review.rating,
           text: persistedReview.data.review.text || persistedReview.data.review.content || '',
         });
-        setSubmitted(true);
-        showToast('Review submitted', { tone: 'success', duration: 1600 });
-        router.replace(Routes.booking(bookingId, { returnTo: Routes.BOOKINGS as string }));
-      } catch (submitError) {
-        logger.error('Failed to submit review', submitError);
-        uiFeedback.showToast('Failed to submit review. Please try again.', 'error');
-      } finally {
-        setIsSubmitting(false);
+        uiFeedback.showToast('You already reviewed this session.');
+        return;
       }
-    },
-    [
-      isSubmitting,
-      booking,
-      bookingId,
-      currentUser?.id,
-      currentUser?.fullName,
-      currentUser?.name,
-      currentUser?.username,
-      showToast,
-    ],
-  );
+
+      logger.info('Review submitted', {
+        bookingId,
+        coachId: booking.coachId,
+        rating: payload.rating,
+      });
+
+      setSubmittedReview({
+        rating: persistedReview.data.review.rating,
+        text: persistedReview.data.review.text || persistedReview.data.review.content || '',
+      });
+      setSubmitted(true);
+      showToast('Review submitted', { tone: 'success', duration: 1600 });
+      router.replace(Routes.booking(bookingId, { returnTo: Routes.BOOKINGS as string }));
+    }, async submitError => {
+      logger.error('Failed to submit review', submitError);
+      uiFeedback.showToast('Failed to submit review. Please try again.', 'error');
+    }, () => {
+      setIsSubmitting(false);
+    });
+  };
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';

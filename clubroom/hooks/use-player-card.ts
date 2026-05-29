@@ -1,5 +1,3 @@
-import { useMemo } from 'react';
-
 import { POSITION_SKILLS, POSITION_SKILL_ICONS, mapSkillToCorner } from '@/constants/position-skills';
 import type { BadgeAward } from '@/constants/types';
 import type { AthleteProgress, SessionFeedback } from '@/services/progress-service';
@@ -53,7 +51,7 @@ export function usePlayerCard({
   streakInfo,
   position,
 }: UsePlayerCardInput): PlayerCardData {
-  return useMemo(() => {
+  return (() => {
     const skills = progress?.skills ?? [];
     const skillLookup = skills.reduce<Record<string, number>>((acc, skill) => {
       acc[skill.skill.toLowerCase()] = skill.level;
@@ -80,24 +78,34 @@ export function usePlayerCard({
     };
 
     const bestSkill = skills.length
-      ? [...skills]
-          .sort((left, right) => right.level - left.level)[0]
+      ? Array.from(skills)
+          .toSorted((left, right) => right.level - left.level)[0]
       : null;
 
     const mostImproved = skills
       .map((skill) => {
-        const earliest = [...skill.history].sort((left, right) => {
-          const leftTime = toTimestamp(left.date);
-          const rightTime = toTimestamp(right.date);
-          if (leftTime === null && rightTime === null) return 0;
-          if (leftTime === null) return 1;
-          if (rightTime === null) return -1;
-          return leftTime - rightTime;
-        })[0];
+        const earliest = skill.history.reduce<(typeof skill.history)[number] | undefined>(
+          (selected, entry) => {
+            const entryTime = toTimestamp(entry.date);
+            if (entryTime === null) {
+              return selected;
+            }
+            if (!selected) {
+              return entry;
+            }
+            const selectedTime = toTimestamp(selected.date);
+            return selectedTime === null || entryTime < selectedTime ? entry : selected;
+          },
+          undefined,
+        );
         const changePercent = earliest ? toPercentDelta(earliest.level, skill.level) : 0;
         return { name: skill.skill, changePercent };
       })
-      .sort((left, right) => right.changePercent - left.changePercent)[0];
+      .reduce<{ name: string; changePercent: number } | undefined>(
+        (selected, entry) =>
+          !selected || entry.changePercent > selected.changePercent ? entry : selected,
+        undefined,
+      );
 
     const allPhotos = media
       .flatMap((entry) => entry.photos)
@@ -113,10 +121,13 @@ export function usePlayerCard({
     timelineDates.push(...badges.map((item) => item.awardedAt));
     timelineDates.push(...media.map((item) => item.createdAt));
     const earliestDate =
-      timelineDates
-        .map((date) => ({ date, time: toTimestamp(date) }))
-        .filter((entry): entry is { date: string; time: number } => entry.time !== null)
-        .sort((left, right) => left.time - right.time)[0]?.date ?? new Date().toISOString();
+      timelineDates.reduce<{ date: string; time: number } | null>((selected, date) => {
+        const time = toTimestamp(date);
+        if (time === null) {
+          return selected;
+        }
+        return !selected || time < selected.time ? { date, time } : selected;
+      }, null)?.date ?? new Date().toISOString();
 
     const currentLevel = progress?.currentLevel ?? { level: 1, name: 'Starting Out' };
     const positionalAttributes = position
@@ -163,5 +174,5 @@ export function usePlayerCard({
           : null,
       latestPhotoUri,
     };
-  }, [athleteName, badges, feedback, media, position, progress, streakInfo?.currentStreak]);
+  })();
 }

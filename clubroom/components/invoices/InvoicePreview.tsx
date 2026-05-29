@@ -16,8 +16,8 @@ import {
   InvoicePricingCard,
   InvoiceVoidCard,
   InvoiceSentInfo,
-  styles,
 } from './invoice-preview-sections';
+import { styles } from './invoice-preview-styles';
 
 interface InvoicePreviewProps {
   invoice: Invoice;
@@ -79,9 +79,8 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
             size="small"
             onPress={reset}
             style={{ marginTop: Spacing.sm }}
-          >
-            Try Again
-          </Button>
+            label="Try Again"
+          />
         </SurfaceCard>
       )}
     >

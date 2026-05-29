@@ -1,11 +1,3 @@
-/**
- * EventListSection — Renders the list of events for a selected calendar day.
- * Includes per-event conflict indicators when schedule overlaps are detected.
- *
- * Extracted from family-calendar-sections.tsx for file size budget.
- */
-
-import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -31,7 +23,7 @@ type EventListSectionProps = {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export const EventListSection = memo(function EventListSection({
+export const EventListSection = function EventListSection({
   events,
   selectedDate,
   onEventPress,
@@ -115,7 +107,7 @@ export const EventListSection = memo(function EventListSection({
       ))}
     </View>
   );
-});
+};
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 

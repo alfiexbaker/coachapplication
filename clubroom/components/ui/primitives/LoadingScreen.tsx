@@ -61,7 +61,7 @@ function LoadingScreenInner({ title, subtitle, fullScreen = true }: LoadingScree
   return <View style={styles.container}>{content}</View>;
 }
 
-export const LoadingScreen = React.memo(LoadingScreenInner);
+export const LoadingScreen = LoadingScreenInner;
 
 // ---------------------------------------------------------------------------
 // Styles

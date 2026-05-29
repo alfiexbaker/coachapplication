@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
 import { StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,6 +26,16 @@ import { err, ok, serviceError } from '@/types/result';
 
 const logger = createLogger('EventsListScreen');
 
+function renderEventListItem({
+  item,
+  onPress,
+}: {
+  item: ClubEvent;
+  onPress: (eventId: string) => void;
+}) {
+  return <EventCard event={item} onPress={() => onPress(item.id)} />;
+}
+
 export default function EventsListScreen() {
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
@@ -34,7 +44,7 @@ export default function EventsListScreen() {
 
   const clubId = 'club_lions';
 
-  const loadEvents = useCallback(async () => {
+  const loadEvents = async () => {
     try {
       const data = await eventService.getAllClubEvents(clubId);
       return ok(data);
@@ -44,7 +54,7 @@ export default function EventsListScreen() {
         serviceError('UNKNOWN', 'Failed to load events. Pull down to refresh.', loadError),
       );
     }
-  }, [clubId]);
+  };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<ClubEvent[]>({
     load: loadEvents,
@@ -65,6 +75,9 @@ export default function EventsListScreen() {
   });
 
   const onCreate = () => router.push(Routes.EVENTS_CREATE);
+  const openEvent = (eventId: string) => router.push(Routes.event(eventId));
+  const renderEventItem = ({ item }: { item: ClubEvent }) =>
+    renderEventListItem({ item, onPress: openEvent });
   const header = (
     <EventsHeader
       colors={palette}
@@ -111,9 +124,7 @@ export default function EventsListScreen() {
       accessibilityRole="list"
       data={filteredEvents}
       keyExtractor={(item) => item.id}
-      renderItem={({ item }) => (
-        <EventCard event={item} onPress={() => router.push(Routes.event(item.id))} />
-      )}
+      renderItem={renderEventItem}
       contentContainerStyle={styles.listContent}
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}

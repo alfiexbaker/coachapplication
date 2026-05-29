@@ -3,8 +3,7 @@
  * Manages coach data, reviews, connection state, tabs, and refresh.
  */
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import { Dimensions } from 'react-native';
+import { useState, useEffect, startTransition } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
@@ -20,11 +19,10 @@ import { uiFeedback } from '@/services/ui-feedback';
 import { getCoachRelationshipDisplay, type CoachConnectionState } from '@/utils/coach-conversion';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { SessionOffering } from '@/constants/types';
-import {
-  getCoachProfileOfferings,
-  summarizeCoachOfferings,
-} from '@/utils/coach-profile-offerings';
+import { getCoachProfileOfferings, summarizeCoachOfferings } from '@/utils/coach-profile-offerings';
 import type { ScreenPendingState } from '@/hooks/use-screen-core';
+
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('CoachProfileScreen');
 
@@ -36,13 +34,85 @@ export const COACH_TABS: { id: CoachTabId; label: string; icon: string }[] = [
   { id: 'sessions', label: 'Sessions', icon: 'calendar-outline' },
 ];
 
-export const SCREEN_WIDTH = Dimensions.get('window').width;
 export const COVER_HEIGHT = 180;
 
 interface CoachDetailData {
   coach: Coach | null;
   reviews: PublicReview[];
   sessionOfferings: SessionOffering[];
+}
+
+interface CoachConnectionSnapshot {
+  connectionState: CoachConnectionState;
+  incomingRequestId: string | null;
+  isBlocked: boolean;
+}
+
+async function getCoachConnectionSnapshot(
+  currentUserId: string | undefined,
+  coachId: string | undefined,
+  isOwnProfile: boolean,
+): Promise<CoachConnectionSnapshot> {
+  if (!coachId || !currentUserId || isOwnProfile) {
+    return {
+      connectionState: 'self',
+      incomingRequestId: null,
+      isBlocked: false,
+    };
+  }
+
+  const [isFriends, requestsForCoach, requestsForCurrent, blockedResult] = await Promise.all([
+    followService.areFriends(currentUserId, coachId),
+    followService.getPendingRequests(coachId),
+    followService.getPendingRequests(currentUserId),
+    blockService.isBlocked(currentUserId, coachId),
+  ]);
+  const isBlocked = blockedResult.success ? blockedResult.data : false;
+
+  if (isFriends) {
+    return {
+      connectionState: 'connected',
+      incomingRequestId: null,
+      isBlocked,
+    };
+  }
+
+  const incomingRequest = requestsForCurrent.find((request) => request.requesterId === coachId);
+  if (incomingRequest) {
+    return {
+      connectionState: 'incoming_pending',
+      incomingRequestId: incomingRequest.id,
+      isBlocked,
+    };
+  }
+
+  const hasOutgoingRequest = requestsForCoach.some(
+    (request) => request.requesterId === currentUserId,
+  );
+  if (hasOutgoingRequest) {
+    return {
+      connectionState: 'outgoing_pending',
+      incomingRequestId: null,
+      isBlocked,
+    };
+  }
+
+  return {
+    connectionState: 'none',
+    incomingRequestId: null,
+    isBlocked,
+  };
+}
+
+function applyCoachConnectionSnapshot(
+  snapshot: CoachConnectionSnapshot,
+  setConnectionState: (state: CoachConnectionState) => void,
+  setIncomingRequestId: (requestId: string | null) => void,
+  setIsBlocked: (isBlocked: boolean) => void,
+) {
+  setConnectionState(snapshot.connectionState);
+  setIncomingRequestId(snapshot.incomingRequestId);
+  setIsBlocked(snapshot.isBlocked);
 }
 
 export function useCoachDetail(coachId: string | undefined) {
@@ -54,51 +124,10 @@ export function useCoachDetail(coachId: string | undefined) {
   const [followLoading, setFollowLoading] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
 
+  const currentUserId = currentUser?.id;
   const isOwnProfile = currentUser?.id === coachId;
 
-  const loadConnectionState = useCallback(async () => {
-    if (!coachId || !currentUser?.id || isOwnProfile) {
-      setConnectionState('self');
-      setIncomingRequestId(null);
-      setIsBlocked(false);
-      return;
-    }
-
-    const [isFriends, requestsForCoach, requestsForCurrent, blockedResult] = await Promise.all([
-      followService.areFriends(currentUser.id, coachId),
-      followService.getPendingRequests(coachId),
-      followService.getPendingRequests(currentUser.id),
-      blockService.isBlocked(currentUser.id, coachId),
-    ]);
-    setIsBlocked(blockedResult.success ? blockedResult.data : false);
-
-    if (isFriends) {
-      setConnectionState('connected');
-      setIncomingRequestId(null);
-      return;
-    }
-
-    const incomingRequest = requestsForCurrent.find((request) => request.requesterId === coachId);
-    if (incomingRequest) {
-      setConnectionState('incoming_pending');
-      setIncomingRequestId(incomingRequest.id);
-      return;
-    }
-
-    const hasOutgoingRequest = requestsForCoach.some(
-      (request) => request.requesterId === currentUser.id,
-    );
-    if (hasOutgoingRequest) {
-      setConnectionState('outgoing_pending');
-      setIncomingRequestId(null);
-      return;
-    }
-
-    setConnectionState('none');
-    setIncomingRequestId(null);
-  }, [coachId, currentUser?.id, isOwnProfile]);
-
-  const loadCoach = useCallback(async () => {
+  const loadCoach = async () => {
     if (!coachId) {
       return ok<CoachDetailData>({
         coach: null,
@@ -146,7 +175,7 @@ export function useCoachDetail(coachId: string | undefined) {
       logger.error('Failed to load coach detail', loadError);
       return err(serviceError('UNKNOWN', 'Failed to load coach profile.', loadError));
     }
-  }, [coachId]);
+  };
 
   const {
     data,
@@ -172,109 +201,118 @@ export function useCoachDetail(coachId: string | undefined) {
   const coach = data?.coach ?? null;
   const reviews = data?.reviews ?? [];
   const sessionOfferings = data?.sessionOfferings ?? [];
-  const offeringSummary = useMemo(
-    () => summarizeCoachOfferings(sessionOfferings),
-    [sessionOfferings],
-  );
-  const canFollowAction = useMemo(
-    () =>
-      !followLoading &&
-      !isOwnProfile &&
-      !isBlocked &&
-      (connectionState === 'none' ||
-        (connectionState === 'incoming_pending' && Boolean(incomingRequestId))),
-    [connectionState, followLoading, incomingRequestId, isBlocked, isOwnProfile],
-  );
-  const followLabel = useMemo(() => {
+  const offeringSummary = summarizeCoachOfferings(sessionOfferings);
+  const canFollowAction =
+    !followLoading &&
+    !isOwnProfile &&
+    !isBlocked &&
+    (connectionState === 'none' ||
+      (connectionState === 'incoming_pending' && Boolean(incomingRequestId)));
+  const followLabel = (() => {
     if (followLoading) return 'Updating...';
     return getCoachRelationshipDisplay(connectionState, { blocked: isBlocked }).relationshipLabel;
-  }, [connectionState, followLoading, isBlocked]);
+  })();
   const isFollowing = connectionState === 'connected';
-  const relationshipDisplay = useMemo(
-    () => getCoachRelationshipDisplay(connectionState, { blocked: isBlocked }),
-    [connectionState, isBlocked],
-  );
+  const relationshipDisplay = getCoachRelationshipDisplay(connectionState, { blocked: isBlocked });
 
   useEffect(() => {
-    void loadConnectionState().catch(() => {
-      setConnectionState('none');
-      setIncomingRequestId(null);
-      setIsBlocked(false);
+    startTransition(() => {
+      void getCoachConnectionSnapshot(currentUserId, coachId, isOwnProfile)
+        .then((snapshot) => {
+          applyCoachConnectionSnapshot(
+            snapshot,
+            setConnectionState,
+            setIncomingRequestId,
+            setIsBlocked,
+          );
+        })
+        .catch(() => {
+          applyCoachConnectionSnapshot(
+            { connectionState: 'none', incomingRequestId: null, isBlocked: false },
+            setConnectionState,
+            setIncomingRequestId,
+            setIsBlocked,
+          );
+        });
     });
-  }, [loadConnectionState]);
+  }, [currentUserId, coachId, isOwnProfile]);
 
-  const handleFollow = useCallback(async () => {
+  const handleFollow = async () => {
     if (!coachId || !currentUser?.id || !canFollowAction || followLoading || isBlocked) return;
 
     setFollowLoading(true);
-    try {
-      if (connectionState === 'incoming_pending' && incomingRequestId) {
-        await followService.respondToRequest(incomingRequestId, 'ACCEPTED');
-      } else if (connectionState === 'none') {
-        await followService.sendFollowRequest({
-          requesterId: currentUser.id,
-          requesterName: currentUser.fullName || currentUser.name || currentUser.username || 'User',
-          targetId: coachId,
-          targetName: coach?.name || 'Coach',
-        });
-      } else {
-        return;
-      }
 
-      await loadConnectionState();
-    } catch {
-      uiFeedback.showToast('Please try again in a moment.', 'error');
-    } finally {
-      setFollowLoading(false);
-    }
-  }, [
-    canFollowAction,
-    coach?.name,
-    coachId,
-    connectionState,
-    currentUser?.fullName,
-    currentUser?.id,
-    currentUser?.name,
-    currentUser?.username,
-    followLoading,
-    incomingRequestId,
-    loadConnectionState,
-  ]);
-  const handleBook = useCallback(() => {
+    return await runAsyncTryCatchFinally(
+      async () => {
+        if (connectionState === 'incoming_pending' && incomingRequestId) {
+          await followService.respondToRequest(incomingRequestId, 'ACCEPTED');
+        } else if (connectionState === 'none') {
+          await followService.sendFollowRequest({
+            requesterId: currentUser.id,
+            requesterName:
+              currentUser.fullName || currentUser.name || currentUser.username || 'User',
+            targetId: coachId,
+            targetName: coach?.name || 'Coach',
+          });
+        } else {
+          return;
+        }
+
+        const snapshot = await getCoachConnectionSnapshot(currentUser.id, coachId, isOwnProfile);
+        applyCoachConnectionSnapshot(
+          snapshot,
+          setConnectionState,
+          setIncomingRequestId,
+          setIsBlocked,
+        );
+      },
+      async (error) => {
+        uiFeedback.showToast('Please try again in a moment.', 'error');
+      },
+      () => {
+        setFollowLoading(false);
+      },
+    );
+  };
+  const handleBook = () => {
     if (isBlocked) {
       uiFeedback.showToast('Booking is unavailable while this coach is blocked.', 'error');
       return;
     }
     router.push(Routes.bookCoach(coachId!));
-  }, [coachId, isBlocked]);
-  const handleOfferingPress = useCallback(
-    (offering: SessionOffering) => {
-      if (isBlocked) {
-        uiFeedback.showToast('Booking is unavailable while this coach is blocked.', 'error');
-        return;
-      }
-      router.push(
-        Routes.bookCoach(coachId!, {
-          offeringId: offering.id,
-          source: offering.source === 'event' ? 'event_profile' : 'coach_profile',
-        }),
-      );
-    },
-    [coachId, isBlocked],
-  );
-  const handleMessage = useCallback(() => {
+  };
+  const handleOfferingPress = (offering: SessionOffering) => {
+    if (isBlocked) {
+      uiFeedback.showToast('Booking is unavailable while this coach is blocked.', 'error');
+      return;
+    }
+    router.push(
+      Routes.bookCoach(coachId!, {
+        offeringId: offering.id,
+        source: offering.source === 'event' ? 'event_profile' : 'coach_profile',
+      }),
+    );
+  };
+  const handleMessage = () => {
     if (isBlocked) {
       uiFeedback.showToast('Contact is unavailable while this coach is blocked.', 'error');
       return;
     }
     router.push(Routes.chat(`coach-${coachId}`));
-  }, [coachId, isBlocked]);
-  const handleRefresh = useCallback(() => {
+  };
+  const handleRefresh = () => {
     onRefresh();
-    void loadConnectionState();
-  }, [loadConnectionState, onRefresh]);
+    void getCoachConnectionSnapshot(currentUserId, coachId, isOwnProfile).then((snapshot) => {
+      applyCoachConnectionSnapshot(
+        snapshot,
+        setConnectionState,
+        setIncomingRequestId,
+        setIsBlocked,
+      );
+    });
+  };
 
-  const handleBlock = useCallback(async () => {
+  const handleBlock = async () => {
     if (!coachId || !currentUser?.id || isOwnProfile) return;
 
     const confirmed = await uiFeedback.confirm({
@@ -296,7 +334,7 @@ export function useCoachDetail(coachId: string | undefined) {
 
     uiFeedback.showToast(`${coach?.name || 'Coach'} has been blocked.`, 'success');
     router.back();
-  }, [coach?.name, coachId, currentUser?.id, isOwnProfile]);
+  };
 
   return {
     coach,

@@ -1,8 +1,3 @@
-/**
- * StepLocation — Location form step of onboarding.
- */
-
-import { memo } from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 
@@ -124,7 +119,7 @@ function StepLocationInner({
   );
 }
 
-export const StepLocation = memo(StepLocationInner);
+export const StepLocation = StepLocationInner;
 
 const styles = StyleSheet.create({
   content: {
