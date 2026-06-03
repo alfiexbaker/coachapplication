@@ -12,17 +12,15 @@
  * 4. PARENT: Gets "selected for match" notification
  *
  * API Integration Notes:
- * - POST /api/matches - Create match
- * - GET /api/matches?clubId=X - Get club matches
- * - GET /api/matches?parentId=X - Get matches for parent's children
- * - POST /api/matches/:id/invite-squad - Invite entire squad
- * - POST /api/matches/:id/invite-players - Invite specific players
- * - PATCH /api/matches/:id/respond - Parent responds
- * - PATCH /api/matches/:id/lineup - Set lineup
- * - PATCH /api/matches/:id/result - Record result
+ * - GET/POST /v1/clubs/:clubId/matches - List/create club fixtures
+ * - GET /v1/matches/:matchId - Get match details
+ * - PATCH /v1/matches/:matchId/result - Record result
+ * - PATCH /v1/matches/:matchId/status - Update status/cancel
+ * - Invite, response, and lineup writes fail closed outside mock mode until
+ *   match-player authority exists.
  */
 
-import { apiClient } from './api-client';
+import { apiClient, apiFetch } from './api-client';
 import { api } from '@/constants/config';
 import type {
   Match,
@@ -37,13 +35,58 @@ import { socialFeedService } from './social-feed-service';
 import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
-import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  notFound,
+  storageError,
+  validationError,
+} from '@/types/result';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+  type ApiActingRole,
+} from '@/services/api-auth-context';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('MatchService');
 
 const USE_MOCK = api.useMock;
+
+interface ApiClubMatchesResponse {
+  clubId: string;
+  matches: Match[];
+  total: number;
+  requestId: string;
+}
+
+interface ApiMatchResponse {
+  match: Match;
+  requestId: string;
+}
+
+async function resolveMatchHeaders(
+  message: string,
+  fallbackRole: ApiActingRole = 'member',
+): Promise<Result<Record<string, string>, ServiceError>> {
+  const currentUserResult = await resolveSignedInApiUser(message);
+  if (!currentUserResult.success) {
+    return currentUserResult;
+  }
+  return ok(
+    buildApiAuthHeaders({
+      actingRole: deriveApiActingRole(currentUserResult.data, fallbackRole),
+    }),
+  );
+}
+
+function throwServiceError(error: ServiceError): never {
+  throw new Error(error.message);
+}
 
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
   const userResult = await userService.getUserById(userId);
@@ -238,8 +281,22 @@ export const matchService = {
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }
 
-    const response = await fetch(`/api/matches?clubId=${clubId}`);
-    return response.json();
+    const headersResult = await resolveMatchHeaders('Sign in to view club matches.');
+    if (!headersResult.success) {
+      throwServiceError(headersResult.error);
+    }
+    const response = await apiFetch<ApiClubMatchesResponse>(
+      `/v1/clubs/${encodeURIComponent(clubId)}/matches`,
+      {
+        method: 'GET',
+        headers: headersResult.data,
+      },
+    );
+    if (!response.success) {
+      logger.error('Failed to load club matches via API', { clubId, error: response.error });
+      throwServiceError(response.error);
+    }
+    return response.data.matches;
   },
 
   /**
@@ -272,8 +329,8 @@ export const matchService = {
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }
 
-    const response = await fetch(`/api/matches?parentId=${parentId}`);
-    return response.json();
+    logger.warn('Parent match list is not backend-authoritative yet', { parentId });
+    return [];
   },
 
   /**
@@ -285,9 +342,22 @@ export const matchService = {
       return matchesCache.find((m) => m.id === matchId) || null;
     }
 
-    const response = await fetch(`/api/matches/${matchId}`);
-    if (!response.ok) return null;
-    return response.json();
+    const headersResult = await resolveMatchHeaders('Sign in to view match details.');
+    if (!headersResult.success) {
+      return null;
+    }
+    const response = await apiFetch<ApiMatchResponse>(
+      `/v1/matches/${encodeURIComponent(matchId)}`,
+      {
+        method: 'GET',
+        headers: headersResult.data,
+      },
+    );
+    if (!response.success) {
+      logger.error('Failed to load match via API', { matchId, error: response.error });
+      return null;
+    }
+    return response.data.match;
   },
 
   /**
@@ -340,12 +410,39 @@ export const matchService = {
       return newMatch;
     }
 
-    const response = await fetch('/api/matches', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newMatch),
-    });
-    return response.json();
+    const headersResult = await resolveMatchHeaders('Sign in to create matches.', 'coach');
+    if (!headersResult.success) {
+      throwServiceError(headersResult.error);
+    }
+    const response = await apiFetch<ApiMatchResponse>(
+      `/v1/clubs/${encodeURIComponent(input.clubId)}/matches`,
+      {
+        method: 'POST',
+        headers: headersResult.data,
+        body: JSON.stringify({
+          squadId: input.squadId,
+          title: input.title,
+          matchType: input.matchType,
+          opponent: input.opponent,
+          isHome: input.isHome,
+          date: input.date,
+          kickoffTime: input.kickoffTime,
+          meetTime: input.meetTime,
+          venue: input.venue,
+          address: input.address,
+          maxPlayers: input.maxPlayers,
+          notes: input.notes,
+        }),
+      },
+    );
+    if (!response.success) {
+      logger.error('Failed to create match via API', {
+        clubId: input.clubId,
+        error: response.error,
+      });
+      throwServiceError(response.error);
+    }
+    return response.data.match;
   },
 
   /**
@@ -419,12 +516,9 @@ export const matchService = {
       return ok(match);
     }
 
-    const response = await fetch(`/api/matches/${input.matchId}/invite-players`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
-    });
-    return ok(await response.json());
+    return err(
+      validationError('Match player invites need backend support before API mode can use them.'),
+    );
   },
 
   /**
@@ -473,12 +567,11 @@ export const matchService = {
       return ok(match);
     }
 
-    const response = await fetch(`/api/matches/${input.matchId}/respond`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
-    });
-    return ok(await response.json());
+    return err(
+      validationError(
+        'Match availability responses need backend support before API mode can use them.',
+      ),
+    );
   },
 
   /**
@@ -545,12 +638,9 @@ export const matchService = {
       return ok(match);
     }
 
-    const response = await fetch(`/api/matches/${input.matchId}/lineup`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
-    });
-    return ok(await response.json());
+    return err(
+      validationError('Match lineup selection needs backend support before API mode can use it.'),
+    );
   },
 
   /**
@@ -576,12 +666,23 @@ export const matchService = {
       return ok(matchesCache[index]);
     }
 
-    const response = await fetch(`/api/matches/${matchId}/result`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ result }),
-    });
-    return ok(await response.json());
+    const headersResult = await resolveMatchHeaders('Sign in to record match results.', 'coach');
+    if (!headersResult.success) {
+      return headersResult;
+    }
+    const response = await apiFetch<ApiMatchResponse>(
+      `/v1/matches/${encodeURIComponent(matchId)}/result`,
+      {
+        method: 'PATCH',
+        headers: headersResult.data,
+        body: JSON.stringify({ result }),
+      },
+    );
+    if (!response.success) {
+      logger.error('Failed to record match result via API', { matchId, error: response.error });
+      return err(response.error);
+    }
+    return ok(response.data.match);
   },
 
   /**
@@ -606,12 +707,27 @@ export const matchService = {
       return ok(matchesCache[index]);
     }
 
-    const response = await fetch(`/api/matches/${matchId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    });
-    return ok(await response.json());
+    const headersResult = await resolveMatchHeaders('Sign in to update match status.', 'coach');
+    if (!headersResult.success) {
+      return headersResult;
+    }
+    const response = await apiFetch<ApiMatchResponse>(
+      `/v1/matches/${encodeURIComponent(matchId)}/status`,
+      {
+        method: 'PATCH',
+        headers: headersResult.data,
+        body: JSON.stringify({ status }),
+      },
+    );
+    if (!response.success) {
+      logger.error('Failed to update match status via API', {
+        matchId,
+        status,
+        error: response.error,
+      });
+      return err(response.error);
+    }
+    return ok(response.data.match);
   },
 
   /**

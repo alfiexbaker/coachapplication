@@ -127,7 +127,7 @@ function inviteFromRow(row: SeedRow): GuardianInviteRecord {
   };
 }
 function invitePayloadMatches(row: SeedRow, input: CreateGuardianInviteInput): boolean {
-  const requestedChildAccess = Array.from(new Set(input.childAccess)).toSorted();
+  const requestedChildAccess = Array.from(new Set(input.childAccess)).sort();
   const existingChildAccess = asStringArray(row.childAccessAthleteIds ?? row.childAccess).sort();
   return (
     asString(row.invitedByUserId) === input.inviterUserId &&
@@ -169,7 +169,7 @@ function familyAthleteIdsFromRows(tables: SeedTables, familyId: string): Set<str
     asRows(tables.guardianChildLinks).flatMap((row) => {
       if (!(asString(row.familyId) === familyId && !asString(row.deletedAt))) return [];
       const mapped = asString(row.athleteId);
-      return Boolean(mapped) ? [mapped] : [];
+      return mapped ? [mapped] : [];
     }),
   );
 }
@@ -193,8 +193,9 @@ function activeUserEmailById(tables: SeedTables): Map<string, string> {
   const users = asRows(tables.users).filter((row) => !asString(row.deletedAt));
   return new Map(
     users.flatMap((row) => {
-      const mapped = [asString(row.id), asString(row.email)?.toLowerCase()] as const;
-      return Boolean(mapped[0] && mapped[1]) ? [mapped] : [];
+      const id = asString(row.id);
+      const email = asString(row.email)?.toLowerCase();
+      return id && email ? [[id, email]] : [];
     }),
   );
 }

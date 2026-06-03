@@ -145,6 +145,7 @@ interface BookingInvoiceContext {
   billingAddress?: string | null;
 }
 const INVOICE_STATUSES = ['DRAFT', 'SENT', 'PAID', 'VOID', 'WRITTEN_OFF'] as const;
+type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
 const ACTIVE_PAYMENT_ATTEMPT_STATUSES = new Set(['PENDING', 'ACTION_REQUIRED']);
 const SIMULATED_REFUND_VERIFICATION_CODE = '000000';
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
@@ -1339,12 +1340,10 @@ export async function listAccessibleInvoices(
       );
   }
   const prisma = getPrismaClientOrThrow();
-  const statuses = query.status
+  const statuses: InvoiceStatus[] | undefined = query.status
     ? query.status.split(',').flatMap((value) => {
-        const mapped = value.trim().toUpperCase();
-        return INVOICE_STATUSES.includes(mapped as (typeof INVOICE_STATUSES)[number])
-          ? [mapped]
-          : [];
+        const mapped = value.trim().toUpperCase() as InvoiceStatus;
+        return INVOICE_STATUSES.includes(mapped) ? [mapped] : [];
       })
     : undefined;
   const where = {

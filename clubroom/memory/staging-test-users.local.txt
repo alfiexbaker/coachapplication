@@ -1,0 +1,31 @@
+Clubroom staging test users
+Generated: 2026-06-02
+Scope: local handoff only. Do not commit this file.
+
+API/runtime:
+- API_DATA_BACKEND=db
+- Database: staging Supabase Postgres
+
+Club admin:
+- Email: clara.finch@clubroom.demo
+- Password: CR-Staging-Admin-2026!
+- Attached data: club admin membership
+
+Coach:
+- Email: amelia.shaw@clubroom.demo
+- Password: CR-Staging-Coach-2026!
+- Attached data: coach role and club coach membership
+
+Parent:
+- Email: olivia.barton@clubroom.demo
+- Password: CR-Staging-Parent-2026!
+- Attached data: parent role, club member membership, 2 guardian-linked athletes
+
+Athlete:
+- Email: alex.barton@clubroom.demo
+- Password: CR-Staging-Athlete-2026!
+- Attached data: athlete role and linked athlete profile
+
+Verification:
+- PasswordCredential hashes reset in staging DB on 2026-06-02.
+- Login verified through apps/api auth runtime for all four accounts.

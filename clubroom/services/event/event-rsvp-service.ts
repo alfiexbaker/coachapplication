@@ -10,7 +10,7 @@
  * - PATCH /api/rsvps/:id - Update RSVP
  */
 
-import { apiClient } from '../api-client';
+import { apiClient, apiFetch } from '../api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from '../notification-trigger';
@@ -19,7 +19,14 @@ import { userService } from '../user-service';
 import { emitTyped, ServiceEvents } from '../event-bus';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
-import { type Result, type ServiceError, ok, err, notFound, serviceError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  notFound,
+  unsupportedError,
+} from '@/types/result';
 import type {
   ClubEvent,
   ClubEventType,
@@ -31,6 +38,58 @@ import type {
 import { loadEvents, saveEvents } from './event-crud-service';
 const USE_MOCK = api.useMock;
 const logger = createLogger('EventRsvpService');
+
+function eventRsvpUnsupportedError(action: string, details?: unknown): ServiceError {
+  return unsupportedError(
+    `${action} needs a /v1 event RSVP API before it can run in API mode.`,
+    details,
+  );
+}
+
+interface ApiEventRsvp {
+  id: string;
+  clubEventId?: string | null;
+  eventId?: string | null;
+  userId: string;
+  status: RSVPStatus;
+  guestCount?: number | null;
+  notes?: string | null;
+  note?: string | null;
+  respondedAt?: string | null;
+  updatedAt?: string | null;
+}
+
+interface ApiEventRsvpResponse {
+  rsvp: ApiEventRsvp;
+}
+
+function mapApiRsvpToEventRsvp(rsvp: ApiEventRsvp, fallbackEventId: string): EventRSVP {
+  return {
+    id: rsvp.id,
+    eventId: rsvp.eventId ?? rsvp.clubEventId ?? fallbackEventId,
+    userId: rsvp.userId,
+    userRole: 'PARENT',
+    status: rsvp.status,
+    guestCount: rsvp.guestCount ?? 0,
+    respondedAt: rsvp.respondedAt ?? new Date().toISOString(),
+    note: rsvp.note ?? rsvp.notes ?? undefined,
+    updatedAt: rsvp.updatedAt ?? undefined,
+  };
+}
+
+function mapApiRsvpToAttendee(
+  rsvp: ApiEventRsvp,
+  fallbackRole: EventAttendee['userRole'],
+): EventAttendee {
+  return {
+    userId: rsvp.userId,
+    userRole: fallbackRole,
+    status: rsvp.status,
+    guestCount: rsvp.guestCount ?? 0,
+    respondedAt: rsvp.respondedAt ?? new Date().toISOString(),
+  };
+}
+
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
   const userResult = await userService.getUserById(userId);
   if (!userResult.success) {
@@ -152,14 +211,20 @@ export const eventRsvpService = {
       }
       return ok(attendee);
     }
-    const response = await fetch(`/api/events/${eventId}/rsvp`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const result = await apiFetch<ApiEventRsvpResponse>(
+      `/v1/events/${encodeURIComponent(eventId)}/rsvp`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          status,
+          guestCount,
+        }),
       },
-      body: JSON.stringify(attendee),
-    });
-    return ok(await response.json());
+    );
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(mapApiRsvpToAttendee(result.data.rsvp, userRole));
   },
   /**
    * Get attendees for an event
@@ -170,8 +235,8 @@ export const eventRsvpService = {
       const event = eventsCache.find((e) => e.id === eventId);
       return event?.attendees || [];
     }
-    const response = await fetch(`/api/events/${eventId}/attendees`);
-    return response.json();
+    logger.warn('Event attendee reads need a /v1 event attendee API', { eventId });
+    return [];
   },
   /**
    * Get attendee counts by status
@@ -312,14 +377,21 @@ export const eventRsvpService = {
       });
       return rsvp;
     }
-    const response = await fetch(`/api/events/${input.eventId}/rsvp`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const result = await apiFetch<ApiEventRsvpResponse>(
+      `/v1/events/${encodeURIComponent(input.eventId)}/rsvp`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          status: input.status,
+          guestCount: input.guestCount ?? 0,
+          notes: input.note ?? null,
+        }),
       },
-      body: JSON.stringify(rsvp),
-    });
-    const savedRsvp = await response.json();
+    );
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    const savedRsvp = mapApiRsvpToEventRsvp(result.data.rsvp, input.eventId);
     emitTyped(ServiceEvents.EVENT_RSVP_UPDATED, {
       eventId: input.eventId,
       rsvpId: savedRsvp.id ?? rsvp.id,
@@ -371,25 +443,10 @@ export const eventRsvpService = {
       });
       return ok(rsvp);
     }
-    const response = await fetch(`/api/rsvps/${rsvpId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        status,
-        guestCount,
-      }),
-    });
-    const updatedRsvp = await response.json();
-    emitTyped(ServiceEvents.EVENT_RSVP_UPDATED, {
-      eventId: updatedRsvp.eventId,
-      rsvpId: updatedRsvp.id ?? rsvpId,
-      userId: updatedRsvp.userId,
-      previousStatus: null,
-      newStatus: status,
-    });
-    return ok(updatedRsvp);
+    void rsvpId;
+    void status;
+    void guestCount;
+    return err(eventRsvpUnsupportedError('Updating event RSVPs'));
   },
   /**
    * Get all RSVPs for an event
@@ -399,8 +456,8 @@ export const eventRsvpService = {
       rsvpsCache = await loadRSVPs();
       return rsvpsCache.filter((r) => r.eventId === eventId);
     }
-    const response = await fetch(`/api/events/${eventId}/rsvps`);
-    return response.json();
+    logger.warn('Event RSVP list reads need a /v1 event RSVP API', { eventId });
+    return [];
   },
   /**
    * Get all RSVPs by a user
@@ -410,8 +467,8 @@ export const eventRsvpService = {
       rsvpsCache = await loadRSVPs();
       return rsvpsCache.filter((r) => r.userId === userId);
     }
-    const response = await fetch(`/api/users/${userId}/rsvps`);
-    return response.json();
+    logger.warn('User event RSVP list reads need a /v1 event RSVP API', { userId });
+    return [];
   },
   /**
    * Get a specific user's RSVP for an event
@@ -421,9 +478,8 @@ export const eventRsvpService = {
       rsvpsCache = await loadRSVPs();
       return rsvpsCache.find((r) => r.eventId === eventId && r.userId === userId) || null;
     }
-    const response = await fetch(`/api/events/${eventId}/rsvps/${userId}`);
-    if (!response.ok) return null;
-    return response.json();
+    logger.warn('User event RSVP detail reads need a /v1 event RSVP API', { eventId, userId });
+    return null;
   },
   /**
    * Send reminders to users who responded "Maybe".
@@ -480,16 +536,11 @@ export const eventRsvpService = {
       });
       return ok(sent);
     }
-    const response = await fetch(`/api/events/${eventId}/rsvps/remind`, {
-      method: 'POST',
-    });
-    if (!response.ok) {
-      return err(serviceError('NETWORK', 'Failed to queue RSVP reminders.'));
-    }
-    const payload = (await response.json()) as {
-      sentCount?: number;
-    };
-    return ok(payload.sentCount ?? 0);
+    return err(
+      eventRsvpUnsupportedError('Sending event RSVP reminders', {
+        missingEndpoint: `/v1/events/${eventId}/rsvps/remind`,
+      }),
+    );
   },
   // ============================================================================
   // CALENDAR INTEGRATION
@@ -542,10 +593,12 @@ export const eventRsvpService = {
         status: rsvpMap.get(event.id) || null,
       }));
     }
-    const response = await fetch(
-      `/api/users/${userId}/calendar-events?start=${startDate}&end=${endDate}`,
-    );
-    return response.json();
+    logger.warn('Calendar event reads need a /v1 event calendar API', {
+      userId,
+      startDate,
+      endDate,
+    });
+    return [];
   },
   /**
    * Get upcoming events for a user (events they've RSVP'd to or are invited to)
@@ -566,7 +619,7 @@ export const eventRsvpService = {
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
         .slice(0, limit);
     }
-    const response = await fetch(`/api/users/${userId}/events/upcoming?limit=${limit}`);
-    return response.json();
+    logger.warn('Upcoming user event reads need a /v1 event calendar API', { userId, limit });
+    return [];
   },
 };

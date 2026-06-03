@@ -40,6 +40,7 @@ app-example
 
 # Test build output
 .tmp-tests/
+docs/backend-api/test-data/TEST_ACCOUNTS.local.txt
 
 # Screenshots (reference only, not code)
 screenshots/

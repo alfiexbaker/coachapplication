@@ -1,6 +1,8 @@
 import { useEffect, useState, startTransition } from 'react';
 
+import { api } from '@/constants/config';
 import { useScreen } from '@/hooks/use-screen';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import { clubScheduleService } from '@/services/club-schedule-service';
 import { squadService } from '@/services/squad-service';
 import { socialFeedService } from '@/services/social-feed-service';
@@ -22,6 +24,8 @@ export const CLUB_SCHEDULE_FILTERS: Array<{ key: ClubScheduleFilter; label: stri
   { key: 'matches', label: 'Matches', icon: 'trophy-outline' },
 ];
 
+const USE_MOCK = api.useMock;
+
 interface ScheduleLoadData {
   activities: ClubActivity[];
   club: Club | null;
@@ -31,6 +35,23 @@ interface ScheduleLoadData {
 interface UseClubScheduleOptions {
   clubId?: string;
   squadId?: string;
+}
+
+async function loadClubHeader(clubId: string | undefined): Promise<Club | null> {
+  if (!clubId) {
+    return null;
+  }
+
+  if (USE_MOCK) {
+    return (await socialFeedService.getClub(clubId)) ?? null;
+  }
+
+  const result = await clubAuthorityService.listClubs();
+  if (!result.success) {
+    return null;
+  }
+
+  return result.data.clubs.find((club) => club.id === clubId) ?? null;
 }
 
 export function useClubSchedule({ clubId, squadId }: UseClubScheduleOptions) {
@@ -43,7 +64,7 @@ export function useClubSchedule({ clubId, squadId }: UseClubScheduleOptions) {
 
     const [scheduleResult, club, squad] = await Promise.all([
       squadId ? clubScheduleService.getSquadSchedule(squadId) : clubScheduleService.getClubSchedule(clubId!),
-      clubId ? socialFeedService.getClub(clubId) : Promise.resolve(undefined),
+      loadClubHeader(clubId),
       squadId ? squadService.getSquad(squadId) : Promise.resolve(null),
     ]);
 

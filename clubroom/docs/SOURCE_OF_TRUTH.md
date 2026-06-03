@@ -48,11 +48,14 @@ Feed is a centrepiece when it is operational: staff top-level posts only, parent
 - Shared governance and contract code exists in:
   - `contracts/club-governance.ts`
   - `packages/shared-contracts/src/club/`
-- Club join, invite-code management, pending staff invite review, and join-link resolution now use `/v1/clubs/*` in non-mock mode through `services/club-authority-service.ts`.
+- Club join, invite-code management, pending staff invite review, join-link resolution, and club member management now use `/v1/clubs/*` in non-mock mode through the club authority runtime.
   - the app still mirrors joined clubs and invite codes into local storage for compatibility with older club surfaces
   - member join codes can join directly
   - staff join codes create a pending invite that the target coach reviews in Club Invites
   - db mode now resolves those club authority routes through repository-backed club, membership, invite-code, and pending-invite persistence instead of the marketplace seed store
+  - club squad list/detail/create/update now use `GET/POST /v1/clubs/:clubId/squads`, `GET /v1/squads/:squadId`, and `PATCH /v1/clubs/:clubId/squads/:squadId`; reads require privileged admin or active club membership, writes require `manage_staff_and_invites`, and write success/deny paths are audited
+  - club member list, role update, soft-remove, and squad assignment now use `GET /v1/clubs/:clubId/members`, `PATCH /v1/clubs/:clubId/members/:userId/role`, `DELETE /v1/clubs/:clubId/members/:userId`, and `PUT/DELETE /v1/clubs/:clubId/squads/:squadId/members/:userId`; member mutations require `manage_staff_and_invites`, cannot assign/remove ownership, resolve squad assignment through linked athlete `SquadMembership`, and write audit events for success and deny paths
+  - member ban and removal undo remain fail-closed in API mode until their backend authority models exist
   - the db seed import now carries clubs, club memberships, squads, and default club invite codes so production db mode has a real club graph on first import
 - Auth transport is now aligned for the real `/v1` runtime path:
   - frontend auth calls `/v1/auth/*`
@@ -108,12 +111,15 @@ Feed is a centrepiece when it is operational: staff top-level posts only, parent
   - Prisma seed import now carries the group-session graph (`GroupSession`, `GroupSessionRegistration`, `WaitlistEntry`, `Invite`, `InviteTarget`, `AttendanceRecord`) so production `db` mode keeps session discovery, roster, attendance, and invite-linked session flows populated after import
   - `/v1/community-groups`, `/v1/posts`, `/v1/posts/:postId/comments`, `/v1/comments/:commentId`, `/v1/comments/:commentId/reactions/toggle`, `/v1/message-threads`, and `/v1/me/notifications` now resolve through one shared community/media repository in both seed and `db` modes instead of route-local marketplace seed-table reads
   - staff-led top-level feed post creation now uses backend authority through `POST /v1/posts` in API mode; active club/group staff or privileged admin scope is required, authorship comes from auth, media posts require backend upload proof, and local feed creation is mock-only
+  - post likes now use backend authority through `POST /v1/posts/:postId/reactions/toggle`; readable-post access is enforced by the API and local reaction toggles are mock-only
   - `/v1/videos*` now resolve through a dedicated db-aware video authority repository; video creation rejects pending, unscanned, quarantined, infected, or outsider-owned media, signed playback URLs are short-lived, guardians can only read explicitly shared videos, and video annotations/sharing/deletion now use the same backend authority path as detail reads
   - `/v1/athletes/:athleteId/progress` now reads the active backend in `db` mode instead of always falling back to marketplace seed tables, so completion-created `SessionNote` proof is visible to parent/athlete/coach progress surfaces through the same health read gate
   - Prisma seed import now carries the community/media graph (`MediaObject`, `UploadSession`, `MalwareScanResult`, `Video`, `VideoShare`, `VideoAnnotation`, `CommunityGroup`, `CommunityGroupMembership`, `Post`, `PostComment`, `PostCommentReaction`, `PostReaction`, `MessageThread`, `MessageParticipant`, `Message`, `MessageReceipt`, `Notification`, `NotificationPreference`, `MutedSource`, `QuietHours`) so those active `/v1` reads stay populated after db cutover
   - `community-group-service.ts`, `comment-service.ts`, `community-messaging-service.ts`, `messaging-service.ts`, and the root notification services now read from the db-aware `/v1` community/media routes in non-mock mode; local storage in those domains is now only a compatibility overlay for unsupported mock/demo state, not the authority path
   - `video-service.ts` now uses `/v1/uploads/init`, `/v1/uploads/:uploadSessionId/complete`, and `/v1/videos*` for non-mock list/detail/create/share/delete/annotation flows; the upload screen is private-by-default and no longer shows fake progress or dead visibility controls
   - session-invite create/list/detail/respond/cancel/remind/dismiss now use `/v1/invites*` in non-mock mode through `services/invite/session-invite-authority-service.ts`; create/cancel/remind/dismiss/respond writes now emit backend audit events for allowed and denied actor paths
+  - event RSVP submission now uses `/v1/events/:eventId/rsvp` in non-mock mode; `db` mode upserts `EventRsvp` through Prisma and audits allow/deny paths. Event RSVP reads, reminder fan-out, event attendance/check-in, event create/publish/cancel/update, and academy management do not yet have `/v1` authorities, so the frontend now fails closed or reads club event projections from `/v1/clubs/:clubId/schedule` instead of calling legacy `/api` routes.
+  - `apiClient.get/set/remove` no longer calls the generic `/api/:key` storage bridge in API mode. Device/session keys remain local by explicit allowlist; server-owned product data must move through a named `/v1` service contract or fail closed.
   - recurring invite partial acceptance and invite RSVP state are mock-only until backend invite authority exists; non-mock mode fails closed instead of writing local invite, booking-series, or RSVP state
   - real `db` mode no longer falls back to marketplace seed rows for `/v1/invites*`; session-invite list/detail/create/cancel/remind/dismiss/respond now load and persist `Invite`, `InviteTarget`, and create-idempotency state through a Prisma-backed route adapter while the broader invite repository extraction remains transitional
   - direct invite create now carries deterministic idempotency in non-mock mode; direct invite acceptance now creates bookings through the backend booking repository in `db` mode, replays the same terminal response, and rejects accept/decline flips after response instead of creating local or marketplace-seed booking state
@@ -136,7 +142,8 @@ Feed is a centrepiece when it is operational: staff top-level posts only, parent
   - informational events, training, and matches still have separate source records and creation flows, but club users now see one linked schedule instead of separate schedule worlds
 - Dedicated `Club Schedule` and `Team Schedule` routes now exist in the app.
   - the canonical read seam is `services/club-schedule-service.ts`
-  - non-mock schedule list and item reads now use `GET /v1/clubs/:clubId/schedule` and `GET /v1/clubs/:clubId/schedule/:activityId`, while mock mode still projects the local `ClubActivity` read model
+  - non-mock schedule list and item reads now use `GET /v1/clubs/:clubId/schedule` and `GET /v1/clubs/:clubId/schedule/:activityId`; in DB mode those routes read real `ClubEvent`, `GroupSession`, and `ClubMatch` rows through Prisma/Supabase, while mock mode still projects the local `ClubActivity` read model
+  - match fixture create/read/status/result writes now use `ClubMatch` through `/v1/clubs/:clubId/matches` and `/v1/matches/:matchId/*`; player availability, invite fan-out, and lineup selection are still fail-closed in API mode until match-player authority exists
   - schedule surfaces now deep-link through one canonical club activity route, which resolves against backend-owned detail before forwarding to the existing event, session, or match detail screen
 - Event detail is now a launch-grade event workspace instead of a brochure-only page.
   - the main event route now loads overview, RSVP, response list, reminders, attendance/check-in, and organizer actions from one screen
@@ -154,8 +161,8 @@ Feed is a centrepiece when it is operational: staff top-level posts only, parent
   - club pills that open the full per-club feed on the club page
 - Generic personal post creation is no longer a launch route; update creation is retained through club/staff posting.
 - athlete and parent home now add two compact football-first modules on top of the existing stats/next-session spine:
-  - recent match results from the user's primary club
-  - recent club highlights from that club feed
+  - recent match results from the user's primary club through `services/match-service.ts`; in API mode this reads completed `ClubMatch` rows from `/v1/clubs/:clubId/matches`
+  - recent club highlights from that club feed; in DB mode these read real `Post` rows through `GET /v1/posts?clubId=...`
 - Club detail pages now separate commitments from content more aggressively.
   - `Schedule` is the chronological commitment surface for club activities and pending invites
   - `Updates` is filtered down to posts, events, and achievements instead of acting as a second schedule or invite inbox

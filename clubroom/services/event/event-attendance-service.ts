@@ -5,10 +5,8 @@
  * Supports location validation for in-person events.
  *
  * API Integration Notes:
- * - POST /api/events/:id/checkin - Check in user
- * - DELETE /api/events/:id/checkin/:userId - Remove check-in
- * - GET /api/events/:id/attendance - Get attendance list
- * - GET /api/events/:id/stats - Get attendance statistics
+ * - Mock mode keeps local check-in state for development-only flows.
+ * - Live API mode fails closed until dedicated /v1 event attendance routes exist.
  */
 
 import { apiClient } from '../api-client';
@@ -30,6 +28,8 @@ const logger = createLogger('EventAttendanceService');
 
 // Location validation threshold in meters
 const LOCATION_VALIDATION_THRESHOLD = 500;
+const EVENT_ATTENDANCE_V1_GAP =
+  'Event attendance requires dedicated /v1 event attendance routes before live API mode can read or mutate check-in state.';
 
 // ============================================================================
 // MOCK ATTENDANCE DATA
@@ -99,6 +99,47 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
+function eventAttendanceUnsupportedMessage(action: string, eventId: string): string {
+  return `${action} is unavailable in live API mode. ${EVENT_ATTENDANCE_V1_GAP} Event: ${eventId}`;
+}
+
+function logEventAttendanceUnsupported(action: string, eventId: string, userId?: string): void {
+  logger.warn('Event attendance API unavailable in live API mode', {
+    action,
+    eventId,
+    userId,
+    requiredRoutes: [
+      'GET /v1/events/:eventId/attendance',
+      'GET /v1/events/:eventId/attendance/:userId',
+      'POST /v1/events/:eventId/checkins',
+      'DELETE /v1/events/:eventId/checkins/:userId',
+      'GET /v1/events/:eventId/attendance/stats',
+    ],
+  });
+}
+
+function emptyAttendanceStats(eventId: string): EventAttendanceStats {
+  return {
+    eventId,
+    rsvpCounts: {
+      going: 0,
+      notGoing: 0,
+      maybe: 0,
+      noResponse: 0,
+    },
+    expectedGuests: 0,
+    checkedInCount: 0,
+    guestsCheckedInCount: 0,
+    attendanceRate: 0,
+    byRole: {
+      coaches: { rsvp: 0, checkedIn: 0 },
+      parents: { rsvp: 0, checkedIn: 0 },
+      athletes: { rsvp: 0, checkedIn: 0 },
+    },
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 // ============================================================================
 // ATTENDANCE SERVICE
 // ============================================================================
@@ -109,6 +150,11 @@ export const eventAttendanceService = {
    * Supports location validation for in-person events
    */
   async checkIn(input: CheckInInput): Promise<EventAttendance> {
+    if (!USE_MOCK) {
+      logEventAttendanceUnsupported('check-in submission', input.eventId, input.userId);
+      throw new Error(eventAttendanceUnsupportedMessage('Event check-in', input.eventId));
+    }
+
     const attendance: EventAttendance = {
       id: `attendance_${Date.now()}`,
       eventId: input.eventId,
@@ -137,32 +183,23 @@ export const eventAttendanceService = {
       attendance.locationValidated = distance <= LOCATION_VALIDATION_THRESHOLD;
     }
 
-    if (USE_MOCK) {
-      attendanceCache = await loadAttendance();
+    attendanceCache = await loadAttendance();
 
-      // Check if already checked in
-      const existingIndex = attendanceCache.findIndex(
-        (a) => a.eventId === input.eventId && a.userId === input.userId,
-      );
+    // Check if already checked in
+    const existingIndex = attendanceCache.findIndex(
+      (a) => a.eventId === input.eventId && a.userId === input.userId,
+    );
 
-      if (existingIndex >= 0) {
-        // Update existing check-in (e.g., for guest count updates)
-        attendance.id = attendanceCache[existingIndex].id;
-        attendanceCache[existingIndex] = attendance;
-      } else {
-        attendanceCache.push(attendance);
-      }
-
-      await saveAttendance(attendanceCache);
-      return attendance;
+    if (existingIndex >= 0) {
+      // Update existing check-in (e.g., for guest count updates)
+      attendance.id = attendanceCache[existingIndex].id;
+      attendanceCache[existingIndex] = attendance;
+    } else {
+      attendanceCache.push(attendance);
     }
 
-    const response = await fetch(`/api/events/${input.eventId}/checkin`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(attendance),
-    });
-    return response.json();
+    await saveAttendance(attendanceCache);
+    return attendance;
   },
 
   /**
@@ -179,9 +216,8 @@ export const eventAttendanceService = {
       return;
     }
 
-    await fetch(`/api/events/${eventId}/checkin/${userId}`, {
-      method: 'DELETE',
-    });
+    logEventAttendanceUnsupported('check-in removal', eventId, userId);
+    throw new Error(eventAttendanceUnsupportedMessage('Event check-in removal', eventId));
   },
 
   /**
@@ -193,8 +229,8 @@ export const eventAttendanceService = {
       return attendanceCache.filter((a) => a.eventId === eventId);
     }
 
-    const response = await fetch(`/api/events/${eventId}/attendance`);
-    return response.json();
+    logEventAttendanceUnsupported('attendance list read', eventId);
+    return [];
   },
 
   /**
@@ -206,8 +242,8 @@ export const eventAttendanceService = {
       return attendanceCache.some((a) => a.eventId === eventId && a.userId === userId);
     }
 
-    const response = await fetch(`/api/events/${eventId}/attendance/${userId}`);
-    return response.ok;
+    logEventAttendanceUnsupported('user attendance status read', eventId, userId);
+    return false;
   },
 
   /**
@@ -219,9 +255,8 @@ export const eventAttendanceService = {
       return attendanceCache.find((a) => a.eventId === eventId && a.userId === userId) || null;
     }
 
-    const response = await fetch(`/api/events/${eventId}/attendance/${userId}`);
-    if (!response.ok) return null;
-    return response.json();
+    logEventAttendanceUnsupported('user attendance record read', eventId, userId);
+    return null;
   },
 
   /**
@@ -287,8 +322,8 @@ export const eventAttendanceService = {
       };
     }
 
-    const response = await fetch(`/api/events/${eventId}/stats`);
-    return response.json();
+    logEventAttendanceUnsupported('attendance stats read', eventId);
+    return emptyAttendanceStats(eventId);
   },
 
   // ============================================================================

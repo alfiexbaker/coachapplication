@@ -1,8 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { canUseClubCapability, parseOrganizationRole } from '@clubroom/shared-contracts';
+import {
+  canManageClubRole,
+  canUseClubCapability,
+  parseOrganizationRole,
+} from '@clubroom/shared-contracts';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
-import { forbidden, notFound } from '../../lib/http-errors.js';
+import { badRequest, forbidden, notFound } from '../../lib/http-errors.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
 import { normalizeForJson } from './normalize.js';
@@ -15,6 +19,12 @@ const asObject = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
+const asIsoString = (value: unknown, fallback = new Date().toISOString()): string =>
+  typeof value === 'string'
+    ? value
+    : value instanceof Date
+      ? value.toISOString()
+      : fallback;
 const isTruthy = <T>(value: T | null | undefined): value is T =>
   value !== null && value !== undefined;
 export interface ClubMembershipSummary {
@@ -38,6 +48,39 @@ export interface VisibleClub extends ClubSummary {
   memberships: ClubMembershipSummary[];
   viewerMembership: ClubMembershipSummary | null;
   squads: Array<Record<string, unknown>>;
+}
+export interface ClubMemberRecord {
+  userId: string;
+  userName: string;
+  userPhotoUrl?: string | null;
+  role: string;
+  status: 'active' | 'pending' | 'banned';
+  joinedAt: string;
+  squadIds: string[];
+}
+export interface ClubSquadRecord {
+  id: string;
+  clubId: string;
+  name: string;
+  level: string;
+  description?: string;
+  memberCount: number;
+  primaryCoach: string;
+  meetLocation: string;
+  tags?: string[];
+}
+export interface ClubMemberRemovalRecord {
+  id: string;
+  clubId: string;
+  userId: string;
+  userName: string;
+  userRole: string;
+  reason: string;
+  customReason?: string | null;
+  removedBy: string;
+  removedByName: string;
+  removedAt: string;
+  originalMembership: ClubMembershipSummary;
 }
 export interface ClubInviteCodeRecord {
   id: string;
@@ -90,6 +133,65 @@ export interface ClubAuthorityRepository {
     authUserId: string;
     isPrivilegedAdmin: boolean;
   }): Promise<VisibleClub[]>;
+  listClubMembers(params: {
+    clubId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubMemberRecord[]>;
+  listClubSquads(params: {
+    clubId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubSquadRecord[]>;
+  getClubSquad(params: {
+    squadId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubSquadRecord>;
+  createClubSquad(params: {
+    clubId: string;
+    name: string;
+    level?: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubSquadRecord>;
+  updateClubSquad(params: {
+    clubId: string;
+    squadId: string;
+    name?: string;
+    level?: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubSquadRecord>;
+  updateClubMemberRole(params: {
+    clubId: string;
+    userId: string;
+    role: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubMemberRecord>;
+  removeClubMember(params: {
+    clubId: string;
+    userId: string;
+    reason: string;
+    customReason?: string | null;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubMemberRemovalRecord>;
+  addClubMemberToSquad(params: {
+    clubId: string;
+    userId: string;
+    squadId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubMemberRecord>;
+  removeClubMemberFromSquad(params: {
+    clubId: string;
+    userId: string;
+    squadId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubMemberRecord>;
   listInviteCodes(params: { clubId: string; authUserId: string }): Promise<ClubInviteCodeRecord[]>;
   createInviteCode(params: {
     clubId: string;
@@ -188,6 +290,127 @@ function requireManageInvites(membershipRole: string | undefined): void {
   const viewerRole = parseOrganizationRole(membershipRole);
   if (!viewerRole || !canUseClubCapability(viewerRole, 'manage_staff_and_invites')) {
     throw forbidden('You do not have permission to manage club invites');
+  }
+}
+function requireManageMembers(membershipRole: string | undefined): NonNullable<
+  ReturnType<typeof parseOrganizationRole>
+> {
+  const viewerRole = parseOrganizationRole(membershipRole);
+  if (!viewerRole || !canUseClubCapability(viewerRole, 'manage_staff_and_invites')) {
+    throw forbidden('You do not have permission to manage club members');
+  }
+  return viewerRole;
+}
+function requireManageClubSquads(membershipRole: string | undefined): void {
+  const viewerRole = parseOrganizationRole(membershipRole);
+  if (!viewerRole || !canUseClubCapability(viewerRole, 'manage_staff_and_invites')) {
+    throw forbidden('You do not have permission to manage club squads');
+  }
+}
+function toContractRoleString(role: unknown): string {
+  return parseOrganizationRole(role) ?? 'MEMBER';
+}
+function membershipStatus(row: SeedRow): 'active' | 'pending' | 'banned' {
+  if (asString(row.deletedAt) || row.active === false) {
+    return 'pending';
+  }
+  return 'active';
+}
+function buildClubMemberRecord(params: {
+  membership: SeedRow;
+  user?: SeedRow | null;
+  squadIds?: string[];
+}): ClubMemberRecord {
+  const createdAt = asIsoString(params.membership.createdAt);
+  return {
+    userId: asString(params.membership.userId) ?? '',
+    userName:
+      asString(params.user?.name) ??
+      asString(params.user?.fullName) ??
+      asString(params.user?.email) ??
+      asString(params.membership.userId) ??
+      'Club member',
+    userPhotoUrl: asString(params.user?.avatarUrl) ?? null,
+    role: toContractRoleString(params.membership.role),
+    status: membershipStatus(params.membership),
+    joinedAt: createdAt,
+    squadIds: params.squadIds ?? [],
+  };
+}
+function buildClubSquadRecord(params: {
+  squad: SeedRow;
+  memberCount?: number;
+}): ClubSquadRecord {
+  const tags = Array.isArray(params.squad.tags)
+    ? params.squad.tags.filter((tag): tag is string => typeof tag === 'string')
+    : undefined;
+  return {
+    id: asString(params.squad.id) ?? '',
+    clubId: asString(params.squad.clubId) ?? '',
+    name: asString(params.squad.name) ?? 'Squad',
+    level: asString(params.squad.ageBandLabel) ?? asString(params.squad.level) ?? 'Squad',
+    description: asString(params.squad.description),
+    memberCount: params.memberCount ?? Number(params.squad.memberCount ?? 0),
+    primaryCoach:
+      asString(params.squad.ownerCoachUserId) ??
+      asString(params.squad.primaryCoach) ??
+      asString(params.squad.createdByUserId) ??
+      '',
+    meetLocation:
+      asString(params.squad.meetLocation) ??
+      asString(params.squad.meetingLocation) ??
+      'TBD',
+    tags,
+  };
+}
+function buildMembershipSummaryFromRow(row: SeedRow): ClubMembershipSummary {
+  const createdAt = asIsoString(row.createdAt);
+  return toMembershipSummary({
+    id: asString(row.id) ?? '',
+    clubId: asString(row.clubId) ?? '',
+    userId: asString(row.userId) ?? '',
+    role: toContractRoleString(row.role),
+    active: row.active !== false && !asString(row.deletedAt),
+    createdAt,
+    updatedAt: asIsoString(row.updatedAt, createdAt),
+  });
+}
+function assertCanManageTargetRole(params: {
+  managerRole: string | undefined;
+  targetRole: string | undefined;
+  requestedRole?: string | undefined;
+}): void {
+  const manager = requireManageMembers(params.managerRole);
+  const target = parseOrganizationRole(params.targetRole);
+  if (!target || !canManageClubRole(manager, target)) {
+    throw forbidden('You do not have permission to manage this member');
+  }
+  if (params.requestedRole) {
+    const requested = parseOrganizationRole(params.requestedRole);
+    if (!requested) {
+      throw badRequest('Unsupported club role');
+    }
+    if (!canManageClubRole(manager, requested)) {
+      throw forbidden('You cannot assign that club role');
+    }
+  }
+}
+function assertPrivilegedCanManageTargetRole(params: {
+  targetRole: string | undefined;
+  requestedRole?: string | undefined;
+}): void {
+  const target = parseOrganizationRole(params.targetRole);
+  if (!target || target === 'OWNER') {
+    throw forbidden('Club ownership cannot be changed through member management');
+  }
+  if (params.requestedRole) {
+    const requested = parseOrganizationRole(params.requestedRole);
+    if (!requested) {
+      throw badRequest('Unsupported club role');
+    }
+    if (requested === 'OWNER') {
+      throw forbidden('Club ownership cannot be assigned through member management');
+    }
   }
 }
 function buildClubSummary(
@@ -310,6 +533,143 @@ function findStoreClubById(tables: SeedTables, clubId: string): SeedRow | null {
     asRows(tables.clubs).find((row) => asString(row.id) === clubId && !asString(row.deletedAt)) ??
     null
   );
+}
+function findStoreSquadByGlobalId(tables: SeedTables, squadId: string): SeedRow | null {
+  return (
+    asRows(tables.squads).find((row) => asString(row.id) === squadId && !asString(row.deletedAt)) ??
+    null
+  );
+}
+function findStoreSquadById(tables: SeedTables, clubId: string, squadId: string): SeedRow | null {
+  return (
+    asRows(tables.squads).find(
+      (row) =>
+        asString(row.id) === squadId &&
+        asString(row.clubId) === clubId &&
+        !asString(row.deletedAt),
+    ) ?? null
+  );
+}
+function findStoreLinkedAthleteForUser(tables: SeedTables, userId: string): SeedRow | null {
+  return (
+    asRows(tables.athletes).find(
+      (row) =>
+        asString(row.userId) === userId &&
+        asString(row.status)?.toLowerCase() !== 'inactive' &&
+        !asString(row.deletedAt),
+    ) ?? null
+  );
+}
+function isActiveSquadMembership(row: SeedRow): boolean {
+  const status = asString(row.status)?.toLowerCase();
+  return !asString(row.deletedAt) && (!status || status === 'active');
+}
+function getStoreSquadMemberCount(tables: SeedTables, squadId: string): number {
+  return asRows(tables.squadMemberships).filter(
+    (row) => asString(row.squadId) === squadId && isActiveSquadMembership(row),
+  ).length;
+}
+function requireStoreClubReadContext(params: {
+  tables: SeedTables;
+  clubId: string;
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+}): { club: SeedRow; viewerMembership: SeedRow | null } {
+  const club = findStoreClubById(params.tables, params.clubId);
+  if (!club) {
+    throw notFound('Club not found');
+  }
+  const viewerMembership = getStoreViewerMembership(
+    params.tables,
+    params.clubId,
+    params.authUserId,
+  );
+  if (!params.isPrivilegedAdmin && !viewerMembership) {
+    throw forbidden('You do not have permission to view club squads');
+  }
+  return { club, viewerMembership };
+}
+function requireStoreClubSquadManageContext(params: {
+  tables: SeedTables;
+  clubId: string;
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+}): { club: SeedRow; viewerMembership: SeedRow | null } {
+  const context = requireStoreClubReadContext(params);
+  if (!params.isPrivilegedAdmin) {
+    requireManageClubSquads(asString(context.viewerMembership?.role));
+  }
+  return context;
+}
+function getStoreSquadIdsForUser(tables: SeedTables, clubId: string, userId: string): string[] {
+  const athleteId = asString(findStoreLinkedAthleteForUser(tables, userId)?.id);
+  if (!athleteId) {
+    return [];
+  }
+  const clubSquadIds = new Set(
+    asRows(tables.squads).flatMap((row) => {
+      const squadId = asString(row.id);
+      return squadId && asString(row.clubId) === clubId && !asString(row.deletedAt)
+        ? [squadId]
+        : [];
+    }),
+  );
+  return asRows(tables.squadMemberships).flatMap((row) => {
+    const squadId = asString(row.squadId);
+    return squadId &&
+      clubSquadIds.has(squadId) &&
+      asString(row.athleteId) === athleteId &&
+      isActiveSquadMembership(row)
+      ? [squadId]
+      : [];
+  });
+}
+function requireStoreSquadAssignmentContext(params: {
+  tables: SeedTables;
+  clubId: string;
+  userId: string;
+  squadId: string;
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+}): {
+  targetMembership: SeedRow;
+  squad: SeedRow;
+  athlete: SeedRow;
+} {
+  const club = findStoreClubById(params.tables, params.clubId);
+  if (!club) {
+    throw notFound('Club not found');
+  }
+  const squad = findStoreSquadById(params.tables, params.clubId, params.squadId);
+  if (!squad) {
+    throw notFound('Squad not found');
+  }
+  const viewerMembership = getStoreViewerMembership(
+    params.tables,
+    params.clubId,
+    params.authUserId,
+  );
+  const targetMembership = getStoreActiveMemberships(params.tables, params.clubId).find(
+    (row) => asString(row.userId) === params.userId,
+  );
+  if (!targetMembership) {
+    throw notFound('Club member not found');
+  }
+  if (!params.isPrivilegedAdmin) {
+    assertCanManageTargetRole({
+      managerRole: asString(viewerMembership?.role),
+      targetRole: asString(targetMembership.role),
+    });
+  }
+  const athlete = findStoreLinkedAthleteForUser(params.tables, params.userId);
+  if (!athlete) {
+    throw badRequest('Club member must have a linked athlete profile before squad assignment');
+  }
+  return {
+    targetMembership,
+    squad,
+    athlete,
+  };
 }
 function mapPendingInviteFromRows(params: {
   invite: SeedRow;
@@ -488,6 +848,396 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
         viewerMembership,
         squads: squads.filter((row) => asString(row.clubId) === clubId),
       };
+    });
+  }
+  async listClubMembers(params: {
+    clubId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubMemberRecord[]> {
+    const tables = this.getTables();
+    const club = findStoreClubById(tables, params.clubId);
+    if (!club) {
+      throw notFound('Club not found');
+    }
+    const viewerMembership = getStoreViewerMembership(tables, params.clubId, params.authUserId);
+    if (!params.isPrivilegedAdmin && !viewerMembership) {
+      throw forbidden('You do not have permission to view club members');
+    }
+    const users = asRows(tables.users);
+    return getStoreActiveMemberships(tables, params.clubId).map((membership) =>
+      buildClubMemberRecord({
+        membership,
+        user: users.find((row) => asString(row.id) === asString(membership.userId)) ?? null,
+        squadIds: getStoreSquadIdsForUser(
+          tables,
+          params.clubId,
+          asString(membership.userId) ?? '',
+        ),
+      }),
+    );
+  }
+  async listClubSquads(params: {
+    clubId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubSquadRecord[]> {
+    const tables = this.getTables();
+    requireStoreClubReadContext({
+      tables,
+      clubId: params.clubId,
+      authUserId: params.authUserId,
+      isPrivilegedAdmin: params.isPrivilegedAdmin,
+    });
+    return asRows(tables.squads)
+      .filter((row) => asString(row.clubId) === params.clubId && !asString(row.deletedAt))
+      .map((squad) =>
+        buildClubSquadRecord({
+          squad,
+          memberCount: getStoreSquadMemberCount(tables, asString(squad.id) ?? ''),
+        }),
+      );
+  }
+  async getClubSquad(params: {
+    squadId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubSquadRecord> {
+    const tables = this.getTables();
+    const squad = findStoreSquadByGlobalId(tables, params.squadId);
+    const clubId = asString(squad?.clubId);
+    if (!squad || !clubId) {
+      throw notFound('Squad not found');
+    }
+    requireStoreClubReadContext({
+      tables,
+      clubId,
+      authUserId: params.authUserId,
+      isPrivilegedAdmin: params.isPrivilegedAdmin,
+    });
+    return buildClubSquadRecord({
+      squad,
+      memberCount: getStoreSquadMemberCount(tables, params.squadId),
+    });
+  }
+  async createClubSquad(params: {
+    clubId: string;
+    name: string;
+    level?: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubSquadRecord> {
+    const tables = this.getTables();
+    requireStoreClubSquadManageContext({
+      tables,
+      clubId: params.clubId,
+      authUserId: params.authUserId,
+      isPrivilegedAdmin: params.isPrivilegedAdmin,
+    });
+    const name = params.name.trim();
+    if (!name) {
+      throw badRequest('Squad name is required');
+    }
+    const now = new Date().toISOString();
+    const squad: SeedRow = {
+      id: `sqd_${randomUUID()}`,
+      clubId: params.clubId,
+      ownerCoachUserId: params.authUserId,
+      name,
+      ageBandLabel: params.level?.trim() || null,
+      createdByUserId: params.authUserId,
+      updatedByUserId: params.authUserId,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      deletedByUserId: null,
+    };
+    ensureTable(tables, 'squads').push(squad);
+    return buildClubSquadRecord({ squad, memberCount: 0 });
+  }
+  async updateClubSquad(params: {
+    clubId: string;
+    squadId: string;
+    name?: string;
+    level?: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubSquadRecord> {
+    const tables = this.getTables();
+    requireStoreClubSquadManageContext({
+      tables,
+      clubId: params.clubId,
+      authUserId: params.authUserId,
+      isPrivilegedAdmin: params.isPrivilegedAdmin,
+    });
+    const squads = ensureTable(tables, 'squads');
+    const index = squads.findIndex(
+      (row) =>
+        asString(row.id) === params.squadId &&
+        asString(row.clubId) === params.clubId &&
+        !asString(row.deletedAt),
+    );
+    if (index < 0) {
+      throw notFound('Squad not found');
+    }
+    const existing = squads[index];
+    const nextName = params.name?.trim();
+    if (params.name !== undefined && !nextName) {
+      throw badRequest('Squad name is required');
+    }
+    const now = new Date().toISOString();
+    squads[index] = {
+      ...existing,
+      name: nextName ?? existing.name,
+      ageBandLabel: params.level !== undefined ? params.level.trim() || null : existing.ageBandLabel,
+      updatedAt: now,
+      updatedByUserId: params.authUserId,
+      version: Number(existing.version ?? 1) + 1,
+    };
+    return buildClubSquadRecord({
+      squad: squads[index],
+      memberCount: getStoreSquadMemberCount(tables, params.squadId),
+    });
+  }
+  async updateClubMemberRole(params: {
+    clubId: string;
+    userId: string;
+    role: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubMemberRecord> {
+    const tables = this.getTables();
+    const club = findStoreClubById(tables, params.clubId);
+    if (!club) {
+      throw notFound('Club not found');
+    }
+    const memberships = ensureTable(tables, 'clubMemberships');
+    const viewerMembership = getStoreViewerMembership(tables, params.clubId, params.authUserId);
+    const targetMembership = getStoreActiveMemberships(tables, params.clubId).find(
+      (row) => asString(row.userId) === params.userId,
+    );
+    if (!targetMembership) {
+      throw notFound('Club member not found');
+    }
+    if (!params.isPrivilegedAdmin) {
+      assertCanManageTargetRole({
+        managerRole: asString(viewerMembership?.role),
+        targetRole: asString(targetMembership.role),
+        requestedRole: params.role,
+      });
+    } else {
+      assertPrivilegedCanManageTargetRole({
+        targetRole: asString(targetMembership.role),
+        requestedRole: params.role,
+      });
+    }
+    const now = new Date().toISOString();
+    const rowIndex = memberships.findIndex((row) => asString(row.id) === asString(targetMembership.id));
+    const nextRole = toStoreRole(toContractRoleString(params.role));
+    memberships[rowIndex] = {
+      ...targetMembership,
+      role: nextRole,
+      updatedAt: now,
+      updatedByUserId: params.authUserId,
+      version: Number(targetMembership.version ?? 1) + 1,
+    };
+    const users = asRows(tables.users);
+    return buildClubMemberRecord({
+      membership: memberships[rowIndex],
+      user: users.find((row) => asString(row.id) === params.userId) ?? null,
+      squadIds: getStoreSquadIdsForUser(tables, params.clubId, params.userId),
+    });
+  }
+  async removeClubMember(params: {
+    clubId: string;
+    userId: string;
+    reason: string;
+    customReason?: string | null;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubMemberRemovalRecord> {
+    const tables = this.getTables();
+    const club = findStoreClubById(tables, params.clubId);
+    if (!club) {
+      throw notFound('Club not found');
+    }
+    const memberships = ensureTable(tables, 'clubMemberships');
+    const viewerMembership = getStoreViewerMembership(tables, params.clubId, params.authUserId);
+    const targetMembership = getStoreActiveMemberships(tables, params.clubId).find(
+      (row) => asString(row.userId) === params.userId,
+    );
+    if (!targetMembership) {
+      throw notFound('Club member not found');
+    }
+    if (!params.isPrivilegedAdmin) {
+      assertCanManageTargetRole({
+        managerRole: asString(viewerMembership?.role),
+        targetRole: asString(targetMembership.role),
+      });
+    } else {
+      assertPrivilegedCanManageTargetRole({
+        targetRole: asString(targetMembership.role),
+      });
+    }
+    const now = new Date().toISOString();
+    const rowIndex = memberships.findIndex((row) => asString(row.id) === asString(targetMembership.id));
+    memberships[rowIndex] = {
+      ...targetMembership,
+      active: false,
+      deletedAt: now,
+      deletedByUserId: params.authUserId,
+      updatedAt: now,
+      updatedByUserId: params.authUserId,
+      version: Number(targetMembership.version ?? 1) + 1,
+    };
+    const linkedAthleteId = asString(findStoreLinkedAthleteForUser(tables, params.userId)?.id);
+    if (linkedAthleteId) {
+      const clubSquadIds = new Set(
+        asRows(tables.squads).flatMap((row) => {
+          const squadId = asString(row.id);
+          return squadId && asString(row.clubId) === params.clubId && !asString(row.deletedAt)
+            ? [squadId]
+            : [];
+        }),
+      );
+      ensureTable(tables, 'squadMemberships').forEach((row) => {
+        if (
+          asString(row.athleteId) === linkedAthleteId &&
+          clubSquadIds.has(asString(row.squadId) ?? '') &&
+          isActiveSquadMembership(row)
+        ) {
+          row.status = 'inactive';
+          row.deletedAt = now;
+          row.deletedByUserId = params.authUserId;
+          row.updatedAt = now;
+          row.updatedByUserId = params.authUserId;
+          row.version = Number(row.version ?? 1) + 1;
+        }
+      });
+    }
+    const users = asRows(tables.users);
+    const user = users.find((row) => asString(row.id) === params.userId) ?? null;
+    const removedByUser = users.find((row) => asString(row.id) === params.authUserId) ?? null;
+    return {
+      id: `cmr_${randomUUID()}`,
+      clubId: params.clubId,
+      userId: params.userId,
+      userName:
+        asString(user?.name) ?? asString(user?.fullName) ?? asString(user?.email) ?? params.userId,
+      userRole: toContractRoleString(targetMembership.role),
+      reason: params.reason,
+      customReason: params.customReason ?? null,
+      removedBy: params.authUserId,
+      removedByName:
+        asString(removedByUser?.name) ??
+        asString(removedByUser?.fullName) ??
+        asString(removedByUser?.email) ??
+        params.authUserId,
+      removedAt: now,
+      originalMembership: buildMembershipSummaryFromRow(targetMembership),
+    };
+  }
+  async addClubMemberToSquad(params: {
+    clubId: string;
+    userId: string;
+    squadId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubMemberRecord> {
+    const tables = this.getTables();
+    const { targetMembership, athlete } = requireStoreSquadAssignmentContext({
+      tables,
+      clubId: params.clubId,
+      userId: params.userId,
+      squadId: params.squadId,
+      authUserId: params.authUserId,
+      isPrivilegedAdmin: params.isPrivilegedAdmin,
+    });
+    const squadMemberships = ensureTable(tables, 'squadMemberships');
+    const now = new Date().toISOString();
+    const athleteId = asString(athlete.id) ?? '';
+    const existingIndex = squadMemberships.findIndex(
+      (row) =>
+        asString(row.squadId) === params.squadId && asString(row.athleteId) === athleteId,
+    );
+    if (existingIndex >= 0) {
+      const existing = squadMemberships[existingIndex];
+      if (!isActiveSquadMembership(existing)) {
+        squadMemberships[existingIndex] = {
+          ...existing,
+          status: 'active',
+          deletedAt: null,
+          deletedByUserId: null,
+          updatedAt: now,
+          updatedByUserId: params.authUserId,
+          version: Number(existing.version ?? 1) + 1,
+        };
+      }
+    } else {
+      squadMemberships.push({
+        id: `sqm_${randomUUID()}`,
+        squadId: params.squadId,
+        athleteId,
+        status: 'active',
+        createdByUserId: params.authUserId,
+        updatedByUserId: params.authUserId,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+        deletedByUserId: null,
+      });
+    }
+    const users = asRows(tables.users);
+    return buildClubMemberRecord({
+      membership: targetMembership,
+      user: users.find((row) => asString(row.id) === params.userId) ?? null,
+      squadIds: getStoreSquadIdsForUser(tables, params.clubId, params.userId),
+    });
+  }
+  async removeClubMemberFromSquad(params: {
+    clubId: string;
+    userId: string;
+    squadId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubMemberRecord> {
+    const tables = this.getTables();
+    const { targetMembership, athlete } = requireStoreSquadAssignmentContext({
+      tables,
+      clubId: params.clubId,
+      userId: params.userId,
+      squadId: params.squadId,
+      authUserId: params.authUserId,
+      isPrivilegedAdmin: params.isPrivilegedAdmin,
+    });
+    const squadMemberships = ensureTable(tables, 'squadMemberships');
+    const now = new Date().toISOString();
+    const athleteId = asString(athlete.id) ?? '';
+    const existingIndex = squadMemberships.findIndex(
+      (row) =>
+        asString(row.squadId) === params.squadId &&
+        asString(row.athleteId) === athleteId &&
+        isActiveSquadMembership(row),
+    );
+    if (existingIndex >= 0) {
+      const existing = squadMemberships[existingIndex];
+      squadMemberships[existingIndex] = {
+        ...existing,
+        status: 'inactive',
+        deletedAt: now,
+        deletedByUserId: params.authUserId,
+        updatedAt: now,
+        updatedByUserId: params.authUserId,
+        version: Number(existing.version ?? 1) + 1,
+      };
+    }
+    const users = asRows(tables.users);
+    return buildClubMemberRecord({
+      membership: targetMembership,
+      user: users.find((row) => asString(row.id) === params.userId) ?? null,
+      squadIds: getStoreSquadIdsForUser(tables, params.clubId, params.userId),
     });
   }
   async listInviteCodes(params: {
@@ -818,6 +1568,194 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
 }
 class DbClubAuthorityRepository implements ClubAuthorityRepository {
   private readonly fixture = new SeedClubAuthorityRepository(() => getDbFixtureStore().tables);
+  private async listDbSquadIdsForClubMember(params: {
+    clubId: string;
+    userId: string;
+  }): Promise<string[]> {
+    const prisma = getPrismaClientOrThrow();
+    const athlete = await prisma.athlete.findUnique({
+      where: {
+        userId: params.userId,
+      },
+      select: {
+        id: true,
+        deletedAt: true,
+      },
+    });
+    if (!athlete || athlete.deletedAt) {
+      return [];
+    }
+    const memberships = await prisma.squadMembership.findMany({
+      where: {
+        athleteId: athlete.id,
+        deletedAt: null,
+        NOT: {
+          status: {
+            in: ['inactive', 'INACTIVE'],
+          },
+        },
+        squad: {
+          clubId: params.clubId,
+          deletedAt: null,
+        },
+      },
+      select: {
+        squadId: true,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+    return memberships.map((membership) => membership.squadId);
+  }
+
+  private async requireDbSquadAssignmentContext(params: {
+    clubId: string;
+    userId: string;
+    squadId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }) {
+    const prisma = getPrismaClientOrThrow();
+    const [club, squad, viewerMembership, targetMembership, athlete] = await Promise.all([
+      prisma.club.findFirst({
+        where: {
+          id: params.clubId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      }),
+      prisma.squad.findFirst({
+        where: {
+          id: params.squadId,
+          clubId: params.clubId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      }),
+      prisma.clubMembership.findUnique({
+        where: {
+          clubId_userId: {
+            clubId: params.clubId,
+            userId: params.authUserId,
+          },
+        },
+      }),
+      prisma.clubMembership.findUnique({
+        where: {
+          clubId_userId: {
+            clubId: params.clubId,
+            userId: params.userId,
+          },
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatarUrl: true,
+            },
+          },
+        },
+      }),
+      prisma.athlete.findUnique({
+        where: {
+          userId: params.userId,
+        },
+        select: {
+          id: true,
+          status: true,
+          deletedAt: true,
+        },
+      }),
+    ]);
+    if (!club) {
+      throw notFound('Club not found');
+    }
+    if (!squad) {
+      throw notFound('Squad not found');
+    }
+    if (!targetMembership?.active || targetMembership.deletedAt) {
+      throw notFound('Club member not found');
+    }
+    if (!params.isPrivilegedAdmin) {
+      assertCanManageTargetRole({
+        managerRole: viewerMembership?.role,
+        targetRole: targetMembership.role,
+      });
+    }
+    if (
+      !athlete ||
+      athlete.deletedAt ||
+      athlete.status.toLowerCase() === 'inactive'
+    ) {
+      throw badRequest('Club member must have a linked athlete profile before squad assignment');
+    }
+    return {
+      targetMembership,
+      athleteId: athlete.id,
+    };
+  }
+  private async requireDbClubReadContext(params: {
+    clubId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+    denyMessage?: string;
+  }) {
+    const prisma = getPrismaClientOrThrow();
+    const [club, viewerMembership] = await Promise.all([
+      prisma.club.findFirst({
+        where: {
+          id: params.clubId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      }),
+      prisma.clubMembership.findUnique({
+        where: {
+          clubId_userId: {
+            clubId: params.clubId,
+            userId: params.authUserId,
+          },
+        },
+      }),
+    ]);
+    if (!club) {
+      throw notFound('Club not found');
+    }
+    if (
+      !params.isPrivilegedAdmin &&
+      (!viewerMembership || !viewerMembership.active || viewerMembership.deletedAt)
+    ) {
+      throw forbidden(params.denyMessage ?? 'You do not have permission to view this club');
+    }
+    return {
+      club,
+      viewerMembership,
+    };
+  }
+  private async requireDbClubSquadManageContext(params: {
+    clubId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }) {
+    const context = await this.requireDbClubReadContext({
+      ...params,
+      denyMessage: 'You do not have permission to manage club squads',
+    });
+    if (!params.isPrivilegedAdmin) {
+      requireManageClubSquads(context.viewerMembership?.role);
+    }
+    return context;
+  }
+
   async listVisibleClubs(params: {
     authUserId: string;
     isPrivilegedAdmin: boolean;
@@ -933,6 +1871,707 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
             .find((membership) => membership.userId === params.authUserId) ?? null,
         squads: club.squads,
       })),
+    );
+  }
+  async listClubMembers(params: {
+    clubId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubMemberRecord[]> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fixture.listClubMembers(params);
+    }
+    const prisma = getPrismaClientOrThrow();
+    const club = await prisma.club.findFirst({
+      where: {
+        id: params.clubId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+    if (!club) {
+      throw notFound('Club not found');
+    }
+    if (!params.isPrivilegedAdmin) {
+      const viewerMembership = await prisma.clubMembership.findUnique({
+        where: {
+          clubId_userId: {
+            clubId: params.clubId,
+            userId: params.authUserId,
+          },
+        },
+      });
+      if (!viewerMembership?.active || viewerMembership.deletedAt) {
+        throw forbidden('You do not have permission to view club members');
+      }
+    }
+    const memberships = await prisma.clubMembership.findMany({
+      where: {
+        clubId: params.clubId,
+        active: true,
+        deletedAt: null,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+    const userIds = memberships.map((membership) => membership.userId);
+    const athletes =
+      userIds.length > 0
+        ? await prisma.athlete.findMany({
+            where: {
+              userId: {
+                in: userIds,
+              },
+              deletedAt: null,
+              NOT: {
+                status: {
+                  in: ['inactive', 'INACTIVE'],
+                },
+              },
+            },
+            select: {
+              id: true,
+              userId: true,
+            },
+          })
+        : [];
+    const athleteIds = athletes.map((athlete) => athlete.id);
+    const squadMemberships =
+      athleteIds.length > 0
+        ? await prisma.squadMembership.findMany({
+            where: {
+              athleteId: {
+                in: athleteIds,
+              },
+              deletedAt: null,
+              NOT: {
+                status: {
+                  in: ['inactive', 'INACTIVE'],
+                },
+              },
+              squad: {
+                clubId: params.clubId,
+                deletedAt: null,
+              },
+            },
+            select: {
+              athleteId: true,
+              squadId: true,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          })
+        : [];
+    const athleteIdByUserId = new Map(
+      athletes.flatMap((athlete) => (athlete.userId ? [[athlete.userId, athlete.id] as const] : [])),
+    );
+    const squadIdsByAthleteId = new Map<string, string[]>();
+    for (const membership of squadMemberships) {
+      const current = squadIdsByAthleteId.get(membership.athleteId) ?? [];
+      current.push(membership.squadId);
+      squadIdsByAthleteId.set(membership.athleteId, current);
+    }
+    return normalizeForJson(
+      memberships.map((membership) =>
+        buildClubMemberRecord({
+          membership: {
+            id: membership.id,
+            clubId: membership.clubId,
+            userId: membership.userId,
+            role: membership.role,
+            active: membership.active,
+            createdAt: membership.createdAt,
+            updatedAt: membership.updatedAt,
+            deletedAt: membership.deletedAt,
+          },
+          user: membership.user,
+          squadIds: squadIdsByAthleteId.get(athleteIdByUserId.get(membership.userId) ?? '') ?? [],
+        }),
+      ),
+    );
+  }
+  async listClubSquads(params: {
+    clubId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubSquadRecord[]> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fixture.listClubSquads(params);
+    }
+    await this.requireDbClubReadContext({
+      ...params,
+      denyMessage: 'You do not have permission to view club squads',
+    });
+    const prisma = getPrismaClientOrThrow();
+    const squads = await prisma.squad.findMany({
+      where: {
+        clubId: params.clubId,
+        deletedAt: null,
+      },
+      include: {
+        memberships: {
+          where: {
+            deletedAt: null,
+            NOT: {
+              status: {
+                in: ['inactive', 'INACTIVE'],
+              },
+            },
+          },
+          select: {
+            id: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+    return normalizeForJson(
+      squads.map((squad) =>
+        buildClubSquadRecord({
+          squad: squad as unknown as SeedRow,
+          memberCount: squad.memberships.length,
+        }),
+      ),
+    );
+  }
+  async getClubSquad(params: {
+    squadId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubSquadRecord> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fixture.getClubSquad(params);
+    }
+    const prisma = getPrismaClientOrThrow();
+    const squad = await prisma.squad.findFirst({
+      where: {
+        id: params.squadId,
+        deletedAt: null,
+      },
+      include: {
+        memberships: {
+          where: {
+            deletedAt: null,
+            NOT: {
+              status: {
+                in: ['inactive', 'INACTIVE'],
+              },
+            },
+          },
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+    if (!squad) {
+      throw notFound('Squad not found');
+    }
+    await this.requireDbClubReadContext({
+      clubId: squad.clubId,
+      authUserId: params.authUserId,
+      isPrivilegedAdmin: params.isPrivilegedAdmin,
+      denyMessage: 'You do not have permission to view club squads',
+    });
+    return normalizeForJson(
+      buildClubSquadRecord({
+        squad: squad as unknown as SeedRow,
+        memberCount: squad.memberships.length,
+      }),
+    );
+  }
+  async createClubSquad(params: {
+    clubId: string;
+    name: string;
+    level?: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubSquadRecord> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fixture.createClubSquad(params);
+    }
+    await this.requireDbClubSquadManageContext(params);
+    const name = params.name.trim();
+    if (!name) {
+      throw badRequest('Squad name is required');
+    }
+    const prisma = getPrismaClientOrThrow();
+    const squad = await prisma.squad.create({
+      data: {
+        id: `sqd_${randomUUID()}`,
+        clubId: params.clubId,
+        ownerCoachUserId: params.authUserId,
+        name,
+        ageBandLabel: params.level?.trim() || null,
+        createdByUserId: params.authUserId,
+        updatedByUserId: params.authUserId,
+      },
+    });
+    return normalizeForJson(
+      buildClubSquadRecord({
+        squad: squad as unknown as SeedRow,
+        memberCount: 0,
+      }),
+    );
+  }
+  async updateClubSquad(params: {
+    clubId: string;
+    squadId: string;
+    name?: string;
+    level?: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubSquadRecord> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fixture.updateClubSquad(params);
+    }
+    await this.requireDbClubSquadManageContext({
+      clubId: params.clubId,
+      authUserId: params.authUserId,
+      isPrivilegedAdmin: params.isPrivilegedAdmin,
+    });
+    const nextName = params.name?.trim();
+    if (params.name !== undefined && !nextName) {
+      throw badRequest('Squad name is required');
+    }
+    const prisma = getPrismaClientOrThrow();
+    const existing = await prisma.squad.findFirst({
+      where: {
+        id: params.squadId,
+        clubId: params.clubId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+    if (!existing) {
+      throw notFound('Squad not found');
+    }
+    const squad = await prisma.squad.update({
+      where: {
+        id: params.squadId,
+      },
+      data: {
+        ...(nextName ? { name: nextName } : {}),
+        ...(params.level !== undefined ? { ageBandLabel: params.level.trim() || null } : {}),
+        updatedByUserId: params.authUserId,
+        version: {
+          increment: 1n,
+        },
+      },
+      include: {
+        memberships: {
+          where: {
+            deletedAt: null,
+            NOT: {
+              status: {
+                in: ['inactive', 'INACTIVE'],
+              },
+            },
+          },
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+    return normalizeForJson(
+      buildClubSquadRecord({
+        squad: squad as unknown as SeedRow,
+        memberCount: squad.memberships.length,
+      }),
+    );
+  }
+  async updateClubMemberRole(params: {
+    clubId: string;
+    userId: string;
+    role: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubMemberRecord> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fixture.updateClubMemberRole(params);
+    }
+    const requestedRole = parseOrganizationRole(params.role);
+    if (!requestedRole) {
+      throw badRequest('Unsupported club role');
+    }
+    const prisma = getPrismaClientOrThrow();
+    const [viewerMembership, targetMembership] = await Promise.all([
+      prisma.clubMembership.findUnique({
+        where: {
+          clubId_userId: {
+            clubId: params.clubId,
+            userId: params.authUserId,
+          },
+        },
+      }),
+      prisma.clubMembership.findUnique({
+        where: {
+          clubId_userId: {
+            clubId: params.clubId,
+            userId: params.userId,
+          },
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatarUrl: true,
+            },
+          },
+        },
+      }),
+    ]);
+    if (!targetMembership?.active || targetMembership.deletedAt) {
+      throw notFound('Club member not found');
+    }
+    if (!params.isPrivilegedAdmin) {
+      assertCanManageTargetRole({
+        managerRole: viewerMembership?.role,
+        targetRole: targetMembership.role,
+        requestedRole,
+      });
+    } else {
+      assertPrivilegedCanManageTargetRole({
+        targetRole: targetMembership.role,
+        requestedRole,
+      });
+    }
+    const updated = await prisma.clubMembership.update({
+      where: {
+        clubId_userId: {
+          clubId: params.clubId,
+          userId: params.userId,
+        },
+      },
+      data: {
+        role: toStoreRole(requestedRole),
+        updatedByUserId: params.authUserId,
+        version: {
+          increment: 1n,
+        },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+    return normalizeForJson(
+      buildClubMemberRecord({
+        membership: {
+          id: updated.id,
+          clubId: updated.clubId,
+          userId: updated.userId,
+          role: updated.role,
+          active: updated.active,
+          createdAt: updated.createdAt,
+          updatedAt: updated.updatedAt,
+          deletedAt: updated.deletedAt,
+        },
+        user: updated.user,
+        squadIds: await this.listDbSquadIdsForClubMember({
+          clubId: params.clubId,
+          userId: params.userId,
+        }),
+      }),
+    );
+  }
+  async removeClubMember(params: {
+    clubId: string;
+    userId: string;
+    reason: string;
+    customReason?: string | null;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubMemberRemovalRecord> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fixture.removeClubMember(params);
+    }
+    const prisma = getPrismaClientOrThrow();
+    const [viewerMembership, targetMembership, removedByUser] = await Promise.all([
+      prisma.clubMembership.findUnique({
+        where: {
+          clubId_userId: {
+            clubId: params.clubId,
+            userId: params.authUserId,
+          },
+        },
+      }),
+      prisma.clubMembership.findUnique({
+        where: {
+          clubId_userId: {
+            clubId: params.clubId,
+            userId: params.userId,
+          },
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatarUrl: true,
+            },
+          },
+        },
+      }),
+      prisma.user.findUnique({
+        where: {
+          id: params.authUserId,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      }),
+    ]);
+    if (!targetMembership?.active || targetMembership.deletedAt) {
+      throw notFound('Club member not found');
+    }
+    if (!params.isPrivilegedAdmin) {
+      assertCanManageTargetRole({
+        managerRole: viewerMembership?.role,
+        targetRole: targetMembership.role,
+      });
+    } else {
+      assertPrivilegedCanManageTargetRole({
+        targetRole: targetMembership.role,
+      });
+    }
+    const now = new Date();
+    const linkedAthlete = await prisma.athlete.findUnique({
+      where: {
+        userId: params.userId,
+      },
+      select: {
+        id: true,
+        deletedAt: true,
+      },
+    });
+    await prisma.$transaction(async (tx) => {
+      await tx.clubMembership.update({
+        where: {
+          clubId_userId: {
+            clubId: params.clubId,
+            userId: params.userId,
+          },
+        },
+        data: {
+          active: false,
+          deletedAt: now,
+          deletedByUserId: params.authUserId,
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1n,
+          },
+        },
+      });
+      if (linkedAthlete && !linkedAthlete.deletedAt) {
+        await tx.squadMembership.updateMany({
+          where: {
+            athleteId: linkedAthlete.id,
+            deletedAt: null,
+            NOT: {
+              status: {
+                in: ['inactive', 'INACTIVE'],
+              },
+            },
+            squad: {
+              clubId: params.clubId,
+              deletedAt: null,
+            },
+          },
+          data: {
+            status: 'inactive',
+            deletedAt: now,
+            deletedByUserId: params.authUserId,
+            updatedByUserId: params.authUserId,
+            version: {
+              increment: 1n,
+            },
+          },
+        });
+      }
+    });
+    return normalizeForJson({
+      id: `cmr_${randomUUID()}`,
+      clubId: params.clubId,
+      userId: params.userId,
+      userName:
+        targetMembership.user.name ?? targetMembership.user.email ?? targetMembership.userId,
+      userRole: toContractRoleString(targetMembership.role),
+      reason: params.reason,
+      customReason: params.customReason ?? null,
+      removedBy: params.authUserId,
+      removedByName: removedByUser?.name ?? removedByUser?.email ?? params.authUserId,
+      removedAt: now.toISOString(),
+      originalMembership: toMembershipSummary({
+        id: targetMembership.id,
+        clubId: targetMembership.clubId,
+        userId: targetMembership.userId,
+        role: toContractRoleString(targetMembership.role),
+        active: targetMembership.active,
+        createdAt: targetMembership.createdAt,
+        updatedAt: targetMembership.updatedAt,
+      }),
+    });
+  }
+  async addClubMemberToSquad(params: {
+    clubId: string;
+    userId: string;
+    squadId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubMemberRecord> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fixture.addClubMemberToSquad(params);
+    }
+    const prisma = getPrismaClientOrThrow();
+    const { targetMembership, athleteId } = await this.requireDbSquadAssignmentContext(params);
+    const existing = await prisma.squadMembership.findUnique({
+      where: {
+        squadId_athleteId: {
+          squadId: params.squadId,
+          athleteId,
+        },
+      },
+    });
+    if (existing) {
+      if (existing.deletedAt || existing.status.toLowerCase() === 'inactive') {
+        await prisma.squadMembership.update({
+          where: {
+            squadId_athleteId: {
+              squadId: params.squadId,
+              athleteId,
+            },
+          },
+          data: {
+            status: 'active',
+            deletedAt: null,
+            deletedByUserId: null,
+            updatedByUserId: params.authUserId,
+            version: {
+              increment: 1n,
+            },
+          },
+        });
+      }
+    } else {
+      await prisma.squadMembership.create({
+        data: {
+          id: `sqm_${randomUUID()}`,
+          squadId: params.squadId,
+          athleteId,
+          status: 'active',
+          createdByUserId: params.authUserId,
+          updatedByUserId: params.authUserId,
+        },
+      });
+    }
+    return normalizeForJson(
+      buildClubMemberRecord({
+        membership: {
+          id: targetMembership.id,
+          clubId: targetMembership.clubId,
+          userId: targetMembership.userId,
+          role: targetMembership.role,
+          active: targetMembership.active,
+          createdAt: targetMembership.createdAt,
+          updatedAt: targetMembership.updatedAt,
+          deletedAt: targetMembership.deletedAt,
+        },
+        user: targetMembership.user,
+        squadIds: await this.listDbSquadIdsForClubMember({
+          clubId: params.clubId,
+          userId: params.userId,
+        }),
+      }),
+    );
+  }
+  async removeClubMemberFromSquad(params: {
+    clubId: string;
+    userId: string;
+    squadId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubMemberRecord> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fixture.removeClubMemberFromSquad(params);
+    }
+    const prisma = getPrismaClientOrThrow();
+    const { targetMembership, athleteId } = await this.requireDbSquadAssignmentContext(params);
+    const existing = await prisma.squadMembership.findUnique({
+      where: {
+        squadId_athleteId: {
+          squadId: params.squadId,
+          athleteId,
+        },
+      },
+    });
+    if (existing && !existing.deletedAt && existing.status.toLowerCase() !== 'inactive') {
+      await prisma.squadMembership.update({
+        where: {
+          squadId_athleteId: {
+            squadId: params.squadId,
+            athleteId,
+          },
+        },
+        data: {
+          status: 'inactive',
+          deletedAt: new Date(),
+          deletedByUserId: params.authUserId,
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1n,
+          },
+        },
+      });
+    }
+    return normalizeForJson(
+      buildClubMemberRecord({
+        membership: {
+          id: targetMembership.id,
+          clubId: targetMembership.clubId,
+          userId: targetMembership.userId,
+          role: targetMembership.role,
+          active: targetMembership.active,
+          createdAt: targetMembership.createdAt,
+          updatedAt: targetMembership.updatedAt,
+          deletedAt: targetMembership.deletedAt,
+        },
+        user: targetMembership.user,
+        squadIds: await this.listDbSquadIdsForClubMember({
+          clubId: params.clubId,
+          userId: params.userId,
+        }),
+      }),
     );
   }
   async listInviteCodes(params: {

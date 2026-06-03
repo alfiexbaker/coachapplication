@@ -311,7 +311,7 @@ function getObjectiveValuesForBooking(tables: SeedTables, bookingId: string): st
     .sort((a, b) => (asNumber(a.sortOrder) ?? 0) - (asNumber(b.sortOrder) ?? 0))
     .flatMap((objective) => {
       const mapped = asString(objective.objective);
-      return Boolean(mapped) ? [mapped] : [];
+      return mapped ? [mapped] : [];
     });
 }
 function canUserAccessSeedBooking(

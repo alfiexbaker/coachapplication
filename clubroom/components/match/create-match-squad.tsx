@@ -17,6 +17,8 @@ interface CreateMatchSquadProps {
   squadMemberCount: number;
   autoInvite: boolean;
   colors: ThemeColors;
+  allowNoSquad?: boolean;
+  canCreateSquad?: boolean;
   onSelectSquad: (id: string) => void;
   onAutoInviteChange: (val: boolean) => void;
   onCreateSquad?: () => void;
@@ -28,6 +30,8 @@ export const CreateMatchSquad = function CreateMatchSquad({
   squadMemberCount,
   autoInvite,
   colors,
+  allowNoSquad = false,
+  canCreateSquad = true,
   onSelectSquad,
   onAutoInviteChange,
   onCreateSquad,
@@ -87,9 +91,11 @@ export const CreateMatchSquad = function CreateMatchSquad({
             <Ionicons name="people-outline" size={48} color={colors.muted} />
             <ThemedText type="defaultSemiBold">No squads found</ThemedText>
             <ThemedText style={[Typography.small, { color: colors.muted, textAlign: 'center' }]}>
-              Create a squad first so you can select players and send invites for this match.
+              {allowNoSquad
+                ? 'Create a club-level fixture now. Squad assignment and player invites can be added once squad authority is synced.'
+                : 'Create a squad first so you can select players and send invites for this match.'}
             </ThemedText>
-            {onCreateSquad ? (
+            {canCreateSquad && onCreateSquad ? (
               <Clickable
                 style={[styles.createSquadBtn, { borderColor: colors.border }]}
                 onPress={onCreateSquad}

@@ -420,6 +420,33 @@ const eventRsvpRequestSchema = z.object({
   guestCount: z.number().int().min(0).max(10).optional(),
   notes: z.string().max(500).nullable().optional(),
 });
+type EventRsvpRequestBody = z.infer<typeof eventRsvpRequestSchema>;
+
+function toDbEventRsvpStatus(
+  status: EventRsvpRequestBody['status'],
+): 'GOING' | 'MAYBE' | 'DECLINED' {
+  return status === 'NOT_GOING' ? 'DECLINED' : status;
+}
+
+function toApiEventRsvpStatus(status: unknown): EventRsvpRequestBody['status'] {
+  const normalized = asString(status);
+  if (normalized === 'GOING' || normalized === 'MAYBE' || normalized === 'NOT_GOING') {
+    return normalized;
+  }
+  if (normalized === 'DECLINED') {
+    return 'NOT_GOING';
+  }
+  return 'MAYBE';
+}
+
+function buildEventRsvpResponse(row: SeedRow): SeedRow {
+  return {
+    ...row,
+    eventId: asString(row.clubEventId) ?? asString(row.eventId) ?? null,
+    status: toApiEventRsvpStatus(row.status),
+  };
+}
+
 const groupSessionQuerySchema = z.object({
   status: z.string().optional(),
   coachUserId: z.string().optional(),
@@ -555,7 +582,7 @@ function buildInviteProposedSlots(session: SeedRow | undefined): {
           : {}),
       };
     })();
-    return Boolean(mapped) ? [mapped] : [];
+    return mapped ? [mapped] : [];
   });
 }
 function buildInviteProposedSlotsFromMetadata(metadata: SeedRow | undefined): {
@@ -584,7 +611,7 @@ function buildInviteProposedSlotsFromMetadata(metadata: SeedRow | undefined): {
           : {}),
       };
     })();
-    return Boolean(mapped) ? [mapped] : [];
+    return mapped ? [mapped] : [];
   });
 }
 function buildInviteLocationCoordinates(metadata: SeedRow | undefined):
@@ -2665,7 +2692,106 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       throw notFound('Event id is required');
     }
     const body = eventRsvpRequestSchema.parse(request.body);
-    const store = getMarketplaceSeedStore();
+    if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+      const prisma = getPrismaClientOrThrow();
+      const event = await prisma.clubEvent.findFirst({
+        where: {
+          id: eventId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          clubId: true,
+        },
+      });
+      if (!event) {
+        await recordAuditEvent({
+          request,
+          action: 'event.rsvp',
+          resourceType: 'club_event',
+          resourceId: eventId,
+          subjectUserId: authUserId,
+          result: 'DENY',
+          metadata: { reason: 'event_not_found' },
+        });
+        throw notFound('Club event not found', { eventId });
+      }
+
+      const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
+      const membership = await prisma.clubMembership.findUnique({
+        where: {
+          clubId_userId: {
+            clubId: event.clubId,
+            userId: authUserId,
+          },
+        },
+        select: {
+          active: true,
+          deletedAt: true,
+        },
+      });
+      if (!isPrivilegedAdmin && (!membership?.active || membership.deletedAt)) {
+        await recordAuditEvent({
+          request,
+          action: 'event.rsvp',
+          resourceType: 'club_event',
+          resourceId: eventId,
+          subjectUserId: authUserId,
+          result: 'DENY',
+          metadata: { reason: 'not_club_member', clubId: event.clubId },
+        });
+        throw forbidden('User is not a member of event club');
+      }
+
+      const now = new Date();
+      const rsvp = await prisma.eventRsvp.upsert({
+        where: {
+          clubEventId_userId: {
+            clubEventId: eventId,
+            userId: authUserId,
+          },
+        },
+        create: {
+          id: newId('rsv'),
+          clubEventId: eventId,
+          userId: authUserId,
+          status: toDbEventRsvpStatus(body.status),
+          guestCount: body.guestCount ?? 0,
+          notes: body.notes ?? null,
+          respondedAt: now,
+        },
+        update: {
+          status: toDbEventRsvpStatus(body.status),
+          guestCount: body.guestCount ?? 0,
+          notes: body.notes ?? null,
+          respondedAt: now,
+        },
+      });
+
+      await recordAuditEvent({
+        request,
+        action: 'event.rsvp',
+        resourceType: 'club_event',
+        resourceId: eventId,
+        subjectUserId: authUserId,
+        result: 'SUCCESS',
+        metadata: {
+          clubId: event.clubId,
+          status: body.status,
+          guestCount: body.guestCount ?? 0,
+        },
+      });
+
+      return reply.send({
+        rsvp: buildEventRsvpResponse(normalizeForJson(rsvp) as SeedRow),
+        requestId: request.requestId,
+      });
+    }
+
+    const store =
+      getApiDataBackend() === 'db' && shouldUseDbFixtureFallback()
+        ? getDbFixtureStore()
+        : getMarketplaceSeedStore();
     const events = asRows(store.tables.clubEvents);
     const rsvps = asRows(store.tables.eventRsvps);
     const memberships = asRows(store.tables.clubMemberships);
@@ -2681,9 +2807,19 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       (row) =>
         asString(row.clubId) === eventClubId &&
         asString(row.userId) === authUserId &&
-        row.active !== false,
+        row.active !== false &&
+        !asString(row.deletedAt),
     );
     if (!isPrivilegedAdmin && !hasClubMembership) {
+      await recordAuditEvent({
+        request,
+        action: 'event.rsvp',
+        resourceType: 'club_event',
+        resourceId: eventId,
+        subjectUserId: authUserId,
+        result: 'DENY',
+        metadata: { reason: 'not_club_member', clubId: eventClubId ?? null },
+      });
       throw forbidden('User is not a member of event club');
     }
     const now = isoNow();
@@ -2710,8 +2846,21 @@ const bookingRoutes: FastifyPluginAsync = async (app) => {
       row.respondedAt = now;
       row.updatedAt = now;
     }
+    await recordAuditEvent({
+      request,
+      action: 'event.rsvp',
+      resourceType: 'club_event',
+      resourceId: eventId,
+      subjectUserId: authUserId,
+      result: 'SUCCESS',
+      metadata: {
+        clubId: eventClubId ?? null,
+        status: body.status,
+        guestCount: body.guestCount ?? 0,
+      },
+    });
     return reply.send({
-      rsvp: row,
+      rsvp: buildEventRsvpResponse(row),
       requestId: request.requestId,
       seedVersion: store.version,
     });

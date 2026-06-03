@@ -2,10 +2,12 @@
  * useHomeScreen — Data loading and state for the athlete/parent home screen.
  */
 import { useState, useEffect, startTransition } from 'react';
+import { api } from '@/constants/config';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { badgeService } from '@/services/badge-service';
 import { clubService, type MatchResult } from '@/services/club-service';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { progressService } from '@/services/progress-service';
 import { bookingService } from '@/services/booking-service';
@@ -22,6 +24,7 @@ import type { FamilyBookingRow, FamilyBookingChild } from '@/types/family-bookin
 import { formatShortDateWithYear } from '@/utils/format';
 
 const logger = createLogger('UserHomeScreen');
+const USE_MOCK = api.useMock;
 
 function currentTimestamp(): number {
   return Date.now();
@@ -423,7 +426,19 @@ export function useHomeScreen() {
 
       const badges = await badgeService.listAwardsForAthlete(athleteId);
       const nextRecentBadges = badges.slice(0, 3);
-      const userClubs = socialFeedService.getUserClubs(currentUser?.id || '');
+      let userClubs: Club[] = [];
+      if (USE_MOCK) {
+        userClubs = socialFeedService.getUserClubs(currentUser?.id || '');
+      } else {
+        const authorityClubs = await clubAuthorityService.listClubs();
+        if (authorityClubs.success) {
+          userClubs = authorityClubs.data.clubs;
+        } else {
+          logger.warn('home_authority_clubs_failed', {
+            error: authorityClubs.error.message,
+          });
+        }
+      }
       const primaryClub = userClubs[0];
       let nextRecentResults: HomeResult[] = [];
       let nextClubHighlights: HomeClubHighlight[] = [];
@@ -431,7 +446,11 @@ export function useHomeScreen() {
       if (primaryClub) {
         const [results, highlights] = await Promise.allSettled([
           clubService.getRecentResults(primaryClub.id, 3),
-          Promise.resolve(socialFeedService.getFeed(primaryClub.id, 'all')),
+          USE_MOCK
+            ? Promise.resolve(socialFeedService.getFeed(primaryClub.id, 'all'))
+            : socialFeedService
+                .getFeedAuthority(primaryClub.id, 'all')
+                .then((result) => (result.success ? result.data : [])),
         ]);
 
         nextRecentResults =

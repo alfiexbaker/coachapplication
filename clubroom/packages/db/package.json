@@ -12,7 +12,8 @@
     "prisma:migrate:status": "prisma migrate status",
     "prisma:validate": "prisma validate",
     "prisma:db:push": "prisma db push",
-    "seed:p0:import": "node ./scripts/import-marketplace-p0-seed.mjs"
+    "seed:p0:import": "node ./scripts/import-marketplace-p0-seed.mjs",
+    "demo-passwords:reset": "node ./scripts/reset-demo-passwords.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.5.0"

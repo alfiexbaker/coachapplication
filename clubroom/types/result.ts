@@ -18,6 +18,7 @@ export type ServiceErrorCode =
   | 'UNAUTHORIZED'
   | 'CONFLICT'
   | 'RATE_LIMITED'
+  | 'UNSUPPORTED'
   | 'UNKNOWN';
 
 export interface ServiceError {
@@ -41,7 +42,7 @@ export const err = <E = ServiceError>(error: E): Result<never, E> => ({
 export const serviceError = (
   code: ServiceErrorCode,
   message: string,
-  details?: unknown
+  details?: unknown,
 ): ServiceError => ({
   code,
   message,
@@ -63,8 +64,10 @@ export const storageError = (message: string = 'Storage operation failed'): Serv
 export const unauthorized = (message: string = 'Unauthorized'): ServiceError =>
   serviceError('UNAUTHORIZED', message);
 
-export const conflictError = (message: string): ServiceError =>
-  serviceError('CONFLICT', message);
+export const conflictError = (message: string): ServiceError => serviceError('CONFLICT', message);
+
+export const unsupportedError = (message: string, details?: unknown): ServiceError =>
+  serviceError('UNSUPPORTED', message, details);
 
 // Type guards
 export const isOk = <T, E>(result: Result<T, E>): result is { success: true; data: T } =>
@@ -79,7 +82,7 @@ export const unwrap = <T, E>(result: Result<T, E>): T => {
   throw new Error(
     typeof result.error === 'object' && result.error !== null && 'message' in result.error
       ? String((result.error as unknown as ServiceError).message)
-      : 'Result unwrap failed'
+      : 'Result unwrap failed',
   );
 };
 
@@ -98,7 +101,7 @@ export const mapErr = <T, E, F>(result: Result<T, E>, fn: (error: E) => F): Resu
 // Chain async operations
 export const andThen = async <T, U, E>(
   result: Result<T, E>,
-  fn: (data: T) => Promise<Result<U, E>>
+  fn: (data: T) => Promise<Result<U, E>>,
 ): Promise<Result<U, E>> => (result.success ? fn(result.data) : result);
 
 // Combine multiple results
@@ -116,7 +119,7 @@ export const all = <T, E>(results: Result<T, E>[]): Result<T[], E> => {
  * Returns the first error encountered, preserving order.
  */
 export const combineResults = <TResults extends readonly Result<any, any>[]>(
-  results: TResults
+  results: TResults,
 ): Result<{ [K in keyof TResults]: ResultData<TResults[K]> }, ResultErr<TResults[number]>> => {
   const data: unknown[] = [];
 

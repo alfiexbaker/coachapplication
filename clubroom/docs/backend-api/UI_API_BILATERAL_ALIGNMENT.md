@@ -212,6 +212,39 @@ No single manual pass is enough. Use a layered process:
 - Endpoints: `GET /v1/bookings/:bookingId/reviews/me`, `POST /v1/bookings/:bookingId/reviews`, `GET /v1/coaches/:coachId/reviews`
 - Authority: booked guardian/athlete status and submission only; public coach profile proof reads verified completed-booking reviews
 
+### Club matches and recent results
+
+- Routes: `app/matches/create.tsx`, match detail routes through `Routes.match(...)`, home screens with recent results, club schedule routes
+- Components/hooks: `components/match/create-match-*`, `hooks/use-create-match.ts`, `hooks/use-home-screen.ts`, club schedule components
+- Services: `services/match-service.ts`, `services/club-service.ts`, `services/club-schedule-service.ts`, `services/club-authority-service.ts`
+- API modules: `coach-club`
+- Endpoints: `GET/POST /v1/clubs/:clubId/matches`, `GET /v1/matches/:matchId`, `PATCH /v1/matches/:matchId/result`, `PATCH /v1/matches/:matchId/status`, `GET /v1/clubs/:clubId/schedule`
+- Tables/storage/jobs: `ClubMatch`, `Club`, `ClubMembership`, `AuditEvent`; no player invite/outbox fan-out yet
+- Authority: privileged admins or active club members can read according to club visibility; only active club staff or privileged admins can create/status-update/record results; mutation success and deny paths are audited
+- UI states/flows: API mode resolves the actor's real club through `clubAuthorityService.listClubs()`, can create a club-level fixture without a squad, and hides mock-only squad creation/invite fan-out; match player availability and lineup remain fail-closed until squad/match-player authority exists
+
+### Club members
+
+- Routes: club detail, club hub, club settings, member detail, event athlete selectors
+- Components/hooks: member panels and `hooks/use-member-management.ts`, `hooks/use-club-detail.ts`, `hooks/use-club-hub.ts`, `hooks/use-club-settings.ts`
+- Services: `services/club-service.ts`, `services/club-authority-service.ts`
+- API modules: `coach-club`
+- Endpoints: `GET /v1/clubs/:clubId/members`, `PATCH /v1/clubs/:clubId/members/:userId/role`, `DELETE /v1/clubs/:clubId/members/:userId`, `PUT/DELETE /v1/clubs/:clubId/squads/:squadId/members/:userId`
+- Tables/storage/jobs: `ClubMembership`, `Squad`, `SquadMembership`, `Athlete`, `Club`, `User`, `AuditEvent`; local member storage remains mock-only
+- Authority: active club members or privileged admins can read member lists; role/remove/squad writes require `manage_staff_and_invites`, the actor must outrank the target/requested role where relevant, ownership role changes are excluded, squad assignment requires the target user to resolve to a linked athlete, and success/deny writes are audited
+- UI states/flows: squad detail/member-management toggles now mutate backend `SquadMembership` in API mode; ban and removal undo fail closed until their backend authority models exist
+
+### Club squads
+
+- Routes: club detail, club hub, club settings, create squad, squad detail, squad pickers
+- Components/hooks: `hooks/use-club-detail.ts`, `hooks/use-club-hub.ts`, `hooks/use-club-settings.ts`, `hooks/use-create-squad.ts`, `hooks/use-squad-detail.ts`, squad selector components
+- Services: `services/squad-service.ts`
+- API modules: `coach-club`
+- Endpoints: `GET/POST /v1/clubs/:clubId/squads`, `GET /v1/squads/:squadId`, `PATCH /v1/clubs/:clubId/squads/:squadId`
+- Tables/storage/jobs: `Squad`, `SquadMembership`, `Club`, `ClubMembership`, `AuditEvent`; local squad storage remains mock-only for squad list/detail/create/update
+- Authority: privileged admins or active club members can read squads for their club; create/update requires `manage_staff_and_invites`, actor comes from auth, and write success/deny paths are audited
+- UI states/flows: club squad list/detail/create/update now use backend `Squad` in API mode; squad roster member reads still need dedicated `/v1/squads*` roster authority and remain a known raw `/api/squads*` gap
+
 ### Family + medical + SEN
 
 - Routes: `app/family/*`, `app/child/[id]/medical.tsx`, `app/child/[id]/emergency.tsx`, `app/(modal)/edit-child-sen.tsx`

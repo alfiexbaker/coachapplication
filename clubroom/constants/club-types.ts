@@ -184,6 +184,8 @@ export interface ClubFeedPost {
   imageUrl?: string;
   videoUrl?: string;
   reactionCount?: number;
+  likedByCurrentUser?: boolean;
+  likes?: string[];
   commentCount?: number;
   isPinned?: boolean;
   pinnedBy?: string;

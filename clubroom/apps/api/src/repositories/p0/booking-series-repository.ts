@@ -221,7 +221,7 @@ function getObjectiveValuesForBooking(tables: SeedTables, bookingId: string): st
     .sort((left, right) => (asNumber(left.sortOrder) ?? 0) - (asNumber(right.sortOrder) ?? 0))
     .flatMap((objective) => {
       const mapped = asString(objective.objective);
-      return Boolean(mapped) ? [mapped] : [];
+      return mapped ? [mapped] : [];
     });
 }
 function canUserAccessSeedSeriesBooking(
@@ -1402,7 +1402,7 @@ class SeedBookingSeriesRepository implements BookingSeriesRepository {
     }
     const mutableBookingIds = mutableBookings.flatMap((booking) => {
       const mapped = asString(booking.id);
-      return Boolean(mapped) ? [mapped] : [];
+      return mapped ? [mapped] : [];
     });
     assertSeedInvoicesAdjustableForBookingUpdate(store.tables, mutableBookingIds);
     for (const booking of mutableBookings) {
@@ -1915,7 +1915,7 @@ class DbBookingSeriesRepository implements BookingSeriesRepository {
       new Set(
         bookingSeriesIds.flatMap((row) => {
           const mapped = row.recurringSeriesId;
-          return Boolean(mapped) ? [mapped] : [];
+          return typeof mapped === 'string' ? [mapped] : [];
         }),
       ),
     );

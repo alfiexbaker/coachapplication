@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const DEFAULT_API_PAYMENT_SIMULATION_SECRET = 'clubroom-simulated-payments-dev-secret';
 export const DEFAULT_SENTRY_RELEASE = 'clubroom-api@development';
-const DEFAULT_API_DATA_BACKEND = process.env.NODE_ENV === 'production' ? 'db' : 'seed';
+const DEFAULT_API_DATA_BACKEND = process.env.NODE_ENV === 'test' ? 'seed' : 'db';
 
 const boolish = z.preprocess((value) => {
   if (value === undefined || value === null || value === '') return undefined;
@@ -37,14 +37,9 @@ const envSchema = z.object({
 
   API_MARKETPLACE_SEED_ENABLED: boolish.default(false),
   API_DATA_BACKEND: z.enum(['seed', 'db']).default(DEFAULT_API_DATA_BACKEND),
-  API_MARKETPLACE_SEED_OUTPUT_DIR: z
-    .string()
-    .default('docs/backend-api/test-data/marketplace'),
+  API_MARKETPLACE_SEED_OUTPUT_DIR: z.string().default('docs/backend-api/test-data/marketplace'),
   API_PAYMENT_PROVIDER: z.enum(['simulated', 'stripe']).default('simulated'),
-  API_PAYMENT_SIMULATION_SECRET: z
-    .string()
-    .min(16)
-    .default(DEFAULT_API_PAYMENT_SIMULATION_SECRET),
+  API_PAYMENT_SIMULATION_SECRET: z.string().min(16).default(DEFAULT_API_PAYMENT_SIMULATION_SECRET),
   API_PAYMENT_ALLOWED_RETURN_ORIGINS: z.string().optional(),
 
   SENTRY_URL: z.string().url().default('https://sentry.io/'),

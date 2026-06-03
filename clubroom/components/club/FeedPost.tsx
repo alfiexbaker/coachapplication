@@ -38,9 +38,9 @@ export function FeedPost({ post, canPin, onPinToggle, onLike, onComment, onShare
   const initials = post.postAs === 'club' ? 'CL' : authorLabel.slice(0, 2).toUpperCase() || 'ME';
   const showActions = !!(onLike || onComment || onShare);
   const baseReactionCount = post.reactionCount ?? 0;
-  const hasUserReacted = currentUser?.id
-    ? socialFeedService.hasUserReacted(post.id, currentUser.id)
-    : false;
+  const hasUserReacted =
+    post.likedByCurrentUser ??
+    (currentUser?.id ? socialFeedService.hasUserReacted(post.id, currentUser.id) : false);
   const liked = optimisticLiked ?? hasUserReacted;
   const reactionCount = optimisticReactionCount ?? baseReactionCount;
 

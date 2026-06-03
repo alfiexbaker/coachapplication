@@ -1,4 +1,4 @@
-import { useEffect, useState, startTransition } from 'react';
+import { useCallback, useEffect, useState, startTransition } from 'react';
 import { View, RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -194,7 +194,7 @@ export default function SessionDetailScreen() {
     };
   }, [booking?.actingAs, booking?.clubId]);
 
-  const loadReviewStatus = async () => {
+  const loadReviewStatus = useCallback(async () => {
     if (!bookingId || isCoach || booking?.status !== 'Completed') {
       setHasSubmittedReview(false);
       return;
@@ -226,11 +226,13 @@ export default function SessionDetailScreen() {
     } catch {
       setHasSubmittedReview(false);
     }
-  };
+  }, [booking, bookingId, currentUser, isCoach]);
 
-  useFocusEffect(() => {
-    void loadReviewStatus();
-  });
+  useFocusEffect(
+    useCallback(() => {
+      void loadReviewStatus();
+    }, [loadReviewStatus]),
+  );
 
   const handleReviewCoach = () => {
     if (!bookingId || isCoach) return;

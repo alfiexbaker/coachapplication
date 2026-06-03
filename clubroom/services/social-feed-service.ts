@@ -82,12 +82,24 @@ interface ApiPost {
   attachmentsJson?: unknown;
   commentsCount?: number;
   reactionsCount?: number;
+  likedByCurrentUser?: boolean;
+  likes?: string[];
   createdAt?: string;
   updatedAt?: string;
   author?: ApiPostAuthor | null;
 }
 interface ApiPostCreateResponse {
   post: ApiPost;
+}
+interface ApiPostListResponse {
+  posts: ApiPost[];
+  seedVersion?: string | null;
+  requestId: string;
+}
+interface ApiPostReactionResponse {
+  post: ApiPost;
+  seedVersion?: string | null;
+  requestId: string;
 }
 interface FeedApiContext {
   currentUserId: string;
@@ -556,6 +568,8 @@ function mapApiPostToClubFeedPost(
     imageUrl: metadataString(metadata, "imageUrl"),
     videoUrl: metadataString(metadata, "videoUrl"),
     reactionCount: post.reactionsCount ?? 0,
+    likedByCurrentUser: post.likedByCurrentUser === true,
+    likes: post.likes,
     commentCount: post.commentsCount ?? 0,
     eventId: metadataString(metadata, "eventId"),
     eventDate: metadataString(metadata, "eventDate"),
@@ -734,6 +748,17 @@ function toggleReactionInternal(postId: string, userId: string): boolean {
   reactions.add(userId);
   post.reactionCount = (post.reactionCount || 0) + 1;
   return true;
+}
+function syncUserReaction(postId: string, userId: string, liked: boolean): void {
+  if (!userReactions.has(postId)) {
+    userReactions.set(postId, new Set());
+  }
+  const reactions = userReactions.get(postId)!;
+  if (liked) {
+    reactions.add(userId);
+  } else {
+    reactions.delete(userId);
+  }
 }
 function hasUserReactedInternal(postId: string, userId: string): boolean {
   return userReactions.get(postId)?.has(userId) ?? false;
@@ -1077,6 +1102,48 @@ class ClubFeedService {
   getFeed(clubId: string, filter: FeedFilter = "all"): ClubFeedPost[] {
     return getClubFeedInternal(clubId, filter);
   }
+  async getFeedAuthority(
+    clubId: string,
+    filter: FeedFilter = "all",
+  ): Promise<Result<ClubFeedPost[], ServiceError>> {
+    if (USE_MOCK) {
+      return ok(this.getFeed(clubId, filter));
+    }
+    if (!clubId) {
+      return err(validationError("Club ID is required"));
+    }
+    const contextResult = await resolveFeedApiContext(
+      "Sign in to view club posts",
+    );
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const context = contextResult.data;
+    const result = await apiFetch<ApiPostListResponse>(
+      `/v1/posts?clubId=${encodeURIComponent(clubId)}`,
+      {
+        method: "GET",
+        headers: context.headers,
+      },
+    );
+    if (!result.success) {
+      this.logger.error("Failed to load club feed via API", {
+        clubId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    const posts = result.data.posts.map((post) =>
+      mapApiPostToClubFeedPost(post, context),
+    );
+    posts.forEach(mirrorClubFeedPost);
+    posts.forEach((post) => {
+      if (context.currentUserId) {
+        syncUserReaction(post.id, context.currentUserId, post.likedByCurrentUser === true);
+      }
+    });
+    return ok(sortClubPosts(filterPostsByType(posts, filter)));
+  }
   getPinnedPosts(clubId: string): ClubFeedPost[] {
     return getPinnedPostsInternal(clubId);
   }
@@ -1100,6 +1167,43 @@ class ClubFeedService {
       isReacted: isNowReacted,
     });
     return isNowReacted;
+  }
+  async toggleReactionAuthority(postId: string): Promise<Result<ClubFeedPost, ServiceError>> {
+    if (USE_MOCK) {
+      const currentUserResult = await resolveFeedApiContext("Sign in to react to posts");
+      if (!currentUserResult.success) {
+        return currentUserResult;
+      }
+      this.toggleReaction(postId, currentUserResult.data.currentUserId);
+      const post = clubFeedStore.find((candidate) => candidate.id === postId);
+      return post ? ok(post) : err(validationError("Post not found"));
+    }
+    if (!postId) {
+      return err(validationError("Post ID is required"));
+    }
+    const contextResult = await resolveFeedApiContext("Sign in to react to posts");
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const context = contextResult.data;
+    const result = await apiFetch<ApiPostReactionResponse>(
+      `/v1/posts/${encodeURIComponent(postId)}/reactions/toggle`,
+      {
+        method: "POST",
+        headers: context.headers,
+      },
+    );
+    if (!result.success) {
+      this.logger.error("Failed to toggle post reaction via API", {
+        postId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    const post = mapApiPostToClubFeedPost(result.data.post, context);
+    mirrorClubFeedPost(post);
+    syncUserReaction(post.id, context.currentUserId, post.likedByCurrentUser === true);
+    return ok(post);
   }
   hasUserReacted(postId: string, userId: string): boolean {
     return hasUserReactedInternal(postId, userId);

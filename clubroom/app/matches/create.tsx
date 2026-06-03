@@ -59,6 +59,8 @@ export default function CreateMatchScreen() {
     squadMemberCount,
     autoInvite,
     setAutoInvite,
+    canCreateWithoutSquad,
+    canCreateSquad,
     handleNext,
     handleBack,
     handleSubmit,
@@ -209,6 +211,8 @@ export default function CreateMatchScreen() {
                 squadMemberCount={squadMemberCount}
                 autoInvite={autoInvite}
                 colors={colors}
+                allowNoSquad={canCreateWithoutSquad}
+                canCreateSquad={canCreateSquad}
                 onSelectSquad={setSelectedSquadId}
                 onAutoInviteChange={setAutoInvite}
                 onCreateSquad={handleCreateSquad}

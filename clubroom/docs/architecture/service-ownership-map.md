@@ -68,7 +68,15 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 
 - `services/club-authority-service.ts`
 - Canonical `/v1` bridge for non-mock club listing, join-link resolution, join-by-code, pending club invite review, and invite-code management
+- `services/club-service.ts`
+- Canonical member-management bridge for club member list, role update, removal, and squad assignment
+- `services/squad-service.ts`
+- Canonical squad bridge for club squad list/detail/create/update
 - Runtime rule: member invite codes join directly; staff invite codes create a pending invite for the target coach to review and accept
+- Runtime rule: non-mock `clubService.getMembers()`, `changeMemberRole()`, `removeMember()`, `addMemberToSquad()`, and `removeMemberFromSquad()` use `/v1/clubs/:clubId/members*` and `/v1/clubs/:clubId/squads/:squadId/members/:userId`; role/remove/squad writes are backend-audited, require `manage_staff_and_invites`, derive actor from auth, and squad assignment resolves the club member's linked athlete before writing `SquadMembership`
+- Runtime rule: non-mock `squadService.getSquads()`, `getSquad()`, `createSquad()`, and `updateSquad()` use `/v1/clubs/:clubId/squads*` and `/v1/squads/:squadId`; reads require active club membership or privileged admin and writes require `manage_staff_and_invites`
+- Current limitation: non-mock `squadService.getSquadMembers()` and `getMembersForSquads()` still use raw `/api/squads*` until dedicated squad-roster read authority exists
+- Current limitation: member ban and removal undo are fail-closed outside mock mode until dedicated ban/restore authority exists
 - Compatibility rule: older club UIs may still read local club state, but that state should be mirrored from `clubAuthorityService` instead of being treated as the source of truth
 - Runtime rule: `services/org-staffing-service.ts` is mock-only for staffing console and club work assignment until a backend assignment route exists; non-mock mode fails closed instead of reading or mutating local `SESSION_OFFERINGS` / booking mirrors for assignment truth
 - `services/club-invite-link-service.ts` is the canonical helper for parsing and building club join links
@@ -96,8 +104,10 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - Avoid creating new parallel community data access paths
 - `services/community-media-authority-service.ts`
 - Canonical `/v1` bridge for non-mock community groups, message threads/messages, and notification preference reads
-- Backend community/media reads now have db-aware authority routes at `GET /v1/community-groups`, `GET /v1/posts`, and `GET /v1/message-threads`
+- Backend community/media reads now have db-aware authority routes at `GET /v1/community-groups`, club/group-scoped `GET /v1/posts`, and `GET /v1/message-threads`
 - `services/social-feed-service.ts` uses `POST /v1/posts` through `createPostAuthority` and `createCoachPostAuthority` outside mock mode; the old sync `createPost` and `createCoachPost` methods are mock-only and fail closed in API mode
+- `services/social-feed-service.ts#getFeedAuthority` is the non-mock club-feed read seam and calls `GET /v1/posts?clubId=...`; synchronous `getFeed` is mock/local compatibility only
+- `services/social-feed-service.ts#toggleReactionAuthority` is the non-mock post-like seam and calls `POST /v1/posts/:postId/reactions/toggle`; local reaction state is mock compatibility only
 - Group chat send/read transitions now use `POST /v1/community-groups/:groupId/messages` and `POST /v1/community-groups/:groupId/messages/read` in non-mock mode; active group membership is enforced by the backend and local message/read overlays are mock-only
 - Direct/thread chat send and delete now use `POST /v1/message-threads/:threadId/messages` and `DELETE /v1/messages/:messageId` in non-mock mode; active thread participation, sender ownership, idempotency, and audit are enforced by the backend instead of local message overlays
 - `services/comment-service.ts` now uses `GET/POST /v1/posts/:postId/comments` and `GET/DELETE /v1/comments/:commentId` outside mock mode; the backend derives the author from auth, enforces readable-post visibility, keeps comment soft-delete authoritative, and local comment storage is mock-only
@@ -126,8 +136,17 @@ Purpose: identify the service entrypoints that are safe to build on and call out
 - Canonical read-model seam for `Club Schedule` and `Team Schedule`
 - Current rule: it projects events, group sessions, and matches into `ClubActivity`
 - Current non-mock rule: list and item reads now go through `/v1/clubs/:clubId/schedule` and `/v1/clubs/:clubId/schedule/:activityId`
+- Current DB rule: when `API_DATA_BACKEND=db`, the API reads real `ClubEvent`, `GroupSession`, and `ClubMatch` rows through Prisma/Supabase and uses fixture or seed projection only as fallback
 - Current app rule: `Routes.clubActivity(...)` is the canonical activity entrypoint and resolves into the existing event/session/match detail screens
-- Current limitation: mock mode still projects locally
+
+### Matches and results
+
+- `services/match-service.ts`
+- Canonical fixture/result seam for club matches
+- Current non-mock rule: club match list/create reads and writes use `GET/POST /v1/clubs/:clubId/matches`; detail/status/result use `/v1/matches/:matchId`, `/v1/matches/:matchId/status`, and `/v1/matches/:matchId/result`
+- Current DB rule: `ClubMatch` is a backend-owned Prisma/Supabase table; active club members can read private-club matches, and only active club staff or privileged admins can create, cancel/status-update, or record results
+- Current app rule: `hooks/use-create-match.ts` resolves the actor's real club via `clubAuthorityService.listClubs()` outside mock mode and can create a club-level fixture before squad authority is synced
+- Current limitation: match player invites, availability responses, and lineup selection are mock-only/fail-closed outside mock mode until squad and match-player authority moves behind `/v1`
 
 ### Invoices and reconciler
 

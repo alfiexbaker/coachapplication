@@ -13,7 +13,13 @@
  */
 
 import React from 'react';
-import { StyleSheet, View, type DimensionValue, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  type DimensionValue,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Spacing, Typography } from '@/constants/theme';
@@ -98,10 +104,20 @@ export function SectionSkeleton({
   style,
 }: SectionSkeletonProps) {
   return (
-    <View style={[sectionStyles.container, style]} accessibilityRole="none" accessibilityLabel="Loading section">
+    <View
+      style={[sectionStyles.container, style]}
+      accessibilityRole="none"
+      accessibilityLabel="Loading section"
+    >
       <View style={sectionStyles.header}>
         <Skeleton width={titleWidth} height={16} accessibilityLabel="Loading section heading" />
-        {actionWidth ? <SkeletonPill width={actionWidth} height={28} accessibilityLabel="Loading section action" /> : null}
+        {actionWidth ? (
+          <SkeletonPill
+            width={actionWidth}
+            height={28}
+            accessibilityLabel="Loading section action"
+          />
+        ) : null}
       </View>
       <LoadingStateBase
         variant={variant}
@@ -112,10 +128,7 @@ export function SectionSkeleton({
   );
 }
 
-export function SubmitProgressState({
-  label = 'Working...',
-  style,
-}: SubmitProgressStateProps) {
+export function SubmitProgressState({ label = 'Working...', style }: SubmitProgressStateProps) {
   const { colors } = useTheme();
 
   return (
@@ -147,6 +160,7 @@ const USER_FACING_CODES: string[] = [
   'NOT_FOUND',
   'CONFLICT',
   'RATE_LIMITED',
+  'UNSUPPORTED',
 ];
 
 export function ErrorState({ message, error, onRetry, title }: ErrorStateProps) {
@@ -182,8 +196,12 @@ export function ErrorState({ message, error, onRetry, title }: ErrorStateProps) 
           <ThemedText style={[errorStyles.title, { color: colors.muted }]}>
             Debug Info (Dev Only)
           </ThemedText>
-          <ThemedText style={[errorStyles.message, { color: colors.muted, fontFamily: 'monospace' }]}>
-            {typeof debugDetails === 'string' ? debugDetails : JSON.stringify(debugDetails, null, 2)}
+          <ThemedText
+            style={[errorStyles.message, { color: colors.muted, fontFamily: 'monospace' }]}
+          >
+            {typeof debugDetails === 'string'
+              ? debugDetails
+              : JSON.stringify(debugDetails, null, 2)}
           </ThemedText>
         </View>
       ) : null}

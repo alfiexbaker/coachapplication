@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-28T09:37:52.204Z",
+  "updatedAt": "2026-06-03T19:09:20.677Z",
   "note": "Legacy anti-slop findings allowed for now. New findings fail scripts/api-boundary-audit.js.",
   "allowedFindings": [
     {
@@ -14,96 +14,6 @@
       "file": "components/bookings/booking-info-cards.tsx",
       "snippet": "const forecastResponse = await fetch(forecastUrl);",
       "fingerprint": "frontend-raw-fetch|components/bookings/booking-info-cards.tsx|const forecastResponse = await fetch(forecastUrl);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/academy-service.ts",
-      "snippet": "const response = await fetch('/api/academies');",
-      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch('/api/academies');"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/academy-service.ts",
-      "snippet": "const response = await fetch(`/api/academies/${academyId}`);",
-      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch(`/api/academies/${academyId}`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/academy-service.ts",
-      "snippet": "const response = await fetch(`/api/academies/slug/${slug}`);",
-      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch(`/api/academies/slug/${slug}`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/academy-service.ts",
-      "snippet": "const response = await fetch(`/api/users/${userId}/academies`);",
-      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch(`/api/users/${userId}/academies`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/academy-service.ts",
-      "snippet": "const response = await fetch('/api/academies', {",
-      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch('/api/academies', {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/academy-service.ts",
-      "snippet": "const response = await fetch(`/api/academies/${academyId}/branding`, {",
-      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch(`/api/academies/${academyId}/branding`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/academy-service.ts",
-      "snippet": "const response = await fetch(`/api/academies/${academyId}`, {",
-      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch(`/api/academies/${academyId}`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/academy-service.ts",
-      "snippet": "const response = await fetch(`/api/academies/${academyId}/commercial-mode`, {",
-      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch(`/api/academies/${academyId}/commercial-mode`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/academy-service.ts",
-      "snippet": "const response = await fetch(`/api/academies/${academyId}/staff`);",
-      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch(`/api/academies/${academyId}/staff`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/academy-service.ts",
-      "snippet": "const response = await fetch(`/api/academies/${academyId}/invites`, {",
-      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch(`/api/academies/${academyId}/invites`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/academy-service.ts",
-      "snippet": "const response = await fetch('/api/academies/join', {",
-      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch('/api/academies/join', {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/academy-service.ts",
-      "snippet": "const response = await fetch(`/api/memberships/${membershipId}`, {",
-      "fingerprint": "legacy-api-path|services/academy-service.ts|const response = await fetch(`/api/memberships/${membershipId}`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/academy-service.ts",
-      "snippet": "await fetch(`/api/memberships/${membershipId}`, { method: 'DELETE' });",
-      "fingerprint": "legacy-api-path|services/academy-service.ts|await fetch(`/api/memberships/${membershipId}`, { method: 'DELETE' });"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/academy-service.ts",
-      "snippet": "`/api/academies/${academyId}/permissions/${userId}/${permission}`,",
-      "fingerprint": "legacy-api-path|services/academy-service.ts|`/api/academies/${academyId}/permissions/${userId}/${permission}`,"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/academy-service.ts",
-      "snippet": "await fetch(`/api/academies/${academyId}`, { method: 'DELETE' });",
-      "fingerprint": "legacy-api-path|services/academy-service.ts|await fetch(`/api/academies/${academyId}`, { method: 'DELETE' });"
     },
     {
       "rule": "legacy-api-path",
@@ -197,24 +107,6 @@
     },
     {
       "rule": "legacy-api-path",
-      "file": "services/api-client.ts",
-      "snippet": "const result = await apiFetch<T>(`/api/${key}`);",
-      "fingerprint": "legacy-api-path|services/api-client.ts|const result = await apiFetch<T>(`/api/${key}`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/api-client.ts",
-      "snippet": "const result = await apiFetch(`/api/${key}`, {",
-      "fingerprint": "legacy-api-path|services/api-client.ts|const result = await apiFetch(`/api/${key}`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/api-client.ts",
-      "snippet": "const result = await apiFetch(`/api/${key}`, { method: 'DELETE' });",
-      "fingerprint": "legacy-api-path|services/api-client.ts|const result = await apiFetch(`/api/${key}`, { method: 'DELETE' });"
-    },
-    {
-      "rule": "legacy-api-path",
       "file": "services/calendar-service.ts",
       "snippet": "const response = await fetch(`/api/users/${userId}/calendar-settings`);",
       "fingerprint": "legacy-api-path|services/calendar-service.ts|const response = await fetch(`/api/users/${userId}/calendar-settings`);"
@@ -234,60 +126,6 @@
     {
       "rule": "legacy-api-path",
       "file": "services/club-service.ts",
-      "snippet": "const response = await fetch(`/api/clubs/${clubId}/squads`);",
-      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/squads`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/club-service.ts",
-      "snippet": "const response = await fetch(`/api/clubs/${clubId}/members`);",
-      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/members`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/club-service.ts",
-      "snippet": "const response = await fetch(`/api/clubs/${clubId}/members/${userId}`, {",
-      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/members/${userId}`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/club-service.ts",
-      "snippet": "const response = await fetch(`/api/clubs/${clubId}/members/removed/${removalId}/undo`, {",
-      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/members/removed/${removalId}/undo`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/club-service.ts",
-      "snippet": "const response = await fetch(`/api/clubs/${clubId}/members/removed`);",
-      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/members/removed`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/club-service.ts",
-      "snippet": "const response = await fetch(`/api/clubs/${clubId}/members/${userId}/role`, {",
-      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/members/${userId}/role`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/club-service.ts",
-      "snippet": "const response = await fetch(`/api/clubs/${clubId}/members/${userId}/ban`, {",
-      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/members/${userId}/ban`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/club-service.ts",
-      "snippet": "const response = await fetch(`/api/clubs/${clubId}/members/${userId}/squads`, {",
-      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/members/${userId}/squads`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/club-service.ts",
-      "snippet": "const response = await fetch(`/api/clubs/${clubId}/members/${userId}/squads/${squadId}`, {",
-      "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/members/${userId}/squads/${squadId}`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/club-service.ts",
       "snippet": "const response = await fetch(`/api/clubs/${clubId}/branding`);",
       "fingerprint": "legacy-api-path|services/club-service.ts|const response = await fetch(`/api/clubs/${clubId}/branding`);"
     },
@@ -302,12 +140,6 @@
       "file": "services/club-service.ts",
       "snippet": "await apiFetch<DashboardStats>(`/api/clubs/${clubId}/dashboard-stats`, {",
       "fingerprint": "legacy-api-path|services/club-service.ts|await apiFetch<DashboardStats>(`/api/clubs/${clubId}/dashboard-stats`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/club-service.ts",
-      "snippet": "await apiFetch<MatchResult[]>(`/api/clubs/${clubId}/results?limit=${limit}`, {",
-      "fingerprint": "legacy-api-path|services/club-service.ts|await apiFetch<MatchResult[]>(`/api/clubs/${clubId}/results?limit=${limit}`, {"
     },
     {
       "rule": "legacy-api-path",
@@ -389,195 +221,9 @@
     },
     {
       "rule": "legacy-api-path",
-      "file": "services/event/event-attendance-service.ts",
-      "snippet": "const response = await fetch(`/api/events/${input.eventId}/checkin`, {",
-      "fingerprint": "legacy-api-path|services/event/event-attendance-service.ts|const response = await fetch(`/api/events/${input.eventId}/checkin`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-attendance-service.ts",
-      "snippet": "await fetch(`/api/events/${eventId}/checkin/${userId}`, {",
-      "fingerprint": "legacy-api-path|services/event/event-attendance-service.ts|await fetch(`/api/events/${eventId}/checkin/${userId}`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-attendance-service.ts",
-      "snippet": "const response = await fetch(`/api/events/${eventId}/attendance`);",
-      "fingerprint": "legacy-api-path|services/event/event-attendance-service.ts|const response = await fetch(`/api/events/${eventId}/attendance`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-attendance-service.ts",
-      "snippet": "const response = await fetch(`/api/events/${eventId}/attendance/${userId}`);",
-      "fingerprint": "legacy-api-path|services/event/event-attendance-service.ts|const response = await fetch(`/api/events/${eventId}/attendance/${userId}`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-attendance-service.ts",
-      "snippet": "const response = await fetch(`/api/events/${eventId}/stats`);",
-      "fingerprint": "legacy-api-path|services/event/event-attendance-service.ts|const response = await fetch(`/api/events/${eventId}/stats`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-crud-service.ts",
-      "snippet": "const response = await fetch('/api/events', {",
-      "fingerprint": "legacy-api-path|services/event/event-crud-service.ts|const response = await fetch('/api/events', {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-crud-service.ts",
-      "snippet": "const response = await fetch(`/api/events/${eventId}/publish`, {",
-      "fingerprint": "legacy-api-path|services/event/event-crud-service.ts|const response = await fetch(`/api/events/${eventId}/publish`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-crud-service.ts",
-      "snippet": "const response = await fetch(`/api/events/${eventId}/cancel`, {",
-      "fingerprint": "legacy-api-path|services/event/event-crud-service.ts|const response = await fetch(`/api/events/${eventId}/cancel`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-crud-service.ts",
-      "snippet": "const response = await fetch(`/api/events/${eventId}`);",
-      "fingerprint": "legacy-api-path|services/event/event-crud-service.ts|const response = await fetch(`/api/events/${eventId}`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-crud-service.ts",
-      "snippet": "const response = await fetch(`/api/events?clubId=${clubId}&upcoming=true`);",
-      "fingerprint": "legacy-api-path|services/event/event-crud-service.ts|const response = await fetch(`/api/events?clubId=${clubId}&upcoming=true`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-crud-service.ts",
-      "snippet": "const response = await fetch(`/api/events?clubId=${clubId}`);",
-      "fingerprint": "legacy-api-path|services/event/event-crud-service.ts|const response = await fetch(`/api/events?clubId=${clubId}`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-crud-service.ts",
-      "snippet": "await fetch(`/api/events/${eventId}/invite`, {",
-      "fingerprint": "legacy-api-path|services/event/event-crud-service.ts|await fetch(`/api/events/${eventId}/invite`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-rsvp-service.ts",
-      "snippet": "const response = await fetch(`/api/events/${eventId}/rsvp`, {",
-      "fingerprint": "legacy-api-path|services/event/event-rsvp-service.ts|const response = await fetch(`/api/events/${eventId}/rsvp`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-rsvp-service.ts",
-      "snippet": "const response = await fetch(`/api/events/${eventId}/attendees`);",
-      "fingerprint": "legacy-api-path|services/event/event-rsvp-service.ts|const response = await fetch(`/api/events/${eventId}/attendees`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-rsvp-service.ts",
-      "snippet": "const response = await fetch(`/api/events/${input.eventId}/rsvp`, {",
-      "fingerprint": "legacy-api-path|services/event/event-rsvp-service.ts|const response = await fetch(`/api/events/${input.eventId}/rsvp`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-rsvp-service.ts",
-      "snippet": "const response = await fetch(`/api/rsvps/${rsvpId}`, {",
-      "fingerprint": "legacy-api-path|services/event/event-rsvp-service.ts|const response = await fetch(`/api/rsvps/${rsvpId}`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-rsvp-service.ts",
-      "snippet": "const response = await fetch(`/api/events/${eventId}/rsvps`);",
-      "fingerprint": "legacy-api-path|services/event/event-rsvp-service.ts|const response = await fetch(`/api/events/${eventId}/rsvps`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-rsvp-service.ts",
-      "snippet": "const response = await fetch(`/api/users/${userId}/rsvps`);",
-      "fingerprint": "legacy-api-path|services/event/event-rsvp-service.ts|const response = await fetch(`/api/users/${userId}/rsvps`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-rsvp-service.ts",
-      "snippet": "const response = await fetch(`/api/events/${eventId}/rsvps/${userId}`);",
-      "fingerprint": "legacy-api-path|services/event/event-rsvp-service.ts|const response = await fetch(`/api/events/${eventId}/rsvps/${userId}`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-rsvp-service.ts",
-      "snippet": "const response = await fetch(`/api/events/${eventId}/rsvps/remind`, { method: 'POST' });",
-      "fingerprint": "legacy-api-path|services/event/event-rsvp-service.ts|const response = await fetch(`/api/events/${eventId}/rsvps/remind`, { method: 'POST' });"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-rsvp-service.ts",
-      "snippet": "`/api/users/${userId}/calendar-events?start=${startDate}&end=${endDate}`,",
-      "fingerprint": "legacy-api-path|services/event/event-rsvp-service.ts|`/api/users/${userId}/calendar-events?start=${startDate}&end=${endDate}`,"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/event/event-rsvp-service.ts",
-      "snippet": "const response = await fetch(`/api/users/${userId}/events/upcoming?limit=${limit}`);",
-      "fingerprint": "legacy-api-path|services/event/event-rsvp-service.ts|const response = await fetch(`/api/users/${userId}/events/upcoming?limit=${limit}`);"
-    },
-    {
-      "rule": "legacy-api-path",
       "file": "services/group-session/session-registration-service.ts",
       "snippet": "const response = await fetch(`/api/parents/${parentId}/registrations`);",
       "fingerprint": "legacy-api-path|services/group-session/session-registration-service.ts|const response = await fetch(`/api/parents/${parentId}/registrations`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/match-service.ts",
-      "snippet": "const response = await fetch(`/api/matches?clubId=${clubId}`);",
-      "fingerprint": "legacy-api-path|services/match-service.ts|const response = await fetch(`/api/matches?clubId=${clubId}`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/match-service.ts",
-      "snippet": "const response = await fetch(`/api/matches?parentId=${parentId}`);",
-      "fingerprint": "legacy-api-path|services/match-service.ts|const response = await fetch(`/api/matches?parentId=${parentId}`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/match-service.ts",
-      "snippet": "const response = await fetch(`/api/matches/${matchId}`);",
-      "fingerprint": "legacy-api-path|services/match-service.ts|const response = await fetch(`/api/matches/${matchId}`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/match-service.ts",
-      "snippet": "const response = await fetch('/api/matches', {",
-      "fingerprint": "legacy-api-path|services/match-service.ts|const response = await fetch('/api/matches', {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/match-service.ts",
-      "snippet": "const response = await fetch(`/api/matches/${input.matchId}/invite-players`, {",
-      "fingerprint": "legacy-api-path|services/match-service.ts|const response = await fetch(`/api/matches/${input.matchId}/invite-players`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/match-service.ts",
-      "snippet": "const response = await fetch(`/api/matches/${input.matchId}/respond`, {",
-      "fingerprint": "legacy-api-path|services/match-service.ts|const response = await fetch(`/api/matches/${input.matchId}/respond`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/match-service.ts",
-      "snippet": "const response = await fetch(`/api/matches/${input.matchId}/lineup`, {",
-      "fingerprint": "legacy-api-path|services/match-service.ts|const response = await fetch(`/api/matches/${input.matchId}/lineup`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/match-service.ts",
-      "snippet": "const response = await fetch(`/api/matches/${matchId}/result`, {",
-      "fingerprint": "legacy-api-path|services/match-service.ts|const response = await fetch(`/api/matches/${matchId}/result`, {"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/match-service.ts",
-      "snippet": "const response = await fetch(`/api/matches/${matchId}`, {",
-      "fingerprint": "legacy-api-path|services/match-service.ts|const response = await fetch(`/api/matches/${matchId}`, {"
     },
     {
       "rule": "legacy-api-path",
@@ -602,24 +248,6 @@
       "file": "services/session-template-service.ts",
       "snippet": "await fetch(`/api/session-templates/${templateId}`, { method: 'DELETE' });",
       "fingerprint": "legacy-api-path|services/session-template-service.ts|await fetch(`/api/session-templates/${templateId}`, { method: 'DELETE' });"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/squad-service.ts",
-      "snippet": "const response = await fetch(`/api/clubs/${clubId}/squads`);",
-      "fingerprint": "legacy-api-path|services/squad-service.ts|const response = await fetch(`/api/clubs/${clubId}/squads`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/squad-service.ts",
-      "snippet": "const response = await fetch(`/api/squads/${squadId}`);",
-      "fingerprint": "legacy-api-path|services/squad-service.ts|const response = await fetch(`/api/squads/${squadId}`);"
-    },
-    {
-      "rule": "legacy-api-path",
-      "file": "services/squad-service.ts",
-      "snippet": "const response = await fetch('/api/squads', {",
-      "fingerprint": "legacy-api-path|services/squad-service.ts|const response = await fetch('/api/squads', {"
     },
     {
       "rule": "legacy-api-path",
@@ -672,8 +300,8 @@
     {
       "rule": "trust-sensitive-local-storage",
       "file": "app/discover/map.tsx",
-      "snippet": "const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);",
-      "fingerprint": "trust-sensitive-local-storage|app/discover/map.tsx|const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);"
+      "snippet": "STORAGE_KEYS.SESSION_OFFERINGS,",
+      "fingerprint": "trust-sensitive-local-storage|app/discover/map.tsx|STORAGE_KEYS.SESSION_OFFERINGS,"
     },
     {
       "rule": "trust-sensitive-local-storage",
@@ -684,8 +312,8 @@
     {
       "rule": "trust-sensitive-local-storage",
       "file": "app/sessions/create.tsx",
-      "snippet": "const allOfferings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);",
-      "fingerprint": "trust-sensitive-local-storage|app/sessions/create.tsx|const allOfferings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);"
+      "snippet": "STORAGE_KEYS.SESSION_OFFERINGS,",
+      "fingerprint": "trust-sensitive-local-storage|app/sessions/create.tsx|STORAGE_KEYS.SESSION_OFFERINGS,"
     },
     {
       "rule": "trust-sensitive-local-storage",
@@ -720,8 +348,8 @@
     {
       "rule": "trust-sensitive-local-storage",
       "file": "hooks/use-create-session.ts",
-      "snippet": "const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);",
-      "fingerprint": "trust-sensitive-local-storage|hooks/use-create-session.ts|const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);"
+      "snippet": "STORAGE_KEYS.SESSION_OFFERINGS,",
+      "fingerprint": "trust-sensitive-local-storage|hooks/use-create-session.ts|STORAGE_KEYS.SESSION_OFFERINGS,"
     },
     {
       "rule": "trust-sensitive-local-storage",
@@ -744,8 +372,8 @@
     {
       "rule": "trust-sensitive-local-storage",
       "file": "hooks/use-session-detail-modal.ts",
-      "snippet": "const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);",
-      "fingerprint": "trust-sensitive-local-storage|hooks/use-session-detail-modal.ts|const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);"
+      "snippet": "STORAGE_KEYS.SESSION_OFFERINGS,",
+      "fingerprint": "trust-sensitive-local-storage|hooks/use-session-detail-modal.ts|STORAGE_KEYS.SESSION_OFFERINGS,"
     },
     {
       "rule": "trust-sensitive-local-storage",
@@ -1056,8 +684,8 @@
     {
       "rule": "trust-sensitive-local-storage",
       "file": "services/org-head-coach-service.ts",
-      "snippet": "const offeringRecords = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);",
-      "fingerprint": "trust-sensitive-local-storage|services/org-head-coach-service.ts|const offeringRecords = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);"
+      "snippet": "STORAGE_KEYS.SESSION_OFFERINGS,",
+      "fingerprint": "trust-sensitive-local-storage|services/org-head-coach-service.ts|STORAGE_KEYS.SESSION_OFFERINGS,"
     },
     {
       "rule": "trust-sensitive-local-storage",
@@ -1236,8 +864,8 @@
     {
       "rule": "trust-sensitive-local-storage",
       "file": "services/progress/progress-feedback-service.ts",
-      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_NOTES, { ...existing, [bookingId]: record });",
-      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-feedback-service.ts|await apiClient.set(STORAGE_KEYS.SESSION_NOTES, { ...existing, [bookingId]: record });"
+      "snippet": "await apiClient.set(STORAGE_KEYS.SESSION_NOTES, {",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-feedback-service.ts|await apiClient.set(STORAGE_KEYS.SESSION_NOTES, {"
     },
     {
       "rule": "trust-sensitive-local-storage",
@@ -1254,8 +882,8 @@
     {
       "rule": "trust-sensitive-local-storage",
       "file": "services/progress/progress-self-assessment-service.ts",
-      "snippet": "const journalEntries = await apiClient.get<JournalEntryRecord[]>(STORAGE_KEYS.SESSION_JOURNAL, []);",
-      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-self-assessment-service.ts|const journalEntries = await apiClient.get<JournalEntryRecord[]>(STORAGE_KEYS.SESSION_JOURNAL, []);"
+      "snippet": "STORAGE_KEYS.SESSION_JOURNAL,",
+      "fingerprint": "trust-sensitive-local-storage|services/progress/progress-self-assessment-service.ts|STORAGE_KEYS.SESSION_JOURNAL,"
     },
     {
       "rule": "trust-sensitive-local-storage",
@@ -1434,8 +1062,8 @@
     {
       "rule": "trust-sensitive-local-storage",
       "file": "services/safety-service.ts",
-      "snippet": ">(STORAGE_KEYS.FAMILY_MEMBERS, []);",
-      "fingerprint": "trust-sensitive-local-storage|services/safety-service.ts|>(STORAGE_KEYS.FAMILY_MEMBERS, []);"
+      "snippet": "STORAGE_KEYS.FAMILY_MEMBERS,",
+      "fingerprint": "trust-sensitive-local-storage|services/safety-service.ts|STORAGE_KEYS.FAMILY_MEMBERS,"
     },
     {
       "rule": "trust-sensitive-local-storage",
@@ -1452,8 +1080,8 @@
     {
       "rule": "trust-sensitive-local-storage",
       "file": "services/social-feed-service.ts",
-      "snippet": "clubsStore = await apiClient.get<Club[]>(STORAGE_KEYS.CLUBS, clubsStore);",
-      "fingerprint": "trust-sensitive-local-storage|services/social-feed-service.ts|clubsStore = await apiClient.get<Club[]>(STORAGE_KEYS.CLUBS, clubsStore);"
+      "snippet": "STORAGE_KEYS.CLUBS,",
+      "fingerprint": "trust-sensitive-local-storage|services/social-feed-service.ts|STORAGE_KEYS.CLUBS,"
     },
     {
       "rule": "trust-sensitive-local-storage",
@@ -1484,6 +1112,12 @@
       "file": "services/social-feed-service.ts",
       "snippet": "await apiClient.set(STORAGE_KEYS.CLUB_INVITE_CODES, clubInvitesStore);",
       "fingerprint": "trust-sensitive-local-storage|services/social-feed-service.ts|await apiClient.set(STORAGE_KEYS.CLUB_INVITE_CODES, clubInvitesStore);"
+    },
+    {
+      "rule": "trust-sensitive-local-storage",
+      "file": "services/squad-group-service.ts",
+      "snippet": ">(STORAGE_KEYS.CLUB_SQUADS, []);",
+      "fingerprint": "trust-sensitive-local-storage|services/squad-group-service.ts|>(STORAGE_KEYS.CLUB_SQUADS, []);"
     },
     {
       "rule": "trust-sensitive-local-storage",

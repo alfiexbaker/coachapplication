@@ -1,3 +1,4 @@
+import '@/utils/array-polyfills';
 import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import {

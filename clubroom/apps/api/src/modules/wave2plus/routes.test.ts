@@ -1612,6 +1612,24 @@ describe('wave2+ routes', () => {
       const postsPayload = posts.json() as { posts: unknown[] };
       assert.equal(postsPayload.posts.length >= 1, true);
 
+      const clubPost = asRows(tables.posts).find((row) => Boolean(asString(row.clubId)));
+      const clubId = asString(clubPost?.clubId);
+      const clubMembership = asRows(tables.clubMemberships).find(
+        (row) => asString(row.clubId) === clubId && row.active !== false,
+      );
+      const clubMemberUserId = asString(clubMembership?.userId);
+      assert.ok(clubId, 'expected seeded club post club id');
+      assert.ok(clubMemberUserId, 'expected seeded club post member user id');
+      const clubPosts = await app.inject({
+        method: 'GET',
+        url: `/v1/posts?clubId=${clubId}`,
+        headers: authHeaders(tables, clubMemberUserId),
+      });
+      assert.equal(clubPosts.statusCode, 200);
+      const clubPostsPayload = clubPosts.json() as { posts: Array<{ clubId?: string | null }> };
+      assert.equal(clubPostsPayload.posts.length >= 1, true);
+      assert.equal(clubPostsPayload.posts.every((post) => post.clubId === clubId), true);
+
       const messagingUserId = asString(asRows(tables.messageParticipants)[0]?.userId) as string;
       const threads = await app.inject({
         method: 'GET',
@@ -2568,6 +2586,60 @@ describe('wave2+ routes', () => {
     assert.equal(createdPayload.post.commentsCount, 0);
     assert.equal(createdPayload.post.reactionsCount, 0);
 
+    const deniedPostReaction = await app.inject({
+      method: 'POST',
+      url: `/v1/posts/${createdPayload.post.id}/reactions/toggle`,
+      headers: authHeaders(tables, outsiderUserId),
+    });
+    assert.equal(deniedPostReaction.statusCode, 403);
+
+    const likedPost = await app.inject({
+      method: 'POST',
+      url: `/v1/posts/${createdPayload.post.id}/reactions/toggle`,
+      headers: authHeaders(tables, memberUserId, 'member'),
+    });
+    assert.equal(likedPost.statusCode, 200);
+    const likedPostPayload = likedPost.json() as {
+      post: { id: string; reactionsCount: number; likedByCurrentUser: boolean; likes: string[] };
+    };
+    assert.equal(likedPostPayload.post.id, createdPayload.post.id);
+    assert.equal(likedPostPayload.post.reactionsCount, 1);
+    assert.equal(likedPostPayload.post.likedByCurrentUser, true);
+    assert.deepEqual(likedPostPayload.post.likes, [memberUserId]);
+
+    const listedAfterPostLike = await app.inject({
+      method: 'GET',
+      url: `/v1/posts?clubId=${clubId}`,
+      headers: authHeaders(tables, memberUserId, 'member'),
+    });
+    assert.equal(listedAfterPostLike.statusCode, 200);
+    const listedAfterPostLikePayload = listedAfterPostLike.json() as {
+      posts: Array<{ id: string; reactionsCount: number; likedByCurrentUser: boolean }>;
+    };
+    assert.equal(
+      listedAfterPostLikePayload.posts.some(
+        (post) =>
+          post.id === createdPayload.post.id &&
+          post.reactionsCount === 1 &&
+          post.likedByCurrentUser === true,
+      ),
+      true,
+    );
+
+    const unlikedPost = await app.inject({
+      method: 'POST',
+      url: `/v1/posts/${createdPayload.post.id}/reactions/toggle`,
+      headers: authHeaders(tables, memberUserId, 'member'),
+    });
+    assert.equal(unlikedPost.statusCode, 200);
+    const unlikedPostPayload = unlikedPost.json() as {
+      post: { id: string; reactionsCount: number; likedByCurrentUser: boolean; likes: string[] };
+    };
+    assert.equal(unlikedPostPayload.post.id, createdPayload.post.id);
+    assert.equal(unlikedPostPayload.post.reactionsCount, 0);
+    assert.equal(unlikedPostPayload.post.likedByCurrentUser, false);
+    assert.deepEqual(unlikedPostPayload.post.likes, []);
+
     const replayed = await app.inject({
       method: 'POST',
       url: '/v1/posts',
@@ -3283,6 +3355,32 @@ describe('wave2+ routes', () => {
     const denied = await app.inject({
       method: 'GET',
       url: `/v1/posts?communityGroupId=${groupId}`,
+      headers: authHeaders(tables, outsiderUserId),
+    });
+    assert.equal(denied.statusCode, 403);
+  });
+
+  it('denies outsider access to private club posts', async () => {
+    const tables = loadTables();
+    const clubPost = asRows(tables.posts).find((row) => Boolean(asString(row.clubId)));
+    assert.ok(clubPost, 'expected seeded club post');
+    const clubId = asString(clubPost.clubId) as string;
+    const memberUserIds = new Set(
+      asRows(tables.clubMemberships)
+        .filter(
+          (row) =>
+            asString(row.clubId) === clubId &&
+            row.active !== false &&
+            !asString(row.deletedAt) &&
+            asString(row.userId),
+        )
+        .map((row) => asString(row.userId) as string),
+    );
+    const outsiderUserId = findUnprivilegedUserId(tables, memberUserIds);
+
+    const denied = await app.inject({
+      method: 'GET',
+      url: `/v1/posts?clubId=${clubId}`,
       headers: authHeaders(tables, outsiderUserId),
     });
     assert.equal(denied.statusCode, 403);

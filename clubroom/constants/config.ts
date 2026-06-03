@@ -54,7 +54,7 @@ const getFloat = (key: string, defaultValue: number = 0): number => {
 
 export type Environment = 'development' | 'staging' | 'production';
 
-export const env = (getEnv('ENV', 'development') as Environment);
+export const env = getEnv('ENV', 'development') as Environment;
 
 export const isDevelopment = env === 'development';
 export const isStaging = env === 'staging';
@@ -104,7 +104,7 @@ export const isFeatureEnabled = (flag: FeatureFlag): boolean => features[flag];
 export const api = {
   baseUrl: getEnv('API_URL', 'http://localhost:4000'),
   timeout: getNumber('API_TIMEOUT', 30000),
-  useMock: getBool('USE_MOCK', true),
+  useMock: getBool('USE_MOCK', false),
 } as const;
 
 /**
@@ -112,7 +112,7 @@ export const api = {
  * Keeps mock mode but continuously hydrates/refreshes realistic activity.
  */
 export const preApiLive = {
-  enabled: getBool('PRE_API_LIVE_MODE', isDevelopment),
+  enabled: getBool('PRE_API_LIVE_MODE', false),
   seedOnAuth: getBool('PRE_API_LIVE_SEED_ON_AUTH', true),
   pulseIntervalMs: Math.max(getNumber('PRE_API_LIVE_PULSE_INTERVAL_MS', 45000), 15000),
 } as const;

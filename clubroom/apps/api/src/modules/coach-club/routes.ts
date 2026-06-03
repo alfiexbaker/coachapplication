@@ -9,14 +9,21 @@ import {
   canUseStaffInviteLinks,
   isPrivilegedAdminAuth,
 } from "../../lib/authz.js";
+import { getApiDataBackend } from "../../lib/data-backend.js";
+import { getDbFixtureStore } from "../../lib/db-fixture-store.js";
 import { ApiProblemError, forbidden, notFound } from "../../lib/http-errors.js";
 import { getMarketplaceSeedStore } from "../../lib/marketplace-seed-store.js";
+import {
+  getPrismaClientOrThrow,
+  shouldUseDbFixtureFallback,
+} from "../../lib/prisma-runtime.js";
 import {
   resetClubAuthorityRepositoryForTests,
   resolveClubAuthorityRepository,
 } from "../../repositories/p0/club-authority-repository.js";
 import { resolveCoachFavouriteRepository } from "../../repositories/p0/coach-favourite-repository.js";
 import { resolveCoachSelfRepository } from "../../repositories/p0/coach-self-repository.js";
+import { normalizeForJson } from "../../repositories/p0/normalize.js";
 import {
   parseAvailabilitySlotQuery,
   resolveCoachAvailabilityTables,
@@ -26,6 +33,7 @@ import {
   buildClubScheduleActivities,
   findClubScheduleActivity,
 } from "./schedule.js";
+import { registerClubMatchRoutes } from "./matches.js";
 type SeedRow = Record<string, unknown>;
 interface RefundTier {
   hoursBeforeSession: number;
@@ -51,16 +59,76 @@ interface SchedulingRulesPatchBody {
 const favouriteCoachParamsSchema = z.object({
   coachId: z.string().min(1),
 });
+const clubMemberParamsSchema = z.object({
+  clubId: z.string().min(1),
+  userId: z.string().min(1),
+});
+const clubSquadMemberParamsSchema = z.object({
+  clubId: z.string().min(1),
+  squadId: z.string().min(1),
+  userId: z.string().min(1),
+});
+const clubSquadParamsSchema = z.object({
+  clubId: z.string().min(1),
+  squadId: z.string().min(1),
+});
+const squadParamsSchema = z.object({
+  squadId: z.string().min(1),
+});
+const clubParamsSchema = z.object({
+  clubId: z.string().min(1),
+});
 const favouriteCoachBodySchema = z
   .object({
     note: z.string().max(500).nullable().optional(),
     userId: z.string().optional(),
   })
   .passthrough();
+const clubMemberRoleBodySchema = z.object({
+  role: z.enum(["OWNER", "ADMIN", "HEAD_COACH", "COACH", "ASSISTANT", "MEMBER"]),
+});
+const clubMemberRemovalBodySchema = z.object({
+  reason: z
+    .enum(["LEFT_CLUB", "INACTIVE", "CONDUCT", "SEASON_END", "OTHER"])
+    .default("OTHER"),
+  customReason: z.string().max(500).nullable().optional(),
+});
+const clubSquadCreateBodySchema = z
+  .object({
+    name: z.string().trim().min(1).max(100),
+    level: z.string().trim().max(100).optional(),
+    ageGroup: z.string().trim().max(50).optional(),
+    skillLevel: z.string().trim().max(50).optional(),
+  })
+  .passthrough();
+const clubSquadPatchBodySchema = z
+  .object({
+    name: z.string().trim().min(1).max(100).optional(),
+    level: z.string().trim().max(100).optional(),
+    ageGroup: z.string().trim().max(50).optional(),
+    skillLevel: z.string().trim().max(50).optional(),
+  })
+  .passthrough();
 const asRows = (value: unknown): SeedRow[] =>
   Array.isArray(value) ? (value as SeedRow[]) : [];
 const asString = (value: unknown): string | undefined =>
   typeof value === "string" ? value : undefined;
+function resolveSquadLevel(body: {
+  level?: string;
+  ageGroup?: string;
+  skillLevel?: string;
+}): string | undefined {
+  const level = body.level?.trim();
+  if (level) {
+    return level;
+  }
+  const ageGroup = body.ageGroup?.trim();
+  const skillLevel = body.skillLevel?.trim();
+  if (ageGroup && skillLevel) {
+    return `${ageGroup} · ${skillLevel}`;
+  }
+  return ageGroup || skillLevel || undefined;
+}
 export function resetCoachClubRouteStateForTests(): void {
   resetClubAuthorityRepositoryForTests();
 }
@@ -108,6 +176,76 @@ async function recordCoachFavouriteAudit(params: {
     subjectUserId: params.request.auth?.userId ?? null,
     result: params.result,
     metadata: params.metadata,
+  });
+}
+async function recordClubMemberAudit(params: {
+  request: FastifyRequest;
+  action: string;
+  clubId: string;
+  targetUserId: string;
+  result: "SUCCESS" | "DENY" | "ERROR";
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  await recordAuditEvent({
+    request: params.request,
+    action: params.action,
+    resourceType: "club_member",
+    resourceId: `${params.clubId}:${params.targetUserId}`,
+    subjectUserId: params.request.auth?.userId ?? null,
+    result: params.result,
+    metadata: {
+      clubId: params.clubId,
+      targetUserId: params.targetUserId,
+      ...params.metadata,
+    },
+  });
+}
+async function recordClubSquadAudit(params: {
+  request: FastifyRequest;
+  action: string;
+  clubId: string;
+  squadId?: string;
+  result: "SUCCESS" | "DENY" | "ERROR";
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  await recordAuditEvent({
+    request: params.request,
+    action: params.action,
+    resourceType: "club_squad",
+    resourceId: params.squadId
+      ? `${params.clubId}:${params.squadId}`
+      : params.clubId,
+    subjectUserId: params.request.auth?.userId ?? null,
+    result: params.result,
+    metadata: {
+      clubId: params.clubId,
+      squadId: params.squadId,
+      ...params.metadata,
+    },
+  });
+}
+async function recordClubSquadMemberAudit(params: {
+  request: FastifyRequest;
+  action: string;
+  clubId: string;
+  squadId: string;
+  targetUserId: string;
+  result: "SUCCESS" | "DENY" | "ERROR";
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  await recordAuditEvent({
+    request: params.request,
+    action: params.action,
+    resourceType: "squad_member",
+    resourceId: `${params.clubId}:${params.squadId}:${params.targetUserId}`,
+    subjectUserId: params.request.auth?.userId ?? null,
+    result: params.result,
+    metadata: {
+      clubId: params.clubId,
+      squadId: params.squadId,
+      targetUserId: params.targetUserId,
+      ...params.metadata,
+    },
   });
 }
 function toDateOnly(value: string | undefined): string {
@@ -236,13 +374,13 @@ function requireClubScheduleAccess(params: {
   clubId: string | undefined;
   authUserId: string;
   isPrivilegedAdmin: boolean;
-  store: ReturnType<typeof getMarketplaceSeedStore>;
+  tables: Record<string, unknown>;
 }) {
   if (!params.clubId) {
     throw notFound("Club not found");
   }
-  const clubs = asRows(params.store.tables.clubs);
-  const clubMemberships = asRows(params.store.tables.clubMemberships);
+  const clubs = asRows(params.tables.clubs);
+  const clubMemberships = asRows(params.tables.clubMemberships);
   const club = clubs.find((row) => asString(row.id) === params.clubId);
   if (!club) {
     throw notFound("Club not found");
@@ -266,7 +404,122 @@ function requireClubScheduleAccess(params: {
     viewerMembership,
   };
 }
+async function requireDbClubScheduleAccess(params: {
+  clubId: string;
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+}): Promise<void> {
+  const prisma = getPrismaClientOrThrow();
+  const club = await prisma.club.findFirst({
+    where: {
+      id: params.clubId,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      visibility: true,
+    },
+  });
+  if (!club) {
+    throw notFound("Club not found");
+  }
+  if (params.isPrivilegedAdmin || club.visibility === "public") {
+    return;
+  }
+  const viewerMembership = await prisma.clubMembership.findUnique({
+    where: {
+      clubId_userId: {
+        clubId: params.clubId,
+        userId: params.authUserId,
+      },
+    },
+    select: {
+      active: true,
+      deletedAt: true,
+    },
+  });
+  if (viewerMembership?.active === true && viewerMembership.deletedAt === null) {
+    return;
+  }
+  throw forbidden("You do not have permission to view this club schedule");
+}
+async function resolveClubScheduleSource(params: {
+  clubId: string | undefined;
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+}): Promise<{
+  clubId: string;
+  tables: Record<string, unknown>;
+  seedVersion: string | null;
+}> {
+  if (!params.clubId) {
+    throw notFound("Club not found");
+  }
+  if (getApiDataBackend() === "db" && !shouldUseDbFixtureFallback()) {
+    await requireDbClubScheduleAccess({
+      clubId: params.clubId,
+      authUserId: params.authUserId,
+      isPrivilegedAdmin: params.isPrivilegedAdmin,
+    });
+    const prisma = getPrismaClientOrThrow();
+    const [clubEvents, groupSessions, matches] = await Promise.all([
+      prisma.clubEvent.findMany({
+        where: {
+          clubId: params.clubId,
+          deletedAt: null,
+        },
+        orderBy: {
+          startsAt: "asc",
+        },
+      }),
+      prisma.groupSession.findMany({
+        where: {
+          clubId: params.clubId,
+          deletedAt: null,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      }),
+      prisma.clubMatch.findMany({
+        where: {
+          clubId: params.clubId,
+          deletedAt: null,
+        },
+        orderBy: {
+          startsAt: "asc",
+        },
+      }),
+    ]);
+    return {
+      clubId: params.clubId,
+      tables: normalizeForJson({
+        clubEvents,
+        groupSessions,
+        matches,
+      }),
+      seedVersion: null,
+    };
+  }
+  const store =
+    getApiDataBackend() === "db"
+      ? getDbFixtureStore()
+      : getMarketplaceSeedStore();
+  requireClubScheduleAccess({
+    clubId: params.clubId,
+    authUserId: params.authUserId,
+    isPrivilegedAdmin: params.isPrivilegedAdmin,
+    tables: store.tables,
+  });
+  return {
+    clubId: params.clubId,
+    tables: store.tables,
+    seedVersion: store.version,
+  };
+}
 const coachClubRoutes: FastifyPluginAsync = async (app) => {
+  registerClubMatchRoutes(app);
+
   app.get("/coaches/me/profile", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const repository = resolveCoachSelfRepository();
@@ -735,6 +988,315 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
+  app.get("/clubs/:clubId/squads", async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const params = clubParamsSchema.parse(request.params ?? {});
+    const repository = resolveClubAuthorityRepository();
+    const squads = await repository.listClubSquads({
+      clubId: params.clubId,
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+    });
+    return reply.send({
+      clubId: params.clubId,
+      squads,
+      total: squads.length,
+      requestId: request.requestId,
+    });
+  });
+  app.post("/clubs/:clubId/squads", async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const params = clubParamsSchema.parse(request.params ?? {});
+    const body = clubSquadCreateBodySchema.parse(request.body ?? {});
+    const repository = resolveClubAuthorityRepository();
+    try {
+      const squad = await repository.createClubSquad({
+        clubId: params.clubId,
+        name: body.name,
+        level: resolveSquadLevel(body),
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      });
+      await recordClubSquadAudit({
+        request,
+        action: "club_squad.create",
+        clubId: params.clubId,
+        squadId: squad.id,
+        result: "SUCCESS",
+      });
+      return reply.code(201).send({
+        squad,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordClubSquadAudit({
+        request,
+        action: "club_squad.create",
+        clubId: params.clubId,
+        result:
+          error instanceof ApiProblemError && error.status < 500
+            ? "DENY"
+            : "ERROR",
+        metadata: {
+          errorCode:
+            error instanceof ApiProblemError ? error.code : "INTERNAL_ERROR",
+        },
+      });
+      throw error;
+    }
+  });
+  app.get("/squads/:squadId", async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const params = squadParamsSchema.parse(request.params ?? {});
+    const repository = resolveClubAuthorityRepository();
+    const squad = await repository.getClubSquad({
+      squadId: params.squadId,
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+    });
+    return reply.send({
+      squad,
+      requestId: request.requestId,
+    });
+  });
+  app.patch("/clubs/:clubId/squads/:squadId", async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const params = clubSquadParamsSchema.parse(request.params ?? {});
+    const body = clubSquadPatchBodySchema.parse(request.body ?? {});
+    const repository = resolveClubAuthorityRepository();
+    try {
+      const squad = await repository.updateClubSquad({
+        clubId: params.clubId,
+        squadId: params.squadId,
+        name: body.name,
+        level: resolveSquadLevel(body),
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      });
+      await recordClubSquadAudit({
+        request,
+        action: "club_squad.update",
+        clubId: params.clubId,
+        squadId: params.squadId,
+        result: "SUCCESS",
+      });
+      return reply.send({
+        squad,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordClubSquadAudit({
+        request,
+        action: "club_squad.update",
+        clubId: params.clubId,
+        squadId: params.squadId,
+        result:
+          error instanceof ApiProblemError && error.status < 500
+            ? "DENY"
+            : "ERROR",
+        metadata: {
+          errorCode:
+            error instanceof ApiProblemError ? error.code : "INTERNAL_ERROR",
+        },
+      });
+      throw error;
+    }
+  });
+  app.get("/clubs/:clubId/members", async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const params = clubParamsSchema.parse(request.params ?? {});
+    const repository = resolveClubAuthorityRepository();
+    const members = await repository.listClubMembers({
+      clubId: params.clubId,
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+    });
+    return reply.send({
+      clubId: params.clubId,
+      members,
+      total: members.length,
+      requestId: request.requestId,
+    });
+  });
+  app.patch("/clubs/:clubId/members/:userId/role", async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const params = clubMemberParamsSchema.parse(request.params ?? {});
+    const body = clubMemberRoleBodySchema.parse(request.body ?? {});
+    const repository = resolveClubAuthorityRepository();
+    try {
+      const member = await repository.updateClubMemberRole({
+        clubId: params.clubId,
+        userId: params.userId,
+        role: body.role,
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      });
+      await recordClubMemberAudit({
+        request,
+        action: "club_member.role.update",
+        clubId: params.clubId,
+        targetUserId: params.userId,
+        result: "SUCCESS",
+        metadata: {
+          role: body.role,
+        },
+      });
+      return reply.send({
+        member,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordClubMemberAudit({
+        request,
+        action: "club_member.role.update",
+        clubId: params.clubId,
+        targetUserId: params.userId,
+        result:
+          error instanceof ApiProblemError && error.status < 500
+            ? "DENY"
+            : "ERROR",
+        metadata: {
+          role: body.role,
+          errorCode:
+            error instanceof ApiProblemError ? error.code : "INTERNAL_ERROR",
+        },
+      });
+      throw error;
+    }
+  });
+  app.delete("/clubs/:clubId/members/:userId", async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const params = clubMemberParamsSchema.parse(request.params ?? {});
+    const body = clubMemberRemovalBodySchema.parse(request.body ?? {});
+    const repository = resolveClubAuthorityRepository();
+    try {
+      const removal = await repository.removeClubMember({
+        clubId: params.clubId,
+        userId: params.userId,
+        reason: body.reason,
+        customReason: body.customReason ?? null,
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      });
+      await recordClubMemberAudit({
+        request,
+        action: "club_member.remove",
+        clubId: params.clubId,
+        targetUserId: params.userId,
+        result: "SUCCESS",
+        metadata: {
+          reason: body.reason,
+        },
+      });
+      return reply.send({
+        removal,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordClubMemberAudit({
+        request,
+        action: "club_member.remove",
+        clubId: params.clubId,
+        targetUserId: params.userId,
+        result:
+          error instanceof ApiProblemError && error.status < 500
+            ? "DENY"
+            : "ERROR",
+        metadata: {
+          reason: body.reason,
+          errorCode:
+            error instanceof ApiProblemError ? error.code : "INTERNAL_ERROR",
+        },
+      });
+      throw error;
+    }
+  });
+  app.put("/clubs/:clubId/squads/:squadId/members/:userId", async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const params = clubSquadMemberParamsSchema.parse(request.params ?? {});
+    const repository = resolveClubAuthorityRepository();
+    try {
+      const member = await repository.addClubMemberToSquad({
+        clubId: params.clubId,
+        squadId: params.squadId,
+        userId: params.userId,
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      });
+      await recordClubSquadMemberAudit({
+        request,
+        action: "club_squad_member.add",
+        clubId: params.clubId,
+        squadId: params.squadId,
+        targetUserId: params.userId,
+        result: "SUCCESS",
+      });
+      return reply.send({
+        member,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordClubSquadMemberAudit({
+        request,
+        action: "club_squad_member.add",
+        clubId: params.clubId,
+        squadId: params.squadId,
+        targetUserId: params.userId,
+        result:
+          error instanceof ApiProblemError && error.status < 500
+            ? "DENY"
+            : "ERROR",
+        metadata: {
+          errorCode:
+            error instanceof ApiProblemError ? error.code : "INTERNAL_ERROR",
+        },
+      });
+      throw error;
+    }
+  });
+  app.delete("/clubs/:clubId/squads/:squadId/members/:userId", async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const params = clubSquadMemberParamsSchema.parse(request.params ?? {});
+    const repository = resolveClubAuthorityRepository();
+    try {
+      const member = await repository.removeClubMemberFromSquad({
+        clubId: params.clubId,
+        squadId: params.squadId,
+        userId: params.userId,
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      });
+      await recordClubSquadMemberAudit({
+        request,
+        action: "club_squad_member.remove",
+        clubId: params.clubId,
+        squadId: params.squadId,
+        targetUserId: params.userId,
+        result: "SUCCESS",
+      });
+      return reply.send({
+        member,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordClubSquadMemberAudit({
+        request,
+        action: "club_squad_member.remove",
+        clubId: params.clubId,
+        squadId: params.squadId,
+        targetUserId: params.userId,
+        result:
+          error instanceof ApiProblemError && error.status < 500
+            ? "DENY"
+            : "ERROR",
+        metadata: {
+          errorCode:
+            error instanceof ApiProblemError ? error.code : "INTERNAL_ERROR",
+        },
+      });
+      throw error;
+    }
+  });
   app.get("/clubs/:clubId/schedule", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const clubId = asString(
@@ -745,23 +1307,20 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       ).clubId,
     );
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
-    const store = getMarketplaceSeedStore();
-    requireClubScheduleAccess({
+    const source = await resolveClubScheduleSource({
       clubId,
       authUserId,
       isPrivilegedAdmin,
-      store,
     });
-    const resolvedClubId = clubId as string;
     const activities = buildClubScheduleActivities(
-      store.tables,
-      resolvedClubId,
+      source.tables,
+      source.clubId,
     );
     return reply.send({
-      clubId: resolvedClubId,
+      clubId: source.clubId,
       activities,
       total: activities.length,
-      seedVersion: store.version,
+      seedVersion: source.seedVersion,
       requestId: request.requestId,
     });
   });
@@ -772,27 +1331,24 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       activityId?: string;
     };
     const isPrivilegedAdmin = isPrivilegedAdminAuth(request.auth);
-    const store = getMarketplaceSeedStore();
-    requireClubScheduleAccess({
+    const source = await resolveClubScheduleSource({
       clubId,
       authUserId,
       isPrivilegedAdmin,
-      store,
     });
-    const resolvedClubId = clubId as string;
     const activity = activityId
-      ? findClubScheduleActivity(store.tables, resolvedClubId, activityId)
+      ? findClubScheduleActivity(source.tables, source.clubId, activityId)
       : null;
     if (!activity) {
       throw notFound("Club activity not found", {
-        clubId: resolvedClubId,
+        clubId: source.clubId,
         activityId,
       });
     }
     return reply.send({
-      clubId: resolvedClubId,
+      clubId: source.clubId,
       activity,
-      seedVersion: store.version,
+      seedVersion: source.seedVersion,
       requestId: request.requestId,
     });
   });

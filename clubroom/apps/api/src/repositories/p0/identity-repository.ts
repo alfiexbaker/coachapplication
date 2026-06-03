@@ -1,18 +1,14 @@
-import { forbidden } from "../../lib/http-errors.js";
-import { getApiDataBackend } from "../../lib/data-backend.js";
-import { getMarketplaceSeedStore } from "../../lib/marketplace-seed-store.js";
-import { getDbFixtureStore } from "../../lib/db-fixture-store.js";
-import {
-  getPrismaClientOrThrow,
-  shouldUseDbFixtureFallback,
-} from "../../lib/prisma-runtime.js";
-import { normalizeForJson } from "./normalize.js";
+import { forbidden } from '../../lib/http-errors.js';
+import { getApiDataBackend } from '../../lib/data-backend.js';
+import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
+import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
+import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
+import { normalizeForJson } from './normalize.js';
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
-const asRows = (value: unknown): SeedRow[] =>
-  Array.isArray(value) ? (value as SeedRow[]) : [];
+const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined =>
-  typeof value === "string" ? value : undefined;
+  typeof value === 'string' ? value : undefined;
 export interface IdentityMeAggregate {
   user: {
     id?: string;
@@ -56,12 +52,11 @@ function fromTables(
   if (!user) {
     throw forbidden(`Authenticated user ${authUserId} does not exist`);
   }
-  const profile =
-    profiles.find((row) => asString(row.userId) === authUserId) ?? null;
+  const profile = profiles.find((row) => asString(row.userId) === authUserId) ?? null;
   const roles = roleMemberships.flatMap((row) => {
     if (!(asString(row.userId) === authUserId)) return [];
     const mapped = asString(row.role);
-    return Boolean(mapped) ? [mapped] : [];
+    return mapped ? [mapped] : [];
   });
   const linkedFamilies = familyMemberships.flatMap((row) => {
     if (!(asString(row.userId) === authUserId)) return [];
@@ -127,32 +122,31 @@ class DbIdentityRepository implements IdentityRepository {
     if (!user) {
       throw forbidden(`Authenticated user ${authUserId} does not exist`);
     }
-    const [profile, roleMemberships, familyMemberships, linkedAthletes] =
-      await Promise.all([
-        prisma.userProfile.findUnique({
-          where: {
-            userId: authUserId,
-          },
-        }),
-        prisma.userRoleMembership.findMany({
-          where: {
-            userId: authUserId,
-          },
-        }),
-        prisma.familyMembership.findMany({
-          where: {
-            userId: authUserId,
-          },
-          include: {
-            family: true,
-          },
-        }),
-        prisma.athlete.findMany({
-          where: {
-            userId: authUserId,
-          },
-        }),
-      ]);
+    const [profile, roleMemberships, familyMemberships, linkedAthletes] = await Promise.all([
+      prisma.userProfile.findUnique({
+        where: {
+          userId: authUserId,
+        },
+      }),
+      prisma.userRoleMembership.findMany({
+        where: {
+          userId: authUserId,
+        },
+      }),
+      prisma.familyMembership.findMany({
+        where: {
+          userId: authUserId,
+        },
+        include: {
+          family: true,
+        },
+      }),
+      prisma.athlete.findMany({
+        where: {
+          userId: authUserId,
+        },
+      }),
+    ]);
     const payload: IdentityMeAggregate = {
       user: {
         id: user.id,
@@ -162,9 +156,7 @@ class DbIdentityRepository implements IdentityRepository {
         locale: user.locale ?? null,
         timeZone: user.timeZone ?? null,
       },
-      profile: profile
-        ? normalizeForJson(profile as Record<string, unknown>)
-        : null,
+      profile: profile ? normalizeForJson(profile as Record<string, unknown>) : null,
       roles: roleMemberships.map((row) => row.role),
       linkedFamilies: familyMemberships.map((row) => ({
         familyId: row.familyId,
@@ -186,7 +178,5 @@ class DbIdentityRepository implements IdentityRepository {
 const seedIdentityRepository = new SeedIdentityRepository();
 const dbIdentityRepository = new DbIdentityRepository();
 export function resolveIdentityRepository(): IdentityRepository {
-  return getApiDataBackend() === "db"
-    ? dbIdentityRepository
-    : seedIdentityRepository;
+  return getApiDataBackend() === 'db' ? dbIdentityRepository : seedIdentityRepository;
 }

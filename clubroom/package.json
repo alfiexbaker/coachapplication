@@ -63,6 +63,8 @@
     "verify:slice:ui": "node ./scripts/verify-slice.js --ui",
     "verify:slice:full": "node ./scripts/verify-slice.js --full",
     "smoke:staging": "cd apps/api && PRISMA_CLIENT_ENGINE_TYPE=binary node_modules/.bin/tsx ./scripts/staging-smoke.ts",
+    "test-accounts:write": "node ./scripts/write-test-account-credentials.js",
+    "db:test-accounts:reset:staging": "CLUBROOM_DEMO_PASSWORD_RESET=1 node --env-file=.env.staging.local packages/db/scripts/reset-demo-passwords.mjs",
     "audit:architecture": "node ./scripts/architecture-reachability-audit.js && node ./scripts/api-boundary-audit.js",
     "audit:api-boundaries": "node ./scripts/api-boundary-audit.js",
     "audit:api-boundaries:write": "node ./scripts/api-boundary-audit.js --update-baseline",

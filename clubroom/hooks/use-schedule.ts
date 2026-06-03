@@ -9,7 +9,7 @@
  * - Segment switching (sessions | availability)
  */
 
-import { useState, useEffect, startTransition } from 'react';
+import { useCallback, useState, useEffect, startTransition } from 'react';
 import { Platform } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -228,11 +228,13 @@ export function useSchedule() {
     onRefresh();
   };
 
-  useFocusEffect(() => {
-    if (weekOffset === 0) {
-      setSelectedDayIndex(new Date().getDay());
-    }
-  });
+  useFocusEffect(
+    useCallback(() => {
+      if (weekOffset === 0) {
+        setSelectedDayIndex(new Date().getDay());
+      }
+    }, [weekOffset]),
+  );
 
   // Build week data
   const baseWeekData = ((): DayData[] => {

@@ -1360,7 +1360,11 @@ describe('p0 core routes', () => {
       const deniedRes = await app.inject({
         method: 'POST',
         url: '/v1/booking-series',
-        headers: authHeaders(tables, asString(unrelatedGuardian.guardianUserId) as string, 'parent'),
+        headers: authHeaders(
+          tables,
+          asString(unrelatedGuardian.guardianUserId) as string,
+          'parent',
+        ),
         payload: {
           ...payload,
           idempotencyKey: 'booking-series-denied-parent-test',
@@ -1400,10 +1404,7 @@ describe('p0 core routes', () => {
         (row) => asString(row.recurringSeriesId) === created.series.id,
       );
       assert.equal(bookingRows.length, 2);
-      assert.deepEqual(
-        bookingRows.map((row) => asNumber(row.seriesIndex)).sort(),
-        [0, 1],
-      );
+      assert.deepEqual(bookingRows.map((row) => asNumber(row.seriesIndex)).sort(), [0, 1]);
 
       const coachList = await app.inject({
         method: 'GET',
@@ -1593,7 +1594,11 @@ describe('p0 core routes', () => {
 
       const lastCreatedBooking = asRows(fixtureStore.tables.bookings)
         .filter((row) => asString(row.recurringSeriesId) === created.series.id)
-        .sort((left, right) => Date.parse(asString(left.scheduledAt) ?? '') - Date.parse(asString(right.scheduledAt) ?? ''))
+        .sort(
+          (left, right) =>
+            Date.parse(asString(left.scheduledAt) ?? '') -
+            Date.parse(asString(right.scheduledAt) ?? ''),
+        )
         .at(-1);
       const updateEndDate = new Date(
         Date.parse(asString(lastCreatedBooking?.scheduledAt) ?? '') + 24 * 60 * 60 * 1000,
@@ -1615,7 +1620,12 @@ describe('p0 core routes', () => {
       assert.equal(updatedRes.statusCode, 200);
       const updated = updatedRes.json() as {
         series: { id: string; status: string; version: number; location: string; endDate: string };
-        bookings: { scheduledAt: string; durationMinutes: number; location: string; notes: string }[];
+        bookings: {
+          scheduledAt: string;
+          durationMinutes: number;
+          location: string;
+          notes: string;
+        }[];
       };
       assert.equal(updated.series.id, created.series.id);
       assert.equal(updated.series.status, 'ACTIVE');
@@ -1795,7 +1805,9 @@ describe('p0 core routes', () => {
 
       const linkedBookingsForCompletion = asRows(fixtureStore.tables.bookings)
         .filter((row) => asString(row.recurringSeriesId) === created.series.id)
-        .sort((left, right) => (asNumber(left.seriesIndex) ?? 0) - (asNumber(right.seriesIndex) ?? 0));
+        .sort(
+          (left, right) => (asNumber(left.seriesIndex) ?? 0) - (asNumber(right.seriesIndex) ?? 0),
+        );
       const bookingToComplete = linkedBookingsForCompletion[0];
       assert.ok(bookingToComplete, 'expected linked booking to complete');
       const completedAt = new Date().toISOString();
@@ -1819,7 +1831,10 @@ describe('p0 core routes', () => {
         },
       });
       assert.equal(deniedCompletionByParent.statusCode, 403);
-      assert.equal(asRows(fixtureStore.tables.attendanceRecords).length, attendanceCountBeforeCompletion);
+      assert.equal(
+        asRows(fixtureStore.tables.attendanceRecords).length,
+        attendanceCountBeforeCompletion,
+      );
       assert.equal(
         asRows(fixtureStore.tables.sessionNotes).filter(
           (row) => asString(row.bookingId) === asString(bookingToComplete.id),
@@ -1870,7 +1885,10 @@ describe('p0 core routes', () => {
       assert.equal(completedAttendanceRecords.length, 1);
       assert.equal(asString(completedAttendanceRecords[0]?.status), 'ATTENDED');
       assert.equal(asString(completedAttendanceRecords[0]?.recordedByUserId), coachUserId);
-      assert.equal(asString(completedAttendanceRecords[0]?.notes), 'Delivered and ready for proof follow-up');
+      assert.equal(
+        asString(completedAttendanceRecords[0]?.notes),
+        'Delivered and ready for proof follow-up',
+      );
       const completedSessionNotes = asRows(fixtureStore.tables.sessionNotes).filter(
         (row) => asString(row.bookingId) === asString(bookingToComplete.id),
       );
@@ -1878,7 +1896,10 @@ describe('p0 core routes', () => {
       assert.equal(asString(completedSessionNotes[0]?.athleteId), athleteId);
       assert.equal(asString(completedSessionNotes[0]?.coachUserId), coachUserId);
       assert.equal(asString(completedSessionNotes[0]?.visibility), 'PUBLIC');
-      assert.equal(asString(completedSessionNotes[0]?.noteText), 'Delivered and ready for proof follow-up');
+      assert.equal(
+        asString(completedSessionNotes[0]?.noteText),
+        'Delivered and ready for proof follow-up',
+      );
       const sessionNoteMetadata = completedSessionNotes[0]?.metadataJson as
         | { source?: string; attendanceRecordIds?: string[]; proofSource?: string }
         | undefined;
@@ -1911,10 +1932,7 @@ describe('p0 core routes', () => {
         completionMetadata?.sessionNoteIds,
         completedSessionNotes.map((row) => asString(row.id)),
       );
-      assert.equal(
-        completionMetadata?.proofSource,
-        'attendance-record',
-      );
+      assert.equal(completionMetadata?.proofSource, 'attendance-record');
       assert.deepEqual(completionMetadata?.proofSources, ['attendance-record', 'session-note']);
 
       const progressRes = await app.inject({
@@ -2091,7 +2109,10 @@ describe('p0 core routes', () => {
       assert.equal(feedbackRows.length, 1);
       assert.equal(asString(feedbackRows[0]?.authorUserId), bookedByUserId);
       assert.equal(asNumber(feedbackRows[0]?.rating), 5);
-      assert.equal(asString(feedbackRows[0]?.publicComment), 'Clear feedback and useful next steps.');
+      assert.equal(
+        asString(feedbackRows[0]?.publicComment),
+        'Clear feedback and useful next steps.',
+      );
       const reviewMetadata = asRecord(feedbackRows[0]?.metadataJson);
       assert.equal(asString(reviewMetadata?.source), 'booking-review');
       assert.deepEqual(reviewMetadata?.categories, {
@@ -2197,10 +2218,7 @@ describe('p0 core routes', () => {
       assert.equal(profileReview.reviewerUserId, bookedByUserId);
       assert.equal(profileReview.athleteId, athleteId);
       assert.equal(profileReview.rating, 5);
-      assert.equal(
-        profileReview.comment,
-        'Clear feedback and useful next steps.',
-      );
+      assert.equal(profileReview.comment, 'Clear feedback and useful next steps.');
       assert.equal(profileReview.isVerifiedBooking, true);
       assert.deepEqual(profileReview.categories, {
         communication: 5,
@@ -2330,7 +2348,10 @@ describe('p0 core routes', () => {
         (row) => asString(row.id) === 'pay_booking_series_cancel_void',
       );
       assert.equal(asString(canceledAttempt?.status), 'CANCELED');
-      assert.equal(asString(canceledAttempt?.failureReason), 'Booking was cancelled before payment completion.');
+      assert.equal(
+        asString(canceledAttempt?.failureReason),
+        'Booking was cancelled before payment completion.',
+      );
       assert.equal(
         asRows(fixtureStore.tables.invoiceEvents).some((row) => {
           const metadata = row.metadataJson as { source?: string; bookingId?: string } | undefined;
@@ -2861,7 +2882,10 @@ describe('p0 core routes', () => {
       idempotentKey,
     );
     assert.equal(idempotentReplay.statusCode, 201);
-    assert.equal((idempotentReplay.json() as { invite: { id: string } }).invite.id, idempotentPayload.invite.id);
+    assert.equal(
+      (idempotentReplay.json() as { invite: { id: string } }).invite.id,
+      idempotentPayload.invite.id,
+    );
     assert.equal(asRows(store.tables.invites).length, inviteCountBeforeIdempotentCreate + 1);
 
     const idempotentConflict = await createInvite(
@@ -3080,8 +3104,7 @@ describe('p0 core routes', () => {
         resourceId: acceptedPayload.invite.id,
         result: 'DENY',
       }).some(
-        (event) =>
-          asString(asRecord(event.metadataJson)?.reason) === 'response_already_recorded',
+        (event) => asString(asRecord(event.metadataJson)?.reason) === 'response_already_recorded',
       ),
       true,
     );
@@ -3111,7 +3134,10 @@ describe('p0 core routes', () => {
       },
     });
     assert.equal(declineInvite.statusCode, 200);
-    assert.equal((declineInvite.json() as { invite: { status: string } }).invite.status, 'DECLINED');
+    assert.equal(
+      (declineInvite.json() as { invite: { status: string } }).invite.status,
+      'DECLINED',
+    );
 
     const declineReplay = await app.inject({
       method: 'POST',
@@ -3289,7 +3315,10 @@ describe('p0 core routes', () => {
       assert.equal(acceptedPayload.invite.id, createdPayload.invite.id);
       assert.equal(acceptedPayload.invite.status, 'ACCEPTED');
       assert.match(acceptedPayload.bookingId ?? '', /^bok_/);
-      assert.equal(acceptedPayload.bookingId, acceptedPayload.booking?.id ?? acceptedPayload.bookingId);
+      assert.equal(
+        acceptedPayload.bookingId,
+        acceptedPayload.booking?.id ?? acceptedPayload.bookingId,
+      );
       assert.equal(acceptedPayload.booking?.coachUserId, coachUserId);
       assert.equal(acceptedPayload.booking?.bookedByUserId, parentUserId);
       assert.equal(asRows(marketplaceStore.tables.bookings).length, marketplaceBookingCountBefore);
@@ -3305,7 +3334,10 @@ describe('p0 core routes', () => {
         resourceId: createdPayload.invite.id,
         result: 'SUCCESS',
       }).at(-1);
-      assert.equal(asString(asRecord(dbAcceptAudit?.metadataJson)?.bookingId), acceptedPayload.bookingId);
+      assert.equal(
+        asString(asRecord(dbAcceptAudit?.metadataJson)?.bookingId),
+        acceptedPayload.bookingId,
+      );
       assert.equal(asRecord(dbAcceptAudit?.metadataJson)?.replay, false);
 
       const detail = await app.inject({
@@ -3467,6 +3499,56 @@ describe('p0 core routes', () => {
     const rsvpPayload = rsvp.json() as { rsvp: { status: string; guestCount: number } };
     assert.equal(rsvpPayload.rsvp.status, 'GOING');
     assert.equal(rsvpPayload.rsvp.guestCount, 1);
+  });
+
+  it('creates event RSVPs through the db fixture backend', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const fixtureStore = getDbFixtureStore();
+      const tables = fixtureStore.tables;
+      const memberClubMembership = asRows(tables.clubMemberships)[0];
+      assert.ok(memberClubMembership, 'expected db-fixture club membership');
+      const clubId = asString(memberClubMembership.clubId) as string;
+      const memberUserId = asString(memberClubMembership.userId) as string;
+      const clubEvent = asRows(tables.clubEvents).find((row) => asString(row.clubId) === clubId);
+      assert.ok(clubEvent, 'expected db-fixture event for member club');
+      const eventId = asString(clubEvent.id) as string;
+
+      const rsvp = await app.inject({
+        method: 'POST',
+        url: `/v1/events/${eventId}/rsvp`,
+        headers: authHeaders(tables, memberUserId, 'parent'),
+        payload: {
+          status: 'NOT_GOING',
+          guestCount: 0,
+          notes: 'Cannot attend this time.',
+        },
+      });
+      assert.equal(rsvp.statusCode, 200);
+      const rsvpPayload = rsvp.json() as {
+        rsvp: { eventId: string; status: string; guestCount: number; notes?: string };
+      };
+      assert.equal(rsvpPayload.rsvp.eventId, eventId);
+      assert.equal(rsvpPayload.rsvp.status, 'NOT_GOING');
+      assert.equal(rsvpPayload.rsvp.guestCount, 0);
+
+      const storedRsvp = asRows(getDbFixtureStore().tables.eventRsvps).find(
+        (row) => asString(row.clubEventId) === eventId && asString(row.userId) === memberUserId,
+      );
+      assert.equal(asString(storedRsvp?.status), 'NOT_GOING');
+      assert.equal(
+        auditEventsFor(getDbFixtureStore().tables, {
+          action: 'event.rsvp',
+          resourceId: eventId,
+          result: 'SUCCESS',
+        }).length,
+        1,
+      );
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+    }
   });
 
   it('registers a visible athlete for a group session and creates a linked booking', async () => {

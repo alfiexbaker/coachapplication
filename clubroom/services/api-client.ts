@@ -106,6 +106,10 @@ function shouldUseLocalStorage(key: string): boolean {
   return USE_MOCK || isClientLocalStorageKey(key);
 }
 
+function explicitV1RequiredMessage(key: string): string {
+  return `Storage key '${key}' is server-owned in API mode. Add an explicit /v1 service contract instead of using the generic storage bridge.`;
+}
+
 // -----------------------------------------------------------------------------
 // Rate Limiter
 // -----------------------------------------------------------------------------
@@ -440,11 +444,10 @@ export const apiClient = {
     if (shouldUseLocalStorage(key)) {
       return mockGet(key, fallback);
     }
-    const result = await apiFetch<T>(`/api/${key}`);
-    if (result.success) {
-      return result.data;
-    }
-    logger.error(`API get failed for ${key}`, result.error);
+    logger.warn('Blocked generic API storage read', {
+      key,
+      reason: explicitV1RequiredMessage(key),
+    });
     return fallback;
   },
 
@@ -455,14 +458,12 @@ export const apiClient = {
     if (shouldUseLocalStorage(key)) {
       return mockSet(key, data);
     }
-    const result = await apiFetch(`/api/${key}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
+    void data;
+    logger.warn('Blocked generic API storage write', {
+      key,
+      reason: explicitV1RequiredMessage(key),
     });
-    if (!result.success) {
-      logger.error(`API set failed for ${key}`, result.error);
-      throw new ApiError(500, 'API_SET_FAILED', result.error.message);
-    }
+    throw new ApiError(501, 'EXPLICIT_V1_REQUIRED', explicitV1RequiredMessage(key));
   },
 
   /**
@@ -482,11 +483,11 @@ export const apiClient = {
     if (shouldUseLocalStorage(key)) {
       return mockRemove(key);
     }
-    const result = await apiFetch(`/api/${key}`, { method: 'DELETE' });
-    if (!result.success) {
-      logger.error(`API remove failed for ${key}`, result.error);
-      throw new ApiError(500, 'API_REMOVE_FAILED', result.error.message);
-    }
+    logger.warn('Blocked generic API storage delete', {
+      key,
+      reason: explicitV1RequiredMessage(key),
+    });
+    throw new ApiError(501, 'EXPLICIT_V1_REQUIRED', explicitV1RequiredMessage(key));
   },
 
   /**

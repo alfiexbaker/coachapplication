@@ -32,12 +32,22 @@ import {
   validationError,
   conflictError,
   storageError,
+  unsupportedError,
 } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 const logger = createLogger('AcademyService');
 const USE_MOCK = api.useMock;
+
+function academyUnsupportedError(action: string): ServiceError {
+  return unsupportedError(
+    `${action} needs a /v1 academy or club authority API before it can run in API mode.`,
+    {
+      missingAuthority: 'academy',
+    },
+  );
+}
 
 // Mock academies
 const MOCK_ACADEMIES: Academy[] = normalizeLegacyMockDates([
@@ -245,8 +255,7 @@ export const academyService = {
           .sort((a, b) => (b.rating?.average || 0) - (a.rating?.average || 0));
         return ok(filtered);
       }
-      const response = await fetch('/api/academies');
-      return ok(await response.json());
+      return err(academyUnsupportedError('Discovering academies'));
     } catch (error) {
       logger.error('Failed to discover academies', error);
       return err(storageError('Failed to discover academies'));
@@ -261,9 +270,8 @@ export const academyService = {
         academiesCache = await loadAcademies();
         return ok(academiesCache.find((a) => a.id === academyId) || null);
       }
-      const response = await fetch(`/api/academies/${academyId}`);
-      if (!response.ok) return ok(null);
-      return ok(await response.json());
+      void academyId;
+      return err(academyUnsupportedError('Loading academy details'));
     } catch (error) {
       logger.error('Failed to get academy', error);
       return err(storageError('Failed to load academy'));
@@ -278,9 +286,8 @@ export const academyService = {
         academiesCache = await loadAcademies();
         return ok(academiesCache.find((a) => a.slug === slug) || null);
       }
-      const response = await fetch(`/api/academies/slug/${slug}`);
-      if (!response.ok) return ok(null);
-      return ok(await response.json());
+      void slug;
+      return err(academyUnsupportedError('Loading academy details by slug'));
     } catch (error) {
       logger.error('Failed to get academy by slug', error);
       return err(storageError('Failed to load academy'));
@@ -317,8 +324,8 @@ export const academyService = {
         });
         return ok(data);
       }
-      const response = await fetch(`/api/users/${userId}/academies`);
-      return ok(await response.json());
+      void userId;
+      return err(academyUnsupportedError('Loading user academies'));
     } catch (error) {
       logger.error('Failed to get user academies', error);
       return err(storageError('Failed to load user academies'));
@@ -379,14 +386,9 @@ export const academyService = {
         await saveMemberships(membershipsCache);
         return ok(newAcademy);
       }
-      const response = await fetch('/api/academies', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newAcademy),
-      });
-      return ok(await response.json());
+      void newAcademy;
+      void ownerMembership;
+      return err(academyUnsupportedError('Creating academies'));
     } catch (error) {
       logger.error('Failed to create academy', error);
       return err(storageError('Failed to create academy'));
@@ -407,14 +409,9 @@ export const academyService = {
       await saveAcademies(academiesCache);
       return ok(academy);
     }
-    const response = await fetch(`/api/academies/${academyId}/branding`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(branding),
-    });
-    return ok(await response.json());
+    void academyId;
+    void branding;
+    return err(academyUnsupportedError('Updating academy branding'));
   },
   /**
    * Update academy settings
@@ -431,14 +428,9 @@ export const academyService = {
       await saveAcademies(academiesCache);
       return ok(academy);
     }
-    const response = await fetch(`/api/academies/${academyId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(settings),
-    });
-    return ok(await response.json());
+    void academyId;
+    void settings;
+    return err(academyUnsupportedError('Updating academy settings'));
   },
   async updateCommercialMode(
     academyId: string,
@@ -452,16 +444,9 @@ export const academyService = {
       await saveAcademies(academiesCache);
       return ok(academy);
     }
-    const response = await fetch(`/api/academies/${academyId}/commercial-mode`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        commercialMode,
-      }),
-    });
-    return ok(await response.json());
+    void academyId;
+    void commercialMode;
+    return err(academyUnsupportedError('Updating academy commercial mode'));
   },
   /**
    * Get academy staff
@@ -478,8 +463,8 @@ export const academyService = {
           });
         return ok(staff);
       }
-      const response = await fetch(`/api/academies/${academyId}/staff`);
-      return ok(await response.json());
+      void academyId;
+      return err(academyUnsupportedError('Loading academy staff'));
     } catch (error) {
       logger.error('Failed to get academy staff', error);
       return err(storageError('Failed to load academy staff'));
@@ -522,14 +507,8 @@ export const academyService = {
         await saveInvites(invitesCache);
         return ok(invite);
       }
-      const response = await fetch(`/api/academies/${academyId}/invites`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(invite),
-      });
-      return ok(await response.json());
+      void invite;
+      return err(academyUnsupportedError('Creating academy invites'));
     } catch (error) {
       logger.error('Failed to create academy invite', error);
       return err(storageError('Failed to create academy invite'));
@@ -583,19 +562,11 @@ export const academyService = {
       ]);
       return ok(membership);
     }
-    const response = await fetch('/api/academies/join', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        code,
-        userId,
-        userName,
-        userPhotoUrl,
-      }),
-    });
-    return ok(await response.json());
+    void code;
+    void userId;
+    void userName;
+    void userPhotoUrl;
+    return err(academyUnsupportedError('Joining academies by invite code'));
   },
   /**
    * Update member role
@@ -614,17 +585,10 @@ export const academyService = {
       await saveMemberships(membershipsCache);
       return ok(membership);
     }
-    const response = await fetch(`/api/memberships/${membershipId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        role,
-        permissions,
-      }),
-    });
-    return ok(await response.json());
+    void membershipId;
+    void role;
+    void permissions;
+    return err(academyUnsupportedError('Updating academy member roles'));
   },
   /**
    * Remove member from academy
@@ -641,10 +605,8 @@ export const academyService = {
       await saveMemberships(membershipsCache);
       return ok(undefined);
     }
-    await fetch(`/api/memberships/${membershipId}`, {
-      method: 'DELETE',
-    });
-    return ok(undefined);
+    void membershipId;
+    return err(academyUnsupportedError('Removing academy members'));
   },
   /**
    * Check if user has permission
@@ -664,11 +626,10 @@ export const academyService = {
         if (membership.role === 'OWNER') return ok(true);
         return ok(membership.permissions.includes(permission));
       }
-      const response = await fetch(
-        `/api/academies/${academyId}/permissions/${userId}/${permission}`,
-      );
-      const data = await response.json();
-      return ok(data.hasPermission);
+      void academyId;
+      void userId;
+      void permission;
+      return err(academyUnsupportedError('Checking academy permissions'));
     } catch (error) {
       logger.error('Failed to check academy permission', error);
       return err(storageError('Failed to check academy permission'));
@@ -687,10 +648,8 @@ export const academyService = {
       await saveAcademies(academiesCache);
       return ok(undefined);
     }
-    await fetch(`/api/academies/${academyId}`, {
-      method: 'DELETE',
-    });
-    return ok(undefined);
+    void academyId;
+    return err(academyUnsupportedError('Deleting academies'));
   },
   /**
    * Format role for display

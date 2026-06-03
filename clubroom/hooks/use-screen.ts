@@ -18,7 +18,7 @@
  */
 
 import { useFocusEffect } from 'expo-router';
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 
 import { Colors, type ThemeName } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
@@ -326,13 +326,15 @@ export function useScreen<T>(options: UseScreenOptions<T>): UseScreenResult<T> {
   }, [depsVersion]);
 
   // Optional focus-triggered silent refetch (no loading spinner/status reset).
-  useFocusEffect(() => {
-    runFocusRefetch({
-      refetchOnFocus,
-      hasLoadedOnce: hasLoadedOnceRef.current,
-      fetchData: fetchDataRef.current,
-    });
-  });
+  useFocusEffect(
+    useCallback(() => {
+      runFocusRefetch({
+        refetchOnFocus,
+        hasLoadedOnce: hasLoadedOnceRef.current,
+        fetchData: fetchDataRef.current,
+      });
+    }, [refetchOnFocus]),
+  );
 
   // Event bus subscriptions — re-fetch on relevant events
   useEffect(() => {

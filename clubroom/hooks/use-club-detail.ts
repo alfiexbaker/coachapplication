@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState, startTransition } from 'react';
 import { Share } from 'react-native';
 import { router } from 'expo-router';
+import { api } from '@/constants/config';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
@@ -20,6 +21,8 @@ import type {
   ClubInvite,
   Match,
 } from '@/constants/types';
+import { clubAuthorityService } from '@/services/club-authority-service';
+import { clubScheduleService } from '@/services/club-schedule-service';
 import { clubService, type ClubMember, type MemberRemovalReason } from '@/services/club-service';
 import { eventService } from '@/services/event-service';
 import { groupSessionService } from '@/services/group-session-service';
@@ -33,6 +36,7 @@ import { uiFeedback } from '@/services/ui-feedback';
 import { runAsyncFinally, runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('ClubDetail');
+const USE_MOCK = api.useMock;
 
 export type FeedFilter = 'all' | 'announcement' | 'photo' | 'video' | 'event';
 
@@ -58,13 +62,25 @@ function buildClubInvites(club: Club | undefined): ClubInvite[] {
   ];
 }
 
+function isMembershipForUser(membership: ClubMembership, userId: string | undefined): boolean {
+  if (!userId) {
+    return false;
+  }
+  const normalizedUserId = userId.replace(/^usr_/, '');
+  return membership.userId === userId || membership.userId === normalizedUserId;
+}
+
 export function useClubDetail(clubId: string | undefined) {
   const { currentUser, availableUsers } = useAuth();
   const { showUndoToast, showToast } = useToast();
 
-  const userClubs = currentUser?.id ? socialFeedService.getUserClubs(currentUser.id) : [];
+  const userClubs =
+    USE_MOCK && currentUser?.id ? socialFeedService.getUserClubs(currentUser.id) : [];
 
   const knownClubs = (() => {
+    if (!USE_MOCK) {
+      return [];
+    }
     const deduped = new Map<string, Club>();
     userClubs.forEach((club) => deduped.set(club.id, club));
     availableUsers.forEach((user) => {
@@ -82,6 +98,7 @@ export function useClubDetail(clubId: string | undefined) {
   const [feed, setFeed] = useState<ClubFeedPost[]>([]);
   const [allFeed, setAllFeed] = useState<ClubFeedPost[]>([]);
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
+  const [authorityClubActivities, setAuthorityClubActivities] = useState<ClubActivity[]>([]);
   const [clubActivitySessions, setClubActivitySessions] = useState<GroupSession[]>([]);
   const [clubMatches, setClubMatches] = useState<Match[]>([]);
   const [squads, setSquads] = useState<ClubSquad[]>([]);
@@ -100,11 +117,13 @@ export function useClubDetail(clubId: string | undefined) {
     membership && ['OWNER', 'HEAD_COACH', 'ADMIN', 'COACH'].includes(membership.role);
   const canCreatePosts = !!membership;
   const canRemoveMembers = membership && clubService.canRemoveMembers(membership.role);
-  const clubActivities = buildClubActivities({
-    events: clubEvents,
-    sessions: clubActivitySessions,
-    matches: clubMatches,
-  });
+  const clubActivities = USE_MOCK
+    ? buildClubActivities({
+        events: clubEvents,
+        sessions: clubActivitySessions,
+        matches: clubMatches,
+      })
+    : authorityClubActivities;
 
   const loadClubData = async ({ showLoading = true }: { showLoading?: boolean } = {}) => {
     if (showLoading) {
@@ -113,6 +132,7 @@ export function useClubDetail(clubId: string | undefined) {
     if (!clubId) {
       setClub(undefined);
       setMembership(undefined);
+      setAuthorityClubActivities([]);
       setClubActivitySessions([]);
       setClubEvents([]);
       setClubMatches([]);
@@ -126,6 +146,29 @@ export function useClubDetail(clubId: string | undefined) {
 
     await runAsyncTryCatchFinally(
       async () => {
+        if (!USE_MOCK) {
+          const result = await clubAuthorityService.listClubs();
+          if (!result.success) {
+            logger.error('Failed to load club authority data', result.error);
+            setClub(undefined);
+            setMembership(undefined);
+            setSquads([]);
+            setInvites([]);
+            return;
+          }
+          const clubData = result.data.clubs.find((candidate) => candidate.id === clubId);
+          setClub(clubData);
+          setMembership(
+            result.data.memberships.find(
+              (candidate) =>
+                candidate.clubId === clubId && isMembershipForUser(candidate, currentUser?.id),
+            ),
+          );
+          setSquads([]);
+          setInvites(buildClubInvites(clubData));
+          return;
+        }
+
         const clubData = knownClubs.find((candidate) => candidate.id === clubId);
         setClub(clubData);
 
@@ -150,10 +193,27 @@ export function useClubDetail(clubId: string | undefined) {
     );
   };
 
-  const loadFeed = () => {
+  const loadFeed = async () => {
     if (!clubId) {
       setFeed([]);
       setAllFeed([]);
+      return;
+    }
+    if (!USE_MOCK) {
+      const feedResult = await socialFeedService.getFeedAuthority(clubId, 'all');
+      if (!feedResult.success) {
+        logger.error('Failed to load club feed from authority', feedResult.error);
+        setFeed([]);
+        setAllFeed([]);
+        return;
+      }
+      const nextAllFeed = feedResult.data;
+      setAllFeed(nextAllFeed);
+      setFeed(
+        feedFilter === 'all'
+          ? nextAllFeed
+          : nextAllFeed.filter((post) => post.postType === feedFilter),
+      );
       return;
     }
     const nextAllFeed = socialFeedService.getFeed(clubId, 'all');
@@ -163,6 +223,10 @@ export function useClubDetail(clubId: string | undefined) {
 
   const loadMembers = async () => {
     if (!clubId) return;
+    if (!USE_MOCK) {
+      setMembers([]);
+      return;
+    }
     try {
       const memberList = await clubService.getMembers(clubId);
       setMembers(memberList);
@@ -173,6 +237,7 @@ export function useClubDetail(clubId: string | undefined) {
 
   const loadClubActivities = async () => {
     if (!clubId) {
+      setAuthorityClubActivities([]);
       setClubActivitySessions([]);
       setClubEvents([]);
       setClubMatches([]);
@@ -180,6 +245,17 @@ export function useClubDetail(clubId: string | undefined) {
     }
 
     try {
+      if (!USE_MOCK) {
+        const scheduleResult = await clubScheduleService.getClubSchedule(clubId);
+        if (!scheduleResult.success) {
+          logger.error('Failed to load club schedule from authority', scheduleResult.error);
+          setAuthorityClubActivities([]);
+          return;
+        }
+        setAuthorityClubActivities(scheduleResult.data);
+        return;
+      }
+
       const [sessions, events, matches] = await Promise.all([
         groupSessionService.getClubActivitySessions(clubId),
         eventService.getUpcomingEvents(clubId),
@@ -190,6 +266,7 @@ export function useClubDetail(clubId: string | undefined) {
       setClubMatches(matches);
     } catch (error) {
       logger.error('Failed to load club activities', error);
+      setAuthorityClubActivities([]);
       setClubActivitySessions([]);
       setClubEvents([]);
       setClubMatches([]);
@@ -215,7 +292,7 @@ export function useClubDetail(clubId: string | undefined) {
   }, [availableUsers, clubId, currentUser]);
   useEffect(() => {
     startTransition(() => {
-      loadFeedRef.current();
+      void loadFeedRef.current();
     });
     startTransition(() => {
       void loadMembersRef.current();
@@ -235,7 +312,7 @@ export function useClubDetail(clubId: string | undefined) {
   useEffect(() => {
     const unsub = onTyped(ServiceEvents.OPEN_SESSION_PUBLISHED, () => {
       void loadClubActivitiesRef.current();
-      loadFeedRef.current();
+      void loadFeedRef.current();
     });
     return unsub;
   }, []);
@@ -246,7 +323,7 @@ export function useClubDetail(clubId: string | undefined) {
     await runAsyncFinally(
       async () => {
         await loadClubData({ showLoading: false });
-        loadFeed();
+        await loadFeed();
         await Promise.all([loadMembers(), loadClubActivities()]);
       },
       () => {
@@ -257,14 +334,26 @@ export function useClubDetail(clubId: string | undefined) {
 
   const handlePinToggle = (postId: string) => {
     if (!currentUser) return;
+    if (!USE_MOCK) {
+      showToast('Pinning posts needs backend support first.', 'default');
+      return;
+    }
     socialFeedService.togglePin(postId, currentUser.id);
-    loadFeed();
+    void loadFeed();
   };
 
   const handleLikePost = async (postId: string) => {
     if (!currentUser) return;
+    if (!USE_MOCK) {
+      const result = await socialFeedService.toggleReactionAuthority(postId);
+      if (!result.success) {
+        showToast(result.error.message || 'Failed to update reaction.', 'error');
+      }
+      await loadFeed();
+      return;
+    }
     socialFeedService.toggleReaction(postId, currentUser.id);
-    loadFeed();
+    void loadFeed();
   };
 
   const handleCommentPost = async (postId: string) => {
@@ -398,6 +487,7 @@ export function useClubDetail(clubId: string | undefined) {
     showMemberRemovalModal,
     isRemovingMember,
     canManagePosts: !!canManagePosts,
+    canPinPosts: USE_MOCK && !!canManagePosts,
     canCreatePosts,
     canRemoveMembers: !!canRemoveMembers,
     filterCounts,

@@ -78,7 +78,7 @@ function pickScheduleEntry(
   if (entries.length === 0) {
     return null;
   }
-  const sorted = Array.from(entries).toSorted((left, right) => {
+  const sorted = [...entries].sort((left, right) => {
     const leftAt = new Date(left.startsAt ?? "").getTime();
     const rightAt = new Date(right.startsAt ?? "").getTime();
     return leftAt - rightAt;

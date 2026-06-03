@@ -46,46 +46,49 @@ function extractGrantedAthleteIds(
   accessGrantScopes: SeedRow[],
   granteeUserId: string,
 ): string[] {
-  return accessGrants.flatMap((item) =>
-    ((grant) => asString(grant.granteeUserId) === granteeUserId && isActiveGrant(grant))(item)
-      ? ((item) =>
-          ((grant) => {
-            const grantId = asString(grant.id) ?? '';
-            const scopes = accessGrantScopes.flatMap((scope) => {
-              if (asString(scope.accessGrantId) !== grantId) {
-                return [];
-              }
-              const mapped = asString(scope.scope);
-              return Boolean(mapped) ? [mapped] : [];
-            });
-            return scopes.some((scope) =>
-              [
-                'athlete_progress:read',
-                'athlete_progress:write',
-                'session_note:read',
-                'medical.read',
-                'medical.manage',
-                'safeguarding.read',
-                'safeguarding.manage',
-              ].includes(scope),
-            );
-          })(item)
-            ? ((grant) => {
-                const mapped = (() => {
-                  const constraints = grant.constraintsJson as
-                    | {
-                        athleteId?: unknown;
-                      }
-                    | undefined;
-                  return typeof constraints?.athleteId === 'string'
-                    ? constraints.athleteId
-                    : undefined;
-                })();
-                return Boolean(mapped) ? [mapped] : [];
-              })(item)
-            : [])(item)
-      : [],
-  );
+  const grantedAthleteIds: string[] = [];
+  const readableScopes = new Set([
+    'athlete_progress:read',
+    'athlete_progress:write',
+    'session_note:read',
+    'medical.read',
+    'medical.manage',
+    'safeguarding.read',
+    'safeguarding.manage',
+  ]);
+
+  for (const grant of accessGrants) {
+    if (asString(grant.granteeUserId) !== granteeUserId || !isActiveGrant(grant)) {
+      continue;
+    }
+
+    const grantId = asString(grant.id);
+    if (!grantId) {
+      continue;
+    }
+
+    const hasReadableScope = accessGrantScopes.some((scope) => {
+      const scopeName = asString(scope.scope);
+      return (
+        asString(scope.accessGrantId) === grantId &&
+        Boolean(scopeName && readableScopes.has(scopeName))
+      );
+    });
+    if (!hasReadableScope) {
+      continue;
+    }
+
+    const constraints = grant.constraintsJson as
+      | {
+          athleteId?: unknown;
+        }
+      | undefined;
+    if (typeof constraints?.athleteId === 'string') {
+      grantedAthleteIds.push(constraints.athleteId);
+    }
+  }
+
+  return grantedAthleteIds;
 }
 function buildTrustAdminOverviewFromTables(
   tables: SeedTables,
@@ -110,7 +113,7 @@ class SeedTrustAccessRepository implements TrustAccessRepository {
     return asRows(getMarketplaceSeedStore().tables.guardianChildLinks).flatMap((row) => {
       if (!(isActiveRow(row) && asString(row.guardianUserId) === userId)) return [];
       const mapped = asString(row.athleteId);
-      return Boolean(mapped) ? [mapped] : [];
+      return mapped ? [mapped] : [];
     });
   }
   async getCoachAthleteIds(userId: string): Promise<string[]> {
@@ -410,7 +413,7 @@ class FixtureTrustAccessRepository extends SeedTrustAccessRepository {
     return asRows(getDbFixtureStore().tables.guardianChildLinks).flatMap((row) => {
       if (!(isActiveRow(row) && asString(row.guardianUserId) === userId)) return [];
       const mapped = asString(row.athleteId);
-      return Boolean(mapped) ? [mapped] : [];
+      return mapped ? [mapped] : [];
     });
   }
   async getCoachAthleteIds(userId: string): Promise<string[]> {

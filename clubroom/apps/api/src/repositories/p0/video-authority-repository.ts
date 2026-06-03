@@ -150,7 +150,7 @@ function readableShareUserIds(bundle: VideoRecordBundle): Set<string> {
   return new Set(
     bundle.shares.flatMap((row) => {
       const mapped = asString(row.sharedWithUserId);
-      return Boolean(mapped) ? [mapped] : [];
+      return mapped ? [mapped] : [];
     }),
   );
 }

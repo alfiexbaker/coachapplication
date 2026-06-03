@@ -466,7 +466,7 @@ function groupAttendanceDates(
         )
           return [];
         const mapped = parseIsoDatePart(asString(row.recordedAt) ?? asString(row.createdAt));
-        return Boolean(mapped) ? [mapped] : [];
+        return mapped ? [mapped] : [];
       }),
     ),
   ).sort();
@@ -824,7 +824,7 @@ async function generateLinkedRegistrationInvoiceIfBillable(params: {
   });
 }
 function sortSessionsByUpcomingDate(sessions: AppGroupSession[]): AppGroupSession[] {
-  return Array.from(sessions).toSorted((left, right) => {
+  return Array.from(sessions).sort((left, right) => {
     const leftAt = left.schedule[0]
       ? `${left.schedule[0].date}T${left.schedule[0].startTime}:00Z`
       : '';
@@ -1586,7 +1586,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
       new Set(
         sessions.flatMap((session) => {
           const mapped = session.clubId;
-          return Boolean(mapped) ? [mapped] : [];
+          return typeof mapped === 'string' ? [mapped] : [];
         }),
       ),
     );

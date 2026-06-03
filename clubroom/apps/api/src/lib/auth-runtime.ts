@@ -577,7 +577,7 @@ function findRoleRows(tables: SeedTables, userId: string): string[] {
   return asRows(tables.userRoleMemberships).flatMap((row) => {
     if (!(asString(row.userId) === userId && asString(row.revokedAt) == null)) return [];
     const mapped = asString(row.role);
-    return Boolean(mapped) ? [mapped] : [];
+    return mapped ? [mapped] : [];
   });
 }
 function findUserByEmail(tables: SeedTables, email: string): SeedRow | undefined {

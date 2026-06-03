@@ -53,7 +53,11 @@ function loadEnvFile(relativeOrAbsolutePath) {
 }
 
 function isApiMode() {
-  return String(process.env.EXPO_PUBLIC_USE_MOCK ?? 'true').trim().toLowerCase() === 'false';
+  return (
+    String(process.env.EXPO_PUBLIC_USE_MOCK ?? 'false')
+      .trim()
+      .toLowerCase() === 'false'
+  );
 }
 
 function normalizeBaseUrl(rawUrl) {
@@ -186,9 +190,9 @@ async function main() {
       ? 'Fastify is reachable only on loopback. Restart it with the staging env so API_HOST=0.0.0.0: npm --prefix apps/api run dev:staging'
       : status === 'fail' && !ready.reachable
         ? 'Start the Fastify API before API-mode Expo with the same env file used by this smoke: npm --prefix apps/api run dev:staging'
-      : status === 'fail'
-        ? 'Fix /v1/ready issues before treating staging runtime as release-ready.'
-        : null;
+        : status === 'fail'
+          ? 'Fix /v1/ready issues before treating staging runtime as release-ready.'
+          : null;
 
   const report = {
     generatedAt: new Date().toISOString(),

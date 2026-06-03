@@ -5,10 +5,12 @@
  * club branding, dashboard stats, and calendar data aggregation.
  *
  * API Integration Notes:
- * - GET /api/clubs/:id/members - Get club members
- * - DELETE /api/clubs/:id/members/:userId - Remove member
- * - GET /api/clubs/:id/members/removed - Get removal history
- * - POST /api/clubs/:id/members/removed/:recordId/undo - Undo removal
+ * - GET /v1/clubs/:id/members - Get club members
+ * - DELETE /v1/clubs/:id/members/:userId - Remove member
+ * - PATCH /v1/clubs/:id/members/:userId/role - Change member role
+ * - PUT /v1/clubs/:id/squads/:squadId/members/:userId - Add member to squad
+ * - DELETE /v1/clubs/:id/squads/:squadId/members/:userId - Remove member from squad
+ * - GET /v1/clubs/:id/squads - Get club squads
  * - GET /api/clubs/:id/branding - Get club branding
  * - PUT /api/clubs/:id/branding - Update club branding
  * - GET /api/clubs/:id/dashboard-stats - Get dashboard stats
@@ -16,7 +18,8 @@
  */
 
 import { apiClient, apiFetch } from './api-client';
-import type { ClubRole, ClubMembership } from '@/constants/types';
+import { matchService } from './match-service';
+import type { ClubRole, ClubMembership, ClubSquad } from '@/constants/types';
 import {
   type Result,
   type ServiceError,
@@ -110,6 +113,22 @@ export interface CalendarEvent {
   squadId?: string;
   squadName?: string;
   location?: string;
+}
+
+interface ApiClubMembersResponse {
+  members: ClubMember[];
+}
+
+interface ApiClubMemberResponse {
+  member: ClubMember;
+}
+
+interface ApiClubMemberRemovalResponse {
+  removal: ClubMemberRemovalRecord;
+}
+
+interface ApiClubSquadsResponse {
+  squads: ClubSquad[];
 }
 
 // ============================================================================
@@ -459,8 +478,11 @@ export const clubService = {
       return membersCache.get(clubId) || [];
     }
 
-    const response = await fetch(`/api/clubs/${clubId}/members`);
-    return response.json();
+    return unwrapApiResult(
+      await apiFetch<ApiClubMembersResponse>(`/v1/clubs/${encodeURIComponent(clubId)}/members`, {
+        method: 'GET',
+      }),
+    ).members;
   },
 
   /**
@@ -520,16 +542,24 @@ export const clubService = {
       return ok(removalRecord);
     }
 
-    const response = await fetch(`/api/clubs/${clubId}/members/${userId}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        reason,
-        customReason: options?.customReason,
-        removedBy: removedBy.id,
-      }),
+    const response = await apiFetch<ApiClubMemberRemovalResponse>(
+      `/v1/clubs/${encodeURIComponent(clubId)}/members/${encodeURIComponent(userId)}`,
+      {
+        method: 'DELETE',
+        body: JSON.stringify({
+          reason,
+          customReason: options?.customReason,
+        }),
+      },
+    );
+    if (!response.success) {
+      return err(response.error);
+    }
+    emitTyped(ServiceEvents.CLUB_MEMBER_LEFT, { clubId, userId });
+    return ok({
+      ...response.data.removal,
+      removedByName: response.data.removal.removedByName || removedBy.name,
     });
-    return ok(await response.json());
   },
 
   /**
@@ -572,11 +602,12 @@ export const clubService = {
       return ok(restoredMember);
     }
 
-    const response = await fetch(`/api/clubs/${clubId}/members/removed/${removalId}/undo`, {
-      method: 'POST',
-    });
-    if (!response.ok) return err(notFound('Removal record', removalId));
-    return ok(await response.json());
+    return err(
+      validationError(
+        'Restoring removed club members needs backend restore authority before API mode can use it.',
+        { clubId, removalId },
+      ),
+    );
   },
 
   /**
@@ -588,8 +619,8 @@ export const clubService = {
       return removalHistoryCache.filter((r) => r.clubId === clubId);
     }
 
-    const response = await fetch(`/api/clubs/${clubId}/members/removed`);
-    return response.json();
+    logger.warn('Club member removal history is not backend-authoritative yet', { clubId });
+    return [];
   },
 
   /**
@@ -634,12 +665,18 @@ export const clubService = {
       return ok(members[memberIndex]);
     }
 
-    const response = await fetch(`/api/clubs/${clubId}/members/${userId}/role`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role: newRole, changedBy: changedBy.id }),
-    });
-    return ok(await response.json());
+    const response = await apiFetch<ApiClubMemberResponse>(
+      `/v1/clubs/${encodeURIComponent(clubId)}/members/${encodeURIComponent(userId)}/role`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ role: newRole }),
+      },
+    );
+    if (!response.success) {
+      return err(response.error);
+    }
+    logger.info('MemberRoleChanged', { clubId, userId, newRole, changedBy: changedBy.id });
+    return ok(response.data.member);
   },
 
   /**
@@ -698,12 +735,14 @@ export const clubService = {
       return ok(removalRecord);
     }
 
-    const response = await fetch(`/api/clubs/${clubId}/members/${userId}/ban`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reason, bannedBy: bannedBy.id }),
-    });
-    return ok(await response.json());
+    return err(
+      validationError('Club member bans need backend ban authority before API mode can use them.', {
+        clubId,
+        userId,
+        reason,
+        bannedBy: bannedBy.id,
+      }),
+    );
   },
 
   /**
@@ -747,21 +786,22 @@ export const clubService = {
       return ok(members[memberIndex]);
     }
 
-    const response = await fetch(`/api/clubs/${clubId}/members/${userId}/squads`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ squadId }),
-    });
-    const member: ClubMember = await response.json();
-
+    const response = await apiFetch<ApiClubMemberResponse>(
+      `/v1/clubs/${encodeURIComponent(clubId)}/squads/${encodeURIComponent(squadId)}/members/${encodeURIComponent(userId)}`,
+      {
+        method: 'PUT',
+      },
+    );
+    if (!response.success) {
+      return err(response.error);
+    }
     emitTyped(ServiceEvents.SQUAD_MEMBER_ADDED, {
       squadId,
       clubId,
       userId,
-      userName: member.userName,
+      userName: response.data.member.userName,
     });
-
-    return ok(member);
+    return ok(response.data.member);
   },
 
   /**
@@ -794,19 +834,22 @@ export const clubService = {
       return ok(members[memberIndex]);
     }
 
-    const response = await fetch(`/api/clubs/${clubId}/members/${userId}/squads/${squadId}`, {
-      method: 'DELETE',
-    });
-    const member: ClubMember = await response.json();
-
+    const response = await apiFetch<ApiClubMemberResponse>(
+      `/v1/clubs/${encodeURIComponent(clubId)}/squads/${encodeURIComponent(squadId)}/members/${encodeURIComponent(userId)}`,
+      {
+        method: 'DELETE',
+      },
+    );
+    if (!response.success) {
+      return err(response.error);
+    }
     emitTyped(ServiceEvents.SQUAD_MEMBER_REMOVED, {
       squadId,
       clubId,
       userId,
-      userName: member.userName,
+      userName: response.data.member.userName,
     });
-
-    return ok(member);
+    return ok(response.data.member);
   },
 
   /**
@@ -955,11 +998,28 @@ export const clubService = {
     if (USE_MOCK) {
       return MOCK_MATCH_RESULTS.slice(0, limit);
     }
-    return unwrapApiResult(
-      await apiFetch<MatchResult[]>(`/api/clubs/${clubId}/results?limit=${limit}`, {
-        method: 'GET',
-      }),
-    );
+    const matches = await matchService.getPastMatches(clubId);
+    return matches.slice(0, limit).flatMap((match) => {
+      if (!match.result) {
+        return [];
+      }
+      const scoreHome = match.result.home;
+      const scoreAway = match.result.away;
+      const goalsFor = match.isHome ? scoreHome : scoreAway;
+      const goalsAgainst = match.isHome ? scoreAway : scoreHome;
+      const outcome = goalsFor > goalsAgainst ? 'W' : goalsFor < goalsAgainst ? 'L' : 'D';
+      return [
+        {
+          id: match.id,
+          opponent: match.opponent,
+          date: match.date,
+          scoreHome,
+          scoreAway,
+          outcome,
+          squad: match.squadId ?? 'Club',
+        },
+      ];
+    });
   },
 
   // ============================================================================
@@ -1016,7 +1076,16 @@ export const clubService = {
       }
       return Array.from(seen.entries()).map(([id, name]) => ({ id, name }));
     }
-    const response = await fetch(`/api/clubs/${clubId}/squads`);
-    return response.json();
+    const response = await apiFetch<ApiClubSquadsResponse>(
+      `/v1/clubs/${encodeURIComponent(clubId)}/squads`,
+    );
+    if (!response.success) {
+      logger.error('Failed to load calendar squads', response.error);
+      return [];
+    }
+    return response.data.squads.map((squad) => ({
+      id: squad.id,
+      name: squad.name,
+    }));
   },
 };

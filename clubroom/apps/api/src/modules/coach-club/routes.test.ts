@@ -3,6 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { after, beforeEach, describe, it } from 'node:test';
 import { env } from '@clubroom/config';
+import {
+  canManageClubMembers,
+  canManageClubRole,
+  isClubStaffRole,
+  parseOrganizationRole,
+} from '@clubroom/shared-contracts';
 import { buildApp } from '../../app.js';
 import { getDbFixtureStore, resetDbFixtureStoreForTests } from '../../lib/db-fixture-store.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
@@ -16,6 +22,12 @@ const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as 
 const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
 const asRecord = (value: unknown): SeedRow | undefined =>
   value && typeof value === 'object' && !Array.isArray(value) ? (value as SeedRow) : undefined;
+function ensureTable(tables: SeedTables, key: string): SeedRow[] {
+  if (!Array.isArray(tables[key])) {
+    tables[key] = [];
+  }
+  return tables[key];
+}
 
 function auditEventsFor(
   tables: SeedTables,
@@ -102,6 +114,171 @@ function getSeededClubMembership(tables: SeedTables): { clubId: string; userId: 
   assert.ok(userId, 'expected user id');
 
   return { clubId, userId };
+}
+
+function getSeededClubMatchActors(tables: SeedTables): {
+  clubId: string;
+  staffUserId: string;
+  memberUserId: string;
+  outsiderUserId: string;
+} {
+  const activeMemberships = asRows(tables.clubMemberships).filter(
+    (row) => row.active !== false && !asString(row.deletedAt),
+  );
+  const privateClubs = asRows(tables.clubs).filter(
+    (row) => asString(row.visibility) !== 'public' && !asString(row.deletedAt),
+  );
+
+  for (const club of privateClubs) {
+    const clubId = asString(club.id);
+    if (!clubId) {
+      continue;
+    }
+    const memberships = activeMemberships.filter((row) => asString(row.clubId) === clubId);
+    const staff = memberships.find((row) => {
+      const role = parseOrganizationRole(asString(row.role));
+      return role ? isClubStaffRole(role) : false;
+    });
+    const member = memberships.find((row) => {
+      const role = parseOrganizationRole(asString(row.role));
+      return role ? !isClubStaffRole(role) : false;
+    });
+    const outsider = asRows(tables.users).find((row) => {
+      const userId = asString(row.id);
+      if (!userId) {
+        return false;
+      }
+      const isMember = activeMemberships.some(
+        (membership) => asString(membership.clubId) === clubId && asString(membership.userId) === userId,
+      );
+      const roles = rolesForUser(tables, userId);
+      return !isMember && !roles.includes('club_admin') && !roles.includes('security_admin');
+    });
+    const staffUserId = asString(staff?.userId);
+    const memberUserId = asString(member?.userId);
+    const outsiderUserId = asString(outsider?.id);
+    if (staffUserId && memberUserId && outsiderUserId) {
+      return { clubId, staffUserId, memberUserId, outsiderUserId };
+    }
+  }
+
+  throw new Error('expected private club with staff, member, and outsider actors');
+}
+
+function getSeededClubMemberManagementActors(tables: SeedTables): {
+  clubId: string;
+  managerUserId: string;
+  targetUserId: string;
+  outsiderUserId: string;
+  newRole: string;
+} {
+  const activeMemberships = asRows(tables.clubMemberships).filter(
+    (row) => row.active !== false && !asString(row.deletedAt),
+  );
+  const clubs = asRows(tables.clubs).filter((row) => !asString(row.deletedAt));
+
+  for (const club of clubs) {
+    const clubId = asString(club.id);
+    if (!clubId) {
+      continue;
+    }
+    const memberships = activeMemberships.filter((row) => asString(row.clubId) === clubId);
+    const manager = memberships.find((row) => {
+      const role = parseOrganizationRole(asString(row.role));
+      return role ? canManageClubMembers(role) : false;
+    });
+    const managerRole = parseOrganizationRole(asString(manager?.role));
+    if (!manager || !managerRole) {
+      continue;
+    }
+    const target = memberships.find((row) => {
+      const role = parseOrganizationRole(asString(row.role));
+      return (
+        asString(row.userId) !== asString(manager.userId) &&
+        Boolean(role && canManageClubRole(managerRole, role))
+      );
+    });
+    const targetRole = parseOrganizationRole(asString(target?.role));
+    const outsider = asRows(tables.users).find((row) => {
+      const userId = asString(row.id);
+      if (!userId) {
+        return false;
+      }
+      const isMember = activeMemberships.some(
+        (membership) => asString(membership.clubId) === clubId && asString(membership.userId) === userId,
+      );
+      const roles = rolesForUser(tables, userId);
+      return !isMember && !roles.includes('club_admin') && !roles.includes('security_admin');
+    });
+    const managerUserId = asString(manager.userId);
+    const targetUserId = asString(target?.userId);
+    const outsiderUserId = asString(outsider?.id);
+    if (managerUserId && targetUserId && targetRole && outsiderUserId) {
+      return {
+        clubId,
+        managerUserId,
+        targetUserId,
+        outsiderUserId,
+        newRole: targetRole === 'ASSISTANT' ? 'MEMBER' : 'ASSISTANT',
+      };
+    }
+  }
+
+  throw new Error('expected club with a member-management actor pair');
+}
+
+function ensureLinkedAthleteForUser(tables: SeedTables, userId: string): string {
+  const existing = asRows(tables.athletes).find(
+    (row) => asString(row.userId) === userId && !asString(row.deletedAt),
+  );
+  const existingId = asString(existing?.id);
+  if (existingId) {
+    return existingId;
+  }
+
+  const now = new Date().toISOString();
+  const athleteId = `ath_squad_${userId.replace(/[^A-Za-z0-9]/g, '_')}`;
+  ensureTable(tables, 'athletes').push({
+    id: athleteId,
+    userId,
+    displayName: `Linked athlete ${userId}`,
+    status: 'active',
+    createdByUserId: userId,
+    updatedByUserId: userId,
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+    deletedByUserId: null,
+  });
+  return athleteId;
+}
+
+function ensureClubSquadForTest(tables: SeedTables, clubId: string): string {
+  const existing = asRows(tables.squads).find(
+    (row) => asString(row.clubId) === clubId && !asString(row.deletedAt),
+  );
+  const existingId = asString(existing?.id);
+  if (existingId) {
+    return existingId;
+  }
+
+  const now = new Date().toISOString();
+  const squadId = `sqd_test_${clubId.replace(/[^A-Za-z0-9]/g, '_')}`;
+  ensureTable(tables, 'squads').push({
+    id: squadId,
+    clubId,
+    name: 'API Test Squad',
+    ageBandLabel: 'U15',
+    createdByUserId: 'test',
+    updatedByUserId: 'test',
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+    deletedByUserId: null,
+  });
+  return squadId;
 }
 
 describe('coach-club routes', () => {
@@ -194,6 +371,623 @@ describe('coach-club routes', () => {
       headers: authHeaders(tables, asString(privilegedAdmin.id) as string, 'security_admin'),
     });
     assert.equal(res.statusCode, 200);
+  });
+
+  it('lists and mutates club members through governed v1 authority', async () => {
+    const store = getMarketplaceSeedStore();
+    const tables = store.tables as SeedTables;
+    const { clubId, managerUserId, targetUserId, outsiderUserId, newRole } =
+      getSeededClubMemberManagementActors(tables);
+
+    const outsiderList = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/members`,
+      headers: authHeaders(tables, outsiderUserId),
+    });
+    assert.equal(outsiderList.statusCode, 403);
+
+    const memberList = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/members`,
+      headers: authHeaders(tables, targetUserId),
+    });
+    assert.equal(memberList.statusCode, 200);
+    const memberListPayload = memberList.json() as {
+      total: number;
+      members: Array<{ userId: string; userName: string; role: string; status: string }>;
+    };
+    assert.equal(memberListPayload.total >= 2, true);
+    assert.equal(
+      memberListPayload.members.some(
+        (member) => member.userId === targetUserId && member.status === 'active',
+      ),
+      true,
+    );
+
+    const deniedRoleUpdate = await app.inject({
+      method: 'PATCH',
+      url: `/v1/clubs/${clubId}/members/${managerUserId}/role`,
+      headers: authHeaders(tables, targetUserId),
+      payload: {
+        role: 'ASSISTANT',
+      },
+    });
+    assert.equal(deniedRoleUpdate.statusCode, 403);
+
+    const roleUpdate = await app.inject({
+      method: 'PATCH',
+      url: `/v1/clubs/${clubId}/members/${targetUserId}/role`,
+      headers: authHeaders(tables, managerUserId),
+      payload: {
+        role: newRole,
+      },
+    });
+    assert.equal(roleUpdate.statusCode, 200);
+    const roleUpdatePayload = roleUpdate.json() as {
+      member: { userId: string; role: string; status: string };
+    };
+    assert.equal(roleUpdatePayload.member.userId, targetUserId);
+    assert.equal(roleUpdatePayload.member.role, newRole);
+    assert.equal(roleUpdatePayload.member.status, 'active');
+
+    const deniedRemove = await app.inject({
+      method: 'DELETE',
+      url: `/v1/clubs/${clubId}/members/${managerUserId}`,
+      headers: authHeaders(tables, targetUserId),
+      payload: {
+        reason: 'OTHER',
+      },
+    });
+    assert.equal(deniedRemove.statusCode, 403);
+
+    const removed = await app.inject({
+      method: 'DELETE',
+      url: `/v1/clubs/${clubId}/members/${targetUserId}`,
+      headers: authHeaders(tables, managerUserId),
+      payload: {
+        reason: 'INACTIVE',
+        customReason: 'API membership verification',
+      },
+    });
+    assert.equal(removed.statusCode, 200);
+    const removedPayload = removed.json() as {
+      removal: {
+        clubId: string;
+        userId: string;
+        userRole: string;
+        reason: string;
+        originalMembership: { active: boolean };
+      };
+    };
+    assert.equal(removedPayload.removal.clubId, clubId);
+    assert.equal(removedPayload.removal.userId, targetUserId);
+    assert.equal(removedPayload.removal.userRole, newRole);
+    assert.equal(removedPayload.removal.reason, 'INACTIVE');
+    assert.equal(removedPayload.removal.originalMembership.active, true);
+
+    const targetMembership = asRows(tables.clubMemberships).find(
+      (row) => asString(row.clubId) === clubId && asString(row.userId) === targetUserId,
+    );
+    assert.equal(targetMembership?.active, false);
+    assert.ok(asString(targetMembership?.deletedAt), 'expected membership soft-delete timestamp');
+
+    const afterRemoveList = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/members`,
+      headers: authHeaders(tables, managerUserId),
+    });
+    assert.equal(afterRemoveList.statusCode, 200);
+    const afterRemovePayload = afterRemoveList.json() as {
+      members: Array<{ userId: string }>;
+    };
+    assert.equal(afterRemovePayload.members.some((member) => member.userId === targetUserId), false);
+
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'club_member.role.update',
+        resourceId: `${clubId}:${targetUserId}`,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'club_member.role.update',
+        resourceId: `${clubId}:${managerUserId}`,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'club_member.remove',
+        resourceId: `${clubId}:${targetUserId}`,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'club_member.remove',
+        resourceId: `${clubId}:${managerUserId}`,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+  });
+
+  it('lists, creates, and updates club squads through governed v1 authority', async () => {
+    const store = getMarketplaceSeedStore();
+    const tables = store.tables as SeedTables;
+    const { clubId, managerUserId, outsiderUserId } = getSeededClubMemberManagementActors(tables);
+    const ordinaryMemberUserId = asString(
+      asRows(tables.clubMemberships).find((row) => {
+        const role = parseOrganizationRole(asString(row.role));
+        return (
+          asString(row.clubId) === clubId &&
+          asString(row.userId) !== managerUserId &&
+          row.active !== false &&
+          !asString(row.deletedAt) &&
+          !canManageClubMembers(role)
+        );
+      })?.userId,
+    );
+    assert.ok(ordinaryMemberUserId, 'expected ordinary club member without squad-management capability');
+
+    const outsiderList = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/squads`,
+      headers: authHeaders(tables, outsiderUserId),
+    });
+    assert.equal(outsiderList.statusCode, 403);
+
+    const memberList = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/squads`,
+      headers: authHeaders(tables, ordinaryMemberUserId),
+    });
+    assert.equal(memberList.statusCode, 200);
+    const memberListPayload = memberList.json() as {
+      squads: Array<{ id: string; clubId: string; name: string; memberCount: number }>;
+    };
+    assert.equal(memberListPayload.squads.every((squad) => squad.clubId === clubId), true);
+
+    const deniedCreate = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/squads`,
+      headers: authHeaders(tables, ordinaryMemberUserId),
+      payload: {
+        name: 'U13 Pathway',
+        level: 'U13 · Foundation',
+      },
+    });
+    assert.equal(deniedCreate.statusCode, 403);
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/squads`,
+      headers: authHeaders(tables, managerUserId),
+      payload: {
+        name: 'U13 Pathway',
+        ageGroup: 'U13',
+        skillLevel: 'Foundation',
+      },
+    });
+    assert.equal(created.statusCode, 201);
+    const createdPayload = created.json() as {
+      squad: { id: string; clubId: string; name: string; level: string; memberCount: number };
+    };
+    assert.equal(createdPayload.squad.clubId, clubId);
+    assert.equal(createdPayload.squad.name, 'U13 Pathway');
+    assert.equal(createdPayload.squad.level, 'U13 · Foundation');
+    assert.equal(createdPayload.squad.memberCount, 0);
+
+    const storedSquad = asRows(tables.squads).find(
+      (row) => asString(row.id) === createdPayload.squad.id,
+    );
+    assert.equal(asString(storedSquad?.name), 'U13 Pathway');
+    assert.equal(asString(storedSquad?.ageBandLabel), 'U13 · Foundation');
+    assert.equal(asString(storedSquad?.ownerCoachUserId), managerUserId);
+
+    const fetched = await app.inject({
+      method: 'GET',
+      url: `/v1/squads/${createdPayload.squad.id}`,
+      headers: authHeaders(tables, managerUserId),
+    });
+    assert.equal(fetched.statusCode, 200);
+    const fetchedPayload = fetched.json() as {
+      squad: { id: string; name: string };
+    };
+    assert.equal(fetchedPayload.squad.id, createdPayload.squad.id);
+
+    const deniedUpdate = await app.inject({
+      method: 'PATCH',
+      url: `/v1/clubs/${clubId}/squads/${createdPayload.squad.id}`,
+      headers: authHeaders(tables, ordinaryMemberUserId),
+      payload: {
+        name: 'Blocked Rename',
+      },
+    });
+    assert.equal(deniedUpdate.statusCode, 403);
+
+    const updated = await app.inject({
+      method: 'PATCH',
+      url: `/v1/clubs/${clubId}/squads/${createdPayload.squad.id}`,
+      headers: authHeaders(tables, managerUserId),
+      payload: {
+        name: 'U13 Matchday Group',
+        level: 'U13 · Competitive',
+      },
+    });
+    assert.equal(updated.statusCode, 200);
+    const updatedPayload = updated.json() as {
+      squad: { id: string; name: string; level: string };
+    };
+    assert.equal(updatedPayload.squad.name, 'U13 Matchday Group');
+    assert.equal(updatedPayload.squad.level, 'U13 · Competitive');
+    const updatedStoredSquad = asRows(tables.squads).find(
+      (row) => asString(row.id) === createdPayload.squad.id,
+    );
+    assert.equal(asString(updatedStoredSquad?.name), 'U13 Matchday Group');
+    assert.equal(asString(updatedStoredSquad?.ageBandLabel), 'U13 · Competitive');
+
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'club_squad.create',
+        resourceId: `${clubId}:${createdPayload.squad.id}`,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'club_squad.create',
+        resourceId: clubId,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'club_squad.update',
+        resourceId: `${clubId}:${createdPayload.squad.id}`,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'club_squad.update',
+        resourceId: `${clubId}:${createdPayload.squad.id}`,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+  });
+
+  it('assigns and removes club members from squads through governed v1 authority', async () => {
+    const store = getMarketplaceSeedStore();
+    const tables = store.tables as SeedTables;
+    const { clubId, managerUserId, targetUserId } = getSeededClubMemberManagementActors(tables);
+    const athleteId = ensureLinkedAthleteForUser(tables, targetUserId);
+    const squadId = ensureClubSquadForTest(tables, clubId);
+
+    const deniedAdd = await app.inject({
+      method: 'PUT',
+      url: `/v1/clubs/${clubId}/squads/${squadId}/members/${managerUserId}`,
+      headers: authHeaders(tables, targetUserId),
+    });
+    assert.equal(deniedAdd.statusCode, 403);
+
+    const added = await app.inject({
+      method: 'PUT',
+      url: `/v1/clubs/${clubId}/squads/${squadId}/members/${targetUserId}`,
+      headers: authHeaders(tables, managerUserId),
+    });
+    assert.equal(added.statusCode, 200);
+    const addedPayload = added.json() as {
+      member: { userId: string; squadIds: string[] };
+    };
+    assert.equal(addedPayload.member.userId, targetUserId);
+    assert.equal(addedPayload.member.squadIds.includes(squadId), true);
+
+    const membership = asRows(tables.squadMemberships).find(
+      (row) =>
+        asString(row.squadId) === squadId &&
+        asString(row.athleteId) === athleteId &&
+        !asString(row.deletedAt),
+    );
+    assert.ok(membership, 'expected active squad membership after add');
+
+    const listed = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/members`,
+      headers: authHeaders(tables, managerUserId),
+    });
+    assert.equal(listed.statusCode, 200);
+    const listedPayload = listed.json() as {
+      members: Array<{ userId: string; squadIds: string[] }>;
+    };
+    assert.equal(
+      listedPayload.members.find((member) => member.userId === targetUserId)?.squadIds.includes(squadId),
+      true,
+    );
+
+    const deniedRemove = await app.inject({
+      method: 'DELETE',
+      url: `/v1/clubs/${clubId}/squads/${squadId}/members/${targetUserId}`,
+      headers: authHeaders(tables, targetUserId),
+    });
+    assert.equal(deniedRemove.statusCode, 403);
+
+    const removed = await app.inject({
+      method: 'DELETE',
+      url: `/v1/clubs/${clubId}/squads/${squadId}/members/${targetUserId}`,
+      headers: authHeaders(tables, managerUserId),
+    });
+    assert.equal(removed.statusCode, 200);
+    const removedPayload = removed.json() as {
+      member: { userId: string; squadIds: string[] };
+    };
+    assert.equal(removedPayload.member.userId, targetUserId);
+    assert.equal(removedPayload.member.squadIds.includes(squadId), false);
+
+    const removedMembership = asRows(tables.squadMemberships).find(
+      (row) => asString(row.squadId) === squadId && asString(row.athleteId) === athleteId,
+    );
+    assert.equal(asString(removedMembership?.deletedAt) !== undefined, true);
+
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'club_squad_member.add',
+        resourceId: `${clubId}:${squadId}:${targetUserId}`,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'club_squad_member.add',
+        resourceId: `${clubId}:${squadId}:${managerUserId}`,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'club_squad_member.remove',
+        resourceId: `${clubId}:${squadId}:${targetUserId}`,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'club_squad_member.remove',
+        resourceId: `${clubId}:${squadId}:${targetUserId}`,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+  });
+
+  it('persists club matches, gates staff writes, and projects results into club schedule', async () => {
+    const store = getMarketplaceSeedStore();
+    const tables = store.tables as SeedTables;
+    const { clubId, staffUserId, memberUserId, outsiderUserId } = getSeededClubMatchActors(tables);
+
+    const outsiderList = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/matches`,
+      headers: authHeaders(tables, outsiderUserId),
+    });
+    assert.equal(outsiderList.statusCode, 403);
+
+    const memberCreate = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/matches`,
+      headers: authHeaders(tables, memberUserId, 'parent'),
+      payload: {
+        title: 'U15 Cup Fixture',
+        matchType: 'CUP',
+        opponent: 'Fixture Town',
+        isHome: true,
+        date: addDaysIso(8),
+        kickoffTime: '10:30',
+        venue: 'Riverside Main Pitch',
+        maxPlayers: 14,
+      },
+    });
+    assert.equal(memberCreate.statusCode, 403);
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/matches`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+      payload: {
+        title: 'U15 Cup Fixture',
+        matchType: 'CUP',
+        opponent: 'Fixture Town',
+        isHome: true,
+        date: addDaysIso(8),
+        kickoffTime: '10:30',
+        meetTime: '09:45',
+        venue: 'Riverside Main Pitch',
+        address: '1 Riverside Way',
+        maxPlayers: 14,
+        notes: 'Cup quarter-final.',
+      },
+    });
+    assert.equal(created.statusCode, 201);
+    const createdPayload = created.json() as {
+      match: { id: string; clubId: string; coachId: string; status: string; result?: unknown };
+    };
+    assert.equal(createdPayload.match.clubId, clubId);
+    assert.equal(createdPayload.match.coachId, staffUserId);
+    assert.equal(createdPayload.match.status, 'SCHEDULED');
+    assert.ok(createdPayload.match.id.startsWith('mat_'));
+
+    const memberDetail = await app.inject({
+      method: 'GET',
+      url: `/v1/matches/${createdPayload.match.id}`,
+      headers: authHeaders(tables, memberUserId, 'parent'),
+    });
+    assert.equal(memberDetail.statusCode, 200);
+
+    const memberResult = await app.inject({
+      method: 'PATCH',
+      url: `/v1/matches/${createdPayload.match.id}/result`,
+      headers: authHeaders(tables, memberUserId, 'parent'),
+      payload: {
+        result: { home: 2, away: 1 },
+      },
+    });
+    assert.equal(memberResult.statusCode, 403);
+
+    const recorded = await app.inject({
+      method: 'PATCH',
+      url: `/v1/matches/${createdPayload.match.id}/result`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+      payload: {
+        result: { home: 2, away: 1 },
+      },
+    });
+    assert.equal(recorded.statusCode, 200);
+    const recordedPayload = recorded.json() as {
+      match: { status: string; result?: { home: number; away: number } };
+    };
+    assert.equal(recordedPayload.match.status, 'COMPLETED');
+    assert.deepEqual(recordedPayload.match.result, { home: 2, away: 1 });
+
+    const memberCompletedList = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/matches?status=COMPLETED&limit=3`,
+      headers: authHeaders(tables, memberUserId, 'parent'),
+    });
+    assert.equal(memberCompletedList.statusCode, 200);
+    const completedPayload = memberCompletedList.json() as {
+      total: number;
+      matches: Array<{ id: string; status: string; result?: { home: number; away: number } }>;
+    };
+    assert.equal(completedPayload.total >= 1, true);
+    assert.equal(
+      completedPayload.matches.some(
+        (match) =>
+          match.id === createdPayload.match.id &&
+          match.status === 'COMPLETED' &&
+          match.result?.home === 2 &&
+          match.result.away === 1,
+      ),
+      true,
+    );
+
+    const schedule = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/schedule`,
+      headers: authHeaders(tables, memberUserId, 'parent'),
+    });
+    assert.equal(schedule.statusCode, 200);
+    const schedulePayload = schedule.json() as {
+      activities: Array<{ source: string; sourceEntityId: string; resultLabel?: string }>;
+    };
+    assert.equal(
+      schedulePayload.activities.some(
+        (activity) =>
+          activity.source === 'match' &&
+          activity.sourceEntityId === createdPayload.match.id &&
+          activity.resultLabel === '2-1',
+      ),
+      true,
+    );
+
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'club_match.create',
+        resourceId: createdPayload.match.id,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'club_match.create',
+        resourceId: clubId,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'club_match.result.record',
+        resourceId: createdPayload.match.id,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'club_match.result.record',
+        resourceId: createdPayload.match.id,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+  });
+
+  it('serves club schedules from the db fixture backend when API_DATA_BACKEND=db', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const tables = loadTables();
+      const { clubId, userId } = getSeededClubMembership(tables);
+      const fixtureStore = getDbFixtureStore();
+      const fixtureOnlyEventId = 'cle_db_fixture_schedule_only';
+
+      ensureTable(fixtureStore.tables, 'clubEvents').push({
+        id: fixtureOnlyEventId,
+        clubId,
+        creatorUserId: userId,
+        title: 'DB Fixture Planning Night',
+        description: 'Only present in the db fixture store.',
+        startsAt: `${addDaysIso(21)}T18:30:00.000Z`,
+        endsAt: `${addDaysIso(21)}T19:15:00.000Z`,
+        location: 'Fixture Room',
+        status: 'PUBLISHED',
+        visibility: 'club',
+        createdByUserId: userId,
+        updatedByUserId: userId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      const res = await app.inject({
+        method: 'GET',
+        url: `/v1/clubs/${clubId}/schedule`,
+        headers: authHeaders(tables, userId),
+      });
+      assert.equal(res.statusCode, 200);
+
+      const payload = res.json() as {
+        activities: Array<{ id: string; source: string; title: string }>;
+        seedVersion?: string | null;
+      };
+      assert.equal(payload.seedVersion, fixtureStore.version);
+      assert.equal(
+        payload.activities.some(
+          (activity) =>
+            activity.id === `club_activity:club_event:${fixtureOnlyEventId}` &&
+            activity.source === 'club_event' &&
+            activity.title === 'DB Fixture Planning Night',
+        ),
+        true,
+      );
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetMarketplaceSeedStoreForTests();
+      resetDbFixtureStoreForTests();
+      resetCoachClubRouteStateForTests();
+    }
   });
 
   it('returns authoritative coach availability slots and can exclude pending invite holds', async () => {

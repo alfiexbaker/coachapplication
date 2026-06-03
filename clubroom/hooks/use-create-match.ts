@@ -5,9 +5,11 @@ import { useState, useEffect } from 'react';
 
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
+import { api } from '@/constants/config';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import type { MatchType, ClubSquad } from '@/constants/types';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import { matchService } from '@/services/match-service';
 import { squadService } from '@/services/squad-service';
 import { inviteService as bulkInviteService } from '@/services/invite';
@@ -17,6 +19,8 @@ import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('CreateMatchScreen');
 const DEFAULT_CLUB_ID = 'club_lions';
+const DEFAULT_CLUB_NAME = 'Lions FC Academy';
+const USE_MOCK = api.useMock;
 
 export type CreateMatchStep = 'details' | 'schedule' | 'squad' | 'review';
 
@@ -34,6 +38,8 @@ export function useCreateMatch() {
 
   const [step, setStep] = useState<CreateMatchStep>('details');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeClubId, setActiveClubId] = useState(USE_MOCK ? DEFAULT_CLUB_ID : '');
+  const [activeClubName, setActiveClubName] = useState(USE_MOCK ? DEFAULT_CLUB_NAME : '');
 
   // Form state
   const [matchType, setMatchType] = useState<MatchType>('LEAGUE');
@@ -51,6 +57,8 @@ export function useCreateMatch() {
   const [squadMemberCount, setSquadMemberCount] = useState(0);
   const [autoInvite, setAutoInvite] = useState(true);
   const selectedSquad = squads?.find((squad) => squad.id === selectedSquadId) ?? null;
+  const canCreateWithoutSquad = !USE_MOCK;
+  const canCreateSquad = USE_MOCK;
 
   const updateSelectedSquadId = (squadId: string | null) => {
     setSelectedSquadId(squadId);
@@ -62,10 +70,33 @@ export function useCreateMatch() {
   useEffect(() => {
     const loadSquads = async () => {
       try {
+        if (!USE_MOCK) {
+          const clubsResult = await clubAuthorityService.listClubs();
+          if (!clubsResult.success) {
+            logger.error('Failed to resolve clubs for match creation:', clubsResult.error);
+            setSquads([]);
+            setAutoInvite(false);
+            return;
+          }
+          const primaryClub = clubsResult.data.clubs[0];
+          if (!primaryClub) {
+            logger.warn('No club membership available for match creation');
+            setSquads([]);
+            setAutoInvite(false);
+            return;
+          }
+          setActiveClubId(primaryClub.id);
+          setActiveClubName(primaryClub.name);
+          setSquads([]);
+          setAutoInvite(false);
+          return;
+        }
+
         const data = await squadService.getSquads(DEFAULT_CLUB_ID);
         setSquads(data.filter((s) => !s.name.toLowerCase().includes('staff')));
       } catch (error) {
         logger.error('Failed to load squads:', error);
+        setSquads([]);
       }
     };
     // react-doctor-disable-next-line react-doctor/no-initialize-state -- squad options are loaded from the service after mount.
@@ -111,6 +142,9 @@ export function useCreateMatch() {
         }
         return true;
       case 'squad':
+        if (canCreateWithoutSquad && (squads?.length ?? 0) === 0) {
+          return true;
+        }
         if (!selectedSquadId) {
           uiFeedback.showToast('Please select a squad.', 'error');
           return false;
@@ -134,61 +168,70 @@ export function useCreateMatch() {
   };
 
   const handleSubmit = async () => {
+    if (!activeClubId) {
+      uiFeedback.showToast('Join or create a club before creating a match.', 'error');
+      return;
+    }
+
     setIsSubmitting(true);
 
-    await runAsyncTryCatchFinally(async () => {
-      const title = `${selectedSquad?.name || 'Team'} vs ${opponent}`;
-      if (autoInvite && selectedSquadId) {
-        const result = await bulkInviteService.inviteSquadToMatch({
-          squadId: selectedSquadId,
-          squadName: selectedSquad?.name || 'Team',
-          matchTitle: title,
-          opponent,
-          isHome,
-          date,
-          kickoffTime,
-          venue,
-          clubId: DEFAULT_CLUB_ID,
-          clubName: 'Lions FC Academy',
-          coachId: currentUser?.id || 'coach_1',
-          coachName: currentUser?.fullName || currentUser?.username || 'Coach',
-          matchType,
-          notes: notes || undefined,
-        });
-        uiFeedback.showToast(
-          `${title} created and ${result.inviteResult.successful} availability request${result.inviteResult.successful !== 1 ? 's' : ''} sent to squad members.`,
-          'success',
-        );
-        router.replace(Routes.match(result.match.id));
-      } else {
-        const match = await matchService.createMatch({
-          clubId: DEFAULT_CLUB_ID,
-          clubName: 'Lions FC Academy',
-          squadId: selectedSquadId || undefined,
-          squadName: selectedSquad?.name,
-          coachId: currentUser?.id || 'coach_1',
-          coachName: currentUser?.fullName || currentUser?.username || 'Coach',
-          title,
-          matchType,
-          opponent,
-          isHome,
-          date,
-          kickoffTime,
-          meetTime: meetTime || undefined,
-          venue,
-          address: address || undefined,
-          maxPlayers: parseInt(maxPlayers, 10) || 14,
-          notes: notes || undefined,
-        });
-        uiFeedback.showToast(`${title} has been created.`, 'success');
-        router.replace(Routes.match(match.id));
-      }
-    }, async error => {
-      logger.error('Failed to create match:', error);
-      uiFeedback.showToast('Failed to create match. Please try again.', 'error');
-    }, () => {
-      setIsSubmitting(false);
-    });
+    await runAsyncTryCatchFinally(
+      async () => {
+        const title = `${selectedSquad?.name || 'Team'} vs ${opponent}`;
+        if (USE_MOCK && autoInvite && selectedSquadId) {
+          const result = await bulkInviteService.inviteSquadToMatch({
+            squadId: selectedSquadId,
+            squadName: selectedSquad?.name || 'Team',
+            matchTitle: title,
+            opponent,
+            isHome,
+            date,
+            kickoffTime,
+            venue,
+            clubId: activeClubId,
+            clubName: activeClubName,
+            coachId: currentUser?.id || 'coach_1',
+            coachName: currentUser?.fullName || currentUser?.username || 'Coach',
+            matchType,
+            notes: notes || undefined,
+          });
+          uiFeedback.showToast(
+            `${title} created and ${result.inviteResult.successful} availability request${result.inviteResult.successful !== 1 ? 's' : ''} sent to squad members.`,
+            'success',
+          );
+          router.replace(Routes.match(result.match.id));
+        } else {
+          const match = await matchService.createMatch({
+            clubId: activeClubId,
+            clubName: activeClubName,
+            squadId: selectedSquadId || undefined,
+            squadName: selectedSquad?.name,
+            coachId: currentUser?.id || 'coach_1',
+            coachName: currentUser?.fullName || currentUser?.username || 'Coach',
+            title,
+            matchType,
+            opponent,
+            isHome,
+            date,
+            kickoffTime,
+            meetTime: meetTime || undefined,
+            venue,
+            address: address || undefined,
+            maxPlayers: parseInt(maxPlayers, 10) || 14,
+            notes: notes || undefined,
+          });
+          uiFeedback.showToast(`${title} has been created.`, 'success');
+          router.replace(Routes.match(match.id));
+        }
+      },
+      async (error) => {
+        logger.error('Failed to create match:', error);
+        uiFeedback.showToast('Failed to create match. Please try again.', 'error');
+      },
+      () => {
+        setIsSubmitting(false);
+      },
+    );
   };
 
   return {
@@ -223,6 +266,8 @@ export function useCreateMatch() {
     squadMemberCount,
     autoInvite,
     setAutoInvite,
+    canCreateWithoutSquad,
+    canCreateSquad,
     handleNext,
     handleBack,
     handleSubmit,

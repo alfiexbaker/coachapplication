@@ -51,6 +51,7 @@ export default function ClubDetailScreen() {
     showMemberRemovalModal,
     isRemovingMember,
     canManagePosts,
+    canPinPosts,
     canCreatePosts,
     canRemoveMembers,
     filterCounts,
@@ -99,7 +100,7 @@ export default function ClubDetailScreen() {
     <View style={styles.feedPostItem}>
       <FeedPost
         post={item}
-        canPin={canManagePosts}
+        canPin={canPinPosts}
         onPinToggle={handlePinToggle}
         onLike={handleLikePost}
         onComment={handleCommentPost}
@@ -122,7 +123,7 @@ export default function ClubDetailScreen() {
 
       <ClubDetailStats
         memberCount={members.length || club!.memberCount}
-        squadCount={squads.length}
+        squadCount={squads.length || club!.squadCount}
         activityCount={clubActivities.length}
         inviteCount={invites.length}
         canExpand={canRemoveMembers}

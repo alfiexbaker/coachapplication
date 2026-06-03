@@ -41,8 +41,12 @@ Purpose: give a fast, human-readable overview of the core entities and how they 
 
 - `ClubActivity`
   - club-facing schedule read model
-  - projects `ClubEvent` and `GroupSession` into one linked activity surface
-  - lets the product express “presentation”, “private squad training”, and “club training open to outsiders” without inventing separate UI worlds
+  - projects `ClubEvent`, `GroupSession`, and `ClubMatch` into one linked activity surface
+  - lets the product express “presentation”, “private squad training”, “club training open to outsiders”, and “fixture/result” without inventing separate UI worlds
+- `ClubMatch`
+  - backend-owned club fixture and result record
+  - can be club-level or linked to a squad
+  - staff/admin actors create and record results; active club members read according to club visibility
 - `CoachingOffering`
   - what is being sold
 - `AvailabilityTemplate` and `AvailabilityOverride`

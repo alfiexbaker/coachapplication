@@ -5,7 +5,7 @@
  * Used by app/health/[id].tsx
  */
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { router, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -35,7 +35,7 @@ export function useHealthDetail(id: string | undefined) {
   const [noteProgress, setNoteProgress] = useState(0);
   const [saving, setSaving] = useState(false);
 
-  const loadInjury = async () => {
+  const loadInjury = useCallback(async () => {
     if (!id) return;
     setError(null);
     setLoading(true);
@@ -53,17 +53,17 @@ export function useHealthDetail(id: string | undefined) {
       setLoading(false);
       setRefreshing(false);
     });
-  };
+  }, [currentUser?.id, id]);
 
   useFocusEffect(
-    () => {
-      loadInjury();
-    },
+    useCallback(() => {
+      void loadInjury();
+    }, [loadInjury]),
   );
 
   const handleRefresh = () => {
     setRefreshing(true);
-    loadInjury();
+    void loadInjury();
   };
 
   const handleAddNote = async () => {

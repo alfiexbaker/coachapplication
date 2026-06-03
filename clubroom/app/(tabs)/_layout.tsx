@@ -1,5 +1,5 @@
 import { Tabs, router, useNavigation, useSegments } from 'expo-router';
-import React, { useEffect, useRef, useState, startTransition } from 'react';
+import React, { useCallback, useEffect, useRef, useState, startTransition } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
@@ -50,7 +50,6 @@ const BASE_HIDDEN_ROUTES = [
   'profile',
   'admin/invite-codes',
   'earnings',
-  'badges',
   'roster',
 ];
 
@@ -286,44 +285,55 @@ export default function TabLayout() {
     userRole,
   ]);
 
-  useFocusEffect(() => {
-    const currentHiddenRoutes = resolveRoleTabConfig(userRole, parentLikeUser).hidden ?? [];
-    const currentRestrictedRouteSet = getRestrictedTabRoutes(userRole, {
-      isParentLike: parentLikeUser,
-    });
-    const state = navigation.getState();
-    const currentRoute = state?.routes?.[state.index ?? 0]?.name;
-    logger.debug('Focus guard check', {
-      currentRoute,
-      isHidden:
-        typeof currentRoute === 'string' ? currentHiddenRoutes.includes(currentRoute) : false,
-      isRestricted:
-        typeof currentRoute === 'string' ? currentRestrictedRouteSet.has(currentRoute) : false,
-    });
-    if (typeof currentRoute !== 'string') return;
-    if (!currentRestrictedRouteSet.has(currentRoute)) {
-      lastRestrictedRouteRef.current = null;
-      return;
-    }
+  useFocusEffect(
+    useCallback(() => {
+      const currentHiddenRoutes = resolveRoleTabConfig(userRole, parentLikeUser).hidden ?? [];
+      const currentRestrictedRouteSet = getRestrictedTabRoutes(userRole, {
+        isParentLike: parentLikeUser,
+      });
+      const state = navigation.getState();
+      const currentRoute = state?.routes?.[state.index ?? 0]?.name;
+      logger.debug('Focus guard check', {
+        currentRoute,
+        isHidden:
+          typeof currentRoute === 'string' ? currentHiddenRoutes.includes(currentRoute) : false,
+        isRestricted:
+          typeof currentRoute === 'string' ? currentRestrictedRouteSet.has(currentRoute) : false,
+      });
+      if (typeof currentRoute !== 'string') return;
+      if (!currentRestrictedRouteSet.has(currentRoute)) {
+        lastRestrictedRouteRef.current = null;
+        return;
+      }
 
-    if (lastRestrictedRouteRef.current === currentRoute) {
-      logger.debug('Skipping duplicate restricted route toast', { routeName: currentRoute });
-      return;
-    }
+      if (lastRestrictedRouteRef.current === currentRoute) {
+        logger.debug('Skipping duplicate restricted route toast', { routeName: currentRoute });
+        return;
+      }
 
-    lastRestrictedRouteRef.current = currentRoute;
-    logger.warn('Restricted tab route blocked', {
-      routeName: currentRoute,
-      role: currentUser?.role,
-      type: currentUser?.type,
-      hasChildrenFlag: currentUser?.hasChildren,
-      childCount: currentUser?.children?.length ?? 0,
-      hiddenRoutes: currentHiddenRoutes,
-      restrictedRoutes: Array.from(currentRestrictedRouteSet),
-    });
-    router.replace(Routes.HOME_INDEX);
-    showToast('Access restricted', 'error');
-  });
+      lastRestrictedRouteRef.current = currentRoute;
+      logger.warn('Restricted tab route blocked', {
+        routeName: currentRoute,
+        role: currentUser?.role,
+        type: currentUser?.type,
+        hasChildrenFlag: currentUser?.hasChildren,
+        childCount: currentUser?.children?.length ?? 0,
+        hiddenRoutes: currentHiddenRoutes,
+        restrictedRoutes: Array.from(currentRestrictedRouteSet),
+      });
+      router.replace(Routes.HOME_INDEX);
+      showToast('Access restricted', 'error');
+    }, [
+      currentUser?.children?.length,
+      currentUser?.hasChildren,
+      currentUser?.role,
+      currentUser?.type,
+      navigation,
+      parentLikeUser,
+      showToast,
+      userRole,
+    ]),
+  );
 
   const getBadgeCount = (badgeType?: BadgeType): number | string | undefined => {
     if (!badgeType) return undefined;

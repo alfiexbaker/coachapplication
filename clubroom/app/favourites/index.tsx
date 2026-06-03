@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View, StyleSheet, RefreshControl, ScrollView } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -40,7 +40,7 @@ export default function FavouritesScreen() {
 
   const userId = currentUser?.id ?? 'parent1';
 
-  const loadFavourites = async () => {
+  const loadFavourites = useCallback(async () => {
     setError(null);
     try {
       const result = await favouriteService.getFavourites(userId);
@@ -58,28 +58,32 @@ export default function FavouritesScreen() {
     }
     setLoading(false);
     setRefreshing(false);
-  };
+  }, [userId]);
 
-  useFocusEffect(() => {
-    loadFavourites();
-  });
+  useFocusEffect(
+    useCallback(() => {
+      void loadFavourites();
+    }, [loadFavourites]),
+  );
 
-  useFocusEffect(() => {
-    const unsubscribeAdded = onTyped(ServiceEvents.FAVOURITE_ADDED, () => {
-      void loadFavourites();
-    });
-    const unsubscribeRemoved = onTyped(ServiceEvents.FAVOURITE_REMOVED, () => {
-      void loadFavourites();
-    });
-    return () => {
-      unsubscribeAdded();
-      unsubscribeRemoved();
-    };
-  });
+  useFocusEffect(
+    useCallback(() => {
+      const unsubscribeAdded = onTyped(ServiceEvents.FAVOURITE_ADDED, () => {
+        void loadFavourites();
+      });
+      const unsubscribeRemoved = onTyped(ServiceEvents.FAVOURITE_REMOVED, () => {
+        void loadFavourites();
+      });
+      return () => {
+        unsubscribeAdded();
+        unsubscribeRemoved();
+      };
+    }, [loadFavourites]),
+  );
 
   const handleRefresh = () => {
     setRefreshing(true);
-    loadFavourites();
+    void loadFavourites();
   };
 
   const handleToggleFavourite = async (favourite: FavouriteCoach) => {

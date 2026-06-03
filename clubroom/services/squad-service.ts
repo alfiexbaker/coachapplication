@@ -5,12 +5,14 @@
  * Provides functionality for getting squad members, filtering, and squad info.
  *
  * API Integration Notes:
- * - GET /api/squads/:id - Get squad details
+ * - GET /v1/squads/:id - Get squad details
+ * - GET /v1/clubs/:clubId/squads - Get all squads for a club
+ * - POST /v1/clubs/:clubId/squads - Create a squad
+ * - PATCH /v1/clubs/:clubId/squads/:squadId - Update a squad
  * - GET /api/squads/:id/members - Get squad members
- * - GET /api/clubs/:clubId/squads - Get all squads for a club
  */
 
-import { apiClient } from './api-client';
+import { apiClient, apiFetch } from './api-client';
 import { api } from '@/constants/config';
 import type { ClubSquad, SquadMember } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
@@ -23,6 +25,26 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 const logger = createLogger('SquadService');
 
 const USE_MOCK = api.useMock;
+
+interface ApiClubSquadsResponse {
+  squads: ClubSquad[];
+}
+
+interface ApiClubSquadResponse {
+  squad: ClubSquad;
+}
+
+function resolveInputLevel(input: {
+  level?: string;
+  ageGroup?: string;
+  skillLevel?: string;
+}): string | undefined {
+  if (input.level?.trim()) return input.level.trim();
+  if (input.ageGroup?.trim() && input.skillLevel?.trim()) {
+    return `${input.ageGroup.trim()} · ${input.skillLevel.trim()}`;
+  }
+  return input.ageGroup?.trim() || input.skillLevel?.trim() || undefined;
+}
 
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
   const userResult = await userService.getUserById(userId);
@@ -318,8 +340,14 @@ export const squadService = {
       return mergeSquads(mockSquads, customForClub);
     }
 
-    const response = await fetch(`/api/clubs/${clubId}/squads`);
-    return response.json();
+    const response = await apiFetch<ApiClubSquadsResponse>(
+      `/v1/clubs/${encodeURIComponent(clubId)}/squads`,
+    );
+    if (!response.success) {
+      logger.error('Failed to load club squads', response.error);
+      return [];
+    }
+    return response.data.squads;
   },
 
   /**
@@ -336,9 +364,14 @@ export const squadService = {
       return null;
     }
 
-    const response = await fetch(`/api/squads/${squadId}`);
-    if (!response.ok) return null;
-    return response.json();
+    const response = await apiFetch<ApiClubSquadResponse>(
+      `/v1/squads/${encodeURIComponent(squadId)}`,
+    );
+    if (!response.success) {
+      logger.error('Failed to load squad', response.error);
+      return null;
+    }
+    return response.data.squad;
   },
 
   /**
@@ -381,12 +414,26 @@ export const squadService = {
       return newSquad;
     }
 
-    const response = await fetch('/api/squads', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newSquad),
-    });
-    const created: ClubSquad = await response.json();
+    const response = await apiFetch<ApiClubSquadResponse>(
+      `/v1/clubs/${encodeURIComponent(input.clubId)}/squads`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          name: input.name,
+          level: input.level,
+          description: input.description,
+          meetingLocation: input.meetingLocation,
+          ageGroup: input.ageGroup,
+          skillLevel: input.skillLevel,
+          focusAreas: input.focusAreas,
+        }),
+      },
+    );
+    if (!response.success) {
+      logger.error('Failed to create squad', response.error);
+      throw new Error(response.error.message);
+    }
+    const created = response.data.squad;
 
     emitTyped(ServiceEvents.SQUAD_CREATED, {
       squadId: created.id,
@@ -396,6 +443,55 @@ export const squadService = {
     });
 
     return created;
+  },
+
+  /**
+   * Update a squad
+   */
+  async updateSquad(
+    clubId: string,
+    squadId: string,
+    input: {
+      name?: string;
+      level?: string;
+      ageGroup?: string;
+      skillLevel?: string;
+    },
+  ): Promise<ClubSquad> {
+    if (USE_MOCK) {
+      const custom = await loadCustomSquads();
+      const allSquads = mergeSquads(
+        BASE_CLUB_SQUADS.filter((s) => s.clubId === clubId),
+        custom.filter((s) => s.clubId === clubId),
+      );
+      const existing = allSquads.find((squad) => squad.id === squadId);
+      if (!existing) {
+        throw new Error('Squad not found');
+      }
+      const level = resolveInputLevel(input);
+      const updated: ClubSquad = {
+        ...existing,
+        name: input.name?.trim() || existing.name,
+        level: level ?? existing.level,
+      };
+      const nextCustom = custom.filter((squad) => squad.id !== squadId);
+      nextCustom.push(updated);
+      await saveCustomSquads(nextCustom);
+      return updated;
+    }
+
+    const response = await apiFetch<ApiClubSquadResponse>(
+      `/v1/clubs/${encodeURIComponent(clubId)}/squads/${encodeURIComponent(squadId)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      },
+    );
+    if (!response.success) {
+      logger.error('Failed to update squad', response.error);
+      throw new Error(response.error.message);
+    }
+    return response.data.squad;
   },
 
   /**

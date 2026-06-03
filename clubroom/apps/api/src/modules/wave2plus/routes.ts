@@ -1804,12 +1804,13 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Authenticated user is required');
     }
 
-    const groupId = asString(
-      (request.query as { communityGroupId?: string } | undefined)?.communityGroupId,
-    );
+    const query = request.query as { clubId?: string; communityGroupId?: string } | undefined;
+    const clubId = asString(query?.clubId);
+    const groupId = asString(query?.communityGroupId);
     const result = await resolveCommunityMediaRepository().listPosts({
       authUserId,
       isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      clubId,
       communityGroupId: groupId,
     });
 
@@ -1955,6 +1956,53 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         action: 'community.comment.reaction.toggle',
         resourceType: 'post_comment',
         resourceId: params.commentId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
+  });
+
+  app.post('/posts/:postId/reactions/toggle', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    const params = postParamsSchema.parse(request.params ?? {});
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    try {
+      const result = await resolveCommunityMediaRepository().togglePostReaction({
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        postId: params.postId,
+      });
+
+      await recordAuditEvent({
+        request,
+        action: 'community.post.reaction.toggle',
+        resourceType: 'post',
+        resourceId: params.postId,
+        result: 'SUCCESS',
+        metadata: {
+          likedByCurrentUser: result.post.likedByCurrentUser === true,
+          reactionsCount: asNumber(result.post.reactionsCount),
+        },
+      });
+
+      return reply.send({
+        post: result.post,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'community.post.reaction.toggle',
+        resourceType: 'post',
+        resourceId: params.postId,
         result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
         metadata: {
           errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',

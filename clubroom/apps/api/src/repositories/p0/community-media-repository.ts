@@ -34,6 +34,7 @@ export interface CommunityMediaAccessParams {
   isPrivilegedAdmin: boolean;
 }
 export interface PostListParams extends CommunityMediaAccessParams {
+  clubId?: string;
   communityGroupId?: string;
 }
 export interface PostCreateParams extends CommunityMediaAccessParams {
@@ -62,6 +63,9 @@ export interface PostCommentDeleteParams extends CommunityMediaAccessParams {
 export interface PostCommentReactionParams extends CommunityMediaAccessParams {
   commentId: string;
 }
+export interface PostReactionParams extends CommunityMediaAccessParams {
+  postId: string;
+}
 export interface GroupMessageCreateParams extends CommunityMediaAccessParams {
   communityGroupId: string;
   body: string;
@@ -87,6 +91,10 @@ export interface PostListResult {
   dataVersion: string | null;
 }
 export interface PostMutationResult {
+  post: SeedRow;
+  dataVersion: string | null;
+}
+export interface PostReactionMutationResult {
   post: SeedRow;
   dataVersion: string | null;
 }
@@ -170,6 +178,7 @@ export interface CommunityMediaRepository {
   listCommunityGroups(params: CommunityMediaAccessParams): Promise<CommunityGroupListResult>;
   listPosts(params: PostListParams): Promise<PostListResult>;
   createPost(params: PostCreateParams): Promise<PostMutationResult>;
+  togglePostReaction(params: PostReactionParams): Promise<PostReactionMutationResult>;
   listPostComments(params: PostCommentListParams): Promise<PostCommentListResult>;
   getPostComment(params: PostCommentReadParams): Promise<PostCommentMutationResult>;
   createPostComment(params: PostCommentCreateParams): Promise<PostCommentMutationResult>;
@@ -209,20 +218,20 @@ function ensureRows(tables: SeedTables, key: string): SeedRow[] {
   return created;
 }
 function readableCommunityGroupIds(tables: SeedTables, authUserId: string): Set<string> {
-  return new Set(
-    asRows(tables.communityGroupMemberships).flatMap((row) => {
+  return new Set<string>(
+    asRows(tables.communityGroupMemberships).flatMap((row): string[] => {
       if (!(isActiveMembership(row) && asString(row.userId) === authUserId)) return [];
       const mapped = asString(row.communityGroupId);
-      return Boolean(mapped) ? [mapped] : [];
+      return mapped ? [mapped] : [];
     }),
   );
 }
 function readableClubIdsForUser(tables: SeedTables, authUserId: string): Set<string> {
-  return new Set(
-    asRows(tables.clubMemberships).flatMap((row) => {
+  return new Set<string>(
+    asRows(tables.clubMemberships).flatMap((row): string[] => {
       if (!(isActiveMembership(row) && asString(row.userId) === authUserId)) return [];
       const mapped = asString(row.clubId);
-      return Boolean(mapped) ? [mapped] : [];
+      return mapped ? [mapped] : [];
     }),
   );
 }
@@ -306,10 +315,38 @@ function normalizeRole(value: unknown): string {
 function canStaffPostWithRole(value: unknown): boolean {
   return STAFF_POST_ROLES.has(normalizeRole(value));
 }
-function hydrateStorePost(tables: SeedTables, post: SeedRow): SeedRow {
+function getStorePostReactionState(
+  tables: SeedTables,
+  postId: string | undefined,
+  authUserId?: string,
+): { reactionsCount: number; likedByCurrentUser: boolean; likes: string[] } {
+  if (!postId) {
+    return {
+      reactionsCount: 0,
+      likedByCurrentUser: false,
+      likes: [],
+    };
+  }
+  const likes = asRows(tables.postReactions).filter(
+    (row) =>
+      asString(row.postId) === postId &&
+      String(row.reaction ?? 'LIKE').toUpperCase() === 'LIKE',
+  );
+  const likedByCurrentUser = Boolean(
+    authUserId && likes.some((row) => asString(row.userId) === authUserId),
+  );
+  return {
+    reactionsCount: likes.length,
+    likedByCurrentUser,
+    likes: likedByCurrentUser && authUserId ? [authUserId] : [],
+  };
+}
+function hydrateStorePost(tables: SeedTables, post: SeedRow, authUserId?: string): SeedRow {
+  const reactionState = getStorePostReactionState(tables, asString(post.id), authUserId);
   return {
     ...post,
     author: storeUserSummary(tables, asString(post.authorUserId)),
+    ...reactionState,
   };
 }
 function visibleStoreClub(tables: SeedTables, clubId: string | undefined): SeedRow | null {
@@ -1054,9 +1091,17 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     const store = this.storeProvider();
     const readableGroupIds = readableCommunityGroupIds(store.tables, params.authUserId);
     const readableClubIds = readableClubIdsForUser(store.tables, params.authUserId);
+    if (params.clubId && params.communityGroupId) {
+      throw badRequest('Use either clubId or communityGroupId when listing posts');
+    }
     if (params.communityGroupId && !readableGroupIds.has(params.communityGroupId)) {
       throw forbidden('Community group does not belong to authenticated user', {
         communityGroupId: params.communityGroupId,
+      });
+    }
+    if (params.clubId && !params.isPrivilegedAdmin && !readableClubIds.has(params.clubId)) {
+      throw forbidden('Club does not belong to authenticated user', {
+        clubId: params.clubId,
       });
     }
     const posts = activeRows(asRows(store.tables.posts)).flatMap((row) => {
@@ -1064,6 +1109,9 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
         !(() => {
           if (params.communityGroupId) {
             return asString(row.communityGroupId) === params.communityGroupId;
+          }
+          if (params.clubId) {
+            return asString(row.clubId) === params.clubId;
           }
           const postGroupId = asString(row.communityGroupId);
           const postClubId = asString(row.clubId);
@@ -1077,15 +1125,19 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
         return [];
       const postId = asString(row.id);
       return [
-        {
-          ...row,
-          comments: activeRows(asRows(store.tables.postComments)).filter(
-            (row) => asString(row.postId) === postId && asBoolean(row.isDeleted) !== true,
-          ),
-          reactions: asRows(store.tables.postReactions).filter(
-            (row) => asString(row.postId) === postId,
-          ),
-        },
+        hydrateStorePost(
+          store.tables,
+          {
+            ...row,
+            comments: activeRows(asRows(store.tables.postComments)).filter(
+              (row) => asString(row.postId) === postId && asBoolean(row.isDeleted) !== true,
+            ),
+            reactions: asRows(store.tables.postReactions).filter(
+              (row) => asString(row.postId) === postId,
+            ),
+          },
+          params.authUserId,
+        ),
       ];
     });
     return {
@@ -1140,7 +1192,7 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       }
     }
     const response: PostMutationResult = {
-      post: hydrateStorePost(store.tables, post),
+      post: hydrateStorePost(store.tables, post, params.authUserId),
       dataVersion: store.version,
     };
     recordSeedPostCreateIdempotency({
@@ -1151,6 +1203,43 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       now,
     });
     return response;
+  }
+  async togglePostReaction(params: PostReactionParams): Promise<PostReactionMutationResult> {
+    const store = this.storeProvider();
+    const post = assertReadableStorePost(
+      store.tables,
+      params.postId,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+    const reactions = ensureRows(store.tables, 'postReactions');
+    const existingIndex = reactions.findIndex(
+      (row) =>
+        asString(row.postId) === params.postId &&
+        asString(row.userId) === params.authUserId &&
+        String(row.reaction ?? 'LIKE').toUpperCase() === 'LIKE',
+    );
+    if (existingIndex >= 0) {
+      reactions.splice(existingIndex, 1);
+    } else {
+      reactions.push({
+        id: newId('prx'),
+        postId: params.postId,
+        userId: params.authUserId,
+        reaction: 'LIKE',
+        createdAt: nowIso(),
+      });
+    }
+    const state = getStorePostReactionState(store.tables, params.postId, params.authUserId);
+    const now = nowIso();
+    post.reactionsCount = state.reactionsCount;
+    post.updatedAt = now;
+    post.updatedByUserId = params.authUserId;
+    post.version = Number(post.version ?? 1) + 1;
+    return {
+      post: hydrateStorePost(store.tables, post, params.authUserId),
+      dataVersion: store.version,
+    };
   }
   async listPostComments(params: PostCommentListParams): Promise<PostCommentListResult> {
     const store = this.storeProvider();
@@ -1940,15 +2029,15 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       visibility: params.visibility ?? (params.communityGroupId ? 'GROUP' : 'CLUB'),
     };
   }
-  private async hydratePosts(posts: SeedRow[]): Promise<SeedRow[]> {
+  private async hydratePosts(posts: SeedRow[], authUserId?: string): Promise<SeedRow[]> {
     if (posts.length === 0) {
       return [];
     }
     const userIds = Array.from(
       new Set(
-        posts.flatMap((post) => {
+        posts.flatMap((post): string[] => {
           const mapped = asString(post.authorUserId);
-          return Boolean(mapped) ? [mapped] : [];
+          return mapped ? [mapped] : [];
         }),
       ),
     );
@@ -1972,9 +2061,19 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     const usersById = new Map(users.map((user) => [asString(user.id), user] as const));
     return posts.map((post) => {
       const authorUserId = asString(post.authorUserId);
+      const postId = asString(post.id);
+      const likes = asRows(post.reactions).filter(
+        (row) => String(row.reaction ?? 'LIKE').toUpperCase() === 'LIKE',
+      );
+      const likedByCurrentUser = Boolean(
+        authUserId && likes.some((row) => asString(row.userId) === authUserId),
+      );
       const user = authorUserId ? usersById.get(authorUserId) : undefined;
       return {
         ...post,
+        reactionsCount: postId ? likes.length : 0,
+        likedByCurrentUser,
+        likes: likedByCurrentUser && authUserId ? [authUserId] : [],
         author: authorUserId
           ? {
               id: authorUserId,
@@ -1989,15 +2088,15 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     if (comments.length === 0) {
       return [];
     }
-    const commentIds = comments.flatMap((comment) => {
+    const commentIds = comments.flatMap((comment): string[] => {
       const mapped = asString(comment.id);
-      return Boolean(mapped) ? [mapped] : [];
+      return mapped ? [mapped] : [];
     });
     const userIds = Array.from(
       new Set(
-        comments.flatMap((comment) => {
+        comments.flatMap((comment): string[] => {
           const mapped = asString(comment.authorUserId);
-          return Boolean(mapped) ? [mapped] : [];
+          return mapped ? [mapped] : [];
         }),
       ),
     );
@@ -2241,6 +2340,9 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.listPosts(params);
     }
+    if (params.clubId && params.communityGroupId) {
+      throw badRequest('Use either clubId or communityGroupId when listing posts');
+    }
     const [readableGroupIds, readableClubIds] = await Promise.all([
       this.getReadableCommunityGroupIds(params.authUserId),
       this.getReadableClubIds(params.authUserId),
@@ -2248,6 +2350,11 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     if (params.communityGroupId && !readableGroupIds.includes(params.communityGroupId)) {
       throw forbidden('Community group does not belong to authenticated user', {
         communityGroupId: params.communityGroupId,
+      });
+    }
+    if (params.clubId && !params.isPrivilegedAdmin && !readableClubIds.includes(params.clubId)) {
+      throw forbidden('Club does not belong to authenticated user', {
+        clubId: params.clubId,
       });
     }
     const prisma = getPrismaClientOrThrow();
@@ -2259,6 +2366,10 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
             ? {
                 communityGroupId: params.communityGroupId,
               }
+            : params.clubId
+              ? {
+                  clubId: params.clubId,
+                }
             : {
                 OR: [
                   {
@@ -2295,7 +2406,7 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       }),
     );
     return {
-      posts: await this.hydratePosts(posts),
+      posts: await this.hydratePosts(posts, params.authUserId),
       dataVersion: null,
     };
   }
@@ -2380,6 +2491,9 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       const postResponse: PostMutationResult = {
         post: {
           ...normalizeAs<SeedRow>(post),
+          reactionsCount: 0,
+          likedByCurrentUser: false,
+          likes: [],
           author: author
             ? normalizeAs<SeedRow>(author)
             : {
@@ -2407,6 +2521,68 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       return postResponse;
     });
     return response;
+  }
+  async togglePostReaction(params: PostReactionParams): Promise<PostReactionMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.togglePostReaction(params);
+    }
+    await this.assertReadablePost(params.postId, params.authUserId, params.isPrivilegedAdmin);
+    const prisma = getPrismaClientOrThrow();
+    const updatedPost = await prisma.$transaction(async (tx): Promise<SeedRow> => {
+      const existing = await tx.postReaction.findUnique({
+        where: {
+          postId_userId_reaction: {
+            postId: params.postId,
+            userId: params.authUserId,
+            reaction: 'LIKE',
+          },
+        },
+      });
+      if (existing) {
+        await tx.postReaction.delete({
+          where: {
+            id: existing.id,
+          },
+        });
+      } else {
+        await tx.postReaction.create({
+          data: {
+            id: newId('prx'),
+            postId: params.postId,
+            userId: params.authUserId,
+            reaction: 'LIKE',
+          },
+        });
+      }
+      const reactionsCount = await tx.postReaction.count({
+        where: {
+          postId: params.postId,
+          reaction: 'LIKE',
+        },
+      });
+      return normalizeAs<SeedRow>(
+        await tx.post.update({
+          where: {
+            id: params.postId,
+          },
+          data: {
+            reactionsCount,
+            updatedByUserId: params.authUserId,
+            version: {
+              increment: 1,
+            },
+          },
+          include: {
+            reactions: true,
+          },
+        }),
+      );
+    });
+    const hydrated = await this.hydratePosts([updatedPost], params.authUserId);
+    return {
+      post: hydrated[0] as SeedRow,
+      dataVersion: null,
+    };
   }
   async listPostComments(params: PostCommentListParams): Promise<PostCommentListResult> {
     if (shouldUseDbFixtureFallback()) {

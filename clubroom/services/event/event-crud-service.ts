@@ -11,27 +11,145 @@
  * - PATCH /api/events/:id/publish - Publish event
  */
 
-import { apiClient } from "../api-client";
-import { api } from "@/constants/config";
-import { STORAGE_KEYS } from "@/constants/storage-keys";
-import { notificationTriggers } from "../notification-trigger";
-import { clubService, type ClubMember } from "../club-service";
-import { createLogger } from "@/utils/logger";
-import { toDateStr } from "@/utils/format";
+import { apiClient, apiFetch } from '../api-client';
+import { api } from '@/constants/config';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { notificationTriggers } from '../notification-trigger';
+import { clubService, type ClubMember } from '../club-service';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+} from '@/services/api-auth-context';
+import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import {
   type Result,
   type ServiceError,
   ok,
   err,
   notFound,
-} from "@/types/result";
+  unsupportedError,
+} from '@/types/result';
 import type {
+  ClubActivity,
   ClubEvent,
   ClubEventType,
   EventTargetAudience,
-} from "@/constants/types";
+} from '@/constants/types';
 const USE_MOCK = api.useMock;
-const logger = createLogger("EventCrudService");
+const logger = createLogger('EventCrudService');
+
+interface ApiClubScheduleResponse {
+  activities: ClubActivity[];
+}
+
+function eventUnsupportedError(action: string): ServiceError {
+  return unsupportedError(`${action} needs a /v1 club event API before it can run in API mode.`, {
+    missingAuthority: 'club_event',
+  });
+}
+
+function throwEventUnsupported(action: string): never {
+  throw new Error(eventUnsupportedError(action).message);
+}
+
+function mapActivityStatus(status: ClubActivity['status']): ClubEvent['status'] {
+  if (status === 'draft') return 'DRAFT';
+  if (status === 'cancelled') return 'CANCELLED';
+  if (status === 'completed') return 'COMPLETED';
+  return 'PUBLISHED';
+}
+
+function mapActivityType(activity: ClubActivity): ClubEventType {
+  const normalized = activity.typeLabel.toLowerCase();
+  if (normalized.includes('tournament')) return 'TOURNAMENT';
+  if (normalized.includes('presentation')) return 'PRESENTATION';
+  if (normalized.includes('meeting')) return 'MEETING';
+  if (normalized.includes('fundraiser')) return 'FUNDRAISER';
+  if (normalized.includes('trial')) return 'TRIAL_DAY';
+  if (normalized.includes('camp')) return 'TRAINING_CAMP';
+  if (normalized.includes('social')) return 'SOCIAL';
+  return 'OTHER';
+}
+
+function isoTimePart(value: string | undefined): string {
+  if (!value) return '';
+  const match = value.match(/T(\d{2}:\d{2})/);
+  if (match?.[1]) return match[1];
+  return value.slice(11, 16);
+}
+
+function mapActivityToClubEvent(activity: ClubActivity): ClubEvent | null {
+  if (activity.source !== 'club_event') {
+    return null;
+  }
+
+  const date = activity.startsAt.slice(0, 10);
+  return {
+    id: activity.sourceEntityId,
+    clubId: activity.clubId ?? '',
+    createdBy: '',
+    title: activity.title,
+    description: activity.description ?? '',
+    eventType: mapActivityType(activity),
+    date,
+    startDate: date,
+    startTime: isoTimePart(activity.startsAt),
+    endTime: isoTimePart(activity.endsAt),
+    venue: activity.locationLabel,
+    location: activity.locationLabel,
+    isVirtual: activity.isVirtual,
+    targetAudience: activity.accessScope === 'squad' ? 'SQUAD' : 'ALL',
+    squadIds: activity.squadIds,
+    allClub: activity.accessScope !== 'squad',
+    price: activity.price ?? 0,
+    currency: activity.currency ?? 'GBP',
+    rsvpRequired: activity.participationMode === 'rsvp',
+    attendees: [],
+    status: mapActivityStatus(activity.status),
+    createdAt: activity.startsAt,
+  };
+}
+
+async function resolveEventApiHeaders(): Promise<Result<Record<string, string>, ServiceError>> {
+  const currentUserResult = await resolveSignedInApiUser('Sign in to view club events.');
+  if (!currentUserResult.success) {
+    return currentUserResult;
+  }
+  return ok(
+    buildApiAuthHeaders({
+      actingRole: deriveApiActingRole(currentUserResult.data, 'member'),
+    }),
+  );
+}
+
+async function listClubEventsFromSchedule(
+  clubId: string,
+): Promise<Result<ClubEvent[], ServiceError>> {
+  const headersResult = await resolveEventApiHeaders();
+  if (!headersResult.success) {
+    return headersResult;
+  }
+
+  const result = await apiFetch<ApiClubScheduleResponse>(
+    `/v1/clubs/${encodeURIComponent(clubId)}/schedule`,
+    {
+      method: 'GET',
+      headers: headersResult.data,
+    },
+  );
+  if (!result.success) {
+    return err(result.error);
+  }
+
+  return ok(
+    result.data.activities.flatMap((activity) => {
+      const event = mapActivityToClubEvent(activity);
+      return event ? [event] : [];
+    }),
+  );
+}
 
 // ============================================================================
 // MOCK DATA (shared across event sub-services via load/save helpers)
@@ -39,157 +157,157 @@ const logger = createLogger("EventCrudService");
 
 const MOCK_EVENTS: ClubEvent[] = [
   {
-    id: "event_1",
-    clubId: "club_lions",
-    createdBy: "coach1",
-    title: "End of Season Presentation",
+    id: 'event_1',
+    clubId: 'club_lions',
+    createdBy: 'coach1',
+    title: 'End of Season Presentation',
     description:
-      "Join us to celebrate an amazing season! Awards ceremony, refreshments, and a chance to thank our coaches and volunteers. All players will receive participation certificates.",
-    eventType: "PRESENTATION",
-    date: "2026-06-15",
-    startTime: "14:00",
-    endTime: "17:00",
-    venue: "Bradwell Community Centre",
-    address: "45 High Street, Bradwell, CM77 8AB",
+      'Join us to celebrate an amazing season! Awards ceremony, refreshments, and a chance to thank our coaches and volunteers. All players will receive participation certificates.',
+    eventType: 'PRESENTATION',
+    date: '2026-06-15',
+    startTime: '14:00',
+    endTime: '17:00',
+    venue: 'Bradwell Community Centre',
+    address: '45 High Street, Bradwell, CM77 8AB',
     isVirtual: false,
-    targetAudience: "ALL",
+    targetAudience: 'ALL',
     price: 0,
-    currency: "GBP",
+    currency: 'GBP',
     rsvpRequired: true,
-    rsvpDeadline: "2026-06-10",
+    rsvpDeadline: '2026-06-10',
     attendees: [
       {
-        userId: "parent_1",
-        userRole: "PARENT",
-        status: "GOING",
+        userId: 'parent_1',
+        userRole: 'PARENT',
+        status: 'GOING',
         guestCount: 2,
-        respondedAt: "2026-01-05T10:00:00Z",
+        respondedAt: '2026-01-05T10:00:00Z',
       },
       {
-        userId: "parent_2",
-        userRole: "PARENT",
-        status: "GOING",
+        userId: 'parent_2',
+        userRole: 'PARENT',
+        status: 'GOING',
         guestCount: 1,
-        respondedAt: "2026-01-06T14:30:00Z",
+        respondedAt: '2026-01-06T14:30:00Z',
       },
     ],
-    status: "PUBLISHED",
-    imageUrl: "https://picsum.photos/seed/presentation/800/400",
-    createdAt: "2026-01-01T09:00:00Z",
+    status: 'PUBLISHED',
+    imageUrl: 'https://picsum.photos/seed/presentation/800/400',
+    createdAt: '2026-01-01T09:00:00Z',
   },
   {
-    id: "event_2",
-    clubId: "club_lions",
-    createdBy: "coach1",
-    title: "Summer Tournament",
+    id: 'event_2',
+    clubId: 'club_lions',
+    createdBy: 'coach1',
+    title: 'Summer Tournament',
     description:
-      "Annual summer 7-a-side tournament with teams from across the region. Entry fee includes lunch, snacks, and a medal for all participants. Limited spots available!",
-    eventType: "TOURNAMENT",
-    date: "2026-07-20",
-    startTime: "09:00",
-    endTime: "16:00",
-    venue: "Bradwell Sports Ground",
-    address: "Recreation Way, Bradwell, CM77 8CD",
+      'Annual summer 7-a-side tournament with teams from across the region. Entry fee includes lunch, snacks, and a medal for all participants. Limited spots available!',
+    eventType: 'TOURNAMENT',
+    date: '2026-07-20',
+    startTime: '09:00',
+    endTime: '16:00',
+    venue: 'Bradwell Sports Ground',
+    address: 'Recreation Way, Bradwell, CM77 8CD',
     isVirtual: false,
-    targetAudience: "ATHLETES",
+    targetAudience: 'ATHLETES',
     maxAttendees: 80,
     price: 15,
-    currency: "GBP",
+    currency: 'GBP',
     rsvpRequired: true,
-    rsvpDeadline: "2026-07-10",
+    rsvpDeadline: '2026-07-10',
     attendees: [
       {
-        userId: "parent_1",
-        userRole: "PARENT",
-        status: "GOING",
+        userId: 'parent_1',
+        userRole: 'PARENT',
+        status: 'GOING',
         guestCount: 0,
-        respondedAt: "2026-01-08T11:00:00Z",
+        respondedAt: '2026-01-08T11:00:00Z',
       },
     ],
-    status: "PUBLISHED",
-    imageUrl: "https://picsum.photos/seed/tournament/800/400",
-    createdAt: "2026-01-02T10:00:00Z",
+    status: 'PUBLISHED',
+    imageUrl: 'https://picsum.photos/seed/tournament/800/400',
+    createdAt: '2026-01-02T10:00:00Z',
   },
   {
-    id: "event_3",
-    clubId: "club_lions",
-    createdBy: "coach1",
-    title: "Parents Meeting",
+    id: 'event_3',
+    clubId: 'club_lions',
+    createdBy: 'coach1',
+    title: 'Parents Meeting',
     description:
-      "Monthly parents meeting to discuss upcoming fixtures, training schedules, and club updates. This meeting will be held virtually via Zoom.",
-    eventType: "MEETING",
-    date: "2026-02-05",
-    startTime: "19:00",
-    endTime: "20:00",
-    venue: "Online",
+      'Monthly parents meeting to discuss upcoming fixtures, training schedules, and club updates. This meeting will be held virtually via Zoom.',
+    eventType: 'MEETING',
+    date: '2026-02-05',
+    startTime: '19:00',
+    endTime: '20:00',
+    venue: 'Online',
     isVirtual: true,
-    meetingLink: "https://zoom.us/j/123456789",
-    targetAudience: "PARENTS",
+    meetingLink: 'https://zoom.us/j/123456789',
+    targetAudience: 'PARENTS',
     price: 0,
-    currency: "GBP",
+    currency: 'GBP',
     rsvpRequired: true,
-    rsvpDeadline: "2026-02-03",
+    rsvpDeadline: '2026-02-03',
     attendees: [
       {
-        userId: "parent_1",
-        userRole: "PARENT",
-        status: "GOING",
+        userId: 'parent_1',
+        userRole: 'PARENT',
+        status: 'GOING',
         guestCount: 0,
-        respondedAt: "2026-01-10T09:00:00Z",
+        respondedAt: '2026-01-10T09:00:00Z',
       },
       {
-        userId: "parent_2",
-        userRole: "PARENT",
-        status: "MAYBE",
+        userId: 'parent_2',
+        userRole: 'PARENT',
+        status: 'MAYBE',
         guestCount: 0,
-        respondedAt: "2026-01-10T12:00:00Z",
+        respondedAt: '2026-01-10T12:00:00Z',
       },
     ],
-    status: "PUBLISHED",
-    createdAt: "2026-01-03T08:00:00Z",
+    status: 'PUBLISHED',
+    createdAt: '2026-01-03T08:00:00Z',
   },
   {
-    id: "event_4",
-    clubId: "club_lions",
-    createdBy: "coach_2",
-    title: "Club BBQ Social",
+    id: 'event_4',
+    clubId: 'club_lions',
+    createdBy: 'coach_2',
+    title: 'Club BBQ Social',
     description:
-      "End of summer BBQ for all club members and families. Bring a dish to share! Games and activities for the kids.",
-    eventType: "SOCIAL",
-    date: "2026-08-25",
-    startTime: "12:00",
-    endTime: "16:00",
-    venue: "Bradwell Park",
-    address: "Park Lane, Bradwell, CM77 8EF",
+      'End of summer BBQ for all club members and families. Bring a dish to share! Games and activities for the kids.',
+    eventType: 'SOCIAL',
+    date: '2026-08-25',
+    startTime: '12:00',
+    endTime: '16:00',
+    venue: 'Bradwell Park',
+    address: 'Park Lane, Bradwell, CM77 8EF',
     isVirtual: false,
-    targetAudience: "ALL",
+    targetAudience: 'ALL',
     price: 5,
-    currency: "GBP",
+    currency: 'GBP',
     rsvpRequired: true,
-    rsvpDeadline: "2026-08-20",
+    rsvpDeadline: '2026-08-20',
     attendees: [],
-    status: "DRAFT",
-    imageUrl: "https://picsum.photos/seed/bbq/800/400",
-    createdAt: "2026-01-05T14:00:00Z",
+    status: 'DRAFT',
+    imageUrl: 'https://picsum.photos/seed/bbq/800/400',
+    createdAt: '2026-01-05T14:00:00Z',
   },
 ];
 let eventsCache: ClubEvent[] = [...MOCK_EVENTS];
-const CLUB_STAFF_ROLES = new Set(["OWNER", "ADMIN", "HEAD_COACH", "COACH"]);
+const CLUB_STAFF_ROLES = new Set(['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH']);
 function isActiveMember(member: ClubMember): boolean {
-  return member.status === "active";
+  return member.status === 'active';
 }
 function isStaffMember(member: ClubMember): boolean {
   return CLUB_STAFF_ROLES.has(member.role);
 }
 function memberMatchesAudience(member: ClubMember, event: ClubEvent): boolean {
   switch (event.targetAudience) {
-    case "COACHES":
+    case 'COACHES':
       return isStaffMember(member);
-    case "PARENTS":
-    case "ATHLETES":
-    case "SQUAD":
+    case 'PARENTS':
+    case 'ATHLETES':
+    case 'SQUAD':
       return !isStaffMember(member);
-    case "ALL":
+    case 'ALL':
     default:
       return true;
   }
@@ -216,15 +334,13 @@ async function getNotificationRecipientIds(
             ((member) => member.userId !== event.createdBy)(item)
               ? ((member) => {
                   if (!memberMatchesAudience(member, event)) return [];
-                  return memberMatchesSquads(member, scopedSquadIds)
-                    ? [member.userId]
-                    : [];
+                  return memberMatchesSquads(member, scopedSquadIds) ? [member.userId] : [];
                 })(item)
               : [])(item)
         : [],
     );
   } catch (error) {
-    logger.error("Failed to resolve event notification recipients", {
+    logger.error('Failed to resolve event notification recipients', {
       eventId: event.id,
       clubId: event.clubId,
       error,
@@ -240,7 +356,7 @@ async function notifyEventCreatedRecipients(
 ): Promise<void> {
   const recipientIds = await getNotificationRecipientIds(event, options);
   if (recipientIds.length === 0) {
-    logger.info("No recipients for event created notification", {
+    logger.info('No recipients for event created notification', {
       eventId: event.id,
     });
     return;
@@ -256,7 +372,7 @@ async function notifyEventCancelledRecipients(event: ClubEvent): Promise<void> {
     squadIds: event.squadIds,
   });
   if (recipientIds.length === 0) {
-    logger.info("No recipients for event cancelled notification", {
+    logger.info('No recipients for event cancelled notification', {
       eventId: event.id,
     });
     return;
@@ -274,13 +390,10 @@ async function notifyEventCancelledRecipients(event: ClubEvent): Promise<void> {
 
 export async function loadEvents(): Promise<ClubEvent[]> {
   try {
-    const stored = await apiClient.get<ClubEvent[] | null>(
-      STORAGE_KEYS.CLUB_EVENTS,
-      null,
-    );
+    const stored = await apiClient.get<ClubEvent[] | null>(STORAGE_KEYS.CLUB_EVENTS, null);
     if (stored) return stored;
   } catch (error) {
-    logger.error("Failed to load events", error);
+    logger.error('Failed to load events', error);
   }
   return [...MOCK_EVENTS];
 }
@@ -289,7 +402,7 @@ export async function saveEvents(events: ClubEvent[]): Promise<void> {
     await apiClient.set(STORAGE_KEYS.CLUB_EVENTS, events);
     eventsCache = events;
   } catch (error) {
-    logger.error("Failed to save events", error);
+    logger.error('Failed to save events', error);
   }
 }
 export function getEventsCache(): ClubEvent[] {
@@ -355,11 +468,11 @@ export const eventCrudService = {
       squadIds: input.squadIds,
       maxAttendees: input.maxAttendees,
       price: input.price ?? 0,
-      currency: input.currency || "GBP",
+      currency: input.currency || 'GBP',
       rsvpRequired: input.rsvpRequired ?? true,
       rsvpDeadline: input.rsvpDeadline,
       attendees: [],
-      status: "DRAFT",
+      status: 'DRAFT',
       imageUrl: input.imageUrl,
       createdAt: new Date().toISOString(),
     };
@@ -369,33 +482,21 @@ export const eventCrudService = {
       await saveEvents(eventsCache);
       return newEvent;
     }
-    const response = await fetch("/api/events", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newEvent),
-    });
-    return response.json();
+    return throwEventUnsupported('Creating club events');
   },
   /**
    * Publish an event (make visible to members)
    */
-  async publishEvent(
-    eventId: string,
-  ): Promise<Result<ClubEvent, ServiceError>> {
+  async publishEvent(eventId: string): Promise<Result<ClubEvent, ServiceError>> {
     if (USE_MOCK) {
       eventsCache = await loadEvents();
       const event = eventsCache.find((e) => e.id === eventId);
-      if (!event) return err(notFound("Event", eventId));
-      event.status = "PUBLISHED";
+      if (!event) return err(notFound('Event', eventId));
+      event.status = 'PUBLISHED';
       await saveEvents(eventsCache);
       return ok(event);
     }
-    const response = await fetch(`/api/events/${eventId}/publish`, {
-      method: "PATCH",
-    });
-    return ok(await response.json());
+    return err(eventUnsupportedError('Publishing club events'));
   },
   /**
    * Cancel an event
@@ -404,16 +505,13 @@ export const eventCrudService = {
     if (USE_MOCK) {
       eventsCache = await loadEvents();
       const event = eventsCache.find((e) => e.id === eventId);
-      if (!event) return err(notFound("Event", eventId));
-      event.status = "CANCELLED";
+      if (!event) return err(notFound('Event', eventId));
+      event.status = 'CANCELLED';
       await saveEvents(eventsCache);
       await notifyEventCancelledRecipients(event);
       return ok(event);
     }
-    const response = await fetch(`/api/events/${eventId}/cancel`, {
-      method: "PATCH",
-    });
-    return ok(await response.json());
+    return err(eventUnsupportedError('Cancelling club events'));
   },
   /**
    * Get an event by ID
@@ -423,9 +521,8 @@ export const eventCrudService = {
       eventsCache = await loadEvents();
       return eventsCache.find((e) => e.id === eventId) || null;
     }
-    const response = await fetch(`/api/events/${eventId}`);
-    if (!response.ok) return null;
-    return response.json();
+    logger.warn('Club event detail lookup needs a /v1 event detail API', { eventId });
+    return null;
   },
   /**
    * Get upcoming events for a club
@@ -435,14 +532,21 @@ export const eventCrudService = {
       eventsCache = await loadEvents();
       const now = toDateStr(new Date());
       return eventsCache
-        .filter(
-          (e) =>
-            e.clubId === clubId && e.status === "PUBLISHED" && e.date >= now,
-        )
+        .filter((e) => e.clubId === clubId && e.status === 'PUBLISHED' && e.date >= now)
         .sort((a, b) => a.date.localeCompare(b.date));
     }
-    const response = await fetch(`/api/events?clubId=${clubId}&upcoming=true`);
-    return response.json();
+    const result = await listClubEventsFromSchedule(clubId);
+    if (!result.success) {
+      logger.error('Failed to load upcoming club events via /v1 schedule', {
+        clubId,
+        error: result.error,
+      });
+      return [];
+    }
+    const now = toDateStr(new Date());
+    return result.data
+      .filter((event) => event.status === 'PUBLISHED' && event.date >= now)
+      .sort((a, b) => a.date.localeCompare(b.date));
   },
   /**
    * Get all events for a club (including past and drafts)
@@ -454,8 +558,15 @@ export const eventCrudService = {
         .filter((e) => e.clubId === clubId)
         .sort((a, b) => b.date.localeCompare(a.date));
     }
-    const response = await fetch(`/api/events?clubId=${clubId}`);
-    return response.json();
+    const result = await listClubEventsFromSchedule(clubId);
+    if (!result.success) {
+      logger.error('Failed to load club events via /v1 schedule', {
+        clubId,
+        error: result.error,
+      });
+      return [];
+    }
+    return result.data.sort((a, b) => b.date.localeCompare(a.date));
   },
   /**
    * Invite all club members to an event
@@ -465,26 +576,18 @@ export const eventCrudService = {
       eventsCache = await loadEvents();
       const event = eventsCache.find((e) => e.id === eventId);
       if (!event) {
-        logger.warn("Cannot invite club members for missing event", {
+        logger.warn('Cannot invite club members for missing event', {
           eventId,
         });
         return;
       }
       await notifyEventCreatedRecipients(event);
-      logger.info("Invited club members to event", {
+      logger.info('Invited club members to event', {
         eventId,
       });
       return;
     }
-    await fetch(`/api/events/${eventId}/invite`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        scope: "club",
-      }),
-    });
+    return throwEventUnsupported('Inviting club members to club events');
   },
   /**
    * Invite specific squads to an event
@@ -500,26 +603,18 @@ export const eventCrudService = {
           squadIds,
         });
       } else {
-        logger.warn("Cannot invite squads for missing event", {
+        logger.warn('Cannot invite squads for missing event', {
           eventId,
           squadIds,
         });
       }
-      logger.info("Inviting squads to event", {
+      logger.info('Inviting squads to event', {
         eventId,
         squadIds,
       });
       return;
     }
-    await fetch(`/api/events/${eventId}/invite`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        scope: "squads",
-        squadIds,
-      }),
-    });
+    void squadIds;
+    return throwEventUnsupported('Inviting squads to club events');
   },
 };
