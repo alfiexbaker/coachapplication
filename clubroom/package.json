@@ -100,7 +100,7 @@
     "@react-navigation/native": "^7.1.8",
     "@sentry/node": "^10.48.0",
     "@sentry/react-native": "~7.2.0",
-    "expo": "~54.0.34",
+    "expo": "~56.0.12",
     "expo-av": "~16.0.8",
     "expo-blur": "~15.0.8",
     "expo-calendar": "~15.0.8",
