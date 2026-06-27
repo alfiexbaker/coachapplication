@@ -13,6 +13,8 @@
  */
 
 import { apiClient } from './api-client';
+import { clubAuthorityService } from './club-authority-service';
+import { clubService, type ClubMember } from './club-service';
 import { api } from '@/constants/config';
 import type {
   Academy,
@@ -22,7 +24,10 @@ import type {
   OrganizationCommercialMode,
   SportCategory,
   FootballObjective,
+  Club,
+  ClubMembership,
 } from '@/constants/types';
+import { canUseClubCapability } from '@/contracts/club-governance';
 import {
   type Result,
   type ServiceError,
@@ -39,6 +44,22 @@ import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 const logger = createLogger('AcademyService');
 const USE_MOCK = api.useMock;
+const API_FALLBACK_DATE = '1970-01-01T00:00:00.000Z';
+const STAFF_ROLE_ORDER: Record<AcademyMembership['role'], number> = {
+  OWNER: 0,
+  ADMIN: 1,
+  HEAD_COACH: 2,
+  COACH: 3,
+  ASSISTANT: 4,
+  MEMBER: 5,
+};
+const ACADEMY_STAFF_ROLES = new Set<AcademyMembership['role']>([
+  'OWNER',
+  'ADMIN',
+  'HEAD_COACH',
+  'COACH',
+  'ASSISTANT',
+]);
 
 function academyUnsupportedError(action: string): ServiceError {
   return unsupportedError(
@@ -47,6 +68,97 @@ function academyUnsupportedError(action: string): ServiceError {
       missingAuthority: 'academy',
     },
   );
+}
+
+function toSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
+function rolePermissions(role: AcademyMembership['role']): AcademyPermission[] {
+  const permissions: AcademyPermission[] = [];
+  const hasOperationalGrant = role === 'COACH';
+  if (canUseClubCapability(role, 'manage_staff_and_invites')) {
+    permissions.push('MANAGE_STAFF', 'INVITE_MEMBERS');
+  }
+  if (canUseClubCapability(role, 'edit_org_profile')) {
+    permissions.push('MANAGE_SETTINGS');
+  }
+  if (canUseClubCapability(role, 'create_org_sessions', { hasGrant: hasOperationalGrant })) {
+    permissions.push('CREATE_SESSIONS');
+  }
+  if (canUseClubCapability(role, 'view_org_dashboard')) {
+    permissions.push('VIEW_ANALYTICS');
+  }
+  if (canUseClubCapability(role, 'manage_coach_payouts')) {
+    permissions.push('MANAGE_BILLING');
+  }
+  if (canUseClubCapability(role, 'post_as_org', { hasGrant: hasOperationalGrant })) {
+    permissions.push('POST_AS_ACADEMY');
+  }
+  return permissions;
+}
+
+function mapClubToAcademy(club: Club): Academy {
+  return {
+    id: club.id,
+    name: club.name,
+    slug: toSlug(club.name),
+    description: club.tagline?.trim() || `${club.name} football club`,
+    logoUrl: club.photoUrl ?? club.profilePhotoUrl,
+    bannerUrl: club.coverPhotoUrl,
+    postcode: '',
+    city: club.city,
+    coachCount: club.coachCount,
+    athleteCount: Math.max(0, club.memberCount - club.coachCount),
+    sessionCount: 0,
+    isPublic: true,
+    requiresApproval: false,
+    ownerId: club.ownerId,
+    commercialMode: club.commercialMode,
+    createdAt: API_FALLBACK_DATE,
+    sports: ['Football'],
+    specialties: [],
+  };
+}
+
+function mapClubMembershipToAcademyMembership(membership: ClubMembership): AcademyMembership {
+  return {
+    id: `${membership.clubId}:${membership.userId}`,
+    academyId: membership.clubId,
+    userId: membership.userId,
+    role: membership.role,
+    permissions: rolePermissions(membership.role),
+    status: membership.status === 'active' ? 'ACTIVE' : 'PENDING',
+    joinedAt: API_FALLBACK_DATE,
+  };
+}
+
+function mapClubMemberToAcademyMembership(clubId: string, member: ClubMember): AcademyMembership {
+  return {
+    id: `${clubId}:${member.userId}`,
+    academyId: clubId,
+    userId: member.userId,
+    role: member.role,
+    permissions: rolePermissions(member.role),
+    status:
+      member.status === 'active'
+        ? 'ACTIVE'
+        : member.status === 'pending'
+          ? 'PENDING'
+          : 'SUSPENDED',
+    joinedAt: member.joinedAt,
+  };
+}
+
+async function listAcademiesFromClubs(): Promise<Result<Academy[], ServiceError>> {
+  const result = await clubAuthorityService.listClubs();
+  if (!result.success) {
+    return err(result.error);
+  }
+  return ok(result.data.clubs.map(mapClubToAcademy));
 }
 
 // Mock academies
@@ -255,7 +367,17 @@ export const academyService = {
           .sort((a, b) => (b.rating?.average || 0) - (a.rating?.average || 0));
         return ok(filtered);
       }
-      return err(academyUnsupportedError('Discovering academies'));
+      const result = await listAcademiesFromClubs();
+      if (!result.success) return result;
+      const filtered = result.data
+        .filter(
+          (academy) =>
+            academy.isPublic &&
+            (!filters?.postcode || academy.postcode === filters.postcode) &&
+            (!filters?.sport || academy.sports.includes(filters.sport)),
+        )
+        .sort((a, b) => a.name.localeCompare(b.name));
+      return ok(filtered);
     } catch (error) {
       logger.error('Failed to discover academies', error);
       return err(storageError('Failed to discover academies'));
@@ -270,8 +392,9 @@ export const academyService = {
         academiesCache = await loadAcademies();
         return ok(academiesCache.find((a) => a.id === academyId) || null);
       }
-      void academyId;
-      return err(academyUnsupportedError('Loading academy details'));
+      const result = await listAcademiesFromClubs();
+      if (!result.success) return result;
+      return ok(result.data.find((academy) => academy.id === academyId) ?? null);
     } catch (error) {
       logger.error('Failed to get academy', error);
       return err(storageError('Failed to load academy'));
@@ -286,8 +409,9 @@ export const academyService = {
         academiesCache = await loadAcademies();
         return ok(academiesCache.find((a) => a.slug === slug) || null);
       }
-      void slug;
-      return err(academyUnsupportedError('Loading academy details by slug'));
+      const result = await listAcademiesFromClubs();
+      if (!result.success) return result;
+      return ok(result.data.find((academy) => academy.slug === slug) ?? null);
     } catch (error) {
       logger.error('Failed to get academy by slug', error);
       return err(storageError('Failed to load academy'));
@@ -324,8 +448,23 @@ export const academyService = {
         });
         return ok(data);
       }
-      void userId;
-      return err(academyUnsupportedError('Loading user academies'));
+      const result = await clubAuthorityService.listClubs();
+      if (!result.success) {
+        return err(result.error);
+      }
+      const clubsById = new Map(result.data.clubs.map((club) => [club.id, club]));
+      const data = result.data.memberships.flatMap((membership) => {
+        if (membership.userId !== userId || membership.status !== 'active') return [];
+        const club = clubsById.get(membership.clubId);
+        if (!club) return [];
+        return [
+          {
+            ...mapClubToAcademy(club),
+            membership: mapClubMembershipToAcademyMembership(membership),
+          },
+        ];
+      });
+      return ok(data);
     } catch (error) {
       logger.error('Failed to get user academies', error);
       return err(storageError('Failed to load user academies'));
@@ -463,8 +602,12 @@ export const academyService = {
           });
         return ok(staff);
       }
-      void academyId;
-      return err(academyUnsupportedError('Loading academy staff'));
+      const members = await clubService.getMembers(academyId);
+      const staff = members
+        .filter((member) => member.status === 'active' && ACADEMY_STAFF_ROLES.has(member.role))
+        .map((member) => mapClubMemberToAcademyMembership(academyId, member))
+        .sort((a, b) => STAFF_ROLE_ORDER[a.role] - STAFF_ROLE_ORDER[b.role]);
+      return ok(staff);
     } catch (error) {
       logger.error('Failed to get academy staff', error);
       return err(storageError('Failed to load academy staff'));
@@ -626,10 +769,19 @@ export const academyService = {
         if (membership.role === 'OWNER') return ok(true);
         return ok(membership.permissions.includes(permission));
       }
-      void academyId;
-      void userId;
-      void permission;
-      return err(academyUnsupportedError('Checking academy permissions'));
+      const result = await clubAuthorityService.listClubs();
+      if (!result.success) {
+        return err(result.error);
+      }
+      const membership = result.data.memberships.find(
+        (candidate) =>
+          candidate.clubId === academyId &&
+          candidate.userId === userId &&
+          candidate.status === 'active',
+      );
+      if (!membership) return ok(false);
+      if (membership.role === 'OWNER') return ok(true);
+      return ok(rolePermissions(membership.role).includes(permission));
     } catch (error) {
       logger.error('Failed to check academy permission', error);
       return err(storageError('Failed to check academy permission'));

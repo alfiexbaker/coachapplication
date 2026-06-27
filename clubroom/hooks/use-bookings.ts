@@ -10,6 +10,10 @@ import { router } from "expo-router";
 import { Routes } from "@/navigation/routes";
 import { bookingService } from "@/services/booking";
 import { eventService } from "@/services/event";
+import {
+  groupSessionService,
+  sessionRegistrationService,
+} from "@/services/group-session";
 import { inviteService as sessionInviteService } from "@/services/invite";
 import { ensureRelationalDemoSeeded } from "@/services/relational-demo-seed-service";
 import { ServiceEvents } from "@/services/event-bus";
@@ -41,7 +45,6 @@ import { err, ok, serviceError } from "@/types/result";
 import type {
   BookingSummary,
   GroupRegistration,
-  GroupSession,
   SessionOffering,
   SessionInvite,
   RecurringBooking,
@@ -69,12 +72,12 @@ function isOffPlatformAudienceLabel(label: string): boolean {
 function collectRelevantClubIds({
   currentUserId,
   childClubIds,
-  baseOfferings,
+  sessionClubIds,
   bookings,
 }: {
   currentUserId?: string;
   childClubIds: string[];
-  baseOfferings: SessionOffering[];
+  sessionClubIds: string[];
   bookings: Awaited<ReturnType<typeof bookingService.list>>;
 }): Set<string> {
   const clubIds = new Set<string>();
@@ -86,10 +89,8 @@ function collectRelevantClubIds({
   for (const childClubId of childClubIds) {
     clubIds.add(childClubId);
   }
-  for (const offering of baseOfferings) {
-    if (offering.clubId) {
-      clubIds.add(offering.clubId);
-    }
+  for (const sessionClubId of sessionClubIds) {
+    clubIds.add(sessionClubId);
   }
   for (const booking of bookings) {
     if (booking.clubId) {
@@ -275,20 +276,6 @@ export function useBookings(): UseBookingsResult {
         count: summaries.length,
         statusCounts: bookingStatusCounts,
       });
-      const baseOfferingsRaw = await apiClient.get<SessionOffering[]>(
-        STORAGE_KEYS.SESSION_OFFERINGS,
-        [],
-      );
-      const baseOfferings = baseOfferingsRaw.map(
-        normalizeSessionOfferingSource,
-      );
-      const [groupSessions, groupRegistrations] = await Promise.all([
-        apiClient.get<GroupSession[]>(STORAGE_KEYS.GROUP_SESSIONS, []),
-        apiClient.get<GroupRegistration[]>(
-          STORAGE_KEYS.GROUP_REGISTRATIONS,
-          [],
-        ),
-      ]);
       const viewerIds = new Set<string>();
       if (currentUser?.id) {
         viewerIds.add(currentUser.id);
@@ -311,10 +298,40 @@ export function useBookings(): UseBookingsResult {
           childClubIds.add(clubId);
         }
       }
+      const [groupSessions, groupRegistrations] = await Promise.all([
+        isCoachUser && currentUser?.id
+          ? groupSessionService.getCoachSessions(currentUser.id)
+          : groupSessionService.discoverSessions(),
+        sessionRegistrationService.getRegistrationsForAthletes(viewerIds),
+      ]);
+      const registrationsBySessionId = new Map<string, GroupRegistration[]>();
+      for (const registration of groupRegistrations) {
+        if (!registrationsBySessionId.has(registration.sessionId)) {
+          registrationsBySessionId.set(registration.sessionId, []);
+        }
+        registrationsBySessionId
+          .get(registration.sessionId)!
+          .push(registration);
+      }
+      const relevantGroupSessions = groupSessions.filter((session) => {
+        const sessionRegistrations =
+          registrationsBySessionId.get(session.id) ?? [];
+        return isGroupSessionRelevantToViewer({
+          session,
+          sessionRegistrations,
+          viewerIds,
+          childClubIds,
+          currentUserId: currentUser?.id,
+          isCoachUser,
+        });
+      });
+      const groupSessionClubIds = relevantGroupSessions.flatMap((session) =>
+        session.clubId ? [session.clubId] : [],
+      );
       const clubIds = collectRelevantClubIds({
         currentUserId: currentUser?.id,
         childClubIds: Array.from(childClubIds),
-        baseOfferings,
+        sessionClubIds: groupSessionClubIds,
         bookings,
       });
       const clubEventsResults = await Promise.all(
@@ -343,27 +360,6 @@ export function useBookings(): UseBookingsResult {
             ? [mapEventToOffering(event)]
             : [],
         );
-      const registrationsBySessionId = new Map<string, GroupRegistration[]>();
-      for (const registration of groupRegistrations) {
-        if (!registrationsBySessionId.has(registration.sessionId)) {
-          registrationsBySessionId.set(registration.sessionId, []);
-        }
-        registrationsBySessionId
-          .get(registration.sessionId)!
-          .push(registration);
-      }
-      const relevantGroupSessions = groupSessions.filter((session) => {
-        const sessionRegistrations =
-          registrationsBySessionId.get(session.id) ?? [];
-        return isGroupSessionRelevantToViewer({
-          session,
-          sessionRegistrations,
-          viewerIds,
-          childClubIds,
-          currentUserId: currentUser?.id,
-          isCoachUser,
-        });
-      });
       const groupSessionOfferings = relevantGroupSessions.flatMap((session) => {
         const mapped = mapGroupSessionToOffering(
           session,
@@ -373,9 +369,6 @@ export function useBookings(): UseBookingsResult {
         return mapped !== null ? [mapped] : [];
       });
       const offeringsById = new Map<string, SessionOffering>();
-      for (const offering of baseOfferings) {
-        offeringsById.set(offering.id, offering);
-      }
       for (const eventOffering of eventOfferings) {
         offeringsById.set(eventOffering.id, eventOffering);
       }
@@ -394,7 +387,6 @@ export function useBookings(): UseBookingsResult {
       logger.debug("Loaded session offerings", {
         loadId,
         count: offerings.length,
-        baseOfferings: baseOfferings.length,
         eventOfferings: eventOfferings.length,
         groupSessionOfferings: groupSessionOfferings.length,
         offeringsBySource,

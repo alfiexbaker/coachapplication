@@ -5,14 +5,19 @@
  * Single responsibility: guardian lifecycle and relationships.
  */
 
-import { apiClient, apiFetch } from '../api-client';
+import { apiFetch } from '../api-client';
 import { api } from '@/constants/config';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { notificationTriggers } from '../notification-trigger';
 import { userService } from '../user-service';
 import { familyPermissionService } from './family-permission-service';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
+import {
+  loadMockFamilyAccounts,
+  loadMockGuardianInvites,
+  saveMockFamilyAccounts,
+  saveMockGuardianInvites,
+} from './family-mock-store';
 import {
   type Result,
   type ServiceError,
@@ -244,10 +249,10 @@ class FamilyRelationshipService {
 
   private async loadAccounts(): Promise<FamilyAccount[]> {
     try {
-      if (USE_MOCK) {
+      if (!USE_MOCK) {
         return [];
       }
-      const accounts = await apiClient.get<FamilyAccount[]>(STORAGE_KEYS.FAMILY_ACCOUNTS, []);
+      const accounts = loadMockFamilyAccounts();
       accounts.forEach((a: FamilyAccount) => this.accountsCache.set(a.id, a));
       return accounts;
     } catch (error) {
@@ -257,19 +262,19 @@ class FamilyRelationshipService {
   }
 
   private async saveAccounts(accounts: FamilyAccount[]): Promise<void> {
-    if (USE_MOCK) {
+    if (!USE_MOCK) {
       return;
     }
-    await apiClient.set(STORAGE_KEYS.FAMILY_ACCOUNTS, accounts);
+    saveMockFamilyAccounts(accounts);
     accounts.forEach((a) => this.accountsCache.set(a.id, a));
   }
 
   private async loadInvites(): Promise<GuardianInvite[]> {
     try {
-      if (USE_MOCK) {
+      if (!USE_MOCK) {
         return [];
       }
-      return await apiClient.get<GuardianInvite[]>(STORAGE_KEYS.GUARDIAN_INVITES, []);
+      return loadMockGuardianInvites();
     } catch (error) {
       logger.error('Failed to load invites', error);
       return [];
@@ -277,10 +282,10 @@ class FamilyRelationshipService {
   }
 
   private async saveInvites(invites: GuardianInvite[]): Promise<void> {
-    if (USE_MOCK) {
+    if (!USE_MOCK) {
       return;
     }
-    await apiClient.set(STORAGE_KEYS.GUARDIAN_INVITES, invites);
+    saveMockGuardianInvites(invites);
   }
 
   // ==========================================================================

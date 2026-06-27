@@ -5,10 +5,18 @@
  * milestone management, goal analytics, and helper functions.
  *
  * API Integration Notes:
- * - Goals are persisted via apiClient (AsyncStorage in dev, API in prod)
+ * - Mock mode keeps local/demo goals.
+ * - API mode must use named /v1 goal routes or fail closed.
  */
 
-import { apiClient } from '../api-client';
+import { api } from '@/constants/config';
+import { apiClient, apiFetch } from '../api-client';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+  toApiAthleteId,
+} from '../api-auth-context';
 import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -29,8 +37,158 @@ const ENABLE_PROGRESS_DEMO_SEED =
   process.env.EXPO_PUBLIC_ENABLE_PROGRESS_DEMO_SEED === '1' ||
   process.env.NODE_ENV === 'test';
 
+type ApiGoalRow = {
+  id: string;
+  athleteId: string;
+  ownerUserId?: string | null;
+  creatorUserId?: string | null;
+  title: string;
+  category?: string | null;
+  status?: string | null;
+  targetDate?: string | null;
+  notes?: string | null;
+  createdByUserId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ApiGoalMilestoneRow = {
+  id: string;
+  goalId: string;
+  title: string;
+  status?: string | null;
+  completedAt?: string | null;
+  sortOrder?: number | null;
+};
+
+type ApiGoalPayload = {
+  goal: ApiGoalRow;
+  milestones: ApiGoalMilestoneRow[];
+};
+
+type ApiGoalsResponse = {
+  goals: ApiGoalRow[];
+  milestones: ApiGoalMilestoneRow[];
+};
+
 function createUniqueId(prefix: 'goal' | 'ms'): string {
   return generateId(prefix);
+}
+
+function isApiMode(): boolean {
+  return !api.useMock;
+}
+
+function ensureApiSuccess<T>(result: Awaited<ReturnType<typeof apiFetch<T>>>): T {
+  if (!result.success) {
+    throw new Error(result.error.message);
+  }
+  return result.data;
+}
+
+async function resolveGoalApiAccess(athleteId: string) {
+  const currentUserResult = await resolveSignedInApiUser('Sign in to manage goals.');
+  if (!currentUserResult.success) {
+    throw new Error(currentUserResult.error.message);
+  }
+  const currentUser = currentUserResult.data;
+  const apiAthleteId = toApiAthleteId(athleteId);
+  const actingRole = deriveApiActingRole(currentUser);
+  return {
+    apiAthleteId,
+    headers: buildApiAuthHeaders({
+      actingRole,
+      coachAthleteIds: actingRole === 'coach' ? [apiAthleteId] : undefined,
+      guardianAthleteIds: actingRole === 'parent' ? [apiAthleteId] : undefined,
+      coachVerified: actingRole === 'coach' && currentUser.isVerified,
+    }),
+  };
+}
+
+async function resolveGoalApiHeaders(): Promise<Record<string, string>> {
+  const currentUserResult = await resolveSignedInApiUser('Sign in to manage goals.');
+  if (!currentUserResult.success) {
+    throw new Error(currentUserResult.error.message);
+  }
+  return buildApiAuthHeaders({
+    actingRole: deriveApiActingRole(currentUserResult.data),
+  });
+}
+
+function unsupportedApiGoalMutation(action: string): never {
+  throw new Error(`${action} requires a dedicated /v1 goal milestone/progress route in API mode.`);
+}
+
+function toGoalStatus(value: string | null | undefined): GoalStatus {
+  if (value === 'COMPLETED' || value === 'PAUSED' || value === 'ABANDONED') {
+    return value;
+  }
+  return 'ACTIVE';
+}
+
+function toGoalCategory(value: string | null | undefined): GoalCategory {
+  if (
+    value === 'BALL_SKILLS' ||
+    value === 'ATTACKING' ||
+    value === 'DEFENDING' ||
+    value === 'GAME_SENSE' ||
+    value === 'CHARACTER' ||
+    value === 'OTHER'
+  ) {
+    return value;
+  }
+  return 'OTHER';
+}
+
+function mapApiGoal(goal: ApiGoalRow, milestones: ApiGoalMilestoneRow[]): Goal {
+  const mappedMilestones: GoalMilestone[] = milestones
+    .filter((milestone) => milestone.goalId === goal.id)
+    .sort((left, right) => (left.sortOrder ?? 0) - (right.sortOrder ?? 0))
+    .map((milestone) => ({
+      id: milestone.id,
+      goalId: milestone.goalId,
+      title: milestone.title,
+      isCompleted: milestone.status === 'COMPLETED',
+      completedAt: milestone.completedAt ?? undefined,
+      order: milestone.sortOrder ?? 0,
+    }));
+  const completedCount = mappedMilestones.filter((milestone) => milestone.isCompleted).length;
+  const progress =
+    mappedMilestones.length > 0
+      ? Math.round((completedCount / mappedMilestones.length) * 100)
+      : toGoalStatus(goal.status) === 'COMPLETED'
+        ? 100
+        : 0;
+  return {
+    id: goal.id,
+    userId: goal.ownerUserId ?? goal.athleteId,
+    athleteId: goal.athleteId,
+    title: goal.title,
+    description: goal.notes ?? undefined,
+    category: toGoalCategory(goal.category),
+    targetDate: goal.targetDate ?? undefined,
+    status: toGoalStatus(goal.status),
+    progress,
+    milestones: mappedMilestones,
+    createdBy: 'ATHLETE',
+    createdById: goal.creatorUserId ?? goal.createdByUserId ?? goal.athleteId,
+    createdAt: goal.createdAt,
+    updatedAt: goal.updatedAt,
+  };
+}
+
+function mapApiGoalPayload(payload: ApiGoalPayload): Goal {
+  return mapApiGoal(payload.goal, payload.milestones);
+}
+
+async function fetchApiGoalsForAthlete(athleteId: string): Promise<Goal[]> {
+  const access = await resolveGoalApiAccess(athleteId);
+  const response = ensureApiSuccess(
+    await apiFetch<ApiGoalsResponse>(`/v1/athletes/${encodeURIComponent(access.apiAthleteId)}/goals`, {
+      headers: access.headers,
+    }),
+  );
+  return response.goals.map((goal) => mapApiGoal(goal, response.milestones));
 }
 
 function emitGoalCompletedIfNeeded(previous: Goal, next: Goal): void {
@@ -346,8 +504,9 @@ async function saveGoals(goals: Goal[]): Promise<void> {
 async function getGoalsForAthlete(
   athleteId: string,
 ): Promise<{ active: Goal[]; completed: Goal[] }> {
-  const allGoals = await getAllGoals();
-  const athleteGoals = allGoals.filter((g) => g.athleteId === athleteId);
+  const athleteGoals = isApiMode()
+    ? await fetchApiGoalsForAthlete(athleteId)
+    : (await getAllGoals()).filter((g) => g.athleteId === athleteId);
 
   return {
     active: athleteGoals.filter((g) => g.status === 'ACTIVE'),
@@ -361,6 +520,34 @@ async function createGoal(
   createdBy: GoalCreator = 'ATHLETE',
   createdById: string = userId,
 ): Promise<Goal> {
+  if (isApiMode()) {
+    const athleteId = 'athleteId' in params ? params.athleteId : userId;
+    const access = await resolveGoalApiAccess(athleteId);
+    const milestoneTitles =
+      'milestones' in params && Array.isArray(params.milestones)
+        ? params.milestones.map((milestone) =>
+            typeof milestone === 'string' ? milestone : milestone.title,
+          )
+        : [];
+    const response = ensureApiSuccess(
+      await apiFetch<ApiGoalPayload>(
+        `/v1/athletes/${encodeURIComponent(access.apiAthleteId)}/goals`,
+        {
+          method: 'POST',
+          headers: access.headers,
+          body: JSON.stringify({
+            title: params.title,
+            description: params.description,
+            category: params.category,
+            targetDate: params.targetDate,
+            milestones: milestoneTitles,
+          }),
+        },
+      ),
+    );
+    return mapApiGoalPayload(response);
+  }
+
   const allGoals = await getAllGoals();
   const now = new Date().toISOString();
   const goalId = createUniqueId('goal');
@@ -422,8 +609,12 @@ async function createGoal(
 }
 
 async function getUserGoals(userId: string, status?: GoalStatus): Promise<Goal[]> {
-  const goals = await getAllGoals();
-  let filtered = goals.filter((g) => g.userId === userId || g.athleteId === userId);
+  const goals = isApiMode()
+    ? await fetchApiGoalsForAthlete(toApiAthleteId(userId))
+    : await getAllGoals();
+  let filtered = isApiMode()
+    ? goals
+    : goals.filter((g) => g.userId === userId || g.athleteId === userId);
 
   if (status) {
     filtered = filtered.filter((g) => g.status === status);
@@ -438,11 +629,47 @@ async function getUserGoals(userId: string, status?: GoalStatus): Promise<Goal[]
 }
 
 async function getGoalById(id: string): Promise<Goal | null> {
+  if (isApiMode()) {
+    const response = ensureApiSuccess(
+      await apiFetch<ApiGoalPayload>(`/v1/goals/${encodeURIComponent(id)}`, {
+        headers: await resolveGoalApiHeaders(),
+      }),
+    );
+    return mapApiGoalPayload(response);
+  }
+
   const goals = await getAllGoals();
   return goals.find((g) => g.id === id) ?? null;
 }
 
 async function updateGoal(id: string, updates: UpdateGoalInput): Promise<Goal | null> {
+  if (isApiMode()) {
+    const previous = await getGoalById(id);
+    if (!previous) {
+      return null;
+    }
+    const body: Record<string, unknown> = {};
+    if (updates.title !== undefined) body.title = updates.title;
+    if (updates.description !== undefined) body.description = updates.description;
+    if (updates.category !== undefined) body.category = updates.category;
+    if (updates.status !== undefined) body.status = updates.status;
+    if (updates.targetDate !== undefined) body.targetDate = updates.targetDate;
+    if (Object.keys(body).length === 0) {
+      unsupportedApiGoalMutation('Goal metadata update');
+    }
+
+    const response = ensureApiSuccess(
+      await apiFetch<ApiGoalPayload>(`/v1/goals/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: await resolveGoalApiHeaders(),
+        body: JSON.stringify(body),
+      }),
+    );
+    const updated = mapApiGoalPayload(response);
+    emitGoalCompletedIfNeeded(previous, updated);
+    return updated;
+  }
+
   const goals = await getAllGoals();
   const goalIndex = goals.findIndex((g) => g.id === id);
 
@@ -472,6 +699,16 @@ async function updateGoal(id: string, updates: UpdateGoalInput): Promise<Goal | 
 }
 
 async function deleteGoal(id: string): Promise<boolean> {
+  if (isApiMode()) {
+    ensureApiSuccess(
+      await apiFetch<void>(`/v1/goals/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers: await resolveGoalApiHeaders(),
+      }),
+    );
+    return true;
+  }
+
   const goals = await getAllGoals();
   const goalIndex = goals.findIndex((g) => g.id === id);
 
@@ -492,6 +729,10 @@ async function updateGoalProgress(
   progress: number,
   completedMilestones?: string[],
 ): Promise<Goal | null> {
+  if (isApiMode()) {
+    unsupportedApiGoalMutation('Goal progress update');
+  }
+
   const allGoals = await getAllGoals();
   const goalIndex = allGoals.findIndex((g) => g.id === goalId);
 
@@ -535,6 +776,10 @@ async function updateGoalProgress(
 // ============================================================================
 
 async function addMilestone(goalId: string, title: string): Promise<Goal | null> {
+  if (isApiMode()) {
+    unsupportedApiGoalMutation('Goal milestone creation');
+  }
+
   const goals = await getAllGoals();
   const goalIndex = goals.findIndex((g) => g.id === goalId);
 
@@ -571,6 +816,10 @@ async function addMilestone(goalId: string, title: string): Promise<Goal | null>
 }
 
 async function completeMilestone(milestoneId: string): Promise<Goal | null> {
+  if (isApiMode()) {
+    unsupportedApiGoalMutation('Goal milestone completion');
+  }
+
   const goals = await getAllGoals();
 
   // Find the goal containing this milestone
@@ -615,6 +864,10 @@ async function completeMilestone(milestoneId: string): Promise<Goal | null> {
 }
 
 async function uncompleteMilestone(milestoneId: string): Promise<Goal | null> {
+  if (isApiMode()) {
+    unsupportedApiGoalMutation('Goal milestone reopening');
+  }
+
   const goals = await getAllGoals();
 
   const goalIndex = goals.findIndex((g) => g.milestones.some((m) => m.id === milestoneId));
@@ -655,6 +908,10 @@ async function uncompleteMilestone(milestoneId: string): Promise<Goal | null> {
 }
 
 async function deleteMilestone(milestoneId: string): Promise<Goal | null> {
+  if (isApiMode()) {
+    unsupportedApiGoalMutation('Goal milestone deletion');
+  }
+
   const goals = await getAllGoals();
 
   const goalIndex = goals.findIndex((g) => g.milestones.some((m) => m.id === milestoneId));

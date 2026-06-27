@@ -24,9 +24,8 @@
 
 import { apiClient } from '../api-client';
 import { api } from '@/constants/config';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { groupSessionService } from '@/services/group-session';
 import type {
-  GroupSession,
   SessionOffering,
   SessionInvite,
   SessionInviteType,
@@ -47,8 +46,9 @@ import { userService } from '../user-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { accountIdsMatch } from '@/utils/account-id';
+import { extractGroupSessionIdFromOfferingId } from '@/utils/session-offering-projections';
 import type { Result, ServiceError } from '@/types/result';
-import { ok, err, serviceError, storageError } from '@/types/result';
+import { ok, err, serviceError } from '@/types/result';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { sessionInviteAuthorityService } from './session-invite-authority-service';
 const logger = createLogger('SessionInviteService');
@@ -226,7 +226,29 @@ const MOCK_INVITES: SessionInvite[] = [
 // STORAGE & CACHING
 // ============================================================================
 
-let invitesCache: SessionInvite[] = [...MOCK_INVITES];
+function cloneInvite(invite: SessionInvite): SessionInvite {
+  return {
+    ...invite,
+    squadIds: invite.squadIds ? [...invite.squadIds] : undefined,
+    athleteIds: [...invite.athleteIds],
+    proposedSlots: invite.proposedSlots.map((slot) => ({ ...slot })),
+    selectedSlot: invite.selectedSlot ? { ...invite.selectedSlot } : undefined,
+    weekSlots: invite.weekSlots ? invite.weekSlots.map((slot) => ({ ...slot })) : undefined,
+    acceptedWeeks: invite.acceptedWeeks ? [...invite.acceptedWeeks] : undefined,
+    declinedWeeks: invite.declinedWeeks ? [...invite.declinedWeeks] : undefined,
+    locationCoordinates: invite.locationCoordinates ? { ...invite.locationCoordinates } : undefined,
+    rsvpCounts: invite.rsvpCounts ? { ...invite.rsvpCounts } : undefined,
+    rsvpResponses: invite.rsvpResponses
+      ? invite.rsvpResponses.map((response) => ({ ...response }))
+      : undefined,
+  };
+}
+
+function cloneInvites(invites: SessionInvite[]): SessionInvite[] {
+  return invites.map(cloneInvite);
+}
+
+let invitesCache: SessionInvite[] = cloneInvites(MOCK_INVITES);
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
   const userResult = await userService.getUserById(userId);
   if (!userResult.success) {
@@ -295,26 +317,10 @@ async function resolveInviteLineageContext(invite: SessionInvite): Promise<Invit
   if (!invite.existingSessionId) {
     return {};
   }
-  const [offerings, groupSessions] = await Promise.all([
-    apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
-    apiClient.get<GroupSession[]>(STORAGE_KEYS.GROUP_SESSIONS, []),
-  ]);
-  const linkedOffering = offerings.find((offering) => offering.id === invite.existingSessionId);
-  if (linkedOffering) {
-    return {
-      sessionSource: linkedOffering.source ?? 'direct',
-      sessionSourceEntityId: linkedOffering.sourceEntityId ?? linkedOffering.id,
-      clubId: linkedOffering.clubId,
-      actingAs: linkedOffering.actingAs,
-      ownerCoachId: linkedOffering.ownerCoachId,
-      assigneeCoachId: linkedOffering.assigneeCoachId,
-      createdByUserId: linkedOffering.createdByUserId,
-      createdByRole: linkedOffering.createdByRole,
-    };
-  }
-  const linkedGroupSession = groupSessions.find(
-    (session) => session.id === invite.existingSessionId,
-  );
+
+  const linkedSessionId =
+    extractGroupSessionIdFromOfferingId(invite.existingSessionId) ?? invite.existingSessionId;
+  const linkedGroupSession = await groupSessionService.getSession(linkedSessionId);
   if (linkedGroupSession) {
     return {
       sessionSource: 'group',
@@ -330,31 +336,20 @@ async function resolveInviteLineageContext(invite: SessionInvite): Promise<Invit
   return {};
 }
 export async function loadFromStorage(): Promise<SessionInvite[]> {
-  try {
-    const stored = await apiClient.get<SessionInvite[] | null>(STORAGE_KEYS.SESSION_INVITES, null);
-    if (stored) return stored;
-  } catch (error) {
-    logger.error('Failed to load from storage', error);
-  }
-  return [...MOCK_INVITES];
+  return cloneInvites(invitesCache);
 }
 export async function saveToStorage(invites: SessionInvite[]): Promise<Result<void, ServiceError>> {
-  try {
-    await apiClient.set(STORAGE_KEYS.SESSION_INVITES, invites);
-    return ok(undefined);
-  } catch (error) {
-    logger.error('Failed to save to storage', error);
-    return err(storageError(`Failed to save session invites: ${String(error)}`));
-  }
+  invitesCache = cloneInvites(invites);
+  return ok(undefined);
 }
 export function getInvitesCache(): SessionInvite[] {
-  return invitesCache;
+  return cloneInvites(invitesCache);
 }
 export function setInvitesCache(invites: SessionInvite[]): void {
-  invitesCache = invites;
+  invitesCache = cloneInvites(invites);
 }
 export function getMockInvites(): SessionInvite[] {
-  return [...MOCK_INVITES];
+  return cloneInvites(MOCK_INVITES);
 }
 
 // ============================================================================
@@ -677,7 +672,7 @@ export const sessionInviteService = {
           skipAvailabilityValidation: true, // Coach already validated when creating the invite
         });
         if (!bookingResult.success) {
-          // Booking failed — do NOT change invite status. Return error to caller.
+          // Booking failed; do NOT change invite status. Return error to caller.
           const reason = bookingResult.error?.message ?? 'Booking creation failed';
           logger.error('Booking creation failed during invite acceptance', {
             inviteId: invite.id,
@@ -692,7 +687,7 @@ export const sessionInviteService = {
           return err(serviceError('CONFLICT', reason));
         }
 
-        // Booking succeeded — NOW set invite to ACCEPTED with bookingId
+        // Booking succeeded; NOW set invite to ACCEPTED with bookingId
         invitesCache[index] = {
           ...invite,
           status: 'ACCEPTED',
@@ -1070,8 +1065,7 @@ export const sessionInviteService = {
    * Clear invite cache (for testing)
    */
   async clearCache(): Promise<void> {
-    invitesCache = [...MOCK_INVITES];
-    await apiClient.remove(STORAGE_KEYS.SESSION_INVITES);
+    invitesCache = cloneInvites(MOCK_INVITES);
   },
   // ==========================================================================
   // MULTI-WEEK / RECURRING INVITE METHODS

@@ -13,10 +13,8 @@
  * for backward compatibility, re-exporting all functionality from the split services.
  *
  * API Integration Notes:
- * - GET /api/athletes/:id/analytics?period=MONTH - Get analytics
- * - GET /api/athletes/:id/skills/history - Skill progression
- * - POST /api/athletes/:id/goals - Create goal
- * - PATCH /api/goals/:id/progress - Update progress
+ * - GET /v1/athletes/:id/goals - Get backend-authoritative goals
+ * - Live analytics, skill history, and goal mutations fail closed until dedicated /v1 routes exist.
  */
 
 // Re-export individual services for direct use

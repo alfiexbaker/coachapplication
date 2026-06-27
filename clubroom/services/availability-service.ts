@@ -20,7 +20,7 @@ import type {
   AvailabilitySlot,
   SessionOffering,
 } from '@/constants/types';
-import type { Booking, BookingStatus } from '@/constants/app-types';
+import type { Booking } from '@/constants/app-types';
 import { DAY_NAMES } from '@/constants/booking-types';
 import { inviteHoldService } from './invite-hold-service';
 import { sessionTemplateService } from './session-template-service';
@@ -29,42 +29,10 @@ import { toDateStr } from '@/utils/format';
 import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
 import type { Result, ServiceError } from '@/types/result';
 import { ok, err, storageError } from '@/types/result';
-import { userService } from './user-service';
 import { emitTyped, ServiceEvents } from './event-bus';
 import { isSignedInCoachSelf } from './coach-self-api-support';
 const logger = createLogger('AvailabilityService');
 const USE_MOCK = api.useMock;
-
-// Helper to load existing bookings from storage
-async function loadBookings(): Promise<Booking[]> {
-  try {
-    return await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
-  } catch (error) {
-    logger.error('Failed to load bookings', error);
-  }
-  return [];
-}
-
-// Helper to load session offerings from storage
-async function loadSessionOfferings(): Promise<SessionOffering[]> {
-  try {
-    return await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
-  } catch (error) {
-    logger.error('Failed to load session offerings', error);
-  }
-  return [];
-}
-async function resolveUserName(userId: string, fallback: string): Promise<string> {
-  const userResult = await userService.getUserById(userId);
-  if (!userResult.success) return fallback;
-  const name = userResult.data.name?.trim();
-  return name || fallback;
-}
-async function resolveBookingAthleteName(booking: Booking): Promise<string | undefined> {
-  const athleteId = booking.athleteIds?.[0] ?? booking.athleteId;
-  if (!athleteId) return undefined;
-  return resolveUserName(athleteId, 'Athlete');
-}
 
 // Mock templates for development - coach availability
 const MOCK_TEMPLATES: AvailabilityTemplate[] = [
@@ -652,28 +620,10 @@ export const availabilityService = {
         applySchedulingRules: options?.applySchedulingRules,
       });
     }
-    const [templates, overrides, existingBookings, sessionOfferings] = await Promise.all([
+    const [templates, overrides] = await Promise.all([
       this.getTemplates(coachId),
       this.getOverrides(coachId, startDate, endDate),
-      loadBookings(),
-      loadSessionOfferings(),
     ]);
-
-    // Filter bookings for this coach in the date range
-    const coachBookings = existingBookings.filter((booking) => {
-      if (booking.coachId !== coachId) return false;
-      if (booking.status === 'CANCELLED') return false;
-      const bookingDate = booking.scheduledAt?.split('T')[0];
-      return bookingDate >= startDate && bookingDate <= endDate;
-    });
-
-    // Filter session offerings for this coach
-    const coachOfferings = sessionOfferings.filter((offering) => {
-      if (offering.coachId !== coachId) return false;
-      if (offering.status === 'cancelled') return false;
-      const offeringDate = offering.scheduledAt?.split('T')[0];
-      return offeringDate >= startDate && offeringDate <= endDate;
-    });
     const slots: AvailabilitySlot[] = [];
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -704,18 +654,12 @@ export const availabilityService = {
         const dayTemplate = templateByDayOfWeek.get(dayOfWeek);
         const fallbackLocation = dayTemplate?.location;
         for (const customSlot of override.customSlots) {
-          const bookedCount = this.countBookingsForSlot(
-            coachBookings,
-            coachOfferings,
-            dateStr,
-            customSlot.startTime,
-          );
           slots.push({
             date: dateStr,
             startTime: customSlot.startTime,
             endTime: customSlot.endTime,
-            isAvailable: bookedCount < 1,
-            bookedCount,
+            isAvailable: true,
+            bookedCount: 0,
             maxBookings: 1,
             location: customSlot.location ?? fallbackLocation,
           });
@@ -743,18 +687,12 @@ export const availabilityService = {
           const slotEndMin = slotEndMinutes % 60;
           const slotStartTime = `${slotStartHour.toString().padStart(2, '0')}:${slotStartMin.toString().padStart(2, '0')}`;
           const slotEndTime = `${slotEndHour.toString().padStart(2, '0')}:${slotEndMin.toString().padStart(2, '0')}`;
-          const bookedCount = this.countBookingsForSlot(
-            coachBookings,
-            coachOfferings,
-            dateStr,
-            slotStartTime,
-          );
           slots.push({
             date: dateStr,
             startTime: slotStartTime,
             endTime: slotEndTime,
-            isAvailable: bookedCount < template.maxConcurrent,
-            bookedCount,
+            isAvailable: true,
+            bookedCount: 0,
             maxBookings: template.maxConcurrent,
             location: template.location,
           });
@@ -802,42 +740,10 @@ export const availabilityService = {
    * Get bookings for a coach within a date range
    */
   async getCoachBookings(coachId: string, startDate: string, endDate: string) {
-    const [bookings, offerings] = await Promise.all([loadBookings(), loadSessionOfferings()]);
-
-    // Filter bookings for this coach
-    const coachBookings = bookings.filter((booking) => {
-      if (booking.coachId !== coachId) return false;
-      const bookingDate = booking.scheduledAt?.split('T')[0];
-      return bookingDate >= startDate && bookingDate <= endDate;
-    });
-
-    // Get registrations from offerings
-    const coachOfferingBookings = await Promise.all(
-      offerings.flatMap((offering) => {
-        const offeringDate = offering.scheduledAt?.split('T')[0];
-        if (offering.coachId !== coachId || offeringDate < startDate || offeringDate > endDate) {
-          return [];
-        }
-        return [
-          (async () => ({
-            id: offering.id,
-            coachId: offering.coachId,
-            coachName: await resolveUserName(offering.coachId, 'Coach'),
-            scheduledAt: offering.scheduledAt,
-            service: offering.title,
-            location: offering.location,
-            status: (offering.status === 'active'
-              ? 'CONFIRMED'
-              : offering.status?.toUpperCase()) as BookingStatus,
-            isGroupSession: offering.sessionType === 'group',
-            maxParticipants: offering.maxParticipants,
-            currentParticipants: getSessionOfferingHeadcount(offering),
-            registrations: offering.registrations,
-          }))(),
-        ];
-      }),
-    );
-    return [...coachBookings, ...coachOfferingBookings];
+    void coachId;
+    void startDate;
+    void endDate;
+    return [];
   },
   /**
    * Get slots that a coach can invite someone to.
@@ -1031,41 +937,7 @@ export const availabilityService = {
         bookings: [],
         holds: [],
       };
-    let startDate = dates[0];
-    let endDate = dates[0];
-    for (const date of dates) {
-      if (date < startDate) {
-        startDate = date;
-      }
-      if (date > endDate) {
-        endDate = date;
-      }
-    }
     const dateSet = new Set(dates);
-
-    // Check bookings
-    const allBookings = await loadBookings();
-    const conflictBookings = allBookings.flatMap((b) => {
-      if (
-        !(() => {
-          if (b.coachId !== coachId || b.status === 'CANCELLED') return false;
-          const bookingDate = b.scheduledAt?.split('T')[0];
-          return bookingDate ? dateSet.has(bookingDate) : false;
-        })()
-      )
-        return [];
-      return [
-        {
-          id: b.id,
-          date: b.scheduledAt?.split('T')[0] || '',
-          time: b.scheduledAt?.split('T')[1]?.substring(0, 5) || '',
-          location: b.location,
-          athleteName: (b as unknown as Record<string, unknown>).athleteName as string | undefined,
-        },
-      ];
-    });
-
-    // Check pending invite holds
     const activeHolds = await inviteHoldService.getActiveHolds(coachId);
     const conflictHolds = activeHolds.flatMap((h) =>
       dateSet.has(h.slotDate)
@@ -1079,9 +951,9 @@ export const availabilityService = {
         : [],
     );
     return {
-      bookingCount: conflictBookings.length,
+      bookingCount: 0,
       holdCount: conflictHolds.length,
-      bookings: conflictBookings,
+      bookings: [],
       holds: conflictHolds,
     };
   },
@@ -1119,19 +991,9 @@ export const availabilityService = {
    * Bulk-update the location field on a list of bookings.
    */
   async updateBookingLocations(bookingIds: string[], newLocation: string): Promise<void> {
-    if (bookingIds.length === 0) return;
-    const allBookings = await loadBookings();
-    const bookingIdSet = new Set(bookingIds);
-    let changed = false;
-    for (const booking of allBookings) {
-      if (bookingIdSet.has(booking.id)) {
-        booking.location = newLocation;
-        changed = true;
-      }
-    }
-    if (changed) {
-      await apiClient.set(STORAGE_KEYS.BOOKINGS, allBookings);
-    }
+    void bookingIds;
+    void newLocation;
+    throw new Error('Updating booking locations requires backend booking update authority.');
   },
   /**
    * Check if future bookings on a given day-of-week have a different location.
@@ -1165,28 +1027,12 @@ export const availabilityService = {
         affectedBookings: [],
         affectedCount: 0,
       };
-    const dateSet = new Set(dates);
-    const allBookings = await loadBookings();
-    const affected = await Promise.all(
-      allBookings.flatMap((b) => {
-        if (b.coachId !== coachId || b.status === 'CANCELLED') return [];
-        const bookingDate = b.scheduledAt?.split('T')[0];
-        if (!bookingDate || !dateSet.has(bookingDate)) return [];
-        if (b.location === undefined || b.location === newLocation) return [];
-        return [
-          (async () => ({
-            id: b.id,
-            date: b.scheduledAt?.split('T')[0] || '',
-            time: b.scheduledAt?.split('T')[1]?.substring(0, 5) || '',
-            location: b.location || '',
-            athleteName: await resolveBookingAthleteName(b),
-          }))(),
-        ];
-      }),
-    );
+    void coachId;
+    void newLocation;
+    void dates;
     return {
-      affectedBookings: affected,
-      affectedCount: affected.length,
+      affectedBookings: [],
+      affectedCount: 0,
     };
   },
 };

@@ -19,18 +19,15 @@ import {
   use,
 } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { apiClient } from '@/services/api-client';
 import { bookingSelfSettingService } from '@/services/booking-self-setting-service';
-import { childService, type ChildProfile } from '@/services/child-service';
+import { childService, type ChildSquadMembership } from '@/services/child-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { ChildReference } from '@/constants/user-types';
 import { createLogger } from '@/utils/logger';
-import type { ClubSquad, SquadMember } from '@/constants/types';
 import type { ChildInfo, ChildContextValue } from '@/types/child-context';
 
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
-import { attachMembershipData, reconcileChildren } from './child-context-helpers';
+import { attachLiveSquadMemberships, reconcileChildren } from './child-context-helpers';
 
 const logger = createLogger('ChildContext');
 const EMPTY_CHILD_REFS: ChildReference[] = [];
@@ -74,17 +71,44 @@ async function loadChildrenIntoState({
 
   return await runAsyncTryCatchFinally(
     async () => {
-      const [profiles, storedActiveId, squads, squadMembers] = await Promise.all([
+      const [profiles, storedActiveId] = await Promise.all([
         childService.getChildren(userId),
         childService.getActiveChildId(),
-        apiClient.get<ClubSquad[]>(STORAGE_KEYS.CLUB_SQUADS, []),
-        apiClient.get<SquadMember[]>(STORAGE_KEYS.SQUAD_MEMBERS, []),
       ]);
 
       if (mountedRef.current) {
         // Reconcile
         const reconciled = reconcileChildren(childRefs, profiles);
-        const withMembership = attachMembershipData(reconciled, squads, squadMembers);
+        const membershipTargets = Array.from(
+          new Set(
+            reconciled.flatMap((child) => {
+              const ids = [
+                child.profileId,
+                child.id.startsWith('ath_') ? child.id : null,
+                child.referenceId.startsWith('ath_') ? child.referenceId : null,
+              ];
+              return ids.filter((id): id is string => Boolean(id));
+            }),
+          ),
+        );
+        const membershipsByAthleteId = new Map<string, ChildSquadMembership[]>();
+        await Promise.all(
+          membershipTargets.map(async (athleteId) => {
+            const result = await childService.getSquadMemberships(athleteId);
+            if (!result.success) {
+              logger.warn('Failed to load child squad memberships', {
+                athleteId,
+                error: result.error.message,
+              });
+              return;
+            }
+            membershipsByAthleteId.set(athleteId, result.data);
+          }),
+        );
+        if (!mountedRef.current) {
+          return;
+        }
+        const withMembership = attachLiveSquadMemberships(reconciled, membershipsByAthleteId);
         setChildInfos(withMembership);
 
         // Validate and set active child
@@ -104,7 +128,7 @@ async function loadChildrenIntoState({
       if (!mountedRef.current) return;
 
       // Degraded mode: build from refs only
-      const fallback = attachMembershipData(reconcileChildren(childRefs, []), [], []);
+      const fallback = reconcileChildren(childRefs, []);
       setChildInfos(fallback);
       setActiveChildIdState(null);
     },

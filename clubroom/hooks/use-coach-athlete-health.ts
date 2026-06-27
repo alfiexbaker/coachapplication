@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import type { Injury } from '@/constants/types';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
+import { Routes } from '@/navigation/routes';
 import { injuryService } from '@/services/injury-service';
 import { rosterService } from '@/services/roster-service';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
@@ -61,11 +62,11 @@ export function useCoachAthleteHealth(athleteId: string) {
   );
 
   const handleOpenInjury = (injury: Injury) => {
-    router.push({ pathname: '/health/[id]', params: { id: injury.id } });
+    router.push(Routes.healthEntry(injury.id));
   };
 
   const handleOpenEmergency = () => {
-    router.push({ pathname: '/roster/[athleteId]/emergency', params: { athleteId } });
+    router.push(Routes.rosterAthleteEmergency(athleteId));
   };
 
   return {

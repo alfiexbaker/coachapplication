@@ -6,7 +6,10 @@ import { env } from '@clubroom/config';
 import { buildApp } from '../../app.js';
 import { resetAuthRuntimeForTests } from '../../lib/auth-runtime.js';
 import { getDbFixtureStore, resetDbFixtureStoreForTests } from '../../lib/db-fixture-store.js';
-import { resetMarketplaceSeedStoreForTests } from '../../lib/marketplace-seed-store.js';
+import {
+  getMarketplaceSeedStore,
+  resetMarketplaceSeedStoreForTests,
+} from '../../lib/marketplace-seed-store.js';
 import { resetFamilyAthleteRouteStateForTests } from './routes.js';
 
 type SeedRow = Record<string, unknown>;
@@ -52,6 +55,16 @@ function rolesForUser(tables: SeedTables, userId: string): string[] {
     .filter((row) => asString(row.userId) === userId)
     .map((row) => asString(row.role))
     .filter((role): role is string => Boolean(role));
+}
+
+function authHeaders(tables: SeedTables, userId: string, preferredRole?: string): Record<string, string> {
+  const roles = rolesForUser(tables, userId);
+  const actingRole = preferredRole ?? roles[0] ?? 'parent';
+  return {
+    'x-auth-user-id': userId,
+    'x-auth-roles': roles.join(',') || actingRole,
+    'x-acting-role': actingRole,
+  };
 }
 
 describe('family-athlete routes', () => {
@@ -172,6 +185,100 @@ describe('family-athlete routes', () => {
       },
     });
     assert.equal(denied.statusCode, 403);
+  });
+
+  it('lists athlete squad memberships only for a linked guardian', async () => {
+    const tables = loadTables();
+    const squadMembership = asRows(tables.squadMemberships).find((row) => {
+      const athleteId = asString(row.athleteId);
+      const squadId = asString(row.squadId);
+      return (
+        athleteId &&
+        squadId &&
+        !asString(row.deletedAt) &&
+        asString(row.status)?.toLowerCase() !== 'inactive' &&
+        asRows(tables.guardianChildLinks).some(
+          (link) => asString(link.athleteId) === athleteId && !asString(link.deletedAt),
+        ) &&
+        asRows(tables.squads).some(
+          (squad) => asString(squad.id) === squadId && !asString(squad.deletedAt),
+        )
+      );
+    });
+    assert.ok(squadMembership, 'expected seeded squad membership');
+
+    const athleteId = asString(squadMembership.athleteId) as string;
+    const squadId = asString(squadMembership.squadId) as string;
+    const guardianUserId = asString(
+      asRows(tables.guardianChildLinks).find(
+        (link) => asString(link.athleteId) === athleteId && !asString(link.deletedAt),
+      )?.guardianUserId,
+    ) as string;
+    const squad = asRows(tables.squads).find((row) => asString(row.id) === squadId);
+    const athleteUserId = asString(
+      asRows(tables.athletes).find((row) => asString(row.id) === athleteId)?.userId,
+    );
+    assert.ok(guardianUserId, 'expected linked guardian');
+    assert.ok(squad, 'expected linked squad');
+
+    const allowed = await app.inject({
+      method: 'GET',
+      url: `/v1/athletes/${athleteId}/squad-memberships`,
+      headers: authHeaders(tables, guardianUserId, 'parent'),
+    });
+    assert.equal(allowed.statusCode, 200);
+    const payload = allowed.json() as {
+      athleteId: string;
+      memberships: Array<{ id: string; squadId: string; clubId: string; status: string }>;
+    };
+    assert.equal(payload.athleteId, athleteId);
+    assert.equal(payload.memberships.some((membership) => membership.squadId === squadId), true);
+    assert.equal(
+      payload.memberships.find((membership) => membership.squadId === squadId)?.clubId,
+      asString(squad.clubId),
+    );
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'athlete_squad_membership.list',
+        resourceId: athleteId,
+        result: 'SUCCESS',
+      }).length >= 1,
+      true,
+    );
+
+    const outsider = asRows(tables.users).find((row) => {
+      const userId = asString(row.id);
+      if (!userId || userId === guardianUserId || userId === athleteUserId) {
+        return false;
+      }
+      const roles = rolesForUser(tables, userId);
+      return (
+        !roles.includes('club_admin') &&
+        !roles.includes('security_admin') &&
+        !asRows(tables.guardianChildLinks).some(
+          (link) =>
+            asString(link.athleteId) === athleteId &&
+            asString(link.guardianUserId) === userId &&
+            !asString(link.deletedAt),
+        )
+      );
+    });
+    assert.ok(outsider, 'expected outsider user');
+
+    const denied = await app.inject({
+      method: 'GET',
+      url: `/v1/athletes/${athleteId}/squad-memberships`,
+      headers: authHeaders(tables, asString(outsider.id) as string, 'parent'),
+    });
+    assert.equal(denied.statusCode, 403);
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'athlete_squad_membership.list',
+        resourceId: athleteId,
+        result: 'DENY',
+      }).length >= 1,
+      true,
+    );
   });
 
   it('persists athlete profile writes through the db fixture backend', async () => {

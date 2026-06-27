@@ -5,21 +5,20 @@
  * Manages draft state and direct booking creation with validation.
  *
  * Uses an in-memory Map<string, Booking> cache with 30s TTL (same pattern as
- * BaseService) to avoid redundant reads from storage. All write operations
- * invalidate the cache so the next read re-populates from storage.
+ * BaseService) to avoid redundant reads. API mode is authoritative through
+ * bookingAuthorityService; the local mirror is runtime-only.
  *
  * API Integration Notes:
- * - Bookings are persisted via apiClient (AsyncStorage in dev, API in prod)
+ * - Bookings are persisted through /v1 booking authority in API mode
  * - Draft state is kept in memory for the booking flow wizard
  */
 
 import { Booking } from '@/constants/app-types';
-import type { OrganizationCommercialMode, SessionOffering } from '@/constants/types';
+import type { OrganizationCommercialMode } from '@/constants/types';
 import { availabilityService } from '../availability-service';
 import { verificationService } from '../verification-service';
 import { notificationService } from '../notification-service';
 import { apiClient } from '../api-client';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from '../notification-trigger';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
@@ -27,7 +26,6 @@ import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { blockService, getBlockActionMessage } from '@/services/block-service';
 import { progressAttendanceService } from '@/services/progress/progress-attendance-service';
 import { authService } from '@/services/auth-service';
-import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
 import { getBookingAthleteName } from '@/utils/booking-display';
 import {
   bookingAuthorityService,
@@ -122,6 +120,7 @@ export interface CreateBookingParams {
 
 class BookingCrudService {
   private draft: BookingDraft = {};
+  private _memoryBookings: Booking[] = [];
 
   // ---------------------------------------------------------------------------
   // In-memory cache (mirrors BaseService pattern)
@@ -132,7 +131,7 @@ class BookingCrudService {
   private _cacheTimestamp = 0;
 
   /**
-   * Returns the ID-indexed cache, lazily loading from storage on first access
+   * Returns the ID-indexed cache, lazily loading from the runtime mirror on first access
    * or when the cache has exceeded its TTL.
    */
   private async getCache(): Promise<Map<string, Booking>> {
@@ -151,26 +150,16 @@ class BookingCrudService {
     this._cacheTimestamp = 0;
   }
 
-  /** Load all bookings from storage. */
+  /** Load all bookings from the runtime mirror. */
   private async loadFromStorage(): Promise<Booking[]> {
-    try {
-      return await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
-    } catch (error) {
-      logger.error('Failed to load bookings from storage', error);
-      return [];
-    }
+    return [...this._memoryBookings];
   }
 
-  /** Save all bookings to storage and invalidate cache. */
+  /** Save all bookings to the runtime mirror and invalidate cache. */
   private async saveToStorage(bookings: Booking[]): Promise<Result<void, ServiceError>> {
-    try {
-      await apiClient.set(STORAGE_KEYS.BOOKINGS, bookings);
-      this.invalidateCache();
-      return ok(undefined);
-    } catch (error) {
-      logger.error('Failed to save bookings to storage', error);
-      return err(storageError(`Failed to save bookings: ${String(error)}`));
-    }
+    this._memoryBookings = [...bookings];
+    this.invalidateCache();
+    return ok(undefined);
   }
 
   private mergeAuthoritativeBooking(
@@ -314,17 +303,14 @@ class BookingCrudService {
   ): Promise<Booking[]> {
     const localBookings = await this.loadFromStorage();
     const localById = new Map(localBookings.map((booking) => [booking.id, booking]));
-    const authoritativeIds = new Set(apiBookings.map((booking) => booking.id));
-
     const merged = apiBookings.map((booking) =>
       this.mergeAuthoritativeBooking(booking, localById.get(booking.id)),
     );
 
-    const localOnly = localBookings.filter((booking) => !authoritativeIds.has(booking.id));
-    const nextBookings = [...merged, ...localOnly];
+    const nextBookings = [...merged];
     const saveResult = await this.saveToStorage(nextBookings);
     if (!saveResult.success) {
-      logger.warn('Failed to mirror authoritative bookings into local storage', {
+      logger.warn('Failed to mirror authoritative bookings into runtime cache', {
         error: saveResult.error.message,
       });
       return nextBookings;
@@ -398,7 +384,7 @@ class BookingCrudService {
           const otherBookings = localBookings.filter((entry) => entry.id !== id);
           const saveResult = await this.saveToStorage([...otherBookings, merged]);
           if (!saveResult.success) {
-            logger.warn('Failed to mirror authoritative booking into local storage', {
+            logger.warn('Failed to mirror authoritative booking into runtime cache', {
               bookingId: id,
               error: saveResult.error.message,
             });
@@ -527,8 +513,9 @@ class BookingCrudService {
     cancelledBy: 'coach' | 'parent' = 'parent',
     options?: { allowPastBooking?: boolean; note?: string },
   ) {
-    const bookings = await this.loadFromStorage();
-    const booking = bookings.find((b) => b.id === id);
+    const booking = apiClient.isMockMode
+      ? (await this.loadFromStorage()).find((b) => b.id === id) ?? null
+      : await this.getBooking(id);
     if (!booking) {
       logger.warn('Booking not found for cancellation', { bookingId: id, cancelledBy });
       return undefined;
@@ -588,11 +575,15 @@ class BookingCrudService {
         cancelReason: reason,
         statusBeforeCancellation: booking.status,
       } satisfies Booking);
+    const bookings = await this.loadFromStorage();
     const updated = bookings.map((b) => (b.id === id ? localCancelledBooking : b));
-    const saveResult = await this.saveToStorage(updated);
+    const nextBookings = updated.some((entry) => entry.id === id)
+      ? updated
+      : [...updated, localCancelledBooking];
+    const saveResult = await this.saveToStorage(nextBookings);
     if (!saveResult.success) {
       if (authoritativeBooking) {
-        logger.warn('Authoritative booking cancelled, but local mirror update failed', {
+        logger.warn('Authoritative booking cancelled, but runtime cache update failed', {
           bookingId: id,
           error: saveResult.error.message,
         });
@@ -667,7 +658,7 @@ class BookingCrudService {
       });
     }
 
-    return updated.find((b) => b.id === id);
+    return nextBookings.find((b) => b.id === id);
   }
 
   async reopen(
@@ -675,8 +666,9 @@ class BookingCrudService {
     reopenedBy: 'coach' | 'parent' = 'parent',
     options?: { allowPastBooking?: boolean; note?: string },
   ) {
-    const bookings = await this.loadFromStorage();
-    const booking = bookings.find((entry) => entry.id === id);
+    const booking = apiClient.isMockMode
+      ? (await this.loadFromStorage()).find((entry) => entry.id === id) ?? null
+      : await this.getBooking(id);
     if (!booking) {
       logger.warn('Booking not found for reopen', { bookingId: id, reopenedBy });
       return undefined;
@@ -737,11 +729,15 @@ class BookingCrudService {
         cancelReason: undefined,
         statusBeforeCancellation: undefined,
       } satisfies Booking);
+    const bookings = await this.loadFromStorage();
     const updated = bookings.map((entry) => (entry.id === id ? localReopenedBooking : entry));
-    const saveResult = await this.saveToStorage(updated);
+    const nextBookings = updated.some((entry) => entry.id === id)
+      ? updated
+      : [...updated, localReopenedBooking];
+    const saveResult = await this.saveToStorage(nextBookings);
     if (!saveResult.success) {
       if (authoritativeBooking) {
-        logger.warn('Authoritative booking reopened, but local mirror update failed', {
+        logger.warn('Authoritative booking reopened, but runtime cache update failed', {
           bookingId: id,
           error: saveResult.error.message,
         });
@@ -755,7 +751,7 @@ class BookingCrudService {
       return undefined;
     }
 
-    return updated.find((entry) => entry.id === id);
+    return nextBookings.find((entry) => entry.id === id);
   }
 
   /**
@@ -885,52 +881,8 @@ class BookingCrudService {
     athleteIds: string[];
     existingBookings: Booking[];
   }): Promise<{ valid: boolean; reason?: string; offeringId?: string | null }> {
-    const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
-    const offering =
-      offerings.find((candidate) => candidate.id === params.linkedSessionEntityId) ??
-      offerings.find((candidate) => candidate.sourceEntityId === params.linkedSessionEntityId);
-
-    if (!offering) {
-      return { valid: true, offeringId: null };
-    }
-
-    const linkedAthleteIds = new Set<string>();
-    for (const registration of offering.registrations) {
-      if (registration.status === 'confirmed' && registration.userId) {
-        linkedAthleteIds.add(registration.userId);
-      }
-    }
-
-    const linkedEntityIds = new Set<string>([
-      params.linkedSessionEntityId,
-      offering.id,
-      offering.sourceEntityId ?? '',
-    ]);
-
-    for (const booking of params.existingBookings) {
-      if (booking.status === 'CANCELLED') continue;
-      if (!booking.sessionSourceEntityId || !linkedEntityIds.has(booking.sessionSourceEntityId)) {
-        continue;
-      }
-      for (const athleteId of this.getBookingAthleteIds(booking)) {
-        linkedAthleteIds.add(athleteId);
-      }
-    }
-
-    const additionalAthletes = params.athleteIds.filter(
-      (athleteId) => !linkedAthleteIds.has(athleteId),
-    ).length;
-    const projectedHeadcount =
-      Math.max(getSessionOfferingHeadcount(offering), linkedAthleteIds.size) + additionalAthletes;
-    if (projectedHeadcount > offering.maxParticipants) {
-      return {
-        valid: false,
-        reason: 'This session is full. Please choose another session.',
-        offeringId: offering.id,
-      };
-    }
-
-    return { valid: true, offeringId: offering.id };
+    void params;
+    return { valid: true, offeringId: null };
   }
 
   /**
@@ -1176,7 +1128,7 @@ class BookingCrudService {
       sessionInviteId, // Link to session invite if created from one
     };
 
-    // Save to bookings storage
+    // Mirror the booking in runtime memory for current-session UI continuity.
     try {
       const bookings = [...existingBookings];
       bookings.push(newBooking as Booking);
@@ -1185,7 +1137,7 @@ class BookingCrudService {
         if (!authoritativeCreate) {
           return err(saveResult.error);
         }
-        logger.warn('Authoritative booking created, but local mirror update failed', {
+        logger.warn('Authoritative booking created, but runtime cache update failed', {
           bookingId: newBooking.id,
           error: saveResult.error.message,
         });

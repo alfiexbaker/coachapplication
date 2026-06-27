@@ -1,4 +1,9 @@
 import crypto from 'node:crypto';
+import {
+  canUseClubCapability,
+  isClubStaffRole,
+  parseOrganizationRole,
+} from '@clubroom/shared-contracts';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { badRequest, forbidden, notFound } from '../../lib/http-errors.js';
@@ -624,8 +629,90 @@ function hasGuardianAccess(tables: SeedTables, authUserId: string, athleteId: st
     (row) =>
       asString(row.athleteId) === athleteId &&
       asString(row.guardianUserId) === authUserId &&
+    !asString(row.deletedAt),
+  );
+}
+function canCreateClubSession(role: unknown): boolean {
+  const parsedRole = parseOrganizationRole(role);
+  if (!parsedRole) {
+    return false;
+  }
+  return canUseClubCapability(parsedRole, 'create_org_sessions', {
+    hasGrant: parsedRole === 'COACH',
+  });
+}
+function canAssignClubSession(role: unknown): boolean {
+  const parsedRole = parseOrganizationRole(role);
+  return Boolean(parsedRole && canUseClubCapability(parsedRole, 'assign_session_coach'));
+}
+function isActiveClubStaffMembership(row: SeedRow | null | undefined): boolean {
+  const role = parseOrganizationRole(row?.role);
+  return Boolean(
+    row &&
+      row.active !== false &&
+      !asString(row.deletedAt) &&
+      role &&
+      isClubStaffRole(role),
+  );
+}
+function assertSeedClubSessionCreateAccess(
+  tables: SeedTables,
+  authUserId: string,
+  targetCoachUserId: string,
+  isPrivilegedAdmin: boolean,
+  clubId: string | undefined,
+  squadId: string | undefined,
+): void {
+  if (squadId && !clubId) {
+    throw badRequest('clubId is required when squadId is supplied', { squadId });
+  }
+  if (!clubId) {
+    return;
+  }
+  const club = asRows(tables.clubs).find(
+    (row) => asString(row.id) === clubId && !asString(row.deletedAt),
+  );
+  if (!club) {
+    throw notFound('Club not found', { clubId });
+  }
+  if (squadId) {
+    const squad = asRows(tables.squads).find(
+      (row) =>
+        asString(row.id) === squadId &&
+        asString(row.clubId) === clubId &&
+        !asString(row.deletedAt),
+    );
+    if (!squad) {
+      throw notFound('Squad not found', { clubId, squadId });
+    }
+  }
+  const targetMembership = asRows(tables.clubMemberships).find(
+    (row) => asString(row.clubId) === clubId && asString(row.userId) === targetCoachUserId,
+  );
+  if (!isActiveClubStaffMembership(targetMembership)) {
+    throw forbidden('Assigned coach must be active club staff', {
+      clubId,
+      targetCoachUserId,
+    });
+  }
+  if (isPrivilegedAdmin) {
+    return;
+  }
+  const membership = asRows(tables.clubMemberships).find(
+    (row) =>
+      asString(row.clubId) === clubId &&
+      asString(row.userId) === authUserId &&
+      row.active !== false &&
       !asString(row.deletedAt),
   );
+  const isSelfCreate = targetCoachUserId === authUserId;
+  const canCreate = membership && canCreateClubSession(membership.role);
+  const canAssign = membership && canAssignClubSession(membership.role);
+  if (!canCreate || (!isSelfCreate && !canAssign)) {
+    throw forbidden('You do not have permission to create group sessions for this club', {
+      clubId,
+    });
+  }
 }
 function assertAthleteReadAccess(
   tables: SeedTables,
@@ -937,9 +1024,21 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
   }
   async createSession(params: GroupSessionCreateParams): Promise<GroupSessionActionResult> {
     const store = this.storeProvider();
-    if (!params.isPrivilegedAdmin && params.body.coachId !== params.authUserId) {
+    if (
+      !params.body.clubId &&
+      !params.isPrivilegedAdmin &&
+      params.body.coachId !== params.authUserId
+    ) {
       throw forbidden('coachId must match authenticated user');
     }
+    assertSeedClubSessionCreateAccess(
+      store.tables,
+      params.authUserId,
+      params.body.coachId,
+      params.isPrivilegedAdmin,
+      asString(params.body.clubId),
+      asString(params.body.squadId),
+    );
     const now = isoNow();
     const session: SeedRow = {
       id: newId('gse'),
@@ -1704,6 +1803,86 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
     }
     return session;
   }
+  private async assertClubSessionCreateAccess(
+    authUserId: string,
+    targetCoachUserId: string,
+    isPrivilegedAdmin: boolean,
+    clubId: string | undefined,
+    squadId: string | undefined,
+  ): Promise<void> {
+    if (squadId && !clubId) {
+      throw badRequest('clubId is required when squadId is supplied', { squadId });
+    }
+    if (!clubId) {
+      return;
+    }
+    const prisma = getPrismaClientOrThrow();
+    const club = await prisma.club.findUnique({
+      where: { id: clubId },
+      select: { id: true, deletedAt: true },
+    });
+    if (!club || club.deletedAt) {
+      throw notFound('Club not found', { clubId });
+    }
+    if (squadId) {
+      const squad = await prisma.squad.findUnique({
+        where: { id: squadId },
+        select: { id: true, clubId: true, deletedAt: true },
+      });
+      if (!squad || squad.deletedAt || squad.clubId !== clubId) {
+        throw notFound('Squad not found', { clubId, squadId });
+      }
+    }
+    const targetMembership = await prisma.clubMembership.findUnique({
+      where: {
+        clubId_userId: {
+          clubId,
+          userId: targetCoachUserId,
+        },
+      },
+      select: {
+        role: true,
+        active: true,
+        deletedAt: true,
+      },
+    });
+    if (
+      !targetMembership ||
+      !targetMembership.active ||
+      targetMembership.deletedAt ||
+      !isClubStaffRole(parseOrganizationRole(targetMembership.role) ?? 'MEMBER')
+    ) {
+      throw forbidden('Assigned coach must be active club staff', {
+        clubId,
+        targetCoachUserId,
+      });
+    }
+    if (isPrivilegedAdmin) {
+      return;
+    }
+    const membership = await prisma.clubMembership.findUnique({
+      where: {
+        clubId_userId: {
+          clubId,
+          userId: authUserId,
+        },
+      },
+      select: {
+        role: true,
+        active: true,
+        deletedAt: true,
+      },
+    });
+    const isSelfCreate = targetCoachUserId === authUserId;
+    const hasActiveMembership = Boolean(membership?.active && !membership.deletedAt);
+    const canCreate = hasActiveMembership && canCreateClubSession(membership?.role);
+    const canAssign = hasActiveMembership && canAssignClubSession(membership?.role);
+    if (!canCreate || (!isSelfCreate && !canAssign)) {
+      throw forbidden('You do not have permission to create group sessions for this club', {
+        clubId,
+      });
+    }
+  }
   async listVisibleSessions(params: GroupSessionListParams): Promise<GroupSessionListResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.listVisibleSessions(params);
@@ -1785,9 +1964,20 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.createSession(params);
     }
-    if (!params.isPrivilegedAdmin && params.body.coachId !== params.authUserId) {
+    if (
+      !params.body.clubId &&
+      !params.isPrivilegedAdmin &&
+      params.body.coachId !== params.authUserId
+    ) {
       throw forbidden('coachId must match authenticated user');
     }
+    await this.assertClubSessionCreateAccess(
+      params.authUserId,
+      params.body.coachId,
+      params.isPrivilegedAdmin,
+      params.body.clubId,
+      params.body.squadId,
+    );
     const prisma = getPrismaClientOrThrow();
     const created = normalizeForJson(
       await prisma.groupSession.create({

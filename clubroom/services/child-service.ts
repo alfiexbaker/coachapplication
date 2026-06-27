@@ -42,6 +42,22 @@ interface ApiFamilyResponse {
   athletes: ApiFamilyAthlete[];
 }
 
+export interface ChildSquadMembership {
+  id: string;
+  athleteId: string;
+  squadId: string;
+  clubId: string;
+  squadName: string;
+  squadLevel: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'PENDING';
+  joinedAt: string;
+}
+
+interface ApiAthleteSquadMembershipsResponse {
+  athleteId: string;
+  memberships: ChildSquadMembership[];
+}
+
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
@@ -529,11 +545,46 @@ export const SPECIAL_NEEDS_CATEGORIES: {
   },
 ];
 
+function cloneDisability(disability: Disability): Disability {
+  return {
+    ...disability,
+    communicationPreferences: disability.communicationPreferences
+      ? [...disability.communicationPreferences]
+      : undefined,
+    triggers: disability.triggers ? [...disability.triggers] : undefined,
+    calmingStrategies: disability.calmingStrategies ? [...disability.calmingStrategies] : undefined,
+  };
+}
+
+function cloneSpecialNeed(specialNeed: SpecialNeed): SpecialNeed {
+  return {
+    ...specialNeed,
+    accommodationsNeeded: specialNeed.accommodationsNeeded
+      ? [...specialNeed.accommodationsNeeded]
+      : undefined,
+  };
+}
+
+function cloneChildProfile(child: ChildProfile): ChildProfile {
+  return {
+    ...child,
+    disabilities: child.disabilities.map(cloneDisability),
+    specialNeeds: child.specialNeeds.map(cloneSpecialNeed),
+    allergies: [...child.allergies],
+    medicalConditions: [...child.medicalConditions],
+    medications: [...child.medications],
+  };
+}
+
+function cloneChildProfiles(children: ChildProfile[]): ChildProfile[] {
+  return children.map(cloneChildProfile);
+}
+
 // ============================================================================
 // MOCK DATA
 // ============================================================================
 
-let childrenCache: ChildProfile[] = normalizeLegacyMockDates([
+const MOCK_CHILDREN: ChildProfile[] = normalizeLegacyMockDates([
   {
     id: 'user1',
     parentId: 'user4',
@@ -619,31 +670,19 @@ let childrenCache: ChildProfile[] = normalizeLegacyMockDates([
   },
 ]);
 
+let childrenCache: ChildProfile[] = cloneChildProfiles(MOCK_CHILDREN);
+
 // ============================================================================
 // STORAGE HELPERS
 // ============================================================================
 
 async function loadFromStorage(): Promise<ChildProfile[]> {
-  try {
-    const stored = await apiClient.get<ChildProfile[] | null>(STORAGE_KEYS.CHILDREN_PROFILES, null);
-    if (stored) {
-      return migrateLegacyTrustData(stored);
-    }
-  } catch (error) {
-    logger.error('Failed to load from storage', error);
-  }
-  return migrateLegacyTrustData(childrenCache);
+  return migrateLegacyTrustData(cloneChildProfiles(childrenCache));
 }
 
 async function saveToStorage(data: ChildProfile[]): Promise<Result<void, ServiceError>> {
-  try {
-    await apiClient.set(STORAGE_KEYS.CHILDREN_PROFILES, data);
-    childrenCache = data;
-    return ok(undefined);
-  } catch (error) {
-    logger.error('Failed to save to storage', error);
-    return err(storageError(`Failed to save children profiles: ${String(error)}`));
-  }
+  childrenCache = cloneChildProfiles(data);
+  return ok(undefined);
 }
 
 function toChildDisplayName(child: ChildProfile): string {
@@ -708,13 +747,12 @@ async function removeChildTrustData(childId: string): Promise<void> {
   }
 
   try {
-    const emergencyInfo = await apiClient.get<Record<string, EmergencyInfo>>(
-      STORAGE_KEYS.EMERGENCY_INFO,
-      {},
-    );
-    if (childId in emergencyInfo) {
-      delete emergencyInfo[childId];
-      await apiClient.set(STORAGE_KEYS.EMERGENCY_INFO, emergencyInfo);
+    const removeResult = await safetyService.removeEmergencyInfo(childId);
+    if (!removeResult.success) {
+      logger.warn('Failed to remove mock child emergency info', {
+        childId,
+        error: removeResult.error.message,
+      });
     }
 
     await apiClient.remove(`${STORAGE_KEYS.AUDIT_LOG_PREFIX}${childId}`).catch(() => {});
@@ -830,6 +868,25 @@ export const childService = {
     return hydrateChildTrustData(
       mapApiFamilyAthleteToChildProfile(athleteResult.data, athleteResult.data.parentId ?? ''),
     );
+  },
+
+  async getSquadMemberships(
+    athleteId: string,
+  ): Promise<Result<ChildSquadMembership[], ServiceError>> {
+    if (USE_MOCK) {
+      return ok([]);
+    }
+
+    const result = await apiFetch<ApiAthleteSquadMembershipsResponse>(
+      `/v1/athletes/${encodeURIComponent(athleteId)}/squad-memberships`,
+      {
+        method: 'GET',
+      },
+    );
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(result.data.memberships);
   },
 
   /**
@@ -1286,5 +1343,9 @@ export const childService = {
     } catch (error) {
       logger.error('set_active_child_failed', { childId, error });
     }
+  },
+
+  __resetMockChildren(): void {
+    childrenCache = cloneChildProfiles(MOCK_CHILDREN);
   },
 };

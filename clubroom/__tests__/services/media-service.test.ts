@@ -10,8 +10,6 @@ import assert from 'node:assert/strict';
 import test, { describe, beforeEach } from 'node:test';
 
 import { mediaService } from '@/services/media-service';
-import { apiClient } from '@/services/api-client';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { Result, ServiceError } from '@/types/result';
 import type { SessionMedia, PhotoAsset } from '@/types/progress-types';
 
@@ -46,7 +44,7 @@ function makeMedia(overrides: Partial<SessionMedia> = {}): SessionMedia {
 
 describe('mediaService', () => {
   beforeEach(async () => {
-    await apiClient.remove(STORAGE_KEYS.SESSION_MEDIA);
+    mediaService.__resetMockMedia();
   });
 
   // ---------------------------------------------------------------------------
@@ -229,22 +227,17 @@ describe('mediaService', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Storage failure handling
+  // Mock cache isolation
   // ---------------------------------------------------------------------------
-  describe('storage failure handling', () => {
-    test('saveSessionMedia returns error on storage failure', async () => {
-      const originalSet = apiClient.set.bind(apiClient);
-      try {
-        (apiClient as Record<string, unknown>).set = () => {
-          throw new Error('Storage full');
-        };
+  describe('mock cache isolation', () => {
+    test('returns defensive copies of saved media', async () => {
+      const media = makeMedia();
+      const saved = expectOk(await mediaService.saveSessionMedia(media));
+      saved.photos[0].uri = 'file:///mutated.jpg';
 
-        const result = await mediaService.saveSessionMedia(makeMedia());
-        assert.equal(result.success, false);
-        assert.equal(result.error.code, 'STORAGE');
-      } finally {
-        (apiClient as Record<string, unknown>).set = originalSet;
-      }
+      const result = expectOk(await mediaService.getSessionMedia(media.sessionId, media.athleteId));
+      assert.ok(result);
+      assert.notEqual(result!.photos[0].uri, 'file:///mutated.jpg');
     });
   });
 });

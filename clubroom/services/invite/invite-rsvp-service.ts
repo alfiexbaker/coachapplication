@@ -5,12 +5,10 @@
  * Manages RSVP responses, counts, and respondent lists.
  */
 
-import { apiClient } from '../api-client';
 import { api } from '@/constants/config';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
-import type { InviteRsvpResponse, SessionInvite } from '@/constants/types';
+import type { InviteRsvpResponse } from '@/constants/types';
 import type { Result, ServiceError } from '@/types/result';
 import { ok, err, serviceError } from '@/types/result';
 
@@ -68,41 +66,18 @@ function apiModeUnsupported(): ServiceError {
   );
 }
 
+let responsesCache: InviteRsvpResponse[] = MOCK_INVITE_RSVPS.map(cloneResponse);
+
+function cloneResponse(response: InviteRsvpResponse): InviteRsvpResponse {
+  return { ...response };
+}
+
 async function loadResponses(): Promise<InviteRsvpResponse[]> {
-  const stored = await apiClient.get<InviteRsvpResponse[] | null>(STORAGE_KEYS.INVITE_RSVPS, null);
-  return stored ?? [...MOCK_INVITE_RSVPS];
+  return responsesCache.map(cloneResponse);
 }
 
 async function saveResponses(responses: InviteRsvpResponse[]): Promise<void> {
-  await apiClient.set(STORAGE_KEYS.INVITE_RSVPS, responses);
-}
-
-/**
- * Sync rsvpCounts on the SessionInvite object in storage
- * so carousel/card UIs reading invite.rsvpCounts get fresh data.
- */
-async function syncCountsToInvite(
-  inviteId: string,
-  allResponses: InviteRsvpResponse[],
-): Promise<void> {
-  try {
-    const invites = await apiClient.get<SessionInvite[]>(STORAGE_KEYS.SESSION_INVITES, []);
-    const idx = invites.findIndex((inv) => inv.id === inviteId);
-    if (idx === -1) return;
-
-    const inviteResponses = allResponses.filter((r) => r.inviteId === inviteId);
-    invites[idx] = {
-      ...invites[idx],
-      rsvpCounts: {
-        going: inviteResponses.filter((r) => r.status === 'going').length,
-        maybe: inviteResponses.filter((r) => r.status === 'maybe').length,
-        cantGo: inviteResponses.filter((r) => r.status === 'cant_go').length,
-      },
-    };
-    await apiClient.set(STORAGE_KEYS.SESSION_INVITES, invites);
-  } catch (e) {
-    logger.warn('Failed to sync RSVP counts to invite', e);
-  }
+  responsesCache = responses.map(cloneResponse);
 }
 
 export const inviteRsvpService = {
@@ -150,9 +125,6 @@ export const inviteRsvpService = {
       }
 
       await saveResponses(allResponses);
-
-      // Sync counts back to the invite object so card/carousel UIs stay fresh
-      await syncCountsToInvite(inviteId, allResponses);
 
       // Emit event
       emitTyped(ServiceEvents.INVITE_RSVP_RESPONDED, {
@@ -264,9 +236,6 @@ export const inviteRsvpService = {
 
       await saveResponses(allResponses);
 
-      // Sync counts back to the invite object
-      await syncCountsToInvite(allResponses[index].inviteId, allResponses);
-
       emitTyped(ServiceEvents.INVITE_RSVP_RESPONDED, {
         inviteId: allResponses[index].inviteId,
         responseId,
@@ -283,5 +252,13 @@ export const inviteRsvpService = {
       logger.error('Failed to update RSVP response', error);
       return err(serviceError('STORAGE', 'Failed to update RSVP response'));
     }
+  },
+
+  __resetMockResponses(): void {
+    responsesCache = MOCK_INVITE_RSVPS.map(cloneResponse);
+  },
+
+  __seedMockResponses(responses: InviteRsvpResponse[]): void {
+    responsesCache = responses.map(cloneResponse);
   },
 };

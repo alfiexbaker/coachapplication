@@ -7,9 +7,7 @@
  * Single responsibility: manage family member data and related operations.
  */
 
-import { apiClient } from '../api-client';
 import { api } from '@/constants/config';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '../event-bus';
 import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
@@ -225,6 +223,9 @@ const MOCK_FAMILY_BOOKINGS: FamilyCalendarEvent[] = normalizeLegacyMockDates([
   },
 ]);
 
+let mockFamilyMembers = MOCK_FAMILY_MEMBERS.map((member) => ({ ...member }));
+let mockFamilyBookings = MOCK_FAMILY_BOOKINGS.map((booking) => ({ ...booking }));
+
 function mapBookingStatusToFamilyStatus(status: Booking['status']): FamilyCalendarEvent['status'] {
   if (status === 'COMPLETED') return 'COMPLETED';
   if (status === 'CANCELLED') return 'CANCELLED';
@@ -313,28 +314,19 @@ class FamilyMemberService {
   // ==========================================================================
 
   private async loadMembers(): Promise<FamilyMember[]> {
-    if (USE_MOCK) {
-      return apiClient.get<FamilyMember[]>(STORAGE_KEYS.FAMILY_MEMBERS, MOCK_FAMILY_MEMBERS);
-    }
-    return [];
+    return mockFamilyMembers.map((member) => ({ ...member }));
   }
 
   private async saveMembers(members: FamilyMember[]): Promise<void> {
-    await apiClient.set(STORAGE_KEYS.FAMILY_MEMBERS, members);
+    mockFamilyMembers = members.map((member) => ({ ...member }));
   }
 
   private async loadBookings(): Promise<FamilyCalendarEvent[]> {
-    if (USE_MOCK) {
-      return apiClient.get<FamilyCalendarEvent[]>(
-        STORAGE_KEYS.FAMILY_BOOKINGS,
-        MOCK_FAMILY_BOOKINGS,
-      );
-    }
-    return [];
+    return mockFamilyBookings.map((booking) => ({ ...booking }));
   }
 
   private async saveBookings(bookings: FamilyCalendarEvent[]): Promise<void> {
-    await apiClient.set(STORAGE_KEYS.FAMILY_BOOKINGS, bookings);
+    mockFamilyBookings = bookings.map((booking) => ({ ...booking }));
   }
 
   // ==========================================================================
@@ -859,8 +851,8 @@ class FamilyMemberService {
    * Clear all family data.
    */
   async clearAllData(): Promise<void> {
-    await apiClient.set(STORAGE_KEYS.FAMILY_MEMBERS, []);
-    await apiClient.set(STORAGE_KEYS.FAMILY_BOOKINGS, []);
+    await this.saveMembers([]);
+    await this.saveBookings([]);
     logger.info('family_data_cleared');
   }
 

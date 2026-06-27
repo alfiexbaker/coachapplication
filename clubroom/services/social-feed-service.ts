@@ -19,12 +19,10 @@ import {
   serviceError,
 } from "@/types/result";
 import { createLogger } from "@/utils/logger";
-import { isExpoStaticRender } from "@/utils/runtime-environment";
 import { emitTyped, ServiceEvents } from "@/services/event-bus";
 import { notificationService } from "./notification-service";
 import { api } from "@/constants/config";
 import { apiClient, apiFetch } from "./api-client";
-import { STORAGE_KEYS } from "@/constants/storage-keys";
 import {
   buildApiAuthHeaders,
   deriveApiActingRole,
@@ -870,42 +868,17 @@ const MOCK_CLUB_MEMBERS: Record<string, string[]> = {
 };
 class ClubFeedService {
   private logger = createLogger("ClubFeedService");
-  private hydrationPromise: Promise<void> | null = null;
-  constructor() {
-    if (!isExpoStaticRender()) {
-      void this.ensureHydrated();
-    }
-  }
   private async ensureHydrated(): Promise<void> {
-    if (isExpoStaticRender()) {
-      return;
-    }
-    if (!this.hydrationPromise) {
-      this.hydrationPromise = (async () => {
-        clubsStore = await apiClient.get<Club[]>(
-          STORAGE_KEYS.CLUBS,
-          clubsStore,
-        );
-        membershipsStore = await apiClient.get<ClubMembership[]>(
-          STORAGE_KEYS.CLUB_MEMBERSHIPS,
-          membershipsStore,
-        );
-        clubInvitesStore = await apiClient.get<ClubInvite[]>(
-          STORAGE_KEYS.CLUB_INVITE_CODES,
-          clubInvitesStore,
-        );
-      })();
-    }
-    await this.hydrationPromise;
+    return undefined;
   }
   private async persistClubs(): Promise<void> {
-    await apiClient.set(STORAGE_KEYS.CLUBS, clubsStore);
+    return undefined;
   }
   private async persistMemberships(): Promise<void> {
-    await apiClient.set(STORAGE_KEYS.CLUB_MEMBERSHIPS, membershipsStore);
+    return undefined;
   }
   private async persistInviteCodes(): Promise<void> {
-    await apiClient.set(STORAGE_KEYS.CLUB_INVITE_CODES, clubInvitesStore);
+    return undefined;
   }
   createPost(input: CreateClubPostInput): Result<ClubFeedPost, ServiceError> {
     if (!USE_MOCK) {

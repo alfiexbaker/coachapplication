@@ -2,9 +2,7 @@ import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { inviteRsvpService } from '@/services/invite/invite-rsvp-service';
-import { apiClient } from '@/services/api-client';
 import { api } from '@/constants/config';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 
 function setApiMockMode(value: boolean): void {
@@ -17,8 +15,7 @@ function setApiMockMode(value: boolean): void {
 describe('InviteRsvpService', () => {
   beforeEach(async () => {
     setApiMockMode(true);
-    await apiClient.remove(STORAGE_KEYS.INVITE_RSVPS);
-    await apiClient.remove(STORAGE_KEYS.SESSION_INVITES);
+    inviteRsvpService.__seedMockResponses([]);
   });
 
   describe('respondToInvite', () => {
@@ -109,8 +106,10 @@ describe('InviteRsvpService', () => {
         assert.match(result.error.message, /backend authority/i);
       }
 
-      const stored = await apiClient.get<unknown[]>(STORAGE_KEYS.INVITE_RSVPS, []);
-      assert.equal(stored.length, 0);
+      setApiMockMode(true);
+      const responses = await inviteRsvpService.getResponses('invite_api_mode');
+      assert.ok(responses.success);
+      assert.equal(responses.data.length, 0);
     });
   });
 

@@ -6,11 +6,8 @@
  * session-related analytics tracking.
  *
  * API Integration Notes:
- * - POST /api/athletes/:id/goals - Create goal
- * - PATCH /api/goals/:id/progress - Update progress
- * - PATCH /api/goals/:id/milestones/:id/complete - Complete milestone
- * - POST /api/goals/:id/milestones - Add milestone
- * - PATCH /api/goals/:id - Abandon goal
+ * - Mock mode keeps local goal and skill tracking state for development-only flows.
+ * - Live API mode fails closed until dedicated /v1 goal mutation and skill tracking routes exist.
  */
 
 import { apiClient } from '../api-client';
@@ -21,14 +18,9 @@ import {
   err,
   notFound,
   storageError,
-  networkError,
+  unsupportedError,
 } from '@/types/result';
-import type {
-  AthleteAnalytics,
-  SkillProgress,
-  Goal,
-  GoalCategory,
-} from '@/constants/types';
+import type { AthleteAnalytics, SkillProgress, Goal, GoalCategory } from '@/constants/types';
 import type { FootballSkill } from '@/types/progress-types';
 import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
@@ -42,6 +34,28 @@ const USE_MOCK = api.useMock;
 
 function createUniqueId(prefix: 'goal' | 'ms'): string {
   return generateId(prefix);
+}
+
+function analyticsTrackingUnsupportedError(action: string, details?: unknown): ServiceError {
+  return unsupportedError(
+    `${action} needs a /v1 athlete goal/skill tracking API before it can run in API mode.`,
+    details,
+  );
+}
+
+function unsupportedTracking<T>(action: string, details?: unknown): Result<T, ServiceError> {
+  logger.warn('Athlete analytics tracking API unavailable in live API mode', {
+    action,
+    details,
+    requiredRoutes: [
+      'POST /v1/athletes/:athleteId/goals',
+      'PATCH /v1/goals/:goalId',
+      'POST /v1/goals/:goalId/milestones',
+      'PATCH /v1/goals/:goalId/milestones/:milestoneId',
+      'POST /v1/athletes/:athleteId/skill-updates',
+    ],
+  });
+  return err(analyticsTrackingUnsupportedError(action, details));
 }
 
 function normalizeAnalyticsSkill(skill: string): FootballSkill {
@@ -337,56 +351,57 @@ export const analyticsTrackingService = {
     newLevel: number,
   ): Promise<Result<void, ServiceError>> {
     try {
-      if (USE_MOCK) {
-        analyticsCache = await loadAnalytics();
-        let analytics = analyticsCache.find((a) => a.athleteId === athleteId);
-
-        if (!analytics) {
-          // Create new analytics record
-          analytics = {
-            athleteId,
-            period: 'MONTH',
-            totalSessions: 0,
-            sessionsThisPeriod: 0,
-            averageSessionRating: 0,
-            attendanceRate: 0,
-            skills: [],
-            activeGoals: [],
-            completedGoals: [],
-            improvementRate: 0,
-            consistencyScore: 0,
-            percentileRank: 50,
-          };
-          analyticsCache.push(analytics);
-        }
-
-        const normalizedSkill = normalizeAnalyticsSkill(skill);
-        const skillProgress = analytics.skills.find((s) => s.skillName === normalizedSkill);
-        const today = toDateStr(new Date());
-
-        if (skillProgress) {
-          skillProgress.previousLevel = skillProgress.currentLevel;
-          skillProgress.currentLevel = newLevel;
-          skillProgress.changePercent =
-            skillProgress.previousLevel > 0
-              ? ((newLevel - skillProgress.previousLevel) / skillProgress.previousLevel) * 100
-              : 0;
-          skillProgress.history.push({ date: today, level: newLevel });
-        } else {
-          const newSkillProgress: SkillProgress = {
-            skillName: normalizedSkill,
-            category: 'Technical',
-            currentLevel: newLevel,
-            previousLevel: 0,
-            changePercent: 0,
-            history: [{ date: today, level: newLevel }],
-          };
-          analytics.skills.push(newSkillProgress);
-        }
-
-        await apiClient.set(STORAGE_KEYS.ATHLETE_ANALYTICS, analyticsCache);
+      if (!USE_MOCK) {
+        return unsupportedTracking('Skill level update', { athleteId, skill, newLevel });
       }
 
+      analyticsCache = await loadAnalytics();
+      let analytics = analyticsCache.find((a) => a.athleteId === athleteId);
+
+      if (!analytics) {
+        // Create new analytics record
+        analytics = {
+          athleteId,
+          period: 'MONTH',
+          totalSessions: 0,
+          sessionsThisPeriod: 0,
+          averageSessionRating: 0,
+          attendanceRate: 0,
+          skills: [],
+          activeGoals: [],
+          completedGoals: [],
+          improvementRate: 0,
+          consistencyScore: 0,
+          percentileRank: 50,
+        };
+        analyticsCache.push(analytics);
+      }
+
+      const normalizedSkill = normalizeAnalyticsSkill(skill);
+      const skillProgress = analytics.skills.find((s) => s.skillName === normalizedSkill);
+      const today = toDateStr(new Date());
+
+      if (skillProgress) {
+        skillProgress.previousLevel = skillProgress.currentLevel;
+        skillProgress.currentLevel = newLevel;
+        skillProgress.changePercent =
+          skillProgress.previousLevel > 0
+            ? ((newLevel - skillProgress.previousLevel) / skillProgress.previousLevel) * 100
+            : 0;
+        skillProgress.history.push({ date: today, level: newLevel });
+      } else {
+        const newSkillProgress: SkillProgress = {
+          skillName: normalizedSkill,
+          category: 'Technical',
+          currentLevel: newLevel,
+          previousLevel: 0,
+          changePercent: 0,
+          history: [{ date: today, level: newLevel }],
+        };
+        analytics.skills.push(newSkillProgress);
+      }
+
+      await apiClient.set(STORAGE_KEYS.ATHLETE_ANALYTICS, analyticsCache);
       return ok(undefined);
     } catch (error) {
       logger.error('Failed to update skill level', { athleteId, skill, newLevel, error });
@@ -441,17 +456,7 @@ export const analyticsTrackingService = {
         return ok(newGoal);
       }
 
-      const response = await fetch(`/api/athletes/${input.athleteId}/goals`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newGoal),
-      });
-
-      if (!response.ok) {
-        return err(networkError('Failed to create goal'));
-      }
-
-      return ok(await response.json());
+      return unsupportedTracking('Goal creation', { athleteId: input.athleteId, goalId });
     } catch (error) {
       logger.error('Failed to create goal', { input, error });
       return err(storageError('Failed to create goal'));
@@ -479,12 +484,7 @@ export const analyticsTrackingService = {
       return ok(goal);
     }
 
-    const response = await fetch(`/api/goals/${goalId}/progress`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ progress }),
-    });
-    return ok(await response.json());
+    return unsupportedTracking('Goal progress update', { goalId, progress });
   },
 
   /**
@@ -519,10 +519,7 @@ export const analyticsTrackingService = {
       return ok(goal);
     }
 
-    const response = await fetch(`/api/goals/${goalId}/milestones/${milestoneId}/complete`, {
-      method: 'PATCH',
-    });
-    return ok(await response.json());
+    return unsupportedTracking('Goal milestone completion', { goalId, milestoneId });
   },
 
   /**
@@ -552,12 +549,7 @@ export const analyticsTrackingService = {
       return ok(goal);
     }
 
-    const response = await fetch(`/api/goals/${goalId}/milestones`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title }),
-    });
-    return ok(await response.json());
+    return unsupportedTracking('Goal milestone creation', { goalId });
   },
 
   /**
@@ -577,11 +569,6 @@ export const analyticsTrackingService = {
       return ok(goal);
     }
 
-    const response = await fetch(`/api/goals/${goalId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'ABANDONED' }),
-    });
-    return ok(await response.json());
+    return unsupportedTracking('Goal abandon', { goalId });
   },
 };

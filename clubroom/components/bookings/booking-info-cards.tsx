@@ -24,216 +24,45 @@ import { openLocationInMaps } from '@/utils/map-links';
 import { coachService } from '@/services/coach-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { uiFeedback } from '@/services/ui-feedback';
+import {
+  loadBookingWeather,
+  type BookingWeatherState,
+  type BookingWeatherTone,
+} from '@/services/booking-weather-service';
 import type { BookingSummary } from '@/constants/types';
 import { getBookingRelationshipContext, getBookingSummaryCoachName } from '@/utils/booking-display';
 import { formatCommercialModeLabel } from '@/utils/organization-commercial-mode';
 
-type WeatherTone = 'sunny' | 'cloudy' | 'rainy' | 'storm' | 'snow' | 'unknown';
-
-interface WeatherState {
-  loading: boolean;
-  available: boolean;
-  summary?: string;
-  temperatureText?: string;
-  precipitationText?: string;
-  sourceLabel?: string;
-  tone?: WeatherTone;
-  reason?: string;
-}
-
-interface OpenMeteoGeoResponse {
-  results?: {
-    name: string;
-    country?: string;
-    admin1?: string;
-    latitude: number;
-    longitude: number;
-  }[];
-}
-
-interface OpenMeteoForecastResponse {
-  daily?: {
-    time: string[];
-    weather_code: number[];
-    temperature_2m_max: number[];
-    temperature_2m_min: number[];
-    precipitation_probability_max?: number[];
-  };
-}
-
-const weatherCache = new Map<string, WeatherState>();
-
-const getDateKey = (iso: string): string => {
-  const date = new Date(iso);
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
-const getDaysUntil = (iso: string): number => {
-  const now = new Date();
-  const target = new Date(iso);
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const startOfTarget = new Date(
-    target.getFullYear(),
-    target.getMonth(),
-    target.getDate(),
-  ).getTime();
-  return Math.round((startOfTarget - startOfToday) / (1000 * 60 * 60 * 24));
-};
-
-const mapWeatherCode = (
-  code: number,
-): { summary: string; icon: keyof typeof Ionicons.glyphMap; tone: WeatherTone } => {
-  if (code === 0) return { summary: 'Clear', icon: 'sunny-outline', tone: 'sunny' };
-  if ([1, 2].includes(code))
-    return { summary: 'Partly cloudy', icon: 'partly-sunny-outline', tone: 'cloudy' };
-  if (code === 3 || [45, 48].includes(code))
-    return { summary: 'Cloudy', icon: 'cloud-outline', tone: 'cloudy' };
-  if ([51, 53, 55, 56, 57, 61, 63, 65, 80, 81, 82].includes(code)) {
-    return { summary: 'Rain likely', icon: 'rainy-outline', tone: 'rainy' };
-  }
-  if ([66, 67, 71, 73, 75, 77, 85, 86].includes(code)) {
-    return { summary: 'Snow/ice risk', icon: 'snow-outline', tone: 'snow' };
-  }
-  if ([95, 96, 99].includes(code))
-    return { summary: 'Thunderstorm risk', icon: 'thunderstorm-outline', tone: 'storm' };
-  return { summary: 'Forecast available', icon: 'cloud-outline', tone: 'unknown' };
-};
-
-const getWeatherToneColor = (tone: WeatherTone, palette: ReturnType<typeof useTheme>['colors']) => {
+const getWeatherToneColor = (
+  tone: BookingWeatherTone,
+  palette: ReturnType<typeof useTheme>['colors'],
+) => {
   if (tone === 'sunny') return palette.warning;
   if (tone === 'rainy' || tone === 'storm') return palette.tint;
   if (tone === 'snow') return palette.info;
   return palette.muted;
 };
 
-async function loadBookingWeather(
-  locationLabel: string,
-  bookingStartIso: string,
-  cacheKey: string,
-): Promise<WeatherState> {
-  const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&format=json&name=${encodeURIComponent(locationLabel)}`;
-  const geoResponse = await fetch(geoUrl);
-  if (!geoResponse.ok) {
-    return {
-      loading: false,
-      available: false,
-      reason: 'Weather forecast is unavailable right now.',
-    };
-  }
-  const geoData = (await geoResponse.json()) as OpenMeteoGeoResponse;
-  const first = geoData.results?.[0];
-  if (!first) {
-    const unavailable = {
-      loading: false,
-      available: false,
-      reason: 'No weather match found for this location.',
-    };
-    weatherCache.set(cacheKey, unavailable);
-    return unavailable;
-  }
-
-  const forecastUrl =
-    `https://api.open-meteo.com/v1/forecast?latitude=${first.latitude}&longitude=${first.longitude}` +
-    '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=16&timezone=auto';
-  const forecastResponse = await fetch(forecastUrl);
-  if (!forecastResponse.ok) {
-    return {
-      loading: false,
-      available: false,
-      reason: 'Weather forecast is unavailable right now.',
-    };
-  }
-  const forecast = (await forecastResponse.json()) as OpenMeteoForecastResponse;
-  const daily = forecast.daily;
-  const targetDateKey = getDateKey(bookingStartIso);
-  const index = daily?.time?.findIndex((date) => date === targetDateKey) ?? -1;
-
-  if (!daily || index < 0) {
-    const unavailable = {
-      loading: false,
-      available: false,
-      reason: 'Forecast for this date is not available yet.',
-    };
-    weatherCache.set(cacheKey, unavailable);
-    return unavailable;
-  }
-
-  const weatherCode = daily.weather_code[index] ?? -1;
-  const maxTemp = daily.temperature_2m_max[index];
-  const minTemp = daily.temperature_2m_min[index];
-  const precip = daily.precipitation_probability_max?.[index];
-  const mapped = mapWeatherCode(weatherCode);
-  const sourceBits = [first.name, first.admin1, first.country].filter(Boolean);
-
-  const loaded: WeatherState = {
-    loading: false,
-    available: true,
-    summary: mapped.summary,
-    temperatureText:
-      Number.isFinite(maxTemp) && Number.isFinite(minTemp)
-        ? `${Math.round(minTemp)}°-${Math.round(maxTemp)}°C`
-        : undefined,
-    precipitationText:
-      typeof precip === 'number' ? `${Math.round(precip)}% rain chance` : undefined,
-    sourceLabel: sourceBits.join(', '),
-    tone: mapped.tone,
-  };
-  weatherCache.set(cacheKey, loaded);
-  return loaded;
+function getWeatherIcon(tone: BookingWeatherTone): keyof typeof Ionicons.glyphMap {
+  if (tone === 'sunny') return 'sunny-outline';
+  if (tone === 'rainy') return 'rainy-outline';
+  if (tone === 'storm') return 'thunderstorm-outline';
+  if (tone === 'snow') return 'snow-outline';
+  if (tone === 'cloudy') return 'partly-sunny-outline';
+  return 'cloud-outline';
 }
 
-function useBookingWeather(locationLabel: string, bookingStartIso: string): WeatherState {
-  const [state, setState] = useState<WeatherState>({ loading: true, available: false });
+function useBookingWeather(locationLabel: string, bookingStartIso: string): BookingWeatherState {
+  const [state, setState] = useState<BookingWeatherState>({ loading: true, available: false });
 
-  const cacheKey = `${locationLabel.trim().toLowerCase()}|${getDateKey(bookingStartIso)}`;
-
-  // react-doctor-disable-next-line react-doctor/no-fetch-in-effect -- one-shot weather lookup is cached and has cancellation; this app has no query client in this surface.
   useEffect(() => {
-    const daysUntil = getDaysUntil(bookingStartIso);
-
-    if (!locationLabel.trim()) {
-      startTransition(() => {
-        setState({ loading: false, available: false, reason: 'No location set for this booking.' });
-      });
-      return;
-    }
-
-    if (daysUntil < 0) {
-      startTransition(() => {
-        setState({
-          loading: false,
-          available: false,
-          reason: 'Weather forecast only shows upcoming bookings.',
-        });
-      });
-      return;
-    }
-
-    if (daysUntil > 16) {
-      startTransition(() => {
-        setState({
-          loading: false,
-          available: false,
-          reason: 'Forecast is usually available within 16 days of the session.',
-        });
-      });
-      return;
-    }
-
-    const cached = weatherCache.get(cacheKey);
-    if (cached) {
-      startTransition(() => {
-        setState(cached);
-      });
-      return;
-    }
-
     let cancelled = false;
 
-    void loadBookingWeather(locationLabel, bookingStartIso, cacheKey)
+    startTransition(() => {
+      setState({ loading: true, available: false });
+    });
+
+    void loadBookingWeather(locationLabel, bookingStartIso)
       .then((nextState) => {
         if (!cancelled) {
           setState(nextState);
@@ -252,7 +81,7 @@ function useBookingWeather(locationLabel: string, bookingStartIso: string): Weat
     return () => {
       cancelled = true;
     };
-  }, [bookingStartIso, cacheKey, locationLabel]);
+  }, [bookingStartIso, locationLabel]);
 
   return state;
 }
@@ -519,22 +348,7 @@ export const BookingWeatherCard = function BookingWeatherCard({
       };
     }
     const toneColor = getWeatherToneColor(weather.tone, palette);
-    const mapped = mapWeatherCode(
-      weather.summary === 'Clear'
-        ? 0
-        : weather.summary === 'Partly cloudy'
-          ? 1
-          : weather.summary === 'Cloudy'
-            ? 3
-            : weather.summary === 'Rain likely'
-              ? 61
-              : weather.summary === 'Thunderstorm risk'
-                ? 95
-                : weather.summary === 'Snow/ice risk'
-                  ? 71
-                  : 3,
-    );
-    return { icon: mapped.icon, color: toneColor };
+    return { icon: getWeatherIcon(weather.tone), color: toneColor };
   })();
 
   return (

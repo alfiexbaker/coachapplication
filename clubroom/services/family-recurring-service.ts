@@ -1,10 +1,9 @@
 import type { Booking, RecurringBooking } from '@/constants/types';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { apiClient } from '@/services/api-client';
+import { bookingService } from '@/services/booking';
 import { recurringBookingService } from '@/services/recurring-booking-service';
 import { userService } from '@/services/user-service';
 import type { Result, ServiceError } from '@/types/result';
-import { err, ok, storageError, validationError } from '@/types/result';
+import { err, ok, storageError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('FamilyRecurringService');
@@ -43,15 +42,9 @@ class FamilyRecurringService {
     userId: string,
   ): Promise<Result<FamilyRecurringPlanSummary[], ServiceError>> {
     try {
-      if (!apiClient.isMockMode) {
-        return err(
-          validationError('Recurring booking plans require backend series authority in API mode.'),
-        );
-      }
-
       const [recurringResult, bookings] = await Promise.all([
         recurringBookingService.getUserRecurringBookings(userId),
-        apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
+        bookingService.list(),
       ]);
 
       if (!recurringResult.success) {

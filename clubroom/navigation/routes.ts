@@ -449,6 +449,11 @@ export const Routes = {
   HEALTH: '/health' as Href,
   HEALTH_INJURIES: '/health/injuries' as Href,
   HEALTH_LOG: '/health/log' as Href,
+  healthLog: (params?: { childId?: string }) =>
+    ({
+      pathname: '/health/log',
+      params: params ?? {},
+    }) as Href,
   healthEntry: (id: string) =>
     ({
       pathname: '/health/[id]',

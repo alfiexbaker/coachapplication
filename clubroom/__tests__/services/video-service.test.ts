@@ -1,13 +1,11 @@
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
 
-import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { apiClient } from '@/services/api-client';
 import { videoService } from '@/services/video-service';
 
 describe('videoService', () => {
   beforeEach(async () => {
-    await apiClient.remove(STORAGE_KEYS.SESSION_VIDEOS);
+    videoService.__resetMockVideos();
   });
 
   it('creates a video and shares it (happy path)', async () => {

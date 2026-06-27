@@ -3,18 +3,52 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as Sharing from 'expo-sharing';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { apiClient } from '@/services/api-client';
 import { consentService } from '@/services/consent-service';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
-import { err, ok, type Result, type ServiceError } from '@/types/result';
+import { err, ok, unsupportedError, type Result, type ServiceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
-import type { SessionMedia } from '@/types/progress-types';
+import type { PhotoAsset, SessionMedia, VideoAsset } from '@/types/progress-types';
 
 const logger = createLogger('MediaService');
 
-async function getAllSessionMedia(): Promise<SessionMedia[]> {
-  return apiClient.get<SessionMedia[]>(STORAGE_KEYS.SESSION_MEDIA, []);
+let sessionMediaCache: SessionMedia[] = [];
+
+function sessionMediaApiUnsupported(): ServiceError {
+  return unsupportedError(
+    'Session media requires a backend session-media upload API in API mode.',
+  );
+}
+
+function requireMockSessionMedia(): Result<void, ServiceError> {
+  if (!apiClient.isMockMode) {
+    return err(sessionMediaApiUnsupported());
+  }
+  return ok(undefined);
+}
+
+function clonePhotoAsset(photo: PhotoAsset): PhotoAsset {
+  return { ...photo };
+}
+
+function cloneVideoAsset(video: VideoAsset | null): VideoAsset | null {
+  return video ? { ...video } : null;
+}
+
+function cloneSessionMedia(media: SessionMedia): SessionMedia {
+  return {
+    ...media,
+    photos: media.photos.map(clonePhotoAsset),
+    video: cloneVideoAsset(media.video),
+  };
+}
+
+function getAllSessionMedia(): SessionMedia[] {
+  return sessionMediaCache.map(cloneSessionMedia);
+}
+
+function replaceAllSessionMedia(media: SessionMedia[]): void {
+  sessionMediaCache = media.map(cloneSessionMedia);
 }
 
 async function safeDelete(uri: string | undefined): Promise<void> {
@@ -29,6 +63,11 @@ async function saveSessionMedia(
   coachId?: string,
 ): Promise<Result<SessionMedia, ServiceError>> {
   try {
+    const mockGuard = requireMockSessionMedia();
+    if (!mockGuard.success) {
+      return err(mockGuard.error);
+    }
+
     // SAFEGUARDING: Check photo/video consent when coachId provided
     if (coachId && media.athleteId) {
       const photoConsentResult = await consentService.checkConsent(
@@ -58,18 +97,18 @@ async function saveSessionMedia(
       }
     }
 
-    const allMedia = await getAllSessionMedia();
+    const allMedia = getAllSessionMedia();
     const existingIndex = allMedia.findIndex(
       (entry) => entry.sessionId === media.sessionId && entry.athleteId === media.athleteId,
     );
 
     if (existingIndex >= 0) {
-      allMedia[existingIndex] = media;
+      allMedia[existingIndex] = cloneSessionMedia(media);
     } else {
-      allMedia.unshift(media);
+      allMedia.unshift(cloneSessionMedia(media));
     }
 
-    await apiClient.set(STORAGE_KEYS.SESSION_MEDIA, allMedia);
+    replaceAllSessionMedia(allMedia);
 
     emitTyped(ServiceEvents.SESSION_MEDIA_CAPTURED, {
       sessionId: media.sessionId,
@@ -78,7 +117,7 @@ async function saveSessionMedia(
       hasVideo: media.video !== null,
     });
 
-    return ok(media);
+    return ok(cloneSessionMedia(media));
   } catch (error) {
     logger.error('Failed to save session media', error);
     return err({
@@ -94,7 +133,12 @@ async function getSessionMedia(
   athleteId: string,
 ): Promise<Result<SessionMedia | null, ServiceError>> {
   try {
-    const allMedia = await getAllSessionMedia();
+    const mockGuard = requireMockSessionMedia();
+    if (!mockGuard.success) {
+      return err(mockGuard.error);
+    }
+
+    const allMedia = getAllSessionMedia();
     const found =
       allMedia.find((entry) => entry.sessionId === sessionId && entry.athleteId === athleteId) ??
       null;
@@ -113,7 +157,12 @@ async function listMediaForSession(
   sessionId: string,
 ): Promise<Result<SessionMedia[], ServiceError>> {
   try {
-    const allMedia = await getAllSessionMedia();
+    const mockGuard = requireMockSessionMedia();
+    if (!mockGuard.success) {
+      return err(mockGuard.error);
+    }
+
+    const allMedia = getAllSessionMedia();
     return ok(allMedia.filter((entry) => entry.sessionId === sessionId));
   } catch (error) {
     logger.error('Failed to list session media', error);
@@ -129,7 +178,12 @@ async function listMediaForAthlete(
   athleteId: string,
 ): Promise<Result<SessionMedia[], ServiceError>> {
   try {
-    const allMedia = await getAllSessionMedia();
+    const mockGuard = requireMockSessionMedia();
+    if (!mockGuard.success) {
+      return err(mockGuard.error);
+    }
+
+    const allMedia = getAllSessionMedia();
     return ok(allMedia.filter((entry) => entry.athleteId === athleteId));
   } catch (error) {
     logger.error('Failed to list athlete media', error);
@@ -147,7 +201,12 @@ async function removeSessionMediaAsset(
   uri: string,
 ): Promise<Result<SessionMedia | null, ServiceError>> {
   try {
-    const allMedia = await getAllSessionMedia();
+    const mockGuard = requireMockSessionMedia();
+    if (!mockGuard.success) {
+      return err(mockGuard.error);
+    }
+
+    const allMedia = getAllSessionMedia();
     const targetIndex = allMedia.findIndex(
       (entry) => entry.sessionId === sessionId && entry.athleteId === athleteId,
     );
@@ -176,7 +235,7 @@ async function removeSessionMediaAsset(
 
     if (nextPhotos.length === 0 && nextVideo === null) {
       allMedia.splice(targetIndex, 1);
-      await apiClient.set(STORAGE_KEYS.SESSION_MEDIA, allMedia);
+      replaceAllSessionMedia(allMedia);
       return ok(null);
     }
 
@@ -187,9 +246,9 @@ async function removeSessionMediaAsset(
       createdAt: new Date().toISOString(),
     };
     allMedia[targetIndex] = nextMedia;
-    await apiClient.set(STORAGE_KEYS.SESSION_MEDIA, allMedia);
+    replaceAllSessionMedia(allMedia);
 
-    return ok(nextMedia);
+    return ok(cloneSessionMedia(nextMedia));
   } catch (error) {
     logger.error('Failed to remove media asset', error);
     return err({
@@ -269,9 +328,14 @@ async function shareMedia(
 
 async function cleanupOldMedia(olderThanMonths: number = 6): Promise<Result<number, ServiceError>> {
   try {
+    const mockGuard = requireMockSessionMedia();
+    if (!mockGuard.success) {
+      return err(mockGuard.error);
+    }
+
     const now = new Date();
     const cutoff = new Date(now.getFullYear(), now.getMonth() - olderThanMonths, now.getDate());
-    const allMedia = await getAllSessionMedia();
+    const allMedia = getAllSessionMedia();
     let deletedCount = 0;
 
     const compactedEntries = await Promise.all(
@@ -324,7 +388,7 @@ async function cleanupOldMedia(olderThanMonths: number = 6): Promise<Result<numb
       .filter((entry): entry is SessionMedia => entry !== null);
     deletedCount = compactedEntries.reduce((sum, entryResult) => sum + entryResult.deletedCount, 0);
 
-    await apiClient.set(STORAGE_KEYS.SESSION_MEDIA, compacted);
+    replaceAllSessionMedia(compacted);
     return ok(deletedCount);
   } catch (error) {
     logger.error('Failed to cleanup old media', error);
@@ -346,4 +410,10 @@ export const mediaService = {
   generateVideoThumbnail,
   shareMedia,
   cleanupOldMedia,
+  __resetMockMedia(): void {
+    sessionMediaCache = [];
+  },
+  __seedMockMedia(media: SessionMedia[]): void {
+    replaceAllSessionMedia(media);
+  },
 };

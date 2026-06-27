@@ -1,13 +1,11 @@
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
 
-import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { apiClient } from '@/services/api-client';
 import { sessionTemplateService } from '@/services/session-template-service';
 
 describe('sessionTemplateService', () => {
   beforeEach(async () => {
-    await apiClient.remove(STORAGE_KEYS.SESSION_TEMPLATES);
+    sessionTemplateService.__resetMockTemplates();
   });
 
   it('seeds default templates for a coach (happy path)', async () => {

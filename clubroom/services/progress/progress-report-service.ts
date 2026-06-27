@@ -12,6 +12,7 @@
 
 import { badgeService } from '../badge-service';
 import { apiClient } from '../api-client';
+import { bookingService } from '@/services/booking';
 import { createLogger } from '@/utils/logger';
 import type { Goal } from '@/constants/types';
 import type { Booking, Session } from '@/constants/app-types';
@@ -137,7 +138,7 @@ async function getAthleteProgress(
     badgeService.getProgressToNextLevel(athleteId),
     badgeService.listAwardsForAthlete(athleteId),
     apiClient.get<Session[]>(STORAGE_KEYS.COACH_SESSIONS, []),
-    apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
+    bookingService.list(),
   ]);
 
   // Convert skills to array

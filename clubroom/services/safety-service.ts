@@ -8,7 +8,14 @@ import {
 import { apiClient } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
-import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  storageError,
+  validationError,
+} from '@/types/result';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 import { familyHealthService } from '@/services/family/family-health-service';
 
@@ -201,25 +208,42 @@ const MOCK_EMERGENCY_INFO: Record<string, EmergencyInfo> | null = __DEV__
     })
   : null;
 
+function cloneEmergencyInfo(info: EmergencyInfo): EmergencyInfo {
+  return {
+    ...info,
+    contacts: info.contacts.map((contact) => ({ ...contact })),
+    medical: {
+      ...info.medical,
+      conditions: [...info.medical.conditions],
+      allergies: [...info.medical.allergies],
+      medications: [...info.medical.medications],
+      restrictions: [...info.medical.restrictions],
+    },
+    consents: info.consents.map((consent) => ({ ...consent })),
+  };
+}
+
+function cloneEmergencyInfoStore(
+  source: Record<string, EmergencyInfo> | null | undefined,
+): Record<string, EmergencyInfo> {
+  return Object.fromEntries(
+    Object.entries(source ?? {}).map(([athleteId, info]) => [athleteId, cloneEmergencyInfo(info)]),
+  );
+}
+
+let mockEmergencyInfo = cloneEmergencyInfoStore(MOCK_EMERGENCY_INFO);
+let emergencyCache: EmergencyCache = {};
+
 class SafetyService {
   private async getEmergencyInfoValue(athleteId: string): Promise<EmergencyInfo> {
-    const allInfo = await apiClient.get<Record<string, EmergencyInfo>>(
-      STORAGE_KEYS.EMERGENCY_INFO,
-      MOCK_EMERGENCY_INFO ?? {},
-    );
-    return allInfo[athleteId] ?? createDefaultEmergencyInfo(athleteId);
+    return cloneEmergencyInfo(mockEmergencyInfo[athleteId] ?? createDefaultEmergencyInfo(athleteId));
   }
 
   private async updateEmergencyInfoValue(
     athleteId: string,
     update: Partial<Omit<EmergencyInfo, 'athleteId' | 'updatedAt'>>,
   ): Promise<EmergencyInfo> {
-    const allInfo = await apiClient.get<Record<string, EmergencyInfo>>(
-      STORAGE_KEYS.EMERGENCY_INFO,
-      MOCK_EMERGENCY_INFO ?? {},
-    );
-
-    const currentInfo = allInfo[athleteId] ?? createDefaultEmergencyInfo(athleteId);
+    const currentInfo = mockEmergencyInfo[athleteId] ?? createDefaultEmergencyInfo(athleteId);
     const updatedInfo: EmergencyInfo = {
       ...currentInfo,
       ...update,
@@ -227,10 +251,12 @@ class SafetyService {
       updatedAt: new Date().toISOString(),
     };
 
-    allInfo[athleteId] = updatedInfo;
-    await apiClient.set(STORAGE_KEYS.EMERGENCY_INFO, allInfo);
+    mockEmergencyInfo = {
+      ...mockEmergencyInfo,
+      [athleteId]: cloneEmergencyInfo(updatedInfo),
+    };
 
-    return updatedInfo;
+    return cloneEmergencyInfo(updatedInfo);
   }
 
   /**
@@ -306,11 +332,7 @@ class SafetyService {
 
     // Parents: check family membership (flat list, match by child id)
     if (requestorRole === 'parent') {
-      const familyMembers = await apiClient.get<{ id: string; parentId?: string }[]>(
-        STORAGE_KEYS.FAMILY_MEMBERS,
-        [],
-      );
-      return familyMembers.some((m) => m.id === athleteId);
+      return Boolean(mockEmergencyInfo[athleteId]);
     }
 
     // Coaches: check roster (coach's rostered athletes)
@@ -1007,21 +1029,21 @@ class SafetyService {
     info: EmergencyInfo,
     athleteName?: string,
   ): Promise<void> {
-    const cache = await apiClient.get<EmergencyCache>(STORAGE_KEYS.EMERGENCY_CACHE, {});
-    cache[athleteId] = {
-      data: info,
-      cachedAt: Date.now(),
-      athleteName,
+    emergencyCache = {
+      ...emergencyCache,
+      [athleteId]: {
+        data: cloneEmergencyInfo(info),
+        cachedAt: Date.now(),
+        athleteName,
+      },
     };
-    await apiClient.set(STORAGE_KEYS.EMERGENCY_CACHE, cache);
   }
 
   /**
    * Get cached emergency info
    */
   private async getCachedEmergencyInfo(athleteId: string): Promise<CachedEmergencyInfo | null> {
-    const cache = await apiClient.get<EmergencyCache>(STORAGE_KEYS.EMERGENCY_CACHE, {});
-    const cached = cache[athleteId];
+    const cached = emergencyCache[athleteId];
 
     if (!cached) {
       return null;
@@ -1032,7 +1054,10 @@ class SafetyService {
       return null;
     }
 
-    return cached;
+    return {
+      ...cached,
+      data: cloneEmergencyInfo(cached.data),
+    };
   }
 
   /**
@@ -1068,11 +1093,36 @@ class SafetyService {
    */
   async clearCache(): Promise<Result<void, ServiceError>> {
     try {
-      await apiClient.remove(STORAGE_KEYS.EMERGENCY_CACHE);
+      emergencyCache = {};
       return ok(undefined);
     } catch (error) {
       logger.error('Failed to clear emergency cache', error);
       return err(storageError('Failed to clear emergency cache'));
+    }
+  }
+
+  async removeEmergencyInfo(athleteId: string): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return err(
+        validationError(
+          'Removing emergency info requires backend family health deletion authority in API mode.',
+        ),
+      );
+    }
+
+    try {
+      if (athleteId in mockEmergencyInfo) {
+        const nextInfo = { ...mockEmergencyInfo };
+        delete nextInfo[athleteId];
+        mockEmergencyInfo = nextInfo;
+      }
+      const nextCache = { ...emergencyCache };
+      delete nextCache[athleteId];
+      emergencyCache = nextCache;
+      return ok(undefined);
+    } catch (error) {
+      logger.error('Failed to remove emergency info', { athleteId, error });
+      return err(storageError('Failed to remove emergency info'));
     }
   }
 
@@ -1081,7 +1131,7 @@ class SafetyService {
    */
   async resetToMockData(): Promise<Result<void, ServiceError>> {
     try {
-      await apiClient.set(STORAGE_KEYS.EMERGENCY_INFO, MOCK_EMERGENCY_INFO ?? {});
+      mockEmergencyInfo = cloneEmergencyInfoStore(MOCK_EMERGENCY_INFO);
       const clearResult = await this.clearCache();
       if (!clearResult.success) return err(clearResult.error);
       return ok(undefined);

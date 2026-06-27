@@ -1519,6 +1519,209 @@ describe('wave2+ routes', () => {
     assert.equal(denied.statusCode, 403);
   });
 
+  it('mutates athlete goals through backend authority and audits writes', async () => {
+    const tables = loadTables();
+    const guardianLink = asRows(tables.guardianChildLinks).find((link) =>
+      Boolean(asString(link.athleteId)) && Boolean(asString(link.guardianUserId)),
+    );
+    assert.ok(guardianLink, 'expected guardian link for goal mutations');
+    const athleteId = asString(guardianLink.athleteId) as string;
+    const guardianUserId = asString(guardianLink.guardianUserId) as string;
+    const athleteUserId = athleteId.startsWith('ath_') ? `usr_${athleteId.slice(4)}` : athleteId;
+    const parentHeaders = authHeaders(tables, guardianUserId, 'parent', {
+      'x-guardian-athlete-ids': athleteId,
+    });
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/v1/athletes/${athleteId}/goals`,
+      headers: parentHeaders,
+      payload: {
+        title: 'Improve first touch',
+        description: 'Keep first touch clean under match pressure.',
+        category: 'BALL_SKILLS',
+        targetDate: '2026-09-01',
+        milestones: ['Complete first-touch baseline', 'Review coach feedback'],
+      },
+    });
+    assert.equal(created.statusCode, 201);
+    const createdPayload = created.json() as {
+      goal: SeedRow;
+      milestones: SeedRow[];
+    };
+    const goalId = asString(createdPayload.goal.id) as string;
+    assert.match(goalId, /^gol_/);
+    assert.equal(asString(createdPayload.goal.athleteId), athleteId);
+    assert.equal(asString(createdPayload.goal.status), 'ACTIVE');
+    assert.equal(createdPayload.milestones.length, 2);
+
+    const read = await app.inject({
+      method: 'GET',
+      url: `/v1/goals/${goalId}`,
+      headers: parentHeaders,
+    });
+    assert.equal(read.statusCode, 200);
+    const readPayload = read.json() as { goal: SeedRow; milestones: SeedRow[] };
+    assert.equal(asString(readPayload.goal.id), goalId);
+    assert.equal(readPayload.milestones.length, 2);
+
+    const patched = await app.inject({
+      method: 'PATCH',
+      url: `/v1/goals/${goalId}`,
+      headers: parentHeaders,
+      payload: {
+        title: 'Improve first touch under pressure',
+        status: 'COMPLETED',
+      },
+    });
+    assert.equal(patched.statusCode, 200);
+    const patchedPayload = patched.json() as { goal: SeedRow };
+    assert.equal(asString(patchedPayload.goal.title), 'Improve first touch under pressure');
+    assert.equal(asString(patchedPayload.goal.status), 'COMPLETED');
+
+    const outsiderUserId = findUnprivilegedUserId(
+      tables,
+      new Set([guardianUserId, athleteUserId]),
+    );
+    const denied = await app.inject({
+      method: 'PATCH',
+      url: `/v1/goals/${goalId}`,
+      headers: authHeaders(tables, outsiderUserId),
+      payload: {
+        status: 'ABANDONED',
+      },
+    });
+    assert.equal(denied.statusCode, 403);
+
+    const deleted = await app.inject({
+      method: 'DELETE',
+      url: `/v1/goals/${goalId}`,
+      headers: parentHeaders,
+    });
+    assert.equal(deleted.statusCode, 204);
+
+    const missing = await app.inject({
+      method: 'GET',
+      url: `/v1/goals/${goalId}`,
+      headers: parentHeaders,
+    });
+    assert.equal(missing.statusCode, 404);
+
+    const liveTables = getMarketplaceSeedStore().tables;
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'athlete_goal.create',
+        resourceId: goalId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'athlete_goal.read',
+        resourceId: goalId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'athlete_goal.update',
+        resourceId: goalId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'athlete_goal.delete',
+        resourceId: goalId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    const storedGoal = asRows(liveTables.goals).find((goal) => asString(goal.id) === goalId);
+    assert.ok(asString(storedGoal?.deletedAt), 'expected deleted goal to be soft deleted');
+  });
+
+  it('serves athlete goals from the db fixture backend when API_DATA_BACKEND=db', async () => {
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+
+    try {
+      const store = getDbFixtureStore();
+      const tables = store.tables;
+      const guardianLink = asRows(tables.guardianChildLinks).find((link) =>
+        asRows(tables.goals).some(
+          (goal) =>
+            asString(goal.athleteId) === asString(link.athleteId) && !asString(goal.deletedAt),
+        ),
+      );
+      assert.ok(guardianLink, 'expected guardian link for athlete with goals');
+      const athleteId = asString(guardianLink.athleteId) as string;
+      const guardianUserId = asString(guardianLink.guardianUserId) as string;
+      const fixtureGoalId = 'gol_db_fixture_analytics';
+
+      asRows(tables.goals).push({
+        id: fixtureGoalId,
+        athleteId,
+        title: 'DB fixture goal',
+        status: 'ACTIVE',
+        creatorUserId: guardianUserId,
+        createdByUserId: guardianUserId,
+        updatedByUserId: guardianUserId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      asRows(tables.goalMilestones).push({
+        id: 'glm_db_fixture_analytics',
+        goalId: fixtureGoalId,
+        title: 'DB fixture milestone',
+        status: 'PENDING',
+        sortOrder: 1,
+        createdByUserId: guardianUserId,
+        updatedByUserId: guardianUserId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/v1/athletes/${athleteId}/goals`,
+        headers: authHeaders(tables, guardianUserId, 'parent', {
+          'x-guardian-athlete-ids': athleteId,
+        }),
+      });
+      assert.equal(response.statusCode, 200);
+      const payload = response.json() as {
+        goals: SeedRow[];
+        milestones: SeedRow[];
+        seedVersion: string | null;
+      };
+      assert.equal(
+        payload.goals.some((goal) => asString(goal.id) === fixtureGoalId),
+        true,
+      );
+      assert.equal(
+        payload.milestones.some((milestone) => asString(milestone.goalId) === fixtureGoalId),
+        true,
+      );
+      assert.equal(payload.seedVersion, store.version);
+      assert.equal(
+        asRows(tables.auditEvents).some(
+          (event) =>
+            asString(event.action) === 'athlete_goals.read' &&
+            asString(event.resourceId) === athleteId &&
+            asString(event.result) === 'SUCCESS',
+        ),
+        true,
+      );
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+      resetDbFixtureStoreForTests();
+    }
+  });
+
   it('returns drills, uploads, video, community, messages, and notifications for seeded users', async () => {
     await withStorageEnv(async () => {
       const tables = loadTables();

@@ -179,7 +179,7 @@ export const EmptyFeedNoClubs = function EmptyFeedNoClubs({
         </Clickable>
         <Clickable
           style={[styles.emptyStateButtonOutline, { borderColor: palette.border }]}
-          onPress={() => router.push(isCoach ? '/club/create' : Routes.DISCOVER_MAP)}
+          onPress={() => router.push(isCoach ? Routes.CLUB_CREATE : Routes.DISCOVER_MAP)}
         >
           <Ionicons
             name={isCoach ? 'add-circle-outline' : 'search-outline'}

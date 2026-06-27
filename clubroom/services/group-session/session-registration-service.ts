@@ -27,6 +27,7 @@ import {
 } from "@/types/result";
 import { emitTyped, ServiceEvents } from "../event-bus";
 import { bookingCrudService } from "../booking";
+import { childService } from "../child-service";
 import { userService } from "../user-service";
 import type { GroupSession, GroupRegistration } from "@/constants/types";
 import { loadSessions, saveSessions } from "./session-crud-service";
@@ -903,8 +904,36 @@ export const sessionRegistrationService = {
           return aDate.localeCompare(bDate);
         });
     }
-    const response = await fetch(`/api/parents/${parentId}/registrations`);
-    return response.json();
+    const children = await childService.getChildren(parentId);
+    const athleteIds = new Set(children.map((child) => child.id));
+    if (athleteIds.size === 0) {
+      return [];
+    }
+
+    const [registrationsResult, sessionsResult] = await Promise.all([
+      groupSessionAuthorityService.getRegistrationsForAthletes(athleteIds),
+      groupSessionAuthorityService.listSessions({}),
+    ]);
+    if (!registrationsResult.success) {
+      throw new Error(registrationsResult.error.message);
+    }
+    if (!sessionsResult.success) {
+      throw new Error(sessionsResult.error.message);
+    }
+
+    const sessionsById = new Map(
+      sessionsResult.data.map((session) => [session.id, session] as const),
+    );
+    return registrationsResult.data
+      .flatMap((registration) => {
+        const session = sessionsById.get(registration.sessionId);
+        return session ? [{ ...registration, session }] : [];
+      })
+      .sort((a, b) => {
+        const aDate = a.session.schedule[0]?.date || "";
+        const bDate = b.session.schedule[0]?.date || "";
+        return aDate.localeCompare(bDate);
+      });
   },
   /**
    * Get all active registrations for a set of athlete IDs (across all sessions).

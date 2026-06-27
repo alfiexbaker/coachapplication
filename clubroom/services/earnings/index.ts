@@ -13,10 +13,9 @@
  * compatibility, re-exporting all functionality from the split services.
  *
  * API Integration Notes:
- * - GET /api/earnings/:coachId - Get coach earnings
- * - POST /api/payout-methods - Add payout method
- * - POST /api/withdrawals - Request withdrawal
- * - GET /api/transactions/:coachId - Transaction history
+ * - GET /v1/coaches/me/earnings - Self-only invoice-derived earnings and transactions
+ * - Payout methods and withdrawals use coach-self /v1 boundaries with simulated
+ *   provider state; no real money rails are invoked
  */
 
 import { earningsCalculatorService } from './earnings-calculator-service';
@@ -183,6 +182,21 @@ export const earningsService = {
       return { success: false, error: result.error.message };
     }
     return { success: true };
+  },
+
+  /**
+   * Complete a simulated withdrawal
+   */
+  async completeWithdrawal(withdrawalId: string): Promise<{
+    success: boolean;
+    withdrawal?: import('@/constants/types').Withdrawal;
+    error?: string;
+  }> {
+    const result = await payoutService.completeWithdrawal(withdrawalId);
+    if (!result.success) {
+      return { success: false, error: result.error.message };
+    }
+    return { success: true, withdrawal: result.data };
   },
 
   /**

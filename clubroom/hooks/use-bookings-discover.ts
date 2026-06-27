@@ -10,14 +10,13 @@ import { router } from "expo-router";
 import { Routes } from "@/navigation/routes";
 import { bookingService } from "@/services/booking";
 import { eventService } from "@/services/event";
+import { groupSessionService, sessionRegistrationService } from "@/services/group-session";
 import { inviteService as sessionInviteService } from "@/services/invite";
 import { discoverService } from "@/services/discover-service";
 // Note: discoverService.getSuggestedCoaches() exists but we deliberately
 // don't surface coach rankings — marketplace fairness concern.
-import { apiClient } from "@/services/api-client";
 import { ensureRelationalDemoSeeded } from "@/services/relational-demo-seed-service";
 import { ServiceEvents } from "@/services/event-bus";
-import { STORAGE_KEYS } from "@/constants/storage-keys";
 import { useAuth } from "@/hooks/use-auth";
 import { useChildContext } from "@/hooks/use-child-context";
 import { useScreen } from "@/hooks/use-screen";
@@ -100,19 +99,6 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
         }
       }
 
-      // --- All session offerings + group projections ---
-      const [storedOfferings, groupSessions, groupRegistrations] =
-        await Promise.all([
-          apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
-          apiClient.get<GroupSession[]>(STORAGE_KEYS.GROUP_SESSIONS, []),
-          apiClient.get<GroupRegistration[]>(
-            STORAGE_KEYS.GROUP_REGISTRATIONS,
-            [],
-          ),
-        ]);
-      const normalizedStoredOfferings = storedOfferings.map(
-        normalizeSessionOfferingSource,
-      );
       const scopedChildren = contextChildren.filter(
         (child) => !activeChildId || child.id === activeChildId,
       );
@@ -128,6 +114,12 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
           childClubIds.add(clubId);
         }
       }
+
+      // --- Group sessions + viewer registrations from /v1 authority ---
+      const [groupSessions, groupRegistrations] = await Promise.all([
+        groupSessionService.discoverSessions(),
+        sessionRegistrationService.getRegistrationsForAthletes(viewerIds),
+      ]);
       const registrationsBySessionId = new Map<string, GroupRegistration[]>();
       for (const registration of groupRegistrations) {
         if (!registrationsBySessionId.has(registration.sessionId)) {
@@ -162,9 +154,9 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
         },
       );
       const eventClubIds = new Set<string>(childClubIds);
-      for (const offering of normalizedStoredOfferings) {
-        if (offering.clubId) {
-          eventClubIds.add(offering.clubId);
+      for (const session of relevantGroupSessions) {
+        if (session.clubId) {
+          eventClubIds.add(session.clubId);
         }
       }
       const clubEventsResults = await Promise.all(
@@ -194,9 +186,6 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
             : [],
         );
       const allOfferingsById = new Map<string, SessionOffering>();
-      for (const offering of normalizedStoredOfferings) {
-        allOfferingsById.set(offering.id, offering);
-      }
       for (const offering of projectedGroupOfferings) {
         allOfferingsById.set(offering.id, offering);
       }

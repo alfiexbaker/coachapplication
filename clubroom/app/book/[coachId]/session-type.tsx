@@ -14,14 +14,12 @@ import {
 } from '@/components/ui/booking/session-type-selector';
 import { EmptyState, ErrorState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { SessionOffering } from '@/constants/session-types';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen } from '@/hooks/use-screen';
 import { Routes } from '@/navigation/routes';
-import { apiClient } from '@/services/api-client';
 import { bookingStepAnalyticsService } from '@/services/booking/booking-step-analytics-service';
 import { listPublicCoachOfferingsFromApi } from '@/services/coach-offering-api';
 import {
@@ -34,8 +32,6 @@ import {
   getSessionOfferingCategoryId,
   sortSessionOfferingsForBooking,
 } from '@/utils/session-offering-booking';
-import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
-import { accountIdsMatch } from '@/utils/account-id';
 import { hasAccountChildren } from '@/utils/booking-self-capability';
 import { err, ok, serviceError } from '@/types/result';
 
@@ -180,29 +176,11 @@ export default function SessionTypeScreen() {
     }
 
     try {
-      if (!apiClient.isMockMode) {
-        const result = await listPublicCoachOfferingsFromApi(coachId, new Date().toISOString());
-        if (!result.success) {
-          return err(result.error);
-        }
-        return ok(sortSessionOfferingsForBooking(result.data));
+      const result = await listPublicCoachOfferingsFromApi(coachId, new Date().toISOString());
+      if (!result.success) {
+        return err(result.error);
       }
-
-      const now = Date.now();
-      const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
-      const coachOfferings = offerings.filter((offering) => {
-        if (!accountIdsMatch(offering.coachId, coachId)) return false;
-        if (offering.status !== 'active') return false;
-
-        const startsAt = new Date(offering.scheduledAt).getTime();
-        const isUpcoming = offering.isRecurring || (Number.isFinite(startsAt) && startsAt >= now);
-        if (!isUpcoming) return false;
-
-        const headcount = getSessionOfferingHeadcount(offering);
-        return headcount < offering.maxParticipants;
-      });
-
-      return ok(sortSessionOfferingsForBooking(coachOfferings));
+      return ok(sortSessionOfferingsForBooking(result.data));
     } catch (loadError) {
       return err(serviceError('UNKNOWN', 'Failed to load coach offerings.', loadError));
     }

@@ -33,26 +33,20 @@ import { inviteService } from '@/services/invite';
 import { groupSessionService } from '@/services/group-session-service';
 import { academyService } from '@/services/academy-service';
 import { userService } from '@/services/user-service';
-import { apiClient } from '@/services/api-client';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { getRosterAthleteName, getRosterParentName } from '@/utils/roster-display';
-import { getSessionOfferingHeadcount } from '@/utils/session-offering-capacity';
 import type {
   Academy,
   AcademyMembership,
   GroupSession,
-  SessionOffering,
   TimeSlot,
 } from '@/constants/types';
 import { uiFeedback } from '@/services/ui-feedback';
 import type { OrganizationCommercialMode } from '@/constants/types';
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
 type FlowMode = 'choose' | 'new' | 'existing';
-type ExistingSessionSource = 'offering' | 'group';
 type ExistingSessionScope = 'assigned' | 'club';
 type ExistingSessionOption = {
   id: string;
-  source: ExistingSessionSource;
   title: string;
   startsAt: string;
   location: string;
@@ -103,40 +97,6 @@ function canPostAsClub(membership: AcademyMembership): boolean {
 function toIsoStart(date: string, time: string): string {
   return `${date}T${time}:00`;
 }
-function addMinutesToTime(time: string, minutes: number): string {
-  const [h, m] = time.split(':').map(Number);
-  const total = h * 60 + m + minutes;
-  const outH = Math.floor(total / 60) % 24;
-  const outM = total % 60;
-  return `${String(outH).padStart(2, '0')}:${String(outM).padStart(2, '0')}`;
-}
-function mapOfferingToExisting(offering: SessionOffering): ExistingSessionOption {
-  const start = new Date(offering.scheduledAt);
-  const safeStart = Number.isNaN(start.getTime()) ? new Date() : start;
-  const date = safeStart.toISOString().slice(0, 10);
-  const startTime = `${String(safeStart.getHours()).padStart(2, '0')}:${String(safeStart.getMinutes()).padStart(2, '0')}`;
-  const duration = offering.duration ?? 60;
-  const endTime = addMinutesToTime(startTime, duration);
-  const confirmedCount = getSessionOfferingHeadcount(offering);
-  return {
-    id: offering.id,
-    source: 'offering',
-    title: offering.title,
-    startsAt: offering.scheduledAt,
-    location: offering.location,
-    inviteType: offering.inviteType,
-    focus: offering.footballSkill,
-    price: offering.price,
-    currentParticipants: confirmedCount,
-    maxParticipants: offering.maxParticipants,
-    slot: {
-      date,
-      startTime,
-      endTime,
-      location: offering.location,
-    },
-  };
-}
 function mapGroupSessionToExisting(session: GroupSession): ExistingSessionOption | null {
   const now = new Date();
   const next = (session.schedule ?? []).reduce<
@@ -162,7 +122,6 @@ function mapGroupSessionToExisting(session: GroupSession): ExistingSessionOption
   if (!next) return null;
   return {
     id: session.id,
-    source: 'group',
     title: session.title,
     startsAt: next.startsAt,
     location: session.location,
@@ -233,9 +192,8 @@ function ExistingInviteFlow({
       setLoading(true);
       return await runAsyncTryCatchFinally(
         async () => {
-          const [roster, offerings, scopedGroupSessions, academyResult] = await Promise.all([
+          const [roster, scopedGroupSessions, academyResult] = await Promise.all([
             rosterService.getRoster(currentUser.id),
-            apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
             useClubScope && selectedClubId
               ? groupSessionService.getClubTrainingSessions(selectedClubId)
               : groupSessionService.getCoachSessions(sessionOwnerCoachId),
@@ -249,22 +207,6 @@ function ExistingInviteFlow({
             parentName: getRosterParentName(entry),
           }));
           setAthletes(athleteRows);
-          const now = new Date();
-          const filteredOfferings = offerings.flatMap((offering) => {
-            if (
-              !(() => {
-                if (offering.status === 'cancelled') return false;
-                if (!offering.isRecurring && new Date(offering.scheduledAt) < now) return false;
-                if (getSessionOfferingHeadcount(offering) >= offering.maxParticipants) return false;
-                if (useClubScope && selectedClubId) {
-                  return offering.actingAs === 'club' && offering.clubId === selectedClubId;
-                }
-                return offering.coachId === sessionOwnerCoachId;
-              })()
-            )
-              return [];
-            return [mapOfferingToExisting(offering)];
-          });
           const filteredGroupSessions = scopedGroupSessions.flatMap((session) => {
             if (
               !(
@@ -276,7 +218,7 @@ function ExistingInviteFlow({
             const mapped = mapGroupSessionToExisting(session);
             return mapped !== null ? [mapped] : [];
           });
-          const merged = [...filteredOfferings, ...filteredGroupSessions].sort(
+          const merged = [...filteredGroupSessions].sort(
             (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
           );
           const dateFiltered = initialDate
@@ -504,39 +446,13 @@ function ExistingInviteFlow({
           sentCount += result.sent;
           failedCount += result.failed;
         }
-        if (selectedSession.source === 'offering' && sentCount > 0) {
-          const allOfferings = await apiClient.get<SessionOffering[]>(
-            STORAGE_KEYS.SESSION_OFFERINGS,
-            [],
-          );
-          const updated = allOfferings.map((offering) => {
-            if (offering.id !== selectedSession.id) return offering;
-            const ids = new Set(offering.invitedAthleteIds ?? []);
-            const names = new Set(offering.invitedAthleteNames ?? []);
-            athletes.forEach((athlete) => {
-              if (!selectedAthleteIds.includes(athlete.id)) return;
-              ids.add(athlete.id);
-              names.add(athlete.name);
-            });
-            return {
-              ...offering,
-              invitedAthleteIds: Array.from(ids),
-              invitedAthleteNames: Array.from(names),
-            };
-          });
-          await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updated);
-        }
         showToast(
           failedCount > 0
             ? `${sentCount} invite(s) sent, ${failedCount} failed.`
             : `${sentCount} invite(s) sent successfully.`,
           failedCount > 0 ? 'warning' : 'success',
         );
-        if (selectedSession.source === 'group') {
-          router.replace(Routes.groupSession(selectedSession.id));
-        } else {
-          router.replace(Routes.BOOKINGS);
-        }
+        router.replace(Routes.groupSession(selectedSession.id));
       },
       async () => {
         uiFeedback.showToast('Failed to send invites. Please try again.', 'error');
@@ -896,7 +812,7 @@ function ExistingInviteFlow({
                   const selected = session.id === selectedSessionId;
                   return (
                     <Clickable
-                      key={`${session.source}-${session.id}`}
+                      key={session.id}
                       onPress={() => setSelectedSessionId(session.id)}
                       style={[
                         styles.listRow,

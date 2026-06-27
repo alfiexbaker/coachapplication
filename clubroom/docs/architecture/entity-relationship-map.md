@@ -47,6 +47,10 @@ Purpose: give a fast, human-readable overview of the core entities and how they 
   - backend-owned club fixture and result record
   - can be club-level or linked to a squad
   - staff/admin actors create and record results; active club members read according to club visibility
+- `EventAttendance`
+  - backend-owned event check-in/presence record
+  - belongs to one `ClubEvent` and one checked-in `User`
+  - separate from `AttendanceRecord`, which remains booking/group-session athlete development proof
 - `CoachingOffering`
   - what is being sold
 - `AvailabilityTemplate` and `AvailabilityOverride`
@@ -57,6 +61,21 @@ Purpose: give a fast, human-readable overview of the core entities and how they 
   - which athlete or guardian context is attached to the booking
 - `BookingStatusEvent`
   - append-only booking lifecycle
+
+## Money Spine
+
+- `Invoice`
+  - backend-owned coach payee billing record
+  - may link to a booking and can have line items, events, reminders, payment attempts, and reconciler entries
+- `PaymentAttempt`
+  - backend-owned hosted payment attempt
+  - provider is simulated in the current runtime; paid state is confirmed by backend payment-attempt lifecycle, not local app state
+- `CoachPayoutMethod`
+  - coach-owned simulated payout destination
+  - stores display-safe payout details only, such as account last four or masked email
+- `CoachWithdrawal`
+  - coach-owned simulated payout lifecycle record
+  - belongs to one `CoachPayoutMethod`; request/cancel/complete transitions do not move real money
 
 ## Organization Spine
 

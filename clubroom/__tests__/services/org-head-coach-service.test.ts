@@ -3,7 +3,7 @@ import { beforeEach, describe, it } from 'node:test';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { apiClient } from '@/services/api-client';
-import { type ClubMember } from '@/services/club-service';
+import { clubService, type ClubMember } from '@/services/club-service';
 import {
   orgHeadCoachService,
   type HeadCoachStandard,
@@ -120,7 +120,7 @@ async function seedViewer(viewerId: string) {
     },
   ];
 
-  await apiClient.set(`${STORAGE_KEYS.CLUB_MEMBERS}_club_warriors`, clubMembers);
+  clubService.__seedMockMembers('club_warriors', clubMembers);
   await apiClient.set(STORAGE_KEYS.SQUAD_MEMBERS, squadMembers);
 }
 
@@ -133,7 +133,7 @@ describe('orgHeadCoachService', () => {
     await apiClient.remove(STORAGE_KEYS.ORG_HEAD_COACH_TASKS);
     await apiClient.remove(STORAGE_KEYS.ORG_HEAD_COACH_STANDARDS);
     await apiClient.remove(STORAGE_KEYS.SQUAD_MEMBERS);
-    await apiClient.remove(`${STORAGE_KEYS.CLUB_MEMBERS}_club_warriors`);
+    clubService.__resetMockMembers('club_warriors');
   });
 
   it('scopes head coach oversight to assigned squads instead of the full club', async () => {

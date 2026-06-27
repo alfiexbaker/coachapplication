@@ -7,6 +7,7 @@ import { accountIdsMatch, normalizeAccountId } from '@/utils/account-id';
 import { apiClient } from './api-client';
 import { ServiceEvents, emitTyped } from './event-bus';
 import { blockService } from './block-service';
+import { familyMemberService } from './family/family-member-service';
 
 const logger = createLogger('UserService');
 
@@ -26,15 +27,6 @@ interface AuthUserRecord {
   dateOfBirth?: unknown;
   role?: unknown;
   accountType?: unknown;
-}
-
-interface ChildProfileRecord {
-  id?: unknown;
-  firstName?: unknown;
-  lastName?: unknown;
-  nickname?: unknown;
-  photoUrl?: unknown;
-  dateOfBirth?: unknown;
 }
 
 function normalizeUserRole(rawRole: unknown, rawAccountType: unknown): User['role'] {
@@ -89,33 +81,11 @@ function mapAuthUserToUser(authUser: AuthUserRecord): User | null {
   };
 }
 
-function mapChildProfileToUser(profile: ChildProfileRecord): User | null {
-  if (typeof profile.id !== 'string' || profile.id.length === 0) {
-    return null;
-  }
-
-  const firstName = typeof profile.firstName === 'string' ? profile.firstName.trim() : '';
-  const lastName = typeof profile.lastName === 'string' ? profile.lastName.trim() : '';
-  const nickname = typeof profile.nickname === 'string' ? profile.nickname.trim() : '';
-  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
-
-  return {
-    id: profile.id,
-    name: nickname || fullName || firstName || 'Young Athlete',
-    email: '',
-    postcode: '',
-    dateOfBirth: typeof profile.dateOfBirth === 'string' ? profile.dateOfBirth : '',
-    avatar: typeof profile.photoUrl === 'string' ? profile.photoUrl : undefined,
-    role: 'USER',
-  };
-}
-
 class UserService {
   private async loadUsers(): Promise<User[]> {
-    const [users, authUser, childProfiles] = await Promise.all([
+    const [users, authUser] = await Promise.all([
       apiClient.get<User[]>(STORAGE_KEYS.USERS, []),
       apiClient.get<AuthUserRecord | null>(STORAGE_KEYS.AUTH_USER, null),
-      apiClient.get<ChildProfileRecord[]>(STORAGE_KEYS.CHILDREN_PROFILES, []),
     ]);
 
     const usersById = new Map<string, User>();
@@ -129,16 +99,6 @@ class UserService {
       const key = normalizeAccountId(mappedAuthUser.id);
       if (!usersById.has(key)) {
         usersById.set(key, mappedAuthUser);
-      }
-    }
-
-    for (const childProfile of childProfiles) {
-      const mappedChild = mapChildProfileToUser(childProfile);
-      if (!mappedChild) continue;
-
-      const key = normalizeAccountId(mappedChild.id);
-      if (!usersById.has(key)) {
-        usersById.set(key, mappedChild);
       }
     }
 
@@ -291,11 +251,7 @@ class UserService {
   ): Promise<string[]> {
     const accessibleIds: string[] = [];
 
-    // Load family members once
-    const familyMembers = await apiClient.get<{ id: string }[]>(
-      STORAGE_KEYS.FAMILY_MEMBERS,
-      [],
-    );
+    const familyMembers = await familyMemberService.getFamilyMembers(requestorId);
     const familyChildIds = new Set(familyMembers.map((m) => m.id));
 
     // Load roster once

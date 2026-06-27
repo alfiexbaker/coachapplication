@@ -41,15 +41,15 @@ Flags:
 
 Behavior:
 
-- Still mock-backed
-- Adds relational seeding plus synthetic activity pulses
-- Intended to make the app feel live without switching services to real HTTP
+- Retained as an inert compatibility mode.
+- `services/pre-api-live-mode-service.ts` preserves the `start()` / `stop()` caller contract but no longer seeds relational data, creates synthetic messages/feed/notifications, or mutates booking/progress/invoice local state.
+- `services/relational-demo-seed-service.ts` preserves the `ensureRelationalDemoSeeded()` caller contract but no longer creates or repairs local demo users, bookings, offerings, invites, family, club, safety, messaging, review, or coach-directory records.
+- Live product behavior should come from real `/v1` services instead.
 
 Use when:
 
-- running demo-quality role flows
-- validating marketplace feel before API cutover
-- only by explicit opt-in; this is not the default runtime
+- only while removing older pre-API flag wiring
+- not for validating live product behavior
 
 ## Mode 3: Real API
 
@@ -86,7 +86,9 @@ Current validated runtime state:
 - Rebook entry from booking detail uses `/v1/bookings/:bookingId/rebook-context` in real API mode before creating a new local booking draft, so repeat-booking context is copied only from backend-visible booking truth.
 - Saved coach/favourite reads and writes use `/v1/me/favourite-coaches*` in real API mode. Local `favourites` storage remains mock/demo-only and cannot target another user in API mode.
 - Booking series and initial recurring-plan booking generation now use `/v1/booking-series` in real API mode for create, list/detail, and cancel. Local booking-series and recurring-plan storage remain mock-mode behavior, while unsupported recurring mutations fail closed until backend semantics are added.
-- Event RSVP submission now posts to `/v1/events/:eventId/rsvp`; real `db` mode writes `EventRsvp` through Prisma and audits allowed and denied paths. Club event list reads can use `/v1/clubs/:clubId/schedule` projections, while event detail/create/publish/cancel/reminder, event attendance/check-in, and academy management actions fail closed until dedicated `/v1` authorities exist.
+- Event RSVP submission now posts to `/v1/events/:eventId/rsvp`; real `db` mode writes `EventRsvp` through Prisma and audits allowed and denied paths. Club event list reads can use `/v1/clubs/:clubId/schedule` projections, while event detail/create/publish/cancel/reminder and event attendance/check-in use dedicated `/v1` authorities. Academy read flows are club-compatibility aliases over `/v1/clubs`; academy-specific write actions fail closed unless they become distinct club-backed contracts.
+- Athlete goal reads now use `/v1/athletes/:athleteId/goals`; real `db` mode reads Prisma `Goal`/`GoalMilestone` rows and the seed importer carries that graph. Athlete analytics, skill history, goal mutations, skill updates, and coach analytics fail closed until dedicated `/v1` authorities exist.
+- Native calendar sync preferences remain device-local in every runtime mode because they control the current device's calendar integration. `calendar-service.ts` no longer calls legacy `/api/users/:id/calendar-settings`; server-owned bookings, sessions, and club events still come from their `/v1` authorities before export.
 - Static web export uses `utils/runtime-environment.ts` to detect Expo static rendering. Local storage reads/writes become no-ops during static rendering, and constructor-time service hydration must be guarded because route-module evaluation happens before the browser runtime exists.
 
 Implication:
@@ -94,7 +96,7 @@ Implication:
 - The auth transport seam is now contract-aligned for local development.
 - Runtime `/v1` auth no longer accepts client-supplied identity headers in the app/server path.
 - Runtime `/v1` auth is no longer using the temporary dev-session token model.
-- Mock mode plus pre-API live mode remain explicit compatibility/demo modes.
+- Mock mode remains an explicit compatibility/demo mode. Pre-API live mode is retained as no-op compatibility wiring while live product behavior moves to `/v1`.
 - Backend `/v1` routes are real and API mode is the default direction, but broader endpoint migration and authz follow-through still need work before every retained surface is db-backed.
 - Production server startup now fails fast on blocking config mistakes instead of booting with silent auth/payment misconfiguration.
 - `/v1/ready` no longer returns placeholder `unknown` checks; it reports real `ready`, `degraded`, or `down` status and returns `503` when the runtime is not release-ready.

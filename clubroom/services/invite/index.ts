@@ -18,8 +18,6 @@ import { matchInviteService } from './match-invite-service';
 import { eventInviteService } from './event-invite-service';
 import { inviteRsvpService } from './invite-rsvp-service';
 import { inviteShareService } from './invite-share-service';
-import { apiClient } from '../api-client';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 
 // Re-export individual services
@@ -144,7 +142,6 @@ export const inviteService = {
   async clearCache(): Promise<void> {
     // Clear session invites cache
     setInvitesCache(getMockInvites());
-    await apiClient.remove(STORAGE_KEYS.SESSION_INVITES);
 
     // Clear squad-related caches
     await squadInviteService.clearCache();

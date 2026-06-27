@@ -9,6 +9,7 @@ import { bookingService } from '@/services/booking-service';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { socialFeedService } from '@/services/social-feed-service';
 import { safeguardingService } from '@/services/trust';
+import type { CreateSafeguardingIncidentInput } from '@/services/trust/safeguarding-service';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -39,6 +40,16 @@ const problemCategories: ProblemCategory[] = [
   { id: 'safety', icon: 'shield-outline', label: 'Safety concern' },
   { id: 'other', icon: 'ellipsis-horizontal-outline', label: 'Other issue' },
 ];
+
+const getApiReportCategory = (
+  categoryId: string,
+): CreateSafeguardingIncidentInput['category'] =>
+  categoryId === 'safety' ? 'booking_issue_safety' : 'other';
+
+const getApiReportSeverity = (
+  categoryId: string,
+): CreateSafeguardingIncidentInput['severity'] =>
+  categoryId === 'safety' ? 'high' : 'medium';
 
 export default function ReportProblemScreen() {
   const { colors: palette } = useTheme();
@@ -132,18 +143,22 @@ export default function ReportProblemScreen() {
       async () => {
         const booking = bookingId ? await bookingService.getBooking(bookingId) : null;
         let incidentId: string | undefined;
+        const selectedCategoryConfig = problemCategories.find(
+          (category) => category.id === selectedCategory,
+        );
+        const categoryLabel = selectedCategoryConfig?.label ?? selectedCategory;
 
-        if (selectedCategory === 'safety' && !apiClient.isMockMode) {
+        if (!apiClient.isMockMode) {
           const incidentResult = await safeguardingService.createIncident({
             athleteId: booking?.athleteIds?.[0] ?? booking?.athleteId,
             bookingId: bookingId || booking?.id,
-            category: 'booking_issue_safety',
-            severity: 'high',
+            category: getApiReportCategory(selectedCategory),
+            severity: getApiReportSeverity(selectedCategory),
             summary:
               booking?.service || booking?.serviceType
-                ? `Safety concern reported for ${booking.service || booking.serviceType}`
-                : 'Safety concern reported from booking support flow',
-            details: description.trim(),
+                ? `${categoryLabel} reported for ${booking.service || booking.serviceType}`
+                : `${categoryLabel} reported from booking support flow`,
+            details: `Category: ${selectedCategory}\n\n${description.trim()}`,
           });
 
           if (!incidentResult.success) {
@@ -154,14 +169,8 @@ export default function ReportProblemScreen() {
           incidentId = incidentResult.data.id;
         }
 
-        // Save report to storage
-        const reports = await apiClient.get<Record<string, unknown>[]>(
-          STORAGE_KEYS.PROBLEM_REPORTS,
-          [],
-        );
-
         const newReport = {
-          id: `report_${Date.now()}`,
+          id: incidentId ?? `report_${Date.now()}`,
           bookingId: bookingId || 'unknown',
           category: selectedCategory,
           description: description.trim(),
@@ -170,8 +179,15 @@ export default function ReportProblemScreen() {
           ...(incidentId ? { incidentId } : {}),
         };
 
-        reports.push(newReport);
-        await apiClient.set(STORAGE_KEYS.PROBLEM_REPORTS, reports);
+        if (apiClient.isMockMode) {
+          const reports = await apiClient.get<Record<string, unknown>[]>(
+            STORAGE_KEYS.PROBLEM_REPORTS,
+            [],
+          );
+          reports.push(newReport);
+          await apiClient.set(STORAGE_KEYS.PROBLEM_REPORTS, reports);
+        }
+
         emitTyped(ServiceEvents.PROBLEM_REPORT_CREATED, {
           reportId: newReport.id,
           bookingId: newReport.bookingId,

@@ -30,8 +30,6 @@ import { userService } from '@/services/user-service';
 import type {
   AcademyMembership,
   OrganizationCommercialMode,
-  SessionOffering,
-  SessionOwnershipAuditEvent,
   FootballObjective,
   SessionInviteType,
   TimeSlot,
@@ -903,7 +901,6 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         const ownerClubId = resolvedActingAs === 'club' ? (selectedClubId ?? undefined) : undefined;
         const creatorRole = (currentUser.role as UserRole | undefined) ?? 'COACH';
         const creatorDisplayName = currentUser.name || currentUser.fullName || 'Coach';
-        const nowIso = new Date().toISOString();
         if (resolvedActingAs === 'club') {
           if (!selectedClubOption || !canPostAsClub(selectedClubOption.membership)) {
             setValidationMessage('Choose a club where you can post sessions.');
@@ -1181,40 +1178,10 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
           return;
         }
 
-        // ---- ONE-OFF PATH (unchanged) ----
-        const ownershipAuditTrail: SessionOwnershipAuditEvent[] = [
-          {
-            id: `ownership_${Date.now()}_created`,
-            action: 'CREATED',
-            timestamp: nowIso,
-            actorUserId: currentUser.id,
-            actorName: creatorDisplayName,
-            actorRole: creatorRole,
-            toCoachId: ownerCoachId,
-            note:
-              resolvedActingAs === 'club'
-                ? `Created on behalf of ${selectedClubOption?.name ?? 'club'}`
-                : 'Created as self',
-          },
-        ];
-        if (resolvedActingAs === 'club') {
-          ownershipAuditTrail.push({
-            id: `ownership_${Date.now()}_assigned`,
-            action: 'ASSIGNED',
-            timestamp: nowIso,
-            actorUserId: currentUser.id,
-            actorName: creatorDisplayName,
-            actorRole: creatorRole,
-            toCoachId: ownerCoachId,
-            note: `Assigned to ${ownerCoachName}`,
-          });
-        }
-        const newOfferingId = `session_${Date.now()}`;
-        const newOffering: SessionOffering = {
-          id: newOfferingId,
-          source: 'direct',
-          sourceEntityId: newOfferingId,
+        // ---- ONE-OFF PATH ----
+        const createdSession = await groupSessionService.createSession({
           coachId: ownerCoachId,
+          coachName: ownerCoachName,
           clubId: ownerClubId,
           actingAs: resolvedActingAs,
           commercialMode: selectedCommercialMode,
@@ -1224,38 +1191,33 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
           createdByRole: creatorRole,
           createdByName: creatorDisplayName,
           title,
-          description: description || undefined,
-          sessionType: sessionType === '1on1' ? '1on1' : 'group',
-          inviteType,
+          description: description || 'Football training session',
+          sessionType: 'TRAINING',
+          schedule: [
+            {
+              date: selectedDate,
+              startTime: selectedTime,
+              endTime: selectedEndTime,
+            },
+          ],
           maxParticipants: participants,
+          pricePerParticipant: parsedPrice ?? 0,
+          currency: 'GBP',
           location: resolvedLocation,
           venueName: normalizedVenueName,
           locationCoordinates: locationCoordinates ?? undefined,
-          scheduledAt,
-          isRecurring: false,
-          recurrenceType: 'none',
-          status: 'active',
-          registrations: [],
-          createdAt: nowIso,
-          updatedAt: nowIso,
-          updatedByUserId: currentUser.id,
-          updatedByRole: creatorRole,
-          ownershipAuditTrail,
-          duration: primaryDuration,
-          price: parsedPrice,
-          footballSkill: focusAreas[0] || undefined,
-          invitedAthleteIds: inviteType === 'CLOSED' ? selectedAthletes : undefined,
-          invitedAthleteNames:
-            inviteType === 'CLOSED'
-              ? selectedAthleteRecords.map((athlete) => athlete.name)
-              : undefined,
-        };
-        const offerings = await apiClient.get<SessionOffering[]>(
-          STORAGE_KEYS.SESSION_OFFERINGS,
-          [],
-        );
-        offerings.push(newOffering);
-        await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, offerings);
+          focus: focusAreas,
+          waitlistEnabled: sessionType !== '1on1',
+          isFree: (parsedPrice ?? 0) === 0,
+          inviteType,
+        });
+        const publishResult = await groupSessionService.publishSession(createdSession.id);
+        if (!publishResult.success) {
+          logger.warn('One-off session created but not published', {
+            sessionId: createdSession.id,
+            error: publishResult.error,
+          });
+        }
         const { invitesSent, inviteFailures } = await sendSelectedAthleteInvites({
           proposedSlots: [
             {
@@ -1270,6 +1232,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
           sessionTypeLabel: sessionType === '1on1' ? '1-on-1' : 'Group',
           focusLabel: focusAreas[0] || 'General',
           notesLabel: description || undefined,
+          existingSessionId: createdSession.id,
           locationCoordinates,
         });
         const inviteSummary =

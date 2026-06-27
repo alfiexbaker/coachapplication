@@ -6,10 +6,9 @@
 import { useState, useEffect } from "react";
 import { router } from "expo-router";
 import { Routes } from "@/navigation/routes";
-import { apiClient } from "@/services/api-client";
 import { bookingService } from "@/services/booking";
+import { groupSessionService, sessionRegistrationService } from "@/services/group-session";
 import { inviteService } from "@/services/invite";
-import { STORAGE_KEYS } from "@/constants/storage-keys";
 import { useAuth } from "@/hooks/use-auth";
 import { useChildContext } from "@/hooks/use-child-context";
 import { useScreen, type ScreenStatus } from "@/hooks/use-screen";
@@ -132,27 +131,15 @@ export function useDiscoverSessions() {
           viewerIds.add(child.profileId);
         }
       }
-      const [
-        storedOfferings,
-        groupSessions,
-        groupRegistrations,
-        allBookings,
-        pendingInvites,
-      ] = await Promise.all([
-        apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []),
-        apiClient.get<GroupSession[]>(STORAGE_KEYS.GROUP_SESSIONS, []),
-        apiClient.get<GroupRegistration[]>(
-          STORAGE_KEYS.GROUP_REGISTRATIONS,
-          [],
-        ),
+      const [groupSessions, groupRegistrations, allBookings, pendingInvites] =
+        await Promise.all([
+        groupSessionService.discoverSessions(),
+        sessionRegistrationService.getRegistrationsForAthletes(viewerIds),
         bookingService.list(),
         currentUser && currentUser.role !== "COACH"
           ? inviteService.getPendingInvites(currentUser.id)
           : Promise.resolve([]),
       ]);
-      const normalizedStoredOfferings = storedOfferings.map(
-        normalizeSessionOfferingSource,
-      );
       const groupRegistrationsBySessionId = new Map<
         string,
         GroupRegistration[]
@@ -175,9 +162,6 @@ export function useDiscoverSessions() {
         return mapped !== null ? [mapped] : [];
       });
       const offeringsById = new Map<string, SessionOffering>();
-      for (const offering of normalizedStoredOfferings) {
-        offeringsById.set(offering.id, offering);
-      }
       for (const offering of projectedGroupOfferings) {
         offeringsById.set(offering.id, offering);
       }

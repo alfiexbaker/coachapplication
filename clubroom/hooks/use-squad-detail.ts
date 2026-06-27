@@ -12,10 +12,7 @@ import { useToast } from '@/components/ui/toast';
 import { clubService, type ClubMember } from '@/services/club-service';
 import { squadService } from '@/services/squad-service';
 import { squadGroupService } from '@/services/squad-group-service';
-import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import type { ClubSquad } from '@/constants/types';
-import { apiClient } from '@/services/api-client';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
@@ -190,13 +187,10 @@ export function useSquadDetail(squadId: string | undefined) {
   const handleSaveName = async () => {
     if (!squad || !resolvedClubId || !editName.trim()) return;
     try {
-      const storedSquads = await apiClient.get<ClubSquad[]>('club_squads', []);
-      const idx = storedSquads.findIndex((s) => s.id === squad.id);
-      if (idx !== -1) {
-        storedSquads[idx].name = editName.trim();
-        await apiClient.set('club_squads', storedSquads);
-      }
-      setSquad({ ...squad, name: editName.trim() });
+      const updatedSquad = await squadService.updateSquad(resolvedClubId, squad.id, {
+        name: editName.trim(),
+      });
+      setSquad(updatedSquad);
       setIsEditing(false);
       showToast('Squad name updated', 'success');
       logger.action('RenameSquad', { squadId, newName: editName.trim() });
@@ -253,25 +247,23 @@ export function useSquadDetail(squadId: string | undefined) {
   };
 
   const confirmDeleteSquad = async () => {
-    if (!squadId) return;
+    if (!squadId || !resolvedClubId) return;
     setDeleting(true);
-    try {
-      const storedSquads = await apiClient.get<ClubSquad[]>(STORAGE_KEYS.CLUB_SQUADS, []);
-      const fallbackSquads = resolvedClubId ? await squadService.getSquads(resolvedClubId) : [];
-      const allSquads = storedSquads.length > 0 ? storedSquads : fallbackSquads;
-      const deletedSquad = allSquads.find((s) => s.id === squadId);
-      const filtered = allSquads.filter((s) => s.id !== squadId);
-      await apiClient.set(STORAGE_KEYS.CLUB_SQUADS, filtered);
-      emitTyped(ServiceEvents.SQUAD_DELETED, { squadId, clubId: deletedSquad?.clubId ?? '' });
-      showToast('Squad deleted', 'success');
-      logger.action('DeleteSquad', { squadId });
-      router.back();
-    } catch (error) {
-      logger.error('Failed to delete squad', error);
-      showToast('Failed to delete squad', 'error');
-      setDeleting(false);
-      setShowDeleteConfirm(false);
-    }
+    await runAsyncTryCatchFinally(
+      async () => {
+        await squadService.deleteSquad(resolvedClubId, squadId);
+        showToast('Squad archived', 'success');
+        setShowDeleteConfirm(false);
+        router.replace(Routes.club(resolvedClubId));
+      },
+      async (error) => {
+        logger.error('Failed to archive squad', error);
+        showToast(error instanceof Error ? error.message : 'Failed to archive squad', 'error');
+      },
+      () => {
+        setDeleting(false);
+      },
+    );
   };
 
   const handleInviteSquad = () => {

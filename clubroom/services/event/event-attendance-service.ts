@@ -6,10 +6,10 @@
  *
  * API Integration Notes:
  * - Mock mode keeps local check-in state for development-only flows.
- * - Live API mode fails closed until dedicated /v1 event attendance routes exist.
+ * - Live API mode reads and writes attendance through /v1 authority.
  */
 
-import { apiClient } from '../api-client';
+import { apiClient, apiFetch } from '../api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
@@ -28,8 +28,36 @@ const logger = createLogger('EventAttendanceService');
 
 // Location validation threshold in meters
 const LOCATION_VALIDATION_THRESHOLD = 500;
-const EVENT_ATTENDANCE_V1_GAP =
-  'Event attendance requires dedicated /v1 event attendance routes before live API mode can read or mutate check-in state.';
+
+interface ApiEventAttendance {
+  id: string;
+  eventId?: string | null;
+  clubEventId?: string | null;
+  userId: string;
+  userRole?: EventAttendance['userRole'] | null;
+  checkedInAt: string;
+  checkedInBy?: string | null;
+  checkedInByUserId?: string | null;
+  checkInMethod?: EventAttendance['checkInMethod'] | null;
+  checkInLocation?: EventAttendance['checkInLocation'] | null;
+  locationValidated?: boolean | null;
+  distanceFromVenue?: number | null;
+  guestsCheckedIn?: number | null;
+  notes?: string | null;
+}
+
+interface ApiEventAttendanceListResponse {
+  attendance: ApiEventAttendance[];
+}
+
+interface ApiEventAttendanceResponse {
+  attendance: ApiEventAttendance | null;
+}
+
+interface ApiEventAttendanceStatsResponse extends EventAttendanceStats {
+  requestId?: string;
+  seedVersion?: string;
+}
 
 // ============================================================================
 // MOCK ATTENDANCE DATA
@@ -99,44 +127,23 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
-function eventAttendanceUnsupportedMessage(action: string, eventId: string): string {
-  return `${action} is unavailable in live API mode. ${EVENT_ATTENDANCE_V1_GAP} Event: ${eventId}`;
-}
-
-function logEventAttendanceUnsupported(action: string, eventId: string, userId?: string): void {
-  logger.warn('Event attendance API unavailable in live API mode', {
-    action,
-    eventId,
-    userId,
-    requiredRoutes: [
-      'GET /v1/events/:eventId/attendance',
-      'GET /v1/events/:eventId/attendance/:userId',
-      'POST /v1/events/:eventId/checkins',
-      'DELETE /v1/events/:eventId/checkins/:userId',
-      'GET /v1/events/:eventId/attendance/stats',
-    ],
-  });
-}
-
-function emptyAttendanceStats(eventId: string): EventAttendanceStats {
+function mapApiAttendanceToEventAttendance(
+  attendance: ApiEventAttendance,
+  fallbackEventId: string,
+): EventAttendance {
   return {
-    eventId,
-    rsvpCounts: {
-      going: 0,
-      notGoing: 0,
-      maybe: 0,
-      noResponse: 0,
-    },
-    expectedGuests: 0,
-    checkedInCount: 0,
-    guestsCheckedInCount: 0,
-    attendanceRate: 0,
-    byRole: {
-      coaches: { rsvp: 0, checkedIn: 0 },
-      parents: { rsvp: 0, checkedIn: 0 },
-      athletes: { rsvp: 0, checkedIn: 0 },
-    },
-    updatedAt: new Date().toISOString(),
+    id: attendance.id,
+    eventId: attendance.eventId ?? attendance.clubEventId ?? fallbackEventId,
+    userId: attendance.userId,
+    userRole: attendance.userRole ?? 'PARENT',
+    checkedInAt: attendance.checkedInAt,
+    checkedInBy: attendance.checkedInBy ?? attendance.checkedInByUserId ?? '',
+    checkInMethod: attendance.checkInMethod ?? 'COACH',
+    checkInLocation: attendance.checkInLocation ?? undefined,
+    locationValidated: attendance.locationValidated ?? undefined,
+    distanceFromVenue: attendance.distanceFromVenue ?? undefined,
+    guestsCheckedIn: attendance.guestsCheckedIn ?? 0,
+    notes: attendance.notes ?? undefined,
   };
 }
 
@@ -151,8 +158,28 @@ export const eventAttendanceService = {
    */
   async checkIn(input: CheckInInput): Promise<EventAttendance> {
     if (!USE_MOCK) {
-      logEventAttendanceUnsupported('check-in submission', input.eventId, input.userId);
-      throw new Error(eventAttendanceUnsupportedMessage('Event check-in', input.eventId));
+      const result = await apiFetch<ApiEventAttendanceResponse>(
+        `/v1/events/${encodeURIComponent(input.eventId)}/checkins`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            userId: input.userId,
+            userRole: input.userRole,
+            checkInMethod: input.checkInMethod,
+            location: input.location,
+            guestsCheckedIn: input.guestsCheckedIn ?? 0,
+            notes: input.notes,
+          }),
+        },
+      );
+      if (!result.success || !result.data.attendance) {
+        throw new Error(
+          result.success
+            ? `Event check-in response was missing attendance for ${input.eventId}`
+            : result.error.message,
+        );
+      }
+      return mapApiAttendanceToEventAttendance(result.data.attendance, input.eventId);
     }
 
     const attendance: EventAttendance = {
@@ -216,8 +243,15 @@ export const eventAttendanceService = {
       return;
     }
 
-    logEventAttendanceUnsupported('check-in removal', eventId, userId);
-    throw new Error(eventAttendanceUnsupportedMessage('Event check-in removal', eventId));
+    const result = await apiFetch<void>(
+      `/v1/events/${encodeURIComponent(eventId)}/checkins/${encodeURIComponent(userId)}`,
+      {
+        method: 'DELETE',
+      },
+    );
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
   },
 
   /**
@@ -229,8 +263,17 @@ export const eventAttendanceService = {
       return attendanceCache.filter((a) => a.eventId === eventId);
     }
 
-    logEventAttendanceUnsupported('attendance list read', eventId);
-    return [];
+    const result = await apiFetch<ApiEventAttendanceListResponse>(
+      `/v1/events/${encodeURIComponent(eventId)}/attendance`,
+      {
+        method: 'GET',
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to load event attendance via API', { eventId, error: result.error });
+      return [];
+    }
+    return result.data.attendance.map((item) => mapApiAttendanceToEventAttendance(item, eventId));
   },
 
   /**
@@ -242,8 +285,7 @@ export const eventAttendanceService = {
       return attendanceCache.some((a) => a.eventId === eventId && a.userId === userId);
     }
 
-    logEventAttendanceUnsupported('user attendance status read', eventId, userId);
-    return false;
+    return Boolean(await eventAttendanceService.getUserAttendance(eventId, userId));
   },
 
   /**
@@ -255,8 +297,23 @@ export const eventAttendanceService = {
       return attendanceCache.find((a) => a.eventId === eventId && a.userId === userId) || null;
     }
 
-    logEventAttendanceUnsupported('user attendance record read', eventId, userId);
-    return null;
+    const result = await apiFetch<ApiEventAttendanceResponse>(
+      `/v1/events/${encodeURIComponent(eventId)}/attendance/${encodeURIComponent(userId)}`,
+      {
+        method: 'GET',
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to load user event attendance via API', {
+        eventId,
+        userId,
+        error: result.error,
+      });
+      return null;
+    }
+    return result.data.attendance
+      ? mapApiAttendanceToEventAttendance(result.data.attendance, eventId)
+      : null;
   },
 
   /**
@@ -322,8 +379,16 @@ export const eventAttendanceService = {
       };
     }
 
-    logEventAttendanceUnsupported('attendance stats read', eventId);
-    return emptyAttendanceStats(eventId);
+    const result = await apiFetch<ApiEventAttendanceStatsResponse>(
+      `/v1/events/${encodeURIComponent(eventId)}/attendance/stats`,
+      {
+        method: 'GET',
+      },
+    );
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return result.data;
   },
 
   // ============================================================================

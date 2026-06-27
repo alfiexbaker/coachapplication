@@ -9,7 +9,8 @@
  * - GET /v1/clubs/:clubId/squads - Get all squads for a club
  * - POST /v1/clubs/:clubId/squads - Create a squad
  * - PATCH /v1/clubs/:clubId/squads/:squadId - Update a squad
- * - GET /api/squads/:id/members - Get squad members
+ * - DELETE /v1/clubs/:clubId/squads/:squadId - Archive an empty squad
+ * - GET /v1/squads/:id/members - Get governed squad roster
  */
 
 import { apiClient, apiFetch } from './api-client';
@@ -32,6 +33,10 @@ interface ApiClubSquadsResponse {
 
 interface ApiClubSquadResponse {
   squad: ClubSquad;
+}
+
+interface ApiSquadMembersResponse {
+  members: SquadMember[];
 }
 
 function resolveInputLevel(input: {
@@ -166,6 +171,13 @@ const BASE_CLUB_SQUADS: ClubSquad[] = [
 // Cache for custom squads (created by users)
 let customSquadsCache: ClubSquad[] = [];
 
+function cloneSquad(squad: ClubSquad): ClubSquad {
+  return {
+    ...squad,
+    tags: squad.tags ? [...squad.tags] : undefined,
+  };
+}
+
 function mergeSquads(baseSquads: ClubSquad[], customSquads: ClubSquad[]): ClubSquad[] {
   const byId = new Map<string, ClubSquad>();
   for (const squad of baseSquads) {
@@ -179,25 +191,11 @@ function mergeSquads(baseSquads: ClubSquad[], customSquads: ClubSquad[]): ClubSq
 }
 
 async function loadCustomSquads(): Promise<ClubSquad[]> {
-  try {
-    const stored = await apiClient.get<ClubSquad[] | null>(STORAGE_KEYS.CLUB_SQUADS, null);
-    if (stored) {
-      customSquadsCache = stored;
-      return customSquadsCache;
-    }
-  } catch (error) {
-    logger.error('Failed to load custom squads', error);
-  }
-  return [];
+  return customSquadsCache.map(cloneSquad);
 }
 
 async function saveCustomSquads(squads: ClubSquad[]): Promise<void> {
-  try {
-    await apiClient.set(STORAGE_KEYS.CLUB_SQUADS, squads);
-    customSquadsCache = squads;
-  } catch (error) {
-    logger.error('Failed to save custom squads', error);
-  }
+  customSquadsCache = squads.map(cloneSquad);
 }
 
 // Mock squad members data
@@ -495,6 +493,36 @@ export const squadService = {
   },
 
   /**
+   * Archive a squad after backend dependency checks.
+   */
+  async deleteSquad(clubId: string, squadId: string): Promise<void> {
+    if (USE_MOCK) {
+      const custom = await loadCustomSquads();
+      await saveCustomSquads(custom.filter((squad) => squad.id !== squadId));
+      emitTyped(ServiceEvents.SQUAD_DELETED, {
+        squadId,
+        clubId,
+      });
+      return;
+    }
+
+    const response = await apiFetch<void>(
+      `/v1/clubs/${encodeURIComponent(clubId)}/squads/${encodeURIComponent(squadId)}`,
+      {
+        method: 'DELETE',
+      },
+    );
+    if (!response.success) {
+      logger.error('Failed to delete squad', response.error);
+      throw new Error(response.error.message);
+    }
+    emitTyped(ServiceEvents.SQUAD_DELETED, {
+      squadId,
+      clubId,
+    });
+  },
+
+  /**
    * Get all members of a squad
    */
   async getSquadMembers(squadId: string): Promise<SquadMember[]> {
@@ -503,8 +531,14 @@ export const squadService = {
       return membersCache.filter((m) => m.squadId === squadId && m.status === 'ACTIVE');
     }
 
-    const response = await fetch(`/api/squads/${squadId}/members`);
-    return response.json();
+    const response = await apiFetch<ApiSquadMembersResponse>(
+      `/v1/squads/${encodeURIComponent(squadId)}/members`,
+    );
+    if (!response.success) {
+      logger.error('Failed to load squad members', response.error);
+      throw new Error(response.error.message);
+    }
+    return response.data.members;
   },
 
   /**
@@ -516,8 +550,11 @@ export const squadService = {
       return membersCache.filter((m) => squadIds.includes(m.squadId) && m.status === 'ACTIVE');
     }
 
-    const response = await fetch(`/api/squads/members?squadIds=${squadIds.join(',')}`);
-    return response.json();
+    const uniqueSquadIds = Array.from(new Set(squadIds));
+    const members = await Promise.all(
+      uniqueSquadIds.map((squadId) => this.getSquadMembers(squadId)),
+    );
+    return members.flat();
   },
 
   /**
@@ -617,5 +654,13 @@ export const squadService = {
     // Extract age group from level string (e.g., "U15 · Competitive" -> "U15")
     const match = squad.level.match(/U\d+/);
     return match ? match[0] : squad.level.split('·')[0].trim();
+  },
+
+  __resetMockSquads(): void {
+    customSquadsCache = [];
+  },
+
+  __seedMockSquads(squads: ClubSquad[]): void {
+    customSquadsCache = squads.map(cloneSquad);
   },
 };

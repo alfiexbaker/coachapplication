@@ -130,9 +130,10 @@ export const Endpoints = {
     list: () => `/api/clubs`,
     detail: (id: string) => `/api/clubs/${id}`,
     members: (id: string) => `/api/clubs/${id}/members`,
-    branding: (id: string) => `/api/clubs/${id}/branding`,
+    branding: (id: string) => `/v1/clubs/${id}/branding`,
     squads: (id: string) => `/api/clubs/${id}/squads`,
-    squadMembers: (clubId: string, squadId: string) => `/api/clubs/${clubId}/squads/${squadId}/members`,
+    squadMembers: (clubId: string, squadId: string) =>
+      `/api/clubs/${clubId}/squads/${squadId}/members`,
     events: (id: string) => `/api/clubs/${id}/events`,
     invites: (id: string) => `/api/clubs/${id}/invites`,
   },

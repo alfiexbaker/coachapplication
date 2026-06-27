@@ -11,15 +11,12 @@
  * 4. Withdrawal History - View past and pending withdrawals
  *
  * API Integration Notes:
- * - POST /api/payout-methods - Add payout method
- * - DELETE /api/payout-methods/:id - Remove payout method
- * - PATCH /api/payout-methods/:id/set-default - Set default
- * - POST /api/withdrawals - Request withdrawal
- * - PATCH /api/withdrawals/:id/cancel - Cancel withdrawal
- * - GET /api/withdrawals - Withdrawal history
+ * - API mode uses audited /v1 coach-self payout routes backed by simulated provider state.
+ * - No real money is moved and raw bank details are not stored by the app service.
+ * - Mock mode keeps the legacy local demo cache for offline/demo fixtures only.
  */
 
-import { apiClient } from '../api-client';
+import { apiClient, apiFetch } from '../api-client';
 import { createLogger } from '@/utils/logger';
 import { api } from '@/constants/config';
 import type {
@@ -36,6 +33,7 @@ import {
   notFound,
   validationError,
   networkError,
+  unsupportedError,
 } from '@/types/result';
 
 const logger = createLogger('PayoutService');
@@ -43,6 +41,46 @@ const logger = createLogger('PayoutService');
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const USE_MOCK = api.useMock;
+
+interface PayoutMethodsApiResponse {
+  payoutMethods: PayoutMethod[];
+  payoutMethod?: PayoutMethod;
+  total: number;
+  provider?: 'simulated';
+  providerConfigured: boolean;
+  requestId: string;
+}
+
+interface WithdrawalsApiResponse {
+  withdrawals: Withdrawal[];
+  withdrawal?: Withdrawal;
+  total: number;
+  status: 'all' | 'pending';
+  provider?: 'simulated';
+  providerConfigured: boolean;
+  requestId: string;
+}
+
+function payoutUnsupportedError(action: string): ServiceError {
+  return unsupportedError(
+    `${action} is not available from this /v1 payout API response.`,
+    {
+      missingAuthority: 'coach_payouts',
+    },
+  );
+}
+
+function payoutApiError(action: string, error: ServiceError): ServiceError {
+  const details = error.details;
+  const missingAuthority =
+    details && typeof details === 'object' && 'missingAuthority' in details
+      ? (details as { missingAuthority?: unknown }).missingAuthority
+      : undefined;
+  if (missingAuthority === 'coach_payouts') {
+    return payoutUnsupportedError(action);
+  }
+  return error;
+}
 
 // ============================================================================
 // MOCK DATA
@@ -345,19 +383,19 @@ export const payoutService = {
         return ok(newMethod);
       }
 
-      const response = await fetch('/api/payout-methods', {
+      const response = await apiFetch<PayoutMethodsApiResponse>('/v1/coaches/me/payout-methods', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newMethod),
+        body: JSON.stringify(method),
       });
-
-      if (!response.ok) {
-        logger.error('Failed to add payout method via API', { coachId });
-        return err(networkError('Failed to add payout method'));
+      if (!response.success) {
+        return err(payoutApiError('Adding a payout method', response.error));
       }
-
-      const data = await response.json();
-      return ok(data);
+      const createdMethod =
+        response.data.payoutMethod ??
+        response.data.payoutMethods[response.data.payoutMethods.length - 1];
+      return createdMethod
+        ? ok(createdMethod)
+        : err(validationError('Payout method was not returned by the API'));
     } catch (error) {
       logger.error('Error adding payout method', error);
       return err(networkError('Failed to add payout method'));
@@ -401,15 +439,15 @@ export const payoutService = {
         return ok(true);
       }
 
-      const response = await fetch(`/api/payout-methods/${methodId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        logger.error('Failed to remove payout method via API', { methodId });
-        return err(networkError('Failed to remove payout method'));
+      const response = await apiFetch<PayoutMethodsApiResponse>(
+        `/v1/coaches/me/payout-methods/${encodeURIComponent(methodId)}`,
+        {
+          method: 'DELETE',
+        },
+      );
+      if (!response.success) {
+        return err(payoutApiError('Removing a payout method', response.error));
       }
-
       return ok(true);
     } catch (error) {
       logger.error('Error removing payout method', error);
@@ -462,17 +500,21 @@ export const payoutService = {
         return ok(updatedMethod);
       }
 
-      const response = await fetch(`/api/payout-methods/${methodId}/set-default`, {
-        method: 'PATCH',
-      });
-
-      if (!response.ok) {
-        logger.error('Failed to set default payout method via API', { methodId });
-        return err(networkError('Failed to set default payout method'));
+      const response = await apiFetch<PayoutMethodsApiResponse>(
+        `/v1/coaches/me/payout-methods/${encodeURIComponent(methodId)}/default`,
+        {
+          method: 'PATCH',
+        },
+      );
+      if (!response.success) {
+        return err(payoutApiError('Setting a default payout method', response.error));
       }
-
-      const data = await response.json();
-      return ok(data);
+      const updatedMethod =
+        response.data.payoutMethod ??
+        response.data.payoutMethods.find((method) => method.id === methodId);
+      return updatedMethod
+        ? ok(updatedMethod)
+        : err(validationError('Default payout method was not returned by the API'));
     } catch (error) {
       logger.error('Error setting default payout method', error);
       return err(networkError('Failed to set default payout method'));
@@ -492,14 +534,13 @@ export const payoutService = {
         return ok(methods);
       }
 
-      const response = await fetch(`/api/payout-methods?coachId=${coachId}`);
-      if (!response.ok) {
-        logger.error('Failed to get payout methods from API', { coachId });
-        return err(networkError('Failed to get payout methods'));
+      const response = await apiFetch<PayoutMethodsApiResponse>('/v1/coaches/me/payout-methods', {
+        method: 'GET',
+      });
+      if (!response.success) {
+        return err(payoutApiError('Reading payout methods', response.error));
       }
-
-      const data = await response.json();
-      return ok(data);
+      return ok(response.data.payoutMethods);
     } catch (error) {
       logger.error('Error getting payout methods', error);
       return err(networkError('Failed to get payout methods'));
@@ -613,20 +654,20 @@ export const payoutService = {
         return ok(withdrawal);
       }
 
-      const response = await fetch('/api/withdrawals', {
+      const response = await apiFetch<WithdrawalsApiResponse>('/v1/coaches/me/withdrawals', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ coachId, amount, payoutMethodId }),
+        body: JSON.stringify({
+          amount,
+          payoutMethodId,
+        }),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        logger.error('Failed to request withdrawal via API', { coachId, error: errorData });
-        return err(validationError(errorData.message || 'Failed to request withdrawal'));
+      if (!response.success) {
+        return err(payoutApiError('Requesting a withdrawal', response.error));
       }
-
-      const data = await response.json();
-      return ok(data);
+      const withdrawal = response.data.withdrawal ?? response.data.withdrawals[0];
+      return withdrawal
+        ? ok(withdrawal)
+        : err(validationError('Withdrawal was not returned by the API'));
     } catch (error) {
       logger.error('Error requesting withdrawal', error);
       return err(networkError('Failed to request withdrawal'));
@@ -683,20 +724,67 @@ export const payoutService = {
         return ok(undefined);
       }
 
-      const response = await fetch(`/api/withdrawals/${withdrawalId}/cancel`, {
-        method: 'PATCH',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        logger.error('Failed to cancel withdrawal via API', { withdrawalId, error: errorData });
-        return err(validationError(errorData.message || 'Failed to cancel withdrawal'));
+      const response = await apiFetch<WithdrawalsApiResponse>(
+        `/v1/coaches/me/withdrawals/${encodeURIComponent(withdrawalId)}/cancel`,
+        {
+          method: 'POST',
+        },
+      );
+      if (!response.success) {
+        return err(payoutApiError('Cancelling a withdrawal', response.error));
       }
-
       return ok(undefined);
     } catch (error) {
       logger.error('Error cancelling withdrawal', error);
       return err(networkError('Failed to cancel withdrawal'));
+    }
+  },
+
+  /**
+   * Complete a simulated withdrawal through the /v1 payout API.
+   */
+  async completeWithdrawal(withdrawalId: string): Promise<Result<Withdrawal, ServiceError>> {
+    logger.debug('Completing withdrawal', { withdrawalId });
+
+    try {
+      if (USE_MOCK) {
+        withdrawalsCache = await loadWithdrawals();
+        const index = withdrawalsCache.findIndex((w) => w.id === withdrawalId);
+        if (index === -1) {
+          return err(notFound('Withdrawal', withdrawalId));
+        }
+        const withdrawal = withdrawalsCache[index];
+        if (withdrawal.status === 'COMPLETED') {
+          return ok(withdrawal);
+        }
+        if (withdrawal.status !== 'PENDING' && withdrawal.status !== 'PROCESSING') {
+          return err(validationError('Only pending or processing withdrawals can be completed'));
+        }
+        const now = new Date().toISOString();
+        withdrawal.status = 'COMPLETED';
+        withdrawal.processedAt = withdrawal.processedAt ?? now;
+        withdrawal.completedAt = now;
+        withdrawal.reference = withdrawal.reference ?? `SIM-WD-${Date.now()}`;
+        await saveWithdrawals(withdrawalsCache);
+        return ok(withdrawal);
+      }
+
+      const response = await apiFetch<WithdrawalsApiResponse>(
+        `/v1/coaches/me/withdrawals/${encodeURIComponent(withdrawalId)}/complete`,
+        {
+          method: 'POST',
+        },
+      );
+      if (!response.success) {
+        return err(payoutApiError('Completing a withdrawal', response.error));
+      }
+      const withdrawal = response.data.withdrawal ?? response.data.withdrawals[0];
+      return withdrawal
+        ? ok(withdrawal)
+        : err(validationError('Completed withdrawal was not returned by the API'));
+    } catch (error) {
+      logger.error('Error completing withdrawal', error);
+      return err(networkError('Failed to complete withdrawal'));
     }
   },
 
@@ -715,14 +803,13 @@ export const payoutService = {
         return ok(history);
       }
 
-      const response = await fetch(`/api/withdrawals?coachId=${coachId}`);
-      if (!response.ok) {
-        logger.error('Failed to get withdrawal history from API', { coachId });
-        return err(networkError('Failed to get withdrawal history'));
+      const response = await apiFetch<WithdrawalsApiResponse>('/v1/coaches/me/withdrawals', {
+        method: 'GET',
+      });
+      if (!response.success) {
+        return err(payoutApiError('Reading withdrawal history', response.error));
       }
-
-      const data = await response.json();
-      return ok(data);
+      return ok(response.data.withdrawals);
     } catch (error) {
       logger.error('Error getting withdrawal history', error);
       return err(networkError('Failed to get withdrawal history'));
@@ -744,14 +831,16 @@ export const payoutService = {
         return ok(pending);
       }
 
-      const response = await fetch(`/api/withdrawals?coachId=${coachId}&status=pending`);
-      if (!response.ok) {
-        logger.error('Failed to get pending withdrawals from API', { coachId });
-        return err(networkError('Failed to get pending withdrawals'));
+      const response = await apiFetch<WithdrawalsApiResponse>(
+        '/v1/coaches/me/withdrawals?status=pending',
+        {
+          method: 'GET',
+        },
+      );
+      if (!response.success) {
+        return err(payoutApiError('Reading pending withdrawals', response.error));
       }
-
-      const data = await response.json();
-      return ok(data);
+      return ok(response.data.withdrawals);
     } catch (error) {
       logger.error('Error getting pending withdrawals', error);
       return err(networkError('Failed to get pending withdrawals'));

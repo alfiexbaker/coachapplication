@@ -1,10 +1,7 @@
-# Pre-API Live Mode Playbook (Mock Runtime, Production Feel)
+# Pre-API Live Mode Playbook (Retired Compatibility Mode)
 
 ## Goal
-Keep the app in pre-REST mock mode while making it feel live:
-- rich relational seed data across marketplace flows
-- ongoing activity pulses (messages + notifications + feed)
-- zero service-layer rewrites when switching to real API later
+Document the retired pre-API live mode so old flags and entrypoints are not mistaken for production-like runtime truth.
 
 ## Runtime Flags
 - `EXPO_PUBLIC_USE_MOCK=true`
@@ -14,51 +11,34 @@ Keep the app in pre-REST mock mode while making it feel live:
 - `EXPO_PUBLIC_ENABLE_RELATIONAL_DEMO_SEED=true`
 
 ## What Runs
-- `preApiLiveModeService` starts after auth in `/app/_layout.tsx`
-- bootstrap on auth:
-  - `ensureRelationalDemoSeeded()`
-  - `ensureCoachSessionsSeeded()`
-  - section coverage seed (only when missing for current user):
-    - recurring bookings
-    - invoices
-    - progress data for linked athletes
-  - warm notification injection if inbox is empty
-- activity pulses:
-  - on app active (foreground)
-  - on interval
-  - rotates:
-    - message simulation
-    - notification generation
-    - coach feed post generation
+- `preApiLiveModeService` may still be called after auth in `/app/_layout.tsx`, but it is inert compatibility only.
+- `ensureRelationalDemoSeeded()` is retained as a no-op compatibility entrypoint.
+- No relational seed, section coverage seed, warm notification injection, or activity pulse should create local product data.
 
 ## Section Coverage Map (Product Spines)
 - Community & Growth:
-  - club/feed data via relational seeds + live coach post pulses
-  - messaging threads with synthetic incoming messages
+  - must use real `/v1` club/feed/message APIs or fail closed when no API exists
 - Booking, Availability & Revenue:
-  - relational bookings/session offers/invites
-  - recurring booking coverage for current user path
-  - invoice coverage for current user path
+  - must use `/v1` booking, public offering, invite, and revenue APIs or fail closed when no API exists
 - Development & Analytics:
-  - progress seed generation for linked athlete IDs
+  - must use `/v1` athlete/progress APIs or fail closed when no API exists
 - Trust, Safety & Operations:
-  - injuries/concerns/reports from relational seeds
-  - notification inbox warm-start + ongoing activity pulses
+  - must use `/v1` family health, safeguarding, and ops APIs or fail closed when no API exists
 
 ## Why this is cutover-safe
-- Services still read/write through `apiClient` only.
-- Live-mode behavior is runtime-flagged, not hardwired into feature logic.
-- Turning off live simulation is a flag change, not a refactor.
+- The compatibility entrypoints preserve old caller contracts without writing local server-owned product data.
+- Live product behavior now belongs behind explicit `/v1` API services.
+- Turning on old pre-API flags should not create demo truth.
 
 ## One Switch Off
 - Set `EXPO_PUBLIC_PRE_API_LIVE_MODE=false`.
-- This disables the live bootstrap + pulse runtime while keeping mock mode or real API choice separate.
+- This remains the expected setting for real API work.
 
-## Switch to Real API + Database Later
+## Switch to Real API + Database
 1. Set `EXPO_PUBLIC_USE_MOCK=false`.
 2. Set `EXPO_PUBLIC_PRE_API_LIVE_MODE=false`.
 3. Point `EXPO_PUBLIC_API_URL` to backend.
-4. Keep service contracts intact; migrate data source behind `apiClient`.
+4. Keep feature services behind explicit `/v1` authorities.
 
 ## Optional staging profile
 Use this in a staging `.env` to test real API without simulation noise:

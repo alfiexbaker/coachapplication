@@ -1,6 +1,7 @@
 import { STORAGE_KEYS } from "@/constants/storage-keys";
 import type { Booking } from "@/constants/app-types";
 import { apiClient } from "@/services/api-client";
+import { bookingService } from "@/services/booking";
 import { notificationTriggers } from "@/services/notification-trigger";
 import { badgeService } from "@/services/badge-service";
 import {
@@ -103,7 +104,7 @@ async function dispatchIfDue(
       });
     }
     const [allBookings, progress, streakInfo] = await Promise.all([
-      apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
+      bookingService.list(),
       progressReportService.getAthleteProgress(input.athleteId, "parent"),
       badgeService.getStreakInfo(input.athleteId),
     ]);

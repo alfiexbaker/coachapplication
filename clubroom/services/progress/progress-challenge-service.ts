@@ -37,11 +37,6 @@ import { progressReportService } from './progress-report-service';
 
 const logger = createLogger('ProgressChallengeService');
 
-interface JournalEntryRecord {
-  athleteId: string;
-  createdAt: string;
-}
-
 const CATEGORY_ORDER: BadgeCategory[] = ['technical', 'physical', 'psychological', 'social'];
 
 let eventHandlersRegistered = false;
@@ -174,13 +169,6 @@ function weakestCornerFromSkills(
   };
 }
 
-function startOfRollingWeek(now: Date): number {
-  const week = new Date(now.getTime());
-  week.setDate(week.getDate() - 6);
-  week.setHours(0, 0, 0, 0);
-  return week.getTime();
-}
-
 function getChallengeCurrentValue(
   challenge: ProgressChallenge,
   metrics: ChallengeMetricsSnapshot,
@@ -207,12 +195,11 @@ async function buildMetricsSnapshot(
   athleteId: string,
 ): Promise<Result<ChallengeMetricsSnapshot, ServiceError>> {
   try {
-    const [progress, streak, awards, feedback, journalEntries, definitions] = await Promise.all([
+    const [progress, streak, awards, feedback, definitions] = await Promise.all([
       progressReportService.getAthleteProgress(athleteId, 'athlete'),
       badgeService.getStreakInfo(athleteId),
       badgeService.listAwardsForAthlete(athleteId),
       progressFeedbackService.getFeedbackForAthlete(athleteId, 'athlete'),
-      apiClient.get<JournalEntryRecord[]>(STORAGE_KEYS.SESSION_JOURNAL, []),
       badgeService.listDefinitions(),
     ]);
 
@@ -262,15 +249,7 @@ async function buildMetricsSnapshot(
       ? weakestCornerFromRatings(latestWithCorners.fourCorners)
       : weakestCornerFromSkills(progress.skills);
 
-    const now = new Date();
-    const weekStart = startOfRollingWeek(now);
-    const journalEntriesThisWeek = journalEntries.filter((entry) => {
-      if (entry.athleteId !== athleteId) {
-        return false;
-      }
-      const createdAt = new Date(entry.createdAt).getTime();
-      return !Number.isNaN(createdAt) && createdAt >= weekStart;
-    }).length;
+    const journalEntriesThisWeek = 0;
 
     const improvingSkills = progress.skills.filter((skill) => skill.trend === 'improving').length;
 

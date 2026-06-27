@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 import test, { describe, beforeEach } from 'node:test';
 
 import { childService } from '../../services/child-service';
-import { apiClient } from '../../services/api-client';
+import { safetyService } from '../../services/safety-service';
 
 const rid = () => Math.random().toString(36).slice(2, 10);
 
@@ -28,7 +28,8 @@ function makeChildInput(overrides: Record<string, unknown> = {}) {
 
 describe('childService', () => {
   beforeEach(async () => {
-    await apiClient.remove('children_profiles');
+    childService.__resetMockChildren();
+    await safetyService.resetToMockData();
   });
 
   // ---------------------------------------------------------------------------

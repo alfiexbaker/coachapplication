@@ -11,14 +11,14 @@
  * 4. Format currency for display
  *
  * API Integration Notes:
- * - GET /api/earnings/:coachId/calculate - Calculate from bookings
- * - GET /api/earnings/:coachId/summary - Get period summary
+ * - GET /v1/coaches/me/earnings - Self-only invoice-derived calculations
  */
 
 import { createLogger } from '@/utils/logger';
 import { api } from '@/constants/config';
 import type { EarningTransaction } from '@/constants/types';
 import { bookingService } from '@/services/booking-service';
+import { apiFetch } from '@/services/api-client';
 import { type Result, type ServiceError, ok, err, networkError } from '@/types/result';
 
 const logger = createLogger('EarningsCalculatorService');
@@ -48,6 +48,11 @@ export interface EarningsSummary {
 }
 
 export type EarningsPeriod = 'week' | 'month' | 'year';
+
+interface CoachEarningsApiResponse {
+  calculation: EarningsFromBookings;
+  summary: EarningsSummary;
+}
 
 // ============================================================================
 // EARNINGS CALCULATOR SERVICE
@@ -146,14 +151,17 @@ export const earningsCalculatorService = {
         });
       }
 
-      const response = await fetch(`/api/earnings/${coachId}/calculate`);
-      if (!response.ok) {
-        logger.error('Failed to calculate earnings from API', { coachId });
-        return err(networkError('Failed to calculate earnings'));
+      const result = await apiFetch<CoachEarningsApiResponse>('/v1/coaches/me/earnings', {
+        method: 'GET',
+      });
+      if (!result.success) {
+        logger.error('Failed to calculate authoritative self earnings', {
+          coachId,
+          error: result.error.message,
+        });
+        return err(result.error);
       }
-
-      const data = await response.json();
-      return ok(data);
+      return ok(result.data.calculation);
     } catch (error) {
       logger.error('Error calculating earnings from bookings', error);
       return err(networkError('Failed to calculate earnings'));
@@ -235,14 +243,21 @@ export const earningsCalculatorService = {
         });
       }
 
-      const response = await fetch(`/api/earnings/${coachId}/summary?period=${period}`);
-      if (!response.ok) {
-        logger.error('Failed to get earnings summary from API', { coachId, period });
-        return err(networkError('Failed to get earnings summary'));
+      const result = await apiFetch<CoachEarningsApiResponse>(
+        `/v1/coaches/me/earnings?period=${period}`,
+        {
+          method: 'GET',
+        },
+      );
+      if (!result.success) {
+        logger.error('Failed to get authoritative self earnings summary', {
+          coachId,
+          period,
+          error: result.error.message,
+        });
+        return err(result.error);
       }
-
-      const data = await response.json();
-      return ok(data);
+      return ok(result.data.summary);
     } catch (error) {
       logger.error('Error getting earnings summary', error);
       return err(networkError('Failed to get earnings summary'));

@@ -1,14 +1,12 @@
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
 
-import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { apiClient } from '@/services/api-client';
 import { rsvpService } from '@/services/rsvp-service';
 import { eventBus, ServiceEvents } from '@/services/event-bus';
 
 describe('rsvpService', () => {
   beforeEach(async () => {
-    await apiClient.remove(STORAGE_KEYS.SESSION_RSVPS);
+    rsvpService.__seedMockRsvps([]);
     eventBus.clearAll();
   });
 

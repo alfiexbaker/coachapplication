@@ -190,8 +190,7 @@ async function saveTaskRecords(records: PracticeTaskRecord[]): Promise<void> {
   await apiClient.set(STORAGE_KEYS.PROGRESS_PRACTICE_TASKS, records);
 }
 async function getFeedbackHomeworkRows(): Promise<SessionFeedback[]> {
-  const allFeedback = await apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []);
-  return allFeedback.filter((feedback) => resolveHomeworkText(feedback.homework) !== null);
+  return [];
 }
 async function getDrillAssignments(): Promise<AssignedDrill[]> {
   return apiClient.get<AssignedDrill[]>(STORAGE_KEYS.DRILL_ASSIGNMENTS, []);

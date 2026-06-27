@@ -14,10 +14,11 @@
  * API Integration Notes:
  * - GET/POST /v1/clubs/:clubId/matches - List/create club fixtures
  * - GET /v1/matches/:matchId - Get match details
+ * - POST /v1/matches/:matchId/players/invite - Invite linked athletes
+ * - POST /v1/matches/:matchId/players/respond - Record availability
+ * - PATCH /v1/matches/:matchId/lineup - Set selected/reserve players
  * - PATCH /v1/matches/:matchId/result - Record result
  * - PATCH /v1/matches/:matchId/status - Update status/cancel
- * - Invite, response, and lineup writes fail closed outside mock mode until
- *   match-player authority exists.
  */
 
 import { apiClient, apiFetch } from './api-client';
@@ -42,7 +43,6 @@ import {
   err,
   notFound,
   storageError,
-  validationError,
 } from '@/types/result';
 import {
   buildApiAuthHeaders,
@@ -516,9 +516,26 @@ export const matchService = {
       return ok(match);
     }
 
-    return err(
-      validationError('Match player invites need backend support before API mode can use them.'),
+    const headersResult = await resolveMatchHeaders('Sign in to invite match players.', 'coach');
+    if (!headersResult.success) {
+      return headersResult;
+    }
+    const response = await apiFetch<ApiMatchResponse>(
+      `/v1/matches/${encodeURIComponent(input.matchId)}/players/invite`,
+      {
+        method: 'POST',
+        headers: headersResult.data,
+        body: JSON.stringify({ players: input.players }),
+      },
     );
+    if (!response.success) {
+      logger.error('Failed to invite match players via API', {
+        matchId: input.matchId,
+        error: response.error,
+      });
+      return err(response.error);
+    }
+    return ok(response.data.match);
   },
 
   /**
@@ -567,11 +584,32 @@ export const matchService = {
       return ok(match);
     }
 
-    return err(
-      validationError(
-        'Match availability responses need backend support before API mode can use them.',
-      ),
+    const headersResult = await resolveMatchHeaders('Sign in to respond to match invites.', 'parent');
+    if (!headersResult.success) {
+      return headersResult;
+    }
+    const response = await apiFetch<ApiMatchResponse>(
+      `/v1/matches/${encodeURIComponent(input.matchId)}/players/respond`,
+      {
+        method: 'POST',
+        headers: headersResult.data,
+        body: JSON.stringify({
+          athleteId: input.athleteId,
+          parentId: input.parentId,
+          status: input.status,
+          note: input.note,
+        }),
+      },
     );
+    if (!response.success) {
+      logger.error('Failed to respond to match invite via API', {
+        matchId: input.matchId,
+        athleteId: input.athleteId,
+        error: response.error,
+      });
+      return err(response.error);
+    }
+    return ok(response.data.match);
   },
 
   /**
@@ -638,9 +676,26 @@ export const matchService = {
       return ok(match);
     }
 
-    return err(
-      validationError('Match lineup selection needs backend support before API mode can use it.'),
+    const headersResult = await resolveMatchHeaders('Sign in to set match lineups.', 'coach');
+    if (!headersResult.success) {
+      return headersResult;
+    }
+    const response = await apiFetch<ApiMatchResponse>(
+      `/v1/matches/${encodeURIComponent(input.matchId)}/lineup`,
+      {
+        method: 'PATCH',
+        headers: headersResult.data,
+        body: JSON.stringify({ lineup: input.lineup }),
+      },
     );
+    if (!response.success) {
+      logger.error('Failed to set match lineup via API', {
+        matchId: input.matchId,
+        error: response.error,
+      });
+      return err(response.error);
+    }
+    return ok(response.data.match);
   },
 
   /**

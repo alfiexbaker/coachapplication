@@ -43,10 +43,10 @@ export interface ChildInfo {
   /** Stable color for visual identity (assigned by index from CHILD_COLORS) */
   colorCode: string;
 
-  /** Squad IDs this child belongs to (populated in P6, empty initially) */
+  /** Squad IDs this child belongs to, loaded from API membership authority when available */
   squadIds: string[];
 
-  /** Club IDs this child belongs to (populated in P6, empty initially) */
+  /** Club IDs this child belongs to, loaded from API membership authority when available */
   clubIds: string[];
 
   /** Quick flag from profile */

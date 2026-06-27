@@ -5,21 +5,44 @@
  * These presets auto-fill duration, price, and capacity when creating invites.
  *
  * API Integration Notes:
- * - GET /api/coaches/:id/session-templates
- * - POST /api/coaches/:id/session-templates
- * - PUT /api/session-templates/:id
- * - DELETE /api/session-templates/:id
+ * - GET/POST /v1/coaches/me/session-templates
+ * - GET/PATCH/DELETE /v1/coaches/me/session-templates/:id
  */
 
-import { apiClient } from './api-client';
+import { apiFetch } from './api-client';
 import { api } from '@/constants/config';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { SessionTemplate } from '@/constants/session-types';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
 
 const logger = createLogger('SessionTemplateService');
 const USE_MOCK = api.useMock;
+
+interface SessionTemplateListResponse {
+  templates: SessionTemplate[];
+  total: number;
+  requestId: string;
+}
+
+interface SessionTemplateResponse {
+  template: SessionTemplate;
+  requestId: string;
+}
+
+function toWritePayload(
+  template: Omit<SessionTemplate, 'id' | 'createdAt'> & { id?: string; createdAt?: string },
+) {
+  return {
+    name: template.name,
+    type: template.type,
+    duration: template.duration,
+    capacity: template.capacity,
+    defaultPrice: template.defaultPrice,
+    description: template.description,
+    defaultLocation: template.defaultLocation,
+    skillsFocus: template.skillsFocus,
+  };
+}
 
 // Default presets seeded on first load
 const DEFAULT_TEMPLATES: Omit<SessionTemplate, 'id' | 'coachId' | 'createdAt'>[] = [
@@ -43,25 +66,21 @@ const DEFAULT_TEMPLATES: Omit<SessionTemplate, 'id' | 'coachId' | 'createdAt'>[]
   },
 ];
 
+let mockTemplates: SessionTemplate[] = [];
+
+function cloneTemplate(template: SessionTemplate): SessionTemplate {
+  return {
+    ...template,
+    skillsFocus: [...template.skillsFocus],
+  };
+}
+
 async function loadTemplates(): Promise<SessionTemplate[]> {
-  try {
-    const stored = await apiClient.get<SessionTemplate[] | null>(
-      STORAGE_KEYS.SESSION_TEMPLATES,
-      null,
-    );
-    if (stored) return stored;
-  } catch (error) {
-    logger.error('Failed to load session templates', error);
-  }
-  return [];
+  return mockTemplates.map(cloneTemplate);
 }
 
 async function saveTemplates(templates: SessionTemplate[]): Promise<void> {
-  try {
-    await apiClient.set(STORAGE_KEYS.SESSION_TEMPLATES, templates);
-  } catch (error) {
-    logger.error('Failed to save session templates', error);
-  }
+  mockTemplates = templates.map(cloneTemplate);
 }
 
 export const sessionTemplateService = {
@@ -99,8 +118,20 @@ export const sessionTemplateService = {
       return coachTemplates;
     }
 
-    const response = await fetch(`/api/coaches/${coachId}/session-templates`);
-    return response.json();
+    const result = await apiFetch<SessionTemplateListResponse>(
+      '/v1/coaches/me/session-templates',
+      {
+        method: 'GET',
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to load authoritative coach session templates', {
+        coachId,
+        error: result.error.message,
+      });
+      throw new Error(result.error.message);
+    }
+    return result.data.templates;
   },
 
   /**
@@ -112,9 +143,19 @@ export const sessionTemplateService = {
       return all.find((t) => t.id === templateId) ?? null;
     }
 
-    const response = await fetch(`/api/session-templates/${templateId}`);
-    if (!response.ok) return null;
-    return response.json();
+    const result = await apiFetch<SessionTemplateResponse>(
+      `/v1/coaches/me/session-templates/${templateId}`,
+      {
+        method: 'GET',
+      },
+    );
+    if (result.success) {
+      return result.data.template;
+    }
+    if (result.error.code === 'NOT_FOUND') {
+      return null;
+    }
+    throw new Error(result.error.message);
   },
 
   /**
@@ -143,12 +184,19 @@ export const sessionTemplateService = {
       return saved;
     }
 
-    const response = await fetch(`/api/session-templates/${saved.id}`, {
-      method: template.id ? 'PUT' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(saved),
-    });
-    return response.json();
+    const result = await apiFetch<SessionTemplateResponse>(
+      template.id
+        ? `/v1/coaches/me/session-templates/${template.id}`
+        : '/v1/coaches/me/session-templates',
+      {
+        method: template.id ? 'PATCH' : 'POST',
+        body: JSON.stringify(toWritePayload(template)),
+      },
+    );
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return result.data.template;
   },
 
   /**
@@ -167,7 +215,12 @@ export const sessionTemplateService = {
       return;
     }
 
-    await fetch(`/api/session-templates/${templateId}`, { method: 'DELETE' });
+    const result = await apiFetch<void>(`/v1/coaches/me/session-templates/${templateId}`, {
+      method: 'DELETE',
+    });
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
     emitTyped(ServiceEvents.SESSION_TEMPLATE_DELETED, { templateId });
   },
 
@@ -176,5 +229,9 @@ export const sessionTemplateService = {
    */
   getDefaults(): Omit<SessionTemplate, 'id' | 'coachId' | 'createdAt'>[] {
     return [...DEFAULT_TEMPLATES];
+  },
+
+  __resetMockTemplates(): void {
+    mockTemplates = [];
   },
 };

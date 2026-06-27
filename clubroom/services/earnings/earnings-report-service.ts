@@ -11,12 +11,11 @@
  * 4. Data Reset - Reset to mock data for testing
  *
  * API Integration Notes:
- * - GET /api/earnings/:coachId - Get coach earnings
+ * - GET /v1/coaches/me/earnings - Self-only invoice-derived earnings and transactions
  * - Legacy transaction writes are mock-only; API mode must use invoice/payment authority
- * - GET /api/transactions/:coachId - Transaction history
  */
 
-import { apiClient } from '../api-client';
+import { apiClient, apiFetch } from '../api-client';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { api } from '@/constants/config';
@@ -35,6 +34,12 @@ const logger = createLogger('EarningsReportService');
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const USE_MOCK = api.useMock;
+
+interface CoachEarningsApiResponse {
+  earnings: CoachEarnings;
+  transactions: EarningTransaction[];
+  totalTransactions: number;
+}
 
 // Transaction filter type for earnings queries
 export type TransactionFilter = 'all' | 'payments' | 'refunds';
@@ -396,15 +401,17 @@ export const earningsReportService = {
         });
       }
 
-      // API call
-      const response = await fetch(`/api/earnings/${coachId}`);
-      if (!response.ok) {
-        logger.error('Failed to get earnings from API', { coachId });
-        return err(networkError('Failed to get earnings'));
+      const result = await apiFetch<CoachEarningsApiResponse>('/v1/coaches/me/earnings', {
+        method: 'GET',
+      });
+      if (!result.success) {
+        logger.error('Failed to get authoritative self earnings', {
+          coachId,
+          error: result.error.message,
+        });
+        return err(result.error);
       }
-
-      const data = await response.json();
-      return ok(data);
+      return ok(result.data.earnings);
     } catch (error) {
       logger.error('Error getting earnings', error);
       return err(networkError('Failed to get earnings'));
@@ -594,18 +601,20 @@ export const earningsReportService = {
         return ok(limit ? coachTxns.slice(0, limit) : coachTxns);
       }
 
-      const url = limit
-        ? `/api/transactions?coachId=${coachId}&limit=${limit}`
-        : `/api/transactions?coachId=${coachId}`;
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        logger.error('Failed to get transaction history from API', { coachId });
-        return err(networkError('Failed to get transaction history'));
+      const result = await apiFetch<CoachEarningsApiResponse>(
+        `/v1/coaches/me/earnings${limit ? `?limit=${limit}` : ''}`,
+        {
+          method: 'GET',
+        },
+      );
+      if (!result.success) {
+        logger.error('Failed to get authoritative self earnings transactions', {
+          coachId,
+          error: result.error.message,
+        });
+        return err(result.error);
       }
-
-      const data = await response.json();
-      return ok(data);
+      return ok(result.data.transactions);
     } catch (error) {
       logger.error('Error getting transaction history', error);
       return err(networkError('Failed to get transaction history'));
@@ -619,7 +628,13 @@ export const earningsReportService = {
     if (USE_MOCK) {
       return await loadTransactions();
     }
-    return [];
+    const result = await apiFetch<CoachEarningsApiResponse>('/v1/coaches/me/earnings', {
+      method: 'GET',
+    });
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return result.data.transactions;
   },
 
   // ==========================================================================

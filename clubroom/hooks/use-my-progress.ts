@@ -7,6 +7,7 @@ import { apiClient } from "@/services/api-client";
 import { useAuth } from "@/hooks/use-auth";
 import { useChildContext } from "@/hooks/use-child-context";
 import { useScreen, type ScreenStatus } from "@/hooks/use-screen";
+import { bookingService } from "@/services/booking";
 import {
   progressService,
   type AthleteProgress,
@@ -409,7 +410,7 @@ export function useMyProgress() {
           STORAGE_KEYS.HOMEWORK_COMPLETION,
           {},
         ),
-        apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
+        bookingService.list(),
       ]);
       const familyHighlights: FamilyHighlightItem[] =
         isParentContext && contextChildren.length > 1

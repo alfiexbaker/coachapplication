@@ -14,12 +14,10 @@ import { View, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import MapContent from '@/components/discover/map-content';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { useScreen } from '@/hooks/use-screen';
 import { useTheme } from '@/hooks/useTheme';
 import { Routes } from '@/navigation/routes';
-import { apiClient } from '@/services/api-client';
 import { listPublicCoachOfferingsFromApi } from '@/services/coach-offering-api';
 import { discoverService } from '@/services/discover-service';
 import { accountIdsMatch } from '@/utils/account-id';
@@ -176,26 +174,18 @@ export default function MapScreen() {
     void (async () => {
       let offeringId: string | undefined;
       try {
-        if (apiClient.isMockMode) {
-          const offerings = await apiClient.get<SessionOffering[]>(
-            STORAGE_KEYS.SESSION_OFFERINGS,
-            [],
-          );
-          offeringId = selectPreferredOffering(offerings, coachId)?.id;
-        } else {
-          const offeringsResult = await listPublicCoachOfferingsFromApi(
+        const offeringsResult = await listPublicCoachOfferingsFromApi(
+          coachId,
+          new Date().toISOString(),
+        );
+        if (!offeringsResult.success) {
+          logger.warn('Discover map offering fast-track unavailable', {
             coachId,
-            new Date().toISOString(),
-          );
-          if (!offeringsResult.success) {
-            logger.warn('Discover map offering fast-track unavailable', {
-              coachId,
-              error: offeringsResult.error,
-            });
-          }
-          const offerings = offeringsResult.success ? offeringsResult.data : [];
-          offeringId = selectPreferredOffering(offerings, coachId)?.id;
+            error: offeringsResult.error,
+          });
         }
+        const offerings = offeringsResult.success ? offeringsResult.data : [];
+        offeringId = selectPreferredOffering(offerings, coachId)?.id;
       } catch {
         offeringId = undefined;
       }

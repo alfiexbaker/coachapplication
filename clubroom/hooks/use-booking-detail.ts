@@ -1,7 +1,7 @@
 /**
  * useBookingDetail — Data loading and handlers for the booking detail screen.
  *
- * Loads a BookingSummary by ID from mock data or apiClient storage.
+ * Loads a BookingSummary by ID from booking service authority.
  * Provides all action handlers (message, cancel, reopen, refund, report).
  */
 
@@ -9,9 +9,9 @@ import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
-import { apiClient } from '@/services/api-client';
 import { bookingService } from '@/services/booking-service';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { recurringBookingService } from '@/services/recurring-booking-service';
+import { userService } from '@/services/user-service';
 import { useAuth } from '@/hooks/use-auth';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
@@ -133,6 +133,63 @@ const toBookingSummary = (
   };
 };
 
+async function resolveRecurringSource(booking: Booking): Promise<RecurringBooking | undefined> {
+  if (!booking.recurringBookingId) {
+    return undefined;
+  }
+
+  const result = await recurringBookingService.getById(booking.recurringBookingId);
+  if (!result.success) {
+    logger.warn('Failed to resolve recurring source for booking detail', {
+      bookingId: booking.id,
+      recurringBookingId: booking.recurringBookingId,
+      error: result.error,
+    });
+    return undefined;
+  }
+  return result.data;
+}
+
+async function resolveBookingUserNames(
+  booking: Booking,
+  recurringSource?: RecurringBooking,
+): Promise<Map<string, string>> {
+  const userIds = Array.from(
+    new Set(
+      [
+        booking.coachId,
+        booking.bookedById,
+        booking.ownerCoachId,
+        booking.assigneeCoachId,
+        booking.createdByUserId,
+        recurringSource?.coachId,
+        recurringSource?.userId,
+        recurringSource?.ownerCoachId,
+        recurringSource?.assigneeCoachId,
+        recurringSource?.createdByUserId,
+      ].flatMap((userId) => (userId ? [userId] : [])),
+    ),
+  );
+
+  if (userIds.length === 0) {
+    return new Map();
+  }
+
+  const result = await userService.getUsersByIds(userIds);
+  if (!result.success) {
+    logger.warn('Failed to resolve booking detail user names', {
+      bookingId: booking.id,
+      userIds,
+      error: result.error,
+    });
+    return new Map();
+  }
+
+  return new Map(
+    result.data.map((user) => [user.id, user.name?.trim() || user.id]),
+  );
+}
+
 export function useBookingDetail(id: string): BookingDetailResult {
   const { currentUser } = useAuth();
   const { reset: resetBookingDraft, updateDraft } = useBookingFlow();
@@ -146,22 +203,10 @@ export function useBookingDetail(id: string): BookingDetailResult {
     logger.debug('Loading booking', { id });
 
     try {
-      const [serviceBooking, sessionBookings, recurringBookings, users] = await Promise.all([
-        bookingService.getBooking(id),
-        apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
-        apiClient.get<RecurringBooking[]>(STORAGE_KEYS.RECURRING_BOOKINGS, []),
-        apiClient.get<{ id: string; name?: string; fullName?: string }[]>(STORAGE_KEYS.USERS, []),
-      ]);
-      const userNameById = new Map(
-        users.map((user) => [user.id, user.fullName?.trim() || user.name?.trim() || user.id]),
-      );
-      const recurringById = new Map(recurringBookings.map((entry) => [entry.id, entry]));
-
-      const booking = serviceBooking ?? sessionBookings.find((entry) => entry.id === id) ?? null;
+      const booking = await bookingService.getBooking(id);
       if (booking) {
-        const recurringSource = booking.recurringBookingId
-          ? recurringById.get(booking.recurringBookingId)
-          : undefined;
+        const recurringSource = await resolveRecurringSource(booking);
+        const userNameById = await resolveBookingUserNames(booking, recurringSource);
         const feedback = await progressService.getSessionFeedback(
           booking.id,
           isCoach ? 'coach' : 'parent',

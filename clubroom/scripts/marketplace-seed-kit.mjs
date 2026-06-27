@@ -205,11 +205,7 @@ function tableToCsvFileName(table) {
   return `${table.replace(/[A-Z]/g, (match) => `_${match.toLowerCase()}`)}.csv`;
 }
 
-function toIso({
-  days = 0,
-  hours = 0,
-  minutes = 0,
-}) {
+function toIso({ days = 0, hours = 0, minutes = 0 }) {
   const date = new Date(BASE_TIME.getTime());
   date.setUTCDate(date.getUTCDate() + days);
   date.setUTCHours(date.getUTCHours() + hours, date.getUTCMinutes() + minutes, 0, 0);
@@ -708,7 +704,8 @@ function buildLinkedDataset() {
         familyId: id,
         userId: memberUserId,
         role: memberIndex === 0 ? 'owner' : 'guardian',
-        permissions: memberIndex === 0 ? ['book', 'medical', 'payments', 'messages'] : ['book', 'messages'],
+        permissions:
+          memberIndex === 0 ? ['book', 'medical', 'payments', 'messages'] : ['book', 'messages'],
         relationshipLabel: memberIndex === 0 ? 'Primary guardian' : 'Guardian',
         childAccessAthleteIds: [],
         createdByUserId: primaryGuardianUserId,
@@ -850,7 +847,11 @@ function buildLinkedDataset() {
       coaches: ['coach-amelia', 'coach-liam', 'coach-sophia', 'coach-maya'],
       parents: ['parent-olivia', 'parent-james', 'parent-priya', 'user-club-linked'],
       squads: [
-        { slug: 'riverside-u11', name: 'Riverside U11 Development', ownerCoachSlug: 'coach-amelia' },
+        {
+          slug: 'riverside-u11',
+          name: 'Riverside U11 Development',
+          ownerCoachSlug: 'coach-amelia',
+        },
         { slug: 'riverside-u14', name: 'Riverside U14 Performance', ownerCoachSlug: 'coach-liam' },
       ],
     },
@@ -953,7 +954,11 @@ function buildLinkedDataset() {
         clubId,
         ownerCoachUserId,
         name: squad.name,
-        ageBandLabel: squad.slug.includes('u11') ? 'U11' : squad.slug.includes('u12') ? 'U12' : 'U15',
+        ageBandLabel: squad.slug.includes('u11')
+          ? 'U11'
+          : squad.slug.includes('u12')
+            ? 'U12'
+            : 'U15',
         createdByUserId: creatorUserId,
         updatedByUserId: creatorUserId,
         version: 1,
@@ -1036,7 +1041,8 @@ function buildLinkedDataset() {
         serviceType: offerType,
         durationMinutes: offerType === 'one_to_one' ? 60 : 75,
         capacity: offerType === 'one_to_one' ? 1 : 6,
-        priceMinor: offerType === 'one_to_one' ? coach.rateMinor : Math.round(coach.rateMinor * 0.7),
+        priceMinor:
+          offerType === 'one_to_one' ? coach.rateMinor : Math.round(coach.rateMinor * 0.7),
         currency: 'GBP',
         description: `${offerType === 'one_to_one' ? 'Personalized' : 'Group-based'} football coaching.`,
         defaultLocation: `${coach.name.split(' ')[0]} Main Pitch`,
@@ -1255,9 +1261,10 @@ function buildLinkedDataset() {
     const coachUserId = coachUserIdFromSlug(athlete.primaryCoachSlug);
     const coachClubSlug = coachClubMap[athlete.primaryCoachSlug];
     const clubId = clubIdFromSlug(coachClubSlug);
-    const bookedByUserId = athlete.linkedUserSlug && index % 2 === 0
-      ? userIdFromSlug(athlete.linkedUserSlug)
-      : userIdFromSlug(athlete.guardianSlugs[0]);
+    const bookedByUserId =
+      athlete.linkedUserSlug && index % 2 === 0
+        ? userIdFromSlug(athlete.linkedUserSlug)
+        : userIdFromSlug(athlete.guardianSlugs[0]);
     const completedBookingId = bookingIdFromSeed(`${athlete.slug}-completed`);
     const upcomingBookingId = bookingIdFromSeed(`${athlete.slug}-upcoming`);
     const cancelledBookingId = bookingIdFromSeed(`${athlete.slug}-cancelled`);
@@ -1740,9 +1747,7 @@ function buildLinkedDataset() {
         targetFamilyId: familyIdFromSlug(athleteBySlug[athleteSlug].familySlug),
         status: inviteAccepted ? 'ACCEPTED' : 'PENDING',
         respondedAt: inviteAccepted ? toIso({ days: -1 + index }) : null,
-        responsePayloadJson: inviteAccepted
-          ? { response: 'accepted', source: 'mobile' }
-          : null,
+        responsePayloadJson: inviteAccepted ? { response: 'accepted', source: 'mobile' } : null,
         createdAt: toIso({ days: -2 + index }),
         updatedAt: toIso({ days: -1 + index }),
       });
@@ -1964,8 +1969,7 @@ function buildLinkedDataset() {
       coachUserId: coachId,
       name: 'Default bank transfer instructions',
       isDefault: true,
-      bodyTemplate:
-        'Please transfer payment within 7 days. Include invoice number as reference.',
+      bodyTemplate: 'Please transfer payment within 7 days. Include invoice number as reference.',
       createdByUserId: coachId,
       updatedByUserId: coachId,
       version: 1,
@@ -2394,10 +2398,7 @@ function buildLinkedDataset() {
       deletedByUserId: null,
     });
 
-    const groupMembers = [
-      ...club.coaches.slice(0, 2),
-      ...club.parents.slice(0, 2),
-    ];
+    const groupMembers = [...club.coaches.slice(0, 2), ...club.parents.slice(0, 2)];
 
     for (const [memberIndex, memberSlug] of groupMembers.entries()) {
       push(tables, 'communityGroupMemberships', {
@@ -2509,11 +2510,12 @@ function buildLinkedDataset() {
         id: messageId,
         messageThreadId: threadId,
         senderUserId: userIdFromSlug(memberSlug),
-        content: messageIndex === 0
-          ? 'Reminder: sessions start 15 minutes early tomorrow.'
-          : messageIndex === 1
-            ? 'Thanks coach, we will be there.'
-            : 'Could you share the drill PDF again?',
+        content:
+          messageIndex === 0
+            ? 'Reminder: sessions start 15 minutes early tomorrow.'
+            : messageIndex === 1
+              ? 'Thanks coach, we will be there.'
+              : 'Could you share the drill PDF again?',
         attachmentsJson: [],
         editedAt: null,
         deletedAt: null,
@@ -2527,7 +2529,10 @@ function buildLinkedDataset() {
           messageId,
           userId: userIdFromSlug(recipientSlug),
           deliveredAt: toIso({ days: -1, hours: messageIndex, minutes: 1 }),
-          readAt: recipientSlug === memberSlug ? null : toIso({ days: -1, hours: messageIndex, minutes: 20 }),
+          readAt:
+            recipientSlug === memberSlug
+              ? null
+              : toIso({ days: -1, hours: messageIndex, minutes: 20 }),
           createdAt: toIso({ days: -1, hours: messageIndex, minutes: 1 }),
           updatedAt: toIso({ days: -1, hours: messageIndex, minutes: 20 }),
         });
@@ -2682,7 +2687,9 @@ function buildLinkedDataset() {
     const parentParticipants = tables.messageParticipants
       .filter((participant) => participant.messageThreadId === thread.id)
       .map((participant) => participant.userId)
-      .filter((id) => tables.userRoleMemberships.some((role) => role.userId === id && role.role === 'parent'));
+      .filter((id) =>
+        tables.userRoleMemberships.some((role) => role.userId === id && role.role === 'parent'),
+      );
     if (parentParticipants.length === 0) continue;
 
     push(tables, 'mutedSources', {
@@ -2967,10 +2974,16 @@ function buildLinkedDataset() {
   push(tables, 'outboxEvents', {
     id: deterministicId('obx', 'invite-accepted-1'),
     aggregateType: 'invite',
-    aggregateId: deterministicId('inv', `${groupSessionIdFromSeed('riverside-u11-upcoming')}-alfie-barton`),
+    aggregateId: deterministicId(
+      'inv',
+      `${groupSessionIdFromSeed('riverside-u11-upcoming')}-alfie-barton`,
+    ),
     eventType: 'INVITE_ACCEPTED',
     payloadJson: {
-      inviteId: deterministicId('inv', `${groupSessionIdFromSeed('riverside-u11-upcoming')}-alfie-barton`),
+      inviteId: deterministicId(
+        'inv',
+        `${groupSessionIdFromSeed('riverside-u11-upcoming')}-alfie-barton`,
+      ),
       athleteId: athleteIdFromSlug('alfie-barton'),
     },
     status: 'PENDING',
@@ -3112,11 +3125,11 @@ function validateSemanticCoverage(dataset) {
     .filter(([, roles]) => roles.has('parent'))
     .map(([userId]) => userId);
   const parentUserIdsWithKids = new Set(
-    guardianChildLinks
-      .map((row) => row.guardianUserId)
-      .filter((userId) => !isNullLike(userId)),
+    guardianChildLinks.map((row) => row.guardianUserId).filter((userId) => !isNullLike(userId)),
   );
-  const parentsWithKids = parentUserIds.filter((userId) => parentUserIdsWithKids.has(userId)).length;
+  const parentsWithKids = parentUserIds.filter((userId) =>
+    parentUserIdsWithKids.has(userId),
+  ).length;
   const parentsWithoutKids = parentUserIds.length - parentsWithKids;
 
   if (parentUserIds.length === 0) {
@@ -3130,14 +3143,10 @@ function validateSemanticCoverage(dataset) {
   }
 
   const familyMemberUserIds = new Set(
-    familyMemberships
-      .map((row) => row.userId)
-      .filter((userId) => !isNullLike(userId)),
+    familyMemberships.map((row) => row.userId).filter((userId) => !isNullLike(userId)),
   );
   const clubMemberUserIds = new Set(
-    clubMemberships
-      .map((row) => row.userId)
-      .filter((userId) => !isNullLike(userId)),
+    clubMemberships.map((row) => row.userId).filter((userId) => !isNullLike(userId)),
   );
   const memberUserIds = [...rolesByUserId.entries()]
     .filter(([, roles]) => roles.has('member'))
@@ -3156,9 +3165,7 @@ function validateSemanticCoverage(dataset) {
   }
 
   const coachUserIds = new Set(
-    coachProfiles
-      .map((row) => row.userId)
-      .filter((userId) => !isNullLike(userId)),
+    coachProfiles.map((row) => row.userId).filter((userId) => !isNullLike(userId)),
   );
   if (coachUserIds.size < 4) {
     errors.push(`[coverage] expected at least 4 coaches, found ${coachUserIds.size}`);
@@ -3180,10 +3187,10 @@ function validateSemanticCoverage(dataset) {
     const startTimeLocal = row.startTimeLocal;
     const endTimeLocal = row.endTimeLocal;
     if (
-      isNullLike(coachUserId)
-      || isNullLike(dayOfWeek)
-      || isNullLike(startTimeLocal)
-      || isNullLike(endTimeLocal)
+      isNullLike(coachUserId) ||
+      isNullLike(dayOfWeek) ||
+      isNullLike(startTimeLocal) ||
+      isNullLike(endTimeLocal)
     ) {
       continue;
     }
@@ -3231,14 +3238,16 @@ function validateSemanticCoverage(dataset) {
       .filter((serviceType) => !isNullLike(serviceType)),
   );
   const offeringDurations = new Set(
-    coachingOfferings
-      .map((row) => row.durationMinutes)
-      .filter((duration) => !isNullLike(duration)),
+    coachingOfferings.map((row) => row.durationMinutes).filter((duration) => !isNullLike(duration)),
   );
   const availabilityWindowSet = new Set(
     availabilityTemplates
       .map((row) => {
-        if (isNullLike(row.dayOfWeek) || isNullLike(row.startTimeLocal) || isNullLike(row.endTimeLocal)) {
+        if (
+          isNullLike(row.dayOfWeek) ||
+          isNullLike(row.startTimeLocal) ||
+          isNullLike(row.endTimeLocal)
+        ) {
           return null;
         }
         return `${row.dayOfWeek}:${row.startTimeLocal}-${row.endTimeLocal}`;
@@ -3246,22 +3255,28 @@ function validateSemanticCoverage(dataset) {
       .filter((value) => !isNullLike(value)),
   );
   const availabilityDays = new Set(
-    availabilityTemplates
-      .map((row) => row.dayOfWeek)
-      .filter((dayOfWeek) => !isNullLike(dayOfWeek)),
+    availabilityTemplates.map((row) => row.dayOfWeek).filter((dayOfWeek) => !isNullLike(dayOfWeek)),
   );
 
   if (offeringServiceTypes.size < 2) {
-    errors.push(`[coverage] expected at least 2 offering service types, found ${offeringServiceTypes.size}`);
+    errors.push(
+      `[coverage] expected at least 2 offering service types, found ${offeringServiceTypes.size}`,
+    );
   }
   if (offeringDurations.size < 2) {
-    errors.push(`[coverage] expected at least 2 offering durations, found ${offeringDurations.size}`);
+    errors.push(
+      `[coverage] expected at least 2 offering durations, found ${offeringDurations.size}`,
+    );
   }
   if (availabilityWindowSet.size < 8) {
-    errors.push(`[coverage] expected at least 8 unique availability windows, found ${availabilityWindowSet.size}`);
+    errors.push(
+      `[coverage] expected at least 8 unique availability windows, found ${availabilityWindowSet.size}`,
+    );
   }
   if (availabilityDays.size < 5) {
-    errors.push(`[coverage] expected availability coverage across at least 5 days, found ${availabilityDays.size}`);
+    errors.push(
+      `[coverage] expected availability coverage across at least 5 days, found ${availabilityDays.size}`,
+    );
   }
 
   const paidInvoiceCount = invoices.filter((row) => row.status === 'PAID').length;
@@ -3273,11 +3288,7 @@ function validateSemanticCoverage(dataset) {
     errors.push('[coverage] expected at least one outstanding (SENT) invoice');
   }
 
-  const userIdSet = new Set(
-    users
-      .map((row) => row.id)
-      .filter((id) => !isNullLike(id)),
-  );
+  const userIdSet = new Set(users.map((row) => row.id).filter((id) => !isNullLike(id)));
   if (userIdSet.size === 0) {
     errors.push('[coverage] expected non-empty users table');
   }
@@ -3363,19 +3374,34 @@ async function writeDatasetFiles(dataset, outputDir) {
     await fs.writeFile(path.join(outputDir, manifest.tables[tableName].csvFile), csv, 'utf8');
   }
 
-  await fs.writeFile(path.join(outputDir, DATASET_PATH), `${JSON.stringify(dataset, null, 2)}\n`, 'utf8');
-  await fs.writeFile(path.join(outputDir, MANIFEST_PATH), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+  await fs.writeFile(
+    path.join(outputDir, DATASET_PATH),
+    `${JSON.stringify(dataset, null, 2)}\n`,
+    'utf8',
+  );
+  await fs.writeFile(
+    path.join(outputDir, MANIFEST_PATH),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+    'utf8',
+  );
 
   const summary = {
     version: dataset.version,
     generatedAt: dataset.generatedAt,
     tableCount: dataset.tableOrder.length,
-    rowCount: dataset.tableOrder.reduce((sum, table) => sum + (dataset.tables[table]?.length ?? 0), 0),
+    rowCount: dataset.tableOrder.reduce(
+      (sum, table) => sum + (dataset.tables[table]?.length ?? 0),
+      0,
+    ),
     rowsByTable: Object.fromEntries(
       dataset.tableOrder.map((table) => [table, dataset.tables[table]?.length ?? 0]),
     ),
   };
-  await fs.writeFile(path.join(outputDir, SUMMARY_PATH), `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
+  await fs.writeFile(
+    path.join(outputDir, SUMMARY_PATH),
+    `${JSON.stringify(summary, null, 2)}\n`,
+    'utf8',
+  );
 
   return summary;
 }
@@ -3522,9 +3548,10 @@ function parseCli() {
   const command = args[0] ?? 'generate';
 
   const outFlagIndex = args.findIndex((arg) => arg === '--out');
-  const outputDir = outFlagIndex >= 0 && args[outFlagIndex + 1]
-    ? path.resolve(args[outFlagIndex + 1])
-    : DEFAULT_OUTPUT_DIR;
+  const outputDir =
+    outFlagIndex >= 0 && args[outFlagIndex + 1]
+      ? path.resolve(args[outFlagIndex + 1])
+      : DEFAULT_OUTPUT_DIR;
 
   return {
     command,

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { apiClient } from '@/services/api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { sessionInviteService } from '@/services/invite/session-invite-service';
+import { sessionInviteService, setInvitesCache } from '@/services/invite/session-invite-service';
 import { POC_ACCOUNT_IDS } from '@/constants/poc-accounts';
 import type { Result, ServiceError } from '@/types/result';
 import type { Booking } from '@/constants/app-types';
@@ -33,12 +33,12 @@ describe('sessionInviteService', () => {
   beforeEach(async () => {
     setApiMockMode(true);
     seq = 0;
-    await apiClient.set(STORAGE_KEYS.SESSION_INVITES, []);
     await apiClient.set(STORAGE_KEYS.INVITE_SLOT_HOLDS, []);
     await apiClient.set(STORAGE_KEYS.BOOKINGS, []);
     await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, []);
     await apiClient.set(STORAGE_KEYS.GROUP_SESSIONS, []);
     await sessionInviteService.clearCache();
+    setInvitesCache([]);
   });
 
   it('creates invite and retrieves it by id', async () => {
@@ -295,7 +295,7 @@ describe('sessionInviteService', () => {
       },
     ];
 
-    await apiClient.set(STORAGE_KEYS.SESSION_INVITES, [invite]);
+    setInvitesCache([invite]);
     setApiMockMode(false);
 
     const result = await sessionInviteService.respondToRecurringInvite(
@@ -309,8 +309,9 @@ describe('sessionInviteService', () => {
       assert.match(result.error.message, /backend invite authority/i);
     }
 
-    const stored = await apiClient.get<SessionInvite[]>(STORAGE_KEYS.SESSION_INVITES, []);
-    assert.equal(stored[0]?.status, 'PENDING');
-    assert.equal(stored[0]?.bookingId, undefined);
+    setApiMockMode(true);
+    const stored = await sessionInviteService.getInvite(invite.id);
+    assert.equal(stored?.status, 'PENDING');
+    assert.equal(stored?.bookingId, undefined);
   });
 });

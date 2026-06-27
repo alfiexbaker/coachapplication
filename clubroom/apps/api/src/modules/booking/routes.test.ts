@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { after, beforeEach, describe, it } from 'node:test';
+import { canUseClubCapability, parseOrganizationRole } from '@clubroom/shared-contracts';
 import { env } from '@clubroom/config';
 import { buildApp } from '../../app.js';
 import { getDbFixtureStore, resetDbFixtureStoreForTests } from '../../lib/db-fixture-store.js';
@@ -68,6 +69,55 @@ function getGuardianSelections(tables: SeedTables): Array<{ guardianUserId: stri
       (entry): entry is { guardianUserId: string; athleteId: string } =>
         Boolean(entry.guardianUserId) && Boolean(entry.athleteId),
     );
+}
+
+function canCreateClubSession(role: unknown): boolean {
+  const parsedRole = parseOrganizationRole(role);
+  return Boolean(
+    parsedRole &&
+      canUseClubCapability(parsedRole, 'create_org_sessions', {
+        hasGrant: parsedRole === 'COACH',
+      }),
+  );
+}
+
+function getClubSessionCreateActors(tables: SeedTables): {
+  clubId: string;
+  creatorUserId: string;
+  outsiderCoachUserId: string;
+} {
+  const activeMemberships = asRows(tables.clubMemberships).filter(
+    (row) => row.active !== false && !asString(row.deletedAt),
+  );
+  const creatorMembership = activeMemberships.find((row) => {
+    const userId = asString(row.userId);
+    return (
+      Boolean(userId) &&
+      canCreateClubSession(row.role) &&
+      rolesForUser(tables, userId as string).includes('coach')
+    );
+  });
+  assert.ok(creatorMembership, 'expected club session creator membership');
+
+  const clubId = asString(creatorMembership.clubId);
+  const creatorUserId = asString(creatorMembership.userId);
+  assert.ok(clubId, 'expected club id');
+  assert.ok(creatorUserId, 'expected creator user id');
+
+  const outsiderCoachUserId = asRows(tables.coachProfiles)
+    .map((row) => asString(row.userId))
+    .find(
+      (userId): userId is string =>
+        Boolean(userId) &&
+        userId !== creatorUserId &&
+        !activeMemberships.some(
+          (membership) =>
+            asString(membership.clubId) === clubId && asString(membership.userId) === userId,
+        ),
+    );
+  assert.ok(outsiderCoachUserId, 'expected coach outside club');
+
+  return { clubId, creatorUserId, outsiderCoachUserId };
 }
 
 function ensureTable(tables: SeedTables, key: string): SeedRow[] {
@@ -217,6 +267,53 @@ describe('booking group-session routes', () => {
     });
     assert.equal(cancelled.statusCode, 200);
     assert.equal((cancelled.json() as { groupSession: { status: string } }).groupSession.status, 'CANCELLED');
+  });
+
+  it('requires club create permission when a group session targets a club', async () => {
+    const store = getMarketplaceSeedStore();
+    const { clubId, creatorUserId, outsiderCoachUserId } = getClubSessionCreateActors(store.tables);
+    const { startsAt, endsAt } = isoDaysFromNow(8, 18, 60);
+    const payload = {
+      title: 'Club Authority Create',
+      sessionType: 'TRAINING',
+      clubId,
+      schedule: [
+        {
+          date: startsAt.slice(0, 10),
+          startTime: startsAt.slice(11, 16),
+          endTime: endsAt.slice(11, 16),
+        },
+      ],
+      maxParticipants: 16,
+      pricePerParticipant: 15,
+      currency: 'GBP',
+    };
+
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/group-sessions',
+      headers: authHeaders(store.tables, creatorUserId, 'coach'),
+      payload: {
+        ...payload,
+        coachId: creatorUserId,
+      },
+    });
+    assert.equal(created.statusCode, 201);
+    assert.equal(
+      (created.json() as { groupSession: { clubId?: string } }).groupSession.clubId,
+      clubId,
+    );
+
+    const denied = await app.inject({
+      method: 'POST',
+      url: '/v1/group-sessions',
+      headers: authHeaders(store.tables, outsiderCoachUserId, 'coach'),
+      payload: {
+        ...payload,
+        coachId: outsiderCoachUserId,
+      },
+    });
+    assert.equal(denied.statusCode, 403);
   });
 
   it('registers an athlete, returns coach roster, and marks attendance through one authority path', async () => {

@@ -91,7 +91,7 @@ export function useHealthHub() {
   const handleLogInjury = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (selectedChildId) {
-      router.push({ pathname: '/health/log', params: { childId: selectedChildId } });
+      router.push(Routes.healthLog({ childId: selectedChildId }));
       return;
     }
     router.push(Routes.HEALTH_LOG);

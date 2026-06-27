@@ -6,17 +6,22 @@
  * and skill comparison data.
  *
  * API Integration Notes:
- * - GET /api/athletes/:id/analytics?period=MONTH - Get analytics
- * - GET /api/athletes/:id/skills/history - Skill progression
- * - GET /api/athletes/:id/goals - Get goals
+ * - GET /v1/athletes/:id/goals - Get backend-authoritative goals
+ * - Athlete analytics and skill history need dedicated /v1 contracts before API mode can use them.
  */
 
-import { apiClient } from '../api-client';
+import { apiClient, apiFetch } from '../api-client';
 import type { AthleteAnalytics, SkillProgress, Goal } from '@/constants/types';
-import type { SessionFeedback } from '@/services/progress/progress-feedback-service';
+import { progressFeedbackService } from '@/services/progress/progress-feedback-service';
 import type { AthleteSkillLevels } from '@/services/progress/progress-skills-service';
 import type { Session } from '@/constants/app-types';
 import type { FootballSkill } from '@/types/progress-types';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+  toApiAthleteId,
+} from '@/services/api-auth-context';
 import { createLogger } from '@/utils/logger';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -26,7 +31,7 @@ import {
   ok,
   err,
   storageError,
-  networkError,
+  unsupportedError,
 } from '@/types/result';
 
 const logger = createLogger('AnalyticsQueryService');
@@ -34,6 +39,188 @@ const logger = createLogger('AnalyticsQueryService');
 const USE_MOCK = api.useMock;
 
 export type AnalyticsPeriod = 'WEEK' | 'MONTH' | 'QUARTER' | 'YEAR' | 'ALL';
+
+interface ApiAthleteGoalsResponse {
+  athleteId: string;
+  goals: ApiGoalRow[];
+  milestones: ApiGoalMilestoneRow[];
+}
+
+type ApiGoalRow = Partial<Omit<Goal, 'milestones'>> & {
+  id?: string | null;
+  userId?: string | null;
+  athleteId?: string | null;
+  title?: string | null;
+  description?: string | null;
+  notes?: string | null;
+  category?: string | null;
+  targetDate?: string | null;
+  status?: string | null;
+  progress?: number | null;
+  createdBy?: string | null;
+  createdById?: string | null;
+  ownerUserId?: string | null;
+  creatorUserId?: string | null;
+  createdByUserId?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
+type ApiGoalMilestoneRow = Partial<Goal['milestones'][number]> & {
+  id?: string | null;
+  goalId?: string | null;
+  title?: string | null;
+  isCompleted?: boolean | null;
+  completedAt?: string | null;
+  order?: number | null;
+  sortOrder?: number | null;
+  status?: string | null;
+};
+
+function athleteAnalyticsUnsupportedError(action: string, details?: unknown): ServiceError {
+  return unsupportedError(
+    `${action} needs a /v1 athlete analytics API before it can run in API mode.`,
+    details,
+  );
+}
+
+function unsupportedAthleteAnalytics<T>(
+  action: string,
+  details?: unknown,
+): Result<T, ServiceError> {
+  logger.warn('Athlete analytics API unavailable in live API mode', {
+    action,
+    details,
+    requiredRoutes: [
+      'GET /v1/athletes/:athleteId/analytics',
+      'GET /v1/athletes/:athleteId/skills/history',
+    ],
+  });
+  return err(athleteAnalyticsUnsupportedError(action, details));
+}
+
+async function resolveAthleteGoalsApiContext(
+  athleteId: string,
+): Promise<Result<{ apiAthleteId: string; headers: Record<string, string> }, ServiceError>> {
+  const currentUserResult = await resolveSignedInApiUser('Sign in to view athlete goals.');
+  if (!currentUserResult.success) {
+    return currentUserResult;
+  }
+
+  const currentUser = currentUserResult.data;
+  const apiAthleteId = toApiAthleteId(athleteId);
+  const actingRole = deriveApiActingRole(currentUser);
+  return ok({
+    apiAthleteId,
+    headers: buildApiAuthHeaders({
+      actingRole,
+      coachAthleteIds: actingRole === 'coach' ? [apiAthleteId] : undefined,
+      guardianAthleteIds: actingRole === 'parent' ? [apiAthleteId] : undefined,
+      coachVerified: actingRole === 'coach' && currentUser.isVerified,
+    }),
+  });
+}
+
+function isGoalStatus(value: unknown): value is Goal['status'] {
+  return value === 'ACTIVE' || value === 'COMPLETED' || value === 'PAUSED' || value === 'ABANDONED';
+}
+
+function toGoalCategory(value: unknown): Goal['category'] {
+  if (value === 'Technical') return 'BALL_SKILLS';
+  if (value === 'Attacking') return 'ATTACKING';
+  if (value === 'Defending') return 'DEFENDING';
+  if (value === 'Tactical') return 'GAME_SENSE';
+  if (value === 'Character') return 'CHARACTER';
+  if (
+    value === 'BALL_SKILLS' ||
+    value === 'ATTACKING' ||
+    value === 'DEFENDING' ||
+    value === 'GAME_SENSE' ||
+    value === 'CHARACTER' ||
+    value === 'OTHER'
+  ) {
+    return value;
+  }
+  return 'OTHER';
+}
+
+function toGoalCreator(value: unknown): Goal['createdBy'] {
+  if (value === 'COACH' || value === 'ATHLETE' || value === 'PARENT') {
+    return value;
+  }
+  return 'COACH';
+}
+
+function mapApiMilestone(
+  row: ApiGoalMilestoneRow,
+  fallbackGoalId: string,
+): Goal['milestones'][number] | null {
+  if (!row.id) {
+    return null;
+  }
+  return {
+    id: row.id,
+    goalId: row.goalId ?? fallbackGoalId,
+    title: row.title ?? 'Milestone',
+    isCompleted: row.isCompleted === true || row.status === 'COMPLETED',
+    completedAt: row.completedAt ?? undefined,
+    order:
+      typeof row.order === 'number'
+        ? row.order
+        : typeof row.sortOrder === 'number'
+          ? row.sortOrder
+          : 0,
+  };
+}
+
+function mapApiGoal(
+  row: ApiGoalRow,
+  milestones: ApiGoalMilestoneRow[],
+  fallbackAthleteId: string,
+): Goal | null {
+  if (!row.id) {
+    return null;
+  }
+
+  const goalId = row.id;
+  const athleteId = row.athleteId ?? row.userId ?? fallbackAthleteId;
+  const mappedMilestones = milestones
+    .filter((milestone) => milestone.goalId === goalId)
+    .flatMap((milestone) => {
+      const mapped = mapApiMilestone(milestone, goalId);
+      return mapped ? [mapped] : [];
+    })
+    .sort((a, b) => a.order - b.order);
+  const completedMilestones = mappedMilestones.filter((milestone) => milestone.isCompleted).length;
+  const derivedProgress =
+    mappedMilestones.length > 0
+      ? Math.round((completedMilestones / mappedMilestones.length) * 100)
+      : row.status === 'COMPLETED'
+        ? 100
+        : 0;
+  return {
+    id: goalId,
+    userId: row.userId ?? row.ownerUserId ?? athleteId,
+    athleteId,
+    title: row.title ?? 'Goal',
+    description: row.description ?? row.notes ?? undefined,
+    category: toGoalCategory(row.category),
+    linkedSkill: row.linkedSkill ?? undefined,
+    targetLevel: row.targetLevel ?? undefined,
+    targetDate: row.targetDate ?? undefined,
+    status: isGoalStatus(row.status) ? row.status : 'ACTIVE',
+    progress: typeof row.progress === 'number' ? row.progress : derivedProgress,
+    milestones: mappedMilestones,
+    createdBy: toGoalCreator(row.createdBy),
+    createdById: row.createdById ?? row.creatorUserId ?? row.createdByUserId ?? '',
+    createdAt: row.createdAt ?? new Date().toISOString(),
+    updatedAt: row.updatedAt ?? row.createdAt ?? new Date().toISOString(),
+    coachVerified: row.coachVerified,
+    coachVerifiedAt: row.coachVerifiedAt,
+    parentAcknowledged: row.parentAcknowledged,
+    parentAcknowledgedAt: row.parentAcknowledgedAt,
+  };
+}
 
 function normalizeAnalyticsSkill(skill: string): FootballSkill {
   if (skill === 'Dribbling') return 'Dribbling & Skills';
@@ -302,20 +489,19 @@ async function loadGoals(): Promise<Goal[]> {
 }
 
 /**
- * Build AthleteAnalytics from real SESSION_FEEDBACK and SKILL_LEVELS data.
+ * Build AthleteAnalytics from feedback-service and SKILL_LEVELS data.
  * Returns null if no real data exists for this athlete.
  */
 async function buildRealAthleteAnalytics(
   athleteId: string,
   period: AnalyticsPeriod,
 ): Promise<AthleteAnalytics | null> {
-  const [allFeedback, allSkillLevels, allSessions] = await Promise.all([
-    apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []),
+  const [athleteFeedback, allSkillLevels, allSessions] = await Promise.all([
+    progressFeedbackService.getFeedbackForAthlete(athleteId, 'athlete'),
     apiClient.get<Record<string, AthleteSkillLevels>>(STORAGE_KEYS.SKILL_LEVELS, {}),
     apiClient.get<Session[]>(STORAGE_KEYS.COACH_SESSIONS, []),
   ]);
 
-  const athleteFeedback = allFeedback.filter((f) => f.athleteId === athleteId);
   const athleteSkills = allSkillLevels[athleteId];
 
   // If no real data exists, return null so caller can fall back
@@ -329,10 +515,13 @@ async function buildRealAthleteAnalytics(
     for (const [, skillData] of Object.entries(athleteSkills.skills)) {
       // Scale 1-10 skill level to 0-100 for display
       const currentLevel = Math.round(skillData.level * 10);
-      const previousLevel = skillData.previousLevel ? Math.round(skillData.previousLevel * 10) : currentLevel;
-      const changePercent = previousLevel > 0
-        ? Math.round(((currentLevel - previousLevel) / previousLevel) * 1000) / 10
-        : 0;
+      const previousLevel = skillData.previousLevel
+        ? Math.round(skillData.previousLevel * 10)
+        : currentLevel;
+      const changePercent =
+        previousLevel > 0
+          ? Math.round(((currentLevel - previousLevel) / previousLevel) * 1000) / 10
+          : 0;
 
       skills.push({
         skillName: normalizeAnalyticsSkill(skillData.skill),
@@ -350,23 +539,26 @@ async function buildRealAthleteAnalytics(
 
   // Calculate session stats from feedback
   const totalSessions = athleteFeedback.length;
-  const avgRating = totalSessions > 0
-    ? athleteFeedback.reduce((sum, f) => sum + f.overallPerformance, 0) / totalSessions
-    : 0;
+  const avgRating =
+    totalSessions > 0
+      ? athleteFeedback.reduce((sum, f) => sum + f.overallPerformance, 0) / totalSessions
+      : 0;
 
   // Calculate attendance rate from actual COACH_SESSIONS records
   const athleteSessions = allSessions.filter((s) => s.athleteId === athleteId);
   const sessionsWithAttendance = athleteSessions.filter((s) => Boolean(s.attendance));
   const attendedCount = sessionsWithAttendance.filter((s) => s.attendance === 'ATTENDED').length;
-  const attendanceRate = sessionsWithAttendance.length > 0
-    ? Math.round((attendedCount / sessionsWithAttendance.length) * 100)
-    : totalSessions > 0 ? 100 : 0;
+  const attendanceRate =
+    sessionsWithAttendance.length > 0
+      ? Math.round((attendedCount / sessionsWithAttendance.length) * 100)
+      : totalSessions > 0
+        ? 100
+        : 0;
 
   // Calculate improvement rate from skill trends
   const improvingSkills = skills.filter((s) => s.changePercent > 0).length;
-  const improvementRate = skills.length > 0
-    ? Math.round((improvingSkills / skills.length) * 100)
-    : 0;
+  const improvementRate =
+    skills.length > 0 ? Math.round((improvingSkills / skills.length) * 100) : 0;
 
   return {
     athleteId,
@@ -448,14 +640,10 @@ export const analyticsQueryService = {
         });
       }
 
-      const response = await fetch(`/api/athletes/${athleteId}/analytics?period=${period}`);
-      if (!response.ok) {
-        return ok(null);
-      }
-      return ok(await response.json());
+      return unsupportedAthleteAnalytics('Athlete analytics read', { athleteId, period });
     } catch (error) {
       logger.error('Failed to get athlete analytics', { athleteId, period, error });
-      return err(networkError('Failed to load athlete analytics'));
+      return err(storageError('Failed to load athlete analytics'));
     }
   },
 
@@ -480,10 +668,13 @@ export const analyticsQueryService = {
             skillName: normalizeAnalyticsSkill(s.skill),
             category: 'Technical',
             currentLevel: Math.round(s.level * 10),
-            previousLevel: s.previousLevel ? Math.round(s.previousLevel * 10) : Math.round(s.level * 10),
-            changePercent: s.previousLevel && s.previousLevel > 0
-              ? Math.round(((s.level - s.previousLevel) / s.previousLevel) * 1000) / 10
-              : 0,
+            previousLevel: s.previousLevel
+              ? Math.round(s.previousLevel * 10)
+              : Math.round(s.level * 10),
+            changePercent:
+              s.previousLevel && s.previousLevel > 0
+                ? Math.round(((s.level - s.previousLevel) / s.previousLevel) * 1000) / 10
+                : 0,
             history: s.history.map((h) => ({
               date: h.date.split('T')[0],
               level: Math.round(h.level * 10),
@@ -510,14 +701,7 @@ export const analyticsQueryService = {
         return ok(analytics.skills);
       }
 
-      let url = `/api/athletes/${athleteId}/skills/history`;
-      if (skillName) url += `?skill=${encodeURIComponent(skillName)}`;
-
-      const response = await fetch(url);
-      if (!response.ok) {
-        return err(networkError('Failed to load skill history'));
-      }
-      return ok(await response.json());
+      return unsupportedAthleteAnalytics('Skill history read', { athleteId, skillName });
     } catch (error) {
       logger.error('Failed to get skill history', { athleteId, skillName, error });
       return err(storageError('Failed to load skill history'));
@@ -545,14 +729,31 @@ export const analyticsQueryService = {
         );
       }
 
-      let url = `/api/athletes/${athleteId}/goals`;
-      if (status) url += `?status=${status}`;
-
-      const response = await fetch(url);
-      if (!response.ok) {
-        return err(networkError('Failed to load athlete goals'));
+      const context = await resolveAthleteGoalsApiContext(athleteId);
+      if (!context.success) {
+        return context;
       }
-      return ok(await response.json());
+      const result = await apiFetch<ApiAthleteGoalsResponse>(
+        `/v1/athletes/${context.data.apiAthleteId}/goals`,
+        {
+          method: 'GET',
+          headers: context.data.headers,
+        },
+      );
+      if (!result.success) {
+        return err(result.error);
+      }
+
+      let goals = result.data.goals.flatMap((goal) => {
+        const mapped = mapApiGoal(goal, result.data.milestones, result.data.athleteId);
+        return mapped ? [mapped] : [];
+      });
+      if (status) {
+        goals = goals.filter((goal) => goal.status === status);
+      }
+      return ok(
+        goals.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+      );
     } catch (error) {
       logger.error('Failed to get athlete goals', { athleteId, status, error });
       return err(storageError('Failed to load athlete goals'));

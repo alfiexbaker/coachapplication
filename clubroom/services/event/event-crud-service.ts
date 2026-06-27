@@ -5,10 +5,10 @@
  * Manages event persistence and the shared mock data layer.
  *
  * API Integration Notes:
- * - POST /api/events - Create event
- * - GET /api/events/:id - Get event details
- * - GET /api/events?clubId=X - Get club events
- * - PATCH /api/events/:id/publish - Publish event
+ * - GET /v1/events/:id - Get event details
+ * - GET /v1/clubs/:clubId/events - List club events
+ * - POST /v1/clubs/:clubId/events and PATCH /v1/events/:id - Create and manage events
+ * - POST /v1/events/:id/invites/club - Queue club event invites
  */
 
 import { apiClient, apiFetch } from '../api-client';
@@ -32,7 +32,6 @@ import {
   unsupportedError,
 } from '@/types/result';
 import type {
-  ClubActivity,
   ClubEvent,
   ClubEventType,
   EventTargetAudience,
@@ -40,8 +39,17 @@ import type {
 const USE_MOCK = api.useMock;
 const logger = createLogger('EventCrudService');
 
-interface ApiClubScheduleResponse {
-  activities: ClubActivity[];
+interface ApiClubEventListResponse {
+  events: ClubEvent[];
+  total: number;
+}
+
+interface ApiClubEventResponse {
+  event: ClubEvent;
+}
+
+interface ApiClubEventInviteResponse {
+  inviteCount: number;
 }
 
 function eventUnsupportedError(action: string): ServiceError {
@@ -52,64 +60,6 @@ function eventUnsupportedError(action: string): ServiceError {
 
 function throwEventUnsupported(action: string): never {
   throw new Error(eventUnsupportedError(action).message);
-}
-
-function mapActivityStatus(status: ClubActivity['status']): ClubEvent['status'] {
-  if (status === 'draft') return 'DRAFT';
-  if (status === 'cancelled') return 'CANCELLED';
-  if (status === 'completed') return 'COMPLETED';
-  return 'PUBLISHED';
-}
-
-function mapActivityType(activity: ClubActivity): ClubEventType {
-  const normalized = activity.typeLabel.toLowerCase();
-  if (normalized.includes('tournament')) return 'TOURNAMENT';
-  if (normalized.includes('presentation')) return 'PRESENTATION';
-  if (normalized.includes('meeting')) return 'MEETING';
-  if (normalized.includes('fundraiser')) return 'FUNDRAISER';
-  if (normalized.includes('trial')) return 'TRIAL_DAY';
-  if (normalized.includes('camp')) return 'TRAINING_CAMP';
-  if (normalized.includes('social')) return 'SOCIAL';
-  return 'OTHER';
-}
-
-function isoTimePart(value: string | undefined): string {
-  if (!value) return '';
-  const match = value.match(/T(\d{2}:\d{2})/);
-  if (match?.[1]) return match[1];
-  return value.slice(11, 16);
-}
-
-function mapActivityToClubEvent(activity: ClubActivity): ClubEvent | null {
-  if (activity.source !== 'club_event') {
-    return null;
-  }
-
-  const date = activity.startsAt.slice(0, 10);
-  return {
-    id: activity.sourceEntityId,
-    clubId: activity.clubId ?? '',
-    createdBy: '',
-    title: activity.title,
-    description: activity.description ?? '',
-    eventType: mapActivityType(activity),
-    date,
-    startDate: date,
-    startTime: isoTimePart(activity.startsAt),
-    endTime: isoTimePart(activity.endsAt),
-    venue: activity.locationLabel,
-    location: activity.locationLabel,
-    isVirtual: activity.isVirtual,
-    targetAudience: activity.accessScope === 'squad' ? 'SQUAD' : 'ALL',
-    squadIds: activity.squadIds,
-    allClub: activity.accessScope !== 'squad',
-    price: activity.price ?? 0,
-    currency: activity.currency ?? 'GBP',
-    rsvpRequired: activity.participationMode === 'rsvp',
-    attendees: [],
-    status: mapActivityStatus(activity.status),
-    createdAt: activity.startsAt,
-  };
 }
 
 async function resolveEventApiHeaders(): Promise<Result<Record<string, string>, ServiceError>> {
@@ -124,7 +74,7 @@ async function resolveEventApiHeaders(): Promise<Result<Record<string, string>, 
   );
 }
 
-async function listClubEventsFromSchedule(
+async function listClubEventsFromApi(
   clubId: string,
 ): Promise<Result<ClubEvent[], ServiceError>> {
   const headersResult = await resolveEventApiHeaders();
@@ -132,8 +82,8 @@ async function listClubEventsFromSchedule(
     return headersResult;
   }
 
-  const result = await apiFetch<ApiClubScheduleResponse>(
-    `/v1/clubs/${encodeURIComponent(clubId)}/schedule`,
+  const result = await apiFetch<ApiClubEventListResponse>(
+    `/v1/clubs/${encodeURIComponent(clubId)}/events`,
     {
       method: 'GET',
       headers: headersResult.data,
@@ -143,12 +93,7 @@ async function listClubEventsFromSchedule(
     return err(result.error);
   }
 
-  return ok(
-    result.data.activities.flatMap((activity) => {
-      const event = mapActivityToClubEvent(activity);
-      return event ? [event] : [];
-    }),
-  );
+  return ok(result.data.events);
 }
 
 // ============================================================================
@@ -482,7 +427,41 @@ export const eventCrudService = {
       await saveEvents(eventsCache);
       return newEvent;
     }
-    return throwEventUnsupported('Creating club events');
+    const headersResult = await resolveEventApiHeaders();
+    if (!headersResult.success) {
+      throw new Error(headersResult.error.message);
+    }
+    const result = await apiFetch<ApiClubEventResponse>(
+      `/v1/clubs/${encodeURIComponent(input.clubId)}/events`,
+      {
+        method: 'POST',
+        headers: headersResult.data,
+        body: JSON.stringify({
+          title: input.title,
+          description: input.description,
+          eventType: input.eventType,
+          date: input.date,
+          startTime: input.startTime,
+          endTime: input.endTime,
+          venue: input.venue,
+          address: input.address,
+          isVirtual: input.isVirtual ?? false,
+          meetingLink: input.meetingLink,
+          targetAudience: input.targetAudience,
+          squadIds: input.squadIds,
+          maxAttendees: input.maxAttendees,
+          price: input.price ?? 0,
+          currency: input.currency ?? 'GBP',
+          rsvpRequired: input.rsvpRequired ?? true,
+          rsvpDeadline: input.rsvpDeadline,
+          imageUrl: input.imageUrl,
+        }),
+      },
+    );
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return result.data.event;
   },
   /**
    * Publish an event (make visible to members)
@@ -496,7 +475,19 @@ export const eventCrudService = {
       await saveEvents(eventsCache);
       return ok(event);
     }
-    return err(eventUnsupportedError('Publishing club events'));
+    const headersResult = await resolveEventApiHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+    const result = await apiFetch<ApiClubEventResponse>(
+      `/v1/events/${encodeURIComponent(eventId)}`,
+      {
+        method: 'PATCH',
+        headers: headersResult.data,
+        body: JSON.stringify({ status: 'PUBLISHED' }),
+      },
+    );
+    return result.success ? ok(result.data.event) : err(result.error);
   },
   /**
    * Cancel an event
@@ -511,7 +502,19 @@ export const eventCrudService = {
       await notifyEventCancelledRecipients(event);
       return ok(event);
     }
-    return err(eventUnsupportedError('Cancelling club events'));
+    const headersResult = await resolveEventApiHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+    const result = await apiFetch<ApiClubEventResponse>(
+      `/v1/events/${encodeURIComponent(eventId)}`,
+      {
+        method: 'PATCH',
+        headers: headersResult.data,
+        body: JSON.stringify({ status: 'CANCELLED' }),
+      },
+    );
+    return result.success ? ok(result.data.event) : err(result.error);
   },
   /**
    * Get an event by ID
@@ -521,8 +524,29 @@ export const eventCrudService = {
       eventsCache = await loadEvents();
       return eventsCache.find((e) => e.id === eventId) || null;
     }
-    logger.warn('Club event detail lookup needs a /v1 event detail API', { eventId });
-    return null;
+    const headersResult = await resolveEventApiHeaders();
+    if (!headersResult.success) {
+      logger.warn('Cannot load club event detail without an authenticated API user', {
+        eventId,
+        error: headersResult.error,
+      });
+      return null;
+    }
+    const result = await apiFetch<ApiClubEventResponse>(
+      `/v1/events/${encodeURIComponent(eventId)}`,
+      {
+        method: 'GET',
+        headers: headersResult.data,
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to load club event detail via /v1', {
+        eventId,
+        error: result.error,
+      });
+      return null;
+    }
+    return result.data.event;
   },
   /**
    * Get upcoming events for a club
@@ -535,9 +559,9 @@ export const eventCrudService = {
         .filter((e) => e.clubId === clubId && e.status === 'PUBLISHED' && e.date >= now)
         .sort((a, b) => a.date.localeCompare(b.date));
     }
-    const result = await listClubEventsFromSchedule(clubId);
+    const result = await listClubEventsFromApi(clubId);
     if (!result.success) {
-      logger.error('Failed to load upcoming club events via /v1 schedule', {
+      logger.error('Failed to load upcoming club events via /v1 events', {
         clubId,
         error: result.error,
       });
@@ -558,9 +582,9 @@ export const eventCrudService = {
         .filter((e) => e.clubId === clubId)
         .sort((a, b) => b.date.localeCompare(a.date));
     }
-    const result = await listClubEventsFromSchedule(clubId);
+    const result = await listClubEventsFromApi(clubId);
     if (!result.success) {
-      logger.error('Failed to load club events via /v1 schedule', {
+      logger.error('Failed to load club events via /v1 events', {
         clubId,
         error: result.error,
       });
@@ -587,7 +611,24 @@ export const eventCrudService = {
       });
       return;
     }
-    return throwEventUnsupported('Inviting club members to club events');
+    const headersResult = await resolveEventApiHeaders();
+    if (!headersResult.success) {
+      throw new Error(headersResult.error.message);
+    }
+    const result = await apiFetch<ApiClubEventInviteResponse>(
+      `/v1/events/${encodeURIComponent(eventId)}/invites/club`,
+      {
+        method: 'POST',
+        headers: headersResult.data,
+      },
+    );
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    logger.info('Invited club members to event via /v1', {
+      eventId,
+      inviteCount: result.data.inviteCount,
+    });
   },
   /**
    * Invite specific squads to an event

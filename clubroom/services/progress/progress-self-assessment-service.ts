@@ -1,23 +1,18 @@
 import type { Booking } from '@/constants/app-types';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { apiClient } from '@/services/api-client';
 import { notificationTriggers } from '@/services/notification-trigger';
-import { err, ok, storageError, type Result, type ServiceError } from '@/types/result';
+import {
+  err,
+  ok,
+  storageError,
+  unsupportedError,
+  type Result,
+  type ServiceError,
+} from '@/types/result';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('ProgressSelfAssessmentService');
 const ONE_HOUR_MS = 60 * 60 * 1000;
-
-type JournalEntryRecord = {
-  id: string;
-  sessionId: string;
-  athleteId: string;
-  personalNotes: string;
-  mood: number;
-  energyLevel: number;
-  createdAt: string;
-  coachNotes?: string;
-};
 
 export interface SelfAssessmentPrompt {
   id: string;
@@ -65,6 +60,36 @@ function clampRatingOneToFive(value: number): number {
   return Math.max(1, Math.min(5, Math.round(value)));
 }
 
+let mockPromptsStore: SelfAssessmentPrompt[] = [];
+let mockEntriesStore: SelfAssessmentEntry[] = [];
+
+function clonePrompt(prompt: SelfAssessmentPrompt): SelfAssessmentPrompt {
+  return { ...prompt };
+}
+
+function cloneEntry(entry: SelfAssessmentEntry): SelfAssessmentEntry {
+  return { ...entry };
+}
+
+function selfAssessmentUnsupportedError(action: string): ServiceError {
+  return unsupportedError(
+    `${action} needs a /v1 self-assessment API before it can run in API mode.`,
+  );
+}
+
+function logUnsupported(action: string, details?: unknown): void {
+  logger.warn('Self-assessment API unavailable in live API mode', {
+    action,
+    details,
+    requiredRoutes: [
+      'GET /v1/athletes/:athleteId/self-assessments',
+      'POST /v1/self-assessments',
+      'GET /v1/me/self-assessment-prompts',
+      'POST /v1/self-assessment-prompts/:promptId/dispatch',
+    ],
+  });
+}
+
 function resolveAthletePairs(booking: Booking): Array<{ athleteId: string; athleteName: string }> {
   const ids =
     booking.athleteIds && booking.athleteIds.length > 0
@@ -95,25 +120,29 @@ function resolveDueAt(booking: Booking): string {
 }
 
 async function getPrompts(): Promise<SelfAssessmentPrompt[]> {
-  return apiClient.get<SelfAssessmentPrompt[]>(STORAGE_KEYS.PROGRESS_SELF_ASSESSMENT_PROMPTS, []);
+  return mockPromptsStore.map(clonePrompt);
 }
 
 async function savePrompts(prompts: SelfAssessmentPrompt[]): Promise<void> {
-  await apiClient.set(STORAGE_KEYS.PROGRESS_SELF_ASSESSMENT_PROMPTS, prompts);
+  mockPromptsStore = prompts.map(clonePrompt);
 }
 
 async function getEntries(): Promise<SelfAssessmentEntry[]> {
-  return apiClient.get<SelfAssessmentEntry[]>(STORAGE_KEYS.PROGRESS_SELF_ASSESSMENTS, []);
+  return mockEntriesStore.map(cloneEntry);
 }
 
 async function saveEntries(entries: SelfAssessmentEntry[]): Promise<void> {
-  await apiClient.set(STORAGE_KEYS.PROGRESS_SELF_ASSESSMENTS, entries);
+  mockEntriesStore = entries.map(cloneEntry);
 }
 
 async function schedulePromptsForCompletedBooking(
   booking: Booking,
 ): Promise<Result<SelfAssessmentPrompt[], ServiceError>> {
   if (booking.status !== 'COMPLETED') {
+    return ok([]);
+  }
+  if (!apiClient.isMockMode) {
+    logUnsupported('Self-assessment prompt scheduling', { bookingId: booking.id });
     return ok([]);
   }
 
@@ -163,6 +192,11 @@ async function schedulePromptsForCompletedBooking(
 }
 
 async function dispatchDuePrompts(athleteId?: string): Promise<Result<number, ServiceError>> {
+  if (!apiClient.isMockMode) {
+    logUnsupported('Self-assessment prompt dispatch', { athleteId });
+    return ok(0);
+  }
+
   try {
     const prompts = await getPrompts();
     const nowIso = new Date().toISOString();
@@ -210,6 +244,10 @@ async function getPendingPromptForAthlete(athleteId: string): Promise<SelfAssess
   if (!athleteId) {
     return null;
   }
+  if (!apiClient.isMockMode) {
+    logUnsupported('Self-assessment prompt read', { athleteId });
+    return null;
+  }
 
   const prompts = await getPrompts();
   const nowTimestamp = Date.now();
@@ -236,6 +274,10 @@ async function listAssessmentsForAthlete(athleteId: string): Promise<SelfAssessm
   if (!athleteId) {
     return [];
   }
+  if (!apiClient.isMockMode) {
+    logUnsupported('Self-assessment list read', { athleteId });
+    return [];
+  }
 
   const entries = await getEntries();
   return entries
@@ -248,6 +290,15 @@ async function listAssessmentsForAthlete(athleteId: string): Promise<SelfAssessm
 async function submitAssessment(
   input: SubmitSelfAssessmentInput,
 ): Promise<Result<SelfAssessmentEntry, ServiceError>> {
+  if (!apiClient.isMockMode) {
+    logUnsupported('Self-assessment submission', {
+      athleteId: input.athleteId,
+      bookingId: input.bookingId,
+      sessionId: input.sessionId,
+    });
+    return err(selfAssessmentUnsupportedError('Self-assessment submission'));
+  }
+
   try {
     const nowIso = new Date().toISOString();
     const entries = await getEntries();
@@ -301,32 +352,6 @@ async function submitAssessment(
     });
     if (promptsChanged) {
       await savePrompts(prompts);
-    }
-
-    const journalEntries = await apiClient.get<JournalEntryRecord[]>(
-      STORAGE_KEYS.SESSION_JOURNAL,
-      [],
-    );
-    const hasSelfAssessmentJournal = journalEntries.some(
-      (entry) =>
-        entry.sessionId === input.sessionId &&
-        entry.athleteId === input.athleteId &&
-        entry.coachNotes?.startsWith('[Self-assessment]'),
-    );
-
-    if (!hasSelfAssessmentJournal) {
-      const noteSummary = sanitizedNotes || 'Self check-in completed.';
-      const journalEntry: JournalEntryRecord = {
-        id: `journal_self_assessment_${Date.now()}`,
-        sessionId: input.sessionId,
-        athleteId: input.athleteId,
-        personalNotes: noteSummary,
-        mood: clampRatingOneToFive(input.mood),
-        energyLevel: clampRatingOneToFive(input.energyLevel),
-        createdAt: nowIso,
-        coachNotes: `[Self-assessment] Confidence ${clampRatingOneToFive(input.confidence)}/5`,
-      };
-      await apiClient.set(STORAGE_KEYS.SESSION_JOURNAL, [journalEntry, ...journalEntries]);
     }
 
     logger.info('self_assessment_submitted', {

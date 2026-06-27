@@ -13,6 +13,7 @@ import assert from 'node:assert/strict';
 import test, { describe, beforeEach, afterEach } from 'node:test';
 
 import { squadGroupService } from '@/services/squad-group-service';
+import { squadService } from '@/services/squad-service';
 import { communityGroupService as communityGroupServiceResult } from '@/services/community/community-group-service';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -51,12 +52,12 @@ const legacyCommunityGroupService = {
 async function clearStorage(): Promise<void> {
   await apiClient.set(STORAGE_KEYS.SQUAD_GROUP_MAP, {});
   await apiClient.set(STORAGE_KEYS.PARENT_GROUPS, []);
-  await apiClient.set(STORAGE_KEYS.CLUB_SQUADS, []);
+  squadService.__resetMockSquads();
   await apiClient.set(STORAGE_KEYS.SQUAD_MEMBERS, []);
 }
 
 /**
- * Seed a squad into CLUB_SQUADS storage so squadService.getSquad can find it.
+ * Seed a squad into the mock squad service so squadService.getSquad can find it.
  */
 async function seedSquad(squad: {
   id: string;
@@ -67,9 +68,7 @@ async function seedSquad(squad: {
   primaryCoach: string;
   meetLocation: string;
 }): Promise<void> {
-  const existing = await apiClient.get<unknown[]>(STORAGE_KEYS.CLUB_SQUADS, []);
-  existing.push(squad);
-  await apiClient.set(STORAGE_KEYS.CLUB_SQUADS, existing);
+  squadService.__seedMockSquads([squad]);
 }
 
 /**

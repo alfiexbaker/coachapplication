@@ -21,7 +21,11 @@ import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { verifySimulatedPaymentToken } from '../../lib/payment-provider.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
-import { assertCanReadAthleteHealth, isPrivilegedAdminAuth } from '../../lib/authz.js';
+import {
+  assertCanReadAthleteHealth,
+  assertCanWriteAthleteHealth,
+  isPrivilegedAdminAuth,
+} from '../../lib/authz.js';
 import { recordAuditEvent } from '../../lib/audit-runtime.js';
 import { resolveTrustAccessRepository } from '../../repositories/p0/trust-access-repository.js';
 import { resolveCommunityMediaRepository } from '../../repositories/p0/community-media-repository.js';
@@ -47,8 +51,37 @@ const coerceMetadata = (value: unknown): Record<string, unknown> =>
 const nowIso = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 const INVOICE_STATUSES = ['DRAFT', 'SENT', 'PAID', 'VOID', 'WRITTEN_OFF'] as const;
+const GOAL_STATUSES = ['ACTIVE', 'COMPLETED', 'PAUSED', 'ABANDONED'] as const;
+const GOAL_CATEGORIES = [
+  'BALL_SKILLS',
+  'ATTACKING',
+  'DEFENDING',
+  'GAME_SENSE',
+  'CHARACTER',
+  'OTHER',
+] as const;
 
 type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
+
+const goalCreateRequestSchema = z.object({
+  title: z.string().trim().min(1).max(160),
+  description: z.string().trim().max(2000).optional(),
+  category: z.enum(GOAL_CATEGORIES).default('OTHER'),
+  targetDate: z.string().trim().max(40).optional(),
+  milestones: z.array(z.string().trim().min(1).max(180)).max(20).default([]),
+});
+
+const goalUpdateRequestSchema = z
+  .object({
+    title: z.string().trim().min(1).max(160).optional(),
+    description: z.string().trim().max(2000).nullable().optional(),
+    category: z.enum(GOAL_CATEGORIES).optional(),
+    status: z.enum(GOAL_STATUSES).optional(),
+    targetDate: z.string().trim().max(40).nullable().optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: 'At least one goal field must be supplied',
+  });
 
 const invoiceListQuerySchema = z.object({
   status: z.string().trim().optional(),
@@ -609,6 +642,337 @@ async function getAthleteProgressPayload(athleteId: string) {
   };
 }
 
+async function getAthleteGoalsPayload(athleteId: string) {
+  if (getApiDataBackend() === 'db') {
+    if (shouldUseDbFixtureFallback()) {
+      const store = getDbFixtureStore();
+      const goals = asRows(store.tables.goals).filter(
+        (row) => asString(row.athleteId) === athleteId && !asString(row.deletedAt),
+      );
+      const goalIds = new Set(
+        goals.map((goal) => asString(goal.id)).filter((id): id is string => Boolean(id)),
+      );
+      const milestones = asRows(store.tables.goalMilestones).filter(
+        (row) => goalIds.has(asString(row.goalId) ?? '') && !asString(row.deletedAt),
+      );
+      return {
+        goals,
+        milestones,
+        seedVersion: store.version,
+      };
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const goalsWithMilestones = await prisma.goal.findMany({
+      where: { athleteId, deletedAt: null },
+      include: {
+        milestones: {
+          where: { deletedAt: null },
+          orderBy: { sortOrder: 'asc' },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+    const goals = goalsWithMilestones.map(({ milestones: _milestones, ...goal }) => goal);
+    const milestones = goalsWithMilestones.flatMap((goal) => goal.milestones);
+    return normalizeForJson({
+      goals,
+      milestones,
+      seedVersion: null,
+    });
+  }
+
+  const store = getMarketplaceSeedStore();
+  const goals = asRows(store.tables.goals).filter(
+    (row) => asString(row.athleteId) === athleteId && !asString(row.deletedAt),
+  );
+  const goalIds = new Set(
+    goals.map((goal) => asString(goal.id)).filter((id): id is string => Boolean(id)),
+  );
+  const milestones = asRows(store.tables.goalMilestones).filter(
+    (row) => goalIds.has(asString(row.goalId) ?? '') && !asString(row.deletedAt),
+  );
+  return {
+    goals,
+    milestones,
+    seedVersion: store.version,
+  };
+}
+
+function mutableGoalStore() {
+  if (getApiDataBackend() === 'db') {
+    return shouldUseDbFixtureFallback() ? getDbFixtureStore() : null;
+  }
+  return getMarketplaceSeedStore();
+}
+
+function parseOptionalDate(value: string | null | undefined): Date | null {
+  if (!value) {
+    return null;
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw badRequest('Invalid date value');
+  }
+  return parsed;
+}
+
+function createSeedGoal(
+  tables: Record<string, unknown>,
+  athleteId: string,
+  actorUserId: string,
+  body: z.infer<typeof goalCreateRequestSchema>,
+) {
+  const now = nowIso();
+  const goal = {
+    id: newId('gol'),
+    athleteId,
+    ownerUserId: athleteId,
+    creatorUserId: actorUserId,
+    title: body.title,
+    category: body.category,
+    status: 'ACTIVE',
+    targetDate: body.targetDate ?? null,
+    notes: body.description ?? null,
+    createdByUserId: actorUserId,
+    updatedByUserId: actorUserId,
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+    deletedByUserId: null,
+  };
+  const milestones = body.milestones.map((title, index) => ({
+    id: newId('glm'),
+    goalId: goal.id,
+    title,
+    status: 'PENDING',
+    dueDate: null,
+    completedAt: null,
+    sortOrder: index,
+    createdByUserId: actorUserId,
+    updatedByUserId: actorUserId,
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+    deletedByUserId: null,
+  }));
+  asRows(tables.goals).push(goal);
+  asRows(tables.goalMilestones).push(...milestones);
+  return { goal, milestones };
+}
+
+function findSeedGoal(tables: Record<string, unknown>, goalId: string): SeedRow {
+  const goal = asRows(tables.goals).find(
+    (row) => asString(row.id) === goalId && !asString(row.deletedAt),
+  );
+  if (!goal) {
+    throw notFound('Goal not found', { goalId });
+  }
+  return goal;
+}
+
+function seedGoalMilestones(tables: Record<string, unknown>, goalId: string): SeedRow[] {
+  return asRows(tables.goalMilestones)
+    .filter((row) => asString(row.goalId) === goalId && !asString(row.deletedAt))
+    .sort((left, right) => (asNumber(left.sortOrder) ?? 0) - (asNumber(right.sortOrder) ?? 0));
+}
+
+function updateSeedGoal(
+  tables: Record<string, unknown>,
+  goalId: string,
+  actorUserId: string,
+  body: z.infer<typeof goalUpdateRequestSchema>,
+) {
+  const goal = findSeedGoal(tables, goalId);
+  if (body.title !== undefined) {
+    goal.title = body.title;
+  }
+  if (body.description !== undefined) {
+    goal.notes = body.description;
+  }
+  if (body.category !== undefined) {
+    goal.category = body.category;
+  }
+  if (body.status !== undefined) {
+    goal.status = body.status;
+  }
+  if (body.targetDate !== undefined) {
+    goal.targetDate = body.targetDate;
+  }
+  goal.updatedByUserId = actorUserId;
+  goal.updatedAt = nowIso();
+  goal.version = (asNumber(goal.version) ?? 0) + 1;
+  return { goal, milestones: seedGoalMilestones(tables, goalId) };
+}
+
+function deleteSeedGoal(tables: Record<string, unknown>, goalId: string, actorUserId: string): void {
+  const goal = findSeedGoal(tables, goalId);
+  const now = nowIso();
+  goal.deletedAt = now;
+  goal.deletedByUserId = actorUserId;
+  goal.updatedByUserId = actorUserId;
+  goal.updatedAt = now;
+  for (const milestone of seedGoalMilestones(tables, goalId)) {
+    milestone.deletedAt = now;
+    milestone.deletedByUserId = actorUserId;
+    milestone.updatedByUserId = actorUserId;
+    milestone.updatedAt = now;
+  }
+}
+
+async function createGoalPayload(
+  athleteId: string,
+  actorUserId: string,
+  body: z.infer<typeof goalCreateRequestSchema>,
+) {
+  const store = mutableGoalStore();
+  if (store) {
+    return createSeedGoal(store.tables as Record<string, unknown>, athleteId, actorUserId, body);
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  const created = await prisma.goal.create({
+    data: {
+      id: newId('gol'),
+      athleteId,
+      ownerUserId: athleteId,
+      creatorUserId: actorUserId,
+      title: body.title,
+      category: body.category,
+      status: 'ACTIVE',
+      targetDate: parseOptionalDate(body.targetDate),
+      notes: body.description ?? null,
+      createdByUserId: actorUserId,
+      updatedByUserId: actorUserId,
+      milestones: {
+        create: body.milestones.map((title, index) => ({
+          id: newId('glm'),
+          title,
+          status: 'PENDING',
+          sortOrder: index,
+          createdByUserId: actorUserId,
+          updatedByUserId: actorUserId,
+        })),
+      },
+    },
+    include: {
+      milestones: {
+        where: { deletedAt: null },
+        orderBy: { sortOrder: 'asc' },
+      },
+    },
+  });
+  const { milestones, ...goal } = created;
+  return normalizeForJson({ goal, milestones });
+}
+
+async function getGoalForWrite(goalId: string): Promise<SeedRow> {
+  const store = mutableGoalStore();
+  if (store) {
+    return findSeedGoal(store.tables as Record<string, unknown>, goalId);
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  const goal = await prisma.goal.findFirst({
+    where: { id: goalId, deletedAt: null },
+  });
+  if (!goal) {
+    throw notFound('Goal not found', { goalId });
+  }
+  return normalizeForJson(goal) as SeedRow;
+}
+
+async function getGoalPayloadById(goalId: string) {
+  const store = mutableGoalStore();
+  if (store) {
+    const tables = store.tables as Record<string, unknown>;
+    const goal = findSeedGoal(tables, goalId);
+    return { goal, milestones: seedGoalMilestones(tables, goalId), seedVersion: store.version };
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  const found = await prisma.goal.findFirst({
+    where: { id: goalId, deletedAt: null },
+    include: {
+      milestones: {
+        where: { deletedAt: null },
+        orderBy: { sortOrder: 'asc' },
+      },
+    },
+  });
+  if (!found) {
+    throw notFound('Goal not found', { goalId });
+  }
+  const { milestones, ...goal } = found;
+  return normalizeForJson({ goal, milestones, seedVersion: null });
+}
+
+async function updateGoalPayload(
+  goalId: string,
+  actorUserId: string,
+  body: z.infer<typeof goalUpdateRequestSchema>,
+) {
+  const store = mutableGoalStore();
+  if (store) {
+    return updateSeedGoal(store.tables as Record<string, unknown>, goalId, actorUserId, body);
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  const updated = await prisma.goal.update({
+    where: { id: goalId },
+    data: {
+      ...(body.title !== undefined ? { title: body.title } : {}),
+      ...(body.description !== undefined ? { notes: body.description } : {}),
+      ...(body.category !== undefined ? { category: body.category } : {}),
+      ...(body.status !== undefined ? { status: body.status } : {}),
+      ...(body.targetDate !== undefined ? { targetDate: parseOptionalDate(body.targetDate) } : {}),
+      updatedByUserId: actorUserId,
+      version: { increment: 1 },
+    },
+    include: {
+      milestones: {
+        where: { deletedAt: null },
+        orderBy: { sortOrder: 'asc' },
+      },
+    },
+  });
+  const { milestones, ...goal } = updated;
+  return normalizeForJson({ goal, milestones });
+}
+
+async function deleteGoalPayload(goalId: string, actorUserId: string): Promise<void> {
+  const store = mutableGoalStore();
+  if (store) {
+    deleteSeedGoal(store.tables as Record<string, unknown>, goalId, actorUserId);
+    return;
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  const now = new Date();
+  await prisma.$transaction([
+    prisma.goalMilestone.updateMany({
+      where: { goalId, deletedAt: null },
+      data: {
+        deletedAt: now,
+        deletedByUserId: actorUserId,
+        updatedByUserId: actorUserId,
+        version: { increment: 1 },
+      },
+    }),
+    prisma.goal.update({
+      where: { id: goalId },
+      data: {
+        deletedAt: now,
+        deletedByUserId: actorUserId,
+        updatedByUserId: actorUserId,
+        version: { increment: 1 },
+      },
+    }),
+  ]);
+}
+
 async function handleInvoiceTransitionRoute(
   request: FastifyRequest,
   reply: FastifyReply,
@@ -1155,11 +1519,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     }
     await assertCanReadAthleteHealth(request, athleteId);
 
-    const store = getMarketplaceSeedStore();
-    const goals = asRows(store.tables.goals).filter((row) => asString(row.athleteId) === athleteId);
-    const milestones = asRows(store.tables.goalMilestones).filter((row) =>
-      goals.some((goal) => asString(goal.id) === asString(row.goalId)),
-    );
+    const payload = await getAthleteGoalsPayload(athleteId);
 
     await recordAuditEvent({
       request,
@@ -1172,11 +1532,143 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
 
     return reply.send({
       athleteId,
-      goals,
-      milestones,
-      seedVersion: store.version,
+      goals: payload.goals,
+      milestones: payload.milestones,
+      seedVersion: payload.seedVersion,
       requestId: request.requestId,
     });
+  });
+
+  app.post('/athletes/:athleteId/goals', async (request, reply) => {
+    const athleteId = asString((request.params as { athleteId?: string }).athleteId);
+    if (!athleteId) {
+      throw notFound('Athlete id is required');
+    }
+    await assertCanWriteAthleteHealth(request, athleteId);
+    const actorUserId = asString(request.auth?.userId);
+    if (!actorUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+    const body = goalCreateRequestSchema.parse(request.body ?? {});
+    const payload = await createGoalPayload(athleteId, actorUserId, body);
+
+    await recordAuditEvent({
+      request,
+      action: 'athlete_goal.create',
+      resourceType: 'goal',
+      resourceId: asString(payload.goal.id) ?? athleteId,
+      subjectUserId: athleteId,
+      result: 'SUCCESS',
+      metadata: {
+        athleteId,
+        milestoneCount: Array.isArray(payload.milestones) ? payload.milestones.length : 0,
+      },
+    });
+
+    return reply.status(201).send({
+      athleteId,
+      ...payload,
+      requestId: request.requestId,
+    });
+  });
+
+  app.get('/goals/:goalId', async (request, reply) => {
+    const goalId = asString((request.params as { goalId?: string }).goalId);
+    if (!goalId) {
+      throw notFound('Goal id is required');
+    }
+    const payload = await getGoalPayloadById(goalId);
+    const athleteId = asString(payload.goal.athleteId);
+    if (!athleteId) {
+      throw notFound('Goal athlete is required', { goalId });
+    }
+    await assertCanReadAthleteHealth(request, athleteId);
+
+    await recordAuditEvent({
+      request,
+      action: 'athlete_goal.read',
+      resourceType: 'goal',
+      resourceId: goalId,
+      subjectUserId: athleteId,
+      result: 'SUCCESS',
+      sensitiveRead: true,
+    });
+
+    return reply.send({
+      athleteId,
+      ...payload,
+      requestId: request.requestId,
+    });
+  });
+
+  app.patch('/goals/:goalId', async (request, reply) => {
+    const goalId = asString((request.params as { goalId?: string }).goalId);
+    if (!goalId) {
+      throw notFound('Goal id is required');
+    }
+    const goal = await getGoalForWrite(goalId);
+    const athleteId = asString(goal.athleteId);
+    if (!athleteId) {
+      throw notFound('Goal athlete is required', { goalId });
+    }
+    await assertCanWriteAthleteHealth(request, athleteId);
+    const actorUserId = asString(request.auth?.userId);
+    if (!actorUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+    const body = goalUpdateRequestSchema.parse(request.body ?? {});
+    const payload = await updateGoalPayload(goalId, actorUserId, body);
+
+    await recordAuditEvent({
+      request,
+      action: 'athlete_goal.update',
+      resourceType: 'goal',
+      resourceId: goalId,
+      subjectUserId: athleteId,
+      result: 'SUCCESS',
+      metadata: {
+        athleteId,
+        fields: Object.keys(body),
+      },
+    });
+
+    return reply.send({
+      athleteId,
+      ...payload,
+      requestId: request.requestId,
+    });
+  });
+
+  app.delete('/goals/:goalId', async (request, reply) => {
+    const goalId = asString((request.params as { goalId?: string }).goalId);
+    if (!goalId) {
+      throw notFound('Goal id is required');
+    }
+    const goal = await getGoalForWrite(goalId);
+    const athleteId = asString(goal.athleteId);
+    if (!athleteId) {
+      throw notFound('Goal athlete is required', { goalId });
+    }
+    await assertCanWriteAthleteHealth(request, athleteId);
+    const actorUserId = asString(request.auth?.userId);
+    if (!actorUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+    await deleteGoalPayload(goalId, actorUserId);
+
+    await recordAuditEvent({
+      request,
+      action: 'athlete_goal.delete',
+      resourceType: 'goal',
+      resourceId: goalId,
+      subjectUserId: athleteId,
+      result: 'SUCCESS',
+      metadata: {
+        athleteId,
+      },
+    });
+
+    return reply.status(204).send();
   });
 
   app.get('/athletes/:athleteId/badges', async (request, reply) => {

@@ -15,7 +15,6 @@ import { bookingAuthorityService } from './booking/booking-authority-service';
 import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import {
   type Result,
   type ServiceError,
@@ -31,6 +30,15 @@ export { getDayName };
 const logger = createLogger('RecurringBookingService');
 const API_MODE_RECURRING_AUTHORITY_MESSAGE =
   'Recurring booking plans require backend series authority in API mode.';
+
+let mockRecurringBookingsStore: RecurringBooking[] = [];
+
+function cloneRecurringBooking(booking: RecurringBooking): RecurringBooking {
+  return {
+    ...booking,
+    generatedBookingIds: [...(booking.generatedBookingIds ?? [])],
+  };
+}
 
 interface ApiSeriesLike {
   id: string;
@@ -155,7 +163,11 @@ class RecurringBookingService {
   }
 
   private async listValue(): Promise<RecurringBooking[]> {
-    return apiClient.get<RecurringBooking[]>(STORAGE_KEYS.RECURRING_BOOKINGS, []);
+    return mockRecurringBookingsStore.map(cloneRecurringBooking);
+  }
+
+  private async saveList(bookings: RecurringBooking[]): Promise<void> {
+    mockRecurringBookingsStore = bookings.map(cloneRecurringBooking);
   }
 
   private buildInitialSeriesWeeks(params: CreateRecurringBookingParams): string[] {
@@ -194,51 +206,24 @@ class RecurringBookingService {
       return 0;
     }
 
-    const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
-    const now = Date.now();
     let cancelledCount = 0;
 
-    const updatedBookings = bookings.map((booking) => {
-      if (
-        booking.recurringBookingId !== recurring.id ||
-        !recurring.generatedBookingIds.includes(booking.id) ||
-        booking.status === 'CANCELLED' ||
-        booking.status === 'COMPLETED'
-      ) {
-        return booking;
+    for (const bookingId of recurring.generatedBookingIds) {
+      const cancelled = await bookingService.cancel(
+        bookingId,
+        reason || 'Recurring plan cancelled',
+        'parent',
+      );
+      if (cancelled) {
+        cancelledCount += 1;
       }
-
-      const scheduledAtMs = new Date(booking.scheduledAt).getTime();
-      if (!Number.isFinite(scheduledAtMs) || scheduledAtMs < now) {
-        return booking;
-      }
-
-      cancelledCount += 1;
-      emitTyped(ServiceEvents.BOOKING_CANCELLED, {
-        bookingId: booking.id,
-        userId: booking.bookedById || recurring.userId,
-        coachId: booking.coachId,
-        reason,
-        cancelledBy: 'parent',
-      });
-
-      return {
-        ...booking,
-        status: 'CANCELLED' as const,
-        cancellationReason: reason || 'Recurring plan cancelled',
-        cancelledAt: new Date().toISOString(),
-      };
-    });
-
-    if (cancelledCount > 0) {
-      await apiClient.set(STORAGE_KEYS.BOOKINGS, updatedBookings);
     }
 
     return cancelledCount;
   }
 
   /**
-   * Get all recurring bookings from storage
+   * Get all recurring bookings from backend authority or mock memory.
    */
   async list(): Promise<Result<RecurringBooking[], ServiceError>> {
     try {
@@ -368,7 +353,7 @@ class RecurringBookingService {
 
       const bookings = await this.listValue();
       const updated = [...bookings, newRecurring];
-      await apiClient.set(STORAGE_KEYS.RECURRING_BOOKINGS, updated);
+      await this.saveList(updated);
 
       logger.info('recurring_booking_created', {
         id: newRecurring.id,
@@ -539,7 +524,7 @@ class RecurringBookingService {
       };
 
       bookings[index] = updated;
-      await apiClient.set(STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
+      await this.saveList(bookings);
       const cancelledGeneratedCount = await this.cancelFutureGeneratedBookings(updated, reason);
 
       logger.info('recurring_booking_cancelled', {
@@ -634,7 +619,7 @@ class RecurringBookingService {
       };
 
       bookings[index] = updated;
-      await apiClient.set(STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
+      await this.saveList(bookings);
 
       logger.info('recurring_booking_paused', {
         id: recurringId,
@@ -712,7 +697,7 @@ class RecurringBookingService {
       };
 
       bookings[index] = updated;
-      await apiClient.set(STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
+      await this.saveList(bookings);
 
       logger.info('recurring_booking_resumed', {
         id: recurringId,
@@ -871,7 +856,7 @@ class RecurringBookingService {
             ...generatedBookings.map((g) => g.bookingId),
           ];
           bookings[index].updatedAt = new Date().toISOString();
-          await apiClient.set(STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
+          await this.saveList(bookings);
         }
       }
 
@@ -960,7 +945,7 @@ class RecurringBookingService {
       }
 
       bookings[index] = updated;
-      await apiClient.set(STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
+      await this.saveList(bookings);
 
       logger.info('recurring_booking_updated', {
         id: recurringId,
@@ -1010,7 +995,7 @@ class RecurringBookingService {
       }
 
       bookings[index] = updated;
-      await apiClient.set(STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
+      await this.saveList(bookings);
 
       logger.info('recurring_session_completed', {
         id: recurringId,
@@ -1042,7 +1027,7 @@ class RecurringBookingService {
         return err(notFound('Recurring booking', recurringId));
       }
 
-      await apiClient.set(STORAGE_KEYS.RECURRING_BOOKINGS, filtered);
+      await this.saveList(filtered);
 
       logger.info('recurring_booking_deleted', { id: recurringId });
 
@@ -1127,7 +1112,7 @@ class RecurringBookingService {
       });
 
       if (updated) {
-        await apiClient.set(STORAGE_KEYS.RECURRING_BOOKINGS, updatedBookings);
+        await this.saveList(updatedBookings);
         logger.info('expired_bookings_updated');
       }
       return ok(undefined);
@@ -1215,7 +1200,7 @@ class RecurringBookingService {
     ];
 
     try {
-      await apiClient.set(STORAGE_KEYS.RECURRING_BOOKINGS, demoBookings);
+      await this.saveList(demoBookings);
       logger.info('demo_recurring_bookings_seeded', { count: demoBookings.length });
       return ok(undefined);
     } catch (error) {
@@ -1233,7 +1218,7 @@ class RecurringBookingService {
       if (authorityError) {
         return err(authorityError);
       }
-      await apiClient.set(STORAGE_KEYS.RECURRING_BOOKINGS, []);
+      await this.saveList([]);
       logger.info('recurring_bookings_cleared');
       return ok(undefined);
     } catch (error) {

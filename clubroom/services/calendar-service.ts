@@ -4,10 +4,9 @@
  * Handles calendar sync functionality including ICS file generation,
  * native calendar integration, and sync settings management.
  *
- * API Integration Notes:
- * - GET /api/users/:id/calendar-settings - Get user's calendar sync settings
- * - PUT /api/users/:id/calendar-settings - Update calendar sync settings
- * - POST /api/bookings/:id/calendar-export - Generate calendar event from booking
+ * Calendar sync preferences remain device-local in every runtime mode because
+ * they control this device's native calendar integration, not server-owned
+ * football data.
  */
 
 import { apiClient } from './api-client';
@@ -378,25 +377,13 @@ export const calendarService = {
    * Get calendar sync settings for a user
    */
   async getSyncSettings(userId: string): Promise<CalendarSyncSettings | null> {
-    if (USE_MOCK) {
-      try {
-        const stored = await apiClient.get<CalendarSyncSettings | null>(
-          `${STORAGE_KEYS.CALENDAR_SYNC_SETTINGS}_${userId}`,
-          null,
-        );
-        return stored;
-      } catch (error) {
-        logger.error('Failed to get sync settings', error);
-        return null;
-      }
-    }
-
     try {
-      const response = await fetch(`/api/users/${userId}/calendar-settings`);
-      if (!response.ok) return null;
-      return response.json();
+      return await apiClient.get<CalendarSyncSettings | null>(
+        `${STORAGE_KEYS.CALENDAR_SYNC_SETTINGS}_${userId}`,
+        null,
+      );
     } catch (error) {
-      logger.error('Failed to fetch sync settings', error);
+      logger.error('Failed to get sync settings', error);
       return null;
     }
   },
@@ -408,40 +395,15 @@ export const calendarService = {
     userId: string,
     settings: Partial<CalendarSyncSettings>,
   ): Promise<{ success: boolean; settings?: CalendarSyncSettings; error?: string }> {
-    if (USE_MOCK) {
-      try {
-        const existing = await this.getSyncSettings(userId);
-        const updated: CalendarSyncSettings = {
-          ...DEFAULT_SETTINGS,
-          ...existing,
-          ...settings,
-          userId,
-        };
-
-        await apiClient.set(`${STORAGE_KEYS.CALENDAR_SYNC_SETTINGS}_${userId}`, updated);
-
-        return { success: true, settings: updated };
-      } catch (error) {
-        logger.error('Failed to update sync settings', error);
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to save settings',
-        };
-      }
-    }
-
     try {
-      const response = await fetch(`/api/users/${userId}/calendar-settings`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
-      });
-
-      if (!response.ok) {
-        return { success: false, error: 'Failed to update settings' };
-      }
-
-      const updated = await response.json();
+      const existing = await this.getSyncSettings(userId);
+      const updated: CalendarSyncSettings = {
+        ...DEFAULT_SETTINGS,
+        ...existing,
+        ...settings,
+        userId,
+      };
+      await apiClient.set(`${STORAGE_KEYS.CALENDAR_SYNC_SETTINGS}_${userId}`, updated);
       return { success: true, settings: updated };
     } catch (error) {
       logger.error('Failed to update sync settings', error);

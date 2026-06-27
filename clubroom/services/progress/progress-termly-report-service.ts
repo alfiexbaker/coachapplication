@@ -3,6 +3,7 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { Goal } from '@/constants/types';
 import { badgeService } from '@/services/badge-service';
 import { apiClient } from '@/services/api-client';
+import { bookingService } from '@/services/booking';
 import { progressFeedbackService } from '@/services/progress/progress-feedback-service';
 import { progressPracticeLogService } from '@/services/progress/progress-practice-log-service';
 import { progressSelfAssessmentService } from '@/services/progress/progress-self-assessment-service';
@@ -158,7 +159,7 @@ async function generateTermlyReport(
   try {
     const [bookings, feedback, awards, practiceLogs, selfAssessments, skillLevels, goals] =
       await Promise.all([
-        apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []),
+        bookingService.list(),
         progressFeedbackService.getFeedbackForAthlete(input.athleteId, viewerRole),
         badgeService.listAwardsForAthlete(input.athleteId),
         progressPracticeLogService.listAthleteLogs(input.athleteId),

@@ -133,6 +133,8 @@ async function main() {
     await tx.bookingParticipant.deleteMany();
     await tx.booking.deleteMany();
     await tx.athleteInjury.deleteMany();
+    await tx.goalMilestone.deleteMany();
+    await tx.goal.deleteMany();
     await tx.childConsent.deleteMany();
     await tx.childMedicalRecord.deleteMany();
     await tx.childEmergencyContact.deleteMany();
@@ -555,6 +557,52 @@ async function main() {
     });
     if (athletes.length > 0) {
       await tx.athlete.createMany({ data: athletes });
+    }
+
+    const goals = asRows(tables.goals).map((row) => ({
+      id: row.id,
+      athleteId: row.athleteId,
+      ownerUserId: asString(row.ownerUserId) ?? null,
+      creatorUserId: asString(row.creatorUserId) ?? asString(row.createdByUserId) ?? '',
+      title: asString(row.title) ?? 'Goal',
+      category: asString(row.category) ?? null,
+      status: asString(row.status) ?? 'ACTIVE',
+      targetDate: toDate(row.targetDate),
+      notes: asString(row.notes) ?? null,
+      createdByUserId: asString(row.createdByUserId) ?? asString(row.creatorUserId) ?? '',
+      updatedByUserId:
+        asString(row.updatedByUserId) ??
+        asString(row.createdByUserId) ??
+        asString(row.creatorUserId) ??
+        '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (goals.length > 0) {
+      await tx.goal.createMany({ data: goals });
+    }
+
+    const goalMilestones = asRows(tables.goalMilestones).map((row) => ({
+      id: row.id,
+      goalId: row.goalId,
+      title: asString(row.title) ?? 'Milestone',
+      status: asString(row.status) ?? 'PENDING',
+      dueDate: toDate(row.dueDate),
+      completedAt: toDate(row.completedAt),
+      sortOrder: asNumber(row.sortOrder, 0),
+      createdByUserId: asString(row.createdByUserId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.createdByUserId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (goalMilestones.length > 0) {
+      await tx.goalMilestone.createMany({ data: goalMilestones });
     }
 
     const guardianLinks = asRows(tables.guardianChildLinks).map((row) => ({

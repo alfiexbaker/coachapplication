@@ -3,7 +3,6 @@ import {
   BadgeDefinition,
   BadgeVisibility,
   BadgeCategory,
-  type Booking,
 } from '@/constants/types';
 import { apiClient } from './api-client';
 import { socialFeedService } from './social-feed-service';
@@ -824,7 +823,7 @@ class BadgeService {
    */
   private async getWeeklyStreak(athleteId: string): Promise<number> {
     try {
-      const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
+      const bookings = await bookingService.getBookingsForUser(athleteId, 'athlete');
       const completedBookings = bookings.filter(
         (booking) =>
           booking.status === 'COMPLETED' &&

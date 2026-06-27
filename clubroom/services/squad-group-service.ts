@@ -79,7 +79,7 @@ export const squadGroupService = {
         });
         return ok(existingGroupResult.data);
       }
-      // Mapping exists but group was deleted — remove stale entry
+      // Mapping exists but group was deleted; remove stale entry.
       delete map[squadId];
       const staleResult = await saveMap(map);
       if (!staleResult.success) {
@@ -131,22 +131,6 @@ export const squadGroupService = {
         return err(mapResult.error);
       }
 
-      // 5. Also save groupId on the squad record for quick lookups
-      try {
-        const storedSquads = await apiClient.get<
-          Array<{
-            id: string;
-            groupId?: string;
-          }>
-        >(STORAGE_KEYS.CLUB_SQUADS, []);
-        const idx = storedSquads.findIndex((s) => s.id === squadId);
-        if (idx !== -1) {
-          storedSquads[idx].groupId = newGroup.data.id;
-          await apiClient.set(STORAGE_KEYS.CLUB_SQUADS, storedSquads);
-        }
-      } catch (error) {
-        logger.warn("Failed to persist groupId on squad record", error);
-      }
       logger.info("Created squad group", {
         squadId,
         groupId: newGroup.data.id,

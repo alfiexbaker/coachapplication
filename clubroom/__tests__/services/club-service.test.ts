@@ -17,8 +17,7 @@ const CLUB_ID = `club_${rid()}`;
 
 describe('clubService', () => {
   beforeEach(async () => {
-    await apiClient.remove(`club_members_${CLUB_ID}`);
-    await apiClient.remove('club_member_removals');
+    clubService.__resetMockMembers(CLUB_ID);
     await apiClient.remove(`club_branding_${CLUB_ID}`);
     eventBus.clearAll();
   });

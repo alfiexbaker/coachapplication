@@ -5,7 +5,9 @@ import type { User } from '@/constants/types';
 import { POC_ACCOUNT_IDS } from '@/constants/poc-accounts';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { apiClient } from '@/services/api-client';
+import { childService } from '@/services/child-service';
 import { eventBus, onTyped, ServiceEvents } from '@/services/event-bus';
+import { safetyService } from '@/services/safety-service';
 import { userService } from '@/services/user-service';
 
 const USERS_SEED: User[] = [
@@ -31,7 +33,8 @@ describe('userService', () => {
   beforeEach(async () => {
     await apiClient.remove(STORAGE_KEYS.USERS);
     await apiClient.remove(STORAGE_KEYS.AUTH_USER);
-    await apiClient.remove(STORAGE_KEYS.CHILDREN_PROFILES);
+    childService.__resetMockChildren();
+    await safetyService.resetToMockData();
     eventBus.clearAll();
   });
 
@@ -65,23 +68,25 @@ describe('userService', () => {
     assert.equal(result.error.code, 'NOT_FOUND');
   });
 
-  it('resolves child profiles as users when users storage has no child record', async () => {
+  it('resolves child-created user records when users storage has no child record', async () => {
     await apiClient.set(STORAGE_KEYS.USERS, USERS_SEED);
-    await apiClient.set(STORAGE_KEYS.CHILDREN_PROFILES, [
-      {
-        id: 'child_generated_1',
-        firstName: 'Freya',
-        lastName: 'Barton',
-        nickname: 'F',
-        dateOfBirth: '2014-02-11',
-      },
-    ]);
+    const child = await childService.createChild('parent_user_service', {
+      firstName: 'Freya',
+      lastName: 'Barton',
+      nickname: 'F',
+      dateOfBirth: '2014-02-11',
+      gender: 'FEMALE',
+      relationship: 'DAUGHTER',
+      emergencyContactName: 'Parent Barton',
+      emergencyContactPhone: '+44 7700 100200',
+      emergencyContactRelation: 'Parent',
+    });
 
-    const result = await userService.getUserById('child_generated_1');
+    const result = await userService.getUserById(child.id);
 
     assert.equal(result.success, true);
     if (!result.success) return;
-    assert.equal(result.data.id, 'child_generated_1');
+    assert.equal(result.data.id, child.id);
     assert.equal(result.data.name, 'F');
     assert.equal(result.data.role, 'USER');
     assert.equal(result.data.dateOfBirth, '2014-02-11');

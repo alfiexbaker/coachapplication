@@ -10,8 +10,7 @@ import { useChildContext } from '@/hooks/use-child-context';
 import { academyService } from '@/services/academy-service';
 import { badgeService } from '@/services/badge-service';
 import { bookingService } from '@/services/booking-service';
-import { notificationService } from '@/services/notification-service';
-import { emitTyped, ServiceEvents } from '@/services/event-bus';
+import { groupSessionService } from '@/services/group-session-service';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { Booking, User } from '@/constants/app-types';
 import type {
@@ -791,63 +790,11 @@ export function useSessionDetailModal(
           text: 'Cancel Session',
           style: 'destructive',
           onPress: async () => {
-            try {
-              const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-              const updatedOfferings = offerings.map((o) => {
-                if (o.id === offering.id) {
-                  return {
-                    ...o,
-                    cancelledInstances: [...(o.cancelledInstances || []), dateStr],
-                  };
-                }
-                return o;
-              });
-              await apiClient.set('session_offerings', updatedOfferings);
-              const registeredParticipants = offering.registrations.filter(
-                (registration) => registration.status === 'confirmed',
-              );
-              const notificationResults = await Promise.allSettled(
-                registeredParticipants.map((registration) =>
-                  notificationService.create({
-                    id: `notif_session_instance_cancel_${offering.id}_${registration.userId}_${Date.now()}`,
-                    type: 'booking',
-                    title: 'Session Cancelled',
-                    body: `${offering.title} on ${formattedDate} has been cancelled by the coach.`,
-                    recipientId: registration.userId,
-                    timeLabel: 'Just now',
-                    read: false,
-                  }),
-                ),
-              );
-              const failedNotifications = notificationResults.filter(
-                (result) =>
-                  result.status === 'rejected' ||
-                  (result.status === 'fulfilled' && !result.value.success),
-              ).length;
-              if (failedNotifications > 0) {
-                logger.warn('Partial notification failure for recurring instance cancel', {
-                  offeringId: offering.id,
-                  date: dateStr,
-                  failedNotifications,
-                  totalParticipants: registeredParticipants.length,
-                });
-              }
-              const notifiedCount = Math.max(
-                0,
-                registeredParticipants.length - failedNotifications,
-              );
-              uiFeedback.showToast(
-                registeredParticipants.length > 0
-                  ? failedNotifications > 0
-                    ? `Session on ${formattedDate} has been cancelled. ${notifiedCount} of ${registeredParticipants.length} athletes were notified.`
-                    : `Session on ${formattedDate} has been cancelled. All ${registeredParticipants.length} athletes were notified.`
-                  : `Session on ${formattedDate} has been cancelled.`,
-                'success',
-              );
-              onUpdate?.();
-            } catch {
-              uiFeedback.showToast('Failed to cancel session. Please try again.', 'error');
-            }
+            void dateStr;
+            uiFeedback.showToast(
+              'Recurring instance cancellation needs backend session-instance authority.',
+              'error',
+            );
           },
         },
       ],
@@ -947,35 +894,11 @@ export function useSessionDetailModal(
           style: 'destructive',
           onPress: async () => {
             try {
-              const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-              const updatedOfferings = offerings.map((o) => {
-                if (o.id === offering.id) {
-                  const updatedRegistrations = o.registrations.map((reg) =>
-                    reg.id === myRegistration.id
-                      ? {
-                          ...reg,
-                          status: 'cancelled' as const,
-                        }
-                      : reg,
-                  );
-                  const nextRegisteredCount = updatedRegistrations.filter(
-                    (reg) => reg.status === 'confirmed',
-                  ).length;
-                  const nextHeadcount = nextRegisteredCount + getSessionOfferingOffPlatformCount(o);
-                  return {
-                    ...o,
-                    registrations: updatedRegistrations,
-                    status:
-                      o.status === 'full'
-                        ? nextHeadcount >= o.maxParticipants
-                          ? 'full'
-                          : 'active'
-                        : o.status,
-                  };
-                }
-                return o;
-              });
-              await apiClient.set('session_offerings', updatedOfferings);
+              const result = await groupSessionService.cancelRegistration(myRegistration.id);
+              if (!result.success) {
+                uiFeedback.showToast(result.error.message, 'error');
+                return;
+              }
               logger.debug('Registration-level cancellation persisted', {
                 offeringId: offering.id,
                 registrationId: myRegistration.id,
@@ -1009,25 +932,10 @@ export function useSessionDetailModal(
           text: 'End Series',
           style: 'destructive',
           onPress: async () => {
-            try {
-              const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-              const updatedOfferings = offerings.map((o) => {
-                if (o.id === offering.id) {
-                  return {
-                    ...o,
-                    endDate: toDateStr(new Date()),
-                    status: 'cancelled' as const,
-                  };
-                }
-                return o;
-              });
-              await apiClient.set('session_offerings', updatedOfferings);
-              uiFeedback.showToast('All future sessions have been cancelled.');
-              onUpdate?.();
-              onClose();
-            } catch {
-              uiFeedback.showToast('Failed to end series. Please try again.', 'error');
-            }
+            uiFeedback.showToast(
+              'Ending a recurring session series needs backend series authority.',
+              'error',
+            );
           },
         },
       ],
@@ -1044,55 +952,14 @@ export function useSessionDetailModal(
     setReassigningOwnership(true);
     await runAsyncTryCatchFinally(
       async () => {
-        const offerings = await apiClient.get<SessionOffering[]>(
-          STORAGE_KEYS.SESSION_OFFERINGS,
-          [],
-        );
-        const nowIso = new Date().toISOString();
-        const actorName = currentUser.fullName || currentUser.name || currentUser.id;
         const selectedAssigneeLabel =
           assigneeOptions.find((option) => option.id === selectedAssigneeId)?.label ||
           selectedAssigneeId;
-        const updated = offerings.map((entry) => {
-          if (entry.id !== offering.id) return entry;
-          const nextAuditTrail: SessionOwnershipAuditEvent[] = [
-            ...(entry.ownershipAuditTrail ?? []),
-            {
-              id: `ownership_${Date.now()}_${selectedAssigneeId}`,
-              action: previousOwnerId ? 'REASSIGNED' : 'ASSIGNED',
-              timestamp: nowIso,
-              actorUserId: currentUser.id,
-              actorName,
-              actorRole: currentUser.role,
-              fromCoachId: previousOwnerId,
-              toCoachId: selectedAssigneeId,
-              note: `Session owner changed to ${selectedAssigneeLabel}`,
-            },
-            {
-              id: `ownership_${Date.now()}_updated`,
-              action: 'UPDATED',
-              timestamp: nowIso,
-              actorUserId: currentUser.id,
-              actorName,
-              actorRole: currentUser.role,
-              toCoachId: selectedAssigneeId,
-              note: 'Ownership edited in session detail',
-            },
-          ];
-          return {
-            ...entry,
-            coachId: selectedAssigneeId,
-            ownerCoachId: selectedAssigneeId,
-            assigneeCoachId: selectedAssigneeId,
-            updatedAt: nowIso,
-            updatedByUserId: currentUser.id,
-            updatedByRole: currentUser.role,
-            ownershipAuditTrail: nextAuditTrail,
-          };
-        });
-        await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updated);
-        uiFeedback.showToast(`Session reassigned to ${selectedAssigneeLabel}.`, 'success');
-        onUpdate?.();
+        void selectedAssigneeLabel;
+        uiFeedback.showToast(
+          'Session reassignment needs backend assignment authority.',
+          'error',
+        );
       },
       async (error) => {
         logger.error('Failed to reassign session owner', {
@@ -1135,43 +1002,12 @@ export function useSessionDetailModal(
     setSavingOffPlatform(true);
     await runAsyncTryCatchFinally(
       async () => {
-        const offerings = await apiClient.get<SessionOffering[]>(
-          STORAGE_KEYS.SESSION_OFFERINGS,
-          [],
+        void normalizedCount;
+        void currentCount;
+        uiFeedback.showToast(
+          'Off-platform attendee edits need backend session capacity authority.',
+          'error',
         );
-        const nowIso = new Date().toISOString();
-        const updatedOfferings = offerings.map((entry) => {
-          if (entry.id !== offering.id) return entry;
-          const nextHeadcount = getSessionOfferingRegisteredCount(entry) + normalizedCount;
-          const shouldTrackCapacityStatus = entry.status === 'active' || entry.status === 'full';
-          return {
-            ...entry,
-            offPlatformParticipants: normalizedCount,
-            status: shouldTrackCapacityStatus
-              ? nextHeadcount >= entry.maxParticipants
-                ? 'full'
-                : 'active'
-              : entry.status,
-            updatedAt: nowIso,
-            updatedByUserId: currentUser.id,
-            updatedByRole: currentUser.role,
-          };
-        });
-        await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, updatedOfferings);
-        setDraftOffPlatformParticipants(normalizedCount);
-        logger.debug('Saved off-platform participants', {
-          offeringId: offering.id,
-          previousCount: currentCount,
-          nextCount: normalizedCount,
-        });
-        emitTyped(ServiceEvents.SESSION_UPDATED, {
-          sessionId: offering.id,
-          changes: {
-            offPlatformParticipants: normalizedCount,
-          },
-        });
-        onUpdate?.();
-        uiFeedback.showToast('Off-platform attendees updated.', 'success');
       },
       async (error) => {
         uiFeedback.showToast('Failed to update off-platform attendees. Please try again.', 'error');

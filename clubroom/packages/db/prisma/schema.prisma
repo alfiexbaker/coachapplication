@@ -269,6 +269,9 @@ model User {
   coachProfile              CoachProfile?
   clubMemberships           ClubMembership[]
   eventRsvps                EventRsvp[]
+  eventAttendances          EventAttendance[]         @relation("EventAttendanceUser")
+  recordedEventAttendances  EventAttendance[]         @relation("EventAttendanceRecorder")
+  matchPlayerGuardians      ClubMatchPlayer[]         @relation("ClubMatchPlayerGuardian")
   communityGroupMemberships CommunityGroupMembership[]
   postReactions             PostReaction[]
   postCommentReactions      PostCommentReaction[]
@@ -279,6 +282,8 @@ model User {
   mutedSources              MutedSource[]
   quietHours                QuietHours?
   coachFavourites           CoachFavourite[]           @relation("UserCoachFavourites")
+  coachPayoutMethods        CoachPayoutMethod[]         @relation("CoachPayoutMethodCoach")
+  coachWithdrawals          CoachWithdrawal[]           @relation("CoachWithdrawalCoach")
 
   grantedAccess  AccessGrant[] @relation("AccessGrantGrantor")
   receivedAccess AccessGrant[] @relation("AccessGrantGrantee")
@@ -466,6 +471,7 @@ model Athlete {
   senTags                   ChildSenTag[]
   consents                  ChildConsent[]
   squadMemberships          SquadMembership[]
+  matchPlayers              ClubMatchPlayer[]
   bookingParticipants       BookingParticipant[]
   groupSessionRegistrations GroupSessionRegistration[]
   attendanceRecords         AttendanceRecord[]
@@ -724,6 +730,7 @@ model CoachingOffering {
   currency        String    @default("GBP")
   description     String?
   defaultLocation String?
+  skillsFocus     String[]  @default([])
   active          Boolean   @default(true)
   createdByUserId String
   updatedByUserId String
@@ -832,6 +839,11 @@ model CancellationPolicyRule {
 model Club {
   id              String    @id
   name            String
+  tagline         String?
+  badgeUrl        String?
+  coverPhotoUrl   String?
+  primaryColor    String?
+  secondaryColor  String?
   slug            String?   @unique
   visibility      String    @default("private")
   createdByUserId String
@@ -1267,8 +1279,9 @@ model ClubEvent {
   deletedAt       DateTime?
   deletedByUserId String?
 
-  club  Club        @relation(fields: [clubId], references: [id], onDelete: Restrict)
-  rsvps EventRsvp[]
+  club        Club              @relation(fields: [clubId], references: [id], onDelete: Restrict)
+  rsvps       EventRsvp[]
+  attendances EventAttendance[]
 
   @@index([clubId, startsAt])
 }
@@ -1301,11 +1314,38 @@ model ClubMatch {
 
   club  Club   @relation(fields: [clubId], references: [id], onDelete: Restrict)
   squad Squad? @relation(fields: [squadId], references: [id], onDelete: SetNull)
+  players ClubMatchPlayer[]
 
   @@index([clubId, startsAt])
   @@index([squadId, startsAt])
   @@index([coachUserId, startsAt])
   @@index([status, startsAt])
+}
+
+model ClubMatchPlayer {
+  id              String   @id
+  matchId         String
+  athleteId       String
+  parentUserId    String
+  status          String   @default("INVITED")
+  responseAt      DateTime?
+  parentNote      String?
+  position        String?
+  jerseyNumber    Int?
+  createdByUserId String
+  updatedByUserId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+  deletedByUserId String?
+
+  match  ClubMatch @relation(fields: [matchId], references: [id], onDelete: Restrict)
+  athlete Athlete   @relation(fields: [athleteId], references: [id], onDelete: Restrict)
+  parent User       @relation("ClubMatchPlayerGuardian", fields: [parentUserId], references: [id], onDelete: Restrict)
+
+  @@unique([matchId, athleteId])
+  @@index([athleteId])
+  @@index([parentUserId, status])
 }
 
 model EventRsvp {
@@ -1324,6 +1364,31 @@ model EventRsvp {
 
   @@unique([clubEventId, userId])
   @@index([userId])
+}
+
+model EventAttendance {
+  id                String   @id
+  clubEventId       String
+  userId            String
+  userRole          String
+  checkedInAt       DateTime @default(now())
+  checkedInByUserId String
+  checkInMethod     String
+  guestsCheckedIn   Int      @default(0)
+  notes             String?
+  locationJson      Json?
+  locationValidated Boolean?
+  distanceFromVenue Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  clubEvent  ClubEvent @relation(fields: [clubEventId], references: [id], onDelete: Restrict)
+  user       User      @relation("EventAttendanceUser", fields: [userId], references: [id], onDelete: Restrict)
+  checkedInBy User     @relation("EventAttendanceRecorder", fields: [checkedInByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([clubEventId, userId])
+  @@index([userId])
+  @@index([checkedInByUserId])
 }
 
 model AttendanceRecord {
@@ -1510,6 +1575,62 @@ model PaymentAttempt {
   @@unique([invoiceId, idempotencyKey])
   @@index([invoiceId, status])
   @@index([provider, providerSessionId])
+}
+
+model CoachPayoutMethod {
+  id              String    @id
+  coachUserId     String
+  type            String
+  isDefault       Boolean   @default(false)
+  isVerified      Boolean   @default(true)
+  bankName        String?
+  accountLastFour String?
+  paypalEmail     String?
+  stripeAccountId String?
+  nickname        String?
+  provider        String    @default("simulated")
+  providerRef     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  verifiedAt      DateTime?
+  deletedAt       DateTime?
+  deletedByUserId String?
+
+  coach      User              @relation("CoachPayoutMethodCoach", fields: [coachUserId], references: [id], onDelete: Restrict)
+  withdrawals CoachWithdrawal[]
+
+  @@index([coachUserId, deletedAt])
+  @@index([coachUserId, isDefault])
+  @@index([provider, providerRef])
+}
+
+model CoachWithdrawal {
+  id               String    @id
+  coachUserId      String
+  amountMinor      Int
+  currency         String    @default("GBP")
+  feeMinor         Int       @default(0)
+  netAmountMinor   Int
+  payoutMethodId   String
+  payoutMethodType String
+  status           String    @default("PENDING")
+  requestedAt      DateTime  @default(now())
+  processedAt      DateTime?
+  completedAt      DateTime?
+  failureReason    String?
+  reference        String?
+  provider         String    @default("simulated")
+  providerRef      String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  coach        User              @relation("CoachWithdrawalCoach", fields: [coachUserId], references: [id], onDelete: Restrict)
+  payoutMethod CoachPayoutMethod @relation(fields: [payoutMethodId], references: [id], onDelete: Restrict)
+
+  @@index([coachUserId, status])
+  @@index([payoutMethodId])
+  @@index([requestedAt])
+  @@index([provider, providerRef])
 }
 
 // -----------------------------------------------------------------------------

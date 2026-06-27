@@ -96,6 +96,27 @@ async function processVideoAsset(payload: CapturedVideoPayload): Promise<VideoAs
   };
 }
 
+async function deleteIfPresent(uri: string | undefined): Promise<void> {
+  if (!uri) return;
+  await FileSystem.deleteAsync(uri, { idempotent: true }).catch((error) => {
+    logger.warn('Failed to clean up unpersisted media file', { uri, error });
+  });
+}
+
+async function deletePhotoAsset(photo: PhotoAsset): Promise<void> {
+  await Promise.all([
+    deleteIfPresent(photo.uri),
+    photo.thumbnailUri !== photo.uri ? deleteIfPresent(photo.thumbnailUri) : Promise.resolve(),
+  ]);
+}
+
+async function deleteVideoAsset(video: VideoAsset): Promise<void> {
+  await Promise.all([
+    deleteIfPresent(video.uri),
+    video.thumbnailUri !== video.uri ? deleteIfPresent(video.thumbnailUri) : Promise.resolve(),
+  ]);
+}
+
 export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMediaParams) {
   const [photos, setPhotos] = useState<PhotoAsset[]>([]);
   const [video, setVideo] = useState<VideoAsset | null>(null);
@@ -110,7 +131,10 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
     return video ? [...photoUris, video.uri] : photoUris;
   })();
 
-  const persistMedia = async (nextPhotos: PhotoAsset[], nextVideo: VideoAsset | null) => {
+  const persistMedia = async (
+    nextPhotos: PhotoAsset[],
+    nextVideo: VideoAsset | null,
+  ): Promise<boolean> => {
     const saveResult = await mediaService.saveSessionMedia({
       sessionId,
       athleteId,
@@ -122,7 +146,10 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
 
     if (!saveResult.success) {
       logger.error('Failed to persist session media', saveResult.error);
+      uiFeedback.showToast(saveResult.error.message, 'error');
+      return false;
     }
+    return true;
   };
 
   useEffect(() => {
@@ -178,8 +205,12 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
           height: result.assets[0].height ?? 0,
         });
         const nextPhotos = [...photos, photoAsset];
+        const persisted = await persistMedia(nextPhotos, video);
+        if (!persisted) {
+          await deletePhotoAsset(photoAsset);
+          return;
+        }
         setPhotos(nextPhotos);
-        await persistMedia(nextPhotos, video);
       }, async (error) => {
         logger.error('Failed to select photo from library', error);
         uiFeedback.showToast('Unable to save photo. Please try again.', 'error');
@@ -223,11 +254,16 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
       const photoAsset = await processPhotoAsset(payload);
       const nextPhotos = [...photos, photoAsset];
       if (nextPhotos.length > MAX_PHOTOS) {
+        await deletePhotoAsset(photoAsset);
         uiFeedback.showToast('Maximum 3 photos per session.');
         return;
       }
+      const persisted = await persistMedia(nextPhotos, video);
+      if (!persisted) {
+        await deletePhotoAsset(photoAsset);
+        return;
+      }
       setPhotos(nextPhotos);
-      await persistMedia(nextPhotos, video);
     }, async error => {
       logger.error('Failed to process captured photo', error);
       uiFeedback.showToast('Unable to save photo. Please try again.', 'error');
@@ -240,8 +276,12 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
   const handleVideoCaptured = async (payload: CapturedVideoPayload) => {
     await runAsyncTryCatchFinally(async () => {
       const videoAsset = await processVideoAsset(payload);
+      const persisted = await persistMedia(photos, videoAsset);
+      if (!persisted) {
+        await deleteVideoAsset(videoAsset);
+        return;
+      }
       setVideo(videoAsset);
-      await persistMedia(photos, videoAsset);
     }, async error => {
       logger.error('Failed to process captured video', error);
       uiFeedback.showToast('Unable to save video. Please try again.', 'error');

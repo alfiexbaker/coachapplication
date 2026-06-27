@@ -68,6 +68,50 @@ const updateStatusBodySchema = z.object({
   status: matchStatusSchema,
 });
 
+const matchPlayerStatusSchema = z.enum([
+  'INVITED',
+  'AVAILABLE',
+  'UNAVAILABLE',
+  'SELECTED',
+  'RESERVE',
+]);
+
+const hasUniqueAthleteIds = (players: Array<{ athleteId: string }>) =>
+  new Set(players.map((player) => player.athleteId)).size === players.length;
+
+const inviteMatchPlayersBodySchema = z.object({
+  players: z.array(
+    z.object({
+      athleteId: z.string().min(1),
+      athleteName: z.string().min(1).optional(),
+      parentId: z.string().min(1),
+      parentName: z.string().optional(),
+    }),
+  ).min(1).max(40).refine(hasUniqueAthleteIds, {
+    message: 'players must not contain duplicate athletes',
+  }),
+});
+
+const respondMatchPlayerBodySchema = z.object({
+  athleteId: z.string().min(1),
+  parentId: z.string().min(1).optional(),
+  status: z.enum(['AVAILABLE', 'UNAVAILABLE']),
+  note: z.string().max(500).optional(),
+});
+
+const setMatchLineupBodySchema = z.object({
+  lineup: z.array(
+    z.object({
+      athleteId: z.string().min(1),
+      position: z.string().max(80).optional(),
+      jerseyNumber: z.coerce.number().int().min(0).max(99).optional(),
+      isReserve: z.boolean().optional(),
+    }),
+  ).min(1).max(40).refine(hasUniqueAthleteIds, {
+    message: 'lineup must not contain duplicate athletes',
+  }),
+});
+
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
@@ -288,6 +332,16 @@ async function getDbMatchAccess(params: {
       id: params.matchId,
       deletedAt: null,
     },
+    include: {
+      players: {
+        where: {
+          deletedAt: null,
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      },
+    },
   });
   if (!match) {
     throw notFound('Match not found');
@@ -354,8 +408,8 @@ function mapClubMatch(row: SeedRow) {
     maxPlayers: asNumber(row.maxPlayers) ?? 14,
     selectedPlayers: asRows(row.players).map((player) => ({
       athleteId: asString(player.athleteId) ?? '',
-      parentId: asString(player.parentId) ?? '',
-      status: asString(player.status) ?? 'INVITED',
+      parentId: asString(player.parentId) ?? asString(player.parentUserId) ?? '',
+      status: matchPlayerStatusSchema.catch('INVITED').parse(asString(player.status)),
       responseAt: asString(player.responseAt),
       parentNote: asString(player.parentNote),
       position: asString(player.position),
@@ -395,6 +449,482 @@ async function recordClubMatchAudit(params: {
   });
 }
 
+function matchNotification(params: {
+  userId: string;
+  type: string;
+  title: string;
+  body: string;
+  matchId: string;
+  clubId: string;
+  now: string | Date;
+}): SeedRow {
+  return {
+    id: newId('nfn'),
+    userId: params.userId,
+    type: params.type,
+    title: params.title,
+    body: params.body,
+    status: 'UNREAD',
+    sourceType: 'club_match',
+    sourceId: params.matchId,
+    deepLink: `/matches/${params.matchId}`,
+    metadataJson: {
+      clubId: params.clubId,
+      matchId: params.matchId,
+    },
+    createdAt: params.now,
+    updatedAt: params.now,
+    readAt: null,
+    dismissedAt: null,
+  };
+}
+
+async function inviteMatchPlayers(params: {
+  matchId: string;
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+  players: z.infer<typeof inviteMatchPlayersBodySchema>['players'];
+}) {
+  if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+    const match = await requireDbMatchWriteAccess(params);
+    const prisma = getPrismaClientOrThrow();
+    const clubId = asString(match.clubId) ?? '';
+    const squadId = asString(match.squadId);
+    const now = new Date();
+    const notifications: SeedRow[] = [];
+    const inviteRows: Array<{ athleteId: string; parentId: string }> = [];
+    for (const player of params.players) {
+      const athlete = await prisma.athlete.findFirst({
+        where: {
+          id: player.athleteId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          displayName: true,
+          userId: true,
+        },
+      });
+      if (!athlete) {
+        throw badRequest('Invited athlete does not exist');
+      }
+      const guardian = await prisma.guardianChildLink.findFirst({
+        where: {
+          athleteId: player.athleteId,
+          guardianUserId: player.parentId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+      if (!guardian) {
+        throw forbidden('Match invites require a linked guardian for each athlete');
+      }
+      if (squadId) {
+        const squadMembership = await prisma.squadMembership.findFirst({
+          where: {
+            squadId,
+            athleteId: player.athleteId,
+            status: 'active',
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+          },
+        });
+        if (!squadMembership) {
+          throw forbidden('Invited athletes must belong to the match squad');
+        }
+      }
+      inviteRows.push({
+        athleteId: player.athleteId,
+        parentId: player.parentId,
+      });
+      notifications.push(
+        matchNotification({
+          userId: player.parentId,
+          type: 'MATCH_INVITE',
+          title: 'Match invite',
+          body: `${athlete.displayName} has been invited to ${asString(match.title) ?? 'a match'}.`,
+          matchId: params.matchId,
+          clubId,
+          now,
+        }),
+      );
+    }
+    await prisma.$transaction([
+      ...inviteRows.map((player) =>
+        prisma.clubMatchPlayer.upsert({
+          where: {
+            matchId_athleteId: {
+              matchId: params.matchId,
+              athleteId: player.athleteId,
+            },
+          },
+          create: {
+            id: newId('mpla'),
+            matchId: params.matchId,
+            athleteId: player.athleteId,
+            parentUserId: player.parentId,
+            status: 'INVITED',
+            createdByUserId: params.authUserId,
+            updatedByUserId: params.authUserId,
+          },
+          update: {
+            parentUserId: player.parentId,
+            status: 'INVITED',
+            responseAt: null,
+            parentNote: null,
+            position: null,
+            jerseyNumber: null,
+            updatedByUserId: params.authUserId,
+            deletedAt: null,
+            deletedByUserId: null,
+          },
+        }),
+      ),
+      ...(notifications.length > 0
+        ? [
+            prisma.notification.createMany({
+              data: notifications.map((notification) => ({
+                ...notification,
+                metadataJson: notification.metadataJson as never,
+              })) as never,
+            }),
+          ]
+        : []),
+    ]);
+    return getClubMatch(params);
+  }
+
+  const store = resolveStore();
+  const match = requireStoreMatchWriteAccess({
+    tables: store.tables as SeedTables,
+    matchId: params.matchId,
+    authUserId: params.authUserId,
+    isPrivilegedAdmin: params.isPrivilegedAdmin,
+  });
+  if (!Array.isArray(match.players)) {
+    match.players = [];
+  }
+  const players = match.players as SeedRow[];
+  if (!Array.isArray(store.tables.notifications)) {
+    store.tables.notifications = [];
+  }
+  const now = new Date().toISOString();
+  const squadId = asString(match.squadId);
+  for (const player of params.players) {
+    const athlete = asRows(store.tables.athletes).find(
+      (row) => asString(row.id) === player.athleteId && !asString(row.deletedAt),
+    );
+    if (!athlete) {
+      throw badRequest('Invited athlete does not exist');
+    }
+    const guardian = asRows(store.tables.guardianChildLinks).find(
+      (row) =>
+        asString(row.athleteId) === player.athleteId &&
+        asString(row.guardianUserId) === player.parentId &&
+        !asString(row.deletedAt),
+    );
+    if (!guardian) {
+      throw forbidden('Match invites require a linked guardian for each athlete');
+    }
+    if (squadId) {
+      const squadMembership = asRows(store.tables.squadMemberships).find(
+        (row) =>
+          asString(row.squadId) === squadId &&
+          asString(row.athleteId) === player.athleteId &&
+          asString(row.status) === 'active' &&
+          !asString(row.deletedAt),
+      );
+      if (!squadMembership) {
+        throw forbidden('Invited athletes must belong to the match squad');
+      }
+    }
+  }
+  for (const player of params.players) {
+    const existing = players.find((row) => asString(row.athleteId) === player.athleteId);
+    if (existing) {
+      existing.parentId = player.parentId;
+      existing.parentUserId = player.parentId;
+      existing.status = 'INVITED';
+      existing.responseAt = null;
+      existing.parentNote = null;
+      existing.position = null;
+      existing.jerseyNumber = null;
+      existing.updatedAt = now;
+    } else {
+      players.push({
+        id: newId('mpla'),
+        athleteId: player.athleteId,
+        parentId: player.parentId,
+        parentUserId: player.parentId,
+        status: 'INVITED',
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    store.tables.notifications.push(
+      matchNotification({
+        userId: player.parentId,
+        type: 'MATCH_INVITE',
+        title: 'Match invite',
+        body: `${player.athleteName ?? 'Athlete'} has been invited to ${asString(match.title) ?? 'a match'}.`,
+        matchId: params.matchId,
+        clubId: asString(match.clubId) ?? '',
+        now,
+      }),
+    );
+  }
+  match.updatedAt = now;
+  return mapClubMatch(match);
+}
+
+async function respondToMatchPlayer(params: {
+  matchId: string;
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+  body: z.infer<typeof respondMatchPlayerBodySchema>;
+}) {
+  if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+    const { match } = await getDbMatchAccess(params);
+    const prisma = getPrismaClientOrThrow();
+    const player = await prisma.clubMatchPlayer.findUnique({
+      where: {
+        matchId_athleteId: {
+          matchId: params.matchId,
+          athleteId: params.body.athleteId,
+        },
+      },
+      include: {
+        athlete: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
+    if (!player || player.deletedAt) {
+      throw notFound('Match player invite not found');
+    }
+    const canRespond =
+      params.isPrivilegedAdmin ||
+      player.parentUserId === params.authUserId ||
+      player.athlete.userId === params.authUserId;
+    if (!canRespond) {
+      throw forbidden('Only the invited guardian or athlete can respond to this match invite');
+    }
+    await prisma.clubMatchPlayer.update({
+      where: {
+        matchId_athleteId: {
+          matchId: params.matchId,
+          athleteId: params.body.athleteId,
+        },
+      },
+      data: {
+        status: params.body.status,
+        responseAt: new Date(),
+        parentNote: params.body.note ?? null,
+        updatedByUserId: params.authUserId,
+      },
+    });
+    const coachUserId = asString(match.coachUserId) ?? asString(match.coachId);
+    if (coachUserId) {
+      await prisma.notification.create({
+        data: {
+          id: newId('nfn'),
+          userId: coachUserId,
+          type: 'MATCH_AVAILABILITY_RESPONSE',
+          title: 'Match availability response',
+          body: `A player is ${params.body.status.toLowerCase()} for ${asString(match.title) ?? 'the match'}.`,
+          status: 'UNREAD',
+          sourceType: 'club_match',
+          sourceId: params.matchId,
+          deepLink: `/matches/${params.matchId}`,
+          metadataJson: {
+            clubId: asString(match.clubId),
+            matchId: params.matchId,
+            athleteId: params.body.athleteId,
+          } as never,
+        },
+      });
+    }
+    return getClubMatch(params);
+  }
+
+  const store = resolveStore();
+  const { match } = getStoreMatchAccess({
+    tables: store.tables as SeedTables,
+    matchId: params.matchId,
+    authUserId: params.authUserId,
+    isPrivilegedAdmin: params.isPrivilegedAdmin,
+  });
+  const players = asRows(match.players);
+  const player = players.find((row) => asString(row.athleteId) === params.body.athleteId);
+  if (!player) {
+    throw notFound('Match player invite not found');
+  }
+  const athlete = asRows(store.tables.athletes).find(
+    (row) => asString(row.id) === params.body.athleteId,
+  );
+  const canRespond =
+    params.isPrivilegedAdmin ||
+    asString(player.parentUserId) === params.authUserId ||
+    asString(player.parentId) === params.authUserId ||
+    asString(athlete?.userId) === params.authUserId;
+  if (!canRespond) {
+    throw forbidden('Only the invited guardian or athlete can respond to this match invite');
+  }
+  player.status = params.body.status;
+  player.responseAt = new Date().toISOString();
+  player.parentNote = params.body.note ?? null;
+  const coachUserId = asString(match.coachUserId) ?? asString(match.coachId);
+  if (coachUserId) {
+    ensureRows(store.tables as SeedTables, 'notifications').push(
+      matchNotification({
+        userId: coachUserId,
+        type: 'MATCH_AVAILABILITY_RESPONSE',
+        title: 'Match availability response',
+        body: `A player is ${params.body.status.toLowerCase()} for ${asString(match.title) ?? 'the match'}.`,
+        matchId: params.matchId,
+        clubId: asString(match.clubId) ?? '',
+        now: new Date().toISOString(),
+      }),
+    );
+  }
+  match.updatedAt = new Date().toISOString();
+  return mapClubMatch(match);
+}
+
+async function setMatchLineup(params: {
+  matchId: string;
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+  lineup: z.infer<typeof setMatchLineupBodySchema>['lineup'];
+}) {
+  if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+    const match = await requireDbMatchWriteAccess(params);
+    const prisma = getPrismaClientOrThrow();
+    const invitedPlayers = await prisma.clubMatchPlayer.findMany({
+      where: {
+        matchId: params.matchId,
+        athleteId: {
+          in: params.lineup.map((player) => player.athleteId),
+        },
+        deletedAt: null,
+      },
+      select: {
+        athleteId: true,
+      },
+    });
+    if (invitedPlayers.length !== new Set(params.lineup.map((player) => player.athleteId)).size) {
+      throw badRequest('Lineup athletes must be invited to the match first');
+    }
+    for (const lineupPlayer of params.lineup) {
+      const existing = await prisma.clubMatchPlayer.findUnique({
+        where: {
+          matchId_athleteId: {
+            matchId: params.matchId,
+            athleteId: lineupPlayer.athleteId,
+          },
+        },
+      });
+      if (!existing || existing.deletedAt) {
+        continue;
+      }
+      await prisma.clubMatchPlayer.update({
+        where: {
+          matchId_athleteId: {
+            matchId: params.matchId,
+            athleteId: lineupPlayer.athleteId,
+          },
+        },
+        data: {
+          status: lineupPlayer.isReserve ? 'RESERVE' : 'SELECTED',
+          position: lineupPlayer.position ?? null,
+          jerseyNumber: lineupPlayer.jerseyNumber ?? null,
+          updatedByUserId: params.authUserId,
+        },
+      });
+      await prisma.notification.create({
+        data: {
+          id: newId('nfn'),
+          userId: existing.parentUserId,
+          type: 'MATCH_LINEUP_SELECTION',
+          title: lineupPlayer.isReserve ? 'Reserve selection' : 'Match selection',
+          body: lineupPlayer.isReserve
+            ? `A player is on the bench for ${asString(match.title) ?? 'the match'}.`
+            : `A player has been selected for ${asString(match.title) ?? 'the match'}.`,
+          status: 'UNREAD',
+          sourceType: 'club_match',
+          sourceId: params.matchId,
+          deepLink: `/matches/${params.matchId}`,
+          metadataJson: {
+            clubId: asString(match.clubId),
+            matchId: params.matchId,
+            athleteId: lineupPlayer.athleteId,
+          } as never,
+        },
+      });
+    }
+    await prisma.clubMatch.update({
+      where: {
+        id: params.matchId,
+      },
+      data: {
+        status: 'LINEUP_SET',
+        updatedByUserId: params.authUserId,
+        version: {
+          increment: 1,
+        },
+      },
+    });
+    return getClubMatch(params);
+  }
+
+  const store = resolveStore();
+  const match = requireStoreMatchWriteAccess({
+    tables: store.tables as SeedTables,
+    matchId: params.matchId,
+    authUserId: params.authUserId,
+    isPrivilegedAdmin: params.isPrivilegedAdmin,
+  });
+  const players = asRows(match.players);
+  const invitedAthleteIds = new Set(players.map((player) => asString(player.athleteId)));
+  if (params.lineup.some((lineupPlayer) => !invitedAthleteIds.has(lineupPlayer.athleteId))) {
+    throw badRequest('Lineup athletes must be invited to the match first');
+  }
+  for (const lineupPlayer of params.lineup) {
+    const player = players.find((row) => asString(row.athleteId) === lineupPlayer.athleteId);
+    if (!player) {
+      throw badRequest('Lineup athletes must be invited to the match first');
+    }
+    player.status = lineupPlayer.isReserve ? 'RESERVE' : 'SELECTED';
+    player.position = lineupPlayer.position;
+    player.jerseyNumber = lineupPlayer.jerseyNumber;
+    const parentUserId = asString(player.parentUserId) ?? asString(player.parentId);
+    if (parentUserId) {
+      ensureRows(store.tables as SeedTables, 'notifications').push(
+        matchNotification({
+          userId: parentUserId,
+          type: 'MATCH_LINEUP_SELECTION',
+          title: lineupPlayer.isReserve ? 'Reserve selection' : 'Match selection',
+          body: lineupPlayer.isReserve
+            ? `A player is on the bench for ${asString(match.title) ?? 'the match'}.`
+            : `A player has been selected for ${asString(match.title) ?? 'the match'}.`,
+          matchId: params.matchId,
+          clubId: asString(match.clubId) ?? '',
+          now: new Date().toISOString(),
+        }),
+      );
+    }
+  }
+  match.status = 'LINEUP_SET';
+  match.updatedAt = new Date().toISOString();
+  return mapClubMatch(match);
+}
+
 async function listClubMatches(params: {
   clubId: string;
   authUserId: string;
@@ -410,6 +940,16 @@ async function listClubMatches(params: {
         clubId: params.clubId,
         deletedAt: null,
         status: params.status,
+      },
+      include: {
+        players: {
+          where: {
+            deletedAt: null,
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
       },
       orderBy: {
         startsAt: 'desc',
@@ -715,6 +1255,128 @@ export function registerClubMatchRoutes(app: FastifyInstance): void {
       match,
       requestId: request.requestId,
     });
+  });
+
+  app.post('/matches/:matchId/players/invite', async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const params = matchParamsSchema.parse(request.params ?? {});
+    const body = inviteMatchPlayersBodySchema.parse(request.body ?? {});
+    try {
+      const match = await inviteMatchPlayers({
+        matchId: params.matchId,
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        players: body.players,
+      });
+      await recordClubMatchAudit({
+        request,
+        action: 'club_match.players.invite',
+        resourceId: params.matchId,
+        result: 'SUCCESS',
+        metadata: {
+          clubId: match.clubId,
+          playerCount: body.players.length,
+        },
+      });
+      return reply.send({
+        match,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordClubMatchAudit({
+        request,
+        action: 'club_match.players.invite',
+        resourceId: params.matchId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          playerCount: body.players.length,
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+        },
+      });
+      throw error;
+    }
+  });
+
+  app.post('/matches/:matchId/players/respond', async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const params = matchParamsSchema.parse(request.params ?? {});
+    const body = respondMatchPlayerBodySchema.parse(request.body ?? {});
+    try {
+      const match = await respondToMatchPlayer({
+        matchId: params.matchId,
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        body,
+      });
+      await recordClubMatchAudit({
+        request,
+        action: 'club_match.availability.respond',
+        resourceId: params.matchId,
+        result: 'SUCCESS',
+        metadata: {
+          clubId: match.clubId,
+          athleteId: body.athleteId,
+          status: body.status,
+        },
+      });
+      return reply.send({
+        match,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordClubMatchAudit({
+        request,
+        action: 'club_match.availability.respond',
+        resourceId: params.matchId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          athleteId: body.athleteId,
+          status: body.status,
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+        },
+      });
+      throw error;
+    }
+  });
+
+  app.patch('/matches/:matchId/lineup', async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const params = matchParamsSchema.parse(request.params ?? {});
+    const body = setMatchLineupBodySchema.parse(request.body ?? {});
+    try {
+      const match = await setMatchLineup({
+        matchId: params.matchId,
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        lineup: body.lineup,
+      });
+      await recordClubMatchAudit({
+        request,
+        action: 'club_match.lineup.set',
+        resourceId: params.matchId,
+        result: 'SUCCESS',
+        metadata: {
+          clubId: match.clubId,
+          playerCount: body.lineup.length,
+        },
+      });
+      return reply.send({
+        match,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordClubMatchAudit({
+        request,
+        action: 'club_match.lineup.set',
+        resourceId: params.matchId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          playerCount: body.lineup.length,
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+        },
+      });
+      throw error;
+    }
   });
 
   app.patch('/matches/:matchId/result', async (request, reply) => {

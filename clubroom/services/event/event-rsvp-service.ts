@@ -63,6 +63,14 @@ interface ApiEventRsvpResponse {
   rsvp: ApiEventRsvp;
 }
 
+interface ApiEventRsvpListResponse {
+  rsvps: ApiEventRsvp[];
+}
+
+interface ApiEventRsvpReminderResponse {
+  reminderCount: number;
+}
+
 function mapApiRsvpToEventRsvp(rsvp: ApiEventRsvp, fallbackEventId: string): EventRSVP {
   return {
     id: rsvp.id,
@@ -235,8 +243,17 @@ export const eventRsvpService = {
       const event = eventsCache.find((e) => e.id === eventId);
       return event?.attendees || [];
     }
-    logger.warn('Event attendee reads need a /v1 event attendee API', { eventId });
-    return [];
+    const result = await apiFetch<ApiEventRsvpListResponse>(
+      `/v1/events/${encodeURIComponent(eventId)}/rsvps`,
+      {
+        method: 'GET',
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to load event attendees via API', { eventId, error: result.error });
+      return [];
+    }
+    return result.data.rsvps.map((rsvp) => mapApiRsvpToAttendee(rsvp, 'PARENT'));
   },
   /**
    * Get attendee counts by status
@@ -456,8 +473,17 @@ export const eventRsvpService = {
       rsvpsCache = await loadRSVPs();
       return rsvpsCache.filter((r) => r.eventId === eventId);
     }
-    logger.warn('Event RSVP list reads need a /v1 event RSVP API', { eventId });
-    return [];
+    const result = await apiFetch<ApiEventRsvpListResponse>(
+      `/v1/events/${encodeURIComponent(eventId)}/rsvps`,
+      {
+        method: 'GET',
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to load event RSVPs via API', { eventId, error: result.error });
+      return [];
+    }
+    return result.data.rsvps.map((rsvp) => mapApiRsvpToEventRsvp(rsvp, eventId));
   },
   /**
    * Get all RSVPs by a user
@@ -478,8 +504,23 @@ export const eventRsvpService = {
       rsvpsCache = await loadRSVPs();
       return rsvpsCache.find((r) => r.eventId === eventId && r.userId === userId) || null;
     }
-    logger.warn('User event RSVP detail reads need a /v1 event RSVP API', { eventId, userId });
-    return null;
+    const result = await apiFetch<ApiEventRsvpResponse>(
+      `/v1/events/${encodeURIComponent(eventId)}/rsvps/${encodeURIComponent(userId)}`,
+      {
+        method: 'GET',
+      },
+    );
+    if (!result.success || !result.data.rsvp) {
+      if (!result.success) {
+        logger.error('Failed to load user event RSVP via API', {
+          eventId,
+          userId,
+          error: result.error,
+        });
+      }
+      return null;
+    }
+    return mapApiRsvpToEventRsvp(result.data.rsvp, eventId);
   },
   /**
    * Send reminders to users who responded "Maybe".
@@ -536,11 +577,16 @@ export const eventRsvpService = {
       });
       return ok(sent);
     }
-    return err(
-      eventRsvpUnsupportedError('Sending event RSVP reminders', {
-        missingEndpoint: `/v1/events/${eventId}/rsvps/remind`,
-      }),
+    const result = await apiFetch<ApiEventRsvpReminderResponse>(
+      `/v1/events/${encodeURIComponent(eventId)}/rsvps/remind`,
+      {
+        method: 'POST',
+      },
     );
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(result.data.reminderCount ?? 0);
   },
   // ============================================================================
   // CALENDAR INTEGRATION

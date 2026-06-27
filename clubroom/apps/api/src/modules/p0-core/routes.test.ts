@@ -3,6 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { after, beforeEach, describe, it } from 'node:test';
 import { env } from '@clubroom/config';
+import {
+  canUseClubCapability,
+  isClubStaffRole,
+  parseOrganizationRole,
+} from '@clubroom/shared-contracts';
 import { buildApp } from '../../app.js';
 import { resetAuthRuntimeForTests } from '../../lib/auth-runtime.js';
 import { resetCoachClubRouteStateForTests } from '../coach-club/routes.js';
@@ -23,6 +28,40 @@ const asNumber = (value: unknown): number | undefined =>
   typeof value === 'number' ? value : undefined;
 const asRecord = (value: unknown): SeedRow | undefined =>
   value && typeof value === 'object' && !Array.isArray(value) ? (value as SeedRow) : undefined;
+
+function isActiveClubMembership(row: SeedRow | null | undefined): boolean {
+  return Boolean(row && row.active !== false && !asString(row.deletedAt));
+}
+
+function isActiveClubStaffMembership(row: SeedRow | null | undefined): boolean {
+  const role = parseOrganizationRole(asString(row?.role));
+  return Boolean(isActiveClubMembership(row) && role && isClubStaffRole(role));
+}
+
+function canCreateClubSessionFromMembership(row: SeedRow | null | undefined): boolean {
+  const role = parseOrganizationRole(asString(row?.role));
+  return Boolean(
+    isActiveClubMembership(row) &&
+      role &&
+      canUseClubCapability(role, 'create_org_sessions', { hasGrant: role === 'COACH' }),
+  );
+}
+
+function canAssignClubSessionFromMembership(row: SeedRow | null | undefined): boolean {
+  const role = parseOrganizationRole(asString(row?.role));
+  return Boolean(
+    isActiveClubMembership(row) &&
+      role &&
+      canUseClubCapability(role, 'assign_session_coach'),
+  );
+}
+
+function ensureRows(tables: SeedTables, key: string): SeedRow[] {
+  if (!Array.isArray(tables[key])) {
+    tables[key] = [];
+  }
+  return tables[key];
+}
 
 function auditEventsFor(
   tables: SeedTables,
@@ -3430,6 +3469,317 @@ describe('p0 core routes', () => {
     assert.equal(second.statusCode, 400);
   });
 
+  it('reads club event detail through v1 authority', async () => {
+    const tables = loadTables();
+    const staffClubMembership = asRows(tables.clubMemberships).find(isActiveClubStaffMembership);
+    assert.ok(staffClubMembership, 'expected seeded club staff membership');
+    const clubId = asString(staffClubMembership.clubId) as string;
+    const staffUserId = asString(staffClubMembership.userId) as string;
+    const memberClubMembership =
+      asRows(tables.clubMemberships).find(
+        (row) =>
+          asString(row.clubId) === clubId &&
+          asString(row.userId) !== staffUserId &&
+          isActiveClubMembership(row),
+      ) ?? staffClubMembership;
+    const memberUserId = asString(memberClubMembership.userId) as string;
+    const clubEvent = asRows(tables.clubEvents).find(
+      (row) => asString(row.clubId) === clubId && asString(row.status) !== 'DRAFT',
+    );
+    assert.ok(clubEvent, 'expected seeded published event for member club');
+    const eventId = asString(clubEvent.id) as string;
+
+    const list = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/events`,
+      headers: authHeaders(tables, memberUserId, 'parent'),
+    });
+    assert.equal(list.statusCode, 200);
+    const listPayload = list.json() as {
+      events: Array<{ id: string; clubId: string; status: string }>;
+      total: number;
+    };
+    assert.equal(listPayload.events.some((event) => event.id === eventId), true);
+    assert.equal(listPayload.events.every((event) => event.clubId === clubId), true);
+    if (!isActiveClubStaffMembership(memberClubMembership)) {
+      assert.equal(listPayload.events.some((event) => event.status === 'DRAFT'), false);
+    }
+    assert.equal(listPayload.total, listPayload.events.length);
+
+    const detail = await app.inject({
+      method: 'GET',
+      url: `/v1/events/${eventId}`,
+      headers: authHeaders(tables, memberUserId, 'parent'),
+    });
+    assert.equal(detail.statusCode, 200);
+    const detailPayload = detail.json() as {
+      event: {
+        id: string;
+        clubId: string;
+        title: string;
+        attendees: unknown[];
+      };
+    };
+    assert.equal(detailPayload.event.id, eventId);
+    assert.equal(detailPayload.event.clubId, clubId);
+    assert.equal(detailPayload.event.title, asString(clubEvent.title));
+    assert.equal(Array.isArray(detailPayload.event.attendees), true);
+
+    const outsiderUserId = asRows(tables.users)
+      .map((row) => asString(row.id))
+      .find((candidate): candidate is string => {
+        if (!candidate || candidate === memberUserId || candidate === staffUserId) {
+          return false;
+        }
+        if (rolesForUser(tables, candidate).includes('security_admin')) {
+          return false;
+        }
+        return !asRows(tables.clubMemberships).some(
+          (membership) =>
+            asString(membership.clubId) === clubId &&
+            asString(membership.userId) === candidate &&
+            isActiveClubMembership(membership),
+        );
+      });
+    assert.ok(outsiderUserId, 'expected user outside event club');
+    const deniedList = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/events`,
+      headers: authHeaders(tables, outsiderUserId, 'parent'),
+    });
+    assert.equal(deniedList.statusCode, 403);
+
+    const denied = await app.inject({
+      method: 'GET',
+      url: `/v1/events/${eventId}`,
+      headers: authHeaders(tables, outsiderUserId, 'parent'),
+    });
+    assert.equal(denied.statusCode, 403);
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_event.read',
+        resourceId: eventId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_event.read',
+        resourceId: eventId,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_event.list',
+        resourceId: clubId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_event.list',
+        resourceId: clubId,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+    try {
+      const fixtureTables = getDbFixtureStore().tables;
+      const fixtureDetail = await app.inject({
+        method: 'GET',
+        url: `/v1/events/${eventId}`,
+        headers: authHeaders(fixtureTables, memberUserId, 'parent'),
+      });
+      assert.equal(fixtureDetail.statusCode, 200);
+      assert.equal((fixtureDetail.json() as { event: { id: string } }).event.id, eventId);
+      const fixtureList = await app.inject({
+        method: 'GET',
+        url: `/v1/clubs/${clubId}/events`,
+        headers: authHeaders(fixtureTables, memberUserId, 'parent'),
+      });
+      assert.equal(fixtureList.statusCode, 200);
+      assert.equal(
+        (fixtureList.json() as { events: Array<{ id: string }> }).events.some(
+          (event) => event.id === eventId,
+        ),
+        true,
+      );
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+    }
+  });
+
+  it('creates, publishes, invites, and cancels club events through v1 authority', async () => {
+    const tables = loadTables();
+    const staffClubMembership = asRows(tables.clubMemberships).find(isActiveClubStaffMembership);
+    assert.ok(staffClubMembership, 'expected seeded club staff membership');
+    const clubId = asString(staffClubMembership.clubId) as string;
+    const staffUserId = asString(staffClubMembership.userId) as string;
+    const outsiderUserId = asRows(tables.users)
+      .map((row) => asString(row.id))
+      .find((candidate): candidate is string => {
+        if (!candidate || candidate === staffUserId) {
+          return false;
+        }
+        if (rolesForUser(tables, candidate).includes('security_admin')) {
+          return false;
+        }
+        return !asRows(tables.clubMemberships).some(
+          (membership) =>
+            asString(membership.clubId) === clubId &&
+            asString(membership.userId) === candidate &&
+            isActiveClubMembership(membership),
+        );
+      });
+    assert.ok(outsiderUserId, 'expected user outside event club');
+
+    const createPayload = {
+      title: 'API Cup Finals',
+      description: 'Created through the v1 event authority.',
+      eventType: 'TOURNAMENT',
+      date: '2026-09-12',
+      startTime: '10:00',
+      endTime: '13:00',
+      venue: 'Main Pitch',
+      targetAudience: 'ALL',
+      maxAttendees: 120,
+      price: 4.5,
+      currency: 'GBP',
+      rsvpRequired: true,
+    };
+    const deniedCreate = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/events`,
+      headers: authHeaders(tables, outsiderUserId, 'parent'),
+      payload: createPayload,
+    });
+    assert.equal(deniedCreate.statusCode, 403);
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/events`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+      payload: createPayload,
+    });
+    assert.equal(created.statusCode, 201);
+    const createdPayload = created.json() as {
+      event: { id: string; clubId: string; title: string; status: string; price: number };
+    };
+    assert.equal(createdPayload.event.clubId, clubId);
+    assert.equal(createdPayload.event.title, createPayload.title);
+    assert.equal(createdPayload.event.status, 'DRAFT');
+    assert.equal(createdPayload.event.price, 4.5);
+    const eventId = createdPayload.event.id;
+
+    const deniedPatch = await app.inject({
+      method: 'PATCH',
+      url: `/v1/events/${eventId}`,
+      headers: authHeaders(tables, outsiderUserId, 'parent'),
+      payload: { status: 'PUBLISHED' },
+    });
+    assert.equal(deniedPatch.statusCode, 403);
+
+    const published = await app.inject({
+      method: 'PATCH',
+      url: `/v1/events/${eventId}`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+      payload: { status: 'PUBLISHED' },
+    });
+    assert.equal(published.statusCode, 200);
+    assert.equal((published.json() as { event: { status: string } }).event.status, 'PUBLISHED');
+
+    const expectedRecipients = asRows(tables.clubMemberships).filter(
+      (membership) =>
+        asString(membership.clubId) === clubId &&
+        asString(membership.userId) !== staffUserId &&
+        membership.active !== false &&
+        !asString(membership.deletedAt),
+    ).length;
+    const invited = await app.inject({
+      method: 'POST',
+      url: `/v1/events/${eventId}/invites/club`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+    });
+    assert.equal(invited.statusCode, 200);
+    assert.equal((invited.json() as { inviteCount: number }).inviteCount, expectedRecipients);
+    assert.equal(
+      asRows(getMarketplaceSeedStore().tables.notifications).filter(
+        (row) => asString(row.sourceId) === eventId && asString(row.type) === 'CLUB_EVENT_INVITE',
+      ).length,
+      expectedRecipients,
+    );
+
+    const cancelled = await app.inject({
+      method: 'PATCH',
+      url: `/v1/events/${eventId}`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+      payload: { status: 'CANCELLED' },
+    });
+    assert.equal(cancelled.statusCode, 200);
+    assert.equal((cancelled.json() as { event: { status: string } }).event.status, 'CANCELLED');
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_event.create',
+        resourceId: eventId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_event.update',
+        resourceId: eventId,
+        result: 'SUCCESS',
+      }).length,
+      2,
+    );
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_event.invite_club',
+        resourceId: eventId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+    try {
+      const fixtureTables = getDbFixtureStore().tables;
+      const fixtureCreated = await app.inject({
+        method: 'POST',
+        url: `/v1/clubs/${clubId}/events`,
+        headers: authHeaders(fixtureTables, staffUserId, 'coach'),
+        payload: {
+          ...createPayload,
+          title: 'DB Fixture API Cup Finals',
+        },
+      });
+      assert.equal(fixtureCreated.statusCode, 201);
+      const fixtureEventId = (fixtureCreated.json() as { event: { id: string } }).event.id;
+      const fixturePublished = await app.inject({
+        method: 'PATCH',
+        url: `/v1/events/${fixtureEventId}`,
+        headers: authHeaders(fixtureTables, staffUserId, 'coach'),
+        payload: { status: 'PUBLISHED' },
+      });
+      assert.equal(fixturePublished.statusCode, 200);
+      assert.equal(
+        (fixturePublished.json() as { event: { status: string } }).event.status,
+        'PUBLISHED',
+      );
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+    }
+  });
+
   it('responds to invites and creates/updates event RSVPs', async () => {
     const tables = loadTables();
     const target =
@@ -3474,9 +3824,17 @@ describe('p0 core routes', () => {
       assert.equal(invitePayload.bookingId ?? null, null);
     }
 
-    const memberClubMembership = asRows(tables.clubMemberships)[0];
-    assert.ok(memberClubMembership, 'expected seeded club membership');
-    const clubId = asString(memberClubMembership.clubId) as string;
+    const staffClubMembership = asRows(tables.clubMemberships).find(isActiveClubStaffMembership);
+    assert.ok(staffClubMembership, 'expected seeded club staff membership');
+    const clubId = asString(staffClubMembership.clubId) as string;
+    const staffUserId = asString(staffClubMembership.userId) as string;
+    const memberClubMembership =
+      asRows(tables.clubMemberships).find(
+        (row) =>
+          asString(row.clubId) === clubId &&
+          asString(row.userId) !== staffUserId &&
+          isActiveClubMembership(row),
+      ) ?? staffClubMembership;
     const memberUserId = asString(memberClubMembership.userId) as string;
     const clubEvent = asRows(tables.clubEvents).find((row) => asString(row.clubId) === clubId);
     assert.ok(clubEvent, 'expected seeded event for member club');
@@ -3499,6 +3857,134 @@ describe('p0 core routes', () => {
     const rsvpPayload = rsvp.json() as { rsvp: { status: string; guestCount: number } };
     assert.equal(rsvpPayload.rsvp.status, 'GOING');
     assert.equal(rsvpPayload.rsvp.guestCount, 1);
+
+    const rsvpList = await app.inject({
+      method: 'GET',
+      url: `/v1/events/${eventId}/rsvps`,
+      headers: authHeaders(tables, memberUserId, 'parent'),
+    });
+    assert.equal(rsvpList.statusCode, 200);
+    const rsvpListPayload = rsvpList.json() as {
+      rsvps: Array<{ eventId: string; userId: string; status: string; guestCount: number }>;
+      total: number;
+    };
+    assert.equal(rsvpListPayload.total >= 1, true);
+    assert.equal(
+      rsvpListPayload.rsvps.some(
+        (item) =>
+          item.eventId === eventId &&
+          item.userId === memberUserId &&
+          item.status === 'GOING' &&
+          item.guestCount === 1,
+      ),
+      true,
+    );
+
+    const userRsvp = await app.inject({
+      method: 'GET',
+      url: `/v1/events/${eventId}/rsvps/${memberUserId}`,
+      headers: authHeaders(tables, memberUserId, 'parent'),
+    });
+    assert.equal(userRsvp.statusCode, 200);
+    const userRsvpPayload = userRsvp.json() as {
+      rsvp: { eventId: string; userId: string; status: string } | null;
+    };
+    assert.equal(userRsvpPayload.rsvp?.eventId, eventId);
+    assert.equal(userRsvpPayload.rsvp?.userId, memberUserId);
+    assert.equal(userRsvpPayload.rsvp?.status, 'GOING');
+
+    const maybeRsvp = await app.inject({
+      method: 'POST',
+      url: `/v1/events/${eventId}/rsvp`,
+      headers: authHeaders(tables, memberUserId, 'parent'),
+      payload: {
+        status: 'MAYBE',
+        guestCount: 1,
+      },
+    });
+    assert.equal(maybeRsvp.statusCode, 200);
+
+    const reminder = await app.inject({
+      method: 'POST',
+      url: `/v1/events/${eventId}/rsvps/remind`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+    });
+    assert.equal(reminder.statusCode, 200);
+    const reminderPayload = reminder.json() as { reminderCount: number };
+    assert.equal(reminderPayload.reminderCount >= 1, true);
+    assert.equal(
+      asRows(getMarketplaceSeedStore().tables.notifications).some(
+        (row) =>
+          asString(row.userId) === memberUserId &&
+          asString(row.type) === 'EVENT_RSVP_REMINDER' &&
+          asString(row.sourceId) === eventId,
+      ),
+      true,
+    );
+
+    const outsiderUserId = asRows(tables.users)
+      .map((row) => asString(row.id))
+      .find((candidate): candidate is string => {
+        if (!candidate || candidate === memberUserId) {
+          return false;
+        }
+        if (rolesForUser(tables, candidate).includes('security_admin')) {
+          return false;
+        }
+        return !asRows(tables.clubMemberships).some(
+          (membership) =>
+            asString(membership.clubId) === clubId &&
+            asString(membership.userId) === candidate &&
+            membership.active !== false &&
+            !asString(membership.deletedAt),
+        );
+      });
+    assert.ok(outsiderUserId, 'expected user outside event club');
+    const deniedRead = await app.inject({
+      method: 'GET',
+      url: `/v1/events/${eventId}/rsvps`,
+      headers: authHeaders(tables, outsiderUserId, 'parent'),
+    });
+    assert.equal(deniedRead.statusCode, 403);
+    const deniedReminder = await app.inject({
+      method: 'POST',
+      url: `/v1/events/${eventId}/rsvps/remind`,
+      headers: authHeaders(tables, outsiderUserId, 'parent'),
+    });
+    assert.equal(deniedReminder.statusCode, 403);
+    const currentStore = getMarketplaceSeedStore();
+    assert.equal(
+      auditEventsFor(currentStore.tables, {
+        action: 'event.rsvp.read',
+        resourceId: eventId,
+        result: 'SUCCESS',
+      }).length >= 2,
+      true,
+    );
+    assert.equal(
+      auditEventsFor(currentStore.tables, {
+        action: 'event.rsvp.read',
+        resourceId: eventId,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(currentStore.tables, {
+        action: 'event.rsvp.remind',
+        resourceId: eventId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(currentStore.tables, {
+        action: 'event.rsvp.remind',
+        resourceId: eventId,
+        result: 'DENY',
+      }).length,
+      1,
+    );
   });
 
   it('creates event RSVPs through the db fixture backend', async () => {
@@ -3508,9 +3994,17 @@ describe('p0 core routes', () => {
     try {
       const fixtureStore = getDbFixtureStore();
       const tables = fixtureStore.tables;
-      const memberClubMembership = asRows(tables.clubMemberships)[0];
-      assert.ok(memberClubMembership, 'expected db-fixture club membership');
-      const clubId = asString(memberClubMembership.clubId) as string;
+      const staffClubMembership = asRows(tables.clubMemberships).find(isActiveClubStaffMembership);
+      assert.ok(staffClubMembership, 'expected db-fixture club staff membership');
+      const clubId = asString(staffClubMembership.clubId) as string;
+      const staffUserId = asString(staffClubMembership.userId) as string;
+      const memberClubMembership =
+        asRows(tables.clubMemberships).find(
+          (row) =>
+            asString(row.clubId) === clubId &&
+            asString(row.userId) !== staffUserId &&
+            isActiveClubMembership(row),
+        ) ?? staffClubMembership;
       const memberUserId = asString(memberClubMembership.userId) as string;
       const clubEvent = asRows(tables.clubEvents).find((row) => asString(row.clubId) === clubId);
       assert.ok(clubEvent, 'expected db-fixture event for member club');
@@ -3538,6 +4032,36 @@ describe('p0 core routes', () => {
         (row) => asString(row.clubEventId) === eventId && asString(row.userId) === memberUserId,
       );
       assert.equal(asString(storedRsvp?.status), 'NOT_GOING');
+      const list = await app.inject({
+        method: 'GET',
+        url: `/v1/events/${eventId}/rsvps`,
+        headers: authHeaders(tables, memberUserId, 'parent'),
+      });
+      assert.equal(list.statusCode, 200);
+      const listPayload = list.json() as {
+        rsvps: Array<{ eventId: string; userId: string; status: string }>;
+      };
+      assert.equal(
+        listPayload.rsvps.some(
+          (item) =>
+            item.eventId === eventId &&
+            item.userId === memberUserId &&
+            item.status === 'NOT_GOING',
+        ),
+        true,
+      );
+      const detail = await app.inject({
+        method: 'GET',
+        url: `/v1/events/${eventId}/rsvps/${memberUserId}`,
+        headers: authHeaders(tables, memberUserId, 'parent'),
+      });
+      assert.equal(detail.statusCode, 200);
+      const detailPayload = detail.json() as {
+        rsvp: { eventId: string; userId: string; status: string } | null;
+      };
+      assert.equal(detailPayload.rsvp?.eventId, eventId);
+      assert.equal(detailPayload.rsvp?.userId, memberUserId);
+      assert.equal(detailPayload.rsvp?.status, 'NOT_GOING');
       assert.equal(
         auditEventsFor(getDbFixtureStore().tables, {
           action: 'event.rsvp',
@@ -3546,9 +4070,420 @@ describe('p0 core routes', () => {
         }).length,
         1,
       );
+      assert.equal(
+        auditEventsFor(getDbFixtureStore().tables, {
+          action: 'event.rsvp.read',
+          resourceId: eventId,
+          result: 'SUCCESS',
+        }).length >= 2,
+        true,
+      );
+
+      const maybeRsvp = await app.inject({
+        method: 'POST',
+        url: `/v1/events/${eventId}/rsvp`,
+        headers: authHeaders(tables, memberUserId, 'parent'),
+        payload: {
+          status: 'MAYBE',
+          guestCount: 0,
+        },
+      });
+      assert.equal(maybeRsvp.statusCode, 200);
+
+      const reminder = await app.inject({
+        method: 'POST',
+        url: `/v1/events/${eventId}/rsvps/remind`,
+        headers: authHeaders(tables, staffUserId, 'coach'),
+      });
+      assert.equal(reminder.statusCode, 200);
+      const reminderPayload = reminder.json() as { reminderCount: number };
+      assert.equal(reminderPayload.reminderCount >= 1, true);
+      assert.equal(
+        asRows(getDbFixtureStore().tables.notifications).some(
+          (row) =>
+            asString(row.userId) === memberUserId &&
+            asString(row.type) === 'EVENT_RSVP_REMINDER' &&
+            asString(row.sourceId) === eventId,
+        ),
+        true,
+      );
+      assert.equal(
+        auditEventsFor(getDbFixtureStore().tables, {
+          action: 'event.rsvp.remind',
+          resourceId: eventId,
+          result: 'SUCCESS',
+        }).length,
+        1,
+      );
     } finally {
       env.API_DATA_BACKEND = previousBackend;
     }
+  });
+
+  it('reads event attendance through v1 authority', async () => {
+    const tables = loadTables();
+    const staffClubMembership = asRows(tables.clubMemberships).find(isActiveClubStaffMembership);
+    assert.ok(staffClubMembership, 'expected seeded club staff membership');
+    const clubId = asString(staffClubMembership.clubId) as string;
+    const staffUserId = asString(staffClubMembership.userId) as string;
+    const memberClubMembership =
+      asRows(tables.clubMemberships).find(
+        (row) =>
+          asString(row.clubId) === clubId &&
+          asString(row.userId) !== staffUserId &&
+          isActiveClubMembership(row),
+      ) ?? staffClubMembership;
+    const memberUserId = asString(memberClubMembership.userId) as string;
+    const clubEvent = asRows(tables.clubEvents).find((row) => asString(row.clubId) === clubId);
+    assert.ok(clubEvent, 'expected seeded event for member club');
+    const eventId = asString(clubEvent.id) as string;
+
+    const checkin = await app.inject({
+      method: 'POST',
+      url: `/v1/events/${eventId}/checkins`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+      payload: {
+        userId: memberUserId,
+        userRole: 'PARENT',
+        checkInMethod: 'COACH',
+        guestsCheckedIn: 1,
+        notes: 'Checked in at the gate.',
+        locationValidated: true,
+        distanceFromVenue: 20,
+      },
+    });
+    assert.equal(checkin.statusCode, 200);
+    const checkinPayload = checkin.json() as {
+      attendance: { eventId: string; userId: string; guestsCheckedIn: number };
+    };
+    assert.equal(checkinPayload.attendance.eventId, eventId);
+    assert.equal(checkinPayload.attendance.userId, memberUserId);
+    assert.equal(checkinPayload.attendance.guestsCheckedIn, 1);
+
+    const list = await app.inject({
+      method: 'GET',
+      url: `/v1/events/${eventId}/attendance`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+    });
+    assert.equal(list.statusCode, 200);
+    const listPayload = list.json() as {
+      attendance: Array<{ eventId: string; userId: string; guestsCheckedIn: number }>;
+      total: number;
+    };
+    assert.equal(listPayload.total, 1);
+    assert.equal(listPayload.attendance[0]?.eventId, eventId);
+    assert.equal(listPayload.attendance[0]?.userId, memberUserId);
+    assert.equal(listPayload.attendance[0]?.guestsCheckedIn, 1);
+
+    const rsvp = await app.inject({
+      method: 'POST',
+      url: `/v1/events/${eventId}/rsvp`,
+      headers: authHeaders(tables, memberUserId, 'parent'),
+      payload: {
+        status: 'GOING',
+        guestCount: 2,
+      },
+    });
+    assert.equal(rsvp.statusCode, 200);
+
+    const stats = await app.inject({
+      method: 'GET',
+      url: `/v1/events/${eventId}/attendance/stats`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+    });
+    assert.equal(stats.statusCode, 200);
+    const statsPayload = stats.json() as {
+      rsvpCounts: { going: number };
+      expectedGuests: number;
+      checkedInCount: number;
+      guestsCheckedInCount: number;
+      attendanceRate: number;
+      byRole: { parents: { checkedIn: number } };
+    };
+    assert.equal(statsPayload.checkedInCount, 1);
+    assert.equal(statsPayload.guestsCheckedInCount, 1);
+    assert.equal(statsPayload.rsvpCounts.going >= 1, true);
+    assert.equal(statsPayload.expectedGuests >= 2, true);
+    assert.equal(statsPayload.attendanceRate >= 0, true);
+    assert.equal(statsPayload.byRole.parents.checkedIn, 1);
+
+    const detail = await app.inject({
+      method: 'GET',
+      url: `/v1/events/${eventId}/attendance/${memberUserId}`,
+      headers: authHeaders(tables, memberUserId, 'parent'),
+    });
+    assert.equal(detail.statusCode, 200);
+    const detailPayload = detail.json() as {
+      attendance: { eventId: string; userId: string; checkInMethod: string } | null;
+    };
+    assert.equal(detailPayload.attendance?.eventId, eventId);
+    assert.equal(detailPayload.attendance?.userId, memberUserId);
+    assert.equal(detailPayload.attendance?.checkInMethod, 'COACH');
+
+    const outsiderUserId = asRows(tables.users)
+      .map((row) => asString(row.id))
+      .find((candidate): candidate is string => {
+        if (!candidate || candidate === memberUserId || candidate === staffUserId) {
+          return false;
+        }
+        if (rolesForUser(tables, candidate).includes('security_admin')) {
+          return false;
+        }
+        return !asRows(tables.clubMemberships).some(
+          (membership) =>
+            asString(membership.clubId) === clubId &&
+            asString(membership.userId) === candidate &&
+            isActiveClubMembership(membership),
+        );
+      });
+    assert.ok(outsiderUserId, 'expected user outside event club');
+    const deniedList = await app.inject({
+      method: 'GET',
+      url: `/v1/events/${eventId}/attendance`,
+      headers: authHeaders(tables, outsiderUserId, 'parent'),
+    });
+    assert.equal(deniedList.statusCode, 403);
+    const deniedStats = await app.inject({
+      method: 'GET',
+      url: `/v1/events/${eventId}/attendance/stats`,
+      headers: authHeaders(tables, outsiderUserId, 'parent'),
+    });
+    assert.equal(deniedStats.statusCode, 403);
+    const deniedRemove = await app.inject({
+      method: 'DELETE',
+      url: `/v1/events/${eventId}/checkins/${memberUserId}`,
+      headers: authHeaders(tables, outsiderUserId, 'parent'),
+    });
+    assert.equal(deniedRemove.statusCode, 403);
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'event.attendance.read',
+        resourceId: eventId,
+        result: 'SUCCESS',
+      }).length >= 2,
+      true,
+    );
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'event.attendance.read',
+        resourceId: eventId,
+        result: 'DENY',
+      }).length >= 2,
+      true,
+    );
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'event.attendance.checkin',
+        resourceId: eventId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'event.attendance.remove',
+        resourceId: eventId,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+    const removed = await app.inject({
+      method: 'DELETE',
+      url: `/v1/events/${eventId}/checkins/${memberUserId}`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+    });
+    assert.equal(removed.statusCode, 204);
+    assert.equal(
+      asRows(getMarketplaceSeedStore().tables.eventAttendances).some(
+        (row) => asString(row.clubEventId) === eventId && asString(row.userId) === memberUserId,
+      ),
+      false,
+    );
+
+    const previousBackend = env.API_DATA_BACKEND;
+    env.API_DATA_BACKEND = 'db';
+    try {
+      const fixtureTables = getDbFixtureStore().tables;
+      ensureRows(fixtureTables, 'eventAttendances');
+      const fixtureCheckin = await app.inject({
+        method: 'POST',
+        url: `/v1/events/${eventId}/checkins`,
+        headers: authHeaders(fixtureTables, staffUserId, 'coach'),
+        payload: {
+          userId: memberUserId,
+          userRole: 'PARENT',
+          checkInMethod: 'COACH',
+          guestsCheckedIn: 0,
+        },
+      });
+      assert.equal(fixtureCheckin.statusCode, 200);
+      const fixtureList = await app.inject({
+        method: 'GET',
+        url: `/v1/events/${eventId}/attendance`,
+        headers: authHeaders(fixtureTables, staffUserId, 'coach'),
+      });
+      assert.equal(fixtureList.statusCode, 200);
+      const fixturePayload = fixtureList.json() as {
+        attendance: Array<{ eventId: string; userId: string }>;
+      };
+      assert.equal(
+        fixturePayload.attendance.some(
+          (attendance) => attendance.eventId === eventId && attendance.userId === memberUserId,
+        ),
+        true,
+      );
+      const fixtureStats = await app.inject({
+        method: 'GET',
+        url: `/v1/events/${eventId}/attendance/stats`,
+        headers: authHeaders(fixtureTables, staffUserId, 'coach'),
+      });
+      assert.equal(fixtureStats.statusCode, 200);
+      assert.equal((fixtureStats.json() as { checkedInCount: number }).checkedInCount >= 1, true);
+    } finally {
+      env.API_DATA_BACKEND = previousBackend;
+    }
+  });
+
+  it('requires club create permission for club-linked group sessions', async () => {
+    const tables = getMarketplaceSeedStore().tables;
+    const activeMemberships = asRows(tables.clubMemberships).filter(isActiveClubMembership);
+    const creatorMembership = activeMemberships.find((row) => {
+      const userId = asString(row.userId);
+      return (
+        Boolean(userId) &&
+        canCreateClubSessionFromMembership(row) &&
+        rolesForUser(tables, userId as string).includes('coach')
+      );
+    });
+    assert.ok(creatorMembership, 'expected club creator membership');
+
+    const clubId = asString(creatorMembership.clubId) as string;
+    const creatorUserId = asString(creatorMembership.userId) as string;
+    const squadId = asString(
+      asRows(tables.squads).find(
+        (row) => asString(row.clubId) === clubId && !asString(row.deletedAt),
+      )?.id,
+    );
+    assert.ok(squadId, 'expected squad for creator club');
+    const otherSquadId = asString(
+      asRows(tables.squads).find(
+        (row) => asString(row.clubId) !== clubId && !asString(row.deletedAt),
+      )?.id,
+    );
+    assert.ok(otherSquadId, 'expected squad from another club');
+    const outsiderCoachUserId = asRows(tables.coachProfiles)
+      .map((row) => asString(row.userId))
+      .find(
+        (userId): userId is string =>
+          Boolean(userId) &&
+          userId !== creatorUserId &&
+          !activeMemberships.some(
+            (membership) =>
+              asString(membership.clubId) === clubId && asString(membership.userId) === userId,
+          ),
+      );
+    assert.ok(outsiderCoachUserId, 'expected coach outside club');
+
+    const payload = {
+      clubId,
+      squadId,
+      title: 'Club Linked Authority Session',
+      sessionType: 'TRAINING',
+      schedule: [
+        {
+          date: addDaysIso(10),
+          startTime: '17:00',
+          endTime: '18:00',
+        },
+      ],
+      maxParticipants: 18,
+      pricePerParticipant: 15,
+      currency: 'GBP',
+    };
+
+    const allowed = await app.inject({
+      method: 'POST',
+      url: '/v1/group-sessions',
+      headers: authHeaders(tables, creatorUserId, 'coach'),
+      payload: {
+        ...payload,
+        coachId: creatorUserId,
+      },
+    });
+    assert.equal(allowed.statusCode, 201);
+    const allowedPayload = allowed.json() as { groupSession: { clubId?: string; squadId?: string } };
+    assert.equal(allowedPayload.groupSession.clubId, clubId);
+    assert.equal(allowedPayload.groupSession.squadId, squadId);
+
+    const mismatchedSquad = await app.inject({
+      method: 'POST',
+      url: '/v1/group-sessions',
+      headers: authHeaders(tables, creatorUserId, 'coach'),
+      payload: {
+        ...payload,
+        coachId: creatorUserId,
+        squadId: otherSquadId,
+      },
+    });
+    assert.equal(mismatchedSquad.statusCode, 404);
+
+    const denied = await app.inject({
+      method: 'POST',
+      url: '/v1/group-sessions',
+      headers: authHeaders(tables, outsiderCoachUserId, 'coach'),
+      payload: {
+        ...payload,
+        coachId: outsiderCoachUserId,
+      },
+    });
+    assert.equal(denied.statusCode, 403);
+
+    const coachProfileUserIds = new Set(
+      asRows(tables.coachProfiles)
+        .map((row) => asString(row.userId))
+        .filter((userId): userId is string => Boolean(userId)),
+    );
+    const assignerMembership = activeMemberships.find(
+      (row) => canCreateClubSessionFromMembership(row) && canAssignClubSessionFromMembership(row),
+    );
+    assert.ok(assignerMembership, 'expected club assignment manager membership');
+    const assignmentClubId = asString(assignerMembership.clubId) as string;
+    const assignerUserId = asString(assignerMembership.userId) as string;
+    const assignedCoachMembership = activeMemberships.find((row) => {
+      const userId = asString(row.userId);
+      return (
+        asString(row.clubId) === assignmentClubId &&
+        userId !== assignerUserId &&
+        Boolean(userId && coachProfileUserIds.has(userId)) &&
+        isActiveClubStaffMembership(row)
+      );
+    });
+    assert.ok(assignedCoachMembership, 'expected assignable club coach membership');
+    const assignedCoachUserId = asString(assignedCoachMembership.userId) as string;
+    const assignmentSquadId = asString(
+      asRows(tables.squads).find(
+        (row) => asString(row.clubId) === assignmentClubId && !asString(row.deletedAt),
+      )?.id,
+    );
+    assert.ok(assignmentSquadId, 'expected assignment club squad');
+
+    const assigned = await app.inject({
+      method: 'POST',
+      url: '/v1/group-sessions',
+      headers: authHeaders(tables, assignerUserId, 'coach'),
+      payload: {
+        ...payload,
+        clubId: assignmentClubId,
+        squadId: assignmentSquadId,
+        coachId: assignedCoachUserId,
+        title: 'Assigned Club Authority Session',
+      },
+    });
+    assert.equal(assigned.statusCode, 201);
+    assert.equal(
+      (assigned.json() as { groupSession: { coachId: string } }).groupSession.coachId,
+      assignedCoachUserId,
+    );
   });
 
   it('registers a visible athlete for a group session and creates a linked booking', async () => {

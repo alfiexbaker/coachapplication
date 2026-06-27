@@ -12,18 +12,16 @@
  * who haven't responded yet."
  *
  * API Integration Notes:
- * - POST /api/session-rsvps - Create RSVPs for a session
- * - PATCH /api/session-rsvps/:id - Respond to RSVP
- * - GET /api/session-rsvps?sessionId=X - Get RSVPs for session
- * - GET /api/session-rsvps?userId=X - Get RSVPs for user
- * - POST /api/session-rsvps/:sessionId/reminder - Send reminder
+ * - No /v1 session RSVP authority exists yet.
+ * - API mode must fail closed rather than calling legacy /api routes or local storage.
  */
 
+import { api } from '@/constants/config';
 import { apiClient } from './api-client';
 import type { GroupSession, SessionRsvp } from '@/constants/types';
 import { notificationTriggers } from './notification-trigger';
 import { createLogger } from '@/utils/logger';
-import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
+import { type Result, type ServiceError, ok, err, notFound, unsupportedError } from '@/types/result';
 import { userService } from './user-service';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -32,11 +30,11 @@ import { emitTyped, ServiceEvents } from './event-bus';
 const logger = createLogger('RsvpService');
 
 // ---------------------------------------------------------------------------
-// Mock RSVP seed data — gives coaches something to see on first launch
+// Mock RSVP seed data - gives coaches something to see on first launch
 // ---------------------------------------------------------------------------
 
 const MOCK_RSVPS: SessionRsvp[] = [
-  // ── Half-Term Football Camp (gs_1) — 12 registered, varied responses ──
+  // Half-Term Football Camp (gs_1) - 12 registered, varied responses
   {
     id: 'rsvp_gs1_01',
     sessionId: 'gs_1',
@@ -126,7 +124,7 @@ const MOCK_RSVPS: SessionRsvp[] = [
     createdAt: '2026-01-06T08:10:00Z',
   },
 
-  // ── Striker Masterclass (gs_2) — 8 registered, mostly responded ──
+  // Striker Masterclass (gs_2) - 8 registered, mostly responded
   {
     id: 'rsvp_gs2_01',
     sessionId: 'gs_2',
@@ -191,7 +189,7 @@ const MOCK_RSVPS: SessionRsvp[] = [
     createdAt: '2026-01-09T09:00:00Z',
   },
 
-  // ── Goalkeeper Training (gs_3) — 4 registered, all responded ──
+  // Goalkeeper Training (gs_3) - 4 registered, all responded
   {
     id: 'rsvp_gs3_01',
     sessionId: 'gs_3',
@@ -221,7 +219,7 @@ const MOCK_RSVPS: SessionRsvp[] = [
     createdAt: '2026-01-11T14:00:00Z',
   },
 
-  // ── Free Trial (gs_4) — mixed responses ──
+  // Free Trial (gs_4) - mixed responses
   {
     id: 'rsvp_gs4_01',
     sessionId: 'gs_4',
@@ -249,7 +247,7 @@ const MOCK_RSVPS: SessionRsvp[] = [
     createdAt: '2026-01-12T09:00:00Z',
   },
 
-  // ── U11 Training (gs_training_1) — 6 registered, good response rate ──
+  // U11 Training (gs_training_1) - 6 registered, good response rate
   {
     id: 'rsvp_gst1_01',
     sessionId: 'gs_training_1',
@@ -310,16 +308,34 @@ const MOCK_RSVPS: SessionRsvp[] = [
 // Helpers
 // ---------------------------------------------------------------------------
 
+function isMockMode(): boolean {
+  return api.useMock;
+}
+
+function sessionRsvpApiUnsupported(method: string): ServiceError {
+  return unsupportedError('Session RSVP requires backend authority in API mode.', { method });
+}
+
+function warnUnsupported(method: string): void {
+  logger.warn('Session RSVP API authority missing; returning fail-closed response', { method });
+}
+
+function emptyCounts(): { going: number; notGoing: number; maybe: number; pending: number } {
+  return { going: 0, notGoing: 0, maybe: 0, pending: 0 };
+}
+
+function cloneRsvp(rsvp: SessionRsvp): SessionRsvp {
+  return { ...rsvp };
+}
+
+let rsvpCache: SessionRsvp[] = MOCK_RSVPS.map(cloneRsvp);
+
 async function loadRsvps(): Promise<SessionRsvp[]> {
-  const stored = await apiClient.get<SessionRsvp[]>(STORAGE_KEYS.SESSION_RSVPS, []);
-  if (stored.length > 0) return stored;
-  // First launch: seed mock data
-  await apiClient.set(STORAGE_KEYS.SESSION_RSVPS, MOCK_RSVPS);
-  return [...MOCK_RSVPS];
+  return rsvpCache.map(cloneRsvp);
 }
 
 async function saveRsvps(rsvps: SessionRsvp[]): Promise<void> {
-  await apiClient.set(STORAGE_KEYS.SESSION_RSVPS, rsvps);
+  rsvpCache = rsvps.map(cloneRsvp);
 }
 
 async function resolveRsvpDisplayName(rsvp: SessionRsvp): Promise<string> {
@@ -350,6 +366,11 @@ export const rsvpService = {
     sessionId: string,
     members: { userId: string; childId?: string; childName?: string }[],
   ): Promise<SessionRsvp[]> {
+    if (!isMockMode()) {
+      warnUnsupported('createForSession');
+      return [];
+    }
+
     const rsvps = await loadRsvps();
     const now = new Date().toISOString();
     const newRsvps: SessionRsvp[] = [];
@@ -380,7 +401,7 @@ export const rsvpService = {
       });
     }
 
-    return newRsvps;
+    return newRsvps.map(cloneRsvp);
   },
 
   /**
@@ -391,6 +412,10 @@ export const rsvpService = {
     rsvpId: string,
     status: 'going' | 'not_going' | 'maybe',
   ): Promise<Result<SessionRsvp, ServiceError>> {
+    if (!isMockMode()) {
+      return err(sessionRsvpApiUnsupported('respond'));
+    }
+
     const rsvps = await loadRsvps();
     const index = rsvps.findIndex((r) => r.id === rsvpId);
 
@@ -444,7 +469,7 @@ export const rsvpService = {
       newStatus: status,
     });
 
-    return ok(rsvps[index]);
+    return ok(cloneRsvp(rsvps[index]));
   },
 
   /**
@@ -452,6 +477,11 @@ export const rsvpService = {
    * Used by coach to see attendance overview.
    */
   async getForSession(sessionId: string): Promise<SessionRsvp[]> {
+    if (!isMockMode()) {
+      warnUnsupported('getForSession');
+      return [];
+    }
+
     const rsvps = await loadRsvps();
     return rsvps.filter((r) => r.sessionId === sessionId);
   },
@@ -461,6 +491,11 @@ export const rsvpService = {
    * Used to show pending RSVP requests to a parent.
    */
   async getForUser(userId: string): Promise<SessionRsvp[]> {
+    if (!isMockMode()) {
+      warnUnsupported('getForUser');
+      return [];
+    }
+
     const rsvps = await loadRsvps();
     return rsvps.filter((r) => r.userId === userId);
   },
@@ -469,6 +504,11 @@ export const rsvpService = {
    * Get only pending RSVPs for a user (needs response).
    */
   async getPendingForUser(userId: string): Promise<SessionRsvp[]> {
+    if (!isMockMode()) {
+      warnUnsupported('getPendingForUser');
+      return [];
+    }
+
     const rsvps = await loadRsvps();
     return rsvps.filter((r) => r.userId === userId && r.status === 'pending');
   },
@@ -478,6 +518,11 @@ export const rsvpService = {
    * Coach action.
    */
   async sendReminder(sessionId: string): Promise<void> {
+    if (!isMockMode()) {
+      warnUnsupported('sendReminder');
+      return;
+    }
+
     const rsvps = await loadRsvps();
     const pending = rsvps.filter((r) => r.sessionId === sessionId && r.status === 'pending');
 
@@ -510,6 +555,11 @@ export const rsvpService = {
   async getSessionCounts(
     sessionId: string,
   ): Promise<{ going: number; notGoing: number; maybe: number; pending: number }> {
+    if (!isMockMode()) {
+      warnUnsupported('getSessionCounts');
+      return emptyCounts();
+    }
+
     const rsvps = await loadRsvps();
     const sessionRsvps = rsvps.filter((r) => r.sessionId === sessionId);
 
@@ -528,6 +578,11 @@ export const rsvpService = {
   async getBatchCounts(
     sessionIds: string[],
   ): Promise<Map<string, { going: number; notGoing: number; maybe: number; pending: number }>> {
+    if (!isMockMode()) {
+      warnUnsupported('getBatchCounts');
+      return new Map(sessionIds.map((sessionId) => [sessionId, emptyCounts()]));
+    }
+
     const rsvps = await loadRsvps();
     const result = new Map<
       string,
@@ -557,6 +612,11 @@ export const rsvpService = {
    * Delete all RSVPs for a session (e.g. when session is cancelled).
    */
   async deleteForSession(sessionId: string): Promise<void> {
+    if (!isMockMode()) {
+      warnUnsupported('deleteForSession');
+      return;
+    }
+
     const rsvps = await loadRsvps();
     const filtered = rsvps.filter((r) => r.sessionId !== sessionId);
     await saveRsvps(filtered);
@@ -567,7 +627,20 @@ export const rsvpService = {
    * Get a single RSVP by ID.
    */
   async getById(rsvpId: string): Promise<SessionRsvp | null> {
+    if (!isMockMode()) {
+      warnUnsupported('getById');
+      return null;
+    }
+
     const rsvps = await loadRsvps();
     return rsvps.find((r) => r.id === rsvpId) ?? null;
+  },
+
+  __resetMockRsvps(): void {
+    rsvpCache = MOCK_RSVPS.map(cloneRsvp);
+  },
+
+  __seedMockRsvps(rsvps: SessionRsvp[]): void {
+    rsvpCache = rsvps.map(cloneRsvp);
   },
 };

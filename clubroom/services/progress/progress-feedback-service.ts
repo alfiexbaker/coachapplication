@@ -5,12 +5,12 @@
  * with role-based visibility control.
  *
  * API Integration Notes:
- * - Feedback and notes are persisted via apiClient (AsyncStorage in dev, API in prod)
+ * - Mock feedback and notes are memory-only compatibility state.
+ * - API-mode writes fail closed until dedicated progress feedback/session-note routes exist.
  */
 
 import { apiClient } from "../api-client";
 import { createLogger } from "@/utils/logger";
-import { STORAGE_KEYS } from "@/constants/storage-keys";
 import { progressSkillsService } from "./progress-skills-service";
 import { computeFourCorners } from "@/constants/position-skills";
 import { err, ok, type Result, type ServiceError } from "@/types/result";
@@ -22,6 +22,8 @@ import type {
   SubSkillRating,
 } from "@/types/progress-types";
 const logger = createLogger("ProgressFeedbackService");
+const mockSessionFeedback: SessionFeedback[] = [];
+const mockSessionNotes: Record<string, SessionNoteRecord> = {};
 
 // ============================================================================
 // TYPES
@@ -113,7 +115,10 @@ function generateQuickRateSummary(
   return `Session completed with ${attendeeCount} ${attendeeCount === 1 ? "athlete" : "athletes"}.`;
 }
 async function getAllSessionFeedback(): Promise<SessionFeedback[]> {
-  return apiClient.get<SessionFeedback[]>(STORAGE_KEYS.SESSION_FEEDBACK, []);
+  if (!apiClient.isMockMode) {
+    return [];
+  }
+  return [...mockSessionFeedback];
 }
 async function addSessionFeedback(
   feedback: Omit<SessionFeedback, "id" | "createdAt">,
@@ -121,6 +126,9 @@ async function addSessionFeedback(
     skipSkillUpdate?: boolean;
   },
 ): Promise<SessionFeedback> {
+  if (!apiClient.isMockMode) {
+    throw new Error("Session feedback writes require backend progress feedback authority.");
+  }
   const allFeedback = await getAllSessionFeedback();
 
   // Upsert by athlete+session to avoid stacking duplicate feedback entries when coaches re-save.
@@ -171,10 +179,9 @@ async function addSessionFeedback(
     );
   }
   if (existingIndex >= 0) {
-    allFeedback.splice(existingIndex, 1);
+    mockSessionFeedback.splice(existingIndex, 1);
   }
-  allFeedback.unshift(nextFeedback);
-  await apiClient.set(STORAGE_KEYS.SESSION_FEEDBACK, allFeedback);
+  mockSessionFeedback.unshift(nextFeedback);
   logger.info(
     existingIndex >= 0 ? "session_feedback_updated" : "session_feedback_added",
     {
@@ -430,10 +437,10 @@ async function createFeedbackFromQuickRate(
 async function getAllSessionNotes(): Promise<
   Record<string, SessionNoteRecord>
 > {
-  return apiClient.get<Record<string, SessionNoteRecord>>(
-    STORAGE_KEYS.SESSION_NOTES,
-    {},
-  );
+  if (!apiClient.isMockMode) {
+    return {};
+  }
+  return { ...mockSessionNotes };
 }
 async function getSessionNote(
   bookingId: string,
@@ -445,12 +452,15 @@ async function saveSessionNote(
   bookingId: string,
   payload: SessionNoteFields,
 ): Promise<SessionNoteRecord> {
+  if (!apiClient.isMockMode) {
+    throw new Error("Session note writes require backend progress/session-note authority.");
+  }
   const existing = await getAllSessionNotes();
   const record: SessionNoteRecord = {
     ...payload,
     updatedAt: new Date().toISOString(),
   };
-  await apiClient.set(STORAGE_KEYS.SESSION_NOTES, {
+  Object.assign(mockSessionNotes, {
     ...existing,
     [bookingId]: record,
   });

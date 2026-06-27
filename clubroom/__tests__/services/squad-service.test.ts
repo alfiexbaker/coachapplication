@@ -7,7 +7,7 @@ import { squadService } from '@/services/squad-service';
 
 describe('squadService', () => {
   beforeEach(async () => {
-    await apiClient.remove(STORAGE_KEYS.CLUB_SQUADS);
+    squadService.__resetMockSquads();
     await apiClient.remove(STORAGE_KEYS.SQUAD_MEMBERS);
   });
 

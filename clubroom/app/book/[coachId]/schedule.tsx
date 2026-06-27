@@ -30,8 +30,6 @@ import type { AvailabilitySlot } from '@/constants/types';
 import { useRequiredParam } from '@/hooks/use-required-param';
 import { BOOKING_LOCATION_OPTIONS } from '@/constants/booking-flow';
 import { hasAccountChildren } from '@/utils/booking-self-capability';
-import { apiClient } from '@/services/api-client';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { SessionOffering } from '@/constants/session-types';
 import { isBookingScheduleLocked } from '@/utils/booking-schedule-lock';
 
@@ -59,26 +57,11 @@ export default function ScheduleScreen() {
       if (!draft.sessionOfferingId) {
         return ok<SessionOffering | null>(null);
       }
-      if (!apiClient.isMockMode) {
-        const result = await listPublicCoachOfferingsFromApi(coachId, new Date().toISOString());
-        if (!result.success) {
-          return err(result.error);
-        }
-        const offering = result.data.find((candidate) => candidate.id === draft.sessionOfferingId);
-        if (!offering) {
-          return err(
-            serviceError(
-              'NOT_FOUND',
-              'Selected session type is no longer available. Please choose another option.',
-              { coachId, offeringId: draft.sessionOfferingId },
-            ),
-          );
-        }
-        return ok(offering);
+      const result = await listPublicCoachOfferingsFromApi(coachId, new Date().toISOString());
+      if (!result.success) {
+        return err(result.error);
       }
-
-      const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
-      const offering = offerings.find((candidate) => candidate.id === draft.sessionOfferingId);
+      const offering = result.data.find((candidate) => candidate.id === draft.sessionOfferingId);
       if (!offering) {
         return err(
           serviceError(

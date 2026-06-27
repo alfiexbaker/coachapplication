@@ -5,11 +5,10 @@
  * Single responsibility: authorization logic and access control.
  */
 
-import { apiClient } from '../api-client';
 import { api } from '@/constants/config';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { notificationTriggers } from '../notification-trigger';
+import { loadMockFamilyAccounts, saveMockFamilyAccounts } from './family-mock-store';
 import {
   type Result,
   type ServiceError,
@@ -18,6 +17,7 @@ import {
   notFound,
   storageError,
   unauthorized,
+  validationError,
 } from '@/types/result';
 import {
   type FamilyAccount,
@@ -62,17 +62,17 @@ class FamilyPermissionService {
   // ==========================================================================
 
   private async loadAccounts(): Promise<FamilyAccount[]> {
-    if (USE_MOCK) {
+    if (!USE_MOCK) {
       return [];
     }
-    return apiClient.get<FamilyAccount[]>(STORAGE_KEYS.FAMILY_ACCOUNTS, []);
+    return loadMockFamilyAccounts();
   }
 
   private async saveAccounts(accounts: FamilyAccount[]): Promise<void> {
-    if (USE_MOCK) {
+    if (!USE_MOCK) {
       return;
     }
-    await apiClient.set(STORAGE_KEYS.FAMILY_ACCOUNTS, accounts);
+    saveMockFamilyAccounts(accounts);
   }
 
   // ==========================================================================
@@ -166,6 +166,14 @@ class FamilyPermissionService {
     guardianId: string,
     newPermissions: GuardianPermission[],
   ): Promise<Result<FamilyGuardian, ServiceError>> {
+    if (!USE_MOCK) {
+      return err(
+        validationError(
+          'Guardian permission updates require backend family permission authority in API mode.',
+        ),
+      );
+    }
+
     // Check if requester has admin permission
     const hasAdmin = await this.isAdmin(requesterId, familyId);
     if (!hasAdmin) {
@@ -226,6 +234,14 @@ class FamilyPermissionService {
     guardianId: string,
     childIds: string[],
   ): Promise<Result<FamilyGuardian, ServiceError>> {
+    if (!USE_MOCK) {
+      return err(
+        validationError(
+          'Guardian child-access updates require backend family permission authority in API mode.',
+        ),
+      );
+    }
+
     const hasAdmin = await this.isAdmin(requesterId, familyId);
     if (!hasAdmin) {
       return err(unauthorized('You do not have permission to modify guardians'));

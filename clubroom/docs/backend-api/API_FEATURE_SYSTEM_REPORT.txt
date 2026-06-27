@@ -1,0 +1,901 @@
+Clubroom API Feature System Report
+Generated: 2026-06-15
+Purpose: map current app features to /v1 API authority, Prisma/Supabase tables, relationship shape, and known gaps for the live-data cutover goal.
+
+Overall answer
+
+The full app is not 100 percent complete yet.
+
+Current working estimate: about 88 percent through the API authority cleanup. The current API boundary audit has zero findings and zero allowed baseline findings. The app is still not complete because several feature areas are partial or deliberately fail closed where no real /v1 API exists yet.
+
+Primary runtime rule: in API mode, server-owned product data must come from named /v1 routes backed by Prisma/Supabase or fail closed. Mock/local data can remain only for explicit mock/demo mode or device/session-only state.
+
+Sources checked for this report
+
+- docs/SOURCE_OF_TRUTH.md
+- docs/architecture/service-ownership-map.md
+- docs/architecture/entity-relationship-map.md
+- docs/backend-api/README.md
+- docs/backend-api/ROUTE_INVENTORY_V1.md
+- docs/backend-api/DATA_MODEL_AND_IDENTIFIERS.md
+- apps/api/src/modules/*
+- apps/api/src/repositories/p0/*
+- packages/db/prisma/schema.prisma
+- scripts/api-boundary-audit.js
+
+Status legend
+
+- Implemented: API route exists and has a runtime-backed repository or Prisma path.
+- Partial: important /v1 coverage exists, but at least one live flow is still missing or fail-closed.
+- Fail-closed: app/API refuses non-mock live behavior until a proper backend authority exists.
+- Missing API: no real /v1 authority yet; feature should not use mock/local live data.
+
+Category map
+
+1. Platform, readiness, and runtime modes
+
+Subcategories:
+- Health and readiness
+- Version and seed health
+- API data backend mode
+- Generic storage bridge removal
+
+/v1 authority:
+- GET /v1/health
+- GET /v1/ready
+- GET /v1/meta/version
+- GET /v1/meta/seed-health
+
+Database:
+- Not a product-data category. /v1/ready checks runtime config, database, object storage, and release blockers.
+
+Relationship shape:
+- Runtime environment -> readiness checks
+- API request -> authenticated or privileged runtime context where needed
+
+Status:
+- Partial. Readiness is real. Seed health is privileged-admin-only and disabled for db mode. Generic /api/:key storage bridge is blocked in API mode.
+
+Known gaps:
+- Production readiness remains red until real env, DB connectivity, object storage, and release config are present.
+
+2. Identity, auth, and sessions
+
+Subcategories:
+- Login, register, refresh, logout, revoke
+- Self profile
+- Email checks and verification
+- Session list and revoke
+
+/v1 authority:
+- POST /v1/auth/login
+- POST /v1/auth/register
+- POST /v1/auth/refresh
+- POST /v1/auth/logout
+- POST /v1/auth/revoke
+- GET/PATCH /v1/auth/me
+- GET /v1/auth/check-email
+- POST /v1/auth/verify-email
+- POST /v1/auth/forgot-password
+- POST /v1/auth/reset-password
+- GET /v1/me
+- GET /v1/me/sessions
+- POST /v1/me/sessions/revoke-all
+- POST /v1/me/sessions/:sessionId/revoke
+
+Database:
+- User
+- UserProfile
+- UserRoleMembership
+- UserDevice
+- AuthSession
+- PasswordCredential
+- SecurityEvent
+- AuditEvent
+
+Relationship shape:
+- User 1:1 UserProfile
+- User 1:many UserRoleMembership
+- User 1:many AuthSession
+- UserDevice 1:many AuthSession
+- User 1:many SecurityEvent and AuditEvent as actor/subject
+
+Status:
+- Implemented for the main runtime auth path. JWT/session runtime is active, and debug identity headers are test-only.
+
+Known gaps:
+- Forgot/reset password routes are scaffolded until email/provider-backed reset is fully wired.
+- Test account credential file is still pending. It should be dev/staging-only and should not become production credential truth.
+
+3. Families, athletes, health, consent, and guardian sharing
+
+Subcategories:
+- Family read
+- Child/athlete CRUD
+- Guardian invites and removal
+- Injury records
+- Medical profile
+- Emergency contacts
+- Consent records
+
+/v1 authority:
+- GET /v1/families/:familyId
+- GET /v1/me/guardian-invites
+- POST /v1/families/:familyId/guardians
+- POST /v1/guardian-invites/:inviteId/accept
+- POST /v1/guardian-invites/:inviteId/decline
+- DELETE /v1/families/:familyId/guardian-invites/:inviteId
+- DELETE /v1/families/:familyId/guardians/:guardianId
+- POST /v1/athletes
+- GET/PATCH/DELETE /v1/athletes/:athleteId
+- GET /v1/athletes/:athleteId/squad-memberships
+- GET/POST /v1/athletes/:athleteId/injuries
+- PATCH /v1/injuries/:injuryId
+- GET/PATCH /v1/athletes/:athleteId/medical
+- GET/PATCH /v1/athletes/:athleteId/emergency-contacts
+- GET/PUT /v1/athletes/:athleteId/consents
+
+Frontend owners:
+- services/child-service.ts
+- services/family/index.ts
+- services/family/family-health-service.ts
+- services/family/family-member-service.ts
+- services/family/family-relationship-service.ts
+- services/injury-service.ts
+- services/safety-service.ts
+
+Database:
+- Family
+- FamilyMembership
+- Athlete
+- GuardianChildLink
+- FamilyGuardianInvite
+- ChildEmergencyContact
+- ChildMedicalRecord
+- AthleteInjury
+- ChildSenTag
+- ChildConsent
+- Squad
+- SquadMembership
+- AuditEvent
+
+Relationship shape:
+- Family 1:many FamilyMembership
+- User 1:many FamilyMembership
+- Family 1:many GuardianChildLink
+- User guardian 1:many GuardianChildLink
+- Athlete 1:many GuardianChildLink
+- Athlete 1:many ChildEmergencyContact
+- Athlete 1:1 or 1:many ChildMedicalRecord depending on versioning
+- Athlete 1:many AthleteInjury
+- Athlete 1:many ChildConsent
+- Athlete 1:many SquadMembership
+- Squad 1:many SquadMembership
+
+Status:
+- Implemented for main family, athlete, health, emergency, consent, injury, and guardian-sharing flows.
+- Child context now reconciles family child identity from auth/profile authority and loads active child club/squad membership from guardian/athlete-scoped `/v1/athletes/:athleteId/squad-memberships`; it no longer derives child club/squad membership from local `CLUB_SQUADS` or `SQUAD_MEMBERS`.
+
+Known gaps:
+- Some older family/member dashboard surfaces still have local-storage compatibility findings that need to be reduced or explicitly quarantined to mock/device-only behavior.
+
+4. Clubs, membership, squads, removal, and governance
+
+Subcategories:
+- Club list and join
+- Join-link resolution
+- Invite-code management
+- Pending staff invites
+- Club members
+- Member role change
+- Member removal
+- Squad list/detail/create/update
+- Squad deletion/archive
+- Squad assignment/removal
+- Club branding
+- Club dashboard/calendar/schedule
+- Staffing console
+
+/v1 authority:
+- GET /v1/clubs
+- GET /v1/clubs/join/resolve
+- POST /v1/clubs/join
+- GET /v1/clubs/invites
+- POST /v1/clubs/invites/:inviteId/respond
+- GET /v1/clubs/:clubId/invite-codes
+- POST /v1/clubs/:clubId/invite-codes
+- DELETE /v1/clubs/:clubId/invite-codes/:code
+- GET /v1/clubs/:clubId/members
+- PATCH /v1/clubs/:clubId/members/:userId/role
+- DELETE /v1/clubs/:clubId/members/:userId
+- POST /v1/clubs/:clubId/members/:userId/ban
+- POST /v1/clubs/:clubId/members/removals/:removalId/restore
+- GET/POST /v1/clubs/:clubId/squads
+- GET /v1/squads/:squadId
+- GET /v1/squads/:squadId/members
+- PATCH /v1/clubs/:clubId/squads/:squadId
+- DELETE /v1/clubs/:clubId/squads/:squadId
+- PUT /v1/clubs/:clubId/squads/:squadId/members/:userId
+- DELETE /v1/clubs/:clubId/squads/:squadId/members/:userId
+- GET /v1/clubs/:clubId/branding
+- PUT /v1/clubs/:clubId/branding
+- GET /v1/clubs/:clubId/schedule
+- GET /v1/clubs/:clubId/schedule/:activityId
+
+Frontend owners:
+- services/club-authority-service.ts
+- services/club-service.ts
+- services/squad-service.ts
+- services/club-schedule-service.ts
+- services/org-staffing-service.ts
+- services/org-head-coach-service.ts
+- services/org-owner-dashboard-service.ts
+
+Database:
+- Club
+- ClubMembership
+- ClubInviteCode
+- Squad
+- SquadMembership
+- GroupSession
+- Booking
+- Invoice
+- ClubMatch
+- Athlete
+- User
+- AuditEvent
+
+Relationship shape:
+- Club 1:many ClubMembership
+- User 1:many ClubMembership
+- Club 1:many ClubInviteCode
+- Club 1:many Squad
+- Squad 1:many SquadMembership
+- Squad 1:many GroupSession
+- Squad 1:many ClubMatch
+- Athlete 1:many SquadMembership
+- Club 1:many Booking
+- Booking 1:many Invoice
+- ClubMembership links users to club roles; SquadMembership links athletes to squads.
+
+Status:
+- Partial. Club join, invites, members, member removal/restore, member ban with join-code denial, squad reads/writes/archive, squad member assignment/removal, branding, schedule reads, staffing-console reads, existing group-session delivery reassignment, head-coach oversight reads, and owner dashboard reads are on /v1.
+
+Known gaps:
+- Head-coach task/standard mutations fail closed until backend task/standard persistence exists.
+- Owner dashboard support issues project unresolved booking-linked trust incidents; a separate problem-report table is deferred until support needs diverge from the trust incident model.
+- Head-coach oversight reads currently project staff health and awaiting-completion queues from club session/booking truth; richer watchlist signals need a backend progress/task model instead of local progress mirrors.
+- Staffing console currently projects assigned club group-session workload from `GroupSession.coachUserId`; existing group-session delivery reassignment is live, but true unassigned club work needs a backend assignment model or nullable assignment semantics.
+- ClubActivity is a read model over ClubEvent, GroupSession, and ClubMatch, not its own persisted table.
+
+5. Coach profile, storefront, offerings, templates, availability, and scheduling
+
+Subcategories:
+- Coach self profile
+- Public offerings
+- Session templates
+- Favourite coaches
+- Availability templates
+- Availability overrides
+- Scheduling rules
+- Coach slots
+- Coach reviews
+
+/v1 authority:
+- GET /v1/coaches/me/profile
+- GET /v1/coaches/me/offerings
+- GET /v1/coaches/me/session-templates
+- GET /v1/coaches/me/session-templates/:templateId
+- POST /v1/coaches/me/session-templates
+- PATCH /v1/coaches/me/session-templates/:templateId
+- DELETE /v1/coaches/me/session-templates/:templateId
+- GET /v1/coaches/offerings
+- GET /v1/coaches/:coachId/offerings
+- GET /v1/me/favourite-coaches
+- GET /v1/me/favourite-coaches/:coachId
+- POST /v1/me/favourite-coaches/:coachId
+- DELETE /v1/me/favourite-coaches/:coachId
+- GET/POST/PATCH/DELETE /v1/coaches/me/availability/templates
+- GET/POST/PATCH/DELETE /v1/coaches/me/availability/overrides
+- GET/PATCH /v1/coaches/me/scheduling-rules
+- GET /v1/coaches/:coachId/availability/slots
+- GET /v1/coaches/:coachId/reviews
+
+Frontend owners:
+- services/coach-profile-service.ts
+- services/session-template-service.ts
+- services/availability-service.ts
+- services/scheduling-rules-service.ts
+- services/coach-favourites-service.ts
+- services/booking-review-service.ts
+
+Database:
+- User
+- CoachProfile
+- CoachLocation
+- CoachingOffering
+- CoachFavourite
+- AvailabilityTemplate
+- AvailabilityOverride
+- SchedulingRule
+- CancellationPolicyRule
+- SessionFeedback for booking-linked reviews
+- Booking
+- BookingParticipant
+
+Relationship shape:
+- User 1:1 CoachProfile
+- CoachProfile/User 1:many CoachingOffering
+- CoachProfile/User 1:many AvailabilityTemplate
+- CoachProfile/User 1:many AvailabilityOverride
+- CoachProfile/User 1:1 SchedulingRule
+- CoachProfile/User 1:many CancellationPolicyRule
+- User 1:many CoachFavourite as parent/athlete/fan actor
+- Booking 1:many SessionFeedback review rows
+
+Status:
+- Implemented for the signed-in coach profile/scheduling/template path, public offering reads, favourite coaches, and booking-linked reviews.
+- Public booking session-type, schedule, discover-map fast-track, and coach discovery summary surfaces now use `/v1/coaches/:coachId/offerings` or `/v1/coaches/offerings` without local `SESSION_OFFERINGS` fallback.
+- Availability slot generation no longer reads local `BOOKINGS` or `SESSION_OFFERINGS`; booking conflicts, coach schedule booking projections, and booking location updates need backend booking authority.
+
+Known gaps:
+- Some older profile surfaces may still carry compatibility local mirrors.
+- Session templates are backed by CoachingOffering and soft-delete; this is intentional to avoid a second live model.
+- Availability conflict checks and recurring-location drift cannot inspect or mutate bookings until dedicated `/v1` booking conflict/update support exists.
+
+6. Booking, recurring packages, group sessions, invites, and attendance
+
+Subcategories:
+- Direct booking list/detail/create
+- Booking cancel/reopen/complete
+- Rebook context
+- Multi-week and recurring series
+- Booking reviews
+- Group-session list/detail/create/publish/cancel
+- Group-session registration, roster, attendance, cancellation
+- Session RSVP create/respond/list/count/reminders
+- Session invites create/list/detail/respond/cancel/remind/dismiss
+- Invite RSVP and recurring partial acceptance
+
+/v1 authority:
+- GET/POST /v1/bookings
+- GET /v1/bookings/:bookingId
+- GET /v1/bookings/:bookingId/rebook-context
+- POST /v1/bookings/:bookingId/cancel
+- POST /v1/bookings/:bookingId/reopen
+- POST /v1/bookings/:bookingId/complete
+- GET /v1/bookings/:bookingId/reviews/me
+- POST /v1/bookings/:bookingId/reviews
+- GET/POST /v1/booking-series
+- GET/PATCH /v1/booking-series/:seriesId
+- POST /v1/booking-series/:seriesId/cancel
+- POST /v1/booking-series/:seriesId/pause
+- POST /v1/booking-series/:seriesId/resume
+- GET/POST /v1/group-sessions
+- GET /v1/group-sessions/:sessionId
+- PATCH /v1/group-sessions/:sessionId/publish
+- PATCH /v1/group-sessions/:sessionId/cancel
+- POST /v1/group-sessions/:sessionId/register
+- GET /v1/group-sessions/:sessionId/roster
+- GET /v1/group-session-registrations
+- DELETE /v1/group-session-registrations/:registrationId
+- PATCH /v1/group-session-registrations/:registrationId/attendance
+- GET/POST /v1/invites
+- GET /v1/invites/:inviteId
+- DELETE /v1/invites/:inviteId
+- POST /v1/invites/:inviteId/remind
+- POST /v1/invites/:inviteId/dismiss
+- POST /v1/invites/:inviteId/respond
+
+Frontend owners:
+- services/booking/index.ts
+- services/booking/booking-authority-service.ts
+- services/group-session/index.ts
+- services/group-session/group-session-authority-service.ts
+- services/rsvp-service.ts
+- services/invite/index.ts
+- services/invite/session-invite-authority-service.ts
+
+Database:
+- Booking
+- BookingParticipant
+- BookingObjective
+- BookingStatusEvent
+- BookingChangeRequest
+- RecurringSeries
+- GroupSession
+- GroupSessionRegistration
+- WaitlistEntry
+- Invite
+- InviteTarget
+- AttendanceRecord
+- SessionNote
+- SessionFeedback
+- IdempotencyKey
+- Invoice
+- PaymentAttempt
+- AuditEvent
+
+Relationship shape:
+- User coach 1:many Booking
+- Booking 1:many BookingParticipant
+- Athlete 1:many BookingParticipant
+- Booking 1:many BookingObjective
+- Booking 1:many BookingStatusEvent
+- RecurringSeries 1:many Booking
+- GroupSession 1:many GroupSessionRegistration
+- Athlete 1:many GroupSessionRegistration
+- GroupSession 1:many WaitlistEntry
+- Invite 1:many InviteTarget
+- Booking 1:many AttendanceRecord
+- GroupSession/Booking can drive SessionNote proof and Invoice records
+
+Status:
+- Partial but broad. Core booking, recurring package, group session, registration, attendance, and session invite flows have /v1 authority.
+- One-off session creation from the create wizard now creates and publishes a backend-owned group session instead of persisting a local `SESSION_OFFERINGS` record; club-linked creates require active club authority to create organisation sessions, assigned-coach creates require `assign_session_coach` with an active club-staff target, and squad-scoped creates must reference a squad owned by the supplied club.
+- Existing-session invite selection from the create screen now targets published group sessions instead of reading or updating local `SESSION_OFFERINGS`.
+- Booking discovery/session discovery screens now project live group sessions and viewer registrations from `/v1/group-sessions` and `/v1/group-session-registrations` instead of reading local `SESSION_OFFERINGS`.
+- The main bookings tab now projects live group sessions and viewer registrations from `/v1/group-sessions` and `/v1/group-session-registrations` instead of mixing in local `SESSION_OFFERINGS`, `GROUP_SESSIONS`, or `GROUP_REGISTRATIONS`.
+- Session invite acceptance now resolves linked-session lineage through `/v1/group-sessions/:sessionId`; direct/local `SESSION_OFFERINGS` lineage is no longer treated as live authority.
+- Booking CRUD now keeps successful `/v1` booking reads/writes in runtime memory only and no longer persists a local `BOOKINGS` mirror or reads local `SESSION_OFFERINGS` for linked-session capacity.
+- Multi-week booking series use `/v1/booking-series` outside mock mode; mock-mode `BOOKING_SERIES` compatibility state is runtime memory only and is no longer persisted locally.
+- Recurring booking plans use `/v1/booking-series` outside mock mode; mock-mode recurring-plan state is runtime memory only and generated booking cancellation delegates to booking authority instead of mutating local `BOOKINGS`.
+- Family recurring plan summaries now compose `/v1/booking-series` and `/v1/bookings` through service facades instead of reading local `BOOKINGS`.
+- Session detail registration cancellation falls through to backend group-registration cancellation when no linked booking is found; recurring instance cancel, recurring-series end, session-detail reassignment, and off-platform attendee edits now fail closed instead of writing local `SESSION_OFFERINGS`.
+- Manage bookings/staffing console reads active club staff and assigned club group-session workload through audited `GET /v1/clubs/:clubId/staffing-console`, and reassigns existing club group-session delivery through audited `PATCH /v1/clubs/:clubId/work-assignments/:assignmentId` instead of reading or mutating local `SESSION_OFFERINGS`.
+
+Known gaps:
+- Session RSVP create/respond/list/count/reminders are mock-only/fail-closed until a backend authority exists.
+- Recurring invite partial acceptance is mock-only/fail-closed.
+- Invite RSVP state is mock-only/fail-closed until a backend authority exists.
+- Some recurring-plan advanced generation/clear semantics remain fail-closed until a dedicated backend model exists.
+- Linked-session capacity must remain enforced by backend booking/group-session authority; the frontend no longer fabricates that check from local session-offering mirrors.
+- Recurring instance cancellation, recurring-series end, session-detail reassignment, and off-platform attendee adjustments need dedicated `/v1` authorities.
+
+7. Revenue, invoices, payments, earnings, payout methods, and withdrawals
+
+Subcategories:
+- Invoice list/detail
+- Invoice generation
+- Reminder send
+- Hosted payment attempts
+- Refund and payment state transitions
+- Reconciler
+- Coach earnings read model
+- Payout method vault
+- Withdrawal requests
+
+/v1 authority:
+- GET /v1/invoices
+- GET /v1/invoices/:invoiceId
+- POST /v1/invoices/generate
+- POST /v1/invoices/:invoiceId/reminders
+- POST /v1/invoices/:invoiceId/payments
+- POST /v1/invoices/:invoiceId/refunds
+- POST /v1/invoices/:invoiceId/mark-paid
+- POST /v1/invoices/:invoiceId/mark-unpaid
+- POST /v1/invoices/:invoiceId/write-off
+- POST /v1/invoices/:invoiceId/restore
+- POST /v1/invoices/:invoiceId/void
+- GET /v1/payment-attempts/:attemptId/hosted
+- POST /v1/payment-attempts/:attemptId/simulated-complete
+- GET /v1/coaches/me/earnings
+- GET/POST /v1/coaches/me/payout-methods
+- DELETE /v1/coaches/me/payout-methods/:methodId
+- PATCH /v1/coaches/me/payout-methods/:methodId/default
+- GET/POST /v1/coaches/me/withdrawals
+- POST /v1/coaches/me/withdrawals/:withdrawalId/cancel
+
+Frontend owners:
+- services/invoice-service.ts
+- services/earnings/earnings-calculator-service.ts
+- services/earnings/earnings-report-service.ts
+- services/earnings/payout-service.ts
+
+Database:
+- Invoice
+- InvoiceLineItem
+- InvoiceEvent
+- ReconcilerEntry
+- PaymentInstructionTemplate
+- PaymentReminder
+- PaymentAttempt
+- Booking
+- GroupSessionRegistration
+- AuditEvent
+
+Relationship shape:
+- Booking 1:many Invoice
+- Invoice 1:many InvoiceLineItem
+- Invoice 1:many InvoiceEvent
+- Invoice 1:many PaymentAttempt
+- Invoice 1:many PaymentReminder
+- Coach/User 1:many ReconcilerEntry
+- Coach/User 1:many Invoice as payee side, derived through booking/session context
+
+Status:
+- Partial. Invoice/reconciler/payment-attempt runtime exists. Coach earnings now reads from self-owned invoice rows. Payout method and withdrawal reads/mutations now have audited `/v1` input/output boundaries backed by API-owned simulated provider state.
+- Coach payment reconciliation now reads completed/fee-bearing bookings and invoices only; it no longer fabricates off-platform payment rows from local `SESSION_OFFERINGS`.
+- Payout method create/list/default/delete and withdrawal request/cancel/complete work through `/v1` without invoking real money rails.
+
+Known gaps:
+- Hosted provider is simulated by design.
+- Off-platform attendee payment reconciliation needs a dedicated `/v1` authority before it can return to the live reconciler.
+- No provider-backed payout execution authority exists.
+- The payout-method vault and withdrawal model are simulated API state; they are not a provider-backed payout ledger.
+- No real money ledger exists for provider settlement, fees, disputes, or reconciled bank payouts.
+
+8. Events, schedule, and matches
+
+Subcategories:
+- Club schedule read model
+- Event RSVP
+- Event attendance/check-in
+- Event create/update/publish/cancel
+- Match list/create/detail/status/result
+- Match player invites, availability, lineup
+
+/v1 authority:
+- GET /v1/clubs/:clubId/schedule
+- GET /v1/clubs/:clubId/schedule/:activityId
+- GET /v1/clubs/:clubId/events
+- POST /v1/clubs/:clubId/events
+- GET /v1/events/:eventId
+- PATCH /v1/events/:eventId
+- POST /v1/events/:eventId/invites/club
+- POST /v1/events/:eventId/rsvp
+- GET /v1/events/:eventId/rsvps
+- GET /v1/events/:eventId/rsvps/:userId
+- POST /v1/events/:eventId/rsvps/remind
+- GET /v1/events/:eventId/attendance
+- GET /v1/events/:eventId/attendance/:userId
+- GET /v1/events/:eventId/attendance/stats
+- POST /v1/events/:eventId/checkins
+- DELETE /v1/events/:eventId/checkins/:userId
+- GET/POST /v1/clubs/:clubId/matches
+- GET /v1/matches/:matchId
+- POST /v1/matches/:matchId/players/invite
+- POST /v1/matches/:matchId/players/respond
+- PATCH /v1/matches/:matchId/lineup
+- PATCH /v1/matches/:matchId/result
+- PATCH /v1/matches/:matchId/status
+
+Frontend owners:
+- services/event/index.ts
+- services/club-schedule-service.ts
+- services/match-service.ts
+
+Database:
+- ClubEvent
+- EventRsvp
+- Notification
+- EventAttendance
+- AttendanceRecord for booking/group-session attendance proof
+- ClubMatch
+- ClubMatchPlayer
+- Club
+- Squad
+- GroupSession
+- AuditEvent
+
+Relationship shape:
+- Club 1:many ClubEvent
+- ClubEvent 1:many EventRsvp
+- User 1:many Notification
+- ClubEvent 1:many EventAttendance
+- User 1:many EventAttendance
+- Club 1:many ClubMatch
+- Squad 1:many ClubMatch
+- ClubMatch 1:many ClubMatchPlayer
+- Athlete 1:many ClubMatchPlayer
+- User 1:many ClubMatchPlayer as invited guardian
+- ClubActivity read model projects ClubEvent, GroupSession, and ClubMatch
+
+Status:
+- Partial. Schedule, event list/create/detail/update/status/invite-club, RSVP submit/list/detail reads, RSVP reminder fan-out, attendance list/detail/stats reads, check-in create/update/delete, match core, match player invite/availability/lineup writes, and academy-as-club read compatibility are /v1.
+
+Known gaps:
+- Academy-specific write management remains fail-closed. Current product direction treats academy and club as the same organisation concept, so new live writes should use or extend club `/v1` contracts rather than add a parallel academy authority.
+
+9. Development, progress, goals, skills, badges, drills, and analytics
+
+Subcategories:
+- Athlete progress
+- Goals and milestones
+- Badges
+- Session notes and feedback
+- Self-assessment prompts/submissions
+- Squad peer activity feed
+- Skill history
+- Skill updates
+- Coach analytics
+- Drill library
+
+/v1 authority:
+- GET /v1/athletes/:athleteId/progress
+- GET /v1/athletes/:athleteId/goals
+- GET /v1/athletes/:athleteId/badges
+- GET /v1/drills
+
+Frontend owners:
+- services/progress-service.ts
+- services/progress/index.ts
+- services/progress/progress-self-assessment-service.ts
+- services/progress/progress-squad-activity-service.ts
+- services/analytics/index.ts
+- services/analytics/analytics-tracking-service.ts
+- services/analytics/analytics-export-service.ts
+
+Database:
+- SessionNote
+- SessionFeedback
+- Goal
+- GoalMilestone
+- SkillDefinition
+- AthleteSkillAssessment
+- BadgeDefinition
+- AthleteBadge
+- Drill
+- DrillAssignment
+- AssignmentSubmission
+- Booking
+- Athlete
+- AuditEvent
+
+Relationship shape:
+- Athlete 1:many Goal
+- Goal 1:many GoalMilestone
+- Athlete 1:many AthleteSkillAssessment
+- SkillDefinition 1:many AthleteSkillAssessment
+- Athlete 1:many AthleteBadge
+- BadgeDefinition 1:many AthleteBadge
+- Booking/Session 1:many SessionNote and SessionFeedback
+- Athlete 1:many SelfAssessmentPrompt
+- Athlete 1:many SelfAssessmentEntry
+- Squad 1:many SquadMembership; SquadActivityFeed is a derived aggregate over squad assignment, booking/session proof, public feedback, badges, and practice logs
+- Drill 1:many DrillAssignment
+
+Status:
+- Partial. Progress/goals/badges reads have /v1 coverage. Drill library is seed-only/scaffolded and restricted.
+- Progress demo seed entrypoints are now no-op compatibility and no longer write local progress/session/booking/media records.
+- Relational demo seed entrypoints are now no-op compatibility and no longer write local users, bookings, offerings, invites, family, club, safety, messaging, review, or coach-directory records.
+- Progress feedback/session-note compatibility now uses memory-only mock state and fails closed for API-mode writes instead of persisting local `SESSION_FEEDBACK` or `SESSION_NOTES`.
+- Self-assessment prompts/submissions now use memory-only mock state; API-mode prompt scheduling/dispatch reads are no-ops and submissions fail closed instead of writing local `SESSION_JOURNAL`, prompt, or assessment state.
+- Squad activity feed now returns an empty feed until `/v1/athletes/:athleteId/squad-activity` exists instead of building peer activity from local squad, booking, feedback, badge, or practice-log mirrors.
+- My Progress attendance date derivation now reads through the `/v1` booking service facade instead of local `BOOKINGS`.
+- Badge session-count and weekly-streak progress now read through the booking service facade instead of local `BOOKINGS`.
+- Progress report, termly report, and weekly recap booking-derived counts now read through the booking service facade instead of local `BOOKINGS`.
+- Athlete analytics, progress challenge metrics, and practice-task sync no longer read local `SESSION_FEEDBACK` or `SESSION_JOURNAL` mirrors; journal-derived challenge counts and feedback-homework task synthesis remain empty until backend authorities exist.
+- Coach analytics export no longer derives revenue, booking, or feedback metrics from local device mirrors; live coach analytics remain fail-closed until `/v1/coaches/:coachId/analytics` exists.
+
+Known gaps:
+- Athlete analytics, skill history mutation/read depth, goal mutations, milestone updates, skill updates, and coach analytics do not yet have /v1 authorities and should fail closed outside mock mode.
+- Standalone coach feedback and session-note mutation routes are still missing; booking completion can create backend session-note proof, but this feedback service must not be treated as live authority.
+- Journal-derived challenges and feedback-homework practice tasks need backend journal/task authorities before they can show live derived progress again.
+- Self-assessment prompt scheduling, prompt dispatch state, and athlete submissions need `/v1` authorities before live mode can enable them.
+- Squad peer activity needs a backend aggregate route that enforces squad assignment visibility and excludes coach-only feedback before the UI can show live activity.
+
+10. Media, uploads, video, sharing, and annotations
+
+Subcategories:
+- Upload init and completion
+- Malware scan proof
+- Video list/detail/create/update/delete
+- Video sharing
+- Video annotations
+- Signed playback
+
+/v1 authority:
+- POST /v1/uploads/init
+- POST /v1/uploads/:uploadSessionId/complete
+- GET/POST /v1/videos
+- GET/PATCH/DELETE /v1/videos/:videoId
+- PATCH /v1/videos/:videoId/share
+- POST /v1/videos/:videoId/annotations
+- PATCH /v1/videos/:videoId/annotations/:annotationId
+- DELETE /v1/videos/:videoId/annotations/:annotationId
+
+Frontend owners:
+- services/video-service.ts
+- services/media-service.ts
+- hooks/use-video-upload.ts
+- hooks/use-video-detail.ts
+- hooks/use-session-media.ts
+
+Database:
+- MediaObject
+- UploadSession
+- MalwareScanResult
+- Video
+- VideoShare
+- VideoAnnotation
+- AuditEvent
+
+Relationship shape:
+- User 1:many MediaObject as uploader
+- MediaObject 1:many UploadSession
+- MediaObject 1:many MalwareScanResult
+- MediaObject 1:many Video
+- Video 1:many VideoShare
+- Video 1:many VideoAnnotation
+- Video can link to athlete, coach, booking, group session, or club context depending on payload
+
+Status:
+- Implemented for the non-mock upload/video authority path.
+- Session completion media capture is not fully implemented for API mode. `services/media-service.ts` now fails closed outside mock mode instead of persisting local-only athlete/session media.
+
+Known gaps:
+- Production object-storage config must be present for true db/live readiness.
+- Missing API: a backend session-media authority for per-session athlete photos/clips, consent-gated upload completion, listing by session/athlete, and removal/audit.
+
+11. Community, posts, comments, messages, and notifications
+
+Subcategories:
+- Community groups
+- Club/group posts
+- Post reactions
+- Comments and replies
+- Comment reactions
+- Group messages
+- Direct/thread messages
+- Read receipts
+- Notifications
+- Notification preferences
+
+/v1 authority:
+- GET /v1/community-groups
+- GET/POST /v1/posts
+- POST /v1/posts/:postId/reactions/toggle
+- GET/POST /v1/posts/:postId/comments
+- GET /v1/comments/:commentId
+- DELETE /v1/comments/:commentId
+- POST /v1/comments/:commentId/reactions/toggle
+- POST /v1/community-groups/:groupId/messages
+- POST /v1/community-groups/:groupId/messages/read
+- GET /v1/message-threads
+- POST /v1/message-threads/:threadId/messages
+- DELETE /v1/messages/:messageId
+- GET /v1/me/notifications
+- PATCH /v1/me/notifications/preferences
+- POST /v1/me/notifications/read-all
+- POST /v1/me/notifications/dismiss-all
+- POST /v1/me/notifications/:notificationId/read
+- POST /v1/me/notifications/:notificationId/dismiss
+
+Frontend owners:
+- services/community/index.ts
+- services/community-media-authority-service.ts
+- services/social-feed-service.ts
+- services/comment-service.ts
+- services/community/community-messaging-service.ts
+- services/messaging-service.ts
+- services/notification/index.ts
+
+Database:
+- CommunityGroup
+- CommunityGroupMembership
+- Post
+- PostComment
+- PostCommentReaction
+- PostReaction
+- MessageThread
+- MessageParticipant
+- Message
+- MessageReceipt
+- Notification
+- NotificationPreference
+- MutedSource
+- QuietHours
+- MediaObject
+- AuditEvent
+
+Relationship shape:
+- CommunityGroup 1:many CommunityGroupMembership
+- User 1:many CommunityGroupMembership
+- Club/CommunityGroup/User 1:many Post depending on visibility/scope
+- Post 1:many PostComment
+- Post 1:many PostReaction
+- PostComment 1:many PostCommentReaction
+- MessageThread 1:many MessageParticipant
+- MessageThread 1:many Message
+- Message 1:many MessageReceipt
+- User 1:many Notification
+- User 1:1 or 1:many NotificationPreference sets
+
+Status:
+- Implemented for current staff-led post/comment/message/notification API-mode paths.
+
+Known gaps:
+- Local overlays remain for unsupported edit/create compatibility surfaces.
+- Generic personal posting and generic community directory/create route are not launch surfaces.
+
+12. Trust, safeguarding, access grants, retention, and ops
+
+Subcategories:
+- Safeguarding incident intake
+- Safeguarding incident detail
+- Safeguarding incident action/status transition
+- Access grants
+- Retention runs
+- Data deletion requests
+- Audit/security event capture
+
+/v1 authority:
+- POST /v1/safeguarding/incidents
+- GET /v1/safeguarding/incidents/:incidentId
+- POST /v1/safeguarding/incidents/:incidentId/actions
+- GET /v1/access-grants
+- GET /v1/admin/retention-runs
+- GET /v1/me/data-deletion-requests
+
+Frontend owners:
+- services/trust/index.ts
+- services/safety-service.ts
+- app/(tabs)/bookings/report-problem.tsx
+- services/community-media-authority-service.ts for some ops reads
+
+Database:
+- SafeguardingIncident
+- SafeguardingIncidentAction
+- AccessGrant
+- AccessGrantScope
+- AuditEvent
+- SecurityEvent
+- RetentionPolicy
+- RetentionRun
+- LegalHold
+- DataDeletionRequest
+
+Relationship shape:
+- SafeguardingIncident 1:many SafeguardingIncidentAction
+- AccessGrant 1:many AccessGrantScope
+- User 1:many AuditEvent as actor/subject
+- User 1:many SecurityEvent
+- RetentionPolicy 1:many RetentionRun
+- User 1:many DataDeletionRequest
+
+Status:
+- Partial. Safeguarding incident create/read/action is repository-backed. Booking report-problem submissions create incidents in non-mock mode for safety and non-safety support categories, while local `PROBLEM_REPORTS` writes are mock-only. Ops routes exist, but broader grant coverage and production policy enforcement still need release validation.
+
+Known gaps:
+- Every sensitive read, override, reassignment, or escalation should remain auditable as new routes are added.
+- Broader route-level grant coverage remains one of the highest-risk production seams.
+
+Current audit burn-down
+
+The current API boundary audit target has no legacy-api-path findings.
+
+Remaining findings in the tracked API boundary audit:
+- None. `node ./scripts/api-boundary-audit.js` scans zero findings with zero allowed baseline findings.
+
+Current remaining work is feature/API coverage, not tracked audit debt:
+- provider-backed payout execution and real settlement ledger
+- academy-specific write management only if it becomes distinct from clubs
+- true unassigned-work assignment semantics
+- head-coach task/standard mutations and richer watchlist signals
+- analytics mutations, goal mutations, skill updates, coach analytics, journal-derived challenges, and feedback-homework practice tasks
+- recurring invite partial acceptance, advanced recurring operations, and invite RSVP state
+
+Next implementation burn-down order
+
+1. Keep `node ./scripts/api-boundary-audit.js` at zero findings for each feature slice.
+2. Build or explicitly fail-close missing APIs for:
+   - provider-backed payout execution and real settlement ledger
+   - academy-specific write management only if it becomes distinct from clubs
+   - true unassigned-work assignment semantics
+   - head-coach task/standard mutations and richer watchlist signals
+   - analytics mutations, goal mutations, skill updates, coach analytics, journal-derived challenges, and feedback-homework practice tasks
+   - recurring invite partial acceptance, advanced recurring operations, and invite RSVP state
+3. Verify end-to-end flows category by category against /v1, not by trusting mock screens.
+
+Critical security rules carried forward
+
+- Default deny.
+- Assignment controls visibility.
+- Access is not transitive.
+- Club membership alone does not grant coach-private, medical, safeguarding, or finance access.
+- Assistant access is narrower than coach access unless explicitly widened.
+- Sensitive reads and writes need audit events.
+- No new live-mode local storage authority for trust-sensitive or money data.
+- No service_role or DB secret in clients.
+- Test credentials must be dev/staging-only, seeded into DB with hashed/salted password credentials, and kept separate from production secrets.

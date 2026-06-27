@@ -3,13 +3,12 @@
  *
  * Manages BookingSeries — groups of bookings created together when a parent
  * books multiple weeks at once. Coordinates with BookingCrudService for
- * individual booking creation and stores series metadata for grouping.
+ * individual booking creation and stores mock-mode series metadata in memory.
  *
  * Follows the same cache + Result<T> patterns as other services.
  */
 
 import { apiClient } from './api-client';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { bookingAuthorityService } from '@/services/booking/booking-authority-service';
@@ -29,6 +28,19 @@ const logger = createLogger('MultiWeekBookingService');
 
 /** Maximum age (ms) before cache is considered stale. */
 const CACHE_MAX_AGE = 30_000;
+
+let mockBookingSeriesStore: BookingSeries[] = [];
+
+function cloneSeries(series: BookingSeries): BookingSeries {
+  return {
+    ...series,
+    bookingIds: [...(series.bookingIds ?? [])],
+    athleteIds: [...(series.athleteIds ?? [])],
+    athleteNames: [...(series.athleteNames ?? [])],
+    selectedWeeks: [...(series.selectedWeeks ?? [])],
+  };
+}
+
 interface ApiSeriesLike {
   id: string;
   bookingIds: string[];
@@ -123,7 +135,7 @@ class MultiWeekBookingService {
   private async getCache(): Promise<Map<string, BookingSeries>> {
     const now = Date.now();
     if (this._cache === null || now - this._cacheTimestamp > CACHE_MAX_AGE) {
-      const data = await this.loadFromStorage();
+      const data = await this.loadFromMockState();
       this._cache = new Map(data.map((item) => [item.id, item]));
       this._cacheTimestamp = now;
     }
@@ -133,16 +145,11 @@ class MultiWeekBookingService {
     this._cache = null;
     this._cacheTimestamp = 0;
   }
-  private async loadFromStorage(): Promise<BookingSeries[]> {
-    try {
-      return await apiClient.get<BookingSeries[]>(STORAGE_KEYS.BOOKING_SERIES, []);
-    } catch (error) {
-      logger.error('Failed to load booking series from storage', error);
-      return [];
-    }
+  private async loadFromMockState(): Promise<BookingSeries[]> {
+    return mockBookingSeriesStore.map(cloneSeries);
   }
-  private async saveToStorage(series: BookingSeries[]): Promise<void> {
-    await apiClient.set(STORAGE_KEYS.BOOKING_SERIES, series);
+  private async saveToMockState(series: BookingSeries[]): Promise<void> {
+    mockBookingSeriesStore = series.map(cloneSeries);
     this.invalidateCache();
   }
 
@@ -351,9 +358,9 @@ class MultiWeekBookingService {
       status: 'ACTIVE',
     };
     try {
-      const allSeries = await this.loadFromStorage();
+      const allSeries = await this.loadFromMockState();
       allSeries.push(series);
-      await this.saveToStorage(allSeries);
+      await this.saveToMockState(allSeries);
 
       // Emit series created event
       emitTyped(ServiceEvents.SERIES_CREATED, {
@@ -484,7 +491,7 @@ class MultiWeekBookingService {
       });
       return ok(series);
     }
-    const allSeries = await this.loadFromStorage();
+    const allSeries = await this.loadFromMockState();
     const index = allSeries.findIndex((s) => s.id === seriesId);
     if (index === -1) {
       return err(notFound('BookingSeries', seriesId));
@@ -523,7 +530,7 @@ class MultiWeekBookingService {
       status: 'CANCELLED',
     };
     allSeries[index] = updatedSeries;
-    await this.saveToStorage(allSeries);
+    await this.saveToMockState(allSeries);
 
     // Emit series updated event
     emitTyped(ServiceEvents.SERIES_UPDATED, {
@@ -547,7 +554,7 @@ class MultiWeekBookingService {
     if (!apiClient.isMockMode) {
       return this.getSeriesById(seriesId);
     }
-    const allSeries = await this.loadFromStorage();
+    const allSeries = await this.loadFromMockState();
     const index = allSeries.findIndex((s) => s.id === seriesId);
     if (index === -1) {
       return err(notFound('BookingSeries', seriesId));
@@ -575,7 +582,7 @@ class MultiWeekBookingService {
         status: newStatus,
       };
       allSeries[index] = updatedSeries;
-      await this.saveToStorage(allSeries);
+      await this.saveToMockState(allSeries);
       emitTyped(ServiceEvents.SERIES_UPDATED, {
         seriesId,
         status: newStatus,

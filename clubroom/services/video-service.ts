@@ -34,14 +34,12 @@ import type {
   AnnotatedVideo,
   AnnotationExport,
 } from '@/constants/types';
-import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
+import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
 import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
-
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('VideoService');
 
@@ -185,26 +183,33 @@ const MOCK_VIDEOS: SessionVideo[] = [
   },
 ];
 
-let videosCache: SessionVideo[] = [...MOCK_VIDEOS];
+function cloneAnnotation(annotation: VideoAnnotation): VideoAnnotation {
+  return { ...annotation };
+}
+
+function cloneVideo(video: SessionVideo): SessionVideo {
+  return {
+    ...video,
+    athleteIds: [...video.athleteIds],
+    annotations: video.annotations.map(cloneAnnotation),
+    sharedWith: [...video.sharedWith],
+    tags: [...video.tags],
+  };
+}
+
+function cloneVideos(videos: SessionVideo[]): SessionVideo[] {
+  return videos.map(cloneVideo);
+}
+
+let videosCache: SessionVideo[] = cloneVideos(MOCK_VIDEOS);
 
 async function loadFromStorage(): Promise<SessionVideo[]> {
-  try {
-    const stored = await apiClient.get<SessionVideo[] | null>(STORAGE_KEYS.SESSION_VIDEOS, null);
-    if (stored) return stored;
-  } catch (error) {
-    logger.error('Failed to load from storage', error);
-  }
-  return [...MOCK_VIDEOS];
+  return cloneVideos(videosCache);
 }
 
 async function saveToStorage(videos: SessionVideo[]): Promise<Result<void, ServiceError>> {
-  try {
-    await apiClient.set(STORAGE_KEYS.SESSION_VIDEOS, videos);
-    return ok(undefined);
-  } catch (error) {
-    logger.error('Failed to save to storage', error);
-    return err(storageError(`Failed to save session videos: ${String(error)}`));
-  }
+  videosCache = cloneVideos(videos);
+  return ok(undefined);
 }
 
 export interface CreateVideoInput {
@@ -1305,5 +1310,9 @@ export const videoService = {
       return `${Math.round(bytes / 1024)} KB`;
     }
     return `${Math.round(bytes / (1024 * 1024))} MB`;
+  },
+
+  __resetMockVideos(): void {
+    videosCache = cloneVideos(MOCK_VIDEOS);
   },
 };

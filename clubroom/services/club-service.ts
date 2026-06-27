@@ -11,15 +11,15 @@
  * - PUT /v1/clubs/:id/squads/:squadId/members/:userId - Add member to squad
  * - DELETE /v1/clubs/:id/squads/:squadId/members/:userId - Remove member from squad
  * - GET /v1/clubs/:id/squads - Get club squads
- * - GET /api/clubs/:id/branding - Get club branding
- * - PUT /api/clubs/:id/branding - Update club branding
- * - GET /api/clubs/:id/dashboard-stats - Get dashboard stats
- * - GET /api/clubs/:id/calendar - Get calendar events
+ * - GET /v1/clubs/:id/schedule - Get club calendar and dashboard activity truth
+ * - GET /v1/clubs/:id/branding - Get club branding
+ * - PUT /v1/clubs/:id/branding - Update club branding
  */
 
 import { apiClient, apiFetch } from './api-client';
+import { clubScheduleService } from './club-schedule-service';
 import { matchService } from './match-service';
-import type { ClubRole, ClubMembership, ClubSquad } from '@/constants/types';
+import type { ClubActivity, ClubRole, ClubMembership, ClubSquad } from '@/constants/types';
 import {
   type Result,
   type ServiceError,
@@ -129,6 +129,24 @@ interface ApiClubMemberRemovalResponse {
 
 interface ApiClubSquadsResponse {
   squads: ClubSquad[];
+}
+
+interface ApiClubBrandingResponse {
+  branding: ClubBranding;
+}
+
+function mapActivityToCalendarEvent(activity: ClubActivity): CalendarEvent {
+  return {
+    id: activity.id,
+    title: activity.title,
+    date: activity.startsAt.slice(0, 10),
+    startTime: activity.startsAt.slice(11, 16),
+    endTime: activity.endsAt?.slice(11, 16) ?? activity.startsAt.slice(11, 16),
+    type: activity.kind === 'training' ? 'session' : activity.kind === 'match' ? 'match' : 'event',
+    squadId:
+      activity.squadId ?? (activity.squadIds.length === 1 ? activity.squadIds[0] : undefined),
+    location: activity.locationLabel,
+  };
 }
 
 // ============================================================================
@@ -422,47 +440,56 @@ const MOCK_MEMBERS: ClubMember[] = normalizeLegacyMockDates([
 let membersCache: Map<string, ClubMember[]> = new Map();
 let removalHistoryCache: ClubMemberRemovalRecord[] = [];
 
+function cloneMember(member: ClubMember): ClubMember {
+  return {
+    ...member,
+    squadIds: member.squadIds ? [...member.squadIds] : undefined,
+  };
+}
+
+function cloneMembers(members: ClubMember[]): ClubMember[] {
+  return members.map(cloneMember);
+}
+
+function cloneRemovalRecord(record: ClubMemberRemovalRecord): ClubMemberRemovalRecord {
+  return {
+    ...record,
+    originalMembership: record.originalMembership
+      ? {
+          ...record.originalMembership,
+          squadIds: record.originalMembership.squadIds
+            ? [...record.originalMembership.squadIds]
+            : undefined,
+        }
+      : undefined,
+  };
+}
+
+function cloneRemovalHistory(history: ClubMemberRemovalRecord[]): ClubMemberRemovalRecord[] {
+  return history.map(cloneRemovalRecord);
+}
+
 async function loadMembers(clubId: string): Promise<ClubMember[]> {
-  try {
-    const stored = await apiClient.get<ClubMember[] | null>(
-      `${STORAGE_KEYS.CLUB_MEMBERS}_${clubId}`,
-      null,
-    );
-    if (stored) return stored;
-  } catch (error) {
-    logger.error('Failed to load members', error);
+  const cached = membersCache.get(clubId);
+  if (cached) {
+    return cloneMembers(cached);
   }
-  return [...MOCK_MEMBERS];
+
+  const seededMembers = cloneMembers(MOCK_MEMBERS);
+  membersCache.set(clubId, seededMembers);
+  return cloneMembers(seededMembers);
 }
 
 async function saveMembers(clubId: string, members: ClubMember[]): Promise<void> {
-  try {
-    await apiClient.set(`${STORAGE_KEYS.CLUB_MEMBERS}_${clubId}`, members);
-    membersCache.set(clubId, members);
-  } catch (error) {
-    logger.error('Failed to save members', error);
-  }
+  membersCache.set(clubId, cloneMembers(members));
 }
 
 async function loadRemovalHistory(): Promise<ClubMemberRemovalRecord[]> {
-  try {
-    const stored = await apiClient.get<ClubMemberRemovalRecord[] | null>(
-      STORAGE_KEYS.CLUB_MEMBER_REMOVALS,
-      null,
-    );
-    if (stored) return stored;
-  } catch (error) {
-    logger.error('Failed to load removal history', error);
-  }
-  return [];
+  return cloneRemovalHistory(removalHistoryCache);
 }
 
 async function saveRemovalHistory(history: ClubMemberRemovalRecord[]): Promise<void> {
-  try {
-    await apiClient.set(STORAGE_KEYS.CLUB_MEMBER_REMOVALS, history);
-  } catch (error) {
-    logger.error('Failed to save removal history', error);
-  }
+  removalHistoryCache = cloneRemovalHistory(history);
 }
 
 export const clubService = {
@@ -471,11 +498,7 @@ export const clubService = {
    */
   async getMembers(clubId: string): Promise<ClubMember[]> {
     if (USE_MOCK) {
-      if (!membersCache.has(clubId)) {
-        const members = await loadMembers(clubId);
-        membersCache.set(clubId, members);
-      }
-      return membersCache.get(clubId) || [];
+      return loadMembers(clubId);
     }
 
     return unwrapApiResult(
@@ -602,12 +625,16 @@ export const clubService = {
       return ok(restoredMember);
     }
 
-    return err(
-      validationError(
-        'Restoring removed club members needs backend restore authority before API mode can use it.',
-        { clubId, removalId },
-      ),
+    const response = await apiFetch<ApiClubMemberResponse>(
+      `/v1/clubs/${encodeURIComponent(clubId)}/members/removals/${encodeURIComponent(removalId)}/restore`,
+      {
+        method: 'POST',
+      },
     );
+    if (!response.success) {
+      return err(response.error);
+    }
+    return ok(response.data.member);
   },
 
   /**
@@ -735,14 +762,22 @@ export const clubService = {
       return ok(removalRecord);
     }
 
-    return err(
-      validationError('Club member bans need backend ban authority before API mode can use them.', {
-        clubId,
-        userId,
-        reason,
-        bannedBy: bannedBy.id,
-      }),
+    const response = await apiFetch<ApiClubMemberRemovalResponse>(
+      `/v1/clubs/${encodeURIComponent(clubId)}/members/${encodeURIComponent(userId)}/ban`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      },
     );
+    if (!response.success) {
+      return err(response.error);
+    }
+    emitTyped(ServiceEvents.CLUB_MEMBER_LEFT, { clubId, userId });
+    logger.info('MemberBanned', { clubId, userId, reason, bannedBy: bannedBy.id });
+    return ok({
+      ...response.data.removal,
+      removedByName: response.data.removal.removedByName || bannedBy.name,
+    });
   },
 
   /**
@@ -914,8 +949,11 @@ export const clubService = {
       }
       return { ...MOCK_BRANDING.default, clubId };
     }
-    const response = await fetch(`/api/clubs/${clubId}/branding`);
-    return response.json();
+    return unwrapApiResult(
+      await apiFetch<ApiClubBrandingResponse>(`/v1/clubs/${encodeURIComponent(clubId)}/branding`, {
+        method: 'GET',
+      }),
+    ).branding;
   },
 
   /**
@@ -944,12 +982,21 @@ export const clubService = {
       return ok(updated);
     }
 
-    const response = await fetch(`/api/clubs/${clubId}/branding`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updated),
-    });
-    return ok(await response.json());
+    const response = await apiFetch<ApiClubBrandingResponse>(
+      `/v1/clubs/${encodeURIComponent(clubId)}/branding`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: updated.name,
+          tagline: updated.tagline,
+          badgeUrl: updated.badgeUrl,
+          coverPhotoUrl: updated.coverPhotoUrl,
+          primaryColor: updated.primaryColor,
+          secondaryColor: updated.secondaryColor,
+        }),
+      },
+    );
+    return response.success ? ok(response.data.branding) : err(response.error);
   },
 
   // ============================================================================
@@ -984,11 +1031,32 @@ export const clubService = {
       };
     }
 
-    return unwrapApiResult(
-      await apiFetch<DashboardStats>(`/api/clubs/${clubId}/dashboard-stats`, {
-        method: 'GET',
-      }),
-    );
+    const [members, activities] = await Promise.all([
+      this.getMembers(clubId),
+      clubScheduleService.getClubSchedule(clubId).then(unwrapApiResult),
+    ]);
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 7);
+    const weekActivities = activities.filter((activity) => {
+      const startsAt = new Date(activity.startsAt);
+      return startsAt >= startOfWeek && startsAt < endOfWeek && activity.status !== 'cancelled';
+    });
+
+    return {
+      sessionsThisWeek: weekActivities.filter((activity) => activity.kind === 'training').length,
+      matchesThisWeek: weekActivities.filter((activity) => activity.kind === 'match').length,
+      upcomingEvents: activities.filter(
+        (activity) =>
+          activity.kind === 'informational' &&
+          activity.status !== 'cancelled' &&
+          new Date(activity.startsAt) >= now,
+      ).length,
+      memberCount: members.length,
+    };
   },
 
   /**
@@ -1054,13 +1122,28 @@ export const clubService = {
       });
     }
 
-    const params = new URLSearchParams();
-    if (options?.year !== undefined) params.set('year', String(options.year));
-    if (options?.month !== undefined) params.set('month', String(options.month));
-    if (options?.squadId) params.set('squadId', options.squadId);
-
-    const response = await fetch(`/api/clubs/${clubId}/calendar?${params.toString()}`);
-    return response.json();
+    let activities = unwrapApiResult(await clubScheduleService.getClubSchedule(clubId));
+    const squadId = options?.squadId;
+    if (squadId) {
+      activities = activities.filter(
+        (activity) =>
+          activity.squadId === squadId ||
+          activity.squadIds.length === 0 ||
+          activity.squadIds.includes(squadId),
+      );
+    }
+    let events = activities.map(mapActivityToCalendarEvent);
+    if (options?.year !== undefined && options?.month !== undefined) {
+      events = events.filter((event) => {
+        const [year, month] = event.date.split('-').map(Number);
+        return year === options.year && month - 1 === options.month;
+      });
+    }
+    return events.sort((a, b) => {
+      const dateCompare = a.date.localeCompare(b.date);
+      if (dateCompare !== 0) return dateCompare;
+      return a.startTime.localeCompare(b.startTime);
+    });
   },
 
   /**
@@ -1087,5 +1170,18 @@ export const clubService = {
       id: squad.id,
       name: squad.name,
     }));
+  },
+
+  __seedMockMembers(clubId: string, members: ClubMember[]): void {
+    membersCache.set(clubId, cloneMembers(members));
+  },
+
+  __resetMockMembers(clubId?: string): void {
+    if (clubId) {
+      membersCache.delete(clubId);
+    } else {
+      membersCache = new Map();
+    }
+    removalHistoryCache = [];
   },
 };

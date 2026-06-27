@@ -32,6 +32,7 @@ import {
   resolveFamilyAthleteRepository,
 } from "../../repositories/p0/family-athlete-repository.js";
 import { resolveFamilyRepository } from "../../repositories/p0/family-repository.js";
+import { resolveClubAuthorityRepository } from "../../repositories/p0/club-authority-repository.js";
 type SeedRow = Record<string, unknown>;
 type Gender = "MALE" | "FEMALE" | "OTHER" | "PREFER_NOT_TO_SAY";
 type Relationship = "SON" | "DAUGHTER" | "WARD" | "GRANDCHILD" | "OTHER";
@@ -112,6 +113,21 @@ const updateAthleteRequestSchema = createAthleteRequestSchema
     familyId: true,
   })
   .partial();
+const athleteSquadMembershipsResponseSchema = z.object({
+  athleteId: athleteIdSchema,
+  memberships: z.array(
+    z.object({
+      id: z.string(),
+      athleteId: athleteIdSchema,
+      squadId: z.string(),
+      clubId: z.string(),
+      squadName: z.string(),
+      squadLevel: z.string(),
+      status: z.enum(["ACTIVE", "INACTIVE", "PENDING"]),
+      joinedAt: z.string(),
+    }),
+  ),
+});
 const guardianInviteIdSchema = z.string().regex(/^ginv_[A-Za-z0-9-]+$/);
 const familyGuardianIdSchema = z.string().trim().min(1);
 function resolveParentIdFromAthlete(
@@ -556,6 +572,51 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
       athleteId,
       ...athlete,
     });
+  });
+  app.get("/athletes/:athleteId/squad-memberships", async (request, reply) => {
+    const athleteId = athleteIdSchema.parse(
+      (
+        request.params as {
+          athleteId: string;
+        }
+      ).athleteId,
+    );
+    const authUserId = ensureAuthUserId(request.auth?.userId);
+    const repository = resolveClubAuthorityRepository();
+    try {
+      const memberships = await repository.listAthleteSquadMemberships({
+        athleteId,
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+      });
+      await recordAuditEvent({
+        request,
+        action: "athlete_squad_membership.list",
+        resourceType: "athlete",
+        resourceId: athleteId,
+        result: "SUCCESS",
+        sensitiveRead: true,
+        metadata: {
+          count: memberships.length,
+        },
+      });
+      return reply.send(
+        athleteSquadMembershipsResponseSchema.parse({
+          athleteId,
+          memberships,
+        }),
+      );
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: "athlete_squad_membership.list",
+        resourceType: "athlete",
+        resourceId: athleteId,
+        result: auditResultForError(error),
+        sensitiveRead: true,
+      });
+      throw error;
+    }
   });
   app.patch("/athletes/:athleteId", async (request, reply) => {
     const authUserId = ensureAuthUserId(request.auth?.userId);

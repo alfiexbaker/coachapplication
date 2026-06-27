@@ -1,6 +1,6 @@
 import type { ClubSquad, SquadMember } from '@/constants/types';
 import type { ChildReference } from '@/constants/user-types';
-import type { ChildProfile } from '@/services/child-service';
+import type { ChildProfile, ChildSquadMembership } from '@/services/child-service';
 import type { ChildInfo } from '@/types/child-context';
 import { CHILD_COLORS } from '@/types/child-context';
 
@@ -159,6 +159,45 @@ export function attachMembershipData(
       ...child,
       squadIds: Array.from(squadIdSet),
       clubIds: Array.from(clubIdSet),
+    };
+  });
+}
+
+export function attachLiveSquadMemberships(
+  children: ChildInfo[],
+  membershipsByAthleteId: Map<string, ChildSquadMembership[]>,
+): ChildInfo[] {
+  if (children.length === 0 || membershipsByAthleteId.size === 0) {
+    return children;
+  }
+
+  return children.map((child) => {
+    const athleteIds = new Set<string>();
+    if (child.id.startsWith('ath_')) {
+      athleteIds.add(child.id);
+    }
+    if (child.referenceId.startsWith('ath_')) {
+      athleteIds.add(child.referenceId);
+    }
+    if (child.profileId) {
+      athleteIds.add(child.profileId);
+    }
+
+    const squadIds = new Set<string>();
+    const clubIds = new Set<string>();
+    for (const athleteId of athleteIds) {
+      const memberships = membershipsByAthleteId.get(athleteId) ?? [];
+      for (const membership of memberships) {
+        if (membership.status !== 'ACTIVE') continue;
+        squadIds.add(membership.squadId);
+        clubIds.add(membership.clubId);
+      }
+    }
+
+    return {
+      ...child,
+      squadIds: Array.from(squadIds),
+      clubIds: Array.from(clubIds),
     };
   });
 }

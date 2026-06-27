@@ -118,10 +118,16 @@ function mapEventActivity(event: SeedRow): ClubScheduleActivity | null {
       ? (event.metadataJson as SeedRow)
       : {};
   const metadataType = asString(metadataJson.type);
-  const priceMinor = asNumber(event.priceMinor);
-  const squadIds = parseJsonArray(event.squadIdsJson).filter(
+  const priceMinor = asNumber(event.priceMinor) ?? asNumber(metadataJson.priceMinor);
+  const squadIdsFromRow = parseJsonArray(event.squadIdsJson).filter(
     (value): value is string => typeof value === "string",
   );
+  const squadIds =
+    squadIdsFromRow.length > 0
+      ? squadIdsFromRow
+      : parseJsonArray(metadataJson.squadIds).filter(
+          (value): value is string => typeof value === "string",
+        );
   return {
     id: `club_activity:club_event:${eventId}`,
     source: "club_event",
@@ -147,7 +153,7 @@ function mapEventActivity(event: SeedRow): ClubScheduleActivity | null {
     locationLabel: asString(event.location) ?? "Club venue",
     isVirtual: false,
     price: typeof priceMinor === "number" ? priceMinor / 100 : undefined,
-    currency: asString(event.currency) ?? "GBP",
+    currency: asString(event.currency) ?? asString(metadataJson.currency) ?? "GBP",
     squadIds,
     allowsExternalRegistration: visibility === "public",
   };
