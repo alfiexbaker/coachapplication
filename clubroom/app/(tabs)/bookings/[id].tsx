@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, startTransition } from 'react';
 import { View, RefreshControl, ScrollView, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -266,7 +267,10 @@ export default function SessionDetailScreen() {
 
   if (status === 'loading' && !booking) {
     return (
-      <View style={[styles.container, { backgroundColor: palette.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top', 'bottom']}
+      >
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
           showsVerticalScrollIndicator={false}
@@ -285,32 +289,41 @@ export default function SessionDetailScreen() {
           <SectionSkeleton variant="hero" titleWidth="34%" />
           <SectionSkeleton variant="list" titleWidth="28%" />
         </ScrollView>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (!bookingIdParam.valid) {
     return (
-      <View style={[styles.container, { backgroundColor: palette.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top', 'bottom']}
+      >
         <ErrorState
           message="Invalid link. The booking you are trying to open could not be found."
           onRetry={handleGoBack}
         />
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (status === 'error' && !booking) {
     return (
-      <View style={[styles.container, { backgroundColor: palette.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top', 'bottom']}
+      >
         <ErrorState message={error?.message ?? 'Failed to load booking details.'} onRetry={retry} />
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (status === 'empty' || !booking || !formatted) {
     return (
-      <View style={[styles.container, { backgroundColor: palette.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: palette.background }]}
+        edges={['top', 'bottom']}
+      >
         <EmptyState
           icon="warning"
           title="Booking not found"
@@ -318,12 +331,15 @@ export default function SessionDetailScreen() {
           actionLabel="Back to bookings"
           onPressAction={handleGoBack}
         />
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: palette.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
@@ -528,7 +544,7 @@ export default function SessionDetailScreen() {
           />
         ) : null}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

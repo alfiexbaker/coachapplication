@@ -67,7 +67,7 @@ function getRoleOrThrow(request: FastifyRequest): ActingRole {
   return role;
 }
 
-function athleteUserIdFromAthleteId(athleteId: string): string {
+function legacyAthleteUserIdFromAthleteId(athleteId: string): string {
   return athleteId.startsWith('ath_') ? `usr_${athleteId.slice('ath_'.length)}` : '';
 }
 
@@ -140,8 +140,12 @@ async function isVerifiedCoach(request: FastifyRequest): Promise<boolean> {
   return cache.verifiedCoach;
 }
 
-function isAthleteSelf(request: FastifyRequest, athleteId: string): boolean {
-  return getAuthOrThrow(request).userId === athleteUserIdFromAthleteId(athleteId);
+async function isAthleteSelf(request: FastifyRequest, athleteId: string): Promise<boolean> {
+  const auth = getAuthOrThrow(request);
+  if (auth.userId === legacyAthleteUserIdFromAthleteId(athleteId)) {
+    return true;
+  }
+  return resolveTrustAccessRepository().isAthleteSelf(auth.userId, athleteId);
 }
 
 async function isGuardianForAthlete(request: FastifyRequest, athleteId: string): Promise<boolean> {
@@ -185,7 +189,7 @@ export async function assertCanReadAthleteHealth(
 ): Promise<void> {
   const role = getRoleOrThrow(request);
 
-  if (role === 'athlete' && isAthleteSelf(request, athleteId)) {
+  if (role === 'athlete' && await isAthleteSelf(request, athleteId)) {
     return;
   }
   if (role === 'parent' && await isGuardianForAthlete(request, athleteId)) {
@@ -204,7 +208,7 @@ export async function assertCanWriteAthleteHealth(
 ): Promise<void> {
   const role = getRoleOrThrow(request);
 
-  if (role === 'athlete' && isAthleteSelf(request, athleteId)) {
+  if (role === 'athlete' && await isAthleteSelf(request, athleteId)) {
     return;
   }
   if (role === 'parent' && await isGuardianForAthlete(request, athleteId)) {
@@ -249,7 +253,7 @@ export async function assertCanCreateSafeguardingIncident(
     return;
   }
 
-  if (role === 'athlete' && isAthleteSelf(request, athleteId)) {
+  if (role === 'athlete' && await isAthleteSelf(request, athleteId)) {
     return;
   }
   if (role === 'parent' && await isGuardianForAthlete(request, athleteId)) {
@@ -281,7 +285,7 @@ export async function assertCanAccessSafeguardingIncident(
   if (!incident.athleteId) {
     throw forbidden('Not allowed to access this safeguarding incident');
   }
-  if (role === 'athlete' && isAthleteSelf(request, incident.athleteId)) {
+  if (role === 'athlete' && await isAthleteSelf(request, incident.athleteId)) {
     return;
   }
   if (role === 'parent' && await isGuardianForAthlete(request, incident.athleteId)) {

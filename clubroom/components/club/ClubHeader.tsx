@@ -17,6 +17,7 @@ import { Column } from '@/components/primitives/column';
 import { uiFeedback } from '@/services/ui-feedback';
 import { StatusBanner } from '@/components/ui/primitives/StatusBanner';
 import { buildClubInviteLink } from '@/services/club-invite-link-service';
+import { canManageClubUi, canShareClubInvite, getClubRoleLabel } from '@/utils/club-ui-permissions';
 
 // ─── Re-exports ─────────────────────────────────────────────────────────────
 
@@ -46,23 +47,9 @@ export function ClubHeader({
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoPermissionMessage, setPhotoPermissionMessage] = useState<string | null>(null);
 
-  const roleLabel = (() => {
-    switch (membership.role) {
-      case 'OWNER':
-        return 'Owner';
-      case 'HEAD_COACH':
-        return 'Head Coach';
-      case 'ADMIN':
-        return 'Admin';
-      case 'COACH':
-        return 'Coach';
-      default:
-        return 'Member';
-    }
-  })();
-
-  const canManage = ['OWNER', 'ADMIN', 'HEAD_COACH'].includes(membership.role);
-  const canShareInvite = ['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH'].includes(membership.role);
+  const roleLabel = getClubRoleLabel(membership.role);
+  const canManage = canManageClubUi(membership);
+  const canShareInvite = canShareClubInvite(membership);
   const isOwner = membership.role === 'OWNER';
   const badgeText = club.name?.slice(0, 2).toUpperCase() || 'CL';
   const showCoverPhotoArea = Boolean(club.coverPhotoUrl || canManage);
@@ -117,15 +104,15 @@ export function ClubHeader({
     ]);
   };
 
-  const handleDeleteClub = () => {
+  const handleArchiveClub = () => {
     setShowMenu(false);
     uiFeedback.alert(
-      'Delete Club',
-      `This will permanently delete "${club.name}" and all associated data. This cannot be undone.`,
+      'Archive Club',
+      `Archive "${club.name}"? Members, squads, and invite codes will be removed from active views, and the backend will keep an audit record.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
+          text: 'Archive',
           style: 'destructive',
           onPress: () => {
             router.push(Routes.clubSettings({ clubId: club.id, section: 'delete' }));
@@ -173,8 +160,8 @@ export function ClubHeader({
       : []),
     {
       icon: (isOwner ? 'trash-outline' : 'exit-outline') as keyof typeof Ionicons.glyphMap,
-      label: isOwner ? 'Delete Club' : 'Leave Club',
-      onPress: isOwner ? handleDeleteClub : handleLeaveClub,
+      label: isOwner ? 'Archive Club' : 'Leave Club',
+      onPress: isOwner ? handleArchiveClub : handleLeaveClub,
       color: palette.error,
     },
   ];

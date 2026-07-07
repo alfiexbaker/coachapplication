@@ -19,6 +19,7 @@ interface CompletionSummaryProps {
   ratingDurationSeconds?: number;
   athletes: CompletionSummaryAthlete[];
   onOpenAthlete: (athlete: CompletionSummaryAthlete) => void;
+  canOpenAthleteFeedback?: boolean;
   onRaiseConcern: (athlete: CompletionSummaryAthlete) => void;
   onDone: () => void;
 }
@@ -47,6 +48,7 @@ export const CompletionSummary = function CompletionSummary({
   ratingDurationSeconds,
   athletes,
   onOpenAthlete,
+  canOpenAthleteFeedback = true,
   onRaiseConcern,
   onDone,
 }: CompletionSummaryProps) {
@@ -62,10 +64,7 @@ export const CompletionSummary = function CompletionSummary({
             label={`${ratedAthletes} ${ratedAthletes === 1 ? 'athlete' : 'athletes'} rated`}
           />
           {ratingDurationSeconds != null && ratingDurationSeconds > 0 ? (
-            <SummaryStat
-              icon="timer-outline"
-              label={`Rated in ${ratingDurationSeconds} seconds`}
-            />
+            <SummaryStat icon="timer-outline" label={`Rated in ${ratingDurationSeconds} seconds`} />
           ) : null}
           <SummaryStat
             icon="camera"
@@ -82,37 +81,39 @@ export const CompletionSummary = function CompletionSummary({
         </Column>
       </SurfaceCard>
 
-      <SurfaceCard style={styles.summaryCard}>
-        <Column gap="sm">
-          <ThemedText style={styles.title}>Add detailed notes?</ThemedText>
-          <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
-            Optional, for specific athletes.
-          </ThemedText>
+      {canOpenAthleteFeedback ? (
+        <SurfaceCard style={styles.summaryCard}>
+          <Column gap="sm">
+            <ThemedText style={styles.title}>Add detailed notes?</ThemedText>
+            <ThemedText style={[styles.subtitle, { color: colors.muted }]}>
+              Optional, for specific athletes.
+            </ThemedText>
 
-          <Row wrap gap="xs">
-            {athletes.map((athlete) => (
-              <Clickable
-                key={athlete.registrationId}
-                style={[
-                  styles.athleteChip,
-                  {
-                    borderColor: colors.border,
-                    backgroundColor: withAlpha(colors.tint, 0.05),
-                  },
-                ]}
-                onPress={() => onOpenAthlete(athlete)}
-                accessibilityLabel={`Open detailed feedback for ${athlete.athleteName}`}
-                accessibilityRole="button"
-              >
-                <Row align="center" gap="xxs">
-                  <ThemedText style={styles.chipText}>{athlete.athleteName}</ThemedText>
-                  <Ionicons name="create-outline" size={14} color={colors.tint} />
-                </Row>
-              </Clickable>
-            ))}
-          </Row>
-        </Column>
-      </SurfaceCard>
+            <Row wrap gap="xs">
+              {athletes.map((athlete) => (
+                <Clickable
+                  key={athlete.registrationId}
+                  style={[
+                    styles.athleteChip,
+                    {
+                      borderColor: colors.border,
+                      backgroundColor: withAlpha(colors.tint, 0.05),
+                    },
+                  ]}
+                  onPress={() => onOpenAthlete(athlete)}
+                  accessibilityLabel={`Open detailed feedback for ${athlete.athleteName}`}
+                  accessibilityRole="button"
+                >
+                  <Row align="center" gap="xxs">
+                    <ThemedText style={styles.chipText}>{athlete.athleteName}</ThemedText>
+                    <Ionicons name="create-outline" size={14} color={colors.tint} />
+                  </Row>
+                </Clickable>
+              ))}
+            </Row>
+          </Column>
+        </SurfaceCard>
+      ) : null}
 
       <SurfaceCard style={styles.summaryCard}>
         <Column gap="sm">

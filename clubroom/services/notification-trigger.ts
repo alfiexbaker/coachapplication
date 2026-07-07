@@ -4,11 +4,12 @@
  * When any service performs a write action that affects ANOTHER user,
  * it calls triggerNotification() to create a local notification.
  *
- * For MVP: writes to local notifications store.
- * For API: this becomes a server-side push trigger.
+ * For mock mode: writes to the local notifications store.
+ * For API mode: no-ops; backend /v1 routes own durable notification rows.
  */
 
 import { notificationService } from './notification-service';
+import { apiClient } from './api-client';
 import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, validationError } from '@/types/result';
@@ -46,11 +47,16 @@ function mapToNotificationType(
 }
 
 /**
- * Fire a notification from any service.
- * Call this after every write action that affects another user.
+ * Fire a mock-mode notification from any service.
+ * API-mode services must use backend routes that queue durable notifications.
  */
 export async function triggerNotification(action: NotifiableAction): Promise<Result<void, ServiceError>> {
   try {
+    if (!apiClient.isMockMode) {
+      logger.info('Skipped local notification trigger in API mode', { type: action.type });
+      return ok(undefined);
+    }
+
     const recipientId = action.recipientId?.trim();
     if (!recipientId) {
       logger.warn('Notification skipped: missing recipientId', { type: action.type });
@@ -351,7 +357,7 @@ export const notificationTriggers = {
       recipientId,
       title: 'Badge Earned!',
       body: `${athleteName} earned "${badgeName}"`,
-      deepLink: '/development/badges',
+      deepLink: '/development/my-progress',
     });
   },
 

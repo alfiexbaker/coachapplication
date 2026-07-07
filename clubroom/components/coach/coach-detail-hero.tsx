@@ -22,6 +22,7 @@ interface CoachDetailHeroProps {
   canFollowAction: boolean;
   followLoading: boolean;
   followIconName: keyof typeof Ionicons.glyphMap;
+  showFollowAction?: boolean;
   contactLabel: string;
   profileSummary: string;
   offeringSummary: CoachOfferingSummary;
@@ -39,6 +40,7 @@ export const CoachDetailHero = function CoachDetailHero({
   canFollowAction,
   followLoading,
   followIconName,
+  showFollowAction = true,
   contactLabel,
   profileSummary,
   offeringSummary,
@@ -179,26 +181,28 @@ export const CoachDetailHero = function CoachDetailHero({
         </Row>
         {!isOwnProfile && (
           <Row style={styles.actionButtons}>
-            <Clickable
-              onPress={onFollow}
-              disabled={!canFollowAction || followLoading || isBlocked}
-              style={[
-                styles.followButton,
-                {
-                  backgroundColor: isMutedFollowButton ? palette.surface : palette.tint,
-                  borderColor: isMutedFollowButton ? palette.border : palette.tint,
-                },
-              ]}
-            >
-              {followLoading ? (
-                <ActivityIndicator size="small" color={followTextColor} />
-              ) : (
-                <Ionicons name={followIconName} size={18} color={followTextColor} />
-              )}
-              <ThemedText style={{ color: followTextColor, fontWeight: '600' }}>
-                {followLabel}
-              </ThemedText>
-            </Clickable>
+            {showFollowAction ? (
+              <Clickable
+                onPress={onFollow}
+                disabled={!canFollowAction || followLoading || isBlocked}
+                style={[
+                  styles.followButton,
+                  {
+                    backgroundColor: isMutedFollowButton ? palette.surface : palette.tint,
+                    borderColor: isMutedFollowButton ? palette.border : palette.tint,
+                  },
+                ]}
+              >
+                {followLoading ? (
+                  <ActivityIndicator size="small" color={followTextColor} />
+                ) : (
+                  <Ionicons name={followIconName} size={18} color={followTextColor} />
+                )}
+                <ThemedText style={{ color: followTextColor, fontWeight: '600' }}>
+                  {followLabel}
+                </ThemedText>
+              </Clickable>
+            ) : null}
             <Clickable
               onPress={onMessage}
               accessibilityLabel={contactLabel}

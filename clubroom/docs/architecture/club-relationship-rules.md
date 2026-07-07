@@ -1,6 +1,6 @@
 # Club Relationship Rules
 
-Validated: 2026-03-11
+Validated: 2026-07-03
 Purpose: provide one short canonical rules file for how club actors relate to each other, what they do, what they can do, and what data they can see.
 
 ## Canonical Sources
@@ -8,8 +8,6 @@ Purpose: provide one short canonical rules file for how club actors relate to ea
 - `contracts/club-governance.ts`
 - `packages/shared-contracts/src/club/contracts.ts`
 - `packages/shared-contracts/src/club/policy.ts`
-- `docs/product-reality/ORG_RELATIONSHIP_MODEL_2026-03-10.md`
-- `docs/product-reality/ORG_PERMISSION_AND_VISIBILITY_MATRIX_2026-03-10.md`
 - `docs/backend-api/AUTHZ_AUDIT_AND_SECURITY.md`
 - `docs/SOURCE_OF_TRUTH.md`
 

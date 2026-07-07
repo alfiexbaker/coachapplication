@@ -1,4 +1,4 @@
-import { useEffect, useState, startTransition } from 'react';
+import { useEffect, useRef, useState, startTransition } from 'react';
 
 import {
   POSITION_SKILLS,
@@ -174,12 +174,21 @@ export function useQuickRate({
   const [isPrefilling, setIsPrefilling] = useState(false);
   const [isSkippedAll, setIsSkippedAll] = useState(false);
 
-  const athleteKey = athletes.map((athlete) => athlete.athleteId).join('|');
+  const athleteKey = athletes
+    .map((athlete) => `${athlete.athleteId}:${athlete.athleteName}`)
+    .join('|');
+  const stableAthletesRef = useRef(athletes);
+  const stableAthleteKeyRef = useRef(athleteKey);
+  if (stableAthleteKeyRef.current !== athleteKey) {
+    stableAthletesRef.current = athletes;
+    stableAthleteKeyRef.current = athleteKey;
+  }
+  const stableAthletes = stableAthletesRef.current;
 
   useEffect(() => {
     const controller = new AbortController();
 
-    if (athletes.length === 0) {
+    if (stableAthletes.length === 0) {
       startTransition(() => {
         setRatingsByAthleteId({});
       });
@@ -214,7 +223,7 @@ export function useQuickRate({
       const nextPositionsMulti: Record<string, PositionRole[]> = {};
 
       await Promise.all(
-        athletes.map(async (athlete) => {
+        stableAthletes.map(async (athlete) => {
           try {
             const [positionResult, latestFeedback, childProfile] = await Promise.all([
               progressPositionService.getMostPlayedPosition(athlete.athleteId),
@@ -292,7 +301,7 @@ export function useQuickRate({
         setPositionByAthleteId(nextPositions);
         setPositionsByAthleteId(nextPositionsMulti);
       }
-      setCurrentIndex((prev) => Math.max(0, Math.min(prev, athletes.length - 1)));
+      setCurrentIndex((prev) => Math.max(0, Math.min(prev, stableAthletes.length - 1)));
       setIsPrefilling(false);
       setIsSkippedAll(false);
     };
@@ -302,7 +311,7 @@ export function useQuickRate({
     return () => {
       controller.abort();
     };
-  }, [athleteKey, athletes, coachId, effortByAthleteId, sessionId]);
+  }, [coachId, effortByAthleteId, sessionId, stableAthletes]);
 
   const setIndex = (index: number) => {
     setCurrentIndex(Math.max(0, Math.min(index, Math.max(athletes.length - 1, 0))));

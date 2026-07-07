@@ -180,11 +180,6 @@ export const Routes = {
       pathname: '/booking/[id]/cancel',
       params: mode ? { id, mode } : { id },
     }) as Href,
-  bookingsNegotiate: (id: string) =>
-    ({
-      pathname: '/bookings/[id]/negotiate',
-      params: { id },
-    }) as Href,
   BOOKINGS_SUBSCRIBE: '/bookings/subscribe' as Href,
   sessionFeedback: (params: {
     bookingId: string;
@@ -335,10 +330,10 @@ export const Routes = {
     }) as Href,
 
   // ─── Development ───────────────────────────────────────────────
-  DEVELOPMENT_BADGES: '/development/badges' as Href,
+  DEVELOPMENT_BADGES: '/development/my-progress' as Href,
   developmentBadgesHighlight: (badgeAwardId: string) =>
     ({
-      pathname: '/development/badges',
+      pathname: '/development/my-progress',
       params: { highlightBadge: badgeAwardId },
     }) as Href,
   DEVELOPMENT_MY_PROGRESS: '/development/my-progress' as Href,
@@ -494,11 +489,6 @@ export const Routes = {
     ({
       pathname: '/review/[bookingId]',
       params: { bookingId },
-    }) as Href,
-  reviewCreate: (bookingId: string, coachId: string) =>
-    ({
-      pathname: '/review/create',
-      params: { bookingId, coachId },
     }) as Href,
 
   // ─── Roster ────────────────────────────────────────────────────

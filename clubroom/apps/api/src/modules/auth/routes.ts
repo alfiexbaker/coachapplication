@@ -6,11 +6,22 @@ import {
   getAuthUserProfile,
   refreshAuthSession,
   registerAuthUser,
+  requestPasswordReset,
   revokeAuthSession,
+  resetPasswordWithToken,
   updateAuthUserProfile,
 } from '../../lib/auth-runtime.js';
 import { recordAuditEvent } from '../../lib/audit-runtime.js';
-import { forbidden } from '../../lib/http-errors.js';
+import { ApiProblemError, forbidden } from '../../lib/http-errors.js';
+import { deliverPasswordResetEmail } from '../../lib/password-reset-delivery.js';
+
+function isResetTokenResponseEnabled(): boolean {
+  return process.env.NODE_ENV === 'test' || process.env.API_PASSWORD_RESET_TOKEN_RESPONSE === '1';
+}
+
+function emailDomain(email: string): string | null {
+  return email.split('@')[1]?.trim().toLowerCase() || null;
+}
 
 const loginRequestSchema = z.object({
   email: z.string().trim().email(),
@@ -218,12 +229,78 @@ const authRoutes: FastifyPluginAsync = async (app) => {
   });
 
   app.post('/auth/forgot-password', async (request, reply) => {
-    forgotPasswordSchema.parse(request.body);
+    const body = forgotPasswordSchema.parse(request.body);
+    const result = await requestPasswordReset(body.email);
+    const delivery = result.resetToken
+      ? await deliverPasswordResetEmail({
+          email: body.email,
+          resetToken: result.resetToken,
+          expiresAt: result.expiresAt ?? '',
+          requestId: request.requestId,
+        })
+      : { provider: 'none' as const, status: 'skipped' as const };
+    if (delivery.status === 'failed') {
+      request.log.warn(
+        {
+          provider: delivery.provider,
+          error: delivery.error,
+          emailDomain: emailDomain(body.email),
+        },
+        'Password reset email delivery failed',
+      );
+    }
+    await recordAuditEvent({
+      request,
+      action: 'auth.password_reset_requested',
+      resourceType: 'user',
+      resourceId: result.userId ?? null,
+      subjectUserId: result.userId ?? null,
+      result: 'SUCCESS',
+      metadata: {
+        emailDomain: emailDomain(body.email),
+        issued: Boolean(result.resetToken),
+        deliveryProvider: delivery.provider,
+        deliveryStatus: delivery.status,
+      },
+    });
+    if (isResetTokenResponseEnabled() && result.resetToken) {
+      return reply.send({
+        resetToken: result.resetToken,
+        expiresAt: result.expiresAt,
+        requestId: request.requestId,
+      });
+    }
     return reply.status(204).send();
   });
 
   app.post('/auth/reset-password', async (request, reply) => {
-    resetPasswordSchema.parse(request.body);
+    const body = resetPasswordSchema.parse(request.body);
+    try {
+      const result = await resetPasswordWithToken(body.token, body.newPassword);
+      await recordAuditEvent({
+        request,
+        action: 'auth.password_reset_completed',
+        resourceType: 'user',
+        resourceId: result.userId,
+        subjectUserId: result.userId,
+        result: 'SUCCESS',
+        metadata: {
+          revokedSessionCount: result.revokedSessionCount,
+        },
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'auth.password_reset_completed',
+        resourceType: 'user',
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          reason: 'invalid_or_expired_token',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
     return reply.status(204).send();
   });
 

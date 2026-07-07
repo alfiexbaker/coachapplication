@@ -4,18 +4,28 @@ import path from 'node:path';
 let baseUrl = process.env.UI_BASE_URL || 'http://localhost:8083';
 const defaultOutDir = process.env.UI_FLOW_OUT_DIR || '/tmp/ui-flow-checks-50';
 const failLevels = ['none', 'high', 'medium'];
+const authSettleTimeoutMs = 15000;
+const authPollMs = 250;
 let chromium = null;
 let devices = null;
+const apiSeed = {
+  coachUserId: 'usr_65972cc3-8f9b-7199-b867-7df5b7faf34b',
+  clubId: 'clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1',
+  squadId: 'sqd_9640510a-e7cb-7575-a2a7-649ac28b5ee2',
+  athleteId: 'ath_7df7ec13-e136-7525-985f-dec069fc983f',
+};
 const preflightProofPathByRole = {
   coach: '/schedule',
   parent: '/family',
   athlete: '/development/my-progress',
+  admin: `/club/${apiSeed.clubId}/dashboard`,
 };
 
 const creds = {
-  coach: { username: 'coach1', password: 'coach' },
-  parent: { username: 'parent1', password: 'user' },
-  athlete: { username: 'user1', password: 'user' },
+  coach: { username: 'amelia.shaw@clubroom.demo', password: 'coach' },
+  parent: { username: 'olivia.barton@clubroom.demo', password: 'user' },
+  athlete: { username: 'alex.barton@clubroom.demo', password: 'user' },
+  admin: { username: 'clara.finch@clubroom.demo', password: 'admin' },
 };
 
 async function ensurePlaywrightLoaded() {
@@ -82,7 +92,7 @@ const flows = [
     id: 'coach_group_sessions',
     role: 'coach',
     title: 'Coach opens group sessions',
-    path: '/group-sessions/index',
+    path: '/group-sessions',
   },
   {
     id: 'coach_group_sessions_create',
@@ -114,7 +124,7 @@ const flows = [
     id: 'coach_session_invites',
     role: 'coach',
     title: 'Coach opens invite inbox',
-    path: '/session-invites/index',
+    path: '/session-invites',
   },
   {
     id: 'coach_session_invites_create_redirect',
@@ -122,8 +132,18 @@ const flows = [
     title: 'Coach hits invite redirect',
     path: '/session-invites/create',
   },
-  { id: 'coach_club_settings', role: 'coach', title: 'Coach opens club settings', path: '/club/settings' },
-  { id: 'coach_club_create', role: 'coach', title: 'Coach opens create club', path: '/club/create' },
+  {
+    id: 'coach_club_settings',
+    role: 'coach',
+    title: 'Coach opens club settings',
+    path: '/club/settings',
+  },
+  {
+    id: 'coach_club_create',
+    role: 'coach',
+    title: 'Coach opens create club',
+    path: '/club/create',
+  },
   {
     id: 'coach_squad_create',
     role: 'coach',
@@ -134,27 +154,27 @@ const flows = [
     id: 'coach_squad_detail',
     role: 'coach',
     title: 'Coach opens squad detail',
-    path: '/club/squad/squad_u15',
+    path: `/club/squad/${apiSeed.squadId}`,
   },
   {
     id: 'coach_add_member_to_squad',
     role: 'coach',
     title: 'Coach opens add-member panel inside squad',
-    path: '/club/squad/squad_u15',
+    path: `/club/squad/${apiSeed.squadId}`,
     actions: [{ type: 'clickButton', name: 'Add', required: true }],
   },
   {
     id: 'coach_squad_invite_screen',
     role: 'coach',
     title: 'Coach opens squad invite screen',
-    path: '/squads/squad_u15/invite',
+    path: `/squads/${apiSeed.squadId}/invite`,
   },
   {
     id: 'coach_manage',
     role: 'coach',
     title: 'Coach opens management hub',
     path: '/manage',
-    expectPath: '/club/club_lions/dashboard',
+    expectPath: '/manage/bookings',
   },
   {
     id: 'coach_manage_bookings',
@@ -167,20 +187,25 @@ const flows = [
     id: 'coach_create_as_club_assigned',
     role: 'coach',
     title: 'Coach opens create flow with club-assignment context',
-    path: '/sessions/create?intent=new&source=club_manage&actingAs=club&clubId=academy_1&assigneeCoachId=coach1',
+    path: `/sessions/create?intent=new&source=club_manage&actingAs=club&clubId=${apiSeed.clubId}&assigneeCoachId=${apiSeed.coachUserId}`,
     expectPath: '/sessions/create',
   },
   {
     id: 'coach_existing_invite_ownership',
     role: 'coach',
-    title: 'Coach existing-invite flow exposes club ownership and assignee controls',
-    path: '/sessions/create?intent=existing&source=club_manage&actingAs=club&clubId=academy_1&assigneeCoachId=coach1',
+    title: 'Coach existing-invite flow exposes ownership summary and session picker',
+    path: `/sessions/create?intent=existing&source=club_manage&actingAs=club&clubId=${apiSeed.clubId}&assigneeCoachId=${apiSeed.coachUserId}`,
     actions: [
-      { type: 'assertTextVisible', text: 'Invite as', required: true },
-      { type: 'assertTextPresent', text: 'Assign coach', required: true },
-      { type: 'assertTextPresent', text: 'Session picker scope', required: true },
-      { type: 'assertTextPresent', text: 'Club-wide', required: true },
+      { type: 'wait', ms: 2500, required: true },
+      { type: 'assertTextVisible', text: 'Add to Session', required: true },
       { type: 'assertTextPresent', text: 'Ownership summary', required: true },
+      { type: 'assertTextPresent', text: 'Session owner:', required: true },
+      {
+        type: 'assertTextPresent',
+        text: 'Session picker: Assigned coach sessions',
+        required: true,
+      },
+      { type: 'assertTextPresent', text: 'Send invites', required: true },
     ],
   },
   {
@@ -202,26 +227,22 @@ const flows = [
     expectPath: '/earnings',
   },
   {
-    id: 'coach_earnings_payment_modal_actions',
+    id: 'coach_earnings_payment_instructions',
     role: 'coach',
-    title: 'Coach can open payment instructions modal save action',
+    title: 'Coach can open direct payment instructions',
     path: '/earnings',
     actions: [
-      {
-        type: 'clickAnyButton',
-        names: ['Show payment instructions', 'Hide payment instructions'],
-        required: false,
-      },
-      { type: 'clickButton', name: 'Edit payment instructions', required: true },
-      { type: 'assertButtonVisible', name: 'Save payment instructions', required: true },
+      { type: 'clickText', text: 'Payment Instructions', required: true },
+      { type: 'assertTextVisible', text: 'Direct Payment Instructions', required: true },
+      { type: 'assertButtonVisible', name: 'Copy direct payment instructions', required: true },
     ],
   },
   {
     id: 'owner_dashboard',
-    role: 'coach',
+    role: 'admin',
     title: 'Owner opens club dashboard',
-    path: '/club/club_lions/dashboard',
-    expectPath: '/club/club_lions/dashboard',
+    path: `/club/${apiSeed.clubId}/dashboard`,
+    expectPath: `/club/${apiSeed.clubId}/dashboard`,
   },
   {
     id: 'owner_head_coach',
@@ -240,15 +261,15 @@ const flows = [
     id: 'coach_raise_concern',
     role: 'coach',
     title: 'Coach opens raise concern form',
-    path: '/roster/user1/raise-concern',
-    expectPath: '/roster/user1/raise-concern',
+    path: `/roster/${apiSeed.athleteId}/raise-concern`,
+    expectPath: `/roster/${apiSeed.athleteId}/raise-concern`,
   },
   {
     id: 'coach_health_review',
     role: 'coach',
     title: 'Coach opens athlete health review',
-    path: '/roster/user1/health',
-    expectPath: '/roster/user1/health',
+    path: `/roster/${apiSeed.athleteId}/health`,
+    expectPath: `/roster/${apiSeed.athleteId}/health`,
   },
   // Parent flows
   { id: 'parent_home', role: 'parent', title: 'Parent opens dashboard', path: '/' },
@@ -277,8 +298,18 @@ const flows = [
     title: 'Parent opens discover sessions',
     path: '/discover-sessions',
   },
-  { id: 'parent_favourites', role: 'parent', title: 'Parent opens favourites', path: '/favourites' },
-  { id: 'parent_book_coach', role: 'parent', title: 'Parent opens find coach', path: '/book-coach' },
+  {
+    id: 'parent_favourites',
+    role: 'parent',
+    title: 'Parent opens favourites',
+    path: '/favourites',
+  },
+  {
+    id: 'parent_book_coach',
+    role: 'parent',
+    title: 'Parent opens find coach',
+    path: '/book-coach',
+  },
   {
     id: 'parent_progress',
     role: 'parent',
@@ -289,52 +320,57 @@ const flows = [
     id: 'parent_child_progress',
     role: 'parent',
     title: 'Parent opens child progress',
-    path: '/development/child-progress/user1',
+    path: `/development/child-progress/${apiSeed.athleteId}`,
   },
-  { id: 'parent_book_flow_start', role: 'parent', title: 'Parent opens book flow home', path: '/book/coach1' },
+  {
+    id: 'parent_book_flow_start',
+    role: 'parent',
+    title: 'Parent opens book flow home',
+    path: `/book/${apiSeed.coachUserId}`,
+  },
   {
     id: 'parent_book_flow_type',
     role: 'parent',
     title: 'Parent opens session-type step',
-    path: '/book/coach1/session-type',
+    path: `/book/${apiSeed.coachUserId}/session-type`,
   },
   {
     id: 'parent_book_flow_schedule',
     role: 'parent',
     title: 'Parent opens schedule step',
-    path: '/book/coach1/schedule',
+    path: `/book/${apiSeed.coachUserId}/schedule`,
   },
   {
     id: 'parent_book_flow_details',
     role: 'parent',
     title: 'Parent opens details step',
-    path: '/book/coach1/details',
+    path: `/book/${apiSeed.coachUserId}/details`,
   },
   {
     id: 'parent_book_flow_review',
     role: 'parent',
     title: 'Parent opens review step',
-    path: '/book/coach1/review',
+    path: `/book/${apiSeed.coachUserId}/review`,
   },
   {
     id: 'parent_book_flow_confirmation',
     role: 'parent',
     title: 'Parent opens confirmation step',
-    path: '/book/coach1/confirmation',
+    path: `/book/${apiSeed.coachUserId}/confirmation`,
   },
   {
     id: 'parent_child_medical',
     role: 'parent',
     title: 'Parent opens child medical profile',
-    path: '/child/user1/medical',
-    expectPath: '/child/user1/medical',
+    path: `/child/${apiSeed.athleteId}/medical`,
+    expectPath: `/child/${apiSeed.athleteId}/medical`,
   },
   {
     id: 'parent_child_emergency',
     role: 'parent',
     title: 'Parent opens child emergency profile',
-    path: '/child/user1/emergency',
-    expectPath: '/child/user1/emergency',
+    path: `/child/${apiSeed.athleteId}/emergency`,
+    expectPath: `/child/${apiSeed.athleteId}/emergency`,
   },
 
   // Athlete flows
@@ -350,10 +386,10 @@ const flows = [
     path: '/development/my-progress',
   },
   {
-    id: 'athlete_analytics',
+    id: 'athlete_development_detail',
     role: 'athlete',
-    title: 'Athlete opens analytics view',
-    path: '/analytics/user1',
+    title: 'Athlete opens development detail',
+    path: `/development/athlete/${apiSeed.athleteId}`,
   },
   {
     id: 'athlete_discover_sessions',
@@ -361,9 +397,24 @@ const flows = [
     title: 'Athlete opens discover sessions',
     path: '/discover-sessions',
   },
-  { id: 'athlete_favourites', role: 'athlete', title: 'Athlete opens favourites', path: '/favourites' },
-  { id: 'athlete_find_coach', role: 'athlete', title: 'Athlete opens find coach', path: '/book-coach' },
-  { id: 'athlete_health', role: 'athlete', title: 'Athlete opens health dashboard', path: '/health' },
+  {
+    id: 'athlete_favourites',
+    role: 'athlete',
+    title: 'Athlete opens favourites',
+    path: '/favourites',
+  },
+  {
+    id: 'athlete_find_coach',
+    role: 'athlete',
+    title: 'Athlete opens find coach',
+    path: '/book-coach',
+  },
+  {
+    id: 'athlete_health',
+    role: 'athlete',
+    title: 'Athlete opens health dashboard',
+    path: '/health',
+  },
   {
     id: 'athlete_health_injuries',
     role: 'athlete',
@@ -371,7 +422,12 @@ const flows = [
     path: '/health/injuries',
     expectPath: '/health/injuries',
   },
-  { id: 'athlete_chat_list', role: 'athlete', title: 'Athlete opens chat list', path: '/chat/index' },
+  {
+    id: 'athlete_chat_list',
+    role: 'athlete',
+    title: 'Athlete opens chat list',
+    path: '/chat/index',
+  },
 ];
 
 const flowProfiles = {
@@ -858,7 +914,10 @@ async function writePartialReport(allResults, options) {
     chunkIndex: options.chunkIndex,
     retries: options.retries,
   });
-  await fs.writeFile(path.join(options.outDir, 'report.partial.json'), JSON.stringify(partial, null, 2));
+  await fs.writeFile(
+    path.join(options.outDir, 'report.partial.json'),
+    JSON.stringify(partial, null, 2),
+  );
 }
 
 async function login(page, role) {
@@ -875,29 +934,17 @@ async function login(page, role) {
 
   await usernameInput.fill(username);
   await passwordInput.fill(password);
+  await page.waitForTimeout(250);
 
-  const loginButtonByRole = page.getByRole('button', { name: 'Log in', exact: true }).first();
-  const loginButtonByText = page.getByText('Log in', { exact: true }).first();
-  if (await loginButtonByRole.isVisible().catch(() => false)) {
-    await loginButtonByRole.click();
-  } else if (await loginButtonByText.isVisible().catch(() => false)) {
-    await loginButtonByText.click();
-  } else {
-    await passwordInput.press('Enter');
-  }
+  await passwordInput.press('Enter');
 
   await page.waitForFunction(
     () => {
       try {
-        const localKeys = [
-          'auth_user',
-          '@auth_user',
-          '@clubroom:auth_user',
-          '@react-native-async-storage/auth_user',
-        ];
-        const hasAuthKey = localKeys.some((key) => Boolean(window.localStorage.getItem(key)));
-        const loginFieldPresent = Boolean(document.querySelector('input[placeholder="e.g. coach"]'));
-        return hasAuthKey || !loginFieldPresent;
+        const loginFieldPresent = Array.from(document.querySelectorAll('input')).some((input) =>
+          input.getAttribute('placeholder')?.toLowerCase().includes('coach'),
+        );
+        return !loginFieldPresent;
       } catch {
         return false;
       }
@@ -906,6 +953,26 @@ async function login(page, role) {
     { timeout: 45000 },
   );
   await page.waitForTimeout(1200);
+}
+
+async function isLoginFormVisible(page) {
+  return page
+    .getByPlaceholder('e.g. coach')
+    .isVisible()
+    .catch(() => false);
+}
+
+async function waitForLoginFormHidden(page, timeoutMs = authSettleTimeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    if (!(await isLoginFormVisible(page))) {
+      return true;
+    }
+    await page.waitForTimeout(Math.min(authPollMs, Math.max(0, deadline - Date.now())));
+  }
+
+  return !(await isLoginFormVisible(page));
 }
 
 async function verifyBaseUrlReachable() {
@@ -978,11 +1045,7 @@ async function runAccessPreflight(browser, options) {
       });
       await page.waitForTimeout(options.pauseMs);
 
-      const loginVisible = await page
-        .getByPlaceholder('e.g. coach')
-        .isVisible()
-        .catch(() => false);
-      if (loginVisible) {
+      if (!(await waitForLoginFormHidden(page))) {
         throw new Error(`login_form_visible_after_navigation:${proofPath}`);
       }
 
@@ -1078,7 +1141,10 @@ async function runAction(page, action, actionErrors) {
     }
 
     if (action.type === 'assertTextPresent') {
-      const count = await page.getByText(action.text).count().catch(() => 0);
+      const count = await page
+        .getByText(action.text)
+        .count()
+        .catch(() => 0);
       if (count < 1) {
         throw new Error(`Text not present: ${action.text}`);
       }
@@ -1111,10 +1177,48 @@ async function collectMetrics(page) {
     // Native web hydration safety: nested button controls are invalid.
     const nestedButtons = document.querySelectorAll('button button').length;
 
+    const visibleText = (body?.innerText || '').replace(/\s+/g, ' ').trim();
+    const copyScanText = visibleText.replace(
+      /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+(?:\s+[A-Z0-9.-]+)*\.[A-Z]{2,}\b/gi,
+      '[email]',
+    );
+    const productTextIssues = [];
+    if (/\b(?:usr|ath|clb|sqd)_[0-9a-f][0-9a-f-]{6,}\b/i.test(visibleText)) {
+      productTextIssues.push('copy:raw_internal_identifier_visible');
+    }
+    if (/\b(?:one_to_one|small_group|group_session)\b/i.test(visibleText)) {
+      productTextIssues.push('copy:raw_service_type_visible');
+    }
+    if (/\b[A-Z]{2,}(?:_[A-Z0-9]{2,})+\b/.test(visibleText)) {
+      productTextIssues.push('copy:raw_enum_label_visible');
+    }
+    if (/\bCoach unavailable\b/i.test(visibleText)) {
+      productTextIssues.push('state:coach_unavailable_visible');
+    }
+    if (
+      /\b(?:seeded|mock|sample|synthetic|fake)\b/i.test(copyScanText) ||
+      /\bdemo\s+(?:account|copy|data|mode|notification|walkthrough)\b/i.test(copyScanText)
+    ) {
+      productTextIssues.push('copy:demo_or_mock_copy_visible');
+    }
+    if (/\bcoming soon\b/i.test(visibleText)) {
+      productTextIssues.push('copy:coming_soon_visible');
+    }
+    if (/\bdev only\b/i.test(visibleText)) {
+      productTextIssues.push('copy:dev_only_visible');
+    }
+    if (
+      /\bUnmatched Route\b/i.test(visibleText) ||
+      /\bPage could not be found\b/i.test(visibleText)
+    ) {
+      productTextIssues.push('route:unmatched_route_visible');
+    }
+
     return {
       viewportWidth,
       horizontalOverflow: Math.round(horizontalOverflow),
       nestedButtons,
+      productTextIssues,
     };
   });
 }
@@ -1133,6 +1237,14 @@ function classify(flowErrors, actionErrors, metrics) {
     if (severity !== 'high') severity = 'medium';
   }
 
+  if (issues.some((issue) => issue.startsWith('auth:login_form_visible_after_navigation'))) {
+    severity = 'high';
+  }
+
+  if (issues.some((issue) => issue === 'route:unmatched_route_visible')) {
+    severity = 'high';
+  }
+
   if (metrics.nestedButtons > 0) {
     issues.push(`ui:nested_buttons:${metrics.nestedButtons}`);
     if (severity !== 'high') severity = 'medium';
@@ -1143,7 +1255,59 @@ function classify(flowErrors, actionErrors, metrics) {
     if (severity !== 'high') severity = 'medium';
   }
 
+  if (metrics.productTextIssues?.length > 0) {
+    issues.push(...metrics.productTextIssues);
+    if (severity !== 'high') severity = 'medium';
+  }
+
   return { severity, issues };
+}
+
+function describeFailedRequest(request) {
+  const failureText = request.failure()?.errorText || 'request_failed';
+  if (failureText === 'net::ERR_ABORTED') {
+    return null;
+  }
+  let target = request.url();
+
+  try {
+    const parsed = new URL(target);
+    const base = new URL(baseUrl);
+    target =
+      parsed.origin === base.origin
+        ? `${parsed.pathname}${parsed.search ? '?…' : ''}`
+        : `${parsed.protocol}//${parsed.host}${parsed.pathname}${parsed.search ? '?…' : ''}`;
+  } catch {
+    target = target.split('?')[0] ?? target;
+  }
+
+  const preview = target.length > 180 ? `${target.slice(0, 177)}…` : target;
+  return `requestfailed:${request.method()}:${preview}:${failureText}`;
+}
+
+function formatNetworkTarget(rawUrl) {
+  let target = rawUrl;
+  try {
+    const parsed = new URL(target);
+    const base = new URL(baseUrl);
+    target =
+      parsed.origin === base.origin
+        ? `${parsed.pathname}${parsed.search ? '?…' : ''}`
+        : `${parsed.protocol}//${parsed.host}${parsed.pathname}${parsed.search ? '?…' : ''}`;
+  } catch {
+    target = target.split('?')[0] ?? target;
+  }
+  return target.length > 180 ? `${target.slice(0, 177)}…` : target;
+}
+
+function describeHttpProblem(response) {
+  const status = response.status();
+  if (status < 400) {
+    return null;
+  }
+  const request = response.request();
+  const url = formatNetworkTarget(response.url());
+  return `response:${status}:${request.method()}:${url}`;
 }
 
 async function runFlowWithRetry(page, flow, options, currentFlowErrors) {
@@ -1166,13 +1330,17 @@ async function runFlowWithRetry(page, flow, options, currentFlowErrors) {
         await runAction(page, action, actionErrors);
       }
 
+      await page.waitForLoadState('networkidle', { timeout: 2500 }).catch(() => {});
+
       if (flow.expectPath) {
         const currentPath = await page.evaluate(() => window.location.pathname);
         if (!currentPath.startsWith(flow.expectPath)) {
-          currentFlowErrors.push(
-            `assert:path_expected:${flow.expectPath}:actual:${currentPath}`,
-          );
+          currentFlowErrors.push(`assert:path_expected:${flow.expectPath}:actual:${currentPath}`);
         }
+      }
+
+      if (!(await waitForLoginFormHidden(page))) {
+        currentFlowErrors.push(`auth:login_form_visible_after_navigation:${flow.path}`);
       }
 
       const metrics = await collectMetrics(page);
@@ -1359,6 +1527,18 @@ async function main() {
         page.on('console', (msg) => {
           if (msg.type() === 'error') currentFlowErrors.push(`console:${msg.text()}`);
         });
+        page.on('requestfailed', (request) => {
+          const failedRequest = describeFailedRequest(request);
+          if (failedRequest) {
+            currentFlowErrors.push(failedRequest);
+          }
+        });
+        page.on('response', (response) => {
+          const httpProblem = describeHttpProblem(response);
+          if (httpProblem) {
+            currentFlowErrors.push(httpProblem);
+          }
+        });
         page.on('pageerror', (err) => currentFlowErrors.push(`pageerror:${err.message}`));
 
         let loginError = null;
@@ -1454,7 +1634,12 @@ async function main() {
         retries: options.retries,
         pauseMs: options.pauseMs,
       });
-      await writeReportFiles(roleReport, options.outDir, `report.${role}`, `UI Flow Check Report (${role})`);
+      await writeReportFiles(
+        roleReport,
+        options.outDir,
+        `report.${role}`,
+        `UI Flow Check Report (${role})`,
+      );
 
       roleSummaries.push({
         role,

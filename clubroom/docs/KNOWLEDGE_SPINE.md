@@ -1,6 +1,6 @@
 # Knowledge Spine
 
-Validated: 2026-03-11
+Validated: 2026-07-03
 Purpose: give humans and agents a short read path into the real repo.
 
 ## Use This After `docs/START_HERE.md`
@@ -13,7 +13,6 @@ Purpose: give humans and agents a short read path into the real repo.
 
 Runtime mode and mock versus API behavior:
 - `docs/architecture/runtime-modes.md`
-- `docs/backend-api/PRE_API_LIVE_MODE_PLAYBOOK.md`
 
 Canonical service ownership and entrypoints:
 - `docs/architecture/service-ownership-map.md`
@@ -36,11 +35,8 @@ API design and current route inventory:
 - `docs/backend-api/README.md`
 - `docs/backend-api/ROUTE_INVENTORY_V1.md`
 
-Org and commercial-model analysis:
-- `docs/product-reality/README.md`
-
-Active implementation queue:
-- `docs/newsprints/README.md`
+Broad PM/project status:
+- `docs/APP_REPORT.md`
 
 AI development pipeline and task packets:
 - `docs/AI_DEVELOPMENT_PIPELINE.md`
@@ -49,6 +45,7 @@ AI development pipeline and task packets:
 ## Deep Sources To Trust
 
 - Product truth: `docs/SOURCE_OF_TRUTH.md`
+- Broad app report: `docs/APP_REPORT.md`
 - Club governance source: `contracts/club-governance.ts`
 - Shared club contracts and policy: `packages/shared-contracts/src/club/contracts.ts`, `packages/shared-contracts/src/club/policy.ts`
 - Backend architecture: `docs/backend-api/ARCHITECTURE_BLUEPRINT.md`

@@ -3,12 +3,15 @@ import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
+import { api } from '@/constants/config';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import { matchService } from '@/services/match-service';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import type { Match } from '@/constants/types';
 
 const logger = createLogger('MatchesScreen');
+const MOCK_CLUB_ID = 'club_1';
 
 export type MatchFilter = 'upcoming' | 'past' | 'all';
 
@@ -47,7 +50,16 @@ export function useMatchesScreen() {
 
   const loadMatches = async () => {
     try {
-      const clubId = 'club_1';
+      const clubIdResult = await resolveMatchesClubId();
+      if (!clubIdResult.success) {
+        return err(clubIdResult.error);
+      }
+
+      const clubId = clubIdResult.data;
+      if (!clubId) {
+        return ok<MatchesData>({ matches: [] });
+      }
+
       let data: Match[];
 
       if (filter === 'upcoming') {
@@ -137,4 +149,18 @@ export function useMatchesScreen() {
     groupedMatches,
     handleCreateMatch,
   } satisfies UseMatchesScreenResult;
+}
+
+async function resolveMatchesClubId() {
+  if (api.useMock) {
+    return ok(MOCK_CLUB_ID);
+  }
+
+  const clubsResult = await clubAuthorityService.listClubs();
+  if (!clubsResult.success) {
+    logger.error('Failed to resolve clubs for matches:', clubsResult.error);
+    return err(clubsResult.error);
+  }
+
+  return ok(clubsResult.data.clubs[0]?.id ?? '');
 }

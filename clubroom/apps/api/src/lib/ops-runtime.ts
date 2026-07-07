@@ -138,6 +138,38 @@ export function getStartupConfigIssues(currentEnv: AppEnv = env): OpsIssue[] {
     );
   }
 
+  const hasPasswordResetWebhook = hasRequiredValue(currentEnv.API_PASSWORD_RESET_EMAIL_WEBHOOK_URL);
+  const hasPasswordResetBrevoApi =
+    hasRequiredValue(currentEnv.API_PASSWORD_RESET_BREVO_API_KEY) &&
+    hasRequiredValue(currentEnv.API_PASSWORD_RESET_EMAIL_FROM);
+  const hasPasswordResetSmtp =
+    hasRequiredValue(currentEnv.API_PASSWORD_RESET_SMTP_HOST) &&
+    hasRequiredValue(currentEnv.API_PASSWORD_RESET_SMTP_USERNAME) &&
+    hasRequiredValue(currentEnv.API_PASSWORD_RESET_SMTP_PASSWORD) &&
+    hasRequiredValue(currentEnv.API_PASSWORD_RESET_EMAIL_FROM);
+
+  if (!hasPasswordResetWebhook && !hasPasswordResetBrevoApi && !hasPasswordResetSmtp) {
+    pushIssue(
+      issues,
+      'config',
+      'down',
+      'PASSWORD_RESET_EMAIL_DELIVERY_MISSING',
+      'Password reset email delivery is not configured for production.',
+      'Set API_PASSWORD_RESET_EMAIL_WEBHOOK_URL, API_PASSWORD_RESET_BREVO_API_KEY with API_PASSWORD_RESET_EMAIL_FROM, or complete API_PASSWORD_RESET_SMTP_* settings before release.',
+    );
+  }
+
+  if (currentEnv.API_PASSWORD_RESET_DEV_OUTBOX) {
+    pushIssue(
+      issues,
+      'config',
+      'down',
+      'PASSWORD_RESET_DEV_OUTBOX_ENABLED',
+      'Password reset dev outbox cannot be enabled in production.',
+      'Disable API_PASSWORD_RESET_DEV_OUTBOX and use a production email delivery provider.',
+    );
+  }
+
   if (currentEnv.API_PAYMENT_PROVIDER === 'stripe') {
     pushIssue(
       issues,

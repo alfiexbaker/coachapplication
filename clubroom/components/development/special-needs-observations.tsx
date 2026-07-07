@@ -28,11 +28,7 @@ export const SpecialNeedsObservations = function SpecialNeedsObservations({
     <View style={styles.section}>
       <Row align="center" justify="space-between">
         <ThemedText type="heading">My Observations</ThemedText>
-        <Clickable
-          onPress={onAdd}
-          accessibilityLabel="Add observation"
-          hitSlop={8}
-        >
+        <Clickable onPress={onAdd} accessibilityLabel="Add observation" hitSlop={8}>
           <Row gap="xs" align="center">
             <Ionicons name="add" size={18} color={colors.tint} />
             <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>Add</ThemedText>
@@ -57,12 +53,7 @@ export const SpecialNeedsObservations = function SpecialNeedsObservations({
         </SurfaceCard>
       ) : (
         observations.map((obs) => (
-          <ObservationCard
-            key={obs.id}
-            observation={obs}
-            onEdit={onEdit}
-            onDelete={onDelete}
-          />
+          <ObservationCard key={obs.id} observation={obs} onEdit={onEdit} onDelete={onDelete} />
         ))
       )}
     </View>
@@ -94,9 +85,7 @@ const ObservationCard = function ObservationCard({
         <ThemedText style={[Typography.caption, { color: colors.muted }]}>
           {observation.category.charAt(0) + observation.category.slice(1).toLowerCase()}
         </ThemedText>
-        <ThemedText style={[Typography.caption, { color: colors.muted }]}>
-          {dateLabel}
-        </ThemedText>
+        <ThemedText style={[Typography.caption, { color: colors.muted }]}>{dateLabel}</ThemedText>
       </Row>
 
       <ThemedText style={Typography.small}>{observation.text}</ThemedText>
@@ -113,19 +102,11 @@ const ObservationCard = function ObservationCard({
           <View />
         )}
         <Row gap="sm" align="center">
-          <Clickable
-            onPress={handleEdit}
-            accessibilityLabel="Edit observation"
-            hitSlop={8}
-          >
+          <Clickable onPress={handleEdit} accessibilityLabel="Edit observation" hitSlop={8}>
             <ThemedText style={[Typography.caption, { color: colors.tint }]}>Edit</ThemedText>
           </Clickable>
-          <Clickable
-            onPress={handleDelete}
-            accessibilityLabel="Delete observation"
-            hitSlop={8}
-          >
-            <ThemedText style={[Typography.caption, { color: colors.muted }]}>Delete</ThemedText>
+          <Clickable onPress={handleDelete} accessibilityLabel="Remove observation" hitSlop={8}>
+            <ThemedText style={[Typography.caption, { color: colors.muted }]}>Remove</ThemedText>
           </Clickable>
         </Row>
       </Row>

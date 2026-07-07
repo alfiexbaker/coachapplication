@@ -28,6 +28,8 @@ import {
   deriveApiActingRole,
   resolveSignedInApiUser,
 } from "@/services/api-auth-context";
+import { canUseClubCapability } from "@/contracts/club-governance";
+import { canCreateClubPost } from "@/utils/club-ui-permissions";
 type CreateClubPostInput = {
   clubId: string;
   clubName?: string;
@@ -456,8 +458,27 @@ const SEED_FEED_POSTS: ClubFeedPost[] = [
     commentCount: 1,
   },
 ];
+function hasDefaultMembershipGrant(role: ClubMembership["role"]): boolean {
+  return role === "COACH";
+}
+function withMembershipCapabilities(membership: ClubMembership): ClubMembership {
+  const hasGrant = hasDefaultMembershipGrant(membership.role);
+  return {
+    ...membership,
+    canPostAsClub:
+      membership.canPostAsClub ??
+      canUseClubCapability(membership.role, "post_as_org", { hasGrant }),
+    canCreateSessions:
+      membership.canCreateSessions ??
+      canUseClubCapability(membership.role, "create_org_sessions", {
+        hasGrant,
+      }),
+  };
+}
 let clubsStore: Club[] = [...SEED_CLUBS];
-let membershipsStore: ClubMembership[] = [...SEED_MEMBERSHIPS];
+let membershipsStore: ClubMembership[] = SEED_MEMBERSHIPS.map(
+  withMembershipCapabilities,
+);
 let clubFeedStore: ClubFeedPost[] = [...SEED_FEED_POSTS];
 let clubInvitesStore: ClubInvite[] = SEED_CLUBS.map((club) => ({
   code: club.inviteCode,
@@ -468,12 +489,6 @@ let clubInvitesStore: ClubInvite[] = SEED_CLUBS.map((club) => ({
   remainingUses: 999,
 }));
 const userReactions: Map<string, Set<string>> = new Map();
-const CLUB_POSTING_ROLES: ClubMembership["role"][] = [
-  "OWNER",
-  "ADMIN",
-  "HEAD_COACH",
-  "COACH",
-];
 const USE_MOCK = api.useMock;
 async function resolveFeedApiContext(
   message: string,
@@ -666,11 +681,7 @@ function getUserClubsInternal(userId: string): Club[] {
 function canPostAsClubMembership(
   membership: ClubMembership | undefined,
 ): boolean {
-  if (!membership) return false;
-  return (
-    membership.canPostAsClub === true ||
-    CLUB_POSTING_ROLES.includes(membership.role)
-  );
+  return canCreateClubPost(membership);
 }
 function sortClubPosts(posts: ClubFeedPost[]): ClubFeedPost[] {
   return Array.from(posts).toSorted((a, b) => {
@@ -858,14 +869,6 @@ function getCombinedFeedForParentInternal(
   return sortByDateDesc([...clubPosts, ...personalPosts]);
 }
 
-// Mock club member list (in production, this would come from the database)
-const MOCK_CLUB_MEMBERS: Record<string, string[]> = {
-  club_lions: ["user4", "user5", "user1"],
-  club_eagles: ["user4"],
-  club_warriors: ["user4", "user5"],
-  club_phoenix: ["user5"],
-  club_united: ["user4"],
-};
 class ClubFeedService {
   private logger = createLogger("ClubFeedService");
   private async ensureHydrated(): Promise<void> {
@@ -1027,22 +1030,18 @@ class ClubFeedService {
     postId: string,
     authorId: string,
   ): Promise<void> {
-    const legacyMembers = MOCK_CLUB_MEMBERS[clubId] || [];
     const activeMembershipRecipients = membershipsStore.flatMap((membership) =>
       membership.clubId === clubId && membership.status === "active"
         ? [membership.userId]
         : [],
     );
-    const recipientCandidates = Array.from(
-      new Set([...legacyMembers, ...activeMembershipRecipients]),
-    );
+    const recipientCandidates = Array.from(new Set(activeMembershipRecipients));
     const recipients = recipientCandidates.filter((memberId) => {
       if (memberId === authorId) return false;
       const membership = membershipsStore.find(
         (entry) => entry.clubId === clubId && entry.userId === memberId,
       );
-      // If we have membership data, require active membership. If not, allow legacy seed recipients.
-      return membership ? membership.status === "active" : true;
+      return membership?.status === "active";
     });
     const excludedInactive = recipientCandidates.filter((memberId) => {
       const membership = membershipsStore.find(
@@ -1249,7 +1248,7 @@ class ClubFeedService {
         membershipsStore = membershipsStore.filter(
           (membership) => membership.clubId !== club.id,
         );
-        membershipsStore.push(...club.memberships);
+        membershipsStore.push(...club.memberships.map(withMembershipCapabilities));
       }
       if (club.inviteCode) {
         const fallbackInvite: ClubInvite = {
@@ -1300,9 +1299,9 @@ class ClubFeedService {
         candidate.userId === membership.userId,
     );
     if (membershipIndex >= 0) {
-      membershipsStore[membershipIndex] = membership;
+      membershipsStore[membershipIndex] = withMembershipCapabilities(membership);
     } else {
-      membershipsStore.push(membership);
+      membershipsStore.push(withMembershipCapabilities(membership));
     }
     if (inviteCodes.length > 0) {
       clubInvitesStore = [
@@ -1338,6 +1337,18 @@ class ClubFeedService {
     }
     await Promise.all([this.persistClubs(), this.persistInviteCodes()]);
   }
+  async syncDeletedClub(clubId: string): Promise<void> {
+    await this.ensureHydrated();
+    clubsStore = clubsStore.filter((club) => club.id !== clubId);
+    membershipsStore = membershipsStore.filter((membership) => membership.clubId !== clubId);
+    clubInvitesStore = clubInvitesStore.filter((invite) => invite.clubId !== clubId);
+    clubFeedStore = clubFeedStore.filter((post) => post.clubId !== clubId);
+    await Promise.all([
+      this.persistClubs(),
+      this.persistMemberships(),
+      this.persistInviteCodes(),
+    ]);
+  }
   joinClub(
     userId: string,
     inviteCode: string,
@@ -1362,15 +1373,14 @@ class ClubFeedService {
     if (existingMembership) {
       return ok(existingMembership);
     }
-    const newMembership: ClubMembership = {
+    const newMembership = withMembershipCapabilities({
       clubId: targetClub.id,
       userId,
       role,
       status: "active",
       joinSource: "invite",
       inviteCode: targetClub.inviteCode,
-      canPostAsClub: CLUB_POSTING_ROLES.includes(role),
-    };
+    });
     membershipsStore.push(newMembership);
     void this.persistMemberships();
     emitTyped(ServiceEvents.CLUB_MEMBER_JOINED, {
@@ -1482,15 +1492,14 @@ class ClubFeedService {
       inviteCode: primaryInvite.code,
       commercialMode: input.commercialMode ?? "COACH_OWNED",
     };
-    const membership: ClubMembership = {
+    const membership = withMembershipCapabilities({
       clubId,
       userId: input.ownerId,
       role: "OWNER",
       status: "active",
       joinSource: "created",
       inviteCode: primaryInvite.code,
-      canPostAsClub: true,
-    };
+    });
     const invites: ClubInvite[] = [primaryInvite];
     if (input.firstStaffRole) {
       invites.push({

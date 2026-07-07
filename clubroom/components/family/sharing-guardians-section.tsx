@@ -35,11 +35,11 @@ export const SharingGuardiansSection = function SharingGuardiansSection({
           <Row gap="sm" align="center">
             <View style={[styles.avatar, { backgroundColor: withAlpha(colors.tint, 0.09) }]}>
               <ThemedText style={[Typography.heading, { color: colors.tint }]}>
-                {(guardian.userId || 'U').charAt(0)}
+                {getGuardianInitial(guardian)}
               </ThemedText>
             </View>
             <Column flex>
-              <ThemedText type="defaultSemiBold">{guardian.userId}</ThemedText>
+              <ThemedText type="defaultSemiBold">{getGuardianLabel(guardian)}</ThemedText>
               <ThemedText
                 style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}
               >
@@ -58,7 +58,7 @@ export const SharingGuardiansSection = function SharingGuardiansSection({
               <Clickable
                 style={{ padding: Spacing.xxs }}
                 onPress={() => onRemove(guardian)}
-                accessibilityLabel={`Remove ${guardian.userId}`}
+                accessibilityLabel={`Remove ${getGuardianLabel(guardian)}`}
                 accessibilityRole="button"
               >
                 <Ionicons name="close-circle" size={22} color={colors.error} />
@@ -85,6 +85,17 @@ export const SharingGuardiansSection = function SharingGuardiansSection({
     </SurfaceCard>
   );
 };
+
+function getGuardianLabel(guardian: FamilyGuardian): string {
+  const email = guardian.email.trim();
+  if (email) return email;
+  if (guardian.isPrimary) return 'Primary guardian';
+  return guardian.relationship.trim() || ROLE_INFO[guardian.role].label;
+}
+
+function getGuardianInitial(guardian: FamilyGuardian): string {
+  return getGuardianLabel(guardian).charAt(0).toUpperCase();
+}
 
 const styles = StyleSheet.create({
   section: { padding: Spacing.md, gap: Spacing.md },

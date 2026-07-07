@@ -5,12 +5,13 @@
  * and automatic status detection based on session timing.
  *
  * API Integration Notes:
- * - Status transitions are persisted via apiClient
- * - Notifications are triggered on status changes
+ * - Status transitions are persisted through the booking CRUD authority
+ * - Local notification side effects are mock-only; API mode relies on backend rows
  */
 
 import { Booking } from '@/constants/app-types';
 import { notificationService } from '../notification-service';
+import { apiClient } from '../api-client';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
@@ -40,25 +41,26 @@ export const bookingStatusService = {
     try {
       const result = await bookingCrudService.updateBooking(bookingId, { status: 'CONFIRMED' });
       if (!result.success) {
-        return { success: false, error: 'Booking not found' };
+        return { success: false, error: result.error.message };
       }
 
-      // Create confirmation notification
       const booking = result.data;
       const athleteName = await resolveAthleteName(booking);
-      await notificationService.create({
-        id: `notif-confirmed-${Date.now()}`,
-        type: 'booking',
-        notificationType: 'BOOKING_CONFIRMED',
-        title: 'Booking Confirmed',
-        body: `Coach ${booking.coachName} has confirmed your session for ${athleteName}.`,
-        timeLabel: 'Just now',
-        read: false,
-        recipientId: booking.bookedById,
-        recipientRole: 'parent',
-        deepLink: `/bookings/${bookingId}`,
-        data: { bookingId },
-      });
+      if (apiClient.isMockMode) {
+        await notificationService.create({
+          id: `notif-confirmed-${Date.now()}`,
+          type: 'booking',
+          notificationType: 'BOOKING_CONFIRMED',
+          title: 'Booking Confirmed',
+          body: `Coach ${booking.coachName} has confirmed your session for ${athleteName}.`,
+          timeLabel: 'Just now',
+          read: false,
+          recipientId: booking.bookedById,
+          recipientRole: 'parent',
+          deepLink: `/bookings/${bookingId}`,
+          data: { bookingId },
+        });
+      }
 
       // Emit typed event for cross-service reactions
       emitTyped(ServiceEvents.BOOKING_CONFIRMED, {
@@ -99,6 +101,11 @@ export const bookingStatusService = {
    * This method checks for sessions happening in the next hour and sends reminders
    */
   async scheduleSessionReminders(): Promise<void> {
+    if (!apiClient.isMockMode) {
+      logger.info('Skipped local session reminders in API mode');
+      return;
+    }
+
     const bookings = await bookingCrudService.list();
     const now = new Date();
     const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
@@ -111,9 +118,9 @@ export const bookingStatusService = {
 
     await Promise.all(
       upcomingSessions.map(async (session) => {
-      const athleteName = await resolveAthleteName(session);
+        const athleteName = await resolveAthleteName(session);
 
-      // Notify coach if we have a valid coachId
+        // Notify coach if we have a valid coachId
         await Promise.all([
           session.coachId
             ? notificationService.notifyCoachSessionReminder({

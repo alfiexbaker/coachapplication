@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { View, StyleSheet, RefreshControl, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -132,7 +133,10 @@ export default function FavouritesScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: palette.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
       <Row align="center" justify="space-between" style={styles.header}>
         <Row align="center" gap="md" style={styles.headerLeft}>
           <Clickable onPress={() => router.back()} hitSlop={8}>
@@ -241,7 +245,7 @@ export default function FavouritesScreen() {
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

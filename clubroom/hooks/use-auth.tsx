@@ -909,8 +909,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         void Promise.all([
           apiClient.set(STORAGE_KEYS.AUTH_USER, sessionUser),
-          apiClient.set(STORAGE_KEYS.AUTH_TOKENS, sessionTokens),
-          apiClient.set(STORAGE_KEYS.AUTH_TOKEN, sessionTokens.accessToken),
+          authService.storeTokens(sessionTokens),
         ]).catch((persistError) => {
           logger.error('Failed to persist demo auth session', persistError);
         });
@@ -1097,10 +1096,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      await apiClient.remove('session_bookings');
-      logger.info('Session data cleared');
+      await apiClient.removeLocal('session_bookings');
+      logger.info('Legacy local session data cleared');
     } catch (error) {
-      logger.error('Failed to clear session data', error);
+      logger.error('Failed to clear legacy local session data', error);
     }
 
     // Reset navigation back to the login screen

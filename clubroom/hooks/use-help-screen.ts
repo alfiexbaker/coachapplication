@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
 import { buildMailtoUrl, openExternalUrl } from '@/utils/external-url';
+import { formatSupportRef } from '@/utils/support-ref';
 
 const logger = createLogger('useHelpScreen');
 const SUPPORT_EMAIL = 'support@clubroom.app';
@@ -57,7 +58,7 @@ export function useHelpScreen() {
     const body = [
       'Describe the issue you need help with.',
       '',
-      `Account: ${currentUser?.id ?? 'unknown'}`,
+      `Support ref: ${formatSupportRef(currentUser?.id)}`,
     ].join('\n');
     void openExternalUrl(
       buildMailtoUrl(SUPPORT_EMAIL, {
@@ -90,7 +91,7 @@ export function useHelpScreen() {
         await openExternalUrl(
           buildMailtoUrl(FEEDBACK_EMAIL, {
             subject: 'Clubroom feature request',
-            body: `Account: ${currentUser?.id ?? 'unknown'}\n\nWhat would you like Clubroom to do?`,
+            body: `Support ref: ${formatSupportRef(currentUser?.id)}\n\nWhat would you like Clubroom to do?`,
           }),
           'Could not open your email app right now.',
         );
@@ -100,7 +101,7 @@ export function useHelpScreen() {
         await openExternalUrl(
           buildMailtoUrl(FEEDBACK_EMAIL, {
             subject: 'Clubroom feedback',
-            body: `Account: ${currentUser?.id ?? 'unknown'}\n\nTell us what is working and what is not.`,
+            body: `Support ref: ${formatSupportRef(currentUser?.id)}\n\nTell us what is working and what is not.`,
           }),
           'Could not open your email app right now.',
         );

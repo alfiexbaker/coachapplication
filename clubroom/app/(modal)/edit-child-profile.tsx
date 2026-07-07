@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
 
 import { PageHeader } from '@/components/primitives/page-header';
@@ -53,8 +54,10 @@ export default function EditChildProfileModal() {
       accessibilityRole="none"
       style={[styles.container, { backgroundColor: palette.background }]}
     >
-      <PageHeader title="Edit Child Profile" showBack centerTitle />
-      {content}
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <PageHeader title="Edit Child Profile" showBack centerTitle />
+        {content}
+      </SafeAreaView>
     </View>
   );
 
@@ -82,199 +85,201 @@ export default function EditChildProfileModal() {
       accessibilityRole="none"
       style={[styles.container, { backgroundColor: palette.background }]}
     >
-      <PageHeader title={`Edit ${c.child.firstName}`} showBack centerTitle />
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <PageHeader title={`Edit ${c.child.firstName}`} showBack centerTitle />
 
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-      >
-        <SurfaceCard style={styles.section}>
-          <ThemedText type="defaultSemiBold">Basic Information</ThemedText>
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
+          <SurfaceCard style={styles.section}>
+            <ThemedText type="defaultSemiBold">Basic Information</ThemedText>
 
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>First Name</ThemedText>
-            <TextInput
-              style={inputStyle}
-              value={c.firstName}
-              onChangeText={c.setFirstName}
-              maxLength={50}
-            />
-          </View>
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>Last Name</ThemedText>
-            <TextInput
-              style={inputStyle}
-              value={c.lastName}
-              onChangeText={c.setLastName}
-              maxLength={50}
-            />
-          </View>
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>Nickname</ThemedText>
-            <TextInput
-              style={inputStyle}
-              value={c.nickname}
-              onChangeText={c.setNickname}
-              placeholder="Optional"
-              placeholderTextColor={palette.muted}
-              maxLength={50}
-            />
-          </View>
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>Date of Birth</ThemedText>
-            <TextInput
-              style={inputStyle}
-              value={c.dateOfBirth}
-              onChangeText={c.setDateOfBirth}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={palette.muted}
-              maxLength={100}
-            />
-          </View>
+            <View style={styles.field}>
+              <ThemedText style={styles.label}>First Name</ThemedText>
+              <TextInput
+                style={inputStyle}
+                value={c.firstName}
+                onChangeText={c.setFirstName}
+                maxLength={50}
+              />
+            </View>
+            <View style={styles.field}>
+              <ThemedText style={styles.label}>Last Name</ThemedText>
+              <TextInput
+                style={inputStyle}
+                value={c.lastName}
+                onChangeText={c.setLastName}
+                maxLength={50}
+              />
+            </View>
+            <View style={styles.field}>
+              <ThemedText style={styles.label}>Nickname</ThemedText>
+              <TextInput
+                style={inputStyle}
+                value={c.nickname}
+                onChangeText={c.setNickname}
+                placeholder="Optional"
+                placeholderTextColor={palette.muted}
+                maxLength={50}
+              />
+            </View>
+            <View style={styles.field}>
+              <ThemedText style={styles.label}>Date of Birth</ThemedText>
+              <TextInput
+                style={inputStyle}
+                value={c.dateOfBirth}
+                onChangeText={c.setDateOfBirth}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={palette.muted}
+                maxLength={100}
+              />
+            </View>
 
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>Gender</ThemedText>
-            <Row wrap gap="xs">
-              {c.genderOptions.map((option) => {
-                const active = c.gender === option;
-                return (
-                  <Clickable
-                    key={option}
-                    onPress={() => c.setGender(option)}
-                    accessibilityLabel={`Select gender ${GENDER_LABEL[option] ?? option}`}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: active }}
-                    style={[
-                      styles.optionPill,
-                      {
-                        borderColor: active ? palette.tint : palette.border,
-                        backgroundColor: active ? withAlpha(palette.tint, 0.08) : palette.surface,
-                      },
-                    ]}
-                  >
-                    <ThemedText
-                      style={[styles.optionText, { color: active ? palette.tint : palette.text }]}
+            <View style={styles.field}>
+              <ThemedText style={styles.label}>Gender</ThemedText>
+              <Row wrap gap="xs">
+                {c.genderOptions.map((option) => {
+                  const active = c.gender === option;
+                  return (
+                    <Clickable
+                      key={option}
+                      onPress={() => c.setGender(option)}
+                      accessibilityLabel={`Select gender ${GENDER_LABEL[option] ?? option}`}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      style={[
+                        styles.optionPill,
+                        {
+                          borderColor: active ? palette.tint : palette.border,
+                          backgroundColor: active ? withAlpha(palette.tint, 0.08) : palette.surface,
+                        },
+                      ]}
                     >
-                      {GENDER_LABEL[option]}
-                    </ThemedText>
-                  </Clickable>
-                );
-              })}
-            </Row>
-          </View>
+                      <ThemedText
+                        style={[styles.optionText, { color: active ? palette.tint : palette.text }]}
+                      >
+                        {GENDER_LABEL[option]}
+                      </ThemedText>
+                    </Clickable>
+                  );
+                })}
+              </Row>
+            </View>
 
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>Relationship</ThemedText>
-            <Row wrap gap="xs">
-              {c.relationshipOptions.map((option) => {
-                const active = c.relationship === option;
-                return (
-                  <Clickable
-                    key={option}
-                    onPress={() => c.setRelationship(option)}
-                    style={[
-                      styles.optionPill,
-                      {
-                        borderColor: active ? palette.tint : palette.border,
-                        backgroundColor: active ? withAlpha(palette.tint, 0.08) : palette.surface,
-                      },
-                    ]}
-                  >
-                    <ThemedText
-                      style={[styles.optionText, { color: active ? palette.tint : palette.text }]}
+            <View style={styles.field}>
+              <ThemedText style={styles.label}>Relationship</ThemedText>
+              <Row wrap gap="xs">
+                {c.relationshipOptions.map((option) => {
+                  const active = c.relationship === option;
+                  return (
+                    <Clickable
+                      key={option}
+                      onPress={() => c.setRelationship(option)}
+                      style={[
+                        styles.optionPill,
+                        {
+                          borderColor: active ? palette.tint : palette.border,
+                          backgroundColor: active ? withAlpha(palette.tint, 0.08) : palette.surface,
+                        },
+                      ]}
                     >
-                      {RELATIONSHIP_LABEL[option]}
-                    </ThemedText>
-                  </Clickable>
-                );
-              })}
-            </Row>
-          </View>
+                      <ThemedText
+                        style={[styles.optionText, { color: active ? palette.tint : palette.text }]}
+                      >
+                        {RELATIONSHIP_LABEL[option]}
+                      </ThemedText>
+                    </Clickable>
+                  );
+                })}
+              </Row>
+            </View>
 
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>Primary Position</ThemedText>
-            <Row wrap gap="xs">
-              {POSITION_OPTIONS_WITH_ROTATE.map((option) => {
-                const active = c.primaryPosition === option.key;
-                return (
-                  <Clickable
-                    key={option.key ?? 'rotate'}
-                    onPress={() => c.setPrimaryPosition(option.key)}
-                    style={[
-                      styles.optionPill,
-                      {
-                        borderColor: active ? palette.tint : palette.border,
-                        backgroundColor: active ? withAlpha(palette.tint, 0.08) : palette.surface,
-                      },
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Set primary position to ${option.label}`}
-                    accessibilityState={{ selected: active }}
-                  >
-                    <ThemedText
-                      style={[styles.optionText, { color: active ? palette.tint : palette.text }]}
+            <View style={styles.field}>
+              <ThemedText style={styles.label}>Primary Position</ThemedText>
+              <Row wrap gap="xs">
+                {POSITION_OPTIONS_WITH_ROTATE.map((option) => {
+                  const active = c.primaryPosition === option.key;
+                  return (
+                    <Clickable
+                      key={option.key ?? 'rotate'}
+                      onPress={() => c.setPrimaryPosition(option.key)}
+                      style={[
+                        styles.optionPill,
+                        {
+                          borderColor: active ? palette.tint : palette.border,
+                          backgroundColor: active ? withAlpha(palette.tint, 0.08) : palette.surface,
+                        },
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Set primary position to ${option.label}`}
+                      accessibilityState={{ selected: active }}
                     >
-                      {positionDisplayLabel(option.key)}
-                    </ThemedText>
-                  </Clickable>
-                );
-              })}
-            </Row>
-          </View>
-        </SurfaceCard>
+                      <ThemedText
+                        style={[styles.optionText, { color: active ? palette.tint : palette.text }]}
+                      >
+                        {positionDisplayLabel(option.key)}
+                      </ThemedText>
+                    </Clickable>
+                  );
+                })}
+              </Row>
+            </View>
+          </SurfaceCard>
 
-        <SurfaceCard style={styles.section}>
-          <ThemedText type="defaultSemiBold">Health & Safety</ThemedText>
-          <ThemedText style={[styles.helperText, { color: palette.muted }]}>
-            Medical records, emergency contacts, and consent choices are managed in the protected
-            child health area.
-          </ThemedText>
+          <SurfaceCard style={styles.section}>
+            <ThemedText type="defaultSemiBold">Health & Safety</ThemedText>
+            <ThemedText style={[styles.helperText, { color: palette.muted }]}>
+              Medical records, emergency contacts, and consent choices are managed in the protected
+              child health area.
+            </ThemedText>
+            <Button
+              onPress={c.openMedicalInfo}
+              variant="secondary"
+              label="Manage Medical Information"
+            />
+            <Button
+              onPress={c.openEmergencyContacts}
+              variant="secondary"
+              label="Manage Emergency Contacts"
+            />
+          </SurfaceCard>
+
+          <SurfaceCard style={styles.section}>
+            <ThemedText type="defaultSemiBold">Notes for Coaches</ThemedText>
+            <View style={styles.field}>
+              <ThemedText style={styles.label}>Communication Notes</ThemedText>
+              <TextInput
+                style={textAreaStyle}
+                value={c.communicationNotes}
+                onChangeText={c.setCommunicationNotes}
+                multiline
+                maxLength={500}
+              />
+            </View>
+            <View style={styles.field}>
+              <ThemedText style={styles.label}>Behavioral Notes</ThemedText>
+              <TextInput
+                style={textAreaStyle}
+                value={c.behavioralNotes}
+                onChangeText={c.setBehavioralNotes}
+                multiline
+                maxLength={500}
+              />
+            </View>
+          </SurfaceCard>
+        </ScrollView>
+
+        <View style={[styles.footer, { borderTopColor: palette.border }]}>
           <Button
-            onPress={c.openMedicalInfo}
-            variant="secondary"
-            label="Manage Medical Information"
+            onPress={c.handleSave}
+            disabled={c.saving}
+            style={{ flex: 1 }}
+            label={c.saving ? 'Saving...' : 'Save Profile'}
           />
-          <Button
-            onPress={c.openEmergencyContacts}
-            variant="secondary"
-            label="Manage Emergency Contacts"
-          />
-        </SurfaceCard>
-
-        <SurfaceCard style={styles.section}>
-          <ThemedText type="defaultSemiBold">Notes for Coaches</ThemedText>
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>Communication Notes</ThemedText>
-            <TextInput
-              style={textAreaStyle}
-              value={c.communicationNotes}
-              onChangeText={c.setCommunicationNotes}
-              multiline
-              maxLength={500}
-            />
-          </View>
-          <View style={styles.field}>
-            <ThemedText style={styles.label}>Behavioral Notes</ThemedText>
-            <TextInput
-              style={textAreaStyle}
-              value={c.behavioralNotes}
-              onChangeText={c.setBehavioralNotes}
-              multiline
-              maxLength={500}
-            />
-          </View>
-        </SurfaceCard>
-      </ScrollView>
-
-      <View style={[styles.footer, { borderTopColor: palette.border }]}>
-        <Button
-          onPress={c.handleSave}
-          disabled={c.saving}
-          style={{ flex: 1 }}
-          label={c.saving ? 'Saving...' : 'Save Profile'}
-        />
-      </View>
+        </View>
+      </SafeAreaView>
     </View>
   );
 }

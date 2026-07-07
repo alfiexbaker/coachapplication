@@ -1,0 +1,168 @@
+# API Live Authority System Report
+
+Snapshot date: 2026-07-07
+
+This is a progress matrix, not a new source of truth. Canonical runtime truth remains in:
+
+- `docs/backend-api/ROUTE_INVENTORY_V1.md`
+- `docs/architecture/service-ownership-map.md`
+- `docs/architecture/entity-relationship-map.md`
+- `packages/db/prisma/schema.prisma`
+
+## Current Read
+
+Overall progress toward "all product features use live `/v1` backend authority" is roughly 90-92%.
+
+The API spine is real and improving: auth, club authority, coach self and public profile projection, booking, cancellation-record reads, invoices, simulated payments/payouts, family/athlete, medical/consent, coach verification status, progress, media, notifications, account privacy, club events, event athlete invites, roster management, delegated availability, and several trust-admin audit surfaces have `/v1` routes and focused tests. The app is not yet fully cut over. Remaining risk is mostly legacy service code that still has mock/local compatibility paths, incomplete end-to-end role coverage, high-fanout read performance, and route-by-route security proof still being applied slice by slice.
+
+## Latest Hard Validation
+
+Checked on 2026-07-07 from this workspace:
+
+- `npm run audit:db:stage:strict` passed: `.env.staging.local` loaded, DB status ready, 38/38 migrations applied, 0 blockers, 0 warnings.
+- `curl http://127.0.0.1:4000/v1/ready` returned `ready` with API/config/database/object storage all `ok`.
+- `npm run smoke:api-mode:strict` passed against the staging-configured API origin.
+- `npm run smoke:staging` passed 16/16 checks with 0 warnings and 0 failures, including coach/parent bearer auth, booking create/read, invoice generation, simulated payment completion, booking completion proof readback, family/athlete sensitive allow/deny reads, group session registration/roster, private signed upload/readback, community/media reads, and post-smoke DB write verification.
+- `npm run audit:api-boundaries` passed with 0 findings.
+- Supabase MCP is configured in `.mcp.json` for project `oucxazyrimujqmakxfiv`, but callable Supabase MCP tools were not exposed in this Codex session; the local `supabase` CLI is also not installed. DB verification therefore used the repo's Prisma/staging preflight and smoke tooling instead of MCP/CLI advisors.
+
+## Google-Engineer Read
+
+This is not yet release-grade end to end, but it is no longer prototype-only work. The current standard is strongest where the path has all of these properties:
+
+- backend-authenticated `/v1` route
+- Supabase/Postgres-backed persistence or an explicit supported simulated provider
+- default-deny authz with assignment or ownership checks
+- soft-delete/archive/remove semantics instead of destructive ambiguity
+- audit rows for success, deny, and error paths
+- focused API tests plus staging smoke coverage
+
+The biggest slop risk is not one missing abstraction. It is any feature that still silently writes server-owned data through local storage, renders raw audit action strings, or keeps a visible control in API mode without a backend authority.
+
+## Category Matrix
+
+| Category | Subcategory | Authority now | Relationship shape | Status |
+| --- | --- | --- | --- | --- |
+| Identity | Auth/session/profile/search/blocking | `/v1/auth/*`, `/v1/me/sessions*`, `/v1/users/search`, `/v1/blocks` | `User` 1-to-many `AuthSession`; `User` 1-to-1 `UserProfile`; `User` optionally links 1-to-1 `Athlete` for self-managed athlete accounts; `User` many-to-many self relationship via `UserBlock` | Implemented for auth/session/profile, privacy-bounded search, and server-owned block relationships; search no longer reads local `USERS` or `BLOCKED_USERS` in API mode and excludes active block relationships |
+| Family | Guardians/children | `/v1/families*`, `/v1/athletes*`, guardian invites | `Family` many-to-many `User` via memberships; `GuardianChildLink` gates athlete access | Implemented |
+| Trust health | Medical, emergency, consent, safeguarding | `/v1/athletes/:athleteId/medical`, contacts, consents, safeguarding incidents; `/v1/coaches/:coachId/roster/consents` | `Athlete` 1-to-many sensitive records; guardian/scoped-coach access only | Single-athlete health/consent routes and roster consent projection are implemented and audit-sensitive |
+| Coach trust | DBS/verification status | `/v1/coaches/:coachId/verification-status`, `/v1/coaches/me/verifications/:type/documents` | `CoachProfile` 1-to-many `CoachVerification`; document evidence remains coach-self private | Status reads and coach-self document evidence submission implemented and audited; reviewer approval/admin writes still planned |
+| Coach profile | Marketplace profile basics, rich self-profile metadata, public projection, and travel settings | `/v1/coaches/me/profile`, `/v1/coaches/offerings`, `/v1/coaches/:coachId/offerings`, `/v1/coaches/me/travel-settings`, `/v1/auth/me` | `User` 1-to-1 `UserProfile`; `User` 1-to-1 `CoachProfile` with travel radius, remote/in-person flags, website, max price, social links, experience, and language metadata | Self-owned bio/rate/specialty/qualification basics, rich edit-profile metadata, public offering-index projection including governed display name, and travel settings are implemented and audited |
+| Coach growth | Trial session settings/usages/conversions | `/v1/coaches/:coachId/trial-offering`, `/v1/trial-offerings`, `/v1/coaches/:coachId/trial-usages`, `/v1/coaches/:coachId/trial-conversions` | `CoachProfile` 1-to-1 `CoachTrialOffering`; coach/family/booking 1-to-many usage and conversion records | Trial offering settings/discovery plus usage/conversion tracking are API-backed, booking-proofed, visibility-scoped, archived instead of hard-deleted, and audited |
+| Clubs | Club/academy | `/v1/clubs*`, members, squads, invite codes, branding | `Club` 1-to-many memberships/squads/events/matches; "academy" is compatibility naming over club authority | Implemented core; member removal history is now backend-authoritative and audited; academy-specific writes fail closed |
+| Scheduling | Availability/templates/overrides/rules | `/v1/coaches/me/availability*`, `/v1/coaches/:coachId/availability*`, `/v1/coaches/me/scheduling-rules`, `/v1/coaches/:coachId/scheduling-rules` | `CoachProfile` 1-to-many availability rows plus 1-to-1 scheduling rules/policy | Implemented for coach self, delegated availability management, repeated override creates, bookable slot reads, and non-self scheduling rules/policy projection; non-self writes remain fail-closed |
+| Roster | Coach-athlete roster, notes, removal history | `/v1/coaches/:coachId/roster*` | `CoachAthleteRosterEntry` links coach-to-athlete; coach-private notes are private `SessionNote` rows; removal history is durable soft-removal state | Roster list/detail, consent dashboard, create/update/remove, coach-private notes, removal history, and undo are API-backed and audited; remaining risk is end-to-end role flow coverage |
+| Booking | Bookings/series/invites/session notes/cancellations/no-shows | `/v1/bookings*`, `/v1/booking-series*`, `/v1/cancellation-records*`, `/v1/families/:familyId/no-shows`, invite routes | `Booking` links coach, payer, participants, status events, invoices; cancellation records are a read projection over cancelled bookings; family no-show counts derive from `AttendanceRecord` and group-registration proof | Mixed implemented/scaffolded but runtime-tested; cancellation record list/lookup, proof-backed family no-show count/read/correction, and per-athlete booking completion attended/no-show/effort proof are implemented and audited |
+| Events | Club events, athlete invites, RSVP, attendance | `/v1/clubs/:clubId/events`, `/v1/events*` | `Club` 1-to-many `ClubEvent`; event 1-to-many RSVP/attendance/invite notifications | Event-scoped API implemented; user calendar reads compose existing `/v1` routes; specific-athlete targeting now routes through `/v1/events/:eventId/invites/athletes` |
+| Group sessions | Sessions, registrations, RSVPs | `/v1/group-sessions*`, `/v1/session-rsvps*` | `GroupSession` 1-to-many registrations/RSVPs | Implemented/scaffolded mix |
+| Money | Invoices/payments/direct instructions | `/v1/invoices*`, `/v1/payment-attempts/:id/simulated-complete`, `/v1/coaches/me/payment-instructions` | `Invoice` 1-to-many payment attempts/events; `CoachProfile` 1-to-1 `CoachPaymentInstruction` | Implemented; payment provider is simulated, and coach direct-payment copy is API-backed without reusing payout-provider bank details |
+| Payout | Payout methods/withdrawals | `/v1/coaches/me/payout-methods*`, `/v1/coaches/me/withdrawals*` | `CoachProfile` 1-to-many payout methods/withdrawals | Implemented as simulated provider; no real money movement |
+| Progress | Goals, milestones, practice logs, tasks | `/v1/athletes/:athleteId/goals`, `/v1/goals*`, practice/task routes | `Athlete` 1-to-many goals/logs/tasks; assignments gate coach access | Implemented and audited |
+| Analytics | Athlete and coach analytics | `/v1/athletes/:athleteId/analytics`, `/skills/history`, `/v1/coaches/:coachId/analytics` | Derived from bookings, feedback, skill assessments, invoices | Implemented; peer averages now API-derived |
+| Media/community | Uploads, videos, comments, messages | `/v1/uploads*`, `/v1/videos*`, posts/comments/messages | Content belongs to coach/group/club/thread with visibility gates | Implemented core; some compatibility facades remain |
+| Notifications | Inbox/preferences/read state, support issue fanout | `/v1/me/notifications*`, `/v1/safeguarding/incidents` | `Notification` belongs to one user; booking-linked support incidents notify responsible coach/staff | Implemented reads/mutations plus support fanout; API-mode inbox uses backend rows only, with local create/send/demo helpers mock-only |
+| Account privacy | Profile/discovery/data-sharing settings | `/v1/me/privacy-settings` | `User` 1-to-1 `UserPrivacySetting` | Implemented; reads and changed keys audited |
+| Local UI state | Dismissals, coach venues, device prefs | Device local via allowlisted keys | No backend authority | Intentional local-only state |
+
+## Decisions Made
+
+- Club and academy are treated as the same organisation concept for now. Academy compatibility reads and supported writes use club `/v1` authority; unsupported visibility-only settings fail closed until a real separate product model exists.
+- HTTP `DELETE` can remain RESTful, but audit/display effects should say `archive`, `remove`, `dismiss`, `revoke`, `cancel`, or `void` as appropriate.
+- Payout and payment completion routes work through the API but remain simulated by design. No real funds are wired.
+- Simulated payout method deletion is a backend removal effect and should audit as `coach_payout_methods.remove`, not a hard delete.
+- Swagger is Swagger UI over OpenAPI 3.1. Google AIP conformance is explicitly not claimed.
+- Client generic storage is blocked in API mode unless a key is explicitly local UI/device state.
+- Cancellation records are not a duplicate table for now. They are a live read projection over cancelled `Booking` rows and `BookingStatusEvent` metadata; family no-show counts are backed by attendance/no-show proof through `/v1/families/:familyId/no-shows`, and per-athlete booking completion now writes attended/no-show notes and effort through `/v1/bookings/:bookingId/complete`.
+
+## Engineering Quality Matrix
+
+| Area | Current bar | Evidence | Remaining risk |
+| --- | --- | --- | --- |
+| Runtime authority | Better than prototype; not fully release-grade | API-mode generic storage is being locked down, academy now aliases club authority, and sensitive local mirrors are being removed or fail-closed | Every legacy service still needs the same API-mode local-write scan |
+| Security/authz | Security-first slices, but not a completed audit | Default-deny club governance, assignment-scoped reads, hashed/salted demo credentials, public-table RLS verification, and audited sensitive writes | Route-level grant coverage and Supabase/RLS proof need to be repeated for all high-risk routes |
+| Data integrity | Strong where recently touched | Booking/payment paths use idempotency/version/audit patterns; child and club removals now use remove/archive semantics | Scaffolded routes still need transaction and rollback checks before production release |
+| Scalability | Needs targeted hardening | Local API-mode UI testing exposed Supabase session-pool exhaustion on high-fanout notifications/messages requests | Reduce frontend request fanout, batch/cache noisy reads, and use the correct Supabase pool mode/settings before launch |
+| Observability/audit | Backend audit posture is improving | Delete wording is being replaced with archive/remove/revoke/cancel/void effects, generated OpenAPI exposes operation effects, and the trust-admin overview returns display-safe audit labels/effects | Future admin audit UI must render `displayLabel` / `displayEffect` instead of raw `action` strings |
+| API documentation | Useful internal Swagger, not an external developer portal | `/v1/docs` serves Swagger UI over generated OpenAPI 3.1; generated operations have domain tags, readable operation IDs, and lifecycle effects for remove/archive routes | It is not Google AIP-standard; remaining docs polish is route-specific examples and richer request/response schemas |
+| Payments/payouts | Correct for staging/demo | Payment completion and payout routes remain API-driven simulated provider flows | Must keep production provider credentials disabled until a real payment processor contract exists |
+| Repository hygiene | Improved with path-scoped slices | Recent backend/trust changes are committed as focused slices | Continue path-scoped commits and avoid broad opportunistic cleanup |
+
+## Main Gaps
+
+- Supabase MCP server is configured for project `oucxazyrimujqmakxfiv`, but callable Supabase MCP database tools were not visible in this session, and the local `supabase` CLI is not installed. Fallback Prisma/staging verification confirmed DB connectivity, 38/38 migrations applied, demo coach/parent rows, salted `scrypt` password hashes, public-table RLS enabled, and no raw `.delete` audit actions.
+- 2026-07-07 staging demo credential reset updated 28 `@clubroom.demo` users, verified 28 salted `scrypt` `PasswordCredential` rows, verified 8 attached coach accounts, and wrote ignored DB-derived credentials to `docs/backend-api/test-data/TEST_ACCOUNTS.staging.local.txt`. Fixture-derived local credentials remain in `docs/backend-api/test-data/TEST_ACCOUNTS.local.txt`.
+- Staging DB preflight accepts the configured password-reset email delivery provider; the remaining launch blocker is the provider smoke, which must prove the configured provider credentials before go-live. Brevo API keys are now supported alongside the existing webhook and SMTP paths.
+- Launch readiness now requires `audit:worktree:strict`, `verify:slice:full`, `audit:agentic`, `audit:db:stage:strict`, `smoke:password-reset-webhook`, `smoke:api-mode:strict`, `smoke:staging`, and `ui:flows:run`. This proves the staged path and blocks false-ready reports when password-reset provider delivery is broken.
+- Club, squad, member, guardian, athlete, payout-method, invite-code, video, comment, and registration removal paths must continue using archive/remove/revoke/cancel/void wording in audit display. Current club, athlete, video, comment, and message removal checks already soft-remove rows and audit `*.remove`/`*.archive` actions; legacy `.delete` audit rows for athlete, video, video annotation, message, and comment are display-normalized to precise human copy such as "Athlete removed" or "Video archived".
+- User event calendar reads are API-backed by fan-out over existing club/event/RSVP routes; add a dedicated `/v1/me/events` aggregate only if that fan-out becomes too slow.
+- Rich coach self-profile fields in the edit screen now have DB schema/API storage and public offering-index projection for governed display name, website, social links, structured experience history, structured languages, and maximum price/range semantics.
+- Coach roster mutations, coach-private roster notes, roster soft-removal, removal history, and undo are now explicit `/v1/coaches/:coachId/roster*` contracts with audited API-mode service wiring; remaining roster risk is end-to-end role flow coverage, not missing route authority.
+- Trial usage counts and trial-to-regular conversions now use `/v1/coaches/:coachId/trial-usages` and `/v1/coaches/:coachId/trial-conversions` with booking proof and audit coverage; remaining trial risk is broader product analytics coverage, not missing route authority.
+- Delegated/admin availability template and override read/create/update/remove now uses real `/v1/coaches/:coachId/availability/templates*` and `/v1/coaches/:coachId/availability/overrides*` contracts; repeated override batches write through individual audited `/v1` override creates instead of local mirrors.
+- There is no dedicated `/v1` squad invite history aggregate yet; squad-to-session invite sends now use `/v1/invites` with `SQUAD_ONLY` squad metadata and membership-checked visibility, while local squad invite/history mirrors stay mock-only.
+- Event RSVP list/detail visibility is currently active-club-member scoped; if RSVP notes or guest counts are treated as sensitive, split self reads from staff attendee reads.
+- Some legacy mock/demo service files remain on disk; each must be either gated to mock mode, mapped to `/v1`, or documented as fail-closed.
+- Full mobile role E2E coverage is not complete.
+- CI should enforce "no generic storage bridge for server-owned API-mode data".
+- Trust-admin audit overviews now decorate raw audit actions with display-safe `displayLabel` / `displayEffect` fields; future admin audit UI must render those fields rather than raw action names.
+- Swagger UI is a usable OpenAPI viewer, not a final external developer portal. The generated spec now has no generic `API` tag, unique readable operation IDs, and no DELETE operation names/summaries containing raw "delete"; remaining docs polish is route-specific examples, richer request/response schemas, and a docs-quality check that generated OpenAPI aligns with every committed `/v1` route.
+
+## Recent Verified Slices
+
+- Demo/test credential coverage guard with hashed/salted DB credentials.
+- Staging demo credentials reset and verified on 2026-07-07: 28 demo users, 28 salted `scrypt` hashes, 8 attached coach accounts.
+- Family health and safety emergency reads now always fetch live `/v1/athletes/:athleteId/medical`, `/emergency-contacts`, and `/consents` data in API mode; in-flight duplicate reads may coalesce, but the frontend no longer serves a persistent TTL cache for trust-sensitive health data.
+- Trust-admin audit display now normalizes legacy `.delete` rows for athlete, video, video annotation, message, and comment actions into precise human labels such as "Athlete removed" or "Video archived".
+- Swagger/OpenAPI grouping now has no generic `API` tag; generated operations use domain tags, unique readable operation IDs, lifecycle effects, and no DELETE operation names/summaries containing raw "delete".
+- Coach verification status now reads from `/v1/coaches/:coachId/verification-status`; child-booking DBS gates use backend status instead of local demo storage.
+- Coach verification evidence submission now attaches private, available, coach-owned media objects through `/v1/coaches/me/verifications/:type/documents` and audits success/deny paths.
+- Swagger/OpenAPI `/v1/docs` and generated `/v1/openapi.json`.
+- Goal and milestone audit actions changed from delete wording to archive semantics.
+- Athlete skill comparison averages now come from the API analytics payload in live mode.
+- Seen-status storage explicitly scoped to local walkthrough dismissal only.
+- User event calendar reads moved off local mirrors by composing existing club event and RSVP APIs.
+- Simulated payout method removal now audits as remove instead of delete.
+- Session template, squad, and session RSVP cleanup audit actions now use archive/remove semantics.
+- Read-only staging DB verification confirmed public-table RLS is enabled and demo credentials are hashed/salted.
+- Strict API-mode readiness smoke passed against the configured local/staging API, including database and object-storage readiness.
+- Strict staging DB preflight passed on 2026-07-07 with 38/38 Prisma migrations applied and required staged route columns present.
+- Full staging smoke passed on 2026-07-07 with 16/16 checks, 0 warnings, and 0 failures; verified live DB auth, booking, invoice, simulated payment, booking completion proof, sensitive read allow/deny, group-session registration, private object storage, community/media reads, and post-smoke DB writes.
+- API-mode child booking creation now fails closed instead of trusting mock coach verification storage.
+- Account privacy settings now read/write self-owned `/v1/me/privacy-settings` instead of local storage in API mode.
+- Squad invite local mirrors are now mock-only instead of persisting invite/history state in API mode.
+- Squad-to-session invite sends now preserve `SQUAD_ONLY`, `squadIds`, and linked session metadata through `/v1/invites`; `/v1/invites` projects metadata-backed `squadIds`, validates squad membership on create, and blocks unrelated parent reads by guessed squad id.
+- Coach edit profile now saves supported identity and coach marketplace fields through `/v1/auth/me` and `/v1/coaches/me/profile`; rich self-profile fields are persisted through `CoachProfile` instead of local-only form state.
+- Account settings email and phone edits now use `/v1/auth/me` in API mode instead of writing local `USERS` records.
+- Root user service no longer reads local `USERS` as a live directory in API mode; it maps only the signed-in auth profile, blocks local profile writes, and now uses `/v1/users/search` for privacy-bounded user lookup. Search requires authentication, refuses blank/one-character directory browsing, hides unassigned minors and private profiles, supports exact-email invitation lookup, and audits sensitive reads without persisting raw query text.
+- Booking completion Swagger/OpenAPI now documents no-show attendance and effort-gap output.
+- Child removal now emits/records remove semantics rather than hard delete wording.
+- Club destructive UI now presents archive semantics and routes through the existing club archive authority.
+- Academy compatibility service was re-checked: API mode reads/writes go through club `/v1` services where supported, and unsupported settings fail closed.
+- Trial offering settings/discovery now use live `/v1` `CoachTrialOffering` rows in API mode; usage/conversion service still fails closed instead of reading or writing `TRIAL_*` local storage.
+- Coach travel radius and remote/in-person availability settings now use `/v1/coaches/me/travel-settings` and `CoachProfile` columns in API mode instead of unsaved defaults/client-local storage.
+- Coach direct-payment instructions now use `/v1/coaches/me/payment-instructions` and `CoachPaymentInstruction` rows in API mode; reads/writes are audited and payout/payment providers remain simulated.
+- Coach roster consent dashboard now uses `/v1/coaches/:coachId/roster/consents`, derived from the booking-backed roster projection plus `ChildConsent` rows; reads are sensitive/audited and no unassigned athlete consent data is exposed.
+- Coach roster create/update/remove, private notes, removal history, and undo now use audited `/v1/coaches/:coachId/roster*` routes instead of local roster/removal storage in API mode.
+- Trial offering, usage, and conversion flows now use audited `/v1` trial routes without client-local trial storage in API mode.
+- Cancellation record list/lookup now use `/v1/cancellation-records*` in API mode, projecting from cancelled booking rows with scoped actor visibility and sensitive-read audit rows; cancellation stats derive from those records, and family no-show counts/corrections use proof-backed `/v1/families/:familyId/no-shows` instead of local counters.
+- Availability template/override service now uses `/v1/coaches/:coachId/availability/templates*` and `/v1/coaches/:coachId/availability/overrides*` for delegated/non-self API-mode reads and writes, including repeated override creates as individual audited backend writes.
+- Coach schedule loading now reads legacy `SESSION_OFFERINGS` and `BLOCKED_DATES` mirrors only in mock mode; API mode avoids those local schedule projections.
+- Family children hub stats now derive session counts and average ratings from `/v1/athletes/:athleteId/analytics` instead of local `coach_sessions` mirrors.
+- Scheduling rules service now reads non-self rules/policy through `/v1/coaches/:coachId/scheduling-rules` and ignores local `SCHEDULING_RULES` / `CANCELLATION_POLICIES` mirrors in API mode; non-self writes remain fail-closed.
+- Coach roster service now reads and writes through audited `/v1/coaches/:coachId/roster*` routes in API mode, including list/detail, roster entry mutation, private notes, removal history, soft removal, and undo.
+- Legacy development feedback editor now fails closed in API mode before local `COACH_SESSIONS` reads/writes until its session load context is backend-owned.
+- Development badge recognition now reads session badge awards through `/v1/sessions/:sessionId/badges`; badge-award creation and share/feed/seen actions now use audited `/v1` backend authority instead of local badge storage in API mode.
+- Badge share/feed/seen helpers now no-op in API mode instead of reading or writing local `BADGE_AWARDS` state.
+- Legacy global school invite-code admin now fails closed in API mode; live invite codes remain club-scoped through `/v1/clubs/:clubId/invite-codes*`.
+- Session-completion group and parent message shortcuts now fail closed in API mode before local `MESSAGES` reads/writes until the completion flow maps to real `/v1/message-threads/:threadId/messages` thread ids.
+- Logout cleanup now removes stale legacy `session_bookings` device data with explicit local cleanup instead of calling the generic API-mode storage delete path for server-owned booking data.
+- Direct chat simulated replies are now mock-only, and direct-thread mark-read uses `POST /v1/message-threads/:threadId/read` in API mode with participant-scoped read receipts, `lastReadAt`, and allow/deny audit events owned by the backend.
+- Invite slot holds now return empty/no-op models in API mode instead of reading or writing local `INVITE_SLOT_HOLDS`.
+- Notification inbox reads now ignore local `NOTIFICATIONS` overlays in API mode; client notification create/send/demo seed helpers are mock-only, and handled badge actions use the backend read transition instead of a local handled overlay.
+- User blocking now uses `/v1/blocks` and `UserBlock` rows in API mode; block list/status/create/remove paths are audited, unblock soft-removes, and user search hides active block relationships in either direction.
+- Squad community group creation now uses `/v1/community-groups` with backend `squadId` authority, one active group per squad, private visibility, and squad-assigned member ingress; session group creation remains fail-closed.
+- Specific-athlete club event targeting now uses `/v1/events/:eventId/invites/athletes`, validates event-club membership, queues linked athlete/guardian notifications, and audits allow/deny paths.
+- Session detail ownership labels now derive from signed-in user, child context, registration names, ownership audit names, and staffing-console labels rather than local `USERS` storage.
+- Club member removal history now reads `/v1/clubs/:clubId/members/removals`, is restricted to `manage_staff_and_invites`, returns soft-removed membership records, and audits success/deny sensitive reads.
+- Staging DB preflight now classifies Supabase session-pool exhaustion separately from schema drift so launch checks give an actionable blocked reason instead of a generic migration failure.
+- Coach roster list/detail now read `/v1/coaches/:coachId/roster` from backend booking participation with athlete/guardian labels, session counts, revenue, ratings, and session-note snippets; reads are self-coach/privileged-admin only and audited as sensitive reads.

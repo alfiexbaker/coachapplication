@@ -1,5 +1,6 @@
-import { apiClient } from './api-client';
+import { apiClient, apiFetch } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { api } from '@/constants/config';
 import { createLogger } from '@/utils/logger';
 import { err, ok, storageError, type Result, type ServiceError } from '@/types/result';
 
@@ -21,6 +22,20 @@ export interface PrivacySettings {
 }
 
 class PrivacySettingsService {
+  private readonly settingKeys: Array<
+    keyof Omit<PrivacySettings, 'userId' | 'createdAt' | 'updatedAt'>
+  > = [
+    'profileVisible',
+    'showLocation',
+    'showOnlineStatus',
+    'showActivityStatus',
+    'shareAnalytics',
+    'personalizedAds',
+    'shareWithPartners',
+    'showEarnings',
+    'showClientList',
+  ];
+
   private createDefaults(userId: string): PrivacySettings {
     const now = new Date().toISOString();
     return {
@@ -68,6 +83,13 @@ class PrivacySettingsService {
 
   async getSettings(userId: string): Promise<Result<PrivacySettings, ServiceError>> {
     try {
+      if (!api.useMock) {
+        const result = await apiFetch<{ settings: PrivacySettings }>('/v1/me/privacy-settings', {
+          method: 'GET',
+        });
+        return result.success ? ok(result.data.settings) : err(result.error);
+      }
+
       return ok(await this.getValue(userId));
     } catch (error) {
       logger.error('Failed to load privacy settings', { userId, error });
@@ -80,6 +102,34 @@ class PrivacySettingsService {
     updates: Partial<PrivacySettings>,
   ): Promise<Result<PrivacySettings, ServiceError>> {
     try {
+      if (!api.useMock) {
+        const payload: Partial<
+          Pick<
+            PrivacySettings,
+            | 'profileVisible'
+            | 'showLocation'
+            | 'showOnlineStatus'
+            | 'showActivityStatus'
+            | 'shareAnalytics'
+            | 'personalizedAds'
+            | 'shareWithPartners'
+            | 'showEarnings'
+            | 'showClientList'
+          >
+        > = {};
+        for (const key of this.settingKeys) {
+          if (updates[key] !== undefined) {
+            payload[key] = updates[key];
+          }
+        }
+
+        const result = await apiFetch<{ settings: PrivacySettings }>('/v1/me/privacy-settings', {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+        return result.success ? ok(result.data.settings) : err(result.error);
+      }
+
       const current = await this.getValue(userId);
       const updated: PrivacySettings = {
         ...current,

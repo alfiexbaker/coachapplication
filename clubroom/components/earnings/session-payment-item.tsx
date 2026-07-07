@@ -24,7 +24,7 @@ export type PaymentTab = 'owed' | 'paid' | 'written_off';
 interface SessionPaymentItemProps {
   item: SessionPaymentItemType;
   tab: PaymentTab;
-  onMarkPaid?: (invoiceId: string) => void;
+  onMarkPaid?: (item: SessionPaymentItemType) => void;
   onMarkUnpaid?: (invoiceId: string) => void;
   onWriteOff?: (invoiceId: string) => void;
   onRestore?: (invoiceId: string) => void;
@@ -51,20 +51,8 @@ function SessionPaymentItemInner({
   };
 
   const handleMarkPaid = () => {
-    uiFeedback.alert(
-      'Confirm payment',
-      `Mark ${amount} from ${athleteName} as paid?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Mark Paid',
-          onPress: () => {
-            onMarkPaid?.(invoice.id);
-            setExpanded(false);
-          },
-        },
-      ],
-    );
+    onMarkPaid?.(item);
+    setExpanded(false);
   };
 
   const handleMarkUnpaid = () => {

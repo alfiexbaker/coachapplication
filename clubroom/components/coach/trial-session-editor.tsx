@@ -5,8 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import {
-  View, StyleSheet, ScrollView, Switch, ActivityIndicator, ViewStyle } from 'react-native';
+import { View, StyleSheet, ScrollView, Switch, ActivityIndicator, ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -24,7 +23,6 @@ import { Row, Column } from '@/components/primitives';
 import { uiFeedback } from '@/services/ui-feedback';
 
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
-
 
 // ---------------------------------------------------------------------------
 // Types
@@ -45,6 +43,7 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
   const { currentUser } = useAuth();
   const coachId = currentUser?.id ?? '';
   const coachName = currentUser?.name ?? 'Coach';
+  const trialSettingsWritable = Boolean(coachId);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -58,26 +57,40 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
   );
 
   useEffect(() => {
+    if (!coachId) {
+      setLoading(false);
+      return;
+    }
+
     (async () => {
-      await runAsyncTryCatchFinally(async () => {
-        const existing = await trialService.getTrialOffering(coachId);
-        if (existing) {
-          setEnabled(existing.enabled);
-          setTrialPrice(String(existing.trialPrice));
-          setNormalPrice(String(existing.normalPrice));
-          setDurationMinutes(String(existing.durationMinutes));
-          setLimitPerFamily(String(existing.limitPerFamily));
-          setDescription(existing.description);
-        }
-      }, async error => {
-        // Defaults are fine
-      }, () => {
-        setLoading(false);
-      });
+      await runAsyncTryCatchFinally(
+        async () => {
+          const existing = await trialService.getTrialOffering(coachId);
+          if (existing) {
+            setEnabled(existing.enabled);
+            setTrialPrice(String(existing.trialPrice));
+            setNormalPrice(String(existing.normalPrice));
+            setDurationMinutes(String(existing.durationMinutes));
+            setLimitPerFamily(String(existing.limitPerFamily));
+            setDescription(existing.description);
+          }
+        },
+        async (error) => {
+          // Defaults are fine
+        },
+        () => {
+          setLoading(false);
+        },
+      );
     })();
   }, [coachId]);
 
   const handleToggleEnabled = (newValue: boolean) => {
+    if (!trialSettingsWritable) {
+      showToast('Sign in to change trial settings.', 'error');
+      return;
+    }
+
     setEnabled(newValue);
     showToast(
       newValue
@@ -88,6 +101,11 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
   };
 
   const handleSave = async () => {
+    if (!trialSettingsWritable) {
+      showToast('Sign in to save trial settings.', 'error');
+      return;
+    }
+
     if (enabled) {
       const error = validateTrialForm({
         trialPrice,
@@ -104,25 +122,26 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
 
     setSaving(true);
 
-    await runAsyncTryCatchFinally(async () => {
-      const offering = await trialService.upsertTrialOffering(coachId, {
-        enabled,
-        trialPrice: parseFloat(trialPrice) || 0,
-        normalPrice: parseFloat(normalPrice) || 0,
-        durationMinutes: parseInt(durationMinutes, 10) || 60,
-        limitPerFamily: parseInt(limitPerFamily, 10) || 1,
-        description,
-      });
-      onSave?.(offering);
-      showToast(
-        enabled ? 'Trial session is now live' : 'Trial sessions disabled',
-        'success',
-      );
-    }, async error => {
-      showToast('Failed to save trial settings', 'error');
-    }, () => {
-      setSaving(false);
-    });
+    await runAsyncTryCatchFinally(
+      async () => {
+        const offering = await trialService.upsertTrialOffering(coachId, {
+          enabled,
+          trialPrice: parseFloat(trialPrice) || 0,
+          normalPrice: parseFloat(normalPrice) || 0,
+          durationMinutes: parseInt(durationMinutes, 10) || 60,
+          limitPerFamily: parseInt(limitPerFamily, 10) || 1,
+          description,
+        });
+        onSave?.(offering);
+        showToast(enabled ? 'Trial session is now live' : 'Trial sessions disabled', 'success');
+      },
+      async (error) => {
+        showToast('Failed to save trial settings', 'error');
+      },
+      () => {
+        setSaving(false);
+      },
+    );
   };
 
   if (loading) {
@@ -162,12 +181,17 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
               Enable Trial Sessions
             </ThemedText>
             <ThemedText style={[Typography.small, { color: palette.muted }]}>
-              {enabled ? 'Trial sessions are visible to parents' : 'Trial sessions are hidden'}
+              {!trialSettingsWritable
+                ? 'Sign in to manage trial sessions'
+                : enabled
+                  ? 'Trial sessions are visible to parents'
+                  : 'Trial sessions are hidden'}
             </ThemedText>
           </Column>
           <Switch
             value={enabled}
             onValueChange={handleToggleEnabled}
+            disabled={!trialSettingsWritable}
             trackColor={{ false: palette.border, true: withAlpha(palette.success, 0.5) }}
             thumbColor={enabled ? palette.success : palette.surface}
           />
@@ -196,18 +220,23 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
         style={
           [
             styles.saveButton,
-            { backgroundColor: palette.tint },
-            saving ? styles.saveButtonDisabled : undefined,
+            { backgroundColor: trialSettingsWritable ? palette.tint : palette.border },
+            saving || !trialSettingsWritable ? styles.saveButtonDisabled : undefined,
           ].filter(Boolean) as ViewStyle[]
         }
         onPress={handleSave}
-        disabled={saving}
+        disabled={saving || !trialSettingsWritable}
       >
         {saving ? (
           <ActivityIndicator size="small" color={palette.surface} />
         ) : (
-          <ThemedText style={[Typography.bodySemiBold, { color: palette.surface }]}>
-            Save Trial Settings
+          <ThemedText
+            style={[
+              Typography.bodySemiBold,
+              { color: trialSettingsWritable ? palette.surface : palette.muted },
+            ]}
+          >
+            {trialSettingsWritable ? 'Save Trial Settings' : 'Trial Settings Unavailable'}
           </ThemedText>
         )}
       </Clickable>

@@ -1,13 +1,13 @@
+import { useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen } from '@/hooks/use-screen';
-import { apiClient } from '@/services/api-client';
 import { childService, type ChildProfile } from '@/services/child-service';
 import { badgeService } from '@/services/badge-service';
+import { analyticsQueryService } from '@/services/analytics/analytics-query-service';
 import { err, ok, serviceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import type { BadgeAward } from '@/constants/types';
-import type { Session } from '@/constants/app-types';
 import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useChildrenHub');
@@ -40,8 +40,11 @@ export function useChildrenHub() {
     setActiveChildId: contextSetActiveChildId,
     refresh: refreshContext,
   } = useChildContext();
+  const contextChildrenSignature = contextChildren
+    .map((child) => `${child.id}:${child.profile?.id ?? ''}:${child.name}`)
+    .join('|');
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!currentUser?.id) {
       return ok<ChildrenHubData>({
         children: [],
@@ -53,29 +56,37 @@ export function useChildrenHub() {
       });
     }
 
-    // TRAP 8: context.children is sync — pull out of async block
-    const childrenData: ChildProfile[] = contextChildren
-      .map((c) => c.profile)
-      .filter((p): p is ChildProfile => p !== null);
-
     try {
+      // TRAP 8: context.children is sync, but trust-sensitive profile detail is loaded explicitly.
+      const childrenData: ChildProfile[] = (
+        await Promise.all(
+          contextChildren.map(async (child) => {
+            const childId = child.profile?.id ?? child.profileId ?? child.id;
+            const fullProfile = await childService.getChild(childId);
+            return fullProfile ?? child.profile;
+          }),
+        )
+      ).filter((profile): profile is ChildProfile => profile !== null);
+
       const stats: Record<string, ChildStats> = {};
       const allRecentBadges: BadgeAward[] = [];
-      const sessions = await apiClient.get<Session[]>('coach_sessions', []);
 
       const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
       const childStatEntries = await Promise.all(
         childrenData.map(async (child) => {
-          const childSessions = sessions.filter((session) => session.athleteId === child.id);
-          const [awards, unseenCount] = await Promise.all([
+          const [analyticsResult, awards, unseenCount] = await Promise.all([
+            analyticsQueryService.getAthleteAnalytics(child.id, 'ALL'),
             badgeService.listAwardsForAthlete(child.id),
             badgeService.getUnseenBadgeCount(child.id),
           ]);
-          const avgRating =
-            childSessions.length > 0
-              ? childSessions.reduce((sum, session) => sum + session.performanceRating, 0) /
-                childSessions.length
-              : 0;
+          if (!analyticsResult.success || !analyticsResult.data) {
+            throw new Error(
+              analyticsResult.success
+                ? `Athlete analytics missing for ${child.id}`
+                : analyticsResult.error.message,
+            );
+          }
+          const analytics = analyticsResult.data;
 
           const visibleAwards = awards.filter((award) => award.visibility !== 'coach_only');
           const recentAwards = visibleAwards.filter(
@@ -85,9 +96,9 @@ export function useChildrenHub() {
             childId: child.id,
             recentAwards,
             stats: {
-              sessions: childSessions.length,
+              sessions: analytics.totalSessions,
               badges: visibleAwards.length,
-              avgRating,
+              avgRating: analytics.averageSessionRating,
               unseenBadges: unseenCount,
             },
           };
@@ -120,11 +131,11 @@ export function useChildrenHub() {
     } catch (loadError) {
       return err(serviceError('UNKNOWN', 'Failed to load children hub data.', loadError));
     }
-  };
+  }, [contextChildrenSignature, currentUser?.id]);
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<ChildrenHubData>({
     load: loadData,
-    deps: [loadData],
+    deps: [contextChildrenSignature, currentUser?.id],
     isEmpty: (value) => value.children.length === 0,
     refetchOnFocus: true,
     loadingStrategy: 'warm-first',

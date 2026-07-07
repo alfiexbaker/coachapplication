@@ -11,6 +11,7 @@ import test, { describe, beforeEach } from 'node:test';
 
 import { concernService } from '../../services/concern-service';
 import { apiClient } from '../../services/api-client';
+import { authService, type UserProfile } from '../../services/auth-service';
 import { eventBus, onTyped, ServiceEvents } from '../../services/event-bus';
 
 const rid = () => Math.random().toString(36).slice(2, 10);
@@ -65,6 +66,80 @@ describe('concernService', () => {
       const result = await concernService.raiseConcern(makeConcernInput({ description: '' }));
       assert.strictEqual(result.success, false);
     });
+
+    test('API mode writes concern authority through safeguarding API without local mirror writes', async () => {
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+      const originalFetch = globalThis.fetch;
+      const originalGetCurrentUser = authService.getCurrentUser;
+      const apiClientInternals = apiClient as unknown as { set: typeof apiClient.set };
+      const originalSet = apiClientInternals.set;
+      const fetchUrls: string[] = [];
+      let setCalls = 0;
+      const apiCoachUser: UserProfile = {
+        id: 'coach_api_concern_1',
+        email: 'coach.concern@example.com',
+        accountType: 'COACH',
+        appRole: 'COACH',
+        firstName: 'Coach',
+        lastName: 'Concern',
+        isVerified: true,
+        onboardingComplete: true,
+        createdAt: '2026-07-03T12:00:00.000Z',
+        updatedAt: '2026-07-03T12:00:00.000Z',
+      };
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+      authService.getCurrentUser = async () => apiCoachUser;
+      apiClientInternals.set = async () => {
+        setCalls += 1;
+      };
+      globalThis.fetch = (async (input) => {
+        fetchUrls.push(String(input));
+        return new Response(
+          JSON.stringify({
+            id: 'inc_api_concern_1',
+            athleteId: 'ath_api_concern_1',
+            category: 'session_conduct',
+            severity: 'medium',
+            status: 'open',
+            summary: 'API concern',
+            details: 'Concern details',
+            reportedByUserId: 'usr_coach_api_concern_1',
+            actions: [],
+            createdAt: '2026-07-03T12:00:00.000Z',
+            updatedAt: '2026-07-03T12:00:00.000Z',
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }) as typeof fetch;
+
+      try {
+        const result = await concernService.raiseConcern(
+          makeConcernInput({
+            athleteId: 'ath_api_concern_1',
+            title: 'API concern',
+            description: 'Concern details',
+          }),
+        );
+
+        assert.equal(result.success, true);
+        assert.match(fetchUrls[0], /\/v1\/safeguarding\/incidents$/);
+        assert.equal(setCalls, 0);
+      } finally {
+        if (originalIsMockMode) {
+          Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+        }
+        authService.getCurrentUser = originalGetCurrentUser;
+        apiClientInternals.set = originalSet;
+        globalThis.fetch = originalFetch;
+      }
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -83,6 +158,53 @@ describe('concernService', () => {
       if (result.success) {
         assert.equal(result.data.length, 1);
         assert.equal(result.data[0].athleteId, athleteId);
+      }
+    });
+
+    test('API mode fails closed instead of reading local concern storage', async () => {
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+      const apiClientInternals = apiClient as unknown as { get: typeof apiClient.get };
+      const originalGet = apiClientInternals.get;
+      let getCalls = 0;
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+      apiClientInternals.get = async <T,>(key: string, fallback: T): Promise<T> => {
+        getCalls += 1;
+        return originalGet<T>(key, fallback);
+      };
+
+      try {
+        const athleteResult = await concernService.getForAthlete(
+          'coach_api_concern_1',
+          'ath_api_concern_1',
+        );
+        const openResult = await concernService.getOpenConcerns('coach_api_concern_1');
+        const resolveResult = await concernService.resolveConcern(
+          'inc_api_concern_1',
+          'Resolved in API mode',
+        );
+        const updateResult = await concernService.updateStatus(
+          'inc_api_concern_1',
+          'IN_PROGRESS',
+        );
+
+        assert.equal(athleteResult.success, false);
+        assert.equal(openResult.success, false);
+        assert.equal(resolveResult.success, false);
+        assert.equal(updateResult.success, false);
+        assert.equal(athleteResult.success ? '' : athleteResult.error.code, 'UNSUPPORTED');
+        assert.equal(openResult.success ? '' : openResult.error.code, 'UNSUPPORTED');
+        assert.equal(resolveResult.success ? '' : resolveResult.error.code, 'UNSUPPORTED');
+        assert.equal(updateResult.success ? '' : updateResult.error.code, 'UNSUPPORTED');
+        assert.equal(getCalls, 0);
+      } finally {
+        if (originalIsMockMode) {
+          Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+        }
+        apiClientInternals.get = originalGet;
       }
     });
   });

@@ -35,6 +35,16 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '../../..');
 const defaultEnvPath = path.join(repoRoot, '.env.staging.local');
 const results: SmokeResult[] = [];
+const smokeBookingNotes = 'Created by apps/api/scripts/staging-smoke.ts';
+const smokeDeliveryProofNote = 'Delivered and ready for launch-loop proof';
+const defaultDatabaseConnectionLimit = '2';
+const releaseOnlyReadinessCodes = new Set([
+  'PASSWORD_RESET_EMAIL_DELIVERY_MISSING',
+  'PASSWORD_RESET_EMAIL_WEBHOOK_MISSING',
+  'PASSWORD_RESET_DEV_OUTBOX_ENABLED',
+  'SENTRY_DSN_MISSING',
+  'SENTRY_RELEASE_DEFAULT',
+]);
 
 function loadEnvFile(filePath: string): void {
   if (!fs.existsSync(filePath)) {
@@ -59,6 +69,29 @@ function loadEnvFile(filePath: string): void {
     }
 
     process.env[key] = rawValue.replace(/^['"]|['"]$/g, '');
+  }
+}
+
+function configureSmokeDatabaseUrl(): void {
+  const rawDatabaseUrl = process.env.DATABASE_URL;
+  if (!rawDatabaseUrl) {
+    return;
+  }
+
+  try {
+    const databaseUrl = new URL(rawDatabaseUrl);
+    if (!databaseUrl.searchParams.has('connection_limit')) {
+      databaseUrl.searchParams.set(
+        'connection_limit',
+        process.env.STAGING_SMOKE_DATABASE_CONNECTION_LIMIT ?? defaultDatabaseConnectionLimit,
+      );
+    }
+    if (!databaseUrl.searchParams.has('pool_timeout')) {
+      databaseUrl.searchParams.set('pool_timeout', '30');
+    }
+    process.env.DATABASE_URL = databaseUrl.toString();
+  } catch {
+    // The config parser will surface invalid DATABASE_URL values with the normal startup error.
   }
 }
 
@@ -145,6 +178,7 @@ async function check<T>(
 
 async function main(): Promise<void> {
   loadEnvFile(defaultEnvPath);
+  configureSmokeDatabaseUrl();
   process.env.PRISMA_CLIENT_ENGINE_TYPE = process.env.PRISMA_CLIENT_ENGINE_TYPE ?? 'binary';
 
   const [{ buildApp }, { getPrismaClient }, { createSignedReadUrl }] = await Promise.all([
@@ -161,6 +195,7 @@ async function main(): Promise<void> {
   let parentLogin: LoginResult | undefined;
   let parentAthleteId: string | undefined;
   let parentFamilyId: string | undefined;
+  let unrelatedAthleteId: string | undefined;
   let createdBookingId: string | undefined;
   let createdInvoiceId: string | undefined;
   let createdGroupSessionId: string | undefined;
@@ -189,13 +224,32 @@ async function main(): Promise<void> {
             select: { athleteId: true, familyId: true },
           })
         : null;
+      const unrelatedAthlete =
+        parent && guardianLink
+          ? await prisma.athlete.findFirst({
+              where: {
+                id: { not: guardianLink.athleteId },
+                deletedAt: null,
+                guardianLinks: {
+                  none: {
+                    guardianUserId: parent.id,
+                    deletedAt: null,
+                  },
+                },
+              },
+              select: { id: true },
+            })
+          : null;
 
-      if (!coach || !parent || !guardianLink) {
-        throw new Error('Expected seeded coach, parent, and guardian-child link to exist');
+      if (!coach || !parent || !guardianLink || !unrelatedAthlete) {
+        throw new Error(
+          'Expected seeded coach, parent, guardian-child link, and unrelated athlete to exist',
+        );
       }
 
       parentAthleteId = guardianLink.athleteId;
       parentFamilyId = guardianLink.familyId;
+      unrelatedAthleteId = unrelatedAthlete.id;
       return {
         users,
         clubs,
@@ -221,7 +275,7 @@ async function main(): Promise<void> {
         });
         const payload = response.payload;
         const blockingIssues = (payload.issues ?? []).filter(
-          (issue) => issue.code !== 'SENTRY_DSN_MISSING',
+          (issue) => !releaseOnlyReadinessCodes.has(issue.code ?? ''),
         );
         if (payload.checks.database !== 'ok' || payload.checks.objectStorage !== 'ok') {
           throw new Error(`DB/storage readiness failed: ${JSON.stringify(payload)}`);
@@ -278,9 +332,9 @@ async function main(): Promise<void> {
       };
     });
 
-    if (!coachLogin || !parentLogin || !parentAthleteId || !parentFamilyId) {
+    if (!coachLogin || !parentLogin || !parentAthleteId || !parentFamilyId || !unrelatedAthleteId) {
       throw new Error(
-        'Cannot continue route smoke without coach, parent, family, and athlete context',
+        'Cannot continue route smoke without coach, parent, family, athlete, and deny-test context',
       );
     }
 
@@ -306,6 +360,23 @@ async function main(): Promise<void> {
         throw new Error('Coach profile bundle is empty');
       }
       return { offerings: offerings.payload.total, hasRules: Boolean(rules.payload.rules) };
+    });
+
+    await check('cleanup previous smoke bookings', async () => {
+      const result = await prisma.booking.updateMany({
+        where: {
+          coachUserId: coachLogin.user.id,
+          bookedByUserId: parentLogin.user.id,
+          notes: smokeBookingNotes,
+          deletedAt: null,
+        },
+        data: {
+          deletedAt: new Date(),
+          deletedByUserId: coachLogin.user.id,
+          updatedByUserId: coachLogin.user.id,
+        },
+      });
+      return { softDeletedBookings: result.count };
     });
 
     const selectedSlot = await check('discover availability slots', async () => {
@@ -347,7 +418,7 @@ async function main(): Promise<void> {
               location: selectedSlot.location ?? 'Clubroom staging pitch',
               serviceType: 'one_to_one',
               objectives: ['Codex staging smoke'],
-              notes: 'Created by apps/api/scripts/staging-smoke.ts',
+              notes: smokeBookingNotes,
               priceMinor: 2500,
               currency: 'GBP',
             },
@@ -430,6 +501,149 @@ async function main(): Promise<void> {
       createdInvoiceId = invoice?.invoiceId ?? createdInvoiceId;
     }
 
+    if (booking?.id) {
+      await check('coach delivery completion + proof readback', async () => {
+        const scheduledAt = new Date(Date.now() - 60 * 60 * 1000);
+        const preparedBooking = await prisma.booking.update({
+          where: { id: booking.id },
+          data: {
+            scheduledAt,
+            updatedByUserId: coachLogin.user.id,
+          },
+          select: { version: true },
+        });
+        const completed = await requestJson<{ id: string; status: string; version: number }>(app, {
+          method: 'POST',
+          url: `/v1/bookings/${booking.id}/complete`,
+          headers: authHeaders(coachLogin, 'coach'),
+          payload: {
+            note: smokeDeliveryProofNote,
+            completedAt: new Date().toISOString(),
+            expectedVersion: Number(preparedBooking.version),
+            idempotencyKey: `codex-smoke-complete-${booking.id}`,
+          },
+        });
+        if (completed.payload.status !== 'COMPLETED') {
+          throw new Error(`Expected booking COMPLETED, got ${completed.payload.status}`);
+        }
+
+        const [attendanceRecords, sessionNotes, completionEvent, progress] = await Promise.all([
+          prisma.attendanceRecord.findMany({
+            where: {
+              bookingId: booking.id,
+              athleteId: parentAthleteId,
+            },
+            select: {
+              id: true,
+              status: true,
+              notes: true,
+              recordedByUserId: true,
+            },
+          }),
+          prisma.sessionNote.findMany({
+            where: {
+              bookingId: booking.id,
+              athleteId: parentAthleteId,
+              coachUserId: coachLogin.user.id,
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              noteText: true,
+              visibility: true,
+              metadataJson: true,
+            },
+          }),
+          prisma.bookingStatusEvent.findFirst({
+            where: {
+              bookingId: booking.id,
+              toStatus: 'COMPLETED',
+            },
+            orderBy: {
+              occurredAt: 'desc',
+            },
+            select: {
+              metadataJson: true,
+            },
+          }),
+          requestJson<{
+            sessionNotes: Array<{
+              bookingId?: string;
+              noteText?: string | null;
+            }>;
+          }>(app, {
+            method: 'GET',
+            url: `/v1/athletes/${parentAthleteId}/progress`,
+            headers: authHeaders(parentLogin, 'parent'),
+          }),
+        ]);
+
+        const attendanceRecord = attendanceRecords[0];
+        if (
+          attendanceRecords.length !== 1 ||
+          attendanceRecord?.status !== 'ATTENDED' ||
+          attendanceRecord.recordedByUserId !== coachLogin.user.id ||
+          attendanceRecord.notes !== smokeDeliveryProofNote
+        ) {
+          throw new Error(`Unexpected attendance proof: ${JSON.stringify(attendanceRecords)}`);
+        }
+
+        const sessionNote = sessionNotes[0];
+        const sessionNoteMetadata = sessionNote?.metadataJson as
+          | {
+              source?: string;
+              proofSource?: string;
+              attendanceRecordIds?: string[];
+            }
+          | null
+          | undefined;
+        if (
+          sessionNotes.length !== 1 ||
+          sessionNote?.visibility !== 'PUBLIC' ||
+          sessionNote.noteText !== smokeDeliveryProofNote ||
+          sessionNoteMetadata?.source !== 'booking-completion' ||
+          sessionNoteMetadata.proofSource !== 'attendance-record' ||
+          !sessionNoteMetadata.attendanceRecordIds?.includes(attendanceRecord.id)
+        ) {
+          throw new Error(`Unexpected session-note proof: ${JSON.stringify(sessionNotes)}`);
+        }
+
+        const completionMetadata = completionEvent?.metadataJson as
+          | {
+              attendanceRecordIds?: string[];
+              sessionNoteIds?: string[];
+              proofSources?: string[];
+            }
+          | null
+          | undefined;
+        if (
+          !completionMetadata?.attendanceRecordIds?.includes(attendanceRecord.id) ||
+          !completionMetadata.sessionNoteIds?.includes(sessionNote.id) ||
+          !completionMetadata.proofSources?.includes('attendance-record') ||
+          !completionMetadata.proofSources.includes('session-note')
+        ) {
+          throw new Error(
+            `Unexpected completion proof metadata: ${JSON.stringify(completionMetadata)}`,
+          );
+        }
+
+        const parentCanReadProof = progress.payload.sessionNotes.some(
+          (note) => note.bookingId === booking.id && note.noteText === smokeDeliveryProofNote,
+        );
+        if (!parentCanReadProof) {
+          throw new Error('Parent progress proof readback did not include the completed session note');
+        }
+
+        return {
+          bookingId: completed.payload.id,
+          bookingStatus: completed.payload.status,
+          attendanceRecordId: attendanceRecord.id,
+          sessionNoteId: sessionNote.id,
+          parentProgressProofVisible: true,
+        };
+      });
+    }
+
     await check('family + athlete sensitive reads', async () => {
       const [family, athlete, medical, emergencyContacts, consents] = await Promise.all([
         requestJson(app, {
@@ -462,6 +676,36 @@ async function main(): Promise<void> {
       return {
         familyStatus: family.statusCode,
         athleteStatus: athlete.statusCode,
+        medicalStatus: medical.statusCode,
+        emergencyContactsStatus: emergencyContacts.statusCode,
+        consentsStatus: consents.statusCode,
+      };
+    });
+
+    await check('unrelated athlete sensitive reads denied', async () => {
+      const [medical, emergencyContacts, consents] = await Promise.all([
+        requestJson(app, {
+          method: 'GET',
+          url: `/v1/athletes/${unrelatedAthleteId}/medical`,
+          headers: authHeaders(parentLogin, 'parent'),
+          expectedStatus: [403, 404],
+        }),
+        requestJson(app, {
+          method: 'GET',
+          url: `/v1/athletes/${unrelatedAthleteId}/emergency-contacts`,
+          headers: authHeaders(parentLogin, 'parent'),
+          expectedStatus: [403, 404],
+        }),
+        requestJson(app, {
+          method: 'GET',
+          url: `/v1/athletes/${unrelatedAthleteId}/consents`,
+          headers: authHeaders(parentLogin, 'parent'),
+          expectedStatus: [403, 404],
+        }),
+      ]);
+
+      return {
+        athleteId: unrelatedAthleteId,
         medicalStatus: medical.statusCode,
         emergencyContactsStatus: emergencyContacts.statusCode,
         consentsStatus: consents.statusCode,

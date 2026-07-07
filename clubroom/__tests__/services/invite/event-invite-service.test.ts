@@ -2,13 +2,120 @@ import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { eventInviteService } from '@/services/invite/event-invite-service';
+import { eventCrudService } from '@/services/event/event-crud-service';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+
+function restoreMockMode(original?: PropertyDescriptor): void {
+  if (original) {
+    Object.defineProperty(apiClient, 'isMockMode', original);
+  } else {
+    delete (apiClient as unknown as { isMockMode?: boolean }).isMockMode;
+  }
+}
 
 describe('EventInviteService', () => {
   beforeEach(async () => {
     await apiClient.remove(STORAGE_KEYS.SQUAD_INVITES);
     await apiClient.remove(STORAGE_KEYS.CLUB_EVENTS);
+  });
+
+  describe('inviteSquadsToEvent', () => {
+    it('uses API authority in API mode without creating legacy local invite fan-out', async () => {
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+      const originalCreateEvent = eventCrudService.createEvent;
+      const originalInviteSquads = eventCrudService.inviteSquads;
+      let createEventCalls = 0;
+      const inviteCalls: Array<{
+        eventId: string;
+        squadIds: string[];
+        excludeAthleteIds?: string[];
+      }> = [];
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+      eventCrudService.createEvent = (async (input) => {
+        createEventCalls += 1;
+        return {
+          id: 'event-api-squad',
+          clubId: input.clubId,
+          createdBy: input.createdBy,
+          title: input.title,
+          description: input.description,
+          eventType: input.eventType,
+          date: input.date,
+          startTime: input.startTime,
+          endTime: input.endTime,
+          venue: input.venue,
+          isVirtual: input.isVirtual ?? false,
+          targetAudience: input.targetAudience,
+          squadIds: input.squadIds,
+          maxAttendees: input.maxAttendees,
+          price: input.price ?? 0,
+          currency: input.currency ?? 'GBP',
+          rsvpRequired: input.rsvpRequired ?? true,
+          attendees: [],
+          status: 'DRAFT',
+          createdAt: '2026-07-10T18:00:00.000Z',
+        };
+      }) as typeof eventCrudService.createEvent;
+      eventCrudService.inviteSquads = (async (eventId, squadIds, options) => {
+        inviteCalls.push({
+          eventId,
+          squadIds,
+          excludeAthleteIds: options?.excludeAthleteIds,
+        });
+        return {
+          eventId,
+          squadIds,
+          inviteCount: 2,
+          targetAthleteCount: 3,
+        };
+      }) as typeof eventCrudService.inviteSquads;
+
+      try {
+        const result = await eventInviteService.inviteSquadsToEvent({
+          clubId: 'club-api-event-invite',
+          clubName: 'API Club',
+          title: 'API Squad Event',
+          description: 'Should use backend squad invites in API mode',
+          eventType: 'TRAINING_CAMP',
+          date: '2026-07-10',
+          startTime: '18:00',
+          venue: 'API Field',
+          squadIds: ['squad-api-event'],
+          excludeMemberIds: ['athlete-excluded'],
+          createdBy: 'coach-api-event',
+          createdByName: 'Coach API',
+        });
+
+        assert.equal(createEventCalls, 1);
+        assert.deepEqual(inviteCalls, [
+          {
+            eventId: 'event-api-squad',
+            squadIds: ['squad-api-event'],
+            excludeAthleteIds: ['athlete-excluded'],
+          },
+        ]);
+        assert.equal(result.event.id, 'event-api-squad');
+        assert.deepEqual(result.inviteResult, {
+          sent: 2,
+          successful: 2,
+          failed: 0,
+          skipped: 0,
+          totalAttempted: 3,
+          errors: [],
+          groupId: 'squad_event_event-api-squad',
+        });
+        assert.deepEqual(await apiClient.get(STORAGE_KEYS.SQUAD_INVITES, []), []);
+      } finally {
+        eventCrudService.createEvent = originalCreateEvent;
+        eventCrudService.inviteSquads = originalInviteSquads;
+        restoreMockMode(originalIsMockMode);
+      }
+    });
   });
 
   describe('getEventInvites', () => {

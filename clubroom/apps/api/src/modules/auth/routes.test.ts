@@ -1,14 +1,22 @@
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import http from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { after, beforeEach, describe, it } from 'node:test';
 import { env } from '@clubroom/config';
 import { buildApp } from '../../app.js';
 import { resetAuthRuntimeForTests } from '../../lib/auth-runtime.js';
-import { resetMarketplaceSeedStoreForTests } from '../../lib/marketplace-seed-store.js';
+import {
+  getMarketplaceSeedStore,
+  resetMarketplaceSeedStoreForTests,
+} from '../../lib/marketplace-seed-store.js';
 import { resetDbFixtureStoreForTests } from '../../lib/db-fixture-store.js';
 
 const JWT_PATTERN = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
+const asRows = (value: unknown): Record<string, unknown>[] =>
+  Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
+const asString = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
 
 function encodeBase64Url(value: Buffer | string): string {
   return Buffer.from(value).toString('base64url');
@@ -25,6 +33,24 @@ describe('auth routes', () => {
 
   after(async () => {
     await app.close();
+  });
+
+  it('answers local web CORS preflight for login', async () => {
+    const preflight = await app.inject({
+      method: 'OPTIONS',
+      url: '/v1/auth/login',
+      headers: {
+        origin: 'http://localhost:8083',
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'content-type,authorization',
+      },
+    });
+
+    assert.equal(preflight.statusCode, 204);
+    assert.equal(preflight.headers['access-control-allow-origin'], 'http://localhost:8083');
+    assert.equal(preflight.headers['access-control-allow-credentials'], 'true');
+    assert.match(String(preflight.headers['access-control-allow-methods']), /POST/);
+    assert.equal(preflight.headers['access-control-allow-headers'], 'content-type,authorization');
   });
 
   it('logs in a seeded coach and returns a usable bearer session', async () => {
@@ -226,6 +252,308 @@ describe('auth routes', () => {
     assert.equal(refreshAfterRevoke.statusCode, 401);
   });
 
+  it('resets a password with a one-use backend token and revokes active sessions', async () => {
+    const previousEcho = process.env.API_PASSWORD_RESET_TOKEN_RESPONSE;
+    process.env.API_PASSWORD_RESET_TOKEN_RESPONSE = '1';
+    try {
+      const login = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/login',
+        payload: {
+          email: 'amelia.shaw@clubroom.demo',
+          password: 'coach',
+        },
+      });
+      assert.equal(login.statusCode, 200);
+      const loginPayload = login.json() as {
+        tokens: { accessToken: string };
+      };
+
+      const forgot = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/forgot-password',
+        payload: {
+          email: 'amelia.shaw@clubroom.demo',
+        },
+      });
+      assert.equal(forgot.statusCode, 200);
+      const forgotPayload = forgot.json() as {
+        resetToken: string;
+        expiresAt: string;
+      };
+      assert.equal(typeof forgotPayload.resetToken, 'string');
+      assert.equal(forgotPayload.resetToken.length > 20, true);
+      assert.equal(Date.parse(forgotPayload.expiresAt) > Date.now(), true);
+
+      const reset = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/reset-password',
+        payload: {
+          token: forgotPayload.resetToken,
+          newPassword: 'coach-reset-123',
+        },
+      });
+      assert.equal(reset.statusCode, 204);
+
+      const revokedMe = await app.inject({
+        method: 'GET',
+        url: '/v1/auth/me',
+        headers: {
+          authorization: `Bearer ${loginPayload.tokens.accessToken}`,
+        },
+      });
+      assert.equal(revokedMe.statusCode, 403);
+
+      const oldPassword = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/login',
+        payload: {
+          email: 'amelia.shaw@clubroom.demo',
+          password: 'coach',
+        },
+      });
+      assert.equal(oldPassword.statusCode, 401);
+
+      const newPassword = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/login',
+        payload: {
+          email: 'amelia.shaw@clubroom.demo',
+          password: 'coach-reset-123',
+        },
+      });
+      assert.equal(newPassword.statusCode, 200);
+
+      const reusedToken = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/reset-password',
+        payload: {
+          token: forgotPayload.resetToken,
+          newPassword: 'should-not-apply',
+        },
+      });
+      assert.equal(reusedToken.statusCode, 400);
+
+      const auditEvents = asRows(getMarketplaceSeedStore().tables.auditEvents);
+      assert.ok(
+        auditEvents.some(
+          (row) =>
+            asString(row.action) === 'auth.password_reset_requested' &&
+            asString(row.result) === 'SUCCESS',
+        ),
+      );
+      assert.ok(
+        auditEvents.some(
+          (row) =>
+            asString(row.action) === 'auth.password_reset_completed' &&
+            asString(row.result) === 'SUCCESS',
+        ),
+      );
+      assert.ok(
+        auditEvents.some(
+          (row) =>
+            asString(row.action) === 'auth.password_reset_completed' &&
+            asString(row.result) === 'DENY',
+        ),
+      );
+    } finally {
+      if (previousEcho == null) {
+        delete process.env.API_PASSWORD_RESET_TOKEN_RESPONSE;
+      } else {
+        process.env.API_PASSWORD_RESET_TOKEN_RESPONSE = previousEcho;
+      }
+    }
+  });
+
+  it('delivers password reset links through the configured email webhook', async () => {
+    const deliveries: Array<{
+      authorization?: string;
+      body: Record<string, unknown>;
+    }> = [];
+    const deliveryServer = http.createServer((req, res) => {
+      let raw = '';
+      req.setEncoding('utf8');
+      req.on('data', (chunk) => {
+        raw += chunk;
+      });
+      req.on('end', () => {
+        deliveries.push({
+          authorization: req.headers.authorization,
+          body: raw ? (JSON.parse(raw) as Record<string, unknown>) : {},
+        });
+        res.statusCode = 202;
+        res.end('accepted');
+      });
+    });
+
+    await new Promise<void>((resolve) => deliveryServer.listen(0, '127.0.0.1', resolve));
+    const address = deliveryServer.address() as AddressInfo;
+    const previousWebhookUrl = env.API_PASSWORD_RESET_EMAIL_WEBHOOK_URL;
+    const previousWebhookSecret = env.API_PASSWORD_RESET_EMAIL_WEBHOOK_SECRET;
+    const previousFrom = env.API_PASSWORD_RESET_EMAIL_FROM;
+    const previousLinkBase = env.API_PASSWORD_RESET_LINK_BASE;
+
+    env.API_PASSWORD_RESET_EMAIL_WEBHOOK_URL = `http://127.0.0.1:${address.port}/password-reset`;
+    env.API_PASSWORD_RESET_EMAIL_WEBHOOK_SECRET = 'reset-webhook-secret';
+    env.API_PASSWORD_RESET_EMAIL_FROM = 'support@clubroom.test';
+    env.API_PASSWORD_RESET_LINK_BASE = 'https://app.clubroom.test/reset-password';
+
+    try {
+      const forgot = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/forgot-password',
+        payload: {
+          email: 'amelia.shaw@clubroom.demo',
+        },
+      });
+      assert.equal(forgot.statusCode, 200);
+      assert.equal(deliveries.length, 1);
+      assert.equal(deliveries[0]?.authorization, 'Bearer reset-webhook-secret');
+      assert.equal(deliveries[0]?.body.type, 'password_reset');
+      assert.equal(deliveries[0]?.body.to, 'amelia.shaw@clubroom.demo');
+      assert.equal(deliveries[0]?.body.from, 'support@clubroom.test');
+      assert.equal(
+        typeof deliveries[0]?.body.resetUrl === 'string' &&
+          deliveries[0].body.resetUrl.startsWith(
+            'https://app.clubroom.test/reset-password?token=',
+          ),
+        true,
+      );
+
+      const resetToken = new URL(String(deliveries[0]?.body.resetUrl)).searchParams.get('token');
+      assert.ok(resetToken);
+      assert.equal((forgot.json() as { resetToken: string }).resetToken, resetToken);
+
+      const reset = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/reset-password',
+        payload: {
+          token: resetToken,
+          newPassword: 'coach-webhook-reset-123',
+        },
+      });
+      assert.equal(reset.statusCode, 204);
+
+      const unknown = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/forgot-password',
+        payload: {
+          email: 'missing.user@clubroom.demo',
+        },
+      });
+      assert.equal(unknown.statusCode, 204);
+      assert.equal(deliveries.length, 1);
+
+      const auditEvents = asRows(getMarketplaceSeedStore().tables.auditEvents);
+      assert.ok(
+        auditEvents.some(
+          (row) =>
+            asString(row.action) === 'auth.password_reset_requested' &&
+            asString(row.result) === 'SUCCESS' &&
+            (row.metadataJson as { deliveryStatus?: string } | undefined)?.deliveryStatus ===
+              'sent',
+        ),
+      );
+    } finally {
+      env.API_PASSWORD_RESET_EMAIL_WEBHOOK_URL = previousWebhookUrl;
+      env.API_PASSWORD_RESET_EMAIL_WEBHOOK_SECRET = previousWebhookSecret;
+      env.API_PASSWORD_RESET_EMAIL_FROM = previousFrom;
+      env.API_PASSWORD_RESET_LINK_BASE = previousLinkBase;
+      await new Promise<void>((resolve, reject) => {
+        deliveryServer.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
+  });
+
+  it('delivers password reset links through the configured Brevo API endpoint', async () => {
+    const deliveries: Array<{
+      apiKey?: string | string[];
+      body: Record<string, unknown>;
+    }> = [];
+    const deliveryServer = http.createServer((req, res) => {
+      let raw = '';
+      req.setEncoding('utf8');
+      req.on('data', (chunk) => {
+        raw += chunk;
+      });
+      req.on('end', () => {
+        deliveries.push({
+          apiKey: req.headers['api-key'],
+          body: raw ? (JSON.parse(raw) as Record<string, unknown>) : {},
+        });
+        res.statusCode = 201;
+        res.setHeader('content-type', 'application/json');
+        res.end(JSON.stringify({ messageId: 'brevo-message-1' }));
+      });
+    });
+
+    await new Promise<void>((resolve) => deliveryServer.listen(0, '127.0.0.1', resolve));
+    const address = deliveryServer.address() as AddressInfo;
+    const previousWebhookUrl = env.API_PASSWORD_RESET_EMAIL_WEBHOOK_URL;
+    const previousBrevoKey = env.API_PASSWORD_RESET_BREVO_API_KEY;
+    const previousBrevoEndpoint = env.API_PASSWORD_RESET_BREVO_ENDPOINT;
+    const previousFrom = env.API_PASSWORD_RESET_EMAIL_FROM;
+    const previousLinkBase = env.API_PASSWORD_RESET_LINK_BASE;
+    const previousSmtpHost = env.API_PASSWORD_RESET_SMTP_HOST;
+    const previousSmtpUsername = env.API_PASSWORD_RESET_SMTP_USERNAME;
+    const previousSmtpPassword = env.API_PASSWORD_RESET_SMTP_PASSWORD;
+
+    env.API_PASSWORD_RESET_EMAIL_WEBHOOK_URL = undefined;
+    env.API_PASSWORD_RESET_BREVO_API_KEY = 'brevo-api-key';
+    env.API_PASSWORD_RESET_BREVO_ENDPOINT = `http://127.0.0.1:${address.port}/v3/smtp/email`;
+    env.API_PASSWORD_RESET_EMAIL_FROM = 'Clubroom Support <support@clubroom.test>';
+    env.API_PASSWORD_RESET_LINK_BASE = 'https://app.clubroom.test/reset-password';
+    env.API_PASSWORD_RESET_SMTP_HOST = undefined;
+    env.API_PASSWORD_RESET_SMTP_USERNAME = undefined;
+    env.API_PASSWORD_RESET_SMTP_PASSWORD = undefined;
+
+    try {
+      const forgot = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/forgot-password',
+        payload: {
+          email: 'amelia.shaw@clubroom.demo',
+        },
+      });
+      assert.equal(forgot.statusCode, 200);
+      assert.equal(deliveries.length, 1);
+      assert.equal(deliveries[0]?.apiKey, 'brevo-api-key');
+      assert.deepEqual(deliveries[0]?.body.sender, {
+        email: 'support@clubroom.test',
+        name: 'Clubroom Support',
+      });
+      assert.deepEqual(deliveries[0]?.body.to, [{ email: 'amelia.shaw@clubroom.demo' }]);
+      assert.equal(deliveries[0]?.body.subject, 'Reset your Clubroom password');
+      assert.match(
+        String(deliveries[0]?.body.textContent),
+        /https:\/\/app\.clubroom\.test\/reset-password\?token=/,
+      );
+
+      const auditEvents = asRows(getMarketplaceSeedStore().tables.auditEvents);
+      assert.ok(
+        auditEvents.some(
+          (row) =>
+            asString(row.action) === 'auth.password_reset_requested' &&
+            asString(row.result) === 'SUCCESS' &&
+            (row.metadataJson as { deliveryProvider?: string } | undefined)?.deliveryProvider ===
+              'brevo_api',
+        ),
+      );
+    } finally {
+      env.API_PASSWORD_RESET_EMAIL_WEBHOOK_URL = previousWebhookUrl;
+      env.API_PASSWORD_RESET_BREVO_API_KEY = previousBrevoKey;
+      env.API_PASSWORD_RESET_BREVO_ENDPOINT = previousBrevoEndpoint;
+      env.API_PASSWORD_RESET_EMAIL_FROM = previousFrom;
+      env.API_PASSWORD_RESET_LINK_BASE = previousLinkBase;
+      env.API_PASSWORD_RESET_SMTP_HOST = previousSmtpHost;
+      env.API_PASSWORD_RESET_SMTP_USERNAME = previousSmtpUsername;
+      env.API_PASSWORD_RESET_SMTP_PASSWORD = previousSmtpPassword;
+      await new Promise<void>((resolve, reject) => {
+        deliveryServer.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
+  });
+
   it('rejects scaffold auth headers when runtime header override is disabled', async () => {
     const runtimeApp = buildApp({ allowTestAuthHeaders: false });
 
@@ -264,6 +592,32 @@ describe('auth routes', () => {
       });
       assert.equal(bearerMe.statusCode, 200);
     } finally {
+      await runtimeApp.close();
+    }
+  });
+
+  it('keeps scaffold auth header override disabled by default outside tests', async () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    const runtimeApp = buildApp();
+
+    try {
+      const headerOnlyMe = await runtimeApp.inject({
+        method: 'GET',
+        url: '/v1/auth/me',
+        headers: {
+          'x-auth-user-id': 'usr_coach1',
+          'x-auth-roles': 'coach',
+          'x-acting-role': 'coach',
+        },
+      });
+      assert.equal(headerOnlyMe.statusCode, 403);
+    } finally {
+      if (previousNodeEnv == null) {
+        delete process.env.NODE_ENV;
+      } else {
+        process.env.NODE_ENV = previousNodeEnv;
+      }
       await runtimeApp.close();
     }
   });

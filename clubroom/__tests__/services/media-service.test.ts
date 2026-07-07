@@ -7,9 +7,13 @@
  */
 
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import test, { describe, beforeEach } from 'node:test';
 
 import { mediaService } from '@/services/media-service';
+import { apiClient } from '@/services/api-client';
+import { authService } from '@/services/auth-service';
 import type { Result, ServiceError } from '@/types/result';
 import type { SessionMedia, PhotoAsset } from '@/types/progress-types';
 
@@ -40,6 +44,13 @@ function makeMedia(overrides: Partial<SessionMedia> = {}): SessionMedia {
     createdAt: new Date().toISOString(),
     ...overrides,
   };
+}
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
 
 describe('mediaService', () => {
@@ -161,6 +172,74 @@ describe('mediaService', () => {
       assert.equal(list.length, 2);
       assert.ok(list.every((m) => m.athleteId === athleteId));
     });
+
+    test('API mode uses signed-in actor scope for athlete media history', async () => {
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+      const originalGetCurrentUser = authService.getCurrentUser;
+      const originalFetch = globalThis.fetch;
+      const requestedUrls: string[] = [];
+      const requestedHeaders: unknown[] = [];
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+      authService.getCurrentUser = async () => ({
+        id: 'coach_api_media',
+        email: 'coach.api.media@example.test',
+        accountType: 'COACH',
+        firstName: 'API',
+        lastName: 'Coach',
+        isVerified: true,
+        onboardingComplete: true,
+        createdAt: '2026-07-05T10:00:00.000Z',
+        updatedAt: '2026-07-05T10:00:00.000Z',
+      });
+      globalThis.fetch = (async (
+        input: Parameters<typeof fetch>[0],
+        init?: Parameters<typeof fetch>[1],
+      ) => {
+        requestedUrls.push(String(input));
+        requestedHeaders.push(init?.headers ?? {});
+        return new Response(
+          JSON.stringify({
+            media: [
+              makeMedia({
+                sessionId: 'session_api_media',
+                athleteId: 'ath_api_media',
+                coachId: 'coach_api_media',
+              }),
+            ],
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }) as typeof fetch;
+
+      try {
+        const list = expectOk(await mediaService.listMediaForAthlete('usr_api_media'));
+
+        assert.equal(
+          requestedUrls[0],
+          'http://localhost:4000/v1/athletes/ath_api_media/session-media',
+        );
+        assert.equal((requestedHeaders[0] as Record<string, string>)['x-acting-role'], 'coach');
+        assert.equal(
+          (requestedHeaders[0] as Record<string, string>)['x-coach-athlete-ids'],
+          'ath_api_media',
+        );
+        assert.equal((requestedHeaders[0] as Record<string, string>)['x-coach-verified'], '1');
+        assert.equal(list[0].athleteId, 'ath_api_media');
+      } finally {
+        if (originalIsMockMode) {
+          Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+        }
+        authService.getCurrentUser = originalGetCurrentUser;
+        globalThis.fetch = originalFetch;
+      }
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -223,6 +302,143 @@ describe('mediaService', () => {
       // Verify it's gone from storage
       const check = expectOk(await mediaService.getSessionMedia(sessionId, athleteId));
       assert.equal(check, null);
+    });
+
+    test('API mode deletes the resolved backend media asset id', async () => {
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+      const originalFetch = globalThis.fetch;
+      const requestedUrls: string[] = [];
+      const requestedMethods: string[] = [];
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+      globalThis.fetch = (async (
+        input: Parameters<typeof fetch>[0],
+        init?: Parameters<typeof fetch>[1],
+      ) => {
+        requestedUrls.push(String(input));
+        requestedMethods.push(init?.method ?? 'GET');
+        if (String(input).includes('/v1/session-media?')) {
+          return jsonResponse({
+            media: makeMedia({
+              sessionId: 'session_api_remove',
+              athleteId: 'athlete_api_remove',
+              photos: [
+                {
+                  id: 'asset_photo_api_remove',
+                  mediaObjectId: 'mo_photo_api_remove',
+                  thumbnailMediaObjectId: 'mo_thumb_api_remove',
+                  uri: 'https://signed.example/photo.jpg',
+                  thumbnailUri: 'https://signed.example/thumb.jpg',
+                  width: 640,
+                  height: 480,
+                  capturedAt: '2026-07-06T10:00:00.000Z',
+                },
+              ],
+              video: null,
+            }),
+          });
+        }
+        if (String(input).endsWith('/v1/session-media/assets/asset_photo_api_remove')) {
+          return jsonResponse({ media: null });
+        }
+        return jsonResponse({ message: `Unexpected ${String(input)}` }, 500);
+      }) as typeof fetch;
+
+      try {
+        const result = expectOk(
+          await mediaService.removeSessionMediaAsset(
+            'session_api_remove',
+            'athlete_api_remove',
+            'asset_photo_api_remove',
+          ),
+        );
+
+        assert.equal(result, null);
+        assert.deepEqual(requestedMethods, ['GET', 'DELETE']);
+        assert.equal(
+          requestedUrls[1],
+          'http://localhost:4000/v1/session-media/assets/asset_photo_api_remove',
+        );
+      } finally {
+        if (originalIsMockMode) {
+          Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+        }
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    test('API mode rejects unresolved media removal instead of returning unchanged media', async () => {
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+      const originalFetch = globalThis.fetch;
+      let deleteCalled = false;
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+      globalThis.fetch = (async (
+        input: Parameters<typeof fetch>[0],
+        init?: Parameters<typeof fetch>[1],
+      ) => {
+        if (init?.method === 'DELETE') {
+          deleteCalled = true;
+        }
+        if (String(input).includes('/v1/session-media?')) {
+          return jsonResponse({
+            media: makeMedia({
+              sessionId: 'session_api_unresolved',
+              athleteId: 'athlete_api_unresolved',
+              photos: [
+                {
+                  id: 'asset_photo_api_unresolved',
+                  mediaObjectId: 'mo_photo_api_unresolved',
+                  uri: 'https://signed.example/photo.jpg',
+                  thumbnailUri: 'https://signed.example/thumb.jpg',
+                  width: 640,
+                  height: 480,
+                  capturedAt: '2026-07-06T10:00:00.000Z',
+                },
+              ],
+              video: null,
+            }),
+          });
+        }
+        return jsonResponse({ media: null });
+      }) as typeof fetch;
+
+      try {
+        const result = await mediaService.removeSessionMediaAsset(
+          'session_api_unresolved',
+          'athlete_api_unresolved',
+          'file:///stale-local-photo.jpg',
+        );
+
+        assert.equal(result.success, false);
+        if (!result.success) {
+          assert.equal(result.error.code, 'VALIDATION');
+        }
+        assert.equal(deleteCalled, false);
+      } finally {
+        if (originalIsMockMode) {
+          Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+        }
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    test('hook keeps persisted media identities for API-mode removal', () => {
+      const source = readFileSync(path.join(process.cwd(), 'hooks/use-session-media.ts'), 'utf8');
+
+      assert.match(source, /photo\.id \?\? photo\.mediaObjectId \?\? photo\.uri/);
+      assert.match(source, /setPhotos\(persisted\.photos\)/);
+      assert.match(source, /const assetKey = resolveAssetRemovalKey\(photos, video, uri\)/);
+      assert.match(
+        source,
+        /mediaService\.removeSessionMediaAsset\(sessionId, athleteId, assetKey\)/,
+      );
     });
   });
 

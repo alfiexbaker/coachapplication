@@ -52,8 +52,12 @@ export const DailyChallengeBanner = function DailyChallengeBanner({
   const [playEntrance, setPlayEntrance] = useState(false);
   const lastChallengeIdRef = useRef<string | null>(null);
 
-  const categoryColor = challenge ? (CORNER_COLORS[challenge.category as keyof typeof CORNER_COLORS] ?? colors.tint) : colors.tint;
-  const categoryIcon = challenge ? (CATEGORY_ICONS[challenge.category] ?? 'flash-outline') : 'flash-outline';
+  const categoryColor = challenge
+    ? (CORNER_COLORS[challenge.category as keyof typeof CORNER_COLORS] ?? colors.tint)
+    : colors.tint;
+  const categoryIcon = challenge
+    ? (CATEGORY_ICONS[challenge.category] ?? 'flash-outline')
+    : 'flash-outline';
 
   useEffect(() => {
     let active = true;
@@ -80,20 +84,24 @@ export const DailyChallengeBanner = function DailyChallengeBanner({
   useEffect(() => {
     if (!challenge) return;
     if (!isCompleted) {
-      pulseScale.set(withRepeat(
-        withSequence(
-          withTiming(1.08, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
-          withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+      pulseScale.set(
+        withRepeat(
+          withSequence(
+            withTiming(1.08, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+            withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+          ),
+          -1,
+          true,
         ),
-        -1,
-        true,
-      ));
+      );
     } else {
       pulseScale.set(withTiming(1, { duration: 200 }));
-      checkScale.set(withSequence(
-        withTiming(1.3, { duration: 180, easing: Easing.out(Easing.back(2)) }),
-        withTiming(1, { duration: 120 }),
-      ));
+      checkScale.set(
+        withSequence(
+          withTiming(1.3, { duration: 180, easing: Easing.out(Easing.back(2)) }),
+          withTiming(1, { duration: 120 }),
+        ),
+      );
     }
   }, [challenge, checkScale, isCompleted, pulseScale]);
 
@@ -107,7 +115,9 @@ export const DailyChallengeBanner = function DailyChallengeBanner({
     onMarkComplete();
   };
 
-  const difficultyLabel = (challenge ? DIFFICULTY_XP_LABEL[challenge.difficulty] ?? challenge.difficulty : '');
+  const difficultyLabel = challenge
+    ? (DIFFICULTY_XP_LABEL[challenge.difficulty] ?? challenge.difficulty)
+    : '';
 
   if (!challenge) return null;
 
@@ -155,12 +165,9 @@ export const DailyChallengeBanner = function DailyChallengeBanner({
 
           <Column gap="micro" style={styles.textWrap}>
             <Row align="center" gap="xxs">
-              <ThemedText style={styles.label}>Today's Practice</ThemedText>
+              <ThemedText style={styles.label}>{"Today's Practice"}</ThemedText>
               <View
-                style={[
-                  styles.difficultyPill,
-                  { backgroundColor: withAlpha(categoryColor, 0.15) },
-                ]}
+                style={[styles.difficultyPill, { backgroundColor: withAlpha(categoryColor, 0.15) }]}
               >
                 <ThemedText style={[styles.difficultyText, { color: categoryColor }]}>
                   {difficultyLabel}
@@ -185,7 +192,12 @@ export const DailyChallengeBanner = function DailyChallengeBanner({
         </Row>
 
         {isCompleted ? (
-          <Row align="center" justify="center" gap="xxs" style={[styles.completedStrip, { backgroundColor: withAlpha(colors.success, 0.12) }]}>
+          <Row
+            align="center"
+            justify="center"
+            gap="xxs"
+            style={[styles.completedStrip, { backgroundColor: withAlpha(colors.success, 0.12) }]}
+          >
             <Ionicons name="checkmark" size={12} color={colors.success} />
             <ThemedText style={[styles.completedText, { color: colors.success }]}>
               Completed today

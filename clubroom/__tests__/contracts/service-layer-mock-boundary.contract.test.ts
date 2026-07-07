@@ -68,4 +68,3 @@ describe('Service-layer mock boundary contract', () => {
     );
   });
 });
-

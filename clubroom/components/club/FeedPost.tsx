@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Row } from '@/components/primitives';
 import { Column } from '@/components/primitives/column';
 import { socialFeedService } from '@/services/social-feed-service';
+import { safeDisplayLabel } from '@/utils/booking-display';
 
 import { runAsyncFinally, runAsyncTryCatchFinally } from '@/utils/async-control';
 
@@ -34,7 +35,10 @@ export function FeedPost({ post, canPin, onPinToggle, onLike, onComment, onShare
   const [isCommenting, setIsCommenting] = useState(false);
   const [optimisticReactionCount, setOptimisticReactionCount] = useState<number | null>(null);
   const [optimisticLiked, setOptimisticLiked] = useState<boolean | null>(null);
-  const authorLabel = post.postAs === 'club' ? post.clubId || 'Club' : post.authorId || 'Coach';
+  const authorLabel =
+    post.postAs === 'club'
+      ? safeDisplayLabel(post.clubId, 'Club')
+      : safeDisplayLabel(post.authorId, 'Coach');
   const initials = post.postAs === 'club' ? 'CL' : authorLabel.slice(0, 2).toUpperCase() || 'ME';
   const showActions = !!(onLike || onComment || onShare);
   const baseReactionCount = post.reactionCount ?? 0;

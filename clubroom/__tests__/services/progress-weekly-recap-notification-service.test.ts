@@ -4,6 +4,7 @@ import { beforeEach, describe, it } from 'node:test';
 import type { Booking } from '@/constants/app-types';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { apiClient } from '@/services/api-client';
+import { bookingService } from '@/services/booking';
 import { progressSkillsService } from '@/services/progress/progress-skills-service';
 import { progressWeeklyRecapNotificationService } from '@/services/progress/progress-weekly-recap-notification-service';
 
@@ -63,16 +64,27 @@ describe('progressWeeklyRecapNotificationService', () => {
 
   it('dispatches one recap per athlete/parent per week and records dedupe state', async () => {
     const now = new Date(2026, 1, 22, 19, 0, 0, 0);
-    await apiClient.set(STORAGE_KEYS.BOOKINGS, [
+    const bookingSave = await bookingService.saveBookingDirect(
       buildCompletedBooking({
         id: 'booking_weekly_due',
         athleteIds: ['athlete_weekly_2'],
         athleteId: 'athlete_weekly_2',
         scheduledAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
       }),
-    ]);
-    await progressSkillsService.updateSkillLevel('athlete_weekly_2', 'Passing', 5, 'coach_weekly_1');
-    await progressSkillsService.updateSkillLevel('athlete_weekly_2', 'Passing', 7, 'coach_weekly_1');
+    );
+    assert.equal(bookingSave.success, true);
+    await progressSkillsService.updateSkillLevel(
+      'athlete_weekly_2',
+      'Passing',
+      5,
+      'coach_weekly_1',
+    );
+    await progressSkillsService.updateSkillLevel(
+      'athlete_weekly_2',
+      'Passing',
+      7,
+      'coach_weekly_1',
+    );
 
     const first = await progressWeeklyRecapNotificationService.dispatchIfDue({
       parentId: 'parent_weekly_2',

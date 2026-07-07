@@ -1,5 +1,6 @@
 import { useEffect, useState, startTransition } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
@@ -19,7 +20,11 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
-import { getBookingRelationshipContext } from '@/utils/booking-display';
+import {
+  getBookingRelationshipContext,
+  getBookingServiceLabel,
+  safeDisplayLabel,
+} from '@/utils/booking-display';
 import { bookingCommunicationsService } from '@/services/booking-communications-service';
 
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
@@ -41,14 +46,10 @@ const problemCategories: ProblemCategory[] = [
   { id: 'other', icon: 'ellipsis-horizontal-outline', label: 'Other issue' },
 ];
 
-const getApiReportCategory = (
-  categoryId: string,
-): CreateSafeguardingIncidentInput['category'] =>
+const getApiReportCategory = (categoryId: string): CreateSafeguardingIncidentInput['category'] =>
   categoryId === 'safety' ? 'booking_issue_safety' : 'other';
 
-const getApiReportSeverity = (
-  categoryId: string,
-): CreateSafeguardingIncidentInput['severity'] =>
+const getApiReportSeverity = (categoryId: string): CreateSafeguardingIncidentInput['severity'] =>
   categoryId === 'safety' ? 'high' : 'medium';
 
 export default function ReportProblemScreen() {
@@ -83,22 +84,23 @@ export default function ReportProblemScreen() {
         return;
       }
 
-      let organizationLabel: string | null = booking.clubId ?? null;
+      let organizationLabel: string | null = null;
       if (booking.actingAs === 'club' && booking.clubId) {
         const club = await socialFeedService.getClub(booking.clubId);
         if (!cancelled) {
-          organizationLabel = club?.name || booking.clubId;
+          organizationLabel = club?.name || safeDisplayLabel(booking.clubId, 'Club session');
         }
       }
 
       if (cancelled) return;
 
       const deliveryLabel =
-        booking.coachName || booking.assigneeCoachId || booking.coachId || 'Coach';
+        booking.coachName ||
+        safeDisplayLabel(booking.assigneeCoachId, safeDisplayLabel(booking.coachId, 'Coach'));
       const relationshipContext = getBookingRelationshipContext({
         actingAs: booking.actingAs,
         organizationLabel,
-        coachLabel: booking.coachName || booking.coachId || 'Coach',
+        coachLabel: booking.coachName || safeDisplayLabel(booking.coachId, 'Coach'),
         deliveredByLabel: deliveryLabel,
         commercialMode: booking.commercialMode,
       });
@@ -154,10 +156,9 @@ export default function ReportProblemScreen() {
             bookingId: bookingId || booking?.id,
             category: getApiReportCategory(selectedCategory),
             severity: getApiReportSeverity(selectedCategory),
-            summary:
-              booking?.service || booking?.serviceType
-                ? `${categoryLabel} reported for ${booking.service || booking.serviceType}`
-                : `${categoryLabel} reported from booking support flow`,
+            summary: booking
+              ? `${categoryLabel} reported for ${getBookingServiceLabel(booking)}`
+              : `${categoryLabel} reported from booking support flow`,
             details: `Category: ${selectedCategory}\n\n${description.trim()}`,
           });
 
@@ -223,7 +224,10 @@ export default function ReportProblemScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: palette.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
@@ -341,7 +345,7 @@ export default function ReportProblemScreen() {
           </ThemedText>
         </Clickable>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

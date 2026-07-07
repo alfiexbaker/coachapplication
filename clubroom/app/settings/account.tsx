@@ -10,6 +10,7 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAccountSettings } from '@/hooks/use-account-settings';
+import { formatSupportRef } from '@/utils/support-ref';
 
 export default function AccountSettingsScreen() {
   const { colors } = useTheme();
@@ -147,7 +148,7 @@ export default function AccountSettingsScreen() {
             colors={colors}
             bold
           />
-          <InfoRow label="User ID" value={currentUser?.id || 'N/A'} colors={colors} mono />
+          <InfoRow label="Support Ref" value={formatSupportRef(currentUser?.id)} colors={colors} mono />
           <InfoRow label="Member Since" value={memberSinceLabel} colors={colors} />
         </View>
       </SettingsSection>

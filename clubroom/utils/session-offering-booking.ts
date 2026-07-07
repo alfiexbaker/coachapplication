@@ -194,7 +194,7 @@ export function buildSessionOfferingCategories(
     });
   }
 
-  return Array.from(categories.values()).sort((left, right) => {
+  return Array.from(categories.values()).toSorted((left, right) => {
     if (left.priority !== right.priority) {
       return left.priority - right.priority;
     }

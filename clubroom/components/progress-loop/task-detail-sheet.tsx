@@ -194,13 +194,13 @@ export const TaskDetailSheet = function TaskDetailSheet({
                   },
                 ]}
               >
-                <ThemedText style={[styles.badgeText, { color: badgeColor }]}> 
+                <ThemedText style={[styles.badgeText, { color: badgeColor }]}>
                   {timingBadgeLabel(timing)}
                 </ThemedText>
               </View>
             </Row>
 
-            <ThemedText style={[styles.meta, { color: colors.muted }]}> 
+            <ThemedText style={[styles.meta, { color: colors.muted }]}>
               {relativeDueLabel(task, nowTs)}
             </ThemedText>
             <ThemedText style={styles.description}>{task.description}</ThemedText>
@@ -314,7 +314,7 @@ export const TaskDetailSheet = function TaskDetailSheet({
               disabled={isBusy}
               accessibilityLabel={task.status === 'completed' ? 'Mark task as not done' : 'Mark task as done'}
             >
-              <ThemedText style={[styles.primaryActionText, { color: colors.onPrimary }]}> 
+              <ThemedText style={[styles.primaryActionText, { color: colors.onPrimary }]}>
                 {isSyncing
                   ? 'Syncing…'
                   : task.status === 'completed'

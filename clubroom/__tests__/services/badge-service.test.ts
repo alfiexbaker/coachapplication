@@ -10,6 +10,7 @@ import test, { describe, beforeEach } from 'node:test';
 
 import { badgeService } from '../../services/badge-service';
 import { apiClient } from '../../services/api-client';
+import { bookingService } from '../../services/booking-service';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { eventBus, onTyped, ServiceEvents } from '../../services/event-bus';
 
@@ -43,8 +44,7 @@ describe('badgeService', () => {
       // Check sort order
       for (let i = 1; i < awards.length; i++) {
         assert.ok(
-          new Date(awards[i - 1].awardedAt).getTime() >=
-            new Date(awards[i].awardedAt).getTime(),
+          new Date(awards[i - 1].awardedAt).getTime() >= new Date(awards[i].awardedAt).getTime(),
         );
       }
     });
@@ -251,38 +251,39 @@ describe('badgeService', () => {
       const thisWeek = new Date(now);
       const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-      await apiClient.set(STORAGE_KEYS.BOOKINGS, [
-        {
-          id: `booking_${rid()}`,
-          coachId: `coach_${rid()}`,
-          coachName: 'Coach',
-          athleteIds: [athleteId],
-          athleteId,
-          bookedById: `parent_${rid()}`,
-          bookedByName: 'Parent',
-          status: 'COMPLETED',
-          scheduledAt: thisWeek.toISOString(),
-          duration: 60,
-          location: 'Pitch',
-          service: '1-on-1',
-          serviceType: 'COACHING',
-        },
-        {
-          id: `booking_${rid()}`,
-          coachId: `coach_${rid()}`,
-          coachName: 'Coach',
-          athleteIds: [athleteId],
-          athleteId,
-          bookedById: `parent_${rid()}`,
-          bookedByName: 'Parent',
-          status: 'COMPLETED',
-          scheduledAt: lastWeek.toISOString(),
-          duration: 60,
-          location: 'Pitch',
-          service: '1-on-1',
-          serviceType: 'COACHING',
-        },
-      ]);
+      const firstSave = await bookingService.saveBookingDirect({
+        id: `booking_${rid()}`,
+        coachId: `coach_${rid()}`,
+        coachName: 'Coach',
+        athleteIds: [athleteId],
+        athleteId,
+        bookedById: `parent_${rid()}`,
+        bookedByName: 'Parent',
+        status: 'COMPLETED',
+        scheduledAt: thisWeek.toISOString(),
+        duration: 60,
+        location: 'Pitch',
+        service: '1-on-1',
+        serviceType: 'COACHING',
+      });
+      const secondSave = await bookingService.saveBookingDirect({
+        id: `booking_${rid()}`,
+        coachId: `coach_${rid()}`,
+        coachName: 'Coach',
+        athleteIds: [athleteId],
+        athleteId,
+        bookedById: `parent_${rid()}`,
+        bookedByName: 'Parent',
+        status: 'COMPLETED',
+        scheduledAt: lastWeek.toISOString(),
+        duration: 60,
+        location: 'Pitch',
+        service: '1-on-1',
+        serviceType: 'COACHING',
+      });
+
+      assert.equal(firstSave.success, true);
+      assert.equal(secondSave.success, true);
 
       const info = await badgeService.getStreakInfo(athleteId);
       assert.equal(info.currentStreak, 2);

@@ -115,7 +115,7 @@ function SessionOwnershipSectionInner({
 
       <Column gap="xs">
         <ThemedText type="defaultSemiBold">Audit timeline</ThemedText>
-        <View style={[styles.timeline, { borderColor: palette.border }]}> 
+        <View style={[styles.timeline, { borderColor: palette.border }]}>
           {timeline.map((entry) => (
             <Row key={entry.id} align="flex-start" gap="sm" style={styles.timelineRow}>
               <View style={[styles.timelineDot, { backgroundColor: palette.info }]} />

@@ -29,6 +29,24 @@ const USERS_SEED: User[] = [
   },
 ];
 
+async function withApiMode<T>(run: () => Promise<T>): Promise<T> {
+  const originalDescriptor = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+  Object.defineProperty(apiClient, 'isMockMode', {
+    configurable: true,
+    get: () => false,
+  });
+
+  try {
+    return await run();
+  } finally {
+    if (originalDescriptor) {
+      Object.defineProperty(apiClient, 'isMockMode', originalDescriptor);
+    } else {
+      delete (apiClient as unknown as { isMockMode?: boolean }).isMockMode;
+    }
+  }
+}
+
 describe('userService', () => {
   beforeEach(async () => {
     await apiClient.remove(STORAGE_KEYS.USERS);
@@ -162,6 +180,110 @@ describe('userService', () => {
     assert.equal(result.data.name, 'Coach Alpha Prime');
     assert.equal(result.data.postcode, 'N1 9GU');
     assert.deepEqual(emitted.sort(), ['profile', 'updated']);
+  });
+
+  it('uses only the signed-in auth profile as API-mode user display source', async () => {
+    await withApiMode(async () => {
+      await apiClient.set(STORAGE_KEYS.USERS, USERS_SEED);
+      await apiClient.set(STORAGE_KEYS.AUTH_USER, {
+        id: 'auth-user-live',
+        firstName: 'Live',
+        lastName: 'Profile',
+        email: 'live.profile@example.com',
+        accountType: 'PARENT',
+      });
+
+      const current = await userService.getCurrentUser();
+      assert.equal(current.success, true);
+      if (!current.success) return;
+      assert.equal(current.data.id, 'auth-user-live');
+      assert.equal(current.data.name, 'Live Profile');
+
+      const localOnly = await userService.getUserById('user-a');
+      assert.equal(localOnly.success, false);
+      if (localOnly.success) return;
+      assert.equal(localOnly.error.code, 'NOT_FOUND');
+
+      const byIds = await userService.getUsersByIds(['auth-user-live', 'user-a']);
+      assert.equal(byIds.success, true);
+      if (!byIds.success) return;
+      assert.deepEqual(
+        byIds.data.map((user) => user.id),
+        ['auth-user-live'],
+      );
+    });
+  });
+
+  it('uses API-mode user directory search and still blocks local profile writes', async () => {
+    await withApiMode(async () => {
+      const originalFetch = global.fetch;
+      const fetchCalls: string[] = [];
+      global.fetch = (async (input: RequestInfo | URL) => {
+        const url = String(input);
+        fetchCalls.push(url);
+        return new Response(
+          JSON.stringify({
+            users: [
+              {
+                id: 'api-user-coach',
+                name: 'API Coach',
+                email: 'coach.api@example.com',
+                role: 'COACH',
+              },
+            ],
+            total: 1,
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }) as typeof fetch;
+
+      await apiClient.set(STORAGE_KEYS.USERS, USERS_SEED);
+      await apiClient.set(STORAGE_KEYS.AUTH_USER, {
+        id: 'auth-user-live',
+        name: 'Live Profile',
+        email: 'live.profile@example.com',
+        role: 'PARENT',
+      });
+
+      try {
+        const shortSearch = await userService.searchUsers('c', 'auth-user-live');
+        assert.equal(shortSearch.success, true);
+        if (!shortSearch.success) return;
+        assert.deepEqual(shortSearch.data, []);
+        assert.equal(fetchCalls.length, 0);
+
+        const search = await userService.searchUsers('coach', 'auth-user-live');
+        assert.equal(search.success, true);
+        if (!search.success) return;
+        assert.deepEqual(
+          search.data.map((user) => user.id),
+          ['api-user-coach'],
+        );
+        assert.equal(
+          fetchCalls.some((url) => url.includes('/v1/users/search?q=coach')),
+          true,
+        );
+      } finally {
+        global.fetch = originalFetch;
+      }
+
+      const update = await userService.updateUserProfile('auth-user-live', {
+        name: 'Local Mutation',
+      });
+      assert.equal(update.success, false);
+      if (update.success) return;
+      assert.equal(update.error.code, 'UNSUPPORTED');
+
+      const localUsers = await apiClient.get<User[]>(STORAGE_KEYS.USERS, []);
+      assert.equal(
+        localUsers.find((user) => user.id === 'auth-user-live'),
+        undefined,
+      );
+      assert.equal(localUsers.find((user) => user.id === 'user-a')?.name, 'Coach Alpha');
+    });
   });
 
   it('returns storage error when user load fails', async () => {

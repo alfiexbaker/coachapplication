@@ -9,12 +9,18 @@ import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '../event-bus';
 import type { NotificationItem } from '@/constants/types';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  storageError,
+  unsupportedError,
+} from '@/types/result';
 import { resolveDeepLink } from '@/utils/deep-link';
 import { api } from '@/constants/config';
 import {
   communityMediaAuthorityService,
-  mergeById,
   type AuthorityNotificationItem,
 } from '../community-media-authority-service';
 import { getLocalOverlayValue, setLocalOverlayValue } from '../local-overlay-store';
@@ -71,16 +77,13 @@ class NotificationStore {
   async list(): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
     try {
       if (!USE_MOCK) {
-        const [authoritativeResult, overlays] = await Promise.all([
-          this.listAuthoritative(),
-          this.loadLocalOverlays(),
-        ]);
+        const authoritativeResult = await this.listAuthoritative();
         if (!authoritativeResult.success) {
           return authoritativeResult;
         }
 
         return ok(
-          mergeById(authoritativeResult.data, overlays)
+          authoritativeResult.data
             .filter((item) => !item.dismissed)
             .sort(
               (left, right) =>
@@ -98,6 +101,10 @@ class NotificationStore {
 
   async migrateRouteAliases(): Promise<Result<number, ServiceError>> {
     try {
+      if (!USE_MOCK) {
+        return ok(0);
+      }
+
       const alreadyMigrated = await getLocalOverlayValue<boolean>(
         STORAGE_KEYS.NOTIFICATION_ROUTE_ALIAS_MIGRATION_V1,
         false,
@@ -141,6 +148,20 @@ class NotificationStore {
     notification: ExtendedNotificationItem,
   ): Promise<Result<ExtendedNotificationItem[], ServiceError>> {
     try {
+      if (!USE_MOCK) {
+        logger.warn('Rejected local notification create in API mode', {
+          id: notification.id,
+          type: notification.type,
+          route: '/v1/me/notifications',
+        });
+        return err(
+          unsupportedError(
+            'Client-side notification creation is mock-only. In API mode, the backend route that owns the product action must create the durable notification row.',
+            { route: '/v1/me/notifications', notificationId: notification.id },
+          ),
+        );
+      }
+
       const fullNotification: ExtendedNotificationItem = {
         ...notification,
         createdAt: notification.createdAt || new Date().toISOString(),
@@ -252,12 +273,8 @@ class NotificationStore {
         if (!readResult.success) {
           return readResult;
         }
-        const overlays = await this.loadLocalOverlays();
-        await this.saveLocalOverlays(
-          this.upsertOverlay(overlays, { ...readResult.data, read: true, handled: true }),
-        );
         emitTyped(ServiceEvents.NOTIFICATION_READ, { notificationId: id });
-        return ok({ ...readResult.data, read: true, handled: true });
+        return ok({ ...readResult.data, read: true });
       }
 
       const [currentResult, overlays] = await Promise.all([this.list(), this.loadLocalOverlays()]);

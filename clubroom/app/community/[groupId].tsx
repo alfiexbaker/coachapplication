@@ -31,10 +31,20 @@ import { Routes } from '@/navigation/routes';
 import { uiFeedback } from '@/services/ui-feedback';
 import { Skeleton, SkeletonCircle, SkeletonCluster, SkeletonPill, SkeletonText } from '@/components/ui/skeleton';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { api } from '@/constants/config';
 
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('GroupChatScreen');
+const USE_LOCAL_GROUP_MANAGEMENT = api.useMock;
+
+function openSessionInviteRoute() {
+  router.push(Routes.SESSION_INVITES_GROUP);
+}
+
+function openClubInviteRoute() {
+  router.push(Routes.CLUB_INVITE_MEMBERS);
+}
 
 interface GroupChatData {
   group: ParentGroup | null;
@@ -133,8 +143,9 @@ export default function GroupChatScreen() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
-  const parentId = currentUser?.id ?? 'parent1';
-  const parentName = currentUser?.fullName ?? currentUser?.name ?? 'Parent';
+  const parentId = currentUser?.id ?? (USE_LOCAL_GROUP_MANAGEMENT ? 'parent1' : '');
+  const parentName =
+    currentUser?.fullName ?? currentUser?.name ?? (USE_LOCAL_GROUP_MANAGEMENT ? 'Parent' : 'Member');
 
   const [inputValue, setInputValue] = useState('');
   const [sending, setSending] = useState(false);
@@ -227,6 +238,11 @@ export default function GroupChatScreen() {
   };
 
   const handleLeaveGroup = () => {
+    if (!USE_LOCAL_GROUP_MANAGEMENT) {
+      uiFeedback.showToast('Group membership changes are managed by the club workspace.');
+      return;
+    }
+
     uiFeedback.alert('Leave Group', 'Are you sure you want to leave this group?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -255,11 +271,16 @@ export default function GroupChatScreen() {
   const isCoachPrivileged =
     currentUser?.role === 'COACH' &&
     (currentRole === 'OWNER' || currentRole === 'ADMIN' || currentRole === 'MODERATOR');
-  const canAccessManage = isAdmin || isCoachPrivileged;
+  const canAccessManage = USE_LOCAL_GROUP_MANAGEMENT && (isAdmin || isCoachPrivileged);
   const assignableRoles = communityGroupService.getAssignableRoles(currentRole);
   const roleBreakdown = group ? communityGroupService.getRoleBreakdown(group.members) : null;
 
   const handleMemberManage = (member: GroupMember) => {
+    if (!USE_LOCAL_GROUP_MANAGEMENT) {
+      uiFeedback.showToast('Group roles are managed by the club workspace.');
+      return;
+    }
+
     if (member.parentId === parentId) return;
     setSelectedMember(member);
     setShowRolePickerModal(true);
@@ -267,6 +288,13 @@ export default function GroupChatScreen() {
 
   const handleRoleChange = async (newRole: GroupMemberRole) => {
     if (!selectedMember || !groupId) return;
+    if (!USE_LOCAL_GROUP_MANAGEMENT) {
+      uiFeedback.showToast('Group roles are managed by the club workspace.');
+      setShowRolePickerModal(false);
+      setSelectedMember(null);
+      return;
+    }
+
     try {
       const result = await communityService.changeMemberRole({
         groupId,
@@ -284,14 +312,6 @@ export default function GroupChatScreen() {
     } catch (changeError) {
       uiFeedback.showToast(String(changeError), 'error');
     }
-  };
-
-  const handleOpenSessionInvite = () => {
-    router.push(Routes.SESSION_INVITES_GROUP);
-  };
-
-  const handleOpenClubInvite = () => {
-    router.push(Routes.CLUB_INVITE_MEMBERS);
   };
 
   const handleOpenClubHub = () => {
@@ -348,7 +368,7 @@ export default function GroupChatScreen() {
         roleBreakdown={roleBreakdown}
         onBack={() => router.back()}
         onInfoOrMembersPress={() => setShowMembersModal(true)}
-        onLeavePress={handleLeaveGroup}
+        onLeavePress={USE_LOCAL_GROUP_MANAGEMENT ? handleLeaveGroup : undefined}
       />
 
       {isPending ? (
@@ -407,8 +427,8 @@ export default function GroupChatScreen() {
           isCoach={currentUser?.role === 'COACH'}
           isAdmin={isAdmin}
           onManageMembers={() => setShowMembersModal(true)}
-          onInviteToSession={handleOpenSessionInvite}
-          onInviteMembers={handleOpenClubInvite}
+          onInviteToSession={openSessionInviteRoute}
+          onInviteMembers={openClubInviteRoute}
           onOpenClub={handleOpenClubHub}
         />
       ) : (
@@ -428,8 +448,8 @@ export default function GroupChatScreen() {
         members={group.members}
         parentId={parentId}
         currentRole={currentRole}
-        isAdmin={isAdmin}
-        onMemberManage={handleMemberManage}
+        isAdmin={USE_LOCAL_GROUP_MANAGEMENT && isAdmin}
+        onMemberManage={USE_LOCAL_GROUP_MANAGEMENT ? handleMemberManage : undefined}
       />
 
       <GroupRolePicker

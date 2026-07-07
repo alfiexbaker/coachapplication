@@ -15,6 +15,7 @@ import { Row, Column } from '@/components/primitives';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { SessionInviteType } from '@/constants/types';
+import { safeDisplayLabel } from '@/utils/booking-display';
 
 interface InviteTypeCardProps {
   inviteType: SessionInviteType;
@@ -118,7 +119,7 @@ export const InviteTypeCard = function InviteTypeCard({
             >
               Squad Access
             </ThemedText>
-            {squadIds.map((squadId) => (
+            {squadIds.map((squadId, index) => (
               <Row
                 key={squadId}
                 gap="xs"
@@ -127,7 +128,7 @@ export const InviteTypeCard = function InviteTypeCard({
               >
                 <Ionicons name="people" size={14} color={colors.info} />
                 <ThemedText style={{ color: colors.info, ...Typography.small }}>
-                  {squadId}
+                  {safeDisplayLabel(squadId, `Squad ${index + 1}`)}
                 </ThemedText>
               </Row>
             ))}

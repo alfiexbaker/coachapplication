@@ -27,4 +27,3 @@ export function isPocCoachId(candidate: string): boolean {
   const normalized = normalizeAccountId(candidate);
   return POC_ACCOUNT_ALIASES.coach.some((id) => normalizeAccountId(id) === normalized);
 }
-

@@ -23,6 +23,7 @@ interface GroupCompletionBoardProps {
   onSelectAll: () => void;
   onSendGroupMessage: () => void;
   onPersonalFeedback: (registrationId: string) => void;
+  canOpenPersonalFeedback?: boolean;
   onMessage: (registrationId: string) => void;
   onRaiseConcern: (registrationId: string) => void;
   onAddVideo: () => void;
@@ -70,6 +71,7 @@ export const GroupCompletionBoard = function GroupCompletionBoard({
   onSelectAll,
   onSendGroupMessage,
   onPersonalFeedback,
+  canOpenPersonalFeedback = true,
   onMessage,
   onRaiseConcern,
   onAddVideo,
@@ -160,22 +162,24 @@ export const GroupCompletionBoard = function GroupCompletionBoard({
               </Row>
 
               <View style={styles.actionsRow}>
-                <Clickable
-                  style={[
-                    styles.inlineAction,
-                    {
-                      backgroundColor: withAlpha(colors.tint, 0.08),
-                    },
-                  ]}
-                  onPress={() => onPersonalFeedback(athlete.registrationId)}
-                >
-                  <Row align="center" justify="center" gap="micro">
-                    <Ionicons name="create-outline" size={13} color={colors.tint} />
-                    <ThemedText style={[styles.inlineActionText, { color: colors.tint }]}>
-                      Personal feedback
-                    </ThemedText>
-                  </Row>
-                </Clickable>
+                {canOpenPersonalFeedback ? (
+                  <Clickable
+                    style={[
+                      styles.inlineAction,
+                      {
+                        backgroundColor: withAlpha(colors.tint, 0.08),
+                      },
+                    ]}
+                    onPress={() => onPersonalFeedback(athlete.registrationId)}
+                  >
+                    <Row align="center" justify="center" gap="micro">
+                      <Ionicons name="create-outline" size={13} color={colors.tint} />
+                      <ThemedText style={[styles.inlineActionText, { color: colors.tint }]}>
+                        Personal feedback
+                      </ThemedText>
+                    </Row>
+                  </Clickable>
+                ) : null}
                 <Clickable
                   style={[
                     styles.inlineAction,

@@ -13,6 +13,13 @@ import { accountIdsMatch } from '@/utils/account-id';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 import { appendCoachReview, type StoredCoachReview } from '@/services/review-sync-service';
+import type { SessionOffering } from '@/constants/types';
+import {
+  listPublicCoachOfferingIndexFromApi,
+  listPublicCoachOfferingsFromApi,
+  type ApiPublicCoachProfile,
+  type SessionOfferingWithCoachProfile,
+} from '@/services/coach-offering-api';
 
 const logger = createLogger('CoachService');
 
@@ -346,6 +353,129 @@ function dedupePublicReviews(reviews: PublicReview[]): PublicReview[] {
   return result;
 }
 
+function shouldUseLocalCoachFixture(coachId: string): boolean {
+  void coachId;
+  return apiClient.isMockMode;
+}
+
+function getCoachDisplayName(coachId: string): string {
+  return `Coach ${coachId.replace(/^usr_/, '')}`;
+}
+
+function getApiCoachDisplayName(
+  coachId: string,
+  profile: ApiPublicCoachProfile | undefined,
+): string {
+  return profile?.displayName?.trim() || getCoachDisplayName(coachId);
+}
+
+function priceMinorToPounds(value: number | null | undefined): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.round(value / 100) : undefined;
+}
+
+function toCoachFromOfferings(coachId: string, offerings: SessionOffering[]): Coach | null {
+  const activeOfferings = offerings.filter(
+    (offering) => offering.coachId === coachId && offering.status === 'active',
+  ) as SessionOfferingWithCoachProfile[];
+  if (activeOfferings.length === 0) {
+    return null;
+  }
+  const profile: ApiPublicCoachProfile | undefined = activeOfferings.find(
+    (offering) => offering.coachProfile,
+  )?.coachProfile;
+
+  const prices = activeOfferings.flatMap((offering) =>
+    typeof offering.price === 'number' && Number.isFinite(offering.price)
+      ? [offering.price]
+      : [],
+  );
+  const timestamps = activeOfferings
+    .map((offering) => new Date(offering.scheduledAt).getTime())
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+  const minPrice = priceMinorToPounds(profile?.sessionRateMinor) ?? (prices.length > 0 ? Math.min(...prices) : 0);
+  const maxPrice = priceMinorToPounds(profile?.priceMaxMinor) ?? (prices.length > 0 ? Math.max(...prices) : undefined);
+  const focusTerms = Array.from(
+    new Set(
+      activeOfferings
+        .flatMap((offering) => [offering.title, offering.description ?? ''])
+        .join(' ')
+        .split(/\W+/)
+        .filter(Boolean),
+    ),
+  ).slice(0, 6);
+
+  return {
+    id: coachId,
+    name: getApiCoachDisplayName(coachId, profile),
+    bio: profile?.bio ?? 'This coach has live API-backed offerings.',
+    sports: ['Football'],
+    location: { city: 'Unknown' },
+    rating: 0,
+    reviewCount: 0,
+    minPrice,
+    maxPrice,
+    profilePhotoUrl: undefined,
+    coverPhotoUrl: undefined,
+    joinedAt: undefined,
+    totalSessions: 0,
+    nextAvailable:
+      timestamps.length > 0 ? new Date(timestamps[0] as number).toISOString() : undefined,
+    badges: [],
+    footballFocuses: focusTerms,
+    experiences: profile?.experiences ?? [],
+    certifications: (profile?.qualifications ?? []).map((name) => ({
+      name,
+      issuer: '',
+      issueDate: '',
+    })),
+    languages: profile?.languages ?? [],
+  };
+}
+
+function filterCoaches(
+  coaches: Coach[],
+  filters?: {
+    sport?: string;
+    location?: string;
+    minRating?: number;
+    maxPrice?: number;
+  },
+): Coach[] {
+  let filtered = coaches;
+
+  if (filters?.minRating) {
+    filtered = filtered.filter((coach) => coach.rating >= filters.minRating!);
+  }
+  if (filters?.maxPrice) {
+    filtered = filtered.filter((coach) => coach.minPrice <= filters.maxPrice!);
+  }
+  if (filters?.sport) {
+    filtered = filtered.filter((coach) =>
+      coach.sports.some((sport) => sport.toLowerCase() === filters.sport!.toLowerCase()),
+    );
+  }
+
+  return filtered;
+}
+
+async function listApiCoachesFromOfferings(): Promise<Result<Coach[], ServiceError>> {
+  const offeringsResult = await listPublicCoachOfferingIndexFromApi(new Date().toISOString());
+  if (!offeringsResult.success) {
+    return err(offeringsResult.error);
+  }
+
+  const coachIds = Array.from(
+    new Set(offeringsResult.data.map((offering) => offering.coachId).filter(Boolean)),
+  );
+  return ok(
+    coachIds.flatMap((coachId) => {
+      const coach = toCoachFromOfferings(coachId, offeringsResult.data);
+      return coach ? [coach] : [];
+    }),
+  );
+}
+
 export const coachService = {
   /**
    * Get a single coach by ID
@@ -353,6 +483,18 @@ export const coachService = {
   async getCoach(coachId: string): Promise<Result<Coach, ServiceError>> {
     logger.info('Getting coach', { coachId });
     try {
+      if (!apiClient.isMockMode) {
+        const offeringsResult = await listPublicCoachOfferingsFromApi(
+          coachId,
+          new Date().toISOString(),
+        );
+        if (!offeringsResult.success) {
+          return err(offeringsResult.error);
+        }
+        const coach = toCoachFromOfferings(coachId, offeringsResult.data);
+        return coach ? ok(coach) : err(notFound('Coach', coachId));
+      }
+
       const coaches = await apiClient.get<Coach[]>(COACHES_KEY, MOCK_COACHES);
       const coach = coaches.find((c) => accountIdsMatch(c.id, coachId));
       if (!coach) return err(notFound('Coach', coachId));
@@ -374,21 +516,15 @@ export const coachService = {
   }): Promise<Result<Coach[], ServiceError>> {
     logger.info('Getting coaches', { filters });
     try {
+      if (!apiClient.isMockMode) {
+        const coachesResult = await listApiCoachesFromOfferings();
+        return coachesResult.success
+          ? ok(filterCoaches(coachesResult.data, filters))
+          : err(coachesResult.error);
+      }
+
       let coaches = await apiClient.get<Coach[]>(COACHES_KEY, MOCK_COACHES);
-
-      if (filters?.minRating) {
-        coaches = coaches.filter((c) => c.rating >= filters.minRating!);
-      }
-      if (filters?.maxPrice) {
-        coaches = coaches.filter((c) => c.minPrice <= filters.maxPrice!);
-      }
-      if (filters?.sport) {
-        coaches = coaches.filter((c) =>
-          c.sports.some((s) => s.toLowerCase() === filters.sport!.toLowerCase()),
-        );
-      }
-
-      return ok(coaches);
+      return ok(filterCoaches(coaches, filters));
     } catch (error) {
       logger.error('Failed to get coaches', error);
       return err(storageError('Failed to get coaches'));
@@ -401,7 +537,7 @@ export const coachService = {
   async getCoachReviews(coachId: string): Promise<Result<PublicReview[], ServiceError>> {
     logger.info('Getting coach reviews', { coachId });
     try {
-      if (!apiClient.isMockMode) {
+      if (!shouldUseLocalCoachFixture(coachId)) {
         const apiResult = await apiFetch<ApiCoachReviewsResponse>(
           `/v1/coaches/${encodeURIComponent(coachId)}/reviews`,
         );
@@ -495,6 +631,22 @@ export const coachService = {
   async searchCoaches(query: string): Promise<Result<Coach[], ServiceError>> {
     logger.info('Searching coaches', { query });
     try {
+      if (!apiClient.isMockMode) {
+        const coachesResult = await listApiCoachesFromOfferings();
+        if (!coachesResult.success) {
+          return err(coachesResult.error);
+        }
+        const lowerQuery = query.toLowerCase();
+        return ok(
+          coachesResult.data.filter(
+            (coach) =>
+              coach.name.toLowerCase().includes(lowerQuery) ||
+              coach.bio?.toLowerCase().includes(lowerQuery) ||
+              coach.footballFocuses?.some((focus) => focus.toLowerCase().includes(lowerQuery)),
+          ),
+        );
+      }
+
       const coaches = await apiClient.get<Coach[]>(COACHES_KEY, MOCK_COACHES);
       const lowerQuery = query.toLowerCase();
       const results = coaches.filter(
@@ -516,6 +668,13 @@ export const coachService = {
   async getFeaturedCoaches(): Promise<Result<Coach[], ServiceError>> {
     logger.info('Getting featured coaches');
     try {
+      if (!apiClient.isMockMode) {
+        const coachesResult = await listApiCoachesFromOfferings();
+        return coachesResult.success
+          ? ok(Array.from(coachesResult.data).toSorted((a, b) => b.minPrice - a.minPrice).slice(0, 5))
+          : err(coachesResult.error);
+      }
+
       const coaches = await apiClient.get<Coach[]>(COACHES_KEY, MOCK_COACHES);
       const featured = Array.from(coaches).toSorted((a, b) => b.rating - a.rating).slice(0, 5);
       return ok(featured);

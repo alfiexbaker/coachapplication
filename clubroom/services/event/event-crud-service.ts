@@ -9,6 +9,8 @@
  * - GET /v1/clubs/:clubId/events - List club events
  * - POST /v1/clubs/:clubId/events and PATCH /v1/events/:id - Create and manage events
  * - POST /v1/events/:id/invites/club - Queue club event invites
+ * - POST /v1/events/:id/invites/squads - Queue squad-scoped event invites
+ * - POST /v1/events/:id/invites/athletes - Queue athlete-scoped event invites
  */
 
 import { apiClient, apiFetch } from '../api-client';
@@ -49,7 +51,11 @@ interface ApiClubEventResponse {
 }
 
 interface ApiClubEventInviteResponse {
+  eventId?: string;
+  squadIds?: string[];
+  athleteIds?: string[];
   inviteCount: number;
+  targetAthleteCount?: number;
 }
 
 function eventUnsupportedError(action: string): ServiceError {
@@ -378,6 +384,7 @@ export interface CreateEventInput {
   meetingLink?: string;
   targetAudience: EventTargetAudience;
   squadIds?: string[];
+  athleteIds?: string[];
   maxAttendees?: number;
   price?: number;
   currency?: string;
@@ -411,6 +418,7 @@ export const eventCrudService = {
       meetingLink: input.meetingLink,
       targetAudience: input.targetAudience,
       squadIds: input.squadIds,
+      athleteIds: input.athleteIds,
       maxAttendees: input.maxAttendees,
       price: input.price ?? 0,
       currency: input.currency || 'GBP',
@@ -449,6 +457,7 @@ export const eventCrudService = {
           meetingLink: input.meetingLink,
           targetAudience: input.targetAudience,
           squadIds: input.squadIds,
+          athleteIds: input.athleteIds,
           maxAttendees: input.maxAttendees,
           price: input.price ?? 0,
           currency: input.currency ?? 'GBP',
@@ -561,7 +570,7 @@ export const eventCrudService = {
     }
     const result = await listClubEventsFromApi(clubId);
     if (!result.success) {
-      logger.error('Failed to load upcoming club events via /v1 events', {
+      logger.warn('Failed to load upcoming club events via /v1 events', {
         clubId,
         error: result.error,
       });
@@ -584,7 +593,7 @@ export const eventCrudService = {
     }
     const result = await listClubEventsFromApi(clubId);
     if (!result.success) {
-      logger.error('Failed to load club events via /v1 events', {
+      logger.warn('Failed to load club events via /v1 events', {
         clubId,
         error: result.error,
       });
@@ -633,7 +642,13 @@ export const eventCrudService = {
   /**
    * Invite specific squads to an event
    */
-  async inviteSquads(eventId: string, squadIds: string[]): Promise<void> {
+  async inviteSquads(
+    eventId: string,
+    squadIds: string[],
+    options?: {
+      excludeAthleteIds?: string[];
+    },
+  ): Promise<ApiClubEventInviteResponse | void> {
     if (USE_MOCK) {
       eventsCache = await loadEvents();
       const event = eventsCache.find((e) => e.id === eventId);
@@ -655,7 +670,82 @@ export const eventCrudService = {
       });
       return;
     }
-    void squadIds;
-    return throwEventUnsupported('Inviting squads to club events');
+    const headersResult = await resolveEventApiHeaders();
+    if (!headersResult.success) {
+      throw new Error(headersResult.error.message);
+    }
+    const result = await apiFetch<ApiClubEventInviteResponse>(
+      `/v1/events/${encodeURIComponent(eventId)}/invites/squads`,
+      {
+        method: 'POST',
+        headers: headersResult.data,
+        body: JSON.stringify({
+          squadIds,
+          ...(options?.excludeAthleteIds?.length
+            ? { excludeAthleteIds: options.excludeAthleteIds }
+            : {}),
+        }),
+      },
+    );
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    logger.info('Invited squads to event via /v1', {
+      eventId,
+      squadIds,
+      inviteCount: result.data.inviteCount,
+      targetAthleteCount: result.data.targetAthleteCount,
+    });
+    return result.data;
+  },
+  /**
+   * Invite specific athletes and their linked guardians to an event
+   */
+  async inviteAthletes(
+    eventId: string,
+    athleteIds: string[],
+  ): Promise<ApiClubEventInviteResponse | void> {
+    if (USE_MOCK) {
+      eventsCache = await loadEvents();
+      const event = eventsCache.find((e) => e.id === eventId);
+      if (event) {
+        event.athleteIds = [...new Set(athleteIds)];
+        await saveEvents(eventsCache);
+      } else {
+        logger.warn('Cannot invite athletes for missing event', {
+          eventId,
+          athleteIds,
+        });
+      }
+      logger.info('Recorded mock athlete event invite scope', {
+        eventId,
+        athleteIds,
+      });
+      return;
+    }
+    const headersResult = await resolveEventApiHeaders();
+    if (!headersResult.success) {
+      throw new Error(headersResult.error.message);
+    }
+    const result = await apiFetch<ApiClubEventInviteResponse>(
+      `/v1/events/${encodeURIComponent(eventId)}/invites/athletes`,
+      {
+        method: 'POST',
+        headers: headersResult.data,
+        body: JSON.stringify({
+          athleteIds,
+        }),
+      },
+    );
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    logger.info('Invited athletes to event via /v1', {
+      eventId,
+      athleteIds,
+      inviteCount: result.data.inviteCount,
+      targetAthleteCount: result.data.targetAthleteCount,
+    });
+    return result.data;
   },
 };

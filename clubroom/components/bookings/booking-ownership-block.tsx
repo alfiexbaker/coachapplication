@@ -13,6 +13,7 @@ import { getCoachWorkContextDisplay } from '@/utils/coach-business-context';
 import {
   getBookingRelationshipContext,
   getBookingSummaryCoachName,
+  safeDisplayLabel,
 } from '@/utils/booking-display';
 
 interface BookingOwnershipBlockProps {
@@ -23,7 +24,7 @@ interface BookingOwnershipBlockProps {
 function BookingOwnershipBlockInner({ booking, compact = false }: BookingOwnershipBlockProps) {
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
-  const [organizationLabel, setOrganizationLabel] = useState<string | null>(booking.clubId ?? null);
+  const [organizationLabel, setOrganizationLabel] = useState<string | null>(null);
   const showIndependentCoachLabel = currentUser?.role === 'COACH';
 
   useEffect(() => {
@@ -40,7 +41,7 @@ function BookingOwnershipBlockInner({ booking, compact = false }: BookingOwnersh
       if (club?.name) {
         setOrganizationLabel(club.name);
       } else {
-        setOrganizationLabel(booking.clubId ?? null);
+        setOrganizationLabel(safeDisplayLabel(booking.clubId, 'Club session'));
       }
     });
 
@@ -82,7 +83,8 @@ function BookingOwnershipBlockInner({ booking, compact = false }: BookingOwnersh
   }
 
   const coachLabel = booking.ownerCoachName || getBookingSummaryCoachName(booking);
-  const deliveryLabel = booking.assigneeCoachName || booking.assigneeCoachId || coachLabel;
+  const deliveryLabel =
+    booking.assigneeCoachName || safeDisplayLabel(booking.assigneeCoachId, coachLabel);
   const relationshipContext = getBookingRelationshipContext({
     actingAs: booking.actingAs,
     organizationLabel,

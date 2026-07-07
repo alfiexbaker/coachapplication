@@ -7,7 +7,8 @@
  *
  * API Integration Notes:
  * - GET /v1/athletes/:id/goals - Get backend-authoritative goals
- * - Athlete analytics and skill history need dedicated /v1 contracts before API mode can use them.
+ * - GET /v1/athletes/:id/analytics - Get backend-authoritative athlete analytics
+ * - GET /v1/athletes/:id/skills/history - Get backend-authoritative skill history
  */
 
 import { apiClient, apiFetch } from '../api-client';
@@ -31,7 +32,6 @@ import {
   ok,
   err,
   storageError,
-  unsupportedError,
 } from '@/types/result';
 
 const logger = createLogger('AnalyticsQueryService');
@@ -45,6 +45,18 @@ interface ApiAthleteGoalsResponse {
   goals: ApiGoalRow[];
   milestones: ApiGoalMilestoneRow[];
 }
+
+interface ApiAthleteAnalyticsResponse {
+  athleteId: string;
+  analytics: AthleteAnalytics;
+}
+
+interface ApiSkillHistoryResponse {
+  athleteId: string;
+  skills: SkillProgress[];
+}
+
+type SkillProgressWithAverage = SkillProgress & { averageLevel?: number };
 
 type ApiGoalRow = Partial<Omit<Goal, 'milestones'>> & {
   id?: string | null;
@@ -77,32 +89,10 @@ type ApiGoalMilestoneRow = Partial<Goal['milestones'][number]> & {
   status?: string | null;
 };
 
-function athleteAnalyticsUnsupportedError(action: string, details?: unknown): ServiceError {
-  return unsupportedError(
-    `${action} needs a /v1 athlete analytics API before it can run in API mode.`,
-    details,
-  );
-}
-
-function unsupportedAthleteAnalytics<T>(
-  action: string,
-  details?: unknown,
-): Result<T, ServiceError> {
-  logger.warn('Athlete analytics API unavailable in live API mode', {
-    action,
-    details,
-    requiredRoutes: [
-      'GET /v1/athletes/:athleteId/analytics',
-      'GET /v1/athletes/:athleteId/skills/history',
-    ],
-  });
-  return err(athleteAnalyticsUnsupportedError(action, details));
-}
-
-async function resolveAthleteGoalsApiContext(
+async function resolveAthleteApiContext(
   athleteId: string,
 ): Promise<Result<{ apiAthleteId: string; headers: Record<string, string> }, ServiceError>> {
-  const currentUserResult = await resolveSignedInApiUser('Sign in to view athlete goals.');
+  const currentUserResult = await resolveSignedInApiUser('Sign in to view athlete progress.');
   if (!currentUserResult.success) {
     return currentUserResult;
   }
@@ -640,7 +630,22 @@ export const analyticsQueryService = {
         });
       }
 
-      return unsupportedAthleteAnalytics('Athlete analytics read', { athleteId, period });
+      const context = await resolveAthleteApiContext(athleteId);
+      if (!context.success) {
+        return context;
+      }
+      const search = new URLSearchParams({ period });
+      const result = await apiFetch<ApiAthleteAnalyticsResponse>(
+        `/v1/athletes/${context.data.apiAthleteId}/analytics?${search.toString()}`,
+        {
+          method: 'GET',
+          headers: context.data.headers,
+        },
+      );
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(result.data.analytics);
     } catch (error) {
       logger.error('Failed to get athlete analytics', { athleteId, period, error });
       return err(storageError('Failed to load athlete analytics'));
@@ -701,7 +706,26 @@ export const analyticsQueryService = {
         return ok(analytics.skills);
       }
 
-      return unsupportedAthleteAnalytics('Skill history read', { athleteId, skillName });
+      const context = await resolveAthleteApiContext(athleteId);
+      if (!context.success) {
+        return context;
+      }
+      const search = new URLSearchParams();
+      if (skillName) {
+        search.set('skillName', skillName);
+      }
+      const query = search.toString();
+      const result = await apiFetch<ApiSkillHistoryResponse>(
+        `/v1/athletes/${context.data.apiAthleteId}/skills/history${query ? `?${query}` : ''}`,
+        {
+          method: 'GET',
+          headers: context.data.headers,
+        },
+      );
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(result.data.skills);
     } catch (error) {
       logger.error('Failed to get skill history', { athleteId, skillName, error });
       return err(storageError('Failed to load skill history'));
@@ -729,7 +753,7 @@ export const analyticsQueryService = {
         );
       }
 
-      const context = await resolveAthleteGoalsApiContext(athleteId);
+      const context = await resolveAthleteApiContext(athleteId);
       if (!context.success) {
         return context;
       }
@@ -781,7 +805,20 @@ export const analyticsQueryService = {
         return ok({ skills: [] });
       }
 
-      // Mock average levels for comparison
+      if (!USE_MOCK) {
+        const skills = analyticsResult.data.skills.flatMap((s) => {
+          const averageLevel = (s as SkillProgressWithAverage).averageLevel;
+          return typeof averageLevel === 'number'
+            ? [{ name: s.skillName, athleteLevel: s.currentLevel, averageLevel }]
+            : [];
+        });
+        if (skills.length !== analyticsResult.data.skills.length) {
+          return err(storageError('Skill comparison averages are not available from the API'));
+        }
+        return ok({ skills });
+      }
+
+      // Mock-mode comparison baseline for local demo charts.
       const averageLevels: Record<string, number> = {
         Dribbling: 60,
         Passing: 62,

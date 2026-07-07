@@ -44,6 +44,7 @@ export interface ClubMembership {
   inviteCode?: string;
   squadIds?: string[];
   canPostAsClub?: boolean;
+  canCreateSessions?: boolean;
 }
 
 export interface ClubSquad {

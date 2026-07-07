@@ -14,9 +14,10 @@ import type {
   BulkInviteResult,
   BulkInviteError,
 } from '@/constants/types';
+import { apiClient } from '../api-client';
 import { notificationService } from '../notification-service';
 import { squadService } from '../squad-service';
-import { eventService } from '../event-service';
+import { eventCrudService } from '../event/event-crud-service';
 import { createLogger } from '@/utils/logger';
 import { userService } from '../user-service';
 
@@ -73,6 +74,45 @@ export const eventInviteService = {
     event: ClubEvent;
     inviteResult: BulkInviteResult;
   }> {
+    if (!apiClient.isMockMode) {
+      const event = await eventCrudService.createEvent({
+        clubId: input.clubId,
+        clubName: input.clubName,
+        createdBy: input.createdBy,
+        createdByName: input.createdByName,
+        title: input.title,
+        description: input.description,
+        eventType: input.eventType,
+        date: input.date,
+        startTime: input.startTime,
+        endTime: input.endTime,
+        venue: input.venue,
+        isVirtual: input.isVirtual || false,
+        targetAudience: 'SQUAD',
+        squadIds: input.squadIds,
+        maxAttendees: input.maxAttendees,
+        price: input.price || 0,
+        currency: 'GBP',
+        rsvpRequired: true,
+      });
+      const inviteResponse = await eventCrudService.inviteSquads(event.id, input.squadIds, {
+        excludeAthleteIds: input.excludeMemberIds,
+      });
+      const sent = inviteResponse?.inviteCount ?? 0;
+      return {
+        event,
+        inviteResult: {
+          sent,
+          successful: sent,
+          failed: 0,
+          skipped: 0,
+          totalAttempted: inviteResponse?.targetAthleteCount ?? sent,
+          errors: [],
+          groupId: `squad_event_${event.id}`,
+        },
+      };
+    }
+
     // Get all members from all squads
     const allMembers = await squadService.getMembersForSquads(input.squadIds);
 
@@ -82,7 +122,7 @@ export const eventInviteService = {
       : allMembers;
 
     // Create event using event service
-    const event = await eventService.createEvent({
+    const event = await eventCrudService.createEvent({
       clubId: input.clubId,
       clubName: input.clubName,
       createdBy: input.createdBy,

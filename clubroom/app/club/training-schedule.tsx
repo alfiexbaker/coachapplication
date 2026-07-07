@@ -6,6 +6,7 @@
  */
 
 import { View, StyleSheet, ScrollView, FlatList, type ListRenderItemInfo } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -50,7 +51,10 @@ export default function TrainingScheduleScreen() {
     userHasChildren && filteredSessions.length > 0 ? <TrainingAttendanceCard /> : null;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
       {/* Header */}
       <Row align="center" gap="md" style={styles.header}>
         <Clickable onPress={() => router.back()} hitSlop={8}>
@@ -154,7 +158,7 @@ export default function TrainingScheduleScreen() {
           {attendanceFooter}
         </ScrollView>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

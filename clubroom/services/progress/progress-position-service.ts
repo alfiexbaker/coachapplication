@@ -1,6 +1,12 @@
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
-import { apiClient } from '@/services/api-client';
+import { apiClient, apiFetch } from '@/services/api-client';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+  toApiAthleteId,
+} from '@/services/api-auth-context';
 import { err, ok, storageError, type Result, type ServiceError } from '@/types/result';
 import type { PositionRole } from '@/types/progress-types';
 import { createLogger } from '@/utils/logger';
@@ -12,6 +18,97 @@ export interface PositionHistoryEntry {
   recordedAt: string;
 }
 type PositionHistoryStore = Record<string, PositionHistoryEntry[]>;
+type ApiSessionFeedback = {
+  sessionId?: string | null;
+  athleteId?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  positionPlayed?: string | null;
+  positionsPlayed?: string[] | null;
+};
+type ApiSessionFeedbackListResponse = {
+  feedback: ApiSessionFeedback[];
+};
+const POSITION_ROLES = new Set<PositionRole>(['GK', 'DEF', 'MID', 'ATT']);
+function toPositionRole(value: unknown): PositionRole | null {
+  return typeof value === 'string' && POSITION_ROLES.has(value as PositionRole)
+    ? (value as PositionRole)
+    : null;
+}
+function positionsFromFeedback(feedback: ApiSessionFeedback): PositionRole[] {
+  const positions =
+    Array.isArray(feedback.positionsPlayed) && feedback.positionsPlayed.length > 0
+      ? feedback.positionsPlayed
+      : [feedback.positionPlayed];
+  const seen = new Set<PositionRole>();
+  return positions.reduce<PositionRole[]>((acc, value) => {
+    const position = toPositionRole(value);
+    if (position && !seen.has(position)) {
+      seen.add(position);
+      acc.push(position);
+    }
+    return acc;
+  }, []);
+}
+async function resolvePositionApiAccess(
+  athleteId: string,
+): Promise<{ apiAthleteId: string; viewerRole: 'coach' | 'parent' | 'athlete'; headers: Record<string, string> }> {
+  const currentUserResult = await resolveSignedInApiUser('Sign in to view athlete positions.');
+  if (!currentUserResult.success) {
+    throw new Error(currentUserResult.error.message);
+  }
+
+  const currentUser = currentUserResult.data;
+  const apiAthleteId = toApiAthleteId(athleteId);
+  const actingRole = deriveApiActingRole(currentUser);
+  const viewerRole =
+    actingRole === 'coach' || actingRole === 'parent' || actingRole === 'athlete'
+      ? actingRole
+      : 'athlete';
+  return {
+    apiAthleteId,
+    viewerRole,
+    headers: buildApiAuthHeaders({
+      actingRole,
+      coachAthleteIds: actingRole === 'coach' ? [apiAthleteId] : undefined,
+      guardianAthleteIds: actingRole === 'parent' ? [apiAthleteId] : undefined,
+      coachVerified: actingRole === 'coach' && currentUser.isVerified,
+    }),
+  };
+}
+async function getApiPositionHistory(
+  athleteId: string,
+  limit?: number,
+): Promise<Result<PositionHistoryEntry[], ServiceError>> {
+  const access = await resolvePositionApiAccess(athleteId);
+  const query = new URLSearchParams({ viewerRole: access.viewerRole });
+  const result = await apiFetch<ApiSessionFeedbackListResponse>(
+    `/v1/athletes/${encodeURIComponent(access.apiAthleteId)}/session-feedback?${query.toString()}`,
+    { headers: access.headers },
+  );
+  if (!result.success) {
+    return result;
+  }
+  const history = result.data.feedback
+    .flatMap((feedback) => {
+      const sessionId = feedback.sessionId;
+      const recordedAt = feedback.updatedAt ?? feedback.createdAt;
+      if (!sessionId || !recordedAt) {
+        return [];
+      }
+      return positionsFromFeedback(feedback).map((position) => ({
+        sessionId,
+        athleteId: feedback.athleteId ?? athleteId,
+        position,
+        recordedAt,
+      }));
+    })
+    .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
+  if (typeof limit === 'number' && limit > 0) {
+    return ok(history.slice(0, limit));
+  }
+  return ok(history);
+}
 async function getPositionStore(): Promise<PositionHistoryStore> {
   return apiClient.get<PositionHistoryStore>(STORAGE_KEYS.POSITION_HISTORY, {});
 }
@@ -24,8 +121,6 @@ export async function recordPosition(
   position: PositionRole,
 ): Promise<Result<PositionHistoryEntry, ServiceError>> {
   try {
-    const store = await getPositionStore();
-    const existing = store[athleteId] ?? [];
     const now = new Date().toISOString();
     const nextEntry: PositionHistoryEntry = {
       sessionId,
@@ -33,6 +128,16 @@ export async function recordPosition(
       position,
       recordedAt: now,
     };
+    if (!apiClient.isMockMode) {
+      logger.info('position_record_delegated_to_session_feedback', {
+        athleteId,
+        sessionId,
+        position,
+      });
+      return ok(nextEntry);
+    }
+    const store = await getPositionStore();
+    const existing = store[athleteId] ?? [];
     const withoutSession = existing.filter((entry) => entry.sessionId !== sessionId);
     store[athleteId] = [nextEntry, ...withoutSession]
       .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())
@@ -91,6 +196,9 @@ export async function getPositionHistory(
   limit?: number,
 ): Promise<Result<PositionHistoryEntry[], ServiceError>> {
   try {
+    if (!apiClient.isMockMode) {
+      return await getApiPositionHistory(athleteId, limit);
+    }
     const store = await getPositionStore();
     const history = (store[athleteId] ?? [])
       .slice()

@@ -24,6 +24,8 @@ interface ApiBookingResponse {
   id: string;
   coachUserId: string;
   bookedByUserId?: string;
+  recurringSeriesId?: string | null;
+  groupSessionId?: string | null;
   status: ApiBookingStatus;
   scheduledAt: string;
   durationMinutes: number;
@@ -80,6 +82,34 @@ interface CreateApiBookingInput {
   objectives?: string[];
   notes?: string;
   totalPrice?: number;
+  idempotencyKey?: string;
+}
+
+interface UpdateApiBookingInput {
+  scheduledAt?: string;
+  durationMinutes?: number;
+  location?: string;
+  serviceType?: string;
+  objectives?: string[];
+  notes?: string;
+  priceMinor?: number;
+  currency?: 'GBP';
+  expectedVersion?: number;
+  idempotencyKey?: string;
+}
+
+export interface CompleteApiBookingAttendanceInput {
+  athleteId: string;
+  status: 'ATTENDED' | 'NO_SHOW';
+  notes?: string;
+  effortRating?: number;
+}
+
+export interface CompleteApiBookingInput {
+  note?: string;
+  completedAt?: string;
+  attendance?: CompleteApiBookingAttendanceInput[];
+  expectedVersion?: number;
   idempotencyKey?: string;
 }
 
@@ -198,18 +228,42 @@ function buildBookingSeriesIdempotencyKey(input: CreateApiBookingSeriesInput): s
 }
 
 function buildBookingLifecycleIdempotencyKey(
-  action: 'cancel' | 'reopen' | 'pause' | 'resume' | 'update',
+  action: 'cancel' | 'confirm' | 'complete' | 'reopen' | 'pause' | 'resume' | 'update',
   bookingId: string,
-  input: { reason?: string; note?: string; expectedVersion?: number },
+  input: {
+    reason?: string;
+    note?: string;
+    completedAt?: string;
+    attendance?: CompleteApiBookingAttendanceInput[];
+    expectedVersion?: number;
+  },
 ): string {
   const payload = JSON.stringify({
     action,
     bookingId,
     reason: input.reason ?? null,
     note: input.note ?? null,
+    completedAt: input.completedAt ?? null,
+    attendance: input.attendance ?? null,
     expectedVersion: input.expectedVersion ?? null,
   });
   return `booking_${action}_${hashStableString(payload)}`;
+}
+
+function buildBookingUpdateIdempotencyKey(bookingId: string, input: UpdateApiBookingInput): string {
+  const payload = JSON.stringify({
+    bookingId,
+    scheduledAt: input.scheduledAt ? toApiScheduledAt(input.scheduledAt) : null,
+    durationMinutes: input.durationMinutes ?? null,
+    location: input.location ?? null,
+    serviceType: input.serviceType ?? null,
+    objectives: input.objectives ?? null,
+    notes: input.notes ?? null,
+    priceMinor: input.priceMinor ?? null,
+    currency: input.currency ?? null,
+    expectedVersion: input.expectedVersion ?? null,
+  });
+  return `booking_update_${hashStableString(payload)}`;
 }
 
 async function resolveBookingAccessHeaders(): Promise<
@@ -245,7 +299,7 @@ class BookingAuthorityService {
     });
 
     if (!result.success) {
-      logger.error('Failed to list bookings via API', {
+      logger.warn('Failed to list bookings via API', {
         status: params.status ?? null,
         error: result.error,
       });
@@ -268,6 +322,36 @@ class BookingAuthorityService {
 
     if (!result.success) {
       logger.error('Failed to get booking via API', {
+        bookingId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+
+    return result;
+  }
+
+  async updateBooking(
+    bookingId: string,
+    input: UpdateApiBookingInput,
+  ): Promise<Result<ApiBookingResponse, ServiceError>> {
+    const headersResult = await resolveBookingAccessHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiBookingResponse>(`/v1/bookings/${bookingId}`, {
+      method: 'PATCH',
+      headers: headersResult.data,
+      body: JSON.stringify({
+        ...input,
+        ...(input.scheduledAt ? { scheduledAt: toApiScheduledAt(input.scheduledAt) } : {}),
+        idempotencyKey: input.idempotencyKey ?? buildBookingUpdateIdempotencyKey(bookingId, input),
+      }),
+    });
+
+    if (!result.success) {
+      logger.error('Failed to update booking via API', {
         bookingId,
         error: result.error,
       });
@@ -452,8 +536,7 @@ class BookingAuthorityService {
         body: JSON.stringify({
           ...input,
           idempotencyKey:
-            input.idempotencyKey ??
-            buildBookingLifecycleIdempotencyKey('cancel', seriesId, input),
+            input.idempotencyKey ?? buildBookingLifecycleIdempotencyKey('cancel', seriesId, input),
         }),
       },
     );
@@ -538,6 +621,7 @@ class BookingAuthorityService {
   async updateBookingSeries(
     seriesId: string,
     input: {
+      coachUserId?: string;
       time?: string;
       durationMinutes?: number;
       location?: string;
@@ -594,6 +678,66 @@ class BookingAuthorityService {
 
     if (!result.success) {
       logger.error('Failed to cancel booking via API', {
+        bookingId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+
+    return result;
+  }
+
+  async confirmBooking(
+    bookingId: string,
+    input: { note?: string; expectedVersion?: number; idempotencyKey?: string } = {},
+  ): Promise<Result<ApiBookingResponse, ServiceError>> {
+    const headersResult = await resolveBookingAccessHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiBookingResponse>(`/v1/bookings/${bookingId}/confirm`, {
+      method: 'POST',
+      headers: headersResult.data,
+      body: JSON.stringify({
+        ...input,
+        idempotencyKey:
+          input.idempotencyKey ?? buildBookingLifecycleIdempotencyKey('confirm', bookingId, input),
+      }),
+    });
+
+    if (!result.success) {
+      logger.error('Failed to confirm booking via API', {
+        bookingId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+
+    return result;
+  }
+
+  async completeBooking(
+    bookingId: string,
+    input: CompleteApiBookingInput = {},
+  ): Promise<Result<ApiBookingResponse, ServiceError>> {
+    const headersResult = await resolveBookingAccessHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiBookingResponse>(`/v1/bookings/${bookingId}/complete`, {
+      method: 'POST',
+      headers: headersResult.data,
+      body: JSON.stringify({
+        ...input,
+        idempotencyKey:
+          input.idempotencyKey ?? buildBookingLifecycleIdempotencyKey('complete', bookingId, input),
+      }),
+    });
+
+    if (!result.success) {
+      logger.error('Failed to complete booking via API', {
         bookingId,
         error: result.error,
       });

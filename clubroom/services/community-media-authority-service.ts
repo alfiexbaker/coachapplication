@@ -16,6 +16,7 @@ import type {
 } from "@/constants/types";
 import { authService } from "@/services/auth-service";
 import { apiFetch } from "@/services/api-client";
+import { formatServiceTypeLabel } from "@/utils/booking-display";
 import {
   buildApiAuthHeaders,
   deriveApiActingRole,
@@ -38,12 +39,17 @@ interface ApiCommunityGroupMembership {
   userId?: string;
   role?: string;
   joinedAt?: string;
+  createdAt?: string;
   active?: boolean;
   deletedAt?: string | null;
 }
 interface ApiCommunityGroup {
   id: string;
+  groupType?: string | null;
+  type?: string | null;
   clubId?: string | null;
+  squadId?: string | null;
+  sessionId?: string | null;
   ownerUserId?: string;
   name?: string | null;
   description?: string | null;
@@ -55,6 +61,47 @@ interface ApiCommunityGroup {
 }
 interface ApiCommunityGroupListResponse {
   groups: ApiCommunityGroup[];
+}
+interface ApiCommunityGroupCreateResponse {
+  group: ApiCommunityGroup;
+}
+interface ApiCommunityGroupInvite {
+  id: string;
+  groupId?: string;
+  groupName?: string;
+  inviterId?: string;
+  inviterName?: string;
+  inviteeId?: string;
+  inviteeName?: string;
+  status?: string;
+  createdAt?: string;
+  respondedAt?: string | null;
+}
+interface ApiCommunityGroupInviteListResponse {
+  invites: ApiCommunityGroupInvite[];
+}
+interface ApiCommunityGroupInviteMutationResponse {
+  invite: ApiCommunityGroupInvite;
+  group?: ApiCommunityGroup;
+}
+interface ApiCommunityGroupJoinRequest {
+  id: string;
+  groupId?: string;
+  groupName?: string;
+  requesterId?: string;
+  requesterName?: string;
+  requestedRole?: string;
+  isCoach?: boolean;
+  status?: string;
+  createdAt?: string;
+  respondedAt?: string | null;
+}
+interface ApiCommunityGroupJoinRequestListResponse {
+  requests: ApiCommunityGroupJoinRequest[];
+}
+interface ApiCommunityGroupJoinRequestMutationResponse {
+  request: ApiCommunityGroupJoinRequest;
+  group?: ApiCommunityGroup;
 }
 interface ApiMessageReceipt {
   userId?: string;
@@ -165,6 +212,30 @@ interface NotificationState {
   preferences: EnhancedNotificationPreferences;
   unreadCount: number;
 }
+export interface AuthorityGroupInvite {
+  id: string;
+  groupId: string;
+  groupName: string;
+  inviterId: string;
+  inviterName: string;
+  inviteeId: string;
+  inviteeName: string;
+  status: "PENDING" | "ACCEPTED" | "DECLINED";
+  createdAt: string;
+  respondedAt?: string;
+}
+export interface AuthorityGroupJoinRequest {
+  id: string;
+  groupId: string;
+  groupName: string;
+  requesterId: string;
+  requesterName: string;
+  requestedRole: GroupMemberRole;
+  isCoach: boolean;
+  status: "PENDING" | "ACCEPTED" | "DECLINED";
+  createdAt: string;
+  respondedAt?: string;
+}
 export interface AuthorityNotificationItem extends NotificationItem {
   recipientId?: string;
   recipientRole?: "coach" | "parent";
@@ -188,6 +259,16 @@ function normalizeGroupRole(role: string | null | undefined): GroupMemberRole {
   }
 }
 function normalizeGroupType(group: ApiCommunityGroup): GroupType {
+  const value = (group.groupType ?? group.type ?? "").toUpperCase();
+  if (value === "SQUAD" || group.squadId) {
+    return "SQUAD";
+  }
+  if (value === "SESSION" || group.sessionId) {
+    return "SESSION";
+  }
+  if (value === "CLUB") {
+    return "CLUB";
+  }
   if (group.clubId) {
     return "CLUB";
   }
@@ -197,15 +278,7 @@ function isCoachAccountType(accountType: string | undefined): boolean {
   return accountType === "COACH" || accountType === "ADMIN";
 }
 function humanizeServiceType(serviceType: string | undefined): string {
-  if (!serviceType) {
-    return "Direct message";
-  }
-  return serviceType
-    .split("_")
-    .flatMap((item) =>
-      Boolean(item) ? [item.charAt(0).toUpperCase() + item.slice(1)] : [],
-    )
-    .join(" ");
+  return serviceType ? formatServiceTypeLabel(serviceType) : "Direct message";
 }
 function coerceIso(value: string | null | undefined, fallback: string): string {
   return value && value.trim().length > 0 ? value : fallback;
@@ -283,7 +356,7 @@ function mapCommunityGroup(group: ApiCommunityGroup): ParentGroup {
       parentId: membership.userId as string,
       role: normalizeGroupRole(membership.role),
       joinedAt: coerceIso(
-        membership.joinedAt,
+        membership.joinedAt ?? membership.createdAt,
         group.createdAt ?? new Date().toISOString(),
       ),
     })),
@@ -297,7 +370,59 @@ function mapCommunityGroup(group: ApiCommunityGroup): ParentGroup {
     lastMessagePreview: undefined,
     unreadCount: 0,
     clubId: group.clubId ?? undefined,
+    squadId: group.squadId ?? undefined,
+    sessionId: group.sessionId ?? undefined,
     isPublic: (group.visibility ?? "").toUpperCase() === "PUBLIC",
+  };
+}
+function normalizeInviteStatus(value: string | undefined): AuthorityGroupInvite["status"] {
+  const normalized = (value ?? "PENDING").toUpperCase();
+  if (normalized === "ACCEPTED" || normalized === "DECLINED") {
+    return normalized;
+  }
+  return "PENDING";
+}
+function normalizeJoinRequestStatus(
+  value: string | undefined,
+): AuthorityGroupJoinRequest["status"] {
+  const normalized = (value ?? "PENDING").toUpperCase();
+  if (normalized === "ACCEPTED" || normalized === "DECLINED") {
+    return normalized;
+  }
+  return "PENDING";
+}
+function mapCommunityGroupInvite(invite: ApiCommunityGroupInvite): AuthorityGroupInvite {
+  return {
+    id: invite.id,
+    groupId: invite.groupId ?? "",
+    groupName: invite.groupName?.trim() || "Community group",
+    inviterId: invite.inviterId ?? "",
+    inviterName: invite.inviterName?.trim() || "Member",
+    inviteeId: invite.inviteeId ?? "",
+    inviteeName: invite.inviteeName?.trim() || "Member",
+    status: normalizeInviteStatus(invite.status),
+    createdAt: coerceIso(invite.createdAt, new Date().toISOString()),
+    respondedAt: invite.respondedAt
+      ? coerceIso(invite.respondedAt, invite.respondedAt)
+      : undefined,
+  };
+}
+function mapCommunityGroupJoinRequest(
+  request: ApiCommunityGroupJoinRequest,
+): AuthorityGroupJoinRequest {
+  return {
+    id: request.id,
+    groupId: request.groupId ?? "",
+    groupName: request.groupName?.trim() || "Community group",
+    requesterId: request.requesterId ?? "",
+    requesterName: request.requesterName?.trim() || "Member",
+    requestedRole: normalizeGroupRole(request.requestedRole),
+    isCoach: request.isCoach ?? false,
+    status: normalizeJoinRequestStatus(request.status),
+    createdAt: coerceIso(request.createdAt, new Date().toISOString()),
+    respondedAt: request.respondedAt
+      ? coerceIso(request.respondedAt, request.respondedAt)
+      : undefined,
   };
 }
 function getCurrentUserReceipt(
@@ -486,7 +611,7 @@ function buildThreadSummary(params: {
       id: thread.id,
       kind: "group",
       bookingId: thread.bookingId ?? "",
-      groupType: group?.type === "CLUB" ? "club" : "class",
+      groupType: group?.type === "CLUB" ? "club" : group?.type === "SQUAD" ? "squad" : "class",
       serviceName: group?.name || "Community group",
       location: "",
       scheduledFor: coerceIso(
@@ -761,7 +886,7 @@ class CommunityMediaAuthorityService {
       },
     );
     if (!result.success) {
-      logger.error("Failed to load community groups via API", {
+      logger.warn("Failed to load community groups via API", {
         error: result.error,
       });
       return err(result.error);
@@ -799,7 +924,7 @@ class CommunityMediaAuthorityService {
       },
     );
     if (!result.success) {
-      logger.error("Failed to load message threads via API", {
+      logger.warn("Failed to load message threads via API", {
         error: result.error,
       });
       return err(result.error);
@@ -833,7 +958,7 @@ class CommunityMediaAuthorityService {
       },
     );
     if (!result.success) {
-      logger.error("Failed to load notifications via API", {
+      logger.warn("Failed to load notifications via API", {
         error: result.error,
       });
       return err(result.error);
@@ -862,6 +987,522 @@ class CommunityMediaAuthorityService {
   }
   async listGroups(): Promise<Result<ParentGroup[], ServiceError>> {
     return this.fetchGroups();
+  }
+  async createGroup(params: {
+    name: string;
+    description?: string;
+    type: GroupType;
+    memberIds?: string[];
+    isPublic?: boolean;
+    clubId?: string;
+    squadId?: string;
+  }): Promise<Result<ParentGroup, ServiceError>> {
+    if (USE_MOCK) {
+      return err(serviceError("UNSUPPORTED", "Community group API is disabled in mock mode."));
+    }
+    if (params.type === "SESSION") {
+      return err(
+        serviceError(
+          "UNSUPPORTED",
+          "API mode supports GENERAL, CLUB, and SQUAD community group creation. Session groups need a dedicated /v1 contract.",
+          { missingAuthority: "community_group_session_link" },
+        ),
+      );
+    }
+    const contextResult = await resolveContext(
+      "Sign in to create community groups.",
+    );
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const result = await apiFetch<ApiCommunityGroupCreateResponse>(
+      "/v1/community-groups",
+      {
+        method: "POST",
+        headers: contextResult.data.headers,
+        body: JSON.stringify({
+          name: params.name,
+          description: params.description,
+          type: params.type,
+          clubId: params.clubId,
+          squadId: params.squadId,
+          isPublic: params.isPublic,
+          memberIds: params.memberIds ?? [],
+          idempotencyKey: generateId("community_group_create"),
+        }),
+      },
+    );
+    if (!result.success) {
+      logger.error("Failed to create community group via API", {
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    return ok(mapCommunityGroup(result.data.group));
+  }
+  async joinGroup(groupId: string): Promise<Result<ParentGroup, ServiceError>> {
+    if (USE_MOCK) {
+      return err(serviceError("UNSUPPORTED", "Community group API is disabled in mock mode."));
+    }
+    const contextResult = await resolveContext(
+      "Sign in to join community groups.",
+    );
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const result = await apiFetch<ApiCommunityGroupCreateResponse>(
+      `/v1/community-groups/${encodeURIComponent(groupId)}/join`,
+      {
+        method: "POST",
+        headers: contextResult.data.headers,
+      },
+    );
+    if (!result.success) {
+      logger.error("Failed to join community group via API", {
+        groupId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    return ok(mapCommunityGroup(result.data.group));
+  }
+  async leaveGroup(groupId: string): Promise<Result<ParentGroup, ServiceError>> {
+    if (USE_MOCK) {
+      return err(serviceError("UNSUPPORTED", "Community group API is disabled in mock mode."));
+    }
+    const contextResult = await resolveContext(
+      "Sign in to leave community groups.",
+    );
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const result = await apiFetch<ApiCommunityGroupCreateResponse>(
+      `/v1/community-groups/${encodeURIComponent(groupId)}/leave`,
+      {
+        method: "POST",
+        headers: contextResult.data.headers,
+      },
+    );
+    if (!result.success) {
+      logger.error("Failed to leave community group via API", {
+        groupId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    return ok(mapCommunityGroup(result.data.group));
+  }
+  async addMember(params: {
+    groupId: string;
+    memberUserId: string;
+    role?: GroupMemberRole;
+  }): Promise<Result<ParentGroup, ServiceError>> {
+    if (USE_MOCK) {
+      return err(serviceError("UNSUPPORTED", "Community group API is disabled in mock mode."));
+    }
+    if (params.role === "OWNER") {
+      return err(
+        serviceError(
+          "VALIDATION",
+          "Use owner transfer to assign community group ownership.",
+        ),
+      );
+    }
+    const contextResult = await resolveContext(
+      "Sign in to add community group members.",
+    );
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const result = await apiFetch<ApiCommunityGroupCreateResponse>(
+      `/v1/community-groups/${encodeURIComponent(params.groupId)}/members`,
+      {
+        method: "POST",
+        headers: contextResult.data.headers,
+        body: JSON.stringify({
+          memberUserId: params.memberUserId,
+          role: params.role ?? "MEMBER",
+        }),
+      },
+    );
+    if (!result.success) {
+      logger.error("Failed to add community group member via API", {
+        groupId: params.groupId,
+        memberUserId: params.memberUserId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    return ok(mapCommunityGroup(result.data.group));
+  }
+  async changeMemberRole(params: {
+    groupId: string;
+    memberUserId: string;
+    role: GroupMemberRole;
+  }): Promise<Result<ParentGroup, ServiceError>> {
+    if (USE_MOCK) {
+      return err(serviceError("UNSUPPORTED", "Community group API is disabled in mock mode."));
+    }
+    if (params.role === "OWNER") {
+      return this.transferGroupOwner(params.groupId, params.memberUserId);
+    }
+    const contextResult = await resolveContext(
+      "Sign in to manage community group members.",
+    );
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const result = await apiFetch<ApiCommunityGroupCreateResponse>(
+      `/v1/community-groups/${encodeURIComponent(params.groupId)}/members/${encodeURIComponent(
+        params.memberUserId,
+      )}/role`,
+      {
+        method: "PATCH",
+        headers: contextResult.data.headers,
+        body: JSON.stringify({
+          role: params.role,
+        }),
+      },
+    );
+    if (!result.success) {
+      logger.error("Failed to change community group member role via API", {
+        groupId: params.groupId,
+        memberUserId: params.memberUserId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    return ok(mapCommunityGroup(result.data.group));
+  }
+  private async transferGroupOwner(
+    groupId: string,
+    memberUserId: string,
+  ): Promise<Result<ParentGroup, ServiceError>> {
+    const contextResult = await resolveContext(
+      "Sign in to transfer community group ownership.",
+    );
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const result = await apiFetch<ApiCommunityGroupCreateResponse>(
+      `/v1/community-groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(
+        memberUserId,
+      )}/transfer-ownership`,
+      {
+        method: "POST",
+        headers: contextResult.data.headers,
+      },
+    );
+    if (!result.success) {
+      logger.error("Failed to transfer community group owner via API", {
+        groupId,
+        memberUserId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    return ok(mapCommunityGroup(result.data.group));
+  }
+  async removeMember(
+    groupId: string,
+    memberUserId: string,
+  ): Promise<Result<ParentGroup, ServiceError>> {
+    if (USE_MOCK) {
+      return err(serviceError("UNSUPPORTED", "Community group API is disabled in mock mode."));
+    }
+    const contextResult = await resolveContext(
+      "Sign in to manage community group members.",
+    );
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const result = await apiFetch<ApiCommunityGroupCreateResponse>(
+      `/v1/community-groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(
+        memberUserId,
+      )}/remove`,
+      {
+        method: "POST",
+        headers: contextResult.data.headers,
+      },
+    );
+    if (!result.success) {
+      logger.error("Failed to remove community group member via API", {
+        groupId,
+        memberUserId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    return ok(mapCommunityGroup(result.data.group));
+  }
+  async archiveGroup(groupId: string): Promise<Result<ParentGroup, ServiceError>> {
+    if (USE_MOCK) {
+      return err(serviceError("UNSUPPORTED", "Community group API is disabled in mock mode."));
+    }
+    const contextResult = await resolveContext(
+      "Sign in to archive community groups.",
+    );
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const result = await apiFetch<ApiCommunityGroupCreateResponse>(
+      `/v1/community-groups/${encodeURIComponent(groupId)}/archive`,
+      {
+        method: "POST",
+        headers: contextResult.data.headers,
+      },
+    );
+    if (!result.success) {
+      logger.error("Failed to archive community group via API", {
+        groupId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    return ok(mapCommunityGroup(result.data.group));
+  }
+  async createGroupInvite(params: {
+    groupId: string;
+    inviteeUserId: string;
+    message?: string;
+  }): Promise<Result<AuthorityGroupInvite, ServiceError>> {
+    if (USE_MOCK) {
+      return err(serviceError("UNSUPPORTED", "Community group API is disabled in mock mode."));
+    }
+    const contextResult = await resolveContext(
+      "Sign in to invite community group members.",
+    );
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const result = await apiFetch<ApiCommunityGroupInviteMutationResponse>(
+      `/v1/community-groups/${encodeURIComponent(params.groupId)}/invites`,
+      {
+        method: "POST",
+        headers: contextResult.data.headers,
+        body: JSON.stringify({
+          inviteeUserId: params.inviteeUserId,
+          message: params.message,
+        }),
+      },
+    );
+    if (!result.success) {
+      logger.error("Failed to create community group invite via API", {
+        groupId: params.groupId,
+        inviteeUserId: params.inviteeUserId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    return ok(mapCommunityGroupInvite(result.data.invite));
+  }
+  async listGroupInvites(): Promise<Result<AuthorityGroupInvite[], ServiceError>> {
+    if (USE_MOCK) {
+      return err(serviceError("UNSUPPORTED", "Community group API is disabled in mock mode."));
+    }
+    const contextResult = await resolveContext(
+      "Sign in to read community group invites.",
+    );
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const result = await apiFetch<ApiCommunityGroupInviteListResponse>(
+      "/v1/me/community-group-invites",
+      {
+        headers: contextResult.data.headers,
+      },
+    );
+    if (!result.success) {
+      logger.error("Failed to list community group invites via API", {
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    return ok(result.data.invites.map(mapCommunityGroupInvite));
+  }
+  async acceptGroupInvite(inviteId: string): Promise<Result<ParentGroup, ServiceError>> {
+    if (USE_MOCK) {
+      return err(serviceError("UNSUPPORTED", "Community group API is disabled in mock mode."));
+    }
+    const contextResult = await resolveContext(
+      "Sign in to accept community group invites.",
+    );
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const result = await apiFetch<ApiCommunityGroupInviteMutationResponse>(
+      `/v1/community-group-invites/${encodeURIComponent(inviteId)}/accept`,
+      {
+        method: "POST",
+        headers: contextResult.data.headers,
+      },
+    );
+    if (!result.success) {
+      logger.error("Failed to accept community group invite via API", {
+        inviteId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    if (!result.data.group) {
+      return err(notFound("Community group", inviteId));
+    }
+    return ok(mapCommunityGroup(result.data.group));
+  }
+  async declineGroupInvite(inviteId: string): Promise<Result<AuthorityGroupInvite, ServiceError>> {
+    if (USE_MOCK) {
+      return err(serviceError("UNSUPPORTED", "Community group API is disabled in mock mode."));
+    }
+    const contextResult = await resolveContext(
+      "Sign in to decline community group invites.",
+    );
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const result = await apiFetch<ApiCommunityGroupInviteMutationResponse>(
+      `/v1/community-group-invites/${encodeURIComponent(inviteId)}/decline`,
+      {
+        method: "POST",
+        headers: contextResult.data.headers,
+      },
+    );
+    if (!result.success) {
+      logger.error("Failed to decline community group invite via API", {
+        inviteId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    return ok(mapCommunityGroupInvite(result.data.invite));
+  }
+  async requestGroupJoin(
+    groupId: string,
+    params?: { isCoach?: boolean },
+  ): Promise<Result<AuthorityGroupJoinRequest, ServiceError>> {
+    if (USE_MOCK) {
+      return err(serviceError("UNSUPPORTED", "Community group API is disabled in mock mode."));
+    }
+    const contextResult = await resolveContext(
+      "Sign in to request community group access.",
+    );
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const result = await apiFetch<ApiCommunityGroupJoinRequestMutationResponse>(
+      `/v1/community-groups/${encodeURIComponent(groupId)}/join-requests`,
+      {
+        method: "POST",
+        headers: contextResult.data.headers,
+        body: JSON.stringify({
+          isCoach: params?.isCoach,
+        }),
+      },
+    );
+    if (!result.success) {
+      logger.error("Failed to request community group access via API", {
+        groupId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    return ok(mapCommunityGroupJoinRequest(result.data.request));
+  }
+  async listGroupJoinRequests(
+    groupId: string,
+  ): Promise<Result<AuthorityGroupJoinRequest[], ServiceError>> {
+    if (USE_MOCK) {
+      return err(serviceError("UNSUPPORTED", "Community group API is disabled in mock mode."));
+    }
+    const contextResult = await resolveContext(
+      "Sign in to review community group requests.",
+    );
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const result = await apiFetch<ApiCommunityGroupJoinRequestListResponse>(
+      `/v1/community-groups/${encodeURIComponent(groupId)}/join-requests`,
+      {
+        headers: contextResult.data.headers,
+      },
+    );
+    if (!result.success) {
+      logger.error("Failed to list community group join requests via API", {
+        groupId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    return ok(result.data.requests.map(mapCommunityGroupJoinRequest));
+  }
+  async approveGroupJoinRequest(
+    groupId: string,
+    requestId: string,
+  ): Promise<Result<{ request: AuthorityGroupJoinRequest; group: ParentGroup }, ServiceError>> {
+    if (USE_MOCK) {
+      return err(serviceError("UNSUPPORTED", "Community group API is disabled in mock mode."));
+    }
+    const contextResult = await resolveContext(
+      "Sign in to approve community group requests.",
+    );
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const result = await apiFetch<ApiCommunityGroupJoinRequestMutationResponse>(
+      `/v1/community-groups/${encodeURIComponent(groupId)}/join-requests/${encodeURIComponent(
+        requestId,
+      )}/approve`,
+      {
+        method: "POST",
+        headers: contextResult.data.headers,
+      },
+    );
+    if (!result.success) {
+      logger.error("Failed to approve community group join request via API", {
+        groupId,
+        requestId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    if (!result.data.group) {
+      return err(notFound("Community group", groupId));
+    }
+    return ok({
+      request: mapCommunityGroupJoinRequest(result.data.request),
+      group: mapCommunityGroup(result.data.group),
+    });
+  }
+  async rejectGroupJoinRequest(
+    groupId: string,
+    requestId: string,
+  ): Promise<Result<AuthorityGroupJoinRequest, ServiceError>> {
+    if (USE_MOCK) {
+      return err(serviceError("UNSUPPORTED", "Community group API is disabled in mock mode."));
+    }
+    const contextResult = await resolveContext(
+      "Sign in to reject community group requests.",
+    );
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const result = await apiFetch<ApiCommunityGroupJoinRequestMutationResponse>(
+      `/v1/community-groups/${encodeURIComponent(groupId)}/join-requests/${encodeURIComponent(
+        requestId,
+      )}/reject`,
+      {
+        method: "POST",
+        headers: contextResult.data.headers,
+      },
+    );
+    if (!result.success) {
+      logger.error("Failed to reject community group join request via API", {
+        groupId,
+        requestId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    return ok(mapCommunityGroupJoinRequest(result.data.request));
   }
   async getGroup(groupId: string): Promise<Result<ParentGroup, ServiceError>> {
     const groupsResult = await this.fetchGroups();
@@ -1079,6 +1720,35 @@ class CommunityMediaAuthorityService {
     if (!result.success) {
       logger.error("Failed to delete message via API", {
         messageId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    return ok(undefined);
+  }
+  async markThreadMessagesRead(
+    threadId: string,
+  ): Promise<Result<void, ServiceError>> {
+    if (USE_MOCK) {
+      return ok(undefined);
+    }
+    const contextResult = await resolveContext(
+      "Sign in to mark messages read.",
+    );
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const result = await apiFetch<ApiGroupMessageReadResponse>(
+      `/v1/message-threads/${encodeURIComponent(threadId)}/read`,
+      {
+        method: "POST",
+        headers: contextResult.data.headers,
+        body: JSON.stringify({}),
+      },
+    );
+    if (!result.success) {
+      logger.error("Failed to mark thread messages read via API", {
+        threadId,
         error: result.error,
       });
       return err(result.error);

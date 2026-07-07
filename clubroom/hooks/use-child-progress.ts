@@ -123,7 +123,7 @@ export function useChildProgress() {
         badges: visibleBadges,
       });
     } catch (error) {
-      logger.error('Failed to load child progress', error);
+      logger.warn('Failed to load child progress', error);
       return err(serviceError('UNKNOWN', 'Failed to load child progress data.', error));
     }
   };

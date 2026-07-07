@@ -18,7 +18,11 @@ import { formatDate } from '@/hooks/use-home-screen';
 import type { HomeClubHighlight, HomeResult } from '@/hooks/use-home-screen';
 import { useTheme } from '@/hooks/useTheme';
 import type { ThemeColors } from '@/hooks/useTheme';
-import { getBookingClubOwnershipContext } from '@/utils/booking-display';
+import {
+  getBookingClubOwnershipContext,
+  getBookingServiceLabel,
+  safeDisplayLabel,
+} from '@/utils/booking-display';
 import { formatTime } from '@/utils/format';
 
 const QUICK_ACTION_DEFS = [
@@ -255,10 +259,7 @@ interface Booking {
 }
 
 function getSessionTypeLabel(booking: Booking): string {
-  if (booking.serviceType?.trim()) return booking.serviceType;
-  if (booking.service?.trim()) return booking.service;
-  if (booking.isGroupSession || (booking.maxParticipants ?? 1) > 1) return 'Group session';
-  return '1-to-1 session';
+  return getBookingServiceLabel(booking);
 }
 
 export const NextSessionCard = function NextSessionCard({ booking }: { booking?: Booking }) {
@@ -297,6 +298,7 @@ export const NextSessionCard = function NextSessionCard({ booking }: { booking?:
     );
   }
   const ownershipContext = getBookingClubOwnershipContext(booking);
+  const coachLabel = safeDisplayLabel(booking.coachName, safeDisplayLabel(booking.coachId, 'Coach'));
   return (
     <SurfaceCard
       style={styles.nextSession}
@@ -316,7 +318,7 @@ export const NextSessionCard = function NextSessionCard({ booking }: { booking?:
             Next Session
           </ThemedText>
           <ThemedText type="subtitle" style={styles.coachName} numberOfLines={1}>
-            {booking.coachName}
+            {coachLabel}
           </ThemedText>
         </Column>
         <Ionicons name="chevron-forward" size={18} color={palette.muted} />

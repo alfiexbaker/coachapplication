@@ -53,8 +53,7 @@ Run targeted tests for the area you touch when the change is non-trivial.
 - `docs/START_HERE.md`
 - `docs/SOURCE_OF_TRUTH.md`
 - `docs/KNOWLEDGE_SPINE.md`
+- `docs/APP_REPORT.md`
 - `docs/architecture/service-ownership-map.md`
 - `docs/trust/auth-and-permission-boundaries.md`
 - `docs/backend-api/README.md`
-- `docs/newsprints/README.md`
-- `docs/product-reality/value-shape/MASTER.md`

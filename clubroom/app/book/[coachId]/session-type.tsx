@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -495,7 +496,10 @@ export default function SessionTypeScreen() {
               };
 
   return (
-    <View style={[styles.safeArea, { backgroundColor: palette.background }]}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
@@ -750,7 +754,7 @@ export default function SessionTypeScreen() {
           </>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

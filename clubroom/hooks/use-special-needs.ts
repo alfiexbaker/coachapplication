@@ -2,7 +2,6 @@ import { useLocalSearchParams } from 'expo-router';
 
 import type { User } from '@/constants/types';
 import { childService, type ChildProfile } from '@/services/child-service';
-import { userService } from '@/services/user-service';
 import { createLogger } from '@/utils/logger';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
@@ -15,6 +14,19 @@ interface SpecialNeedsData {
   childProfile: ChildProfile | null;
 }
 
+function mapChildProfileToAthlete(child: ChildProfile): User {
+  const name = child.nickname?.trim() || `${child.firstName} ${child.lastName}`.trim() || 'Athlete';
+  return {
+    id: child.id,
+    email: '',
+    role: 'USER',
+    name,
+    avatar: child.photoUrl,
+    postcode: '',
+    dateOfBirth: child.dateOfBirth ?? '',
+  };
+}
+
 export function useSpecialNeeds() {
   const { athleteId } = useLocalSearchParams<{ athleteId: string }>();
 
@@ -24,16 +36,14 @@ export function useSpecialNeeds() {
     }
 
     try {
-      const athleteResult = await userService.getUserById(athleteId);
-      if (!athleteResult.success) {
-        logger.error('Failed to load athlete', { athleteId, error: athleteResult.error });
-        return err(athleteResult.error);
+      const profile = await childService.getChild(athleteId);
+      if (!profile) {
+        logger.warn('Special needs profile unavailable');
+        return err(serviceError('NOT_FOUND', 'Special needs profile unavailable.'));
       }
 
-      const loadedAthlete = athleteResult.data;
-      const profile = await childService.getChild(athleteId);
       return ok<SpecialNeedsData>({
-        athlete: loadedAthlete,
+        athlete: mapChildProfileToAthlete(profile),
         childProfile: profile,
       });
     } catch (error) {

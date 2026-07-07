@@ -5,6 +5,7 @@ import { userService } from '@/services/user-service';
 import type { Result, ServiceError } from '@/types/result';
 import { err, ok, storageError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
+import { safeDisplayLabel } from '@/utils/booking-display';
 
 const logger = createLogger('FamilyRecurringService');
 
@@ -22,9 +23,9 @@ export interface FamilyRecurringPlanSummary {
 async function resolveDisplayName(userId: string | undefined, fallback: string): Promise<string> {
   if (!userId) return fallback;
   const userResult = await userService.getUserById(userId);
-  if (!userResult.success) return fallback;
+  if (!userResult.success) return safeDisplayLabel(fallback, fallback);
   const candidate = userResult.data as { name?: string; fullName?: string };
-  return candidate.fullName?.trim() || candidate.name?.trim() || fallback;
+  return candidate.fullName?.trim() || candidate.name?.trim() || safeDisplayLabel(fallback, fallback);
 }
 
 function buildRelationshipSummary(recurring: RecurringBooking): string {
@@ -63,22 +64,37 @@ class FamilyRecurringService {
           const futureLinkedBookings = linkedBookings.filter(
             (booking) => new Date(booking.scheduledAt).getTime() >= now,
           );
+          const linkedBookingIds = new Set(linkedBookings.map((booking) => booking.id));
+          const futureGeneratedOccurrences = (recurring.generatedBookings ?? [])
+            .filter((occurrence) => !linkedBookingIds.has(occurrence.bookingId))
+            .filter((occurrence) => new Date(occurrence.scheduledAt).getTime() >= now)
+            .sort(
+              (left, right) =>
+                new Date(left.scheduledAt).getTime() - new Date(right.scheduledAt).getTime(),
+            );
           const nextBooking = futureLinkedBookings.find(
             (booking) => booking.status !== 'CANCELLED',
           );
+          const nextGeneratedOccurrence = futureGeneratedOccurrences.find(
+            (occurrence) => occurrence.status !== 'CANCELLED',
+          );
           const activeFutureBookings = futureLinkedBookings.filter(
             (booking) => booking.status !== 'CANCELLED',
+          ).length + futureGeneratedOccurrences.filter(
+            (occurrence) => occurrence.status !== 'CANCELLED',
           ).length;
           const cancelledFutureBookings = futureLinkedBookings.filter(
             (booking) => booking.status === 'CANCELLED',
+          ).length + futureGeneratedOccurrences.filter(
+            (occurrence) => occurrence.status === 'CANCELLED',
           ).length;
           const [coachName, athleteName, userName] = await Promise.all([
-            resolveDisplayName(recurring.coachId, recurring.coachId || 'Coach'),
+            resolveDisplayName(recurring.coachId, safeDisplayLabel(recurring.coachId, 'Coach')),
             resolveDisplayName(
               recurring.athleteId || recurring.userId,
-              recurring.athleteId || recurring.userId || 'Athlete',
+              safeDisplayLabel(recurring.athleteId || recurring.userId, 'Athlete'),
             ),
-            resolveDisplayName(recurring.userId, recurring.userId || 'Parent'),
+            resolveDisplayName(recurring.userId, safeDisplayLabel(recurring.userId, 'Parent')),
           ]);
 
           return {
@@ -90,8 +106,8 @@ class FamilyRecurringService {
             },
             coachName,
             athleteName,
-            nextBookingId: nextBooking?.id,
-            nextScheduledAt: nextBooking?.scheduledAt,
+            nextBookingId: nextBooking?.id ?? nextGeneratedOccurrence?.bookingId,
+            nextScheduledAt: nextBooking?.scheduledAt ?? nextGeneratedOccurrence?.scheduledAt,
             activeFutureBookings,
             cancelledFutureBookings,
             relationshipSummary: buildRelationshipSummary(recurring),

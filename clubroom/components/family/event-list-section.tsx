@@ -9,6 +9,7 @@ import type { FamilyCalendarEvent, ConflictsByEventId } from '@/constants/types'
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { ChildInfo } from '@/types/child-context';
 import { Row } from '@/components/primitives';
+import { safeDisplayLabel } from '@/utils/booking-display';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -42,55 +43,71 @@ export const EventListSection = function EventListSection({
           month: 'long',
         })}
       </ThemedText>
-      {events.map((event) => (
-        <Clickable key={event.id} onPress={() => onEventPress?.(event)}>
-          <SurfaceCard style={styles.eventCard}>
-            <View style={[styles.eventColorBar, { backgroundColor: event.colorCode }]} />
-            <View style={styles.eventContent}>
-              <Row style={styles.eventHeader}>
-                <ThemedText type="defaultSemiBold">{event.title}</ThemedText>
-                <ThemedText style={[styles.eventTime, { color: palette.muted }]}>
-                  {new Date(event.start).toLocaleTimeString('en-GB', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </ThemedText>
-              </Row>
-              <Row style={styles.eventMeta}>
-                <Row style={styles.eventMetaItem}>
-                  <Ionicons name="person" size={12} color={palette.muted} />
-                  <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>
-                    {event.childId}
+      {events.map((event) => {
+        const childLabel = safeDisplayLabel(
+          event.childName ?? getChildById?.(event.childId)?.name,
+          event.type === 'EVENT' ? 'Club event' : 'Child',
+        );
+        const coachLabel = safeDisplayLabel(
+          event.coachName,
+          safeDisplayLabel(event.coachId, 'Coach'),
+        );
+        const conflict = conflictsByEventId?.get(event.id)?.[0];
+        const otherEvent = conflict
+          ? conflict.eventA.id === event.id
+            ? conflict.eventB
+            : conflict.eventA
+          : null;
+        const otherChild = otherEvent ? getChildById?.(otherEvent.childId) : undefined;
+        const otherName = safeDisplayLabel(
+          otherEvent?.childName ?? otherChild?.name,
+          'another child',
+        );
+
+        return (
+          <Clickable key={event.id} onPress={() => onEventPress?.(event)}>
+            <SurfaceCard style={styles.eventCard}>
+              <View style={[styles.eventColorBar, { backgroundColor: event.colorCode }]} />
+              <View style={styles.eventContent}>
+                <Row style={styles.eventHeader}>
+                  <ThemedText type="defaultSemiBold">{event.title}</ThemedText>
+                  <ThemedText style={[styles.eventTime, { color: palette.muted }]}>
+                    {new Date(event.start).toLocaleTimeString('en-GB', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
                   </ThemedText>
                 </Row>
-                {event.coachId && (
+                <Row style={styles.eventMeta}>
                   <Row style={styles.eventMetaItem}>
-                    <Ionicons name="school" size={12} color={palette.muted} />
+                    <Ionicons name="person" size={12} color={palette.muted} />
                     <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>
-                      {event.coachId}
+                      {childLabel}
                     </ThemedText>
                   </Row>
-                )}
-                {event.location && (
-                  <Row style={styles.eventMetaItem}>
-                    <Ionicons name="location" size={12} color={palette.muted} />
-                    <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>
-                      {event.location}
-                    </ThemedText>
-                  </Row>
-                )}
-              </Row>
-              {(() => {
-                const eventConflicts = conflictsByEventId?.get(event.id);
-                if (!eventConflicts || eventConflicts.length === 0) return null;
-                const conflict = eventConflicts[0];
-                const otherEvent =
-                  conflict.eventA.id === event.id ? conflict.eventB : conflict.eventA;
-                const otherChild = getChildById?.(otherEvent.childId);
-                const otherName = otherChild?.name ?? 'another child';
-                return (
+                  {event.coachId || event.coachName ? (
+                    <Row style={styles.eventMetaItem}>
+                      <Ionicons name="school" size={12} color={palette.muted} />
+                      <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>
+                        {coachLabel}
+                      </ThemedText>
+                    </Row>
+                  ) : null}
+                  {event.location && (
+                    <Row style={styles.eventMetaItem}>
+                      <Ionicons name="location" size={12} color={palette.muted} />
+                      <ThemedText style={[styles.eventMetaText, { color: palette.muted }]}>
+                        {event.location}
+                      </ThemedText>
+                    </Row>
+                  )}
+                </Row>
+                {otherEvent ? (
                   <Row
-                    style={[styles.conflictRow, { backgroundColor: withAlpha(palette.warning, 0.08) }]}
+                    style={[
+                      styles.conflictRow,
+                      { backgroundColor: withAlpha(palette.warning, 0.08) },
+                    ]}
                     align="center"
                     gap="xxs"
                   >
@@ -99,12 +116,12 @@ export const EventListSection = function EventListSection({
                       Overlaps with {otherName}&apos;s {otherEvent.title}
                     </ThemedText>
                   </Row>
-                );
-              })()}
-            </View>
-          </SurfaceCard>
-        </Clickable>
-      ))}
+                ) : null}
+              </View>
+            </SurfaceCard>
+          </Clickable>
+        );
+      })}
     </View>
   );
 };

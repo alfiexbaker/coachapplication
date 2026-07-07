@@ -109,12 +109,15 @@ async function main() {
     await tx.videoAnnotation.deleteMany();
     await tx.videoShare.deleteMany();
     await tx.video.deleteMany();
+    await tx.headCoachTask.deleteMany();
+    await tx.headCoachStandard.deleteMany();
     await tx.clubInviteCode.deleteMany();
     await tx.squad.deleteMany();
     await tx.clubMembership.deleteMany();
     await tx.club.deleteMany();
     await tx.passwordCredential.deleteMany();
     await tx.coachFavourite.deleteMany();
+    await tx.coachTrialOffering.deleteMany();
     await tx.cancellationPolicyRule.deleteMany();
     await tx.schedulingRule.deleteMany();
     await tx.availabilityOverride.deleteMany();
@@ -125,6 +128,7 @@ async function main() {
     await tx.inviteTarget.deleteMany();
     await tx.invite.deleteMany();
     await tx.attendanceRecord.deleteMany();
+    await tx.sessionRsvp.deleteMany();
     await tx.waitlistEntry.deleteMany();
     await tx.groupSessionRegistration.deleteMany();
     await tx.groupSession.deleteMany();
@@ -227,8 +231,11 @@ async function main() {
     const clubs = asRows(tables.clubs).map((row) => ({
       id: row.id,
       name: asString(row.name) ?? 'Club',
+      city: asString(row.city) ?? null,
+      country: asString(row.country) ?? null,
       slug: asString(row.slug) ?? null,
       visibility: asString(row.visibility) ?? 'private',
+      commercialMode: asString(row.commercialMode) ?? 'COACH_OWNED',
       createdByUserId: asString(row.createdByUserId) ?? '',
       updatedByUserId: asString(row.updatedByUserId) ?? asString(row.createdByUserId) ?? '',
       version: toBigInt(row.version, 1),
@@ -323,6 +330,9 @@ async function main() {
       sessionRateMinor: typeof row.sessionRateMinor === 'number' ? row.sessionRateMinor : null,
       currency: asString(row.currency) ?? 'GBP',
       dbsChecked: typeof row.dbsChecked === 'boolean' ? row.dbsChecked : null,
+      travelRadiusMiles: asNumber(row.travelRadiusMiles, 10),
+      acceptsTravelSessions: asBoolean(row.acceptsTravelSessions, true),
+      acceptsRemoteSessions: asBoolean(row.acceptsRemoteSessions, false),
       specialties: asArray(row.specialties).map((value) => String(value)),
       qualifications: asArray(row.qualifications).map((value) => String(value)),
       createdAt: toDate(row.createdAt) ?? new Date(),
@@ -331,6 +341,28 @@ async function main() {
     }));
     if (coachProfiles.length > 0) {
       await tx.coachProfile.createMany({ data: coachProfiles });
+    }
+
+    const coachTrialOfferings = asRows(tables.coachTrialOfferings).map((row) => ({
+      id: row.id,
+      coachUserId: row.coachUserId,
+      enabled: asBoolean(row.enabled, false),
+      trialPriceMinor: asNumber(row.trialPriceMinor, Math.round(asNumber(row.trialPrice, 0) * 100)),
+      normalPriceMinor: asNumber(row.normalPriceMinor, Math.round(asNumber(row.normalPrice, 0) * 100)),
+      currency: asString(row.currency) ?? 'GBP',
+      durationMinutes: asNumber(row.durationMinutes, 60),
+      limitPerFamily: asNumber(row.limitPerFamily, 1),
+      description: asString(row.description) ?? null,
+      createdByUserId: asString(row.createdByUserId) ?? row.coachUserId,
+      updatedByUserId: asString(row.updatedByUserId) ?? row.coachUserId,
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (coachTrialOfferings.length > 0) {
+      await tx.coachTrialOffering.createMany({ data: coachTrialOfferings });
     }
 
     const coachLocations = asRows(tables.coachLocations).map((row) => ({
@@ -567,6 +599,7 @@ async function main() {
       title: asString(row.title) ?? 'Goal',
       category: asString(row.category) ?? null,
       status: asString(row.status) ?? 'ACTIVE',
+      progress: asNumber(row.progress, null),
       targetDate: toDate(row.targetDate),
       notes: asString(row.notes) ?? null,
       createdByUserId: asString(row.createdByUserId) ?? asString(row.creatorUserId) ?? '',
@@ -1113,6 +1146,25 @@ async function main() {
       await tx.groupSessionRegistration.createMany({ data: groupSessionRegistrations });
     }
 
+    const sessionRsvps = asRows(tables.sessionRsvps).map((row) => ({
+      id: row.id,
+      groupSessionId: row.groupSessionId,
+      userId: row.userId,
+      athleteId: asString(row.athleteId) ?? asString(row.childId) ?? null,
+      status: asString(row.status)?.toUpperCase() ?? 'PENDING',
+      respondedAt: toDate(row.respondedAt),
+      createdByUserId: asString(row.createdByUserId) ?? asString(row.userId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.userId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (sessionRsvps.length > 0) {
+      await tx.sessionRsvp.createMany({ data: sessionRsvps });
+    }
+
     const waitlistEntries = asRows(tables.waitlistEntries).map((row) => ({
       id: row.id,
       groupSessionId: row.groupSessionId,
@@ -1269,6 +1321,53 @@ async function main() {
     }));
     if (bookingStatusEvents.length > 0) {
       await tx.bookingStatusEvent.createMany({ data: bookingStatusEvents });
+    }
+
+    const headCoachStandards = asRows(tables.headCoachStandards).map((row) => ({
+      id: row.id,
+      clubId: row.clubId,
+      category: asString(row.category) ?? 'session_notes',
+      title: asString(row.title) ?? 'Head-coach standard',
+      description: asString(row.description) ?? null,
+      active: asBoolean(row.active, true),
+      createdByUserId: asString(row.createdByUserId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.createdByUserId) ?? '',
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (headCoachStandards.length > 0) {
+      await tx.headCoachStandard.createMany({ data: headCoachStandards });
+    }
+
+    const headCoachTasks = asRows(tables.headCoachTasks).map((row) => ({
+      id: row.id,
+      clubId: row.clubId,
+      coachUserId: asString(row.coachUserId) ?? asString(row.coachId) ?? '',
+      type: asString(row.type) ?? 'required_follow_up',
+      status: asString(row.status) ?? 'open',
+      title: asString(row.title) ?? 'Head-coach task',
+      details: asString(row.details) ?? null,
+      dueAt: toDate(row.dueAt),
+      athleteId: asString(row.athleteId) ?? null,
+      athleteName: asString(row.athleteName) ?? null,
+      bookingId: asString(row.bookingId) ?? null,
+      offeringId: asString(row.offeringId) ?? null,
+      squadId: asString(row.squadId) ?? null,
+      createdByUserId: asString(row.createdByUserId) ?? '',
+      updatedByUserId: asString(row.updatedByUserId) ?? asString(row.createdByUserId) ?? '',
+      completedAt: toDate(row.completedAt),
+      completedByUserId: asString(row.completedByUserId) ?? null,
+      version: toBigInt(row.version, 1),
+      createdAt: toDate(row.createdAt) ?? new Date(),
+      updatedAt: toDate(row.updatedAt) ?? new Date(),
+      deletedAt: toDate(row.deletedAt),
+      deletedByUserId: asString(row.deletedByUserId) ?? null,
+    }));
+    if (headCoachTasks.length > 0) {
+      await tx.headCoachTask.createMany({ data: headCoachTasks });
     }
   });
 

@@ -16,7 +16,14 @@ import { notificationService } from './notification-service';
 import { reportService } from './report-service';
 import { safeguardingService } from '@/services/trust';
 import { createLogger } from '@/utils/logger';
-import { type Result, type ServiceError, ok, err, validationError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  validationError,
+  unsupportedError,
+} from '@/types/result';
 
 const logger = createLogger('ConcernService');
 
@@ -49,6 +56,17 @@ const CONCERN_STATUS_FROM_API_STATUS: Record<ApiSafeguardingStatus, ConcernStatu
   in_review: 'IN_PROGRESS',
   closed: 'RESOLVED',
 };
+
+function concernApiUnsupportedError(action: string): ServiceError {
+  return unsupportedError(
+    `${action} needs a dedicated /v1 safeguarding concern list/update contract before it can run in API mode.`,
+    {
+      missingAuthority: 'safeguarding_concern_list_update',
+      existingAuthority:
+        '/v1/safeguarding/incidents supports create/detail/action, but not concern list/update by coach/athlete.',
+    },
+  );
+}
 
 // ============================================================================
 // TYPES
@@ -129,25 +147,6 @@ class ConcernServiceImpl extends BaseService<AthleteConcern> {
     if (severity === 'URGENT') return true;
     if (severity === 'HIGH' && (type === 'SAFEGUARDING' || type === 'MEDICAL')) return true;
     return false;
-  }
-
-  private async mirrorConcernLocally(concern: AthleteConcern): Promise<void> {
-    try {
-      const concerns = await this.loadFromStorage();
-      const next = [concern, ...concerns.filter((existing) => existing.id !== concern.id)];
-      const saveResult = await this.saveToStorage(next);
-      if (!saveResult.success) {
-        logger.error('Failed to mirror concern locally', {
-          concernId: concern.id,
-          error: saveResult.error.message,
-        });
-        return;
-      }
-
-      this.invalidateCache();
-    } catch (error) {
-      logger.error('Failed to mirror concern locally', { concernId: concern.id, error });
-    }
   }
 
   private async runEscalationSideEffects(
@@ -286,13 +285,6 @@ class ConcernServiceImpl extends BaseService<AthleteConcern> {
         escalationReason,
       };
 
-      await this.mirrorConcernLocally(concern);
-
-      if (autoEscalate) {
-        concern = await this.runEscalationSideEffects(concern, updatedAt);
-        await this.mirrorConcernLocally(concern);
-      }
-
       this.emitConcernRaised(concern);
       logger.info('Concern raised via API', {
         id: concern.id,
@@ -339,6 +331,12 @@ class ConcernServiceImpl extends BaseService<AthleteConcern> {
     coachId: string,
     athleteId: string,
   ): Promise<Result<AthleteConcern[], ServiceError>> {
+    if (!apiClient.isMockMode) {
+      void coachId;
+      void athleteId;
+      return err(concernApiUnsupportedError('Reading athlete concerns'));
+    }
+
     return this.getAll({
       filter: { coachId, athleteId } as Partial<AthleteConcern>,
       sort: 'createdAt' as keyof AthleteConcern,
@@ -350,6 +348,11 @@ class ConcernServiceImpl extends BaseService<AthleteConcern> {
    * Get all open concerns for a coach.
    */
   async getOpenConcerns(coachId: string): Promise<Result<AthleteConcern[], ServiceError>> {
+    if (!apiClient.isMockMode) {
+      void coachId;
+      return err(concernApiUnsupportedError('Reading open coach concerns'));
+    }
+
     const result = await this.getAll({
       filter: { coachId } as Partial<AthleteConcern>,
     });
@@ -365,6 +368,12 @@ class ConcernServiceImpl extends BaseService<AthleteConcern> {
     id: string,
     resolution: string,
   ): Promise<Result<AthleteConcern, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      void id;
+      void resolution;
+      return err(concernApiUnsupportedError('Resolving concerns'));
+    }
+
     const result = await this.update(id, {
       status: 'RESOLVED',
       resolution,
@@ -388,6 +397,12 @@ class ConcernServiceImpl extends BaseService<AthleteConcern> {
     id: string,
     status: ConcernStatus,
   ): Promise<Result<AthleteConcern, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      void id;
+      void status;
+      return err(concernApiUnsupportedError('Updating concern status'));
+    }
+
     const result = await this.update(id, {
       status,
     } as Partial<AthleteConcern>);

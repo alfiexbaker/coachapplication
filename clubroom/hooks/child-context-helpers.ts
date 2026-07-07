@@ -4,6 +4,32 @@ import type { ChildProfile, ChildSquadMembership } from '@/services/child-servic
 import type { ChildInfo } from '@/types/child-context';
 import { CHILD_COLORS } from '@/types/child-context';
 
+interface ChildContextUserLike {
+  role?: string | null;
+  hasChildren?: boolean | null;
+  childrenCount?: number | null;
+  children?: ChildReference[] | null;
+}
+
+export function shouldLoadFamilyChildren(user: ChildContextUserLike | null | undefined): boolean {
+  if (!user) {
+    return false;
+  }
+
+  if (user.role === 'COACH' || user.role === 'ADMIN') {
+    return false;
+  }
+
+  if (user.role === 'PARENT') {
+    return true;
+  }
+
+  return (
+    user.role === 'USER' &&
+    (user.hasChildren === true || (user.childrenCount ?? 0) > 0 || (user.children?.length ?? 0) > 0)
+  );
+}
+
 export function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length === 0) return '?';

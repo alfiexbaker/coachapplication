@@ -1,4 +1,5 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
@@ -115,16 +116,22 @@ export default function ClubSetupCompleteScreen() {
 
   if (status === 'loading') {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
         <PageHeader title="Club Setup" subtitle="Finalizing setup" showBack centerTitle />
         <LoadingState variant="detail" />
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (status === 'error' || !club) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
         <PageHeader title="Club Setup" showBack centerTitle />
         <ErrorState
           title="Club setup unavailable"
@@ -132,12 +139,15 @@ export default function ClubSetupCompleteScreen() {
           error={error ?? undefined}
           onRetry={clubId ? retry : () => router.replace(Routes.MY_CLUBS)}
         />
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
       <PageHeader title="Club Setup" centerTitle />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
@@ -236,7 +246,7 @@ export default function ClubSetupCompleteScreen() {
           </Row>
         </Clickable>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

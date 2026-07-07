@@ -1,9 +1,14 @@
 import { canManageClubAssignments } from "@/contracts/club-governance";
+import { api } from "@/constants/config";
 import type { Booking, SessionOffering } from "@/constants/types";
 import { notificationService } from "@/services/notification-service";
 import { socialFeedService } from "@/services/social-feed-service";
 import { createLogger } from "@/utils/logger";
-import { getBookingRelationshipContext } from "@/utils/booking-display";
+import {
+  getBookingRelationshipContext,
+  getBookingServiceLabel,
+  safeDisplayLabel,
+} from "@/utils/booking-display";
 import {
   type Result,
   type ServiceError,
@@ -125,21 +130,24 @@ class BookingCommunicationsService {
     category: string;
     description: string;
   }): Promise<Result<void, ServiceError>> {
+    if (!api.useMock) {
+      logger.info("Support issue notifications are owned by /v1/safeguarding/incidents");
+      return ok(undefined);
+    }
+
     try {
       const booking = params.booking;
       const organizationLabel = booking.clubId
         ? (await socialFeedService.getClub(booking.clubId))?.name ||
-          booking.clubId
+          safeDisplayLabel(booking.clubId, "Club session")
         : null;
       const relationshipContext = getBookingRelationshipContext({
         actingAs: booking.actingAs,
         organizationLabel,
-        coachLabel: booking.coachName || booking.coachId || "Coach",
+        coachLabel: booking.coachName || safeDisplayLabel(booking.coachId, "Coach"),
         deliveredByLabel:
           booking.coachName ||
-          booking.assigneeCoachId ||
-          booking.coachId ||
-          "Coach",
+          safeDisplayLabel(booking.assigneeCoachId, safeDisplayLabel(booking.coachId, "Coach")),
         commercialMode: booking.commercialMode,
       });
       const recipients = new Set<string>();
@@ -175,7 +183,7 @@ class BookingCommunicationsService {
             recipientId,
             bookingId: booking.id,
             category: params.category,
-            title: booking.service || "Session",
+            title: getBookingServiceLabel(booking),
             date: formatSessionDateLabel(booking.scheduledAt),
             supportLabel: relationshipContext.supportLabel,
             descriptionPreview: params.description.slice(0, 120),

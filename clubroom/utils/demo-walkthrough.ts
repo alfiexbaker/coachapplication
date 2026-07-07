@@ -45,11 +45,11 @@ export function buildPrimaryDemoWalkthrough(
       id: 'admin_ops',
       title: 'Admin walkthrough',
       subtitle:
-        'Check seeded users, invite controls, and system notifications from one support path.',
+        'Check role coverage, invite controls, and system notifications from one support path.',
       steps: [
         {
           id: 'admin_users',
-          title: 'Review seeded user coverage',
+          title: 'Review user coverage',
           description: 'Confirm coach, athlete, and parent roles are present for the walkthrough.',
           route: Routes.HOME_INDEX,
         },
@@ -62,7 +62,7 @@ export function buildPrimaryDemoWalkthrough(
         {
           id: 'admin_notifications',
           title: 'Check notification delivery',
-          description: 'Verify the seeded operational messages are visible in-app.',
+          description: 'Verify operational messages are visible in-app.',
           route: Routes.NOTIFICATIONS,
         },
       ],
@@ -78,7 +78,7 @@ export function buildPrimaryDemoWalkthrough(
         {
           id: 'coach_bookings',
           title: 'Open live bookings',
-          description: 'Find a seeded booking and walk the delivery or completion state.',
+          description: 'Find a current booking and walk the delivery or completion state.',
           route: Routes.BOOKINGS,
         },
         {
@@ -130,12 +130,12 @@ export function buildPrimaryDemoWalkthrough(
   return {
     id: 'athlete_progress',
     title: 'Athlete walkthrough',
-    subtitle: 'Use the seeded development path to move from sessions into goals and badges.',
+    subtitle: 'Use the development path to move from sessions into goals and badges.',
     steps: [
       {
         id: 'athlete_bookings',
         title: 'Open upcoming sessions',
-        description: 'Start with the seeded booking list and next-session context.',
+        description: 'Start with the booking list and next-session context.',
         route: Routes.BOOKINGS,
       },
       {
@@ -159,7 +159,7 @@ export function buildOwnerDemoWalkthrough(clubId: string): DemoWalkthrough {
   return {
     id: 'owner_ops',
     title: 'Owner walkthrough',
-    subtitle: 'Run the seeded org story from risk view into staffing, standards, and finance.',
+    subtitle: 'Run the org story from risk view into staffing, standards, and finance.',
     steps: [
       {
         id: 'owner_dashboard',

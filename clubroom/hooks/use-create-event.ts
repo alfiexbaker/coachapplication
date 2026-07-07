@@ -10,6 +10,7 @@ import { useReducer, useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
+import { api } from '@/constants/config';
 import { useAuth } from '@/hooks/use-auth';
 import { eventService, CreateEventInput } from '@/services/event-service';
 import { squadService } from '@/services/squad-service';
@@ -21,7 +22,9 @@ import { uiFeedback } from '@/services/ui-feedback';
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('useCreateEvent');
-const DEFAULT_CLUB_ID = 'club_lions';
+export const DEFAULT_EVENT_CLUB_ID = 'clb_4ee614a0-62ee-73ff-9328-0f74a326c2c1';
+const DEFAULT_CLUB_NAME = 'Riverside FC';
+const USE_MOCK = api.useMock;
 
 export interface EventFormState {
   eventType: ClubEventType;
@@ -91,7 +94,7 @@ export function useCreateEvent() {
   useEffect(() => {
     (async () => {
       try {
-        const data = await squadService.getSquads(DEFAULT_CLUB_ID);
+        const data = await squadService.getSquads(DEFAULT_EVENT_CLUB_ID);
         setSquads(data.filter((s) => !s.name.toLowerCase().includes('staff')));
       } catch (error) {
         logger.error('Failed to load squads:', error);
@@ -136,10 +139,10 @@ export function useCreateEvent() {
     setLoading(true);
 
     await runAsyncTryCatchFinally(async () => {
-      if (form.targetAudience === 'SQUADS' && form.selectedSquadIds.length > 0 && publish) {
+      if (USE_MOCK && form.targetAudience === 'SQUADS' && form.selectedSquadIds.length > 0 && publish) {
         const result = await bulkInviteService.inviteSquadsToEvent({
-          clubId: DEFAULT_CLUB_ID,
-          clubName: 'Lions FC Academy',
+          clubId: DEFAULT_EVENT_CLUB_ID,
+          clubName: DEFAULT_CLUB_NAME,
           title: form.title,
           description: form.description,
           eventType: form.eventType,
@@ -154,12 +157,17 @@ export function useCreateEvent() {
           price: parseFloat(form.price) || 0,
           maxAttendees: form.maxAttendees ? parseInt(form.maxAttendees, 10) : undefined,
         });
-        uiFeedback.showToast(`${form.title} created and ${result.inviteResult.successful} invite${result.inviteResult.successful !== 1 ? 's' : ''} sent to squad members.`, 'success');
-router.replace(Routes.event(result.event.id));
+        uiFeedback.showToast(
+          `${form.title} created and ${result.inviteResult.successful} invite${
+            result.inviteResult.successful !== 1 ? 's' : ''
+          } sent to squad members.`,
+          'success',
+        );
+        router.replace(Routes.event(result.event.id));
       } else {
         const input: CreateEventInput = {
-          clubId: DEFAULT_CLUB_ID,
-          clubName: 'Lions FC Academy',
+          clubId: DEFAULT_EVENT_CLUB_ID,
+          clubName: DEFAULT_CLUB_NAME,
           createdBy: currentUser.id,
           createdByName: currentUser.name || 'Coach',
           title: form.title,
@@ -173,9 +181,14 @@ router.replace(Routes.event(result.event.id));
           isVirtual: form.isVirtual,
           meetingLink: form.isVirtual ? form.meetingLink || undefined : undefined,
           targetAudience:
-            form.targetAudience === 'SQUADS' || form.targetAudience === 'SPECIFIC_ATHLETES'
+            form.targetAudience === 'SQUADS'
+              ? 'SQUAD'
+              : form.targetAudience === 'SPECIFIC_ATHLETES'
               ? 'ATHLETES'
               : form.targetAudience,
+          squadIds: form.targetAudience === 'SQUADS' ? form.selectedSquadIds : undefined,
+          athleteIds:
+            form.targetAudience === 'SPECIFIC_ATHLETES' ? form.selectedAthleteIds : undefined,
           maxAttendees: form.maxAttendees ? parseInt(form.maxAttendees, 10) : undefined,
           price: parseFloat(form.price) || 0,
           currency: 'GBP',
@@ -185,7 +198,13 @@ router.replace(Routes.event(result.event.id));
         const event = await eventService.createEvent(input);
         if (publish) {
           await eventService.publishEvent(event.id);
-          await eventService.inviteClub(event.id);
+          if (form.targetAudience === 'SQUADS') {
+            await eventService.inviteSquads(event.id, form.selectedSquadIds);
+          } else if (form.targetAudience === 'SPECIFIC_ATHLETES') {
+            await eventService.inviteAthletes(event.id, form.selectedAthleteIds);
+          } else {
+            await eventService.inviteClub(event.id);
+          }
         }
         router.replace(Routes.event(event.id));
       }

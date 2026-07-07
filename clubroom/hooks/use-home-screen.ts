@@ -212,6 +212,11 @@ export function useHomeScreen() {
 
   const fallbackChildId = contextChildren[0]?.id ?? null;
   const hasChildProfiles = contextChildren.length > 0;
+  const isParentAccount = Boolean(
+    currentUser?.role === 'PARENT' ||
+      currentUser?.hasChildren ||
+      (currentUser?.children?.length ?? 0) > 0,
+  );
 
   // Local selectedChildId for immediate UI response — initialized from context
   const [selectedChildId, setSelectedChildIdLocal] = useState<string | null>(() => {
@@ -376,7 +381,7 @@ export function useHomeScreen() {
   const athleteId =
     profileMode === 'self'
       ? (currentUser?.id ?? null)
-      : (requestedProfileChildId ?? currentUser?.id ?? null);
+      : (requestedProfileChildId ?? (isParentAccount ? null : (currentUser?.id ?? null)));
   const profileDataKey = `${athleteId ?? 'none'}:${profileMode}:${profileSubjectId ?? 'none'}:${currentUser?.id ?? 'anon'}`;
   const requestedProfileFrame = {
     dataKey: profileDataKey,

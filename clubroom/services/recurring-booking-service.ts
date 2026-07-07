@@ -15,6 +15,7 @@ import { bookingAuthorityService } from './booking/booking-authority-service';
 import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
+import { formatServiceTypeLabel } from '@/utils/booking-display';
 import {
   type Result,
   type ServiceError,
@@ -37,6 +38,7 @@ function cloneRecurringBooking(booking: RecurringBooking): RecurringBooking {
   return {
     ...booking,
     generatedBookingIds: [...(booking.generatedBookingIds ?? [])],
+    generatedBookings: booking.generatedBookings?.map((occurrence) => ({ ...occurrence })),
   };
 }
 
@@ -56,8 +58,13 @@ interface ApiSeriesLike {
   serviceType?: string | null;
   priceMinor?: number | null;
   patternLabel?: string | null;
+  version: number;
   createdAt: string;
   updatedAt: string;
+}
+
+interface RecurringSeriesMutationOptions {
+  expectedVersion?: number;
 }
 
 function mapSeriesStatusToRecurringStatus(status: ApiSeriesLike['status']): RecurringBookingStatus {
@@ -71,6 +78,12 @@ function mapApiSeriesToRecurringBooking(series: ApiSeriesLike): RecurringBooking
   const scheduledDates = series.scheduledDates ?? [];
   const firstScheduledAt = scheduledDates[0] ?? series.startDate;
   const firstDate = new Date(firstScheduledAt);
+  const generatedBookings = series.bookingIds.map((bookingId, index) => ({
+    bookingId,
+    recurringBookingId: series.id,
+    scheduledAt: scheduledDates[index] ?? firstScheduledAt,
+    status: series.status === 'CANCELLED' ? ('CANCELLED' as const) : ('CONFIRMED' as const),
+  }));
   const frequency: RecurrenceFrequency =
     series.frequency === 'WEEKLY' ||
     series.frequency === 'BIWEEKLY' ||
@@ -100,12 +113,14 @@ function mapApiSeriesToRecurringBooking(series: ApiSeriesLike): RecurringBooking
     startDate: series.startDate,
     endDate: series.endDate,
     status: mapSeriesStatusToRecurringStatus(series.status),
+    version: series.version,
     pricePerSession:
       typeof series.priceMinor === 'number' ? Math.round(series.priceMinor) / 100 : undefined,
     notes: series.patternLabel ?? undefined,
     createdAt: series.createdAt,
     updatedAt: series.updatedAt,
     generatedBookingIds: series.bookingIds,
+    generatedBookings,
     sessionsCompleted: 0,
   };
 }
@@ -160,6 +175,20 @@ class RecurringBookingService {
     }
     logger.warn('recurring_booking_api_mode_blocked', { operation });
     return validationError(API_MODE_RECURRING_AUTHORITY_MESSAGE);
+  }
+
+  private async resolveExpectedVersionPayload(
+    recurringId: string,
+    options?: RecurringSeriesMutationOptions,
+  ): Promise<Result<{ expectedVersion: number }, ServiceError>> {
+    if (typeof options?.expectedVersion === 'number') {
+      return ok({ expectedVersion: options.expectedVersion });
+    }
+    const currentSeries = await bookingAuthorityService.getBookingSeries(recurringId);
+    if (!currentSeries.success) {
+      return err(currentSeries.error);
+    }
+    return ok({ expectedVersion: currentSeries.data.version });
   }
 
   private async listValue(): Promise<RecurringBooking[]> {
@@ -327,6 +356,7 @@ class RecurringBookingService {
         startDate: params.startDate,
         endDate: params.endDate,
         status: 'ACTIVE',
+        version: 1,
         pricePerSession: params.pricePerSession,
         notes: params.notes,
         createdAt: now,
@@ -476,11 +506,17 @@ class RecurringBookingService {
   async cancelRecurring(
     recurringId: string,
     reason?: string,
+    options?: RecurringSeriesMutationOptions,
   ): Promise<Result<RecurringBooking, ServiceError>> {
     try {
       if (!apiClient.isMockMode) {
+        const versionPayload = await this.resolveExpectedVersionPayload(recurringId, options);
+        if (!versionPayload.success) {
+          return err(versionPayload.error);
+        }
         const apiResult = await bookingAuthorityService.cancelBookingSeries(recurringId, {
           reason: reason ?? 'Recurring plan cancelled',
+          ...versionPayload.data,
         });
         if (!apiResult.success) {
           return err(apiResult.error);
@@ -518,6 +554,7 @@ class RecurringBookingService {
       const updated: RecurringBooking = {
         ...booking,
         status: 'CANCELLED',
+        version: (booking.version ?? 1) + 1,
         cancelledAt: now,
         cancellationReason: reason,
         updatedAt: now,
@@ -574,11 +611,17 @@ class RecurringBookingService {
   async pauseRecurring(
     recurringId: string,
     reason?: string,
+    options?: RecurringSeriesMutationOptions,
   ): Promise<Result<RecurringBooking, ServiceError>> {
     try {
       if (!apiClient.isMockMode) {
+        const versionPayload = await this.resolveExpectedVersionPayload(recurringId, options);
+        if (!versionPayload.success) {
+          return err(versionPayload.error);
+        }
         const apiResult = await bookingAuthorityService.pauseBookingSeries(recurringId, {
           reason,
+          ...versionPayload.data,
         });
         if (!apiResult.success) {
           return err(apiResult.error);
@@ -613,6 +656,7 @@ class RecurringBookingService {
       const updated: RecurringBooking = {
         ...booking,
         status: 'PAUSED',
+        version: (booking.version ?? 1) + 1,
         pausedAt: now,
         pauseReason: reason,
         updatedAt: now,
@@ -655,10 +699,20 @@ class RecurringBookingService {
    * Resume a paused recurring booking subscription
    * @param recurringId - The recurring booking ID
    */
-  async resumeRecurring(recurringId: string): Promise<Result<RecurringBooking, ServiceError>> {
+  async resumeRecurring(
+    recurringId: string,
+    options?: RecurringSeriesMutationOptions,
+  ): Promise<Result<RecurringBooking, ServiceError>> {
     try {
       if (!apiClient.isMockMode) {
-        const apiResult = await bookingAuthorityService.resumeBookingSeries(recurringId, {});
+        const versionPayload = await this.resolveExpectedVersionPayload(recurringId, options);
+        if (!versionPayload.success) {
+          return err(versionPayload.error);
+        }
+        const apiResult = await bookingAuthorityService.resumeBookingSeries(
+          recurringId,
+          versionPayload.data,
+        );
         if (!apiResult.success) {
           return err(apiResult.error);
         }
@@ -691,6 +745,7 @@ class RecurringBookingService {
       const updated: RecurringBooking = {
         ...booking,
         status: 'ACTIVE',
+        version: (booking.version ?? 1) + 1,
         pausedAt: undefined,
         pauseReason: undefined,
         updatedAt: now,
@@ -818,7 +873,7 @@ class RecurringBookingService {
           scheduledAt: scheduledAt.toISOString(),
           duration: recurring.duration,
           location: recurring.location,
-          service: recurring.sessionType,
+          service: formatServiceTypeLabel(recurring.sessionType),
           serviceType: recurring.sessionType,
           status: 'CONFIRMED' as const,
           notes: recurring.notes || '',
@@ -855,6 +910,7 @@ class RecurringBookingService {
             ...bookings[index].generatedBookingIds,
             ...generatedBookings.map((g) => g.bookingId),
           ];
+          bookings[index].version = (bookings[index].version ?? 1) + 1;
           bookings[index].updatedAt = new Date().toISOString();
           await this.saveList(bookings);
         }
@@ -880,11 +936,16 @@ class RecurringBookingService {
   async updateRecurring(
     recurringId: string,
     updates: Partial<
-      Pick<RecurringBooking, 'time' | 'duration' | 'location' | 'notes' | 'endDate'>
+      Pick<RecurringBooking, 'coachId' | 'time' | 'duration' | 'location' | 'notes' | 'endDate'>
     >,
+    options?: RecurringSeriesMutationOptions,
   ): Promise<Result<RecurringBooking, ServiceError>> {
     try {
       if (!apiClient.isMockMode) {
+        const versionPayload = await this.resolveExpectedVersionPayload(recurringId, options);
+        if (!versionPayload.success) {
+          return err(versionPayload.error);
+        }
         const apiEndDate =
           updates.endDate !== undefined
             ? (() => {
@@ -893,11 +954,13 @@ class RecurringBookingService {
               })()
             : undefined;
         const apiResult = await bookingAuthorityService.updateBookingSeries(recurringId, {
+          ...(updates.coachId !== undefined ? { coachUserId: updates.coachId } : {}),
           ...(updates.time !== undefined ? { time: updates.time } : {}),
           ...(updates.duration !== undefined ? { durationMinutes: updates.duration } : {}),
           ...(updates.location !== undefined ? { location: updates.location } : {}),
           ...(updates.notes !== undefined ? { notes: updates.notes } : {}),
           ...(apiEndDate !== undefined ? { endDate: apiEndDate } : {}),
+          ...versionPayload.data,
         });
         if (!apiResult.success) {
           return err(apiResult.error);
@@ -928,6 +991,7 @@ class RecurringBookingService {
       const updated: RecurringBooking = {
         ...booking,
         ...updates,
+        version: (booking.version ?? 1) + 1,
         updatedAt: now,
       };
 
@@ -982,6 +1046,7 @@ class RecurringBookingService {
       const updated: RecurringBooking = {
         ...booking,
         sessionsCompleted: booking.sessionsCompleted + 1,
+        version: (booking.version ?? 1) + 1,
         sessionsRemaining:
           booking.sessionsRemaining !== undefined
             ? Math.max(0, booking.sessionsRemaining - 1)

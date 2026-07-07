@@ -101,6 +101,7 @@ export default function CoachProfileScreen() {
           canFollowAction={p.canFollowAction}
           followLoading={p.followLoading}
           followIconName={p.relationshipDisplay.relationshipIcon as keyof typeof Ionicons.glyphMap}
+          showFollowAction={p.showFollowAction}
           contactLabel={p.relationshipDisplay.contactLabel}
           profileSummary={p.relationshipDisplay.profileSummary}
           offeringSummary={p.offeringSummary}
@@ -140,7 +141,9 @@ export default function CoachProfileScreen() {
                 ))}
               </Row>
             </View>
-            <Button onPress={() => void p.handleBlock()} variant="outline" label="Block Coach" />
+            {p.showFollowAction ? (
+              <Button onPress={() => void p.handleBlock()} variant="outline" label="Block Coach" />
+            ) : null}
           </View>
         ) : null}
 

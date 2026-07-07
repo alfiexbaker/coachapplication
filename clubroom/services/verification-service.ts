@@ -1,12 +1,145 @@
+import * as FileSystem from 'expo-file-system/legacy';
+import { Platform } from 'react-native';
+
 import { VerificationItem, VerificationStatus } from '@/constants/types';
-import { apiClient } from './api-client';
+import { apiClient, apiFetch } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
-import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+import { type Result, type ServiceError, ok, err, storageError, serviceError } from '@/types/result';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 
 const logger = createLogger('VerificationService');
+
+interface ApiCoachVerificationStatusResponse {
+  status: VerificationStatus;
+}
+
+interface ApiUploadInitResponse {
+  uploadSessionId: string;
+  mediaObjectId: string;
+  uploadUrl: string;
+  uploadHeaders?: Record<string, string>;
+}
+
+interface ApiUploadCompleteResponse {
+  mediaObjectId: string;
+  mediaStatus: 'AVAILABLE';
+}
+
+interface ApiVerificationDocumentSubmitResponse {
+  type: string;
+  verification: unknown;
+  document: unknown;
+  documents: unknown[];
+  total: number;
+}
+
+export interface VerificationDocumentUploadInput {
+  uri: string;
+  fileName: string;
+  contentType?: string | null;
+  sizeBytes?: number | null;
+  label?: string;
+}
+
+type ApiVerificationType = 'identity' | 'credential' | 'insurance' | 'dbs';
+
+function requireApiData<T>(result: Result<T, ServiceError>, fallbackMessage: string): T {
+  if (!result.success) {
+    throw new Error(result.error.message || fallbackMessage);
+  }
+  return result.data;
+}
+
+function verificationContentType(input: VerificationDocumentUploadInput): string {
+  const explicit = input.contentType?.trim();
+  if (explicit) return explicit;
+  const normalized = input.fileName.toLowerCase().split('?')[0] ?? input.fileName.toLowerCase();
+  if (normalized.endsWith('.png')) return 'image/png';
+  if (normalized.endsWith('.jpg') || normalized.endsWith('.jpeg')) return 'image/jpeg';
+  if (normalized.endsWith('.webp')) return 'image/webp';
+  return 'application/pdf';
+}
+
+function verificationUploadKind(contentType: string): 'IMAGE' | 'DOCUMENT' {
+  return contentType.toLowerCase().startsWith('image/') ? 'IMAGE' : 'DOCUMENT';
+}
+
+async function verificationFileSize(input: VerificationDocumentUploadInput): Promise<number> {
+  if (typeof input.sizeBytes === 'number' && Number.isFinite(input.sizeBytes) && input.sizeBytes > 0) {
+    return Math.max(1, Math.round(input.sizeBytes));
+  }
+  const info = await FileSystem.getInfoAsync(input.uri);
+  return info.exists && typeof info.size === 'number' ? Math.max(1, info.size) : 1;
+}
+
+async function uploadFileToSignedUrl(
+  fileUri: string,
+  uploadUrl: string,
+  uploadHeaders: Record<string, string> | undefined,
+): Promise<void> {
+  if (Platform.OS === 'web') {
+    const source = await fetch(fileUri);
+    const blob = await source.blob();
+    const response = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: uploadHeaders,
+      body: blob,
+    });
+    if (!response.ok) {
+      throw new Error(`Upload failed with status ${response.status}`);
+    }
+    return;
+  }
+
+  const response = await FileSystem.uploadAsync(uploadUrl, fileUri, {
+    httpMethod: 'PUT',
+    headers: uploadHeaders,
+    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+  });
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(`Upload failed with status ${response.status}`);
+  }
+}
+
+async function uploadVerificationDocument(
+  upload: VerificationDocumentUploadInput,
+  type: ApiVerificationType,
+): Promise<string> {
+  const contentType = verificationContentType(upload);
+  const init = requireApiData(
+    await apiFetch<ApiUploadInitResponse>('/v1/uploads/init', {
+      method: 'POST',
+      body: JSON.stringify({
+        kind: verificationUploadKind(contentType),
+        contentType,
+        fileName: upload.fileName,
+        sizeBytes: await verificationFileSize(upload),
+        metadata: {
+          source: 'coach-verification',
+          verificationType: type,
+          label: upload.label ?? upload.fileName,
+        },
+      }),
+    }),
+    'Failed to initialize verification document upload',
+  );
+
+  await uploadFileToSignedUrl(upload.uri, init.uploadUrl, init.uploadHeaders);
+
+  requireApiData(
+    await apiFetch<ApiUploadCompleteResponse>(`/v1/uploads/${init.uploadSessionId}/complete`, {
+      method: 'POST',
+      body: JSON.stringify({
+        mediaObjectId: init.mediaObjectId,
+      }),
+    }),
+    'Failed to finalize verification document upload',
+  );
+
+  return init.mediaObjectId;
+}
 
 // Default verification status for a new coach
 const createDefaultVerificationStatus = (coachId: string): VerificationStatus => ({
@@ -122,6 +255,15 @@ class VerificationService {
    */
   async getStatus(coachId: string): Promise<Result<VerificationStatus, ServiceError>> {
     try {
+      if (!apiClient.isMockMode) {
+        const result = await apiFetch<ApiCoachVerificationStatusResponse>(
+          `/v1/coaches/${encodeURIComponent(coachId)}/verification-status`,
+          { method: 'GET' },
+        );
+        if (!result.success) return err(result.error);
+        return ok(result.data.status);
+      }
+
       const allStatuses = await apiClient.get<Record<string, VerificationStatus>>(
         STORAGE_KEYS.VERIFICATION,
         MOCK_VERIFICATION_STATUSES,
@@ -142,6 +284,15 @@ class VerificationService {
     update: Partial<VerificationItem>,
   ): Promise<Result<VerificationStatus, ServiceError>> {
     try {
+      if (!apiClient.isMockMode) {
+        return err(
+          serviceError(
+            'UNSUPPORTED',
+            'Verification updates require a dedicated /v1 verification write API.',
+          ),
+        );
+      }
+
       const allStatuses = await apiClient.get<Record<string, VerificationStatus>>(
         STORAGE_KEYS.VERIFICATION,
         MOCK_VERIFICATION_STATUSES,
@@ -185,6 +336,15 @@ class VerificationService {
     credential: VerificationItem,
   ): Promise<Result<VerificationStatus, ServiceError>> {
     try {
+      if (!apiClient.isMockMode) {
+        return err(
+          serviceError(
+            'UNSUPPORTED',
+            'Credential submissions require a dedicated /v1 verification write API.',
+          ),
+        );
+      }
+
       const allStatuses = await apiClient.get<Record<string, VerificationStatus>>(
         STORAGE_KEYS.VERIFICATION,
         MOCK_VERIFICATION_STATUSES,
@@ -221,11 +381,15 @@ class VerificationService {
    */
   async submitIdVerification(
     coachId: string,
-    documentUrl: string,
+    document: VerificationDocumentUploadInput,
   ): Promise<Result<VerificationStatus, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return this.submitVerificationDocument(coachId, 'identity', document, document.label);
+    }
+
     return this.updateVerificationItem(coachId, 'identity', {
       status: 'PENDING',
-      documentUrl,
+      documentUrl: document.uri,
       notes: 'Document submitted, awaiting review',
     });
   }
@@ -245,14 +409,75 @@ class VerificationService {
    */
   async submitCredential(
     coachId: string,
-    documentUrl: string,
+    document: VerificationDocumentUploadInput,
     notes: string,
   ): Promise<Result<VerificationStatus, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return this.submitVerificationDocument(coachId, 'credential', document, notes);
+    }
+
     return this.addCredential(coachId, {
       status: 'PENDING',
-      documentUrl,
+      documentUrl: document.uri,
       notes,
     });
+  }
+
+  /**
+   * Submit insurance evidence for verification.
+   */
+  async submitInsuranceVerification(
+    coachId: string,
+    document: VerificationDocumentUploadInput,
+  ): Promise<Result<VerificationStatus, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return this.submitVerificationDocument(coachId, 'insurance', document, document.label);
+    }
+
+    return this.updateVerificationItem(coachId, 'insurance', {
+      status: 'PENDING',
+      documentUrl: document.uri,
+      notes: document.label ?? 'Insurance document submitted, awaiting review',
+    });
+  }
+
+  private async submitVerificationDocument(
+    coachId: string,
+    type: ApiVerificationType,
+    document: VerificationDocumentUploadInput,
+    fileLabel?: string,
+  ): Promise<Result<VerificationStatus, ServiceError>> {
+    try {
+      const mediaObjectId = await uploadVerificationDocument(
+        {
+          ...document,
+          label: fileLabel ?? document.label,
+        },
+        type,
+      );
+      requireApiData(
+        await apiFetch<ApiVerificationDocumentSubmitResponse>(
+          `/v1/coaches/me/verifications/${type}/documents`,
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              mediaObjectId,
+              fileLabel: fileLabel ?? document.label ?? document.fileName,
+            }),
+          },
+        ),
+        'Failed to submit verification document',
+      );
+      return this.getStatus(coachId);
+    } catch (error) {
+      logger.error('Failed to submit verification document', { coachId, type, error });
+      return err(
+        serviceError(
+          'NETWORK',
+          error instanceof Error ? error.message : 'Failed to submit verification document',
+        ),
+      );
+    }
   }
 
   /**
@@ -278,6 +503,11 @@ class VerificationService {
    */
   async checkAndUpdateExpiredVerifications(): Promise<Result<{ expiredCount: number }, ServiceError>> {
     try {
+      if (!apiClient.isMockMode) {
+        logger.info('Skipping client-side verification expiry mutation in API mode');
+        return ok({ expiredCount: 0 });
+      }
+
       logger.info('Checking for expired verifications');
 
       const allStatuses = await apiClient.get<Record<string, VerificationStatus>>(
@@ -367,6 +597,11 @@ class VerificationService {
    */
   async sendExpiryWarnings(): Promise<Result<{ warningsSent: number }, ServiceError>> {
     try {
+      if (!apiClient.isMockMode) {
+        logger.info('Skipping client-side verification expiry warnings in API mode');
+        return ok({ warningsSent: 0 });
+      }
+
       const allStatuses = await apiClient.get<Record<string, VerificationStatus>>(
         STORAGE_KEYS.VERIFICATION,
         MOCK_VERIFICATION_STATUSES,

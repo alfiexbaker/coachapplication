@@ -65,6 +65,7 @@ export function Clickable({
         disabled={disabled || (!onPress && !onLongPress)}
         hitSlop={resolvedHitSlop}
         accessibilityLabel={accessibilityLabel}
+        aria-label={accessibilityLabel}
         accessibilityHint={accessibilityHint}
         accessibilityRole={resolvedRole}
         accessibilityState={accessibilityState}

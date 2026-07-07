@@ -16,6 +16,8 @@ import { Row } from '@/components/primitives/row';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import type { ClubRole } from '@/constants/types';
+import { canViewClubOwnerDashboard } from '@/utils/club-ui-permissions';
 
 interface AdminAction {
   key: string;
@@ -26,9 +28,13 @@ interface AdminAction {
 
 export interface ClubAdminActionsProps {
   clubId: string;
+  viewerRole: ClubRole;
 }
 
-export const ClubAdminActions = function ClubAdminActions({ clubId }: ClubAdminActionsProps) {
+export const ClubAdminActions = function ClubAdminActions({
+  clubId,
+  viewerRole,
+}: ClubAdminActionsProps) {
   const { colors } = useTheme();
 
   const goSettings = () => router.push(Routes.clubSettings({ clubId, section: 'details' }));
@@ -38,7 +44,16 @@ export const ClubAdminActions = function ClubAdminActions({ clubId }: ClubAdminA
 
   const actions: AdminAction[] = [
     { key: 'settings', icon: 'settings-outline', label: 'Settings', route: goSettings },
-    { key: 'dashboard', icon: 'bar-chart-outline', label: 'Dashboard', route: goDashboard },
+    ...(canViewClubOwnerDashboard(viewerRole)
+      ? [
+          {
+            key: 'dashboard',
+            icon: 'bar-chart-outline' as const,
+            label: 'Dashboard',
+            route: goDashboard,
+          },
+        ]
+      : []),
     { key: 'calendar', icon: 'calendar-outline', label: 'Calendar', route: goCalendar },
     { key: 'invites', icon: 'mail-outline', label: 'Invites', route: goInvites },
   ];

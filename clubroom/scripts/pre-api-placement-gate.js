@@ -107,14 +107,14 @@ const checks = [
     id: 'family_entrypoints_present',
     description: 'Family entrypoints link dashboard, calendar, and recurring plans.',
     pass: () => {
-      const dashboardHook = readFile('hooks/use-family-dashboard.ts');
+      const familyGateway = readFile('app/family/index.tsx');
       const calendarScreen = readFile('components/family/family-calendar-screen.tsx');
       return Boolean(
-        dashboardHook &&
+        familyGateway &&
           calendarScreen &&
-          dashboardHook.includes('Routes.FAMILY') &&
-          dashboardHook.includes('Routes.FAMILY_CALENDAR') &&
-          dashboardHook.includes('Routes.FAMILY_RECURRING') &&
+          familyGateway.includes('Routes.FAMILY_CALENDAR') &&
+          familyGateway.includes('Routes.FAMILY_RECURRING') &&
+          familyGateway.includes('Routes.FAMILY_SHARING') &&
           calendarScreen.includes('Routes.FAMILY_RECURRING'),
       );
     },

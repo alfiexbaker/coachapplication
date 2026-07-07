@@ -1,4 +1,4 @@
-import type { SessionInvite, TimeSlot } from '@/constants/types';
+import type { SessionInvite, TimeSlot, WeekAcceptance } from '@/constants/types';
 import { apiFetch } from '@/services/api-client';
 import {
   buildApiAuthHeaders,
@@ -44,6 +44,8 @@ interface ApiInviteResponseResult {
   selectedSlot?: TimeSlot;
   booking?: { id: string; status: string } | null;
   bookingId?: string | null;
+  bookingSeriesId?: string | null;
+  bookingIds?: string[];
   registrationId?: string | null;
   registrationStatus?: string | null;
   requestId: string;
@@ -328,6 +330,7 @@ class SessionInviteAuthorityService {
     inviteId: string;
     response: 'ACCEPTED' | 'DECLINED';
     selectedSlot?: TimeSlot;
+    recurringWeekResponses?: WeekAcceptance[];
   }): Promise<Result<SessionInvite, ServiceError>> {
     const headersResult = await resolveInviteAccessHeaders();
     if (!headersResult.success) {
@@ -341,6 +344,9 @@ class SessionInviteAuthorityService {
         inviteId: input.inviteId,
         response: input.response,
         ...(input.selectedSlot ? { selectedSlot: input.selectedSlot } : {}),
+        ...(input.recurringWeekResponses && input.recurringWeekResponses.length > 0
+          ? { recurringWeekResponses: input.recurringWeekResponses }
+          : {}),
       }),
     });
     if (!result.success) {
@@ -353,6 +359,31 @@ class SessionInviteAuthorityService {
     }
 
     return ok(result.data.invite);
+  }
+
+  async respondToRecurringInvite(
+    inviteId: string,
+    weekResponses: WeekAcceptance[],
+  ): Promise<Result<SessionInvite, ServiceError>> {
+    const acceptedWeeks = weekResponses.filter((week) => week.accepted);
+    if (acceptedWeeks.length === 0) {
+      return this.respondToInvite({
+        inviteId,
+        response: 'DECLINED',
+        recurringWeekResponses: weekResponses,
+      });
+    }
+    return this.respondToInvite({
+      inviteId,
+      response: 'ACCEPTED',
+      selectedSlot: {
+        date: acceptedWeeks[0]?.weekDate ?? '',
+        startTime: acceptedWeeks[0]?.startTime ?? '',
+        endTime: acceptedWeeks[0]?.endTime ?? '',
+        ...(acceptedWeeks[0]?.location ? { location: acceptedWeeks[0].location } : {}),
+      },
+      recurringWeekResponses: weekResponses,
+    });
   }
 
   async getInviteHistory(): Promise<Result<SessionInvite[], ServiceError>> {

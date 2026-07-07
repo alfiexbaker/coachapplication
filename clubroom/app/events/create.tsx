@@ -14,7 +14,84 @@ import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-sta
 import { Spacing, Radii } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
-import { useCreateEvent, STEPS } from '@/hooks/use-create-event';
+import { DEFAULT_EVENT_CLUB_ID, useCreateEvent, STEPS } from '@/hooks/use-create-event';
+
+type CreateEventState = ReturnType<typeof useCreateEvent>;
+
+function CreateEventStep({
+  step,
+  form,
+  squads,
+  setField,
+}: {
+  step: CreateEventState['step'];
+  form: CreateEventState['form'];
+  squads: CreateEventState['squads'];
+  setField: CreateEventState['setField'];
+}) {
+  switch (step) {
+    case 'type':
+      return (
+        <CreateEventTypeStep
+          eventType={form.eventType}
+          onEventTypeChange={(t) => setField('eventType', t)}
+        />
+      );
+    case 'details':
+      return (
+        <CreateEventDetailsStep
+          title={form.title}
+          description={form.description}
+          venue={form.venue}
+          address={form.address}
+          isVirtual={form.isVirtual}
+          meetingLink={form.meetingLink}
+          onFieldChange={setField}
+        />
+      );
+    case 'schedule':
+      return (
+        <CreateEventScheduleStep
+          date={form.date}
+          startTime={form.startTime}
+          endTime={form.endTime}
+          rsvpDeadline={form.rsvpDeadline}
+          onFieldChange={setField}
+        />
+      );
+    case 'audience':
+      return (
+        <CreateEventAudienceStep
+          clubId={DEFAULT_EVENT_CLUB_ID}
+          targetAudience={form.targetAudience}
+          selectedSquadIds={form.selectedSquadIds}
+          selectedAthleteIds={form.selectedAthleteIds}
+          squads={squads}
+          maxAttendees={form.maxAttendees}
+          price={form.price}
+          rsvpRequired={form.rsvpRequired}
+          onFieldChange={setField}
+        />
+      );
+    case 'review':
+      return (
+        <CreateEventReviewStep
+          eventType={form.eventType}
+          title={form.title}
+          description={form.description}
+          date={form.date}
+          startTime={form.startTime}
+          endTime={form.endTime}
+          isVirtual={form.isVirtual}
+          venue={form.venue}
+          targetAudience={form.targetAudience}
+          selectedSquadIds={form.selectedSquadIds}
+          selectedAthleteIds={form.selectedAthleteIds}
+          price={form.price}
+        />
+      );
+  }
+}
 
 export default function CreateEventScreen() {
   const {
@@ -73,71 +150,6 @@ export default function CreateEventScreen() {
     );
   }
 
-  const renderStep = () => {
-    switch (step) {
-      case 'type':
-        return (
-          <CreateEventTypeStep
-            eventType={form.eventType}
-            onEventTypeChange={(t) => setField('eventType', t)}
-          />
-        );
-      case 'details':
-        return (
-          <CreateEventDetailsStep
-            title={form.title}
-            description={form.description}
-            venue={form.venue}
-            address={form.address}
-            isVirtual={form.isVirtual}
-            meetingLink={form.meetingLink}
-            onFieldChange={setField}
-          />
-        );
-      case 'schedule':
-        return (
-          <CreateEventScheduleStep
-            date={form.date}
-            startTime={form.startTime}
-            endTime={form.endTime}
-            rsvpDeadline={form.rsvpDeadline}
-            onFieldChange={setField}
-          />
-        );
-      case 'audience':
-        return (
-          <CreateEventAudienceStep
-            clubId="club_lions"
-            targetAudience={form.targetAudience}
-            selectedSquadIds={form.selectedSquadIds}
-            selectedAthleteIds={form.selectedAthleteIds}
-            squads={squads}
-            maxAttendees={form.maxAttendees}
-            price={form.price}
-            rsvpRequired={form.rsvpRequired}
-            onFieldChange={setField}
-          />
-        );
-      case 'review':
-        return (
-          <CreateEventReviewStep
-            eventType={form.eventType}
-            title={form.title}
-            description={form.description}
-            date={form.date}
-            startTime={form.startTime}
-            endTime={form.endTime}
-            isVirtual={form.isVirtual}
-            venue={form.venue}
-            targetAudience={form.targetAudience}
-            selectedSquadIds={form.selectedSquadIds}
-            selectedAthleteIds={form.selectedAthleteIds}
-            price={form.price}
-          />
-        );
-    }
-  };
-
   return renderShell(
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -169,7 +181,7 @@ export default function CreateEventScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {renderStep()}
+          <CreateEventStep step={step} form={form} squads={squads} setField={setField} />
         </ScrollView>
 
         <View style={[styles.footer, { borderTopColor: palette.border }]}>

@@ -19,6 +19,12 @@ export const VideoInfoSection = function VideoInfoSection({
   video,
   colors,
 }: VideoInfoSectionProps) {
+  const athleteLabel =
+    video.athleteIds.length === 0
+      ? 'No athlete linked'
+      : video.athleteIds.length === 1
+        ? 'Linked athlete'
+        : `${video.athleteIds.length} linked athletes`;
   const visibilityColor =
     video.visibility === 'PRIVATE'
       ? colors.muted
@@ -34,7 +40,7 @@ export const VideoInfoSection = function VideoInfoSection({
         <Row gap={4} align="center">
           <Ionicons name="person-outline" size={16} color={colors.muted} />
           <ThemedText style={[styles.metaText, { color: colors.muted }]}>
-            {video.athleteIds.join(', ')}
+            {athleteLabel}
           </ThemedText>
         </Row>
         <Row gap={4} align="center">

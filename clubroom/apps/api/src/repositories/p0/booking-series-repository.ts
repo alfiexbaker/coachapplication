@@ -256,6 +256,8 @@ function mapSeedBookingRow(
     id: bookingId,
     coachUserId: asString(booking.coachUserId),
     bookedByUserId: asString(booking.bookedByUserId),
+    recurringSeriesId: asString(booking.recurringSeriesId) ?? null,
+    groupSessionId: asString(booking.groupSessionId) ?? null,
     status: asString(booking.status),
     scheduledAt: asString(booking.scheduledAt),
     durationMinutes: asNumber(booking.durationMinutes) ?? 60,
@@ -653,6 +655,45 @@ function assertSeedInvoicesAdjustableForBookingUpdate(
     );
   }
 }
+function appendSeedBookingSeriesLifecycleEvents(params: {
+  tables: SeedTables;
+  linkedBookings: SeedRow[];
+  seriesId: string;
+  action: 'pause' | 'resume';
+  actorUserId: string;
+  requestId: string;
+  now: string;
+  reason?: string | null;
+  note?: string | null;
+}): void {
+  const statusEvents = getMutableRows(params.tables, 'bookingStatusEvents');
+  for (const booking of params.linkedBookings) {
+    const bookingId = asString(booking.id);
+    if (!bookingId || asString(booking.deletedAt)) {
+      continue;
+    }
+    const currentStatus = asString(booking.status)?.toUpperCase() ?? 'CONFIRMED';
+    statusEvents.push({
+      id: newId('bse'),
+      bookingId,
+      fromStatus: currentStatus,
+      toStatus: currentStatus,
+      actorUserId: params.actorUserId,
+      reason:
+        params.action === 'pause'
+          ? 'Booking series paused.'
+          : 'Booking series resumed.',
+      metadataJson: {
+        source: `booking-series-${params.action}`,
+        recurringSeriesId: params.seriesId,
+        ...(params.reason ? { reason: params.reason } : {}),
+        ...(params.note ? { note: params.note } : {}),
+      },
+      requestId: params.requestId,
+      occurredAt: params.now,
+    });
+  }
+}
 function getUpdatedSeriesEndDate(params: {
   body: UpdateBookingSeriesRequest;
   bookings: BookingResponse[];
@@ -776,6 +817,58 @@ function canUserAccessSeedSeries(params: {
       athleteUserIdsByAthleteId,
     ),
   );
+}
+function getSeedSeriesAthleteIds(params: {
+  tables: SeedTables;
+  series: SeedRow;
+  linkedBookings: SeedRow[];
+}): string[] {
+  const bookingIds = new Set(
+    params.linkedBookings.flatMap((booking) => {
+      const bookingId = asString(booking.id);
+      return bookingId ? [bookingId] : [];
+    }),
+  );
+  const participantAthleteIds = asRows(params.tables.bookingParticipants).flatMap((participant) => {
+    const bookingId = asString(participant.bookingId);
+    const athleteId = asString(participant.athleteId);
+    return bookingId && bookingIds.has(bookingId) && athleteId ? [athleteId] : [];
+  });
+  const seriesAthleteId = asString(params.series.athleteId);
+  return Array.from(
+    new Set([...participantAthleteIds, ...(seriesAthleteId ? [seriesAthleteId] : [])]),
+  );
+}
+function canUserWriteSeedSeries(params: {
+  tables: SeedTables;
+  series: SeedRow;
+  authUserId: string;
+  linkedBookings: SeedRow[];
+}): boolean {
+  if (asString(params.series.bookedByUserId) === params.authUserId) {
+    return true;
+  }
+  const athleteIds = getSeedSeriesAthleteIds(params);
+  if (athleteIds.length === 0) {
+    return false;
+  }
+  return athleteIds.every((athleteId) =>
+    asRows(params.tables.guardianChildLinks).some(
+      (link) =>
+        asString(link.athleteId) === athleteId &&
+        asString(link.guardianUserId) === params.authUserId,
+    ),
+  );
+}
+function assertCanUserWriteSeedSeries(params: {
+  tables: SeedTables;
+  series: SeedRow;
+  authUserId: string;
+  linkedBookings: SeedRow[];
+}): void {
+  if (!canUserWriteSeedSeries(params)) {
+    throw forbidden('Only the booking owner or linked guardian can change this booking series');
+  }
 }
 function getVisibleSeedBookingSeriesById(params: {
   tables: SeedTables;
@@ -1094,6 +1187,12 @@ class SeedBookingSeriesRepository implements BookingSeriesRepository {
     ) {
       throw forbidden('Booking series does not belong to authenticated user');
     }
+    assertCanUserWriteSeedSeries({
+      tables: store.tables,
+      series,
+      authUserId: params.authUserId,
+      linkedBookings,
+    });
     const endpointKey = bookingSeriesLifecycleEndpointKey(params.seriesId, 'cancel');
     const requestHash = hashBookingSeriesLifecycleRequest({
       seriesId: params.seriesId,
@@ -1219,6 +1318,12 @@ class SeedBookingSeriesRepository implements BookingSeriesRepository {
     ) {
       throw forbidden('Booking series does not belong to authenticated user');
     }
+    assertCanUserWriteSeedSeries({
+      tables: store.tables,
+      series,
+      authUserId: params.authUserId,
+      linkedBookings,
+    });
     const endpointKey = bookingSeriesLifecycleEndpointKey(params.seriesId, 'pause');
     const requestHash = hashBookingSeriesLifecycleRequest({
       seriesId: params.seriesId,
@@ -1249,6 +1354,17 @@ class SeedBookingSeriesRepository implements BookingSeriesRepository {
     series.updatedByUserId = params.authUserId;
     series.updatedAt = now;
     series.version = (asNumber(series.version) ?? 1) + 1;
+    appendSeedBookingSeriesLifecycleEvents({
+      tables: store.tables,
+      linkedBookings,
+      seriesId: params.seriesId,
+      action: 'pause',
+      actorUserId: params.authUserId,
+      requestId: params.requestId,
+      now,
+      reason: params.body.reason ?? null,
+      note: params.body.note ?? null,
+    });
     const response = pauseBookingSeriesResponseSchema.parse({
       series: mapSeedBookingSeriesRow({
         tables: store.tables,
@@ -1292,6 +1408,12 @@ class SeedBookingSeriesRepository implements BookingSeriesRepository {
     ) {
       throw forbidden('Booking series does not belong to authenticated user');
     }
+    assertCanUserWriteSeedSeries({
+      tables: store.tables,
+      series,
+      authUserId: params.authUserId,
+      linkedBookings,
+    });
     const endpointKey = bookingSeriesLifecycleEndpointKey(params.seriesId, 'resume');
     const requestHash = hashBookingSeriesLifecycleRequest({
       seriesId: params.seriesId,
@@ -1322,6 +1444,16 @@ class SeedBookingSeriesRepository implements BookingSeriesRepository {
     series.updatedByUserId = params.authUserId;
     series.updatedAt = now;
     series.version = (asNumber(series.version) ?? 1) + 1;
+    appendSeedBookingSeriesLifecycleEvents({
+      tables: store.tables,
+      linkedBookings,
+      seriesId: params.seriesId,
+      action: 'resume',
+      actorUserId: params.authUserId,
+      requestId: params.requestId,
+      now,
+      note: params.body.note ?? null,
+    });
     const response = resumeBookingSeriesResponseSchema.parse({
       series: mapSeedBookingSeriesRow({
         tables: store.tables,
@@ -1365,6 +1497,12 @@ class SeedBookingSeriesRepository implements BookingSeriesRepository {
     ) {
       throw forbidden('Booking series does not belong to authenticated user');
     }
+    assertCanUserWriteSeedSeries({
+      tables: store.tables,
+      series,
+      authUserId: params.authUserId,
+      linkedBookings,
+    });
     const endpointKey = bookingSeriesLifecycleEndpointKey(params.seriesId, 'update');
     const requestHash = hashBookingSeriesLifecycleRequest({
       seriesId: params.seriesId,
@@ -1405,7 +1543,33 @@ class SeedBookingSeriesRepository implements BookingSeriesRepository {
       return mapped ? [mapped] : [];
     });
     assertSeedInvoicesAdjustableForBookingUpdate(store.tables, mutableBookingIds);
+    const targetCoachUserId = asString(params.body.coachUserId);
+    const bookingStatusEvents = getMutableRows(store.tables, 'bookingStatusEvents');
     for (const booking of mutableBookings) {
+      const previousCoachUserId = asString(booking.coachUserId) ?? null;
+      if (targetCoachUserId && previousCoachUserId !== targetCoachUserId) {
+        booking.coachUserId = targetCoachUserId;
+        const bookingId = asString(booking.id);
+        const currentStatus = asString(booking.status)?.toUpperCase() ?? 'CONFIRMED';
+        if (bookingId) {
+          bookingStatusEvents.push({
+            id: newId('bse'),
+            bookingId,
+            fromStatus: currentStatus,
+            toStatus: currentStatus,
+            actorUserId: params.authUserId,
+            reason: 'Booking series coach reassigned.',
+            metadataJson: {
+              source: 'booking-series-reassignment',
+              recurringSeriesId: params.seriesId,
+              previousCoachUserId,
+              coachUserId: targetCoachUserId,
+            },
+            requestId: params.requestId,
+            occurredAt: now,
+          });
+        }
+      }
       if (params.body.time) {
         booking.scheduledAt = applyTimeToDate(
           asString(booking.scheduledAt) ?? '',
@@ -1425,6 +1589,22 @@ class SeedBookingSeriesRepository implements BookingSeriesRepository {
       booking.updatedAt = now;
       booking.version = (asNumber(booking.version) ?? 1) + 1;
     }
+    if (targetCoachUserId) {
+      const updatedBookingIdSet = new Set(mutableBookingIds);
+      for (const invoice of asRows(store.tables.invoices)) {
+        if (asString(invoice.deletedAt) || asString(invoice.coachUserId) === targetCoachUserId) {
+          continue;
+        }
+        const bookingId = asString(invoice.bookingId);
+        if (!bookingId || !updatedBookingIdSet.has(bookingId)) {
+          continue;
+        }
+        invoice.coachUserId = targetCoachUserId;
+        invoice.updatedAt = now;
+        invoice.updatedByUserId = params.authUserId;
+        invoice.version = (asNumber(invoice.version) ?? 1) + 1;
+      }
+    }
     await applyBookingInvoiceAdjustments({
       bookingIds: mutableBookingIds,
       actorUserId: params.authUserId,
@@ -1436,6 +1616,9 @@ class SeedBookingSeriesRepository implements BookingSeriesRepository {
     }
     if (params.body.notes !== undefined) {
       series.notes = params.body.notes;
+    }
+    if (targetCoachUserId) {
+      series.coachUserId = targetCoachUserId;
     }
     series.updatedByUserId = params.authUserId;
     series.updatedAt = now;
@@ -1763,6 +1946,8 @@ function mapDbBookingRecord(booking: Record<string, unknown>): BookingResponse {
     id: asString(booking.id),
     coachUserId: asString(booking.coachUserId),
     bookedByUserId: asString(booking.bookedByUserId) ?? undefined,
+    recurringSeriesId: asString(booking.recurringSeriesId) ?? null,
+    groupSessionId: asString(booking.groupSessionId) ?? null,
     status: asString(booking.status),
     scheduledAt: asString(booking.scheduledAt),
     durationMinutes: asNumber(booking.durationMinutes) ?? 60,
@@ -1841,19 +2026,23 @@ function mapDbBookingSeriesRecord(params: {
     updatedAt: asString(params.series.updatedAt) ?? isoNow(),
   });
 }
-function canUserAccessDbSeries(params: {
-  series: {
-    coachUserId: string;
-    bookedByUserId: string;
-  };
-  bookings: Array<{
-    participants: Array<{
-      guardianUserId: string | null;
-      athlete: {
-        userId: string | null;
-      };
-    }>;
+type BookingSeriesPrismaClient = ReturnType<typeof getPrismaClientOrThrow>;
+type DbSeriesAccessSeries = {
+  coachUserId: string;
+  bookedByUserId: string;
+};
+type DbSeriesAccessBooking = {
+  participants: Array<{
+    athleteId: string;
+    guardianUserId: string | null;
+    athlete: {
+      userId: string | null;
+    };
   }>;
+};
+function canUserAccessDbSeries(params: {
+  series: DbSeriesAccessSeries;
+  bookings: DbSeriesAccessBooking[];
   authUserId: string;
 }): boolean {
   return (
@@ -1867,6 +2056,43 @@ function canUserAccessDbSeries(params: {
       ),
     )
   );
+}
+async function assertCanUserWriteDbSeries(params: {
+  prisma: BookingSeriesPrismaClient;
+  series: Pick<DbSeriesAccessSeries, 'bookedByUserId'>;
+  bookings: DbSeriesAccessBooking[];
+  authUserId: string;
+}): Promise<void> {
+  if (params.series.bookedByUserId === params.authUserId) {
+    return;
+  }
+  const athleteIds = Array.from(
+    new Set(
+      params.bookings.flatMap((booking) =>
+        booking.participants.flatMap((participant) =>
+          participant.athleteId ? [participant.athleteId] : [],
+        ),
+      ),
+    ),
+  );
+  if (athleteIds.length === 0) {
+    throw forbidden('Only the booking owner or linked guardian can change this booking series');
+  }
+  const linkedRows = await params.prisma.guardianChildLink.findMany({
+    where: {
+      guardianUserId: params.authUserId,
+      athleteId: {
+        in: athleteIds,
+      },
+    },
+    select: {
+      athleteId: true,
+    },
+  });
+  const linkedAthleteIds = new Set(linkedRows.map((row) => row.athleteId));
+  if (!athleteIds.every((athleteId) => linkedAthleteIds.has(athleteId))) {
+    throw forbidden('Only the booking owner or linked guardian can change this booking series');
+  }
 }
 class DbBookingSeriesRepository implements BookingSeriesRepository {
   async listVisibleBookingSeries(
@@ -2125,6 +2351,8 @@ class DbBookingSeriesRepository implements BookingSeriesRepository {
         id: bookingIds[index],
         coachUserId: body.coachUserId,
         bookedByUserId: body.bookedByUserId,
+        recurringSeriesId: seriesId,
+        groupSessionId: null,
         status: 'CONFIRMED',
         scheduledAt: occurrence.scheduledAt,
         durationMinutes: occurrence.durationMinutes,
@@ -2336,6 +2564,12 @@ class DbBookingSeriesRepository implements BookingSeriesRepository {
     ) {
       throw forbidden('Booking series does not belong to authenticated user');
     }
+    await assertCanUserWriteDbSeries({
+      prisma,
+      series,
+      bookings,
+      authUserId: params.authUserId,
+    });
     assertExpectedSeriesVersion(Number(series.version), params.body.expectedVersion);
     const now = new Date();
     const endpointKey = bookingSeriesLifecycleEndpointKey(params.seriesId, 'cancel');
@@ -2549,6 +2783,12 @@ class DbBookingSeriesRepository implements BookingSeriesRepository {
     ) {
       throw forbidden('Booking series does not belong to authenticated user');
     }
+    await assertCanUserWriteDbSeries({
+      prisma,
+      series,
+      bookings,
+      authUserId: params.authUserId,
+    });
     const responseBookings = (normalizeForJson(bookings) as Record<string, unknown>[]).map(
       mapDbBookingRecord,
     );
@@ -2585,6 +2825,24 @@ class DbBookingSeriesRepository implements BookingSeriesRepository {
             currentVersion: Number(series.version),
           });
         }
+        await tx.bookingStatusEvent.createMany({
+          data: responseBookings.map((booking) => ({
+            id: newId('bse'),
+            bookingId: booking.id,
+            fromStatus: booking.status,
+            toStatus: booking.status,
+            actorUserId: params.authUserId,
+            reason: 'Booking series paused.',
+            metadataJson: {
+              source: 'booking-series-pause',
+              recurringSeriesId: params.seriesId,
+              ...(params.body.reason ? { reason: params.body.reason } : {}),
+              ...(params.body.note ? { note: params.body.note } : {}),
+            } as never,
+            requestId: params.requestId,
+            occurredAt: now,
+          })),
+        });
         const updatedSeries = await tx.recurringSeries.findUniqueOrThrow({
           where: {
             id: params.seriesId,
@@ -2690,6 +2948,12 @@ class DbBookingSeriesRepository implements BookingSeriesRepository {
     ) {
       throw forbidden('Booking series does not belong to authenticated user');
     }
+    await assertCanUserWriteDbSeries({
+      prisma,
+      series,
+      bookings,
+      authUserId: params.authUserId,
+    });
     const responseBookings = (normalizeForJson(bookings) as Record<string, unknown>[]).map(
       mapDbBookingRecord,
     );
@@ -2727,6 +2991,23 @@ class DbBookingSeriesRepository implements BookingSeriesRepository {
             currentVersion: Number(series.version),
           });
         }
+        await tx.bookingStatusEvent.createMany({
+          data: responseBookings.map((booking) => ({
+            id: newId('bse'),
+            bookingId: booking.id,
+            fromStatus: booking.status,
+            toStatus: booking.status,
+            actorUserId: params.authUserId,
+            reason: 'Booking series resumed.',
+            metadataJson: {
+              source: 'booking-series-resume',
+              recurringSeriesId: params.seriesId,
+              ...(params.body.note ? { note: params.body.note } : {}),
+            } as never,
+            requestId: params.requestId,
+            occurredAt: now,
+          })),
+        });
         const updatedSeries = await tx.recurringSeries.findUniqueOrThrow({
           where: {
             id: params.seriesId,
@@ -2832,6 +3113,12 @@ class DbBookingSeriesRepository implements BookingSeriesRepository {
     ) {
       throw forbidden('Booking series does not belong to authenticated user');
     }
+    await assertCanUserWriteDbSeries({
+      prisma,
+      series,
+      bookings,
+      authUserId: params.authUserId,
+    });
     const responseBookingsBefore = (normalizeForJson(bookings) as Record<string, unknown>[]).map(
       mapDbBookingRecord,
     );
@@ -2881,9 +3168,15 @@ class DbBookingSeriesRepository implements BookingSeriesRepository {
       seriesId: params.seriesId,
       body: params.body,
     });
+    const targetCoachUserId = params.body.coachUserId;
     try {
       const response = await prisma.$transaction(async (tx) => {
         const updateData = {
+          ...(targetCoachUserId
+            ? {
+                coachUserId: targetCoachUserId,
+              }
+            : {}),
           ...(params.body.durationMinutes !== undefined
             ? {
                 durationMinutes: params.body.durationMinutes,
@@ -2922,14 +3215,57 @@ class DbBookingSeriesRepository implements BookingSeriesRepository {
               },
             }),
           ),
-        ).then(() =>
-          applyBookingInvoiceAdjustmentsInDbTransaction(tx, {
-            bookingIds: mutableBookingIds,
-            actorUserId: params.authUserId,
-            reason: 'Linked booking series was updated.',
-            requestId: params.requestId,
-          }),
         );
+        if (targetCoachUserId) {
+          const changedLinkedBookings = mutableBookings.filter(
+            (booking) => booking.coachUserId !== targetCoachUserId,
+          );
+          const changedBookingIds = changedLinkedBookings.map((booking) => booking.id);
+          if (changedBookingIds.length > 0) {
+            await tx.bookingStatusEvent.createMany({
+              data: changedLinkedBookings.map((booking) => ({
+                id: newId('bse'),
+                bookingId: booking.id,
+                fromStatus: booking.status,
+                toStatus: booking.status,
+                actorUserId: params.authUserId,
+                reason: 'Booking series coach reassigned.',
+                metadataJson: {
+                  source: 'booking-series-reassignment',
+                  recurringSeriesId: params.seriesId,
+                  previousCoachUserId: booking.coachUserId,
+                  coachUserId: targetCoachUserId,
+                } as never,
+                requestId: params.requestId,
+                occurredAt: now,
+              })),
+            });
+            await tx.invoice.updateMany({
+              where: {
+                bookingId: {
+                  in: changedBookingIds,
+                },
+                deletedAt: null,
+                NOT: {
+                  coachUserId: targetCoachUserId,
+                },
+              },
+              data: {
+                coachUserId: targetCoachUserId,
+                updatedByUserId: params.authUserId,
+                version: {
+                  increment: 1,
+                },
+              },
+            });
+          }
+        }
+        await applyBookingInvoiceAdjustmentsInDbTransaction(tx, {
+          bookingIds: mutableBookingIds,
+          actorUserId: params.authUserId,
+          reason: 'Linked booking series was updated.',
+          requestId: params.requestId,
+        });
         const updatedBookings = await tx.booking.findMany({
           where: {
             recurringSeriesId: params.seriesId,
@@ -2968,6 +3304,11 @@ class DbBookingSeriesRepository implements BookingSeriesRepository {
             version: series.version,
           },
           data: {
+            ...(targetCoachUserId
+              ? {
+                  coachUserId: targetCoachUserId,
+                }
+              : {}),
             ...(params.body.time
               ? {
                   timeLocal: params.body.time,

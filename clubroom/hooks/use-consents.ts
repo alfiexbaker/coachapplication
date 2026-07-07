@@ -37,6 +37,7 @@ export function useConsents() {
 
       if (!consentsResult.success) {
         logger.error('Failed to load roster consents', consentsResult.error);
+        return err(consentsResult.error);
       }
 
       if (!summaryResult.success) {

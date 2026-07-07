@@ -7,10 +7,10 @@
  *
  * API Integration Notes:
  * - Mock mode keeps local coach analytics for development-only flows.
- * - Live API mode fails closed until dedicated /v1 coach analytics routes exist.
+ * - Live API mode reads coach analytics through GET /v1/coaches/:coachId/analytics.
  */
 
-import { apiClient } from '../api-client';
+import { apiClient, apiFetch } from '../api-client';
 import type {
   CoachAnalytics,
   CoachAnalyticsPeriod,
@@ -36,6 +36,12 @@ import {
 } from '@/types/result';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+  toApiUserId,
+} from '@/services/api-auth-context';
 
 const logger = createLogger('AnalyticsExportService');
 
@@ -48,6 +54,12 @@ function coachAnalyticsUnsupportedError(action: string, details?: unknown): Serv
   );
 }
 
+function liveCoachAnalyticsResetUnsupported(): ServiceError {
+  return unsupportedError(
+    'Coach analytics mock reset is only available in mock mode; live analytics are derived from backend bookings, invoices, feedback, and skills.',
+  );
+}
+
 function unsupportedCoachAnalytics<T>(action: string, details?: unknown): Result<T, ServiceError> {
   logger.warn('Coach analytics API unavailable in live API mode', {
     action,
@@ -55,6 +67,48 @@ function unsupportedCoachAnalytics<T>(action: string, details?: unknown): Result
     requiredRoutes: ['GET /v1/coaches/:coachId/analytics'],
   });
   return err(coachAnalyticsUnsupportedError(action, details));
+}
+
+interface ApiCoachAnalyticsResponse {
+  analytics: CoachAnalytics;
+}
+
+async function resolveCoachAnalyticsApiContext(
+  coachId: string,
+): Promise<Result<{ apiCoachId: string; headers: Record<string, string> }, ServiceError>> {
+  const currentUserResult = await resolveSignedInApiUser('Sign in to view coach analytics.');
+  if (!currentUserResult.success) {
+    return err(currentUserResult.error);
+  }
+  const currentUser = currentUserResult.data;
+  return ok({
+    apiCoachId: toApiUserId(coachId),
+    headers: buildApiAuthHeaders({
+      actingRole: deriveApiActingRole(currentUser, 'coach'),
+    }),
+  });
+}
+
+async function fetchCoachAnalyticsFromApi(
+  coachId: string,
+  period: CoachAnalyticsPeriod,
+): Promise<Result<CoachAnalytics | null, ServiceError>> {
+  const context = await resolveCoachAnalyticsApiContext(coachId);
+  if (!context.success) {
+    return context;
+  }
+  const search = new URLSearchParams({ period });
+  const result = await apiFetch<ApiCoachAnalyticsResponse>(
+    `/v1/coaches/${context.data.apiCoachId}/analytics?${search.toString()}`,
+    {
+      method: 'GET',
+      headers: context.data.headers,
+    },
+  );
+  if (!result.success) {
+    return err(result.error);
+  }
+  return ok(result.data.analytics);
 }
 
 // ============================================================================
@@ -482,7 +536,7 @@ export const analyticsExportService = {
         });
       }
 
-      return unsupportedCoachAnalytics('Coach analytics read', { coachId, period });
+      return fetchCoachAnalyticsFromApi(coachId, period);
     } catch (error) {
       logger.error('Failed to get coach analytics', { coachId, period, error });
       return err(storageError('Failed to load coach analytics'));
@@ -504,7 +558,11 @@ export const analyticsExportService = {
         return ok(generateMockRevenueChart(period, baseRevenue));
       }
 
-      return unsupportedCoachAnalytics('Coach revenue analytics read', { coachId, period });
+      const analytics = await this.getCoachAnalytics(coachId, period);
+      if (!analytics.success) {
+        return err(analytics.error);
+      }
+      return ok(analytics.data?.revenueChart ?? []);
     } catch (error) {
       logger.error('Failed to get revenue chart', { coachId, period, error });
       return err(storageError('Failed to load revenue chart'));
@@ -532,7 +590,21 @@ export const analyticsExportService = {
         );
       }
 
-      return unsupportedCoachAnalytics('Coach retention analytics read', { coachId });
+      const analytics = await this.getCoachAnalytics(coachId, 'MONTH');
+      if (!analytics.success) {
+        return err(analytics.error);
+      }
+      return ok(
+        analytics.data?.retention ?? {
+          newClients: 0,
+          returningClients: 0,
+          churnRate: 0,
+          retentionRate: 100,
+          avgSessionsPerClient: 0,
+          totalActiveClients: 0,
+          clientsLost: 0,
+        },
+      );
     } catch (error) {
       logger.error('Failed to get retention metrics', { coachId, error });
       return err(storageError('Failed to load retention metrics'));
@@ -559,7 +631,20 @@ export const analyticsExportService = {
         );
       }
 
-      return unsupportedCoachAnalytics('Coach cancellation analytics read', { coachId });
+      const analytics = await this.getCoachAnalytics(coachId, 'MONTH');
+      if (!analytics.success) {
+        return err(analytics.error);
+      }
+      return ok(
+        analytics.data?.cancellations ?? {
+          totalCancellations: 0,
+          cancellationRate: 0,
+          byReason: [],
+          byDayOfWeek: [],
+          avgNoticeHours: 0,
+          revenueLost: 0,
+        },
+      );
     } catch (error) {
       logger.error('Failed to get cancellation patterns', { coachId, error });
       return err(storageError('Failed to load cancellation patterns'));
@@ -577,7 +662,11 @@ export const analyticsExportService = {
         return ok(analytics?.peakHours || generateMockPeakHours());
       }
 
-      return unsupportedCoachAnalytics('Coach peak-hours analytics read', { coachId });
+      const analytics = await this.getCoachAnalytics(coachId, 'MONTH');
+      if (!analytics.success) {
+        return err(analytics.error);
+      }
+      return ok(analytics.data?.peakHours ?? []);
     } catch (error) {
       logger.error('Failed to get peak hours', { coachId, error });
       return err(storageError('Failed to load peak hours'));
@@ -595,7 +684,11 @@ export const analyticsExportService = {
         return ok(analytics?.topSkills || []);
       }
 
-      return unsupportedCoachAnalytics('Coach top-skills analytics read', { coachId });
+      const analytics = await this.getCoachAnalytics(coachId, 'MONTH');
+      if (!analytics.success) {
+        return err(analytics.error);
+      }
+      return ok(analytics.data?.topSkills ?? []);
     } catch (error) {
       logger.error('Failed to get top skills', { coachId, error });
       return err(storageError('Failed to load top skills'));
@@ -623,7 +716,21 @@ export const analyticsExportService = {
         );
       }
 
-      return unsupportedCoachAnalytics('Coach session analytics read', { coachId });
+      const analytics = await this.getCoachAnalytics(coachId, 'MONTH');
+      if (!analytics.success) {
+        return err(analytics.error);
+      }
+      return ok(
+        analytics.data?.sessions ?? {
+          totalSessions: 0,
+          sessionsChange: 0,
+          sessionsChangePercent: 0,
+          avgSessionsPerWeek: 0,
+          avgDuration: 0,
+          popularSessionType: 'N/A',
+          bySessionType: [],
+        },
+      );
     } catch (error) {
       logger.error('Failed to get session stats', { coachId, error });
       return err(storageError('Failed to load session stats'));
@@ -631,12 +738,12 @@ export const analyticsExportService = {
   },
 
   /**
-   * Reset to mock data (useful for testing)
+   * Reset mock analytics fixtures. Live analytics are derived and are not resettable.
    */
   async resetToMockData(): Promise<Result<void, ServiceError>> {
     try {
       if (!USE_MOCK) {
-        return unsupportedCoachAnalytics('Coach analytics mock reset');
+        return err(liveCoachAnalyticsResetUnsupported());
       }
       coachAnalyticsCache = { ...MOCK_COACH_ANALYTICS };
       await saveCoachAnalytics(coachAnalyticsCache);

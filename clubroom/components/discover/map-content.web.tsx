@@ -35,13 +35,13 @@ const SkillChip = function SkillChip({ label }: { label: string }) {
 const CoachListCard = function CoachListCard({
   coach,
   selected,
-  onPress,
+  onShow,
   onProfile,
   onBook,
 }: {
   coach: CoachProfile;
   selected: boolean;
-  onPress: () => void;
+  onShow: () => void;
   onProfile: () => void;
   onBook: () => void;
 }) {
@@ -51,11 +51,9 @@ const CoachListCard = function CoachListCard({
 
   return (
     <SurfaceCard
-      onPress={onPress}
       style={styles.card}
       outlineGradient={selected ? [palette.tint, palette.tint] : undefined}
       gradientPadding={selected ? 2 : 0}
-      accessibilityLabel={`Coach ${coach.fullName}, £${price} per session`}
     >
       <Row gap="sm" align="flex-start">
         {/* Avatar */}
@@ -143,6 +141,18 @@ const CoachListCard = function CoachListCard({
             >
               <ThemedText style={[styles.profileBtnText, { color: palette.text }]}>
                 Profile
+              </ThemedText>
+            </Clickable>
+            <Clickable
+              onPress={onShow}
+              style={[
+                styles.showBtn,
+                { borderColor: palette.border, backgroundColor: palette.surface },
+              ]}
+              accessibilityLabel={`Show ${coach.fullName} on map`}
+            >
+              <ThemedText style={[styles.showBtnText, { color: palette.text }]}>
+                Show
               </ThemedText>
             </Clickable>
             <Clickable
@@ -307,7 +317,7 @@ export default function MapContent(props: MapContentProps) {
           <CoachListCard
             coach={item.coach}
             selected={item.coach.id === selectedCoachId}
-            onPress={() => onCoachSelect(item.coach.id)}
+            onShow={() => onCoachSelect(item.coach.id)}
             onProfile={() => onCoachProfile(item.coach.id)}
             onBook={() => onBookCoach(item.coach.id)}
           />
@@ -462,7 +472,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   profileBtn: {
-    flex: 0.45,
+    flex: 0.6,
     height: 36,
     borderRadius: Radii.sm,
     borderWidth: 1,
@@ -470,6 +480,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   profileBtnText: {
+    ...Typography.bodySmallSemiBold,
+    fontWeight: '700',
+  },
+  showBtn: {
+    flex: 0.55,
+    height: 36,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  showBtnText: {
     ...Typography.bodySmallSemiBold,
     fontWeight: '700',
   },

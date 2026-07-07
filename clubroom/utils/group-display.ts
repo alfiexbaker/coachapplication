@@ -1,21 +1,22 @@
 import type { GroupRegistration, GroupSession } from '@/constants/types';
+import { safeDisplayLabel } from '@/utils/booking-display';
 
 export function getGroupSessionClubLabel(session: GroupSession): string | undefined {
-  return session.clubId;
+  return session.clubId ? safeDisplayLabel(session.clubId, 'Club session') : undefined;
 }
 
 export function getGroupSessionSquadLabel(session: GroupSession): string | undefined {
-  return session.squadId;
+  return session.squadId ? safeDisplayLabel(session.squadId, 'Squad') : undefined;
 }
 
 export function getGroupSessionCoachName(session: GroupSession): string {
-  return session.coachId || 'Coach';
+  return safeDisplayLabel(session.coachId, 'Coach');
 }
 
 export function getGroupRegistrationAthleteName(registration: GroupRegistration): string {
-  return registration.athleteId || 'Athlete';
+  return safeDisplayLabel(registration.athleteId, 'Athlete');
 }
 
 export function getGroupRegistrationParentName(registration: GroupRegistration): string {
-  return registration.parentId || 'Parent';
+  return safeDisplayLabel(registration.parentId, 'Parent');
 }

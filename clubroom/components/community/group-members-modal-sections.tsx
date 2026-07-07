@@ -16,7 +16,7 @@ export interface MemberRowItemProps {
   item: GroupMember;
   parentId: string;
   canManage: boolean;
-  onMemberManage: (member: GroupMember) => void;
+  onMemberManage?: (member: GroupMember) => void;
   palette: ThemeColors;
 }
 
@@ -56,14 +56,14 @@ export const MemberRowItem = function MemberRowItem({
           })}
         </ThemedText>
       </View>
-      {canManage && (
+      {canManage && onMemberManage ? (
         <Clickable
           onPress={() => onMemberManage(item)}
           style={[styles.manageButton, { borderColor: palette.border }]}
         >
           <ThemedText style={[styles.manageButtonText, { color: palette.tint }]}>Manage</ThemedText>
         </Clickable>
-      )}
+      ) : null}
     </Row>
   );
 };

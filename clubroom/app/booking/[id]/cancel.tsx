@@ -8,6 +8,7 @@
 
 import React, { type ReactNode } from 'react';
 import { ScrollView, StyleSheet, TextInput, View, Switch, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -37,10 +38,13 @@ export default function CancelBookingScreen() {
     onBackPress: () => void;
     content: ReactNode;
   }) => (
-    <View style={[styles.container, { backgroundColor: palette.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
       <PageHeader title={title} showBack onBackPress={onBackPress} />
       {content}
-    </View>
+    </SafeAreaView>
   );
 
   if (cancel.status === 'loading' && !cancel.sessionTime) {
@@ -91,7 +95,10 @@ export default function CancelBookingScreen() {
 
   // Main details step
   return (
-    <View style={[styles.container, { backgroundColor: palette.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
       <PageHeader
         title={cancel.isCoach ? 'Cancel Session' : 'Cancel Booking'}
         showBack
@@ -253,7 +260,7 @@ export default function CancelBookingScreen() {
           </Clickable>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

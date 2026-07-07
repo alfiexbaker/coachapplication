@@ -12,16 +12,16 @@
  * who haven't responded yet."
  *
  * API Integration Notes:
- * - No /v1 session RSVP authority exists yet.
- * - API mode must fail closed rather than calling legacy /api routes or local storage.
+ * - API mode uses /v1 group-session RSVP authority.
+ * - Mock/demo mode keeps memory-only seed state.
  */
 
 import { api } from '@/constants/config';
-import { apiClient } from './api-client';
+import { apiClient, apiFetch } from './api-client';
 import type { GroupSession, SessionRsvp } from '@/constants/types';
 import { notificationTriggers } from './notification-trigger';
 import { createLogger } from '@/utils/logger';
-import { type Result, type ServiceError, ok, err, notFound, unsupportedError } from '@/types/result';
+import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
 import { userService } from './user-service';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -312,17 +312,24 @@ function isMockMode(): boolean {
   return api.useMock;
 }
 
-function sessionRsvpApiUnsupported(method: string): ServiceError {
-  return unsupportedError('Session RSVP requires backend authority in API mode.', { method });
-}
-
-function warnUnsupported(method: string): void {
-  logger.warn('Session RSVP API authority missing; returning fail-closed response', { method });
-}
-
 function emptyCounts(): { going: number; notGoing: number; maybe: number; pending: number } {
   return { going: 0, notGoing: 0, maybe: 0, pending: 0 };
 }
+
+type SessionRsvpCounts = ReturnType<typeof emptyCounts>;
+type SessionRsvpListResponse = {
+  rsvps: SessionRsvp[];
+  total?: number;
+};
+type SessionRsvpResponse = {
+  rsvp: SessionRsvp;
+};
+type SessionRsvpCountsResponse = {
+  counts: SessionRsvpCounts;
+};
+type SessionRsvpBatchCountsResponse = {
+  countsBySessionId: Record<string, SessionRsvpCounts>;
+};
 
 function cloneRsvp(rsvp: SessionRsvp): SessionRsvp {
   return { ...rsvp };
@@ -367,8 +374,26 @@ export const rsvpService = {
     members: { userId: string; childId?: string; childName?: string }[],
   ): Promise<SessionRsvp[]> {
     if (!isMockMode()) {
-      warnUnsupported('createForSession');
-      return [];
+      const result = await apiFetch<SessionRsvpListResponse>(
+        `/v1/group-sessions/${encodeURIComponent(sessionId)}/rsvps`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            members: members.map((member) => ({
+              userId: member.userId,
+              ...(member.childId ? { childId: member.childId } : {}),
+            })),
+          }),
+        },
+      );
+      if (!result.success) {
+        logger.warn('Failed to create session RSVPs through API authority', {
+          sessionId,
+          error: result.error.message,
+        });
+        return [];
+      }
+      return result.data.rsvps.map(cloneRsvp);
     }
 
     const rsvps = await loadRsvps();
@@ -413,7 +438,15 @@ export const rsvpService = {
     status: 'going' | 'not_going' | 'maybe',
   ): Promise<Result<SessionRsvp, ServiceError>> {
     if (!isMockMode()) {
-      return err(sessionRsvpApiUnsupported('respond'));
+      const result = await apiFetch<SessionRsvpResponse>(
+        `/v1/session-rsvps/${encodeURIComponent(rsvpId)}/respond`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ status }),
+        },
+      );
+      if (!result.success) return err(result.error);
+      return ok(cloneRsvp(result.data.rsvp));
     }
 
     const rsvps = await loadRsvps();
@@ -478,8 +511,17 @@ export const rsvpService = {
    */
   async getForSession(sessionId: string): Promise<SessionRsvp[]> {
     if (!isMockMode()) {
-      warnUnsupported('getForSession');
-      return [];
+      const result = await apiFetch<SessionRsvpListResponse>(
+        `/v1/group-sessions/${encodeURIComponent(sessionId)}/rsvps`,
+      );
+      if (!result.success) {
+        logger.warn('Failed to load session RSVPs through API authority', {
+          sessionId,
+          error: result.error.message,
+        });
+        return [];
+      }
+      return result.data.rsvps.map(cloneRsvp);
     }
 
     const rsvps = await loadRsvps();
@@ -492,8 +534,17 @@ export const rsvpService = {
    */
   async getForUser(userId: string): Promise<SessionRsvp[]> {
     if (!isMockMode()) {
-      warnUnsupported('getForUser');
-      return [];
+      const result = await apiFetch<SessionRsvpListResponse>(
+        `/v1/session-rsvps?userId=${encodeURIComponent(userId)}`,
+      );
+      if (!result.success) {
+        logger.warn('Failed to load user RSVPs through API authority', {
+          userId,
+          error: result.error.message,
+        });
+        return [];
+      }
+      return result.data.rsvps.map(cloneRsvp);
     }
 
     const rsvps = await loadRsvps();
@@ -505,8 +556,17 @@ export const rsvpService = {
    */
   async getPendingForUser(userId: string): Promise<SessionRsvp[]> {
     if (!isMockMode()) {
-      warnUnsupported('getPendingForUser');
-      return [];
+      const result = await apiFetch<SessionRsvpListResponse>(
+        `/v1/session-rsvps?userId=${encodeURIComponent(userId)}&status=pending`,
+      );
+      if (!result.success) {
+        logger.warn('Failed to load pending user RSVPs through API authority', {
+          userId,
+          error: result.error.message,
+        });
+        return [];
+      }
+      return result.data.rsvps.map(cloneRsvp);
     }
 
     const rsvps = await loadRsvps();
@@ -519,7 +579,19 @@ export const rsvpService = {
    */
   async sendReminder(sessionId: string): Promise<void> {
     if (!isMockMode()) {
-      warnUnsupported('sendReminder');
+      const result = await apiFetch<{ reminded: number }>(
+        `/v1/group-sessions/${encodeURIComponent(sessionId)}/rsvps/remind`,
+        {
+          method: 'POST',
+        },
+      );
+      if (!result.success) {
+        logger.warn('Failed to send session RSVP reminders through API authority', {
+          sessionId,
+          error: result.error.message,
+        });
+        throw new Error(result.error.message);
+      }
       return;
     }
 
@@ -556,8 +628,17 @@ export const rsvpService = {
     sessionId: string,
   ): Promise<{ going: number; notGoing: number; maybe: number; pending: number }> {
     if (!isMockMode()) {
-      warnUnsupported('getSessionCounts');
-      return emptyCounts();
+      const result = await apiFetch<SessionRsvpCountsResponse>(
+        `/v1/group-sessions/${encodeURIComponent(sessionId)}/rsvps/counts`,
+      );
+      if (!result.success) {
+        logger.warn('Failed to load session RSVP counts through API authority', {
+          sessionId,
+          error: result.error.message,
+        });
+        return emptyCounts();
+      }
+      return result.data.counts;
     }
 
     const rsvps = await loadRsvps();
@@ -579,8 +660,25 @@ export const rsvpService = {
     sessionIds: string[],
   ): Promise<Map<string, { going: number; notGoing: number; maybe: number; pending: number }>> {
     if (!isMockMode()) {
-      warnUnsupported('getBatchCounts');
-      return new Map(sessionIds.map((sessionId) => [sessionId, emptyCounts()]));
+      if (sessionIds.length === 0) {
+        return new Map();
+      }
+      const result = await apiFetch<SessionRsvpBatchCountsResponse>(
+        `/v1/session-rsvps/counts?sessionIds=${encodeURIComponent(sessionIds.join(','))}`,
+      );
+      if (!result.success) {
+        logger.warn('Failed to load batch session RSVP counts through API authority', {
+          count: sessionIds.length,
+          error: result.error.message,
+        });
+        return new Map(sessionIds.map((sessionId) => [sessionId, emptyCounts()]));
+      }
+      return new Map(
+        sessionIds.map((sessionId) => [
+          sessionId,
+          result.data.countsBySessionId[sessionId] ?? emptyCounts(),
+        ]),
+      );
     }
 
     const rsvps = await loadRsvps();
@@ -613,7 +711,19 @@ export const rsvpService = {
    */
   async deleteForSession(sessionId: string): Promise<void> {
     if (!isMockMode()) {
-      warnUnsupported('deleteForSession');
+      const result = await apiFetch<{ deleted: number }>(
+        `/v1/group-sessions/${encodeURIComponent(sessionId)}/rsvps`,
+        {
+          method: 'DELETE',
+        },
+      );
+      if (!result.success) {
+        logger.warn('Failed to delete session RSVPs through API authority', {
+          sessionId,
+          error: result.error.message,
+        });
+        throw new Error(result.error.message);
+      }
       return;
     }
 
@@ -628,8 +738,17 @@ export const rsvpService = {
    */
   async getById(rsvpId: string): Promise<SessionRsvp | null> {
     if (!isMockMode()) {
-      warnUnsupported('getById');
-      return null;
+      const result = await apiFetch<SessionRsvpResponse>(
+        `/v1/session-rsvps/${encodeURIComponent(rsvpId)}`,
+      );
+      if (!result.success) {
+        logger.warn('Failed to load session RSVP by id through API authority', {
+          rsvpId,
+          error: result.error.message,
+        });
+        return null;
+      }
+      return cloneRsvp(result.data.rsvp);
     }
 
     const rsvps = await loadRsvps();

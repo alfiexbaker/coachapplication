@@ -7,10 +7,10 @@
  *
  * API Integration Notes:
  * - Mock mode keeps local goal and skill tracking state for development-only flows.
- * - Live API mode fails closed until dedicated /v1 goal mutation and skill tracking routes exist.
+ * - Live API mode sends skill and goal mutations through named /v1 athlete/goal routes.
  */
 
-import { apiClient } from '../api-client';
+import { apiClient, apiFetch } from '../api-client';
 import {
   type Result,
   type ServiceError,
@@ -27,6 +27,12 @@ import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+  toApiAthleteId,
+} from '@/services/api-auth-context';
 
 const logger = createLogger('AnalyticsTrackingService');
 
@@ -38,7 +44,7 @@ function createUniqueId(prefix: 'goal' | 'ms'): string {
 
 function analyticsTrackingUnsupportedError(action: string, details?: unknown): ServiceError {
   return unsupportedError(
-    `${action} needs a /v1 athlete goal/skill tracking API before it can run in API mode.`,
+    `${action} needs a /v1 athlete goal tracking API before it can run in API mode.`,
     details,
   );
 }
@@ -52,10 +58,129 @@ function unsupportedTracking<T>(action: string, details?: unknown): Result<T, Se
       'PATCH /v1/goals/:goalId',
       'POST /v1/goals/:goalId/milestones',
       'PATCH /v1/goals/:goalId/milestones/:milestoneId',
-      'POST /v1/athletes/:athleteId/skill-updates',
     ],
   });
   return err(analyticsTrackingUnsupportedError(action, details));
+}
+
+interface ApiSkillUpdateResponse {
+  score: number;
+}
+
+type ApiGoalRow = {
+  id: string;
+  athleteId: string;
+  ownerUserId?: string | null;
+  creatorUserId?: string | null;
+  title: string;
+  category?: string | null;
+  status?: string | null;
+  targetDate?: string | null;
+  notes?: string | null;
+  progress?: number | null;
+  createdByUserId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ApiGoalMilestoneRow = {
+  id: string;
+  goalId: string;
+  title: string;
+  status?: string | null;
+  completedAt?: string | null;
+  sortOrder?: number | null;
+};
+
+type ApiGoalPayload = {
+  goal: ApiGoalRow;
+  milestones: ApiGoalMilestoneRow[];
+};
+
+function mapApiGoalPayload(payload: ApiGoalPayload): Goal {
+  const milestones = payload.milestones.map((milestone) => ({
+    id: milestone.id,
+    goalId: milestone.goalId,
+    title: milestone.title,
+    isCompleted: milestone.status === 'COMPLETED',
+    completedAt: milestone.completedAt ?? undefined,
+    order: milestone.sortOrder ?? 0,
+  }));
+  const completedCount = milestones.filter((milestone) => milestone.isCompleted).length;
+  const derivedProgress =
+    milestones.length > 0
+      ? Math.round((completedCount / milestones.length) * 100)
+      : payload.goal.status === 'COMPLETED'
+        ? 100
+        : 0;
+
+  return {
+    id: payload.goal.id,
+    userId: payload.goal.ownerUserId ?? payload.goal.athleteId,
+    athleteId: payload.goal.athleteId,
+    title: payload.goal.title,
+    description: payload.goal.notes ?? undefined,
+    category: (payload.goal.category as GoalCategory | null) ?? 'OTHER',
+    targetDate: payload.goal.targetDate ?? undefined,
+    status:
+      payload.goal.status === 'COMPLETED' ||
+      payload.goal.status === 'PAUSED' ||
+      payload.goal.status === 'ABANDONED'
+        ? payload.goal.status
+        : 'ACTIVE',
+    progress: typeof payload.goal.progress === 'number' ? payload.goal.progress : derivedProgress,
+    milestones,
+    createdBy: 'ATHLETE',
+    createdById:
+      payload.goal.creatorUserId ?? payload.goal.createdByUserId ?? payload.goal.athleteId,
+    createdAt: payload.goal.createdAt,
+    updatedAt: payload.goal.updatedAt,
+  };
+}
+
+async function resolveAthleteSkillUpdateApiContext(
+  athleteId: string,
+): Promise<Result<{ apiAthleteId: string; headers: Record<string, string> }, ServiceError>> {
+  const currentUserResult = await resolveSignedInApiUser('Sign in to update athlete skills.');
+  if (!currentUserResult.success) {
+    return currentUserResult;
+  }
+
+  const currentUser = currentUserResult.data;
+  const apiAthleteId = toApiAthleteId(athleteId);
+  const actingRole = deriveApiActingRole(currentUser);
+  return ok({
+    apiAthleteId,
+    headers: buildApiAuthHeaders({
+      actingRole,
+      coachAthleteIds: actingRole === 'coach' ? [apiAthleteId] : undefined,
+      guardianAthleteIds: actingRole === 'parent' ? [apiAthleteId] : undefined,
+      coachVerified: actingRole === 'coach' && currentUser.isVerified,
+    }),
+  });
+}
+
+async function resolveGoalMutationApiHeaders(
+  message: string,
+): Promise<Result<Record<string, string>, ServiceError>> {
+  const currentUserResult = await resolveSignedInApiUser(message);
+  if (!currentUserResult.success) {
+    return err(currentUserResult.error);
+  }
+
+  return ok(
+    buildApiAuthHeaders({
+      actingRole: deriveApiActingRole(currentUserResult.data),
+    }),
+  );
+}
+
+function toApiSkillScore(level: number): number {
+  if (!Number.isFinite(level)) {
+    return 5;
+  }
+  const tenPointLevel = level > 10 ? level / 10 : level;
+  return Math.max(1, Math.min(10, Math.round(tenPointLevel)));
 }
 
 function normalizeAnalyticsSkill(skill: string): FootballSkill {
@@ -352,7 +477,25 @@ export const analyticsTrackingService = {
   ): Promise<Result<void, ServiceError>> {
     try {
       if (!USE_MOCK) {
-        return unsupportedTracking('Skill level update', { athleteId, skill, newLevel });
+        const context = await resolveAthleteSkillUpdateApiContext(athleteId);
+        if (!context.success) {
+          return context;
+        }
+        const result = await apiFetch<ApiSkillUpdateResponse>(
+          `/v1/athletes/${context.data.apiAthleteId}/skill-updates`,
+          {
+            method: 'POST',
+            headers: context.data.headers,
+            body: JSON.stringify({
+              skillName: normalizeAnalyticsSkill(skill),
+              score: toApiSkillScore(newLevel),
+            }),
+          },
+        );
+        if (!result.success) {
+          return err(result.error);
+        }
+        return ok(undefined);
       }
 
       analyticsCache = await loadAnalytics();
@@ -456,7 +599,28 @@ export const analyticsTrackingService = {
         return ok(newGoal);
       }
 
-      return unsupportedTracking('Goal creation', { athleteId: input.athleteId, goalId });
+      const context = await resolveAthleteSkillUpdateApiContext(input.athleteId);
+      if (!context.success) {
+        return err(context.error);
+      }
+      const result = await apiFetch<ApiGoalPayload>(
+        `/v1/athletes/${encodeURIComponent(context.data.apiAthleteId)}/goals`,
+        {
+          method: 'POST',
+          headers: context.data.headers,
+          body: JSON.stringify({
+            title: input.title,
+            description: input.description,
+            category: input.category ?? 'OTHER',
+            targetDate: input.targetDate,
+            milestones: input.milestones ?? [],
+          }),
+        },
+      );
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(mapApiGoalPayload(result.data));
     } catch (error) {
       logger.error('Failed to create goal', { input, error });
       return err(storageError('Failed to create goal'));
@@ -484,7 +648,23 @@ export const analyticsTrackingService = {
       return ok(goal);
     }
 
-    return unsupportedTracking('Goal progress update', { goalId, progress });
+    const currentUserResult = await resolveSignedInApiUser('Sign in to update goal progress.');
+    if (!currentUserResult.success) {
+      return currentUserResult;
+    }
+    const result = await apiFetch<ApiGoalPayload>(`/v1/goals/${encodeURIComponent(goalId)}/progress`, {
+      method: 'PATCH',
+      headers: buildApiAuthHeaders({
+        actingRole: deriveApiActingRole(currentUserResult.data),
+      }),
+      body: JSON.stringify({
+        progress: Math.min(100, Math.max(0, Math.round(progress))),
+      }),
+    });
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(mapApiGoalPayload(result.data));
   },
 
   /**
@@ -519,7 +699,24 @@ export const analyticsTrackingService = {
       return ok(goal);
     }
 
-    return unsupportedTracking('Goal milestone completion', { goalId, milestoneId });
+    const headersResult = await resolveGoalMutationApiHeaders('Sign in to update goal milestones.');
+    if (!headersResult.success) {
+      return headersResult;
+    }
+    const result = await apiFetch<ApiGoalPayload>(
+      `/v1/goals/${encodeURIComponent(goalId)}/milestones/${encodeURIComponent(milestoneId)}`,
+      {
+        method: 'PATCH',
+        headers: headersResult.data,
+        body: JSON.stringify({
+          status: 'COMPLETED',
+        }),
+      },
+    );
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(mapApiGoalPayload(result.data));
   },
 
   /**
@@ -549,7 +746,22 @@ export const analyticsTrackingService = {
       return ok(goal);
     }
 
-    return unsupportedTracking('Goal milestone creation', { goalId });
+    const headersResult = await resolveGoalMutationApiHeaders('Sign in to update goal milestones.');
+    if (!headersResult.success) {
+      return headersResult;
+    }
+    const result = await apiFetch<ApiGoalPayload>(
+      `/v1/goals/${encodeURIComponent(goalId)}/milestones`,
+      {
+        method: 'POST',
+        headers: headersResult.data,
+        body: JSON.stringify({ title }),
+      },
+    );
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(mapApiGoalPayload(result.data));
   },
 
   /**
@@ -569,6 +781,20 @@ export const analyticsTrackingService = {
       return ok(goal);
     }
 
-    return unsupportedTracking('Goal abandon', { goalId });
+    const headersResult = await resolveGoalMutationApiHeaders('Sign in to update goals.');
+    if (!headersResult.success) {
+      return headersResult;
+    }
+    const result = await apiFetch<ApiGoalPayload>(`/v1/goals/${encodeURIComponent(goalId)}`, {
+      method: 'PATCH',
+      headers: headersResult.data,
+      body: JSON.stringify({
+        status: 'ABANDONED',
+      }),
+    });
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(mapApiGoalPayload(result.data));
   },
 };

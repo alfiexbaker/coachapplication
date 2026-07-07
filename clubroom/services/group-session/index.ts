@@ -49,48 +49,76 @@ export const groupSessionService = {
   // CRUD METHODS (from sessionCrudService)
   // ==========================================================================
 
-  getCoachSessions: sessionCrudService.getCoachSessions.bind(sessionCrudService),
-  discoverSessions: sessionCrudService.discoverSessions.bind(sessionCrudService),
-  getSession: sessionCrudService.getSession.bind(sessionCrudService),
-  createSession: sessionCrudService.createSession.bind(sessionCrudService),
-  publishSession: sessionCrudService.publishSession.bind(sessionCrudService),
-  cancelSession: sessionCrudService.cancelSession.bind(sessionCrudService),
+  getCoachSessions: (...args: Parameters<typeof sessionCrudService.getCoachSessions>) =>
+    sessionCrudService.getCoachSessions(...args),
+  discoverSessions: (...args: Parameters<typeof sessionCrudService.discoverSessions>) =>
+    sessionCrudService.discoverSessions(...args),
+  getSession: (...args: Parameters<typeof sessionCrudService.getSession>) =>
+    sessionCrudService.getSession(...args),
+  createSession: (...args: Parameters<typeof sessionCrudService.createSession>) =>
+    sessionCrudService.createSession(...args),
+  publishSession: (...args: Parameters<typeof sessionCrudService.publishSession>) =>
+    sessionCrudService.publishSession(...args),
+  cancelSession: (...args: Parameters<typeof sessionCrudService.cancelSession>) =>
+    sessionCrudService.cancelSession(...args),
+  updateOffPlatformParticipants: (
+    ...args: Parameters<typeof sessionCrudService.updateOffPlatformParticipants>
+  ) => sessionCrudService.updateOffPlatformParticipants(...args),
+  cancelInstance: (...args: Parameters<typeof sessionCrudService.cancelInstance>) =>
+    sessionCrudService.cancelInstance(...args),
+  endSeries: (...args: Parameters<typeof sessionCrudService.endSeries>) =>
+    sessionCrudService.endSeries(...args),
 
   // ==========================================================================
   // REGISTRATION METHODS (from sessionRegistrationService)
   // ==========================================================================
 
-  register: sessionRegistrationService.register.bind(sessionRegistrationService),
-  cancelRegistration: sessionRegistrationService.cancelRegistration.bind(
-    sessionRegistrationService,
-  ),
-  getSessionRoster: sessionRegistrationService.getSessionRoster.bind(sessionRegistrationService),
-  markAttendance: sessionRegistrationService.markAttendance.bind(sessionRegistrationService),
-  getParentRegistrations: sessionRegistrationService.getParentRegistrations.bind(
-    sessionRegistrationService,
-  ),
+  register: (...args: Parameters<typeof sessionRegistrationService.register>) =>
+    sessionRegistrationService.register(...args),
+  joinWaitlist: (...args: Parameters<typeof sessionRegistrationService.joinWaitlist>) =>
+    sessionRegistrationService.joinWaitlist(...args),
+  cancelRegistration: (
+    ...args: Parameters<typeof sessionRegistrationService.cancelRegistration>
+  ) => sessionRegistrationService.cancelRegistration(...args),
+  getSessionRoster: (...args: Parameters<typeof sessionRegistrationService.getSessionRoster>) =>
+    sessionRegistrationService.getSessionRoster(...args),
+  markAttendance: (...args: Parameters<typeof sessionRegistrationService.markAttendance>) =>
+    sessionRegistrationService.markAttendance(...args),
+  getParentRegistrations: (
+    ...args: Parameters<typeof sessionRegistrationService.getParentRegistrations>
+  ) => sessionRegistrationService.getParentRegistrations(...args),
 
   // ==========================================================================
   // SCHEDULING METHODS (from sessionSchedulingService)
   // ==========================================================================
 
-  getClubTrainingSessions:
-    sessionSchedulingService.getClubTrainingSessions.bind(sessionSchedulingService),
-  getClubActivitySessions:
-    sessionSchedulingService.getClubActivitySessions.bind(sessionSchedulingService),
-  getSquadTrainingSessions:
-    sessionSchedulingService.getSquadTrainingSessions.bind(sessionSchedulingService),
-  getChildTrainingSessions:
-    sessionSchedulingService.getChildTrainingSessions.bind(sessionSchedulingService),
-  formatDayOfWeek: sessionSchedulingService.formatDayOfWeek.bind(sessionSchedulingService),
-  formatRecurringPattern:
-    sessionSchedulingService.formatRecurringPattern.bind(sessionSchedulingService),
-  getNextTrainingDate: sessionSchedulingService.getNextTrainingDate.bind(sessionSchedulingService),
+  getClubTrainingSessions: (
+    ...args: Parameters<typeof sessionSchedulingService.getClubTrainingSessions>
+  ) => sessionSchedulingService.getClubTrainingSessions(...args),
+  getClubActivitySessions: (
+    ...args: Parameters<typeof sessionSchedulingService.getClubActivitySessions>
+  ) => sessionSchedulingService.getClubActivitySessions(...args),
+  getSquadTrainingSessions: (
+    ...args: Parameters<typeof sessionSchedulingService.getSquadTrainingSessions>
+  ) => sessionSchedulingService.getSquadTrainingSessions(...args),
+  getChildTrainingSessions: (
+    ...args: Parameters<typeof sessionSchedulingService.getChildTrainingSessions>
+  ) => sessionSchedulingService.getChildTrainingSessions(...args),
+  formatDayOfWeek: (...args: Parameters<typeof sessionSchedulingService.formatDayOfWeek>) =>
+    sessionSchedulingService.formatDayOfWeek(...args),
+  formatRecurringPattern: (
+    ...args: Parameters<typeof sessionSchedulingService.formatRecurringPattern>
+  ) => sessionSchedulingService.formatRecurringPattern(...args),
+  getNextTrainingDate: (
+    ...args: Parameters<typeof sessionSchedulingService.getNextTrainingDate>
+  ) => sessionSchedulingService.getNextTrainingDate(...args),
 
   // ==========================================================================
   // DISPLAY METHODS (from sessionDisplayService)
   // ==========================================================================
 
-  formatPrice: sessionDisplayService.formatPrice.bind(sessionDisplayService),
-  formatSessionType: sessionDisplayService.formatSessionType.bind(sessionDisplayService),
+  formatPrice: (...args: Parameters<typeof sessionDisplayService.formatPrice>) =>
+    sessionDisplayService.formatPrice(...args),
+  formatSessionType: (...args: Parameters<typeof sessionDisplayService.formatSessionType>) =>
+    sessionDisplayService.formatSessionType(...args),
 };

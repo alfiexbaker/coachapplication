@@ -5,7 +5,7 @@
  * and suggested coaches. Applies per-child filtering when activeChildId is set.
  */
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { router } from "expo-router";
 import { Routes } from "@/navigation/routes";
 import { bookingService } from "@/services/booking";
@@ -77,21 +77,41 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
   const { updateDraft } = useBookingFlow();
   const { children: contextChildren, activeChildId } = useChildContext();
   const seedEnsuredRef = useRef(false);
-  const ensureSeedOnce = async () => {
+  const contextChildrenSignature = contextChildren
+    .map((child) =>
+      [
+        child.id,
+        child.referenceId,
+        child.profileId ?? "",
+        child.name,
+        child.clubIds.join(","),
+      ].join(":"),
+    )
+    .join("|");
+  const hasParentInviteScope = Boolean(
+    currentUser &&
+      currentUser.role !== "COACH" &&
+      currentUser.role !== "ADMIN" &&
+      (currentUser.role === "PARENT" ||
+        currentUser.hasChildren ||
+        (currentUser.children?.length ?? 0) > 0 ||
+        contextChildren.length > 0),
+  );
+  const ensureSeedOnce = useCallback(async () => {
     if (seedEnsuredRef.current) {
       return;
     }
     await ensureRelationalDemoSeeded();
     seedEnsuredRef.current = true;
-  };
-  const loadData = async () => {
+  }, []);
+  const loadData = useCallback(async () => {
     try {
       await ensureSeedOnce();
       const userId = currentUser?.id ?? "";
 
       // --- Pending invites ---
       let pendingInvites: SessionInvite[] = [];
-      if (currentUser && currentUser.role !== "COACH") {
+      if (hasParentInviteScope && currentUser) {
         try {
           pendingInvites = await sessionInviteService.getPendingInvites(userId);
         } catch (e) {
@@ -104,9 +124,22 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
       );
       const hasChildProfiles = contextChildren.length > 0;
       const viewerIds = new Set<string>();
-      if (userId) viewerIds.add(userId);
+      const registrationAthleteIds = new Set<string>();
+      if (userId) {
+        viewerIds.add(userId);
+        if (!hasChildProfiles && userId.startsWith("ath_")) {
+          registrationAthleteIds.add(userId);
+        }
+      }
       for (const child of scopedChildren) {
         viewerIds.add(child.id);
+        viewerIds.add(child.referenceId);
+        registrationAthleteIds.add(child.id);
+        registrationAthleteIds.add(child.referenceId);
+        if (child.profileId) {
+          viewerIds.add(child.profileId);
+          registrationAthleteIds.add(child.profileId);
+        }
       }
       const childClubIds = new Set<string>();
       for (const child of scopedChildren) {
@@ -118,7 +151,7 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
       // --- Group sessions + viewer registrations from /v1 authority ---
       const [groupSessions, groupRegistrations] = await Promise.all([
         groupSessionService.discoverSessions(),
-        sessionRegistrationService.getRegistrationsForAthletes(viewerIds),
+        sessionRegistrationService.getRegistrationsForAthletes(registrationAthleteIds),
       ]);
       const registrationsBySessionId = new Map<string, GroupRegistration[]>();
       for (const registration of groupRegistrations) {
@@ -274,7 +307,14 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
         ),
       );
     }
-  };
+  }, [
+    activeChildId,
+    contextChildrenSignature,
+    currentUser?.id,
+    currentUser?.role,
+    hasParentInviteScope,
+    ensureSeedOnce,
+  ]);
   const {
     data,
     status,
@@ -284,7 +324,7 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
     retry,
   } = useScreen<DiscoverData>({
     load: loadData,
-    deps: [loadData],
+    deps: [activeChildId, contextChildrenSignature, currentUser?.id, currentUser?.role],
     events: [
       ServiceEvents.BOOKING_CREATED,
       ServiceEvents.BOOKING_UPDATED,

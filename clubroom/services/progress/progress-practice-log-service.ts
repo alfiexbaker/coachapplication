@@ -1,5 +1,12 @@
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { apiClient } from '@/services/api-client';
+import { api } from '@/constants/config';
+import { apiClient, apiFetch } from '@/services/api-client';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+  toApiAthleteId,
+} from '@/services/api-auth-context';
 import { err, ok, storageError, type Result, type ServiceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 
@@ -25,6 +32,43 @@ function toDateKey(date = new Date()): string {
   return date.toISOString().slice(0, 10);
 }
 
+interface ApiPracticeLogsResponse {
+  logs: PracticeLogEntry[];
+}
+
+interface ApiTodayPracticeLogResponse {
+  log: PracticeLogEntry | null;
+}
+
+interface ApiPracticeLogMutationResponse {
+  log: PracticeLogEntry;
+}
+
+function isApiMode(): boolean {
+  return !api.useMock;
+}
+
+async function resolvePracticeLogApiAccess(
+  athleteId: string,
+): Promise<Result<{ apiAthleteId: string; headers: Record<string, string> }, ServiceError>> {
+  const currentUserResult = await resolveSignedInApiUser('Sign in to log practice.');
+  if (!currentUserResult.success) {
+    return err(currentUserResult.error);
+  }
+  const currentUser = currentUserResult.data;
+  const apiAthleteId = toApiAthleteId(athleteId);
+  const actingRole = deriveApiActingRole(currentUser);
+  return ok({
+    apiAthleteId,
+    headers: buildApiAuthHeaders({
+      actingRole,
+      coachAthleteIds: actingRole === 'coach' ? [apiAthleteId] : undefined,
+      guardianAthleteIds: actingRole === 'parent' ? [apiAthleteId] : undefined,
+      coachVerified: actingRole === 'coach' && currentUser.isVerified,
+    }),
+  });
+}
+
 async function getLogs(): Promise<PracticeLogEntry[]> {
   return apiClient.get<PracticeLogEntry[]>(STORAGE_KEYS.PROGRESS_PRACTICE_LOGS, []);
 }
@@ -37,6 +81,25 @@ async function listAthleteLogs(athleteId: string): Promise<PracticeLogEntry[]> {
   if (!athleteId) {
     return [];
   }
+  if (isApiMode()) {
+    const access = await resolvePracticeLogApiAccess(athleteId);
+    if (!access.success) {
+      logger.warn('practice_log_api_access_denied', { athleteId, error: access.error });
+      return [];
+    }
+    const result = await apiFetch<ApiPracticeLogsResponse>(
+      `/v1/athletes/${encodeURIComponent(access.data.apiAthleteId)}/practice-logs?limit=100`,
+      {
+        method: 'GET',
+        headers: access.data.headers,
+      },
+    );
+    if (!result.success) {
+      logger.error('practice_log_api_list_failed', { athleteId, error: result.error });
+      return [];
+    }
+    return result.data.logs;
+  }
 
   const logs = await getLogs();
   return logs
@@ -45,6 +108,26 @@ async function listAthleteLogs(athleteId: string): Promise<PracticeLogEntry[]> {
 }
 
 async function getTodayLog(athleteId: string): Promise<PracticeLogEntry | null> {
+  if (isApiMode()) {
+    const access = await resolvePracticeLogApiAccess(athleteId);
+    if (!access.success) {
+      logger.warn('practice_log_api_access_denied', { athleteId, error: access.error });
+      return null;
+    }
+    const result = await apiFetch<ApiTodayPracticeLogResponse>(
+      `/v1/athletes/${encodeURIComponent(access.data.apiAthleteId)}/practice-logs/today`,
+      {
+        method: 'GET',
+        headers: access.data.headers,
+      },
+    );
+    if (!result.success) {
+      logger.error('practice_log_api_today_failed', { athleteId, error: result.error });
+      return null;
+    }
+    return result.data.log;
+  }
+
   const today = toDateKey();
   const logs = await listAthleteLogs(athleteId);
   return logs.find((entry) => entry.dateKey === today) ?? null;
@@ -59,6 +142,34 @@ async function logPractice(
 
   const roundedMinutes = Math.max(1, Math.round(input.minutes));
   try {
+    if (isApiMode()) {
+      const access = await resolvePracticeLogApiAccess(input.athleteId);
+      if (!access.success) {
+        return err(access.error);
+      }
+      const result = await apiFetch<ApiPracticeLogMutationResponse>(
+        `/v1/athletes/${encodeURIComponent(access.data.apiAthleteId)}/practice-logs`,
+        {
+          method: 'POST',
+          headers: access.data.headers,
+          body: JSON.stringify({
+            minutes: roundedMinutes,
+            ...(input.note?.trim() ? { note: input.note.trim() } : {}),
+          }),
+        },
+      );
+      if (!result.success) {
+        return err(result.error);
+      }
+      logger.info('practice_logged_via_api', {
+        athleteId: input.athleteId,
+        dateKey: result.data.log.dateKey,
+        minutes: roundedMinutes,
+        totalToday: result.data.log.minutes,
+      });
+      return ok(result.data.log);
+    }
+
     const nowIso = new Date().toISOString();
     const today = toDateKey();
     const logs = await getLogs();

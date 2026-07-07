@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { DateTimeField } from '@/components/ui/primitives';
+import { DateTimeField } from '@/components/ui/primitives/DateTimeField';
 import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 

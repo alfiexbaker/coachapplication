@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Routes } from '@/navigation/routes';
@@ -43,10 +44,13 @@ export default function MessagesScreen() {
     router.push(Routes.DISCOVER_MAP);
   };
   const renderState = (content: ReactNode) => (
-    <View style={[styles.safeArea, { backgroundColor: palette.background }]}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
       <ScreenHeader title="Messages" subtitle="Your conversations" />
       {content}
-    </View>
+    </SafeAreaView>
   );
 
   if (showLoadingState) {
@@ -77,7 +81,10 @@ export default function MessagesScreen() {
   }
 
   return (
-    <View style={[styles.safeArea, { backgroundColor: palette.background }]}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
       <ScreenHeader title="Messages" subtitle="Your conversations" />
       <MessagesSearchBar value={search} onChangeText={setSearch} />
       <MessagesViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
@@ -120,7 +127,7 @@ export default function MessagesScreen() {
           ))
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

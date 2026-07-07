@@ -23,6 +23,12 @@ import { childService, type ChildProfile } from '@/services/child-service';
 import { bookingService } from '@/services/booking';
 import type { Booking } from '@/constants/app-types';
 import { mapChildProfileToFamilyMember } from './family-api-support';
+import { analyticsQueryService } from '@/services/analytics/analytics-query-service';
+import {
+  formatServiceTypeLabel,
+  getBookingServiceLabel,
+  safeDisplayLabel,
+} from '@/utils/booking-display';
 
 const logger = createLogger('FamilyMemberService');
 const USE_MOCK = api.useMock;
@@ -239,42 +245,52 @@ function buildFamilyCalendarEvents(
 ): FamilyCalendarEvent[] {
   const childById = new Map(children.map((child) => [child.id, child] as const));
   const childColorById = new Map(
-    children.map((child, index) => [child.id, CHILD_COLORS[index % CHILD_COLORS.length] ?? CHILD_COLORS[0]] as const),
+    children.map(
+      (child, index) =>
+        [child.id, CHILD_COLORS[index % CHILD_COLORS.length] ?? CHILD_COLORS[0]] as const,
+    ),
   );
   const events: FamilyCalendarEvent[] = [];
 
   for (const booking of bookings) {
     const participantIds = getBookingParticipantIds(booking);
     for (const childId of participantIds) {
-      if (!childById.has(childId)) {
+      const child = childById.get(childId);
+      if (!child) {
         continue;
       }
 
       const start = booking.start ?? booking.scheduledAt;
       const startDate = new Date(start);
       const durationMinutes = booking.duration ?? 60;
-      const end = booking.start && booking.scheduledAt
-        ? booking.start
-        : new Date(startDate.getTime() + durationMinutes * 60_000).toISOString();
+      const end =
+        booking.start && booking.scheduledAt
+          ? booking.start
+          : new Date(startDate.getTime() + durationMinutes * 60_000).toISOString();
 
       events.push({
         id: booking.id,
         childId,
+        childName: `${child.firstName} ${child.lastName}`.trim(),
         colorCode: childColorById.get(childId) ?? CHILD_COLORS[0],
-        title: booking.service ?? booking.serviceType ?? 'Session',
+        title: getBookingServiceLabel(booking),
         description: booking.notes,
         start,
         end,
         location: booking.location,
         coachId: booking.coachId,
-        sessionType: booking.serviceType,
+        coachName: safeDisplayLabel(booking.coachName, 'Coach'),
+        sessionType: formatServiceTypeLabel(booking.serviceType ?? booking.service),
         status: mapBookingStatusToFamilyStatus(booking.status),
         price: booking.price,
+        type: 'BOOKING',
       });
     }
   }
 
-  return events.sort((left, right) => new Date(left.start).getTime() - new Date(right.start).getTime());
+  return events.sort(
+    (left, right) => new Date(left.start).getTime() - new Date(right.start).getTime(),
+  );
 }
 
 function getBookingParticipantIds(booking: Booking): string[] {
@@ -282,6 +298,12 @@ function getBookingParticipantIds(booking: Booking): string[] {
     return booking.athleteIds;
   }
   return booking.athleteId ? [booking.athleteId] : [];
+}
+
+function rethrowApiReadFailure(error: unknown): void {
+  if (!USE_MOCK) {
+    throw error;
+  }
 }
 
 // ============================================================================
@@ -294,7 +316,7 @@ class FamilyMemberService {
     members: FamilyMember[];
     bookings: FamilyCalendarEvent[];
   }> {
-    const children = await childService.getChildren(parentId);
+    const children = await childService.getChildren(parentId, { includeTrustData: false });
     const members = children.map((child, index) =>
       mapChildProfileToFamilyMember(child, CHILD_COLORS[index % CHILD_COLORS.length]),
     );
@@ -339,7 +361,7 @@ class FamilyMemberService {
   async getFamilyMembers(parentId: string): Promise<FamilyMember[]> {
     try {
       if (!USE_MOCK) {
-        const children = await childService.getChildren(parentId);
+        const children = await childService.getChildren(parentId, { includeTrustData: false });
         const members = children.map((child, index) =>
           mapChildProfileToFamilyMember(child, CHILD_COLORS[index % CHILD_COLORS.length]),
         );
@@ -352,6 +374,7 @@ class FamilyMemberService {
       return members;
     } catch (error) {
       logger.error('get_family_members_failed', { parentId, error });
+      rethrowApiReadFailure(error);
       return [];
     }
   }
@@ -467,13 +490,20 @@ class FamilyMemberService {
         return null;
       }
 
-      const [firstName, ...rest] = (updates.name ?? `${current.firstName} ${current.lastName}`).trim().split(/\s+/);
+      const [firstName, ...rest] = (updates.name ?? `${current.firstName} ${current.lastName}`)
+        .trim()
+        .split(/\s+/);
       const result = await childService.updateChild(childId, {
         firstName: firstName || current.firstName,
         lastName: rest.join(' ') || current.lastName,
         dateOfBirth: updates.dateOfBirth ?? current.dateOfBirth,
-        relationship: (updates.relationship?.toUpperCase() as 'SON' | 'DAUGHTER' | 'WARD' | 'OTHER' | undefined)
-          ?? current.relationship,
+        relationship:
+          (updates.relationship?.toUpperCase() as
+            | 'SON'
+            | 'DAUGHTER'
+            | 'WARD'
+            | 'OTHER'
+            | undefined) ?? current.relationship,
         photoUrl: updates.avatar ?? current.photoUrl,
       });
       if (!result.success) {
@@ -564,8 +594,14 @@ class FamilyMemberService {
     try {
       if (!USE_MOCK) {
         const { bookings } = await this.getAuthoritativeFamilySnapshot(parentId);
-        const familyBookings = bookings.sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime());
-        logger.info('family_bookings_retrieved', { parentId, count: familyBookings.length, source: 'api' });
+        const familyBookings = bookings.sort(
+          (a, b) => new Date(b.start).getTime() - new Date(a.start).getTime(),
+        );
+        logger.info('family_bookings_retrieved', {
+          parentId,
+          count: familyBookings.length,
+          source: 'api',
+        });
         return familyBookings;
       }
 
@@ -577,6 +613,7 @@ class FamilyMemberService {
       return sortedBookings;
     } catch (error) {
       logger.error('get_family_bookings_failed', { parentId, error });
+      rethrowApiReadFailure(error);
       return [];
     }
   }
@@ -641,6 +678,7 @@ class FamilyMemberService {
       return sortedBookings;
     } catch (error) {
       logger.error('get_family_calendar_failed', { parentId, error });
+      rethrowApiReadFailure(error);
       return [];
     }
   }
@@ -673,6 +711,7 @@ class FamilyMemberService {
       return upcomingBookings;
     } catch (error) {
       logger.error('get_upcoming_family_failed', { parentId, error });
+      rethrowApiReadFailure(error);
       return [];
     }
   }
@@ -712,6 +751,35 @@ class FamilyMemberService {
         return null;
       }
 
+      if (!USE_MOCK) {
+        const analyticsResult = await analyticsQueryService.getAthleteAnalytics(childId, 'ALL');
+        if (!analyticsResult.success || !analyticsResult.data) {
+          logger.warn('child_progress_api_analytics_unavailable', {
+            childId,
+            error: analyticsResult.success ? undefined : analyticsResult.error.message,
+          });
+          return null;
+        }
+
+        const analytics = analyticsResult.data;
+        return {
+          childId,
+          sessionsCompleted: analytics.totalSessions,
+          averageRating:
+            analytics.averageSessionRating > 0 ? analytics.averageSessionRating : undefined,
+          badgesEarned: member.totalBadges || 0,
+          activeGoals: analytics.activeGoals.length,
+          completedGoals: analytics.completedGoals.length,
+          lastSessionDate: analytics.lastSessionDate,
+          nextSessionDate: analytics.nextSessionDate,
+          skillProgress: analytics.skills.map((skill) => ({
+            skill: skill.skillName,
+            level: skill.currentLevel,
+            change: skill.changePercent,
+          })),
+        };
+      }
+
       const bookings = await this.getChildBookings(childId);
       const completedBookings = bookings.filter((b) => b.status === 'COMPLETED');
       const upcomingBookings = bookings.filter(
@@ -744,6 +812,7 @@ class FamilyMemberService {
       return progress;
     } catch (error) {
       logger.error('get_child_progress_failed', { childId, error });
+      rethrowApiReadFailure(error);
       return null;
     }
   }
@@ -808,6 +877,7 @@ class FamilyMemberService {
       return overview;
     } catch (error) {
       logger.error('get_family_overview_failed', { parentId, error });
+      rethrowApiReadFailure(error);
       return {
         totalChildren: 0,
         upcomingSessions: 0,

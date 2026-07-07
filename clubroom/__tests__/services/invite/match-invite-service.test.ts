@@ -2,13 +2,123 @@ import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { matchInviteService } from '@/services/invite/match-invite-service';
+import { matchService } from '@/services/match-service';
+import { notificationService } from '@/services/notification-service';
+import { squadService } from '@/services/squad-service';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+
+function restoreMockMode(original?: PropertyDescriptor): void {
+  if (original) {
+    Object.defineProperty(apiClient, 'isMockMode', original);
+  } else {
+    delete (apiClient as unknown as { isMockMode?: boolean }).isMockMode;
+  }
+}
 
 describe('MatchInviteService', () => {
   beforeEach(async () => {
     await apiClient.remove(STORAGE_KEYS.SQUAD_INVITES);
     await apiClient.remove(STORAGE_KEYS.MATCHES);
+  });
+
+  describe('inviteSquadToMatch', () => {
+    it('uses match player invites and skips local notifications in API mode', async () => {
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+      const originalGetSquadMembers = squadService.getSquadMembers;
+      const originalCreateMatch = matchService.createMatch;
+      const originalInvitePlayers = matchService.invitePlayers;
+      const originalCreateNotification = notificationService.create;
+      let notificationCalls = 0;
+      let invitedPlayerCount = 0;
+      const match = {
+        id: 'match-api-squad-invite',
+        clubId: 'club-api-match',
+        clubName: 'API Club',
+        squadId: 'squad-api-match',
+        squadName: 'API Squad',
+        coachId: 'coach-api-match',
+        coachName: 'Coach API',
+        title: 'API Squad vs Visitors',
+        matchType: 'FRIENDLY',
+        opponent: 'Visitors',
+        isHome: true,
+        date: '2026-07-10',
+        kickoffTime: '19:00',
+        venue: 'API Field',
+        status: 'SCHEDULED',
+        maxPlayers: 2,
+        selectedPlayers: [],
+        createdAt: '2026-07-03T12:00:00.000Z',
+        updatedAt: '2026-07-03T12:00:00.000Z',
+      };
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+      squadService.getSquadMembers = (async () => [
+        {
+          id: 'member-api-1',
+          squadId: 'squad-api-match',
+          athleteId: 'athlete-api-1',
+          parentId: 'parent-api-1',
+          status: 'ACTIVE',
+          joinedAt: '2026-07-03T12:00:00.000Z',
+        },
+        {
+          id: 'member-api-2',
+          squadId: 'squad-api-match',
+          athleteId: 'athlete-api-2',
+          parentId: 'parent-api-2',
+          status: 'ACTIVE',
+          joinedAt: '2026-07-03T12:00:00.000Z',
+        },
+      ]) as typeof squadService.getSquadMembers;
+      matchService.createMatch = (async () => match) as typeof matchService.createMatch;
+      matchService.invitePlayers = (async (input) => {
+        invitedPlayerCount = input.players.length;
+        return {
+          success: true,
+          data: match,
+        };
+      }) as typeof matchService.invitePlayers;
+      notificationService.create = (async (notification) => {
+        notificationCalls += 1;
+        return {
+          success: true,
+          data: [notification],
+        };
+      }) as typeof notificationService.create;
+
+      try {
+        const result = await matchInviteService.inviteSquadToMatch({
+          squadId: 'squad-api-match',
+          squadName: 'API Squad',
+          matchTitle: 'API Squad vs Visitors',
+          opponent: 'Visitors',
+          isHome: true,
+          date: '2026-07-10',
+          kickoffTime: '19:00',
+          venue: 'API Field',
+          clubId: 'club-api-match',
+          clubName: 'API Club',
+          coachId: 'coach-api-match',
+          coachName: 'Coach API',
+        });
+
+        assert.equal(invitedPlayerCount, 2);
+        assert.equal(result.inviteResult.sent, 2);
+        assert.equal(result.inviteResult.failed, 0);
+        assert.equal(notificationCalls, 0);
+      } finally {
+        squadService.getSquadMembers = originalGetSquadMembers;
+        matchService.createMatch = originalCreateMatch;
+        matchService.invitePlayers = originalInvitePlayers;
+        notificationService.create = originalCreateNotification;
+        restoreMockMode(originalIsMockMode);
+      }
+    });
   });
 
   describe('getMatchInvites', () => {

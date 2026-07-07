@@ -9,6 +9,7 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { ClubSquad } from '@/constants/types';
+import { safeDisplayLabel } from '@/utils/booking-display';
 
 interface SquadInfoCardProps {
   squad: ClubSquad;
@@ -33,6 +34,10 @@ export const SquadInfoCard = function SquadInfoCard({
   onCancelEdit,
   onStartEdit,
 }: SquadInfoCardProps) {
+  const primaryCoachLabel = squad.primaryCoach
+    ? safeDisplayLabel(squad.primaryCoach, 'Assigned coach')
+    : 'Unassigned coach';
+
   return (
     <SurfaceCard style={styles.card}>
       <Row
@@ -79,7 +84,7 @@ export const SquadInfoCard = function SquadInfoCard({
                 {squad.name}
               </ThemedText>
               <ThemedText style={[Typography.small, { color: colors.muted }]} numberOfLines={1}>
-                {squad.level} {'\u00B7'} {squad.primaryCoach}
+                {squad.level} {'\u00B7'} {primaryCoachLabel}
               </ThemedText>
             </View>
             <Clickable onPress={onStartEdit} hitSlop={8}>

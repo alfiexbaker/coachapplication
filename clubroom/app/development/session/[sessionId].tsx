@@ -1,4 +1,5 @@
 import { View, StyleSheet, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -94,10 +95,13 @@ export default function SessionDetailScreen() {
   );
 
   const renderStateShell = (content: ReactNode) => (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
       {header}
       {content}
-    </View>
+    </SafeAreaView>
   );
 
   if (!resolvedSessionId) {
@@ -145,7 +149,10 @@ export default function SessionDetailScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
         <PageHeader
           title="Session Feedback"
@@ -259,7 +266,7 @@ export default function SessionDetailScreen() {
           </Row>
         </Clickable>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

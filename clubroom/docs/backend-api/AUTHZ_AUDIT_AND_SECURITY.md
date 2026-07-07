@@ -18,8 +18,10 @@ This is not optional. RBAC alone is insufficient for Clubroom.
 - `/v1` bearer auth now accepts both Clubroom-issued session JWTs and configured external OIDC/JWKS bearer tokens.
 - External bearer identities are mapped onto local users and granted roles before route authz runs.
 - Header-based identity override and trust-debug relationship headers are restricted to the explicit API test harness path.
+- Fastify now applies baseline security headers on `/v1` responses and has a server-side per-IP rate limiter enabled outside the API test harness.
 - `audit_events` and `security_events` now persist through the shared runtime for auth/session actions, sensitive reads and writes, deny paths, and internal errors on the current trust/commercial seams.
 - Safeguarding incidents and trust-access resolution now run through repositories instead of route-local in-memory state.
+- Supabase public tables have RLS enabled and direct `anon`/`authenticated` table, sequence, and function privileges revoked; product data access should go through the Fastify `/v1` API unless a route explicitly adds reviewed RLS policies and grants. `scripts/db-staging-preflight.js` verifies this posture against staging before release rehearsal.
 
 ## Base Role Model (RBAC)
 Roles are stored in `user_roles` and may overlap for the same `user_id`.
@@ -124,6 +126,13 @@ Examples of common leaks to prevent:
 - `ip_hash` (avoid raw IP in logs where possible)
 - `metadata_json`
 
+### Audit action vocabulary and display copy
+- `action` is a stable machine string for filtering, tests, and incident reconstruction. It is not user-facing copy.
+- Human-facing audit logs must render actor + plain-language effect + resource context, for example: `Coach archived video annotation`, `Club owner removed staff member`, or `Parent cancelled booking`.
+- Prefer precise effect words over raw `delete`: `archive` for soft-deleted content, `remove` for membership/link cleanup, `dismiss` for inbox state, `revoke` for grants/sessions, `void` for money-state invalidation, and `cancel` for bookings/events.
+- HTTP `DELETE` is acceptable for REST resource removal, but the repository effect and audit display must still say whether the row was archived/soft-deleted, removed from a relationship, or hard-deleted under an explicit retention rule.
+- Do not render raw audit strings such as `athlete.delete` directly in admin or user-visible timelines.
+
 ### Retention and immutability
 - `audit_events` is append-only
 - no hard delete while policy active or legal hold applies
@@ -153,7 +162,7 @@ Examples:
 - payer payment state must be backend-confirmed; app callbacks or hosted return URLs must never mark invoices paid directly
 
 ### S6-S7: Abuse and write safety
-- rate limiting by IP + user + endpoint class
+- server-side per-IP rate limiting is active; user and endpoint-class limits are still the next hardening layer for sensitive write paths
 - idempotency keys required for writes (booking, RSVP, mark-paid, invites, etc.)
 
 ### S8-S9: Storage security
@@ -198,3 +207,4 @@ Additional gates:
 - What happens after grant expiry/revoke?
 - What happens if user changes role mid-session?
 - Are denial paths tested?
+- Does the feature avoid direct Supabase Data API access unless RLS policies, grants, and tests are explicitly reviewed?

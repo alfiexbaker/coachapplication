@@ -4,10 +4,18 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationService } from './notification-service';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
-import { type Result, type ServiceError, ok, err, storageError, notFound } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  storageError,
+  notFound,
+  unsupportedError,
+} from '@/types/result';
 import { blockService, getBlockActionMessage } from './block-service';
 import { authService } from './auth-service';
-import { communityMediaAuthorityService, mergeById } from './community-media-authority-service';
+import { communityMediaAuthorityService } from './community-media-authority-service';
 import { getLocalOverlayValue, setLocalOverlayValue } from './local-overlay-store';
 
 const logger = createLogger('MessagingService');
@@ -86,30 +94,6 @@ const MAX_ATTACHMENTS_PER_MESSAGE = 5;
 
 type DeletedMessageMap = Record<string, string[]>;
 
-function mergeThreadSummaries(
-  authoritative: ChatThreadSummary[],
-  overlay: ChatThreadSummary[],
-): ChatThreadSummary[] {
-  const overlayById = new Map(overlay.map((thread) => [thread.id, thread] as const));
-  const merged = authoritative.map((thread) => {
-    const local = overlayById.get(thread.id);
-    if (!local) {
-      return thread;
-    }
-
-    return {
-      ...thread,
-      unreadCount: local.unreadCount,
-      lastMessageSnippet: local.lastMessageSnippet ?? thread.lastMessageSnippet,
-      lastMessageSender: local.lastMessageSender ?? thread.lastMessageSender,
-      scheduledFor: local.scheduledFor || thread.scheduledFor,
-    };
-  });
-
-  const authoritativeIds = new Set(authoritative.map((thread) => thread.id));
-  return [...merged, ...overlay.filter((thread) => !authoritativeIds.has(thread.id))];
-}
-
 function upsertById<T extends { id: string }>(items: T[], nextItem: T): T[] {
   const next = items.filter((item) => item.id !== nextItem.id);
   next.push(nextItem);
@@ -149,7 +133,7 @@ export class MessagingService {
   }
 
   private async upsertThreadOverlay(thread: ChatThreadSummary): Promise<void> {
-    if (USE_MOCK) {
+    if (!USE_MOCK) {
       return;
     }
 
@@ -204,21 +188,18 @@ export class MessagingService {
   async listThreads(): Promise<Result<ChatThreadSummary[], ServiceError>> {
     try {
       if (!USE_MOCK) {
-        const [authoritativeResult, overlays] = await Promise.all([
-          communityMediaAuthorityService.listThreads(),
-          this.loadThreadOverlays(),
-        ]);
+        const authoritativeResult = await communityMediaAuthorityService.listThreads();
         if (!authoritativeResult.success) {
           return authoritativeResult;
         }
 
-        this.inMemoryThreads = mergeThreadSummaries(authoritativeResult.data, overlays);
+        this.inMemoryThreads = authoritativeResult.data;
         return ok(this.inMemoryThreads);
       }
 
       return ok(this.inMemoryThreads);
     } catch (error) {
-      logger.error('Failed to list threads', error);
+      logger.warn('Failed to list threads', error);
       return err(storageError('Failed to list threads'));
     }
   }
@@ -277,22 +258,13 @@ export class MessagingService {
   async listMessages(threadId: string): Promise<Result<ChatMessage[], ServiceError>> {
     try {
       if (!USE_MOCK) {
-        const [authoritativeResult, persisted, deletedMap] = await Promise.all([
-          communityMediaAuthorityService.listMessages(threadId),
-          this.loadPersistedMessages(),
-          this.loadDeletedMessageIds(),
-        ]);
+        const authoritativeResult = await communityMediaAuthorityService.listMessages(threadId);
         if (!authoritativeResult.success) {
           return authoritativeResult;
         }
 
-        const overlay = persisted[threadId] || [];
-        const deletedIds = new Set(deletedMap[threadId] || []);
-        const messages = mergeById(authoritativeResult.data, overlay).filter(
-          (message) => !deletedIds.has(message.id),
-        );
         return ok(
-          messages.sort(
+          authoritativeResult.data.sort(
             (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
           ),
         );
@@ -458,6 +430,15 @@ export class MessagingService {
     senderName?: string,
   ): Promise<Result<ChatMessage, ServiceError>> {
     try {
+      if (!USE_MOCK) {
+        return err(
+          unsupportedError(
+            'Simulated incoming messages are mock-only; real messages must come from /v1/message-threads/:threadId/messages.',
+            { threadId, route: '/v1/message-threads/:threadId/messages' },
+          ),
+        );
+      }
+
       const timestamp = new Date().toISOString();
       const incoming: ChatMessage = {
         id: `msg_${Date.now()}_coach`,
@@ -468,11 +449,7 @@ export class MessagingService {
         status: 'delivered',
       };
       await this.persistMessage(threadId, incoming);
-      if (USE_MOCK) {
-        this.updateThreadAfterMessage(threadId, incoming, true, senderName);
-      } else {
-        await this.syncThreadSummary(threadId);
-      }
+      this.updateThreadAfterMessage(threadId, incoming, true, senderName);
       emitTyped(ServiceEvents.MESSAGE_SENT, {
         threadId,
         messageId: incoming.id,
@@ -508,21 +485,13 @@ export class MessagingService {
       const unreadCleared = thread.unreadCount ?? 0;
 
       if (!USE_MOCK) {
-        const persisted = await this.loadPersistedMessages();
-        const messagesResult = await this.listMessages(threadId);
-        if (!messagesResult.success) {
-          return err(messagesResult.error);
+        const markResult = await communityMediaAuthorityService.markThreadMessagesRead(threadId);
+        if (!markResult.success) {
+          return err(markResult.error);
         }
-
-        persisted[threadId] = messagesResult.data.map((message) => ({
-          ...message,
-          status: 'seen',
-        }));
-        await setLocalOverlayValue(STORAGE_KEYS.MESSAGES, persisted);
-        await this.syncThreadSummary(threadId);
-      } else {
-        thread.unreadCount = 0;
       }
+
+      thread.unreadCount = 0;
 
       if (unreadCleared > 0) {
         emitTyped(ServiceEvents.MESSAGES_MARKED_READ, {

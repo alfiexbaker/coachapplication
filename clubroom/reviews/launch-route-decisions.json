@@ -1,0 +1,3280 @@
+{
+  "generatedAt": "2026-07-04T00:32:35.135Z",
+  "sourceAuditGeneratedAt": "2026-07-04T00:32:35.522Z",
+  "sourceTotals": {
+    "routes": 152,
+    "needsDecision": 0,
+    "needsImplementation": 0,
+    "byPdos": {
+      "PDOS-06": 32,
+      "PDOS-02": 11,
+      "PDOS-10": 28,
+      "PDOS-01": 27,
+      "PDOS-03": 18,
+      "PDOS-09": 4,
+      "PDOS-04": 16,
+      "PDOS-08": 9,
+      "PDOS-05": 4,
+      "PDOS-07": 3
+    },
+    "byVerdict": {
+      "TRUST-CORE": 26,
+      "COMMUNICATION-REVIEW": 11,
+      "OPS-CORE": 62,
+      "PROTECT": 18,
+      "PAID-CORE": 22,
+      "COMMERCIAL-CORE": 4,
+      "DEVELOPMENT-CORE": 9
+    }
+  },
+  "decisionSummary": {
+    "total": 152,
+    "byAction": {
+      "keep": 152
+    },
+    "byPriority": {
+      "P3": 152
+    }
+  },
+  "summary": {
+    "total": 0,
+    "byAction": {},
+    "byPriority": {}
+  },
+  "decisions": [
+    {
+      "file": "app/_layout.tsx",
+      "route": "/_layout",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "app shell, providers, routing, and account/session frame",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "app-lifecycle-service",
+        "auth-service",
+        "booking-self-setting-service",
+        "child-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "notification",
+        "notification-service",
+        "observability/sentry-service",
+        "offline-queue",
+        "pre-api-live-mode-service",
+        "push-notification-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(modal)/add-child.tsx",
+      "route": "/modal/add-child",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child profile, medical, emergency, SEN, and readiness context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "serviceImports": [
+        "api-client",
+        "child-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority",
+        "child-profile-write-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(modal)/create-club-post.tsx",
+      "route": "/modal/create-club-post",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "job": "staff-led communication, coach homepage, comments, or operational messaging",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "event",
+        "social-feed-service",
+        "squad-service"
+      ],
+      "authorityEvidence": [
+        "post-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(modal)/create-squad.tsx",
+      "route": "/modal/create-squad",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "social-feed-service",
+        "squad-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(modal)/edit-child-profile.tsx",
+      "route": "/modal/edit-child-profile",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child profile, medical, emergency, SEN, and readiness context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "serviceImports": [
+        "child-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority",
+        "child-profile-write-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(modal)/edit-child-sen.tsx",
+      "route": "/modal/edit-child-sen",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child profile, medical, emergency, SEN, and readiness context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "serviceImports": [
+        "child-service",
+        "event-bus",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority",
+        "child-profile-write-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(modal)/post-detail.tsx",
+      "route": "/modal/post-detail",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "job": "staff-led communication, coach homepage, comments, or operational messaging",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "comment-control-check"
+      ],
+      "serviceImports": [
+        "comment-service",
+        "social-feed-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "post-api-authority",
+        "comment-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/_layout.tsx",
+      "route": "/_layout",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "app shell, providers, routing, and account/session frame",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "messaging-service",
+        "notification-service",
+        "notification/notification-attention",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/admin/invite-codes.tsx",
+      "route": "/admin/invite-codes",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club invite-code operations and access control",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/athletes.tsx",
+      "route": "/athletes",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "athlete roster and trust-context entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "booking-service",
+        "event-bus",
+        "roster-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/availability.tsx",
+      "route": "/availability",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "job": "coach availability and bookable storefront readiness entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/bookings/_layout.tsx",
+      "route": "/bookings/_layout",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "app shell, providers, routing, and account/session frame",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/bookings/[id].tsx",
+      "route": "/bookings/[id]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "PAID-CORE",
+      "job": "booking lifecycle, readiness, cancellation, receipt, and session state",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "money-hard-wall-check"
+      ],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking-service",
+        "booking-weather-service",
+        "cancellation-service",
+        "coach-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "invoice-service",
+        "progress-service",
+        "recurring-booking-service",
+        "review-sync-service",
+        "social-feed-service",
+        "ui-feedback",
+        "user-service"
+      ],
+      "authorityEvidence": [
+        "invoice-read-api-authority",
+        "invoice-reconciler-api-authority",
+        "invoice-manual-receipt-api-authority",
+        "booking-series-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/bookings/index.tsx",
+      "route": "/bookings",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "PAID-CORE",
+      "job": "booking lifecycle, readiness, cancellation, receipt, and session state",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "booking",
+        "event",
+        "event-bus",
+        "group-session",
+        "invite",
+        "relational-demo-seed-service",
+        "social-feed-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/bookings/report-problem.tsx",
+      "route": "/bookings/report-problem",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "PAID-CORE",
+      "job": "booking lifecycle, readiness, cancellation, receipt, and session state",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "serviceImports": [
+        "api-client",
+        "booking-communications-service",
+        "booking-service",
+        "event-bus",
+        "social-feed-service",
+        "trust",
+        "trust/safeguarding-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "safeguarding-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/bookings/session-feedback.tsx",
+      "route": "/bookings/session-feedback",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "PAID-CORE",
+      "job": "booking lifecycle, readiness, cancellation, receipt, and session state",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "stale-placeholder-check"
+      ],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/children.tsx",
+      "route": "/children",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "badge-service",
+        "child-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/club-hub.tsx",
+      "route": "/club-hub",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "comment-control-check"
+      ],
+      "serviceImports": [
+        "club-authority-service",
+        "club-invite-link-service",
+        "club-service",
+        "event-bus",
+        "event-service",
+        "group-session-service",
+        "invite",
+        "match-service",
+        "roster-service",
+        "social-feed-service",
+        "squad-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "match-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/coach-profile.tsx",
+      "route": "/coach-profile",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "job": "storefront, trust, follow, and booking entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-offering-api",
+        "discover-service",
+        "event-bus",
+        "follow-service",
+        "social-feed-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/earnings.tsx",
+      "route": "/earnings",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-09",
+      "verdict": "COMMERCIAL-CORE",
+      "job": "invoice, payment state, reconciliation, and earnings",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/edit-profile.tsx",
+      "route": "/edit-profile",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "role home, identity, and profile management entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "child-service",
+        "coach-profile-service",
+        "coach-session-seed-service",
+        "discover-service",
+        "event-bus",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority",
+        "child-profile-write-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/feed.tsx",
+      "route": "/feed",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "job": "staff-led communication, coach homepage, comments, or operational messaging",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "comment-control-check"
+      ],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "follow-service",
+        "social-feed-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/index.tsx",
+      "route": "/(tabs)",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "role home, identity, and profile management entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/messages.tsx",
+      "route": "/messages",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "job": "operational messaging and notification entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "booking-service",
+        "event-bus",
+        "messaging-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/more.tsx",
+      "route": "/more",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "secondary navigation to account, help, and operating settings",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/notifications.tsx",
+      "route": "/notifications",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "job": "operational messaging and notification entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "badge-service",
+        "event-bus",
+        "notification-service",
+        "notification/notification-attention",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/profile.tsx",
+      "route": "/profile",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "role home, identity, and profile management entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/roster.tsx",
+      "route": "/roster",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "athlete roster and trust-context entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/schedule.tsx",
+      "route": "/schedule",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "schedule and operational activity entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "availability-service",
+        "coach-venue-service",
+        "event-bus",
+        "scheduling-rules-service",
+        "session-template-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "scheduling-policy-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/settings.tsx",
+      "route": "/settings",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "account, communication, trust, and operating settings",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/+html.tsx",
+      "route": "/+html",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "app shell, providers, routing, and account/session frame",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/availability/add-template.tsx",
+      "route": "/availability/add-template",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "job": "coach availability management and bookable storefront readiness",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "spinner-check"
+      ],
+      "serviceImports": [
+        "availability-service",
+        "event-bus",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/availability/block-date.tsx",
+      "route": "/availability/block-date",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "job": "coach availability blocking and bookable-slot protection",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "availability-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/availability/calendar.tsx",
+      "route": "/availability/calendar",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "job": "coach availability management and bookable storefront readiness",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "availability-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/availability/edit-template.tsx",
+      "route": "/availability/edit-template",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "job": "coach availability management and bookable storefront readiness",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "spinner-check"
+      ],
+      "serviceImports": [
+        "availability-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/book-coach.tsx",
+      "route": "/book-coach",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "job": "storefront, trust, follow, and booking entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "discover-service",
+        "event-bus"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/book/[coachId]/_layout.tsx",
+      "route": "/book/[coachId]/_layout",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "app shell, providers, routing, and account/session frame",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/book/[coachId]/confirmation.tsx",
+      "route": "/book/[coachId]/confirmation",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "spinner-check"
+      ],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking-self-setting-service",
+        "booking-service",
+        "booking/booking-step-analytics-service",
+        "cancellation-service",
+        "child-service",
+        "coach-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "social-feed-service",
+        "user-service"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/book/[coachId]/details.tsx",
+      "route": "/book/[coachId]/details",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking-self-setting-service",
+        "booking/booking-step-analytics-service",
+        "child-service",
+        "coach-session-seed-service",
+        "event-bus"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/book/[coachId]/index.tsx",
+      "route": "/book/[coachId]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/book/[coachId]/multi-week.tsx",
+      "route": "/book/[coachId]/multi-week",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "availability-service",
+        "multi-week-booking-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/book/[coachId]/review.tsx",
+      "route": "/book/[coachId]/review",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "money-hard-wall-check"
+      ],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking-self-setting-service",
+        "booking/booking-step-analytics-service",
+        "child-service",
+        "coach-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "scheduling-rules-service",
+        "social-feed-service",
+        "user-service"
+      ],
+      "authorityEvidence": [
+        "scheduling-policy-api-authority",
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/book/[coachId]/schedule.tsx",
+      "route": "/book/[coachId]/schedule",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "availability-service",
+        "booking-self-setting-service",
+        "booking/booking-step-analytics-service",
+        "child-service",
+        "coach-offering-api",
+        "coach-session-seed-service",
+        "event-bus"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/book/[coachId]/session-type.tsx",
+      "route": "/book/[coachId]/session-type",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking-self-setting-service",
+        "booking/booking-step-analytics-service",
+        "child-service",
+        "coach-offering-api",
+        "coach-session-seed-service",
+        "event-bus",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/booking/[id]/cancel.tsx",
+      "route": "/booking/[id]/cancel",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "PAID-CORE",
+      "job": "booking lifecycle, readiness, cancellation, receipt, and session state",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "money-hard-wall-check"
+      ],
+      "serviceImports": [
+        "booking-service",
+        "scheduling-rules-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "booking-cancel-api-authority",
+        "scheduling-policy-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/bookings/subscribe.tsx",
+      "route": "/bookings/subscribe",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "PAID-CORE",
+      "job": "booking lifecycle, readiness, cancellation, receipt, and session state",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "discover-service",
+        "recurring-booking-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "booking-series-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/chat/[threadId].tsx",
+      "route": "/chat/[threadId]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "job": "operational communication, invite, and response entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "block-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "messaging-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/chat/index.tsx",
+      "route": "/chat",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "job": "operational messaging and notification entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/child/[id]/emergency.tsx",
+      "route": "/child/[id]/emergency",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child profile, medical, emergency, SEN, and readiness context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "serviceImports": [
+        "event-bus",
+        "safety-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "athlete-medical-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/child/[id]/medical.tsx",
+      "route": "/child/[id]/medical",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child profile, medical, emergency, SEN, and readiness context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "serviceImports": [
+        "event-bus",
+        "safety-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "athlete-medical-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/[clubId]/_layout.tsx",
+      "route": "/club/[clubId]/_layout",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "app shell, providers, routing, and account/session frame",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/[clubId]/calendar.tsx",
+      "route": "/club/[clubId]/calendar",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "club-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/[clubId]/dashboard.tsx",
+      "route": "/club/[clubId]/dashboard",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "event-bus",
+        "org-head-coach-service",
+        "org-owner-dashboard-service",
+        "org-staffing-service",
+        "seen-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/[clubId]/member/[memberId].tsx",
+      "route": "/club/[clubId]/member/[memberId]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "club-service",
+        "event-bus",
+        "social-feed-service",
+        "squad-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/[id].tsx",
+      "route": "/club/[id]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "comment-control-check"
+      ],
+      "serviceImports": [
+        "club-authority-service",
+        "club-invite-link-service",
+        "club-schedule-service",
+        "club-service",
+        "event-bus",
+        "event-service",
+        "group-session-service",
+        "match-service",
+        "roster-service",
+        "social-feed-service",
+        "squad-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "match-api-authority",
+        "post-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/[id]/activity/[activityId].tsx",
+      "route": "/club/[id]/activity/[activityId]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "club-schedule-service",
+        "event-bus"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/[id]/schedule.tsx",
+      "route": "/club/[id]/schedule",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/create.tsx",
+      "route": "/club/create",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "club-authority-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/invite-members.tsx",
+      "route": "/club/invite-members",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "booking-service",
+        "social-feed-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/my-clubs.tsx",
+      "route": "/club/my-clubs",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "club-authority-service",
+        "club-invite-link-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "social-feed-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/settings.tsx",
+      "route": "/club/settings",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "club-authority-service",
+        "club-invite-link-service",
+        "club-service",
+        "event-bus",
+        "social-feed-service",
+        "squad-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/setup-complete.tsx",
+      "route": "/club/setup-complete",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "event-bus",
+        "social-feed-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/squad/[id].tsx",
+      "route": "/club/squad/[id]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "club-service",
+        "squad-group-service",
+        "squad-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/squad/[id]/schedule.tsx",
+      "route": "/club/squad/[id]/schedule",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/squad/create.tsx",
+      "route": "/club/squad/create",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "event-bus",
+        "social-feed-service",
+        "squad-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/training-schedule.tsx",
+      "route": "/club/training-schedule",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "group-session-service",
+        "social-feed-service",
+        "squad-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/coach-invites.tsx",
+      "route": "/coach-invites",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "job": "operational communication, invite, and response entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "club-authority-service",
+        "social-feed-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/coach/[coachId]/public.tsx",
+      "route": "/coach/[coachId]/public",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "job": "storefront, trust, follow, and booking entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "block-service",
+        "coach-offering-api",
+        "coach-service",
+        "event-bus",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/coach/[id].tsx",
+      "route": "/coach/[id]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "job": "storefront, trust, follow, and booking entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "block-service",
+        "coach-offering-api",
+        "coach-service",
+        "event-bus",
+        "follow-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/coach/invite.tsx",
+      "route": "/coach/invite",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "job": "storefront, trust, follow, and booking entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/community/[groupId].tsx",
+      "route": "/community/[groupId]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "job": "staff-led communication, coach homepage, comments, or operational messaging",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "community-service",
+        "community/community-group-service",
+        "event-bus",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "community-chat-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/development/athlete/[athleteId]/_layout.tsx",
+      "route": "/development/athlete/[athleteId]/_layout",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "app shell, providers, routing, and account/session frame",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/development/athlete/[athleteId]/index.tsx",
+      "route": "/development/athlete/[athleteId]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "badge-service",
+        "child-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "ui-feedback",
+        "user-service"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority",
+        "child-profile-write-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/development/athlete/[athleteId]/special-needs.tsx",
+      "route": "/development/athlete/[athleteId]/special-needs",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "serviceImports": [
+        "child-service",
+        "coach-observation-service",
+        "event-bus",
+        "ui-feedback",
+        "user-service"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/development/child-progress/[childId].tsx",
+      "route": "/development/child-progress/[childId]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-08",
+      "verdict": "DEVELOPMENT-CORE",
+      "job": "development proof, video, review, rebook, and next work",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "serviceImports": [
+        "badge-service",
+        "child-service",
+        "event-bus",
+        "progress-service"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/development/media-gallery.tsx",
+      "route": "/development/media-gallery",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-08",
+      "verdict": "DEVELOPMENT-CORE",
+      "job": "development proof, video, review, rebook, and next work",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "media-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/development/my-progress.tsx",
+      "route": "/development/my-progress",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-08",
+      "verdict": "DEVELOPMENT-CORE",
+      "job": "development proof, video, review, rebook, and next work",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "badge-service",
+        "booking",
+        "event-bus",
+        "media-service",
+        "progress-service",
+        "progress/monthly-summary-service",
+        "progress/progress-demo-seed-lazy-service",
+        "progress/progress-position-service",
+        "progress/progress-termly-report-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/development/progress-loop.tsx",
+      "route": "/development/progress-loop",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-08",
+      "verdict": "DEVELOPMENT-CORE",
+      "job": "development proof, video, review, rebook, and next work",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "event-bus",
+        "progress/progress-feedback-service",
+        "progress/progress-practice-log-service",
+        "progress/progress-practice-task-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/development/session-history.tsx",
+      "route": "/development/session-history",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-08",
+      "verdict": "DEVELOPMENT-CORE",
+      "job": "development proof, video, review, rebook, and next work",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "badge-service",
+        "media-service",
+        "progress-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/development/session/[sessionId].tsx",
+      "route": "/development/session/[sessionId]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-08",
+      "verdict": "DEVELOPMENT-CORE",
+      "job": "development proof, video, review, rebook, and next work",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "badge-service",
+        "child-service",
+        "event-bus",
+        "media-service",
+        "progress-service",
+        "progress/progress-feedback-service",
+        "progress/progress-position-service",
+        "progress/progress-skills-service",
+        "ui-feedback",
+        "user-service"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/discover-sessions.tsx",
+      "route": "/discover-sessions",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "job": "storefront, trust, follow, and booking entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "booking",
+        "group-session",
+        "invite",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/discover/map.tsx",
+      "route": "/discover/map",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "job": "storefront, trust, follow, and booking entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "coach-offering-api",
+        "discover-service",
+        "event-bus"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/earnings.tsx",
+      "route": "/earnings",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-09",
+      "verdict": "COMMERCIAL-CORE",
+      "job": "invoice, payment state, reconciliation, and earnings",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "money-hard-wall-check"
+      ],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking",
+        "coach-payment-instructions-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "invoice-service",
+        "roster-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "invoice-read-api-authority",
+        "invoice-reconciler-api-authority",
+        "invoice-manual-receipt-api-authority",
+        "invoice-adjustment-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/events/[id].tsx",
+      "route": "/events/[id]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "event-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/events/[id]/attendees.tsx",
+      "route": "/events/[id]/attendees",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "event-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/events/[id]/rsvp.tsx",
+      "route": "/events/[id]/rsvp",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "spinner-check"
+      ],
+      "serviceImports": [
+        "event-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/events/create.tsx",
+      "route": "/events/create",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "event-bus",
+        "event-service",
+        "invite",
+        "squad-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/events/index.tsx",
+      "route": "/events",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "event-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/family/[legacy].tsx",
+      "route": "/family/[legacy]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/family/calendar.tsx",
+      "route": "/family/calendar",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/family/index.tsx",
+      "route": "/family",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/family/recurring.tsx",
+      "route": "/family/recurring",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "family-recurring-service",
+        "recurring-booking-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "booking-series-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/family/sharing.tsx",
+      "route": "/family/sharing",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "family",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/favourites/index.tsx",
+      "route": "/favourites",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "job": "storefront, trust, follow, and booking entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "favourite-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/group-sessions/[id].tsx",
+      "route": "/group-sessions/[id]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "calendar-service",
+        "cancellation-service",
+        "event-bus",
+        "group-session-service",
+        "rsvp-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "group-session-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/group-sessions/[id]/roster.tsx",
+      "route": "/group-sessions/[id]/roster",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "child-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "group-session-service",
+        "injury-service",
+        "progress/progress-feedback-service",
+        "progress/progress-position-service",
+        "progress/progress-skills-service",
+        "rsvp-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "group-session-api-authority",
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority",
+        "athlete-injury-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/group-sessions/create.tsx",
+      "route": "/group-sessions/create",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/group-sessions/index.tsx",
+      "route": "/group-sessions",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "event-bus",
+        "group-session-service",
+        "group-session/session-registration-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/health/[id].tsx",
+      "route": "/health/[id]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "health, injury, and readiness context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "event-bus",
+        "injury-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "athlete-injury-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/health/index.tsx",
+      "route": "/health",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "health, injury, and readiness context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "event-bus",
+        "injury-service"
+      ],
+      "authorityEvidence": [
+        "athlete-injury-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/health/injuries.tsx",
+      "route": "/health/injuries",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child profile, medical, emergency, SEN, and readiness context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "serviceImports": [
+        "event-bus",
+        "injury-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "athlete-injury-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/health/log.tsx",
+      "route": "/health/log",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "health, injury, and readiness context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking-self-setting-service",
+        "child-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "injury-service"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority",
+        "athlete-injury-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/invites.tsx",
+      "route": "/invites",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "job": "operational communication, invite, and response entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "invite",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/invoices/[id].tsx",
+      "route": "/invoices/[id]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-09",
+      "verdict": "COMMERCIAL-CORE",
+      "job": "invoice, payment state, reconciliation, and earnings",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "money-hard-wall-check"
+      ],
+      "serviceImports": [
+        "invoice-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "invoice-read-api-authority",
+        "invoice-reconciler-api-authority",
+        "invoice-manual-receipt-api-authority",
+        "invoice-payment-session-api-authority",
+        "invoice-adjustment-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/invoices/index.tsx",
+      "route": "/invoices",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-09",
+      "verdict": "COMMERCIAL-CORE",
+      "job": "invoice, payment state, reconciliation, and earnings",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "invoice-service"
+      ],
+      "authorityEvidence": [
+        "invoice-read-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/manage/[legacy].tsx",
+      "route": "/manage/[legacy]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-05",
+      "verdict": "OPS-CORE",
+      "job": "staff authority, assignment, and operations control",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/manage/bookings.tsx",
+      "route": "/manage/bookings",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-05",
+      "verdict": "OPS-CORE",
+      "job": "staff authority, assignment, and operations control",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "invite",
+        "org-staffing-service",
+        "social-feed-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "club-work-assignment-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/manage/head-coach.tsx",
+      "route": "/manage/head-coach",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-05",
+      "verdict": "OPS-CORE",
+      "job": "staff authority, assignment, and operations control",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "org-head-coach-service",
+        "social-feed-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/manage/index.tsx",
+      "route": "/manage",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-05",
+      "verdict": "OPS-CORE",
+      "job": "staff authority, assignment, and operations control",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "social-feed-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/matches/[id].tsx",
+      "route": "/matches/[id]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club and selected-squad fixture schedule context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "match-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "match-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/matches/create.tsx",
+      "route": "/matches/create",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club and selected-squad fixture schedule context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "club-authority-service",
+        "event-bus",
+        "invite",
+        "match-service",
+        "squad-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "match-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/matches/index.tsx",
+      "route": "/matches",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club and selected-squad fixture schedule context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "club-authority-service",
+        "match-service"
+      ],
+      "authorityEvidence": [
+        "match-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/profile/[userId].tsx",
+      "route": "/profile/[userId]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "job": "staff-led communication, coach homepage, comments, or operational messaging",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "comment-control-check"
+      ],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "follow-service",
+        "social-feed-service",
+        "ui-feedback",
+        "user-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/review/[bookingId].tsx",
+      "route": "/review/[bookingId]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-08",
+      "verdict": "DEVELOPMENT-CORE",
+      "job": "development proof, video, review, rebook, and next work",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "review-sync-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/roster/[athleteId]/add-to-session.tsx",
+      "route": "/roster/[athleteId]/add-to-session",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/roster/[athleteId]/emergency.tsx",
+      "route": "/roster/[athleteId]/emergency",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "serviceImports": [
+        "roster-service",
+        "safety-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "athlete-medical-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/roster/[athleteId]/health.tsx",
+      "route": "/roster/[athleteId]/health",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "serviceImports": [
+        "injury-service",
+        "roster-service"
+      ],
+      "authorityEvidence": [
+        "athlete-injury-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/roster/[athleteId]/index.tsx",
+      "route": "/roster/[athleteId]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "serviceImports": [
+        "booking-service",
+        "child-service",
+        "event-bus",
+        "roster-service",
+        "safety-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "athlete-medical-api-authority",
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/roster/[athleteId]/raise-concern.tsx",
+      "route": "/roster/[athleteId]/raise-concern",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "concern-service",
+        "event-bus",
+        "roster-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "safeguarding-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/roster/consents.tsx",
+      "route": "/roster/consents",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "serviceImports": [
+        "consent-service",
+        "user-service"
+      ],
+      "authorityEvidence": [
+        "athlete-medical-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/roster/index.tsx",
+      "route": "/roster",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "roster-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/session-invites/[id].tsx",
+      "route": "/session-invites/[id]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking-self-setting-service",
+        "child-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "invite",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/session-invites/create.tsx",
+      "route": "/session-invites/create",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/session-invites/group.tsx",
+      "route": "/session-invites/group",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/session-invites/index.tsx",
+      "route": "/session-invites",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking-self-setting-service",
+        "child-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "invite",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/session-notes/[bookingId].tsx",
+      "route": "/session-notes/[bookingId]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-07",
+      "verdict": "OPS-CORE",
+      "job": "delivery, attendance, completion, and feedback entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "progress-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/session/[id]/complete.tsx",
+      "route": "/session/[id]/complete",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-07",
+      "verdict": "OPS-CORE",
+      "job": "delivery, attendance, completion, and feedback entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "badge-service",
+        "booking-service",
+        "child-service",
+        "coach-session-seed-service",
+        "earnings",
+        "event-bus",
+        "group-session-service",
+        "media-service",
+        "notification-trigger",
+        "progress-service",
+        "progress/progress-feedback-service",
+        "progress/progress-position-service",
+        "progress/progress-skills-service",
+        "session-template-service",
+        "ui-feedback",
+        "user-service"
+      ],
+      "authorityEvidence": [
+        "group-session-api-authority",
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/session/[id]/rsvp.tsx",
+      "route": "/session/[id]/rsvp",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-07",
+      "verdict": "OPS-CORE",
+      "job": "delivery, attendance, completion, and feedback entry",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "group-session-service",
+        "rsvp-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [
+        "group-session-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/sessions/create.tsx",
+      "route": "/sessions/create",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "academy-service",
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "group-session-service",
+        "invite",
+        "recurring-booking-service",
+        "roster-service",
+        "ui-feedback",
+        "user-service"
+      ],
+      "authorityEvidence": [
+        "booking-series-api-authority",
+        "group-session-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/_layout.tsx",
+      "route": "/settings/_layout",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "app shell, providers, routing, and account/session frame",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/account.tsx",
+      "route": "/settings/account",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "account, communication, trust, and operating settings",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "ui-feedback",
+        "user-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/blocked-users.tsx",
+      "route": "/settings/blocked-users",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "account, communication, trust, and operating settings",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "block-service",
+        "ui-feedback",
+        "user-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/calendar-sync.tsx",
+      "route": "/settings/calendar-sync",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "account, communication, trust, and operating settings",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "booking-service",
+        "calendar-service",
+        "event",
+        "group-session-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/cancellation-policy.tsx",
+      "route": "/settings/cancellation-policy",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "account, communication, trust, and operating settings",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "money-hard-wall-check"
+      ],
+      "serviceImports": [
+        "scheduling-rules-service"
+      ],
+      "authorityEvidence": [
+        "scheduling-policy-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/coaching.tsx",
+      "route": "/settings/coaching",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "account, communication, trust, and operating settings",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "availability-service",
+        "coach-travel-service",
+        "scheduling-rules-service"
+      ],
+      "authorityEvidence": [
+        "scheduling-policy-api-authority"
+      ],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/help.tsx",
+      "route": "/settings/help",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "account, communication, trust, and operating settings",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/index.tsx",
+      "route": "/settings",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "account, communication, trust, and operating settings",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "booking-self-setting-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/notifications/_layout.tsx",
+      "route": "/settings/notifications/_layout",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "app shell, providers, routing, and account/session frame",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/notifications/index.tsx",
+      "route": "/settings/notifications",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "account, communication, trust, and operating settings",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/notifications/preferences.tsx",
+      "route": "/settings/notifications/preferences",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "account, communication, trust, and operating settings",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "notification-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/privacy-policy.tsx",
+      "route": "/settings/privacy-policy",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "account, communication, trust, and operating settings",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/privacy.tsx",
+      "route": "/settings/privacy",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "account, communication, trust, and operating settings",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "block-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "privacy-settings-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/terms.tsx",
+      "route": "/settings/terms",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "account, communication, trust, and operating settings",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/travel-radius.tsx",
+      "route": "/settings/travel-radius",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "job": "account, communication, trust, and operating settings",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "coach-travel-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/squads/[id]/invite.tsx",
+      "route": "/squads/[id]/invite",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "invite",
+        "squad-service",
+        "ui-feedback"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/verification/background.tsx",
+      "route": "/verification/background",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "job": "coach verification and trusted storefront readiness",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [
+        "stale-placeholder-check"
+      ],
+      "serviceImports": [
+        "verification-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/verification/credentials.tsx",
+      "route": "/verification/credentials",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "job": "coach verification and trusted storefront readiness",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "verification-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/verification/id.tsx",
+      "route": "/verification/id",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "job": "coach verification and trusted storefront readiness",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "verification-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/verification/index.tsx",
+      "route": "/verification",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "job": "coach verification and trusted storefront readiness",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "verification-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/verification/insurance.tsx",
+      "route": "/verification/insurance",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "job": "coach verification and trusted storefront readiness",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "ui-feedback",
+        "verification-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/videos/[id].tsx",
+      "route": "/videos/[id]",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-08",
+      "verdict": "DEVELOPMENT-CORE",
+      "job": "development proof, video, review, rebook, and next work",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "event-bus",
+        "ui-feedback",
+        "video-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/videos/upload.tsx",
+      "route": "/videos/upload",
+      "action": "keep",
+      "priority": "P3",
+      "pdos": "PDOS-08",
+      "verdict": "DEVELOPMENT-CORE",
+      "job": "development proof, video, review, rebook, and next work",
+      "reason": "Already classified as launch-compatible by the PDOS audit.",
+      "riskFlags": [],
+      "serviceImports": [
+        "event-bus",
+        "ui-feedback",
+        "video-service"
+      ],
+      "authorityEvidence": [],
+      "needsDecision": false,
+      "needsImplementation": false
+    }
+  ],
+  "queue": []
+}

@@ -2,15 +2,86 @@ import type { FastifyPluginAsync } from 'fastify';
 import { env } from '@clubroom/config';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { isPrivilegedAdminAuth } from '../../lib/authz.js';
-import { forbidden } from '../../lib/http-errors.js';
+import { forbidden, notFound } from '../../lib/http-errors.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
+import { openApiDocument } from '../../generated/openapi.js';
 type SeedRow = Record<string, unknown>;
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
 const asNumber = (value: unknown): number | undefined =>
   typeof value === 'number' ? value : undefined;
+const isOpenApiEnabled = () =>
+  process.env.NODE_ENV !== 'production' || process.env.API_OPENAPI_ENABLED === '1';
+function assertOpenApiEnabled() {
+  if (!isOpenApiEnabled()) {
+    throw notFound('API documentation is not enabled');
+  }
+}
+const swaggerDocsHtml = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Clubroom API Swagger</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css" />
+    <style>
+      body { margin: 0; background: #ffffff; }
+      .clubroom-docs-banner {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 12px 32px;
+        border-bottom: 1px solid #d9e2ec;
+        color: #102a43;
+        font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      .clubroom-docs-banner strong { font-weight: 700; }
+      #swagger-ui { min-height: 100vh; }
+    </style>
+  </head>
+  <body>
+    <div class="clubroom-docs-banner">
+      <strong>OpenAPI 3.1 rendered with Swagger UI.</strong>
+      Clubroom lifecycle effects are exposed as <code>x-clubroom-effect</code>
+      so HTTP DELETE routes can still document remove/archive/dismiss/revoke semantics.
+      Google AIP conformance is not claimed.
+    </div>
+    <div id="swagger-ui"></div>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script>
+      window.addEventListener('load', () => {
+        window.ui = SwaggerUIBundle({
+          url: '/v1/openapi.json',
+          dom_id: '#swagger-ui',
+          deepLinking: true,
+          persistAuthorization: true,
+        });
+      });
+    </script>
+  </body>
+</html>`;
+const swaggerDocsContentSecurityPolicy = [
+  "default-src 'none'",
+  "base-uri 'none'",
+  "form-action 'none'",
+  "frame-ancestors 'none'",
+  "connect-src 'self'",
+  "img-src data:",
+  "script-src https://cdn.jsdelivr.net 'unsafe-inline'",
+  "style-src https://cdn.jsdelivr.net 'unsafe-inline'",
+].join('; ');
 const metaRoutes: FastifyPluginAsync = async (app) => {
+  app.get('/openapi.json', async (_request, reply) => {
+    assertOpenApiEnabled();
+    return reply.type('application/json; charset=utf-8').send(openApiDocument);
+  });
+  app.get('/docs', async (_request, reply) => {
+    assertOpenApiEnabled();
+    return reply
+      .header('content-security-policy', swaggerDocsContentSecurityPolicy)
+      .type('text/html; charset=utf-8')
+      .send(swaggerDocsHtml);
+  });
   app.get('/meta/version', async () => ({
     service: 'clubroom-api',
     version: '0.1.0-scaffold',

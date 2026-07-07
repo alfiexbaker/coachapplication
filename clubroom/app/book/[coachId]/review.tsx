@@ -1,5 +1,6 @@
-import { useEffect, useState, startTransition } from 'react';
+import { useCallback, useEffect, useState, startTransition } from 'react';
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,7 +12,6 @@ import { ThemedText } from '@/components/themed-text';
 import {
   BookingTotalsCard,
   PaymentMethodCard,
-  PromoCodeCard,
 } from '@/components/ui/booking/review-payment-sections';
 import { CancellationPolicyCard } from '@/components/booking/cancellation-policy-card';
 import { EmptyState, ErrorState, SectionSkeleton } from '@/components/ui/screen-states';
@@ -22,8 +22,10 @@ import { useBookingFlow } from '@/context/booking-flow-context';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { bookingStepAnalyticsService } from '@/services/booking/booking-step-analytics-service';
+import { apiClient } from '@/services/api-client';
 import { coachService } from '@/services/coach-service';
 import type { Coach } from '@/services/coach-service';
+import { listPublicCoachOfferingsFromApi } from '@/services/coach-offering-api';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import type { CancellationPolicy, OrganizationCommercialMode } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
@@ -31,7 +33,11 @@ import { BOOKING_LOCATION_OPTIONS } from '@/constants/booking-flow';
 import { socialFeedService } from '@/services/social-feed-service';
 import { userService } from '@/services/user-service';
 import { hasAccountChildren } from '@/utils/booking-self-capability';
-import { getBookingRelationshipContext } from '@/utils/booking-display';
+import {
+  formatServiceTypeLabel,
+  getBookingRelationshipContext,
+  safeDisplayLabel,
+} from '@/utils/booking-display';
 
 const logger = createLogger('BookingReview');
 
@@ -40,22 +46,35 @@ interface ReviewLoadData {
   cancellationPolicy: CancellationPolicy;
 }
 
+function createPublicBookingCoachFallback(input: {
+  coachId: string;
+  coachName?: string;
+  minPrice?: number;
+}): Coach {
+  return {
+    id: input.coachId,
+    name: safeDisplayLabel(input.coachName, 'Coach'),
+    sports: ['Football'],
+    rating: 0,
+    reviewCount: 0,
+    minPrice: input.minPrice ?? 60,
+    totalSessions: 0,
+    badges: ['Bookable'],
+  };
+}
+
 export default function ReviewScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
   const { draft, updateDraft } = useBookingFlow();
   const { currentUser } = useAuth();
   const { children } = useChildContext();
-  const [promoCode, setPromoCode] = useState('');
-  const [promoApplied, setPromoApplied] = useState(false);
-  const [promoDiscount, setPromoDiscount] = useState(0);
-  const [promoError, setPromoError] = useState<string | null>(null);
   const [clubLabel, setClubLabel] = useState<string | null>(null);
   const [assigneeLabel, setAssigneeLabel] = useState<string | null>(null);
   const [commercialMode, setCommercialMode] = useState<OrganizationCommercialMode | null>(
     draft.commercialMode ?? null,
   );
 
-  const loadCoach = async () => {
+  const loadCoach = useCallback(async () => {
     if (!coachId) {
       return err(serviceError('UNKNOWN', 'Coach not provided for booking review.'));
     }
@@ -64,17 +83,39 @@ export default function ReviewScreen() {
         coachService.getCoach(coachId),
         schedulingRulesService.getCancellationPolicy(coachId),
       ]);
-      if (!coachResult.success) {
-        if (coachResult.error.code === 'NOT_FOUND') {
-          return ok<ReviewLoadData | null>(null);
-        }
-        return err(coachResult.error);
-      }
 
       const cancellationPolicy =
         policyResult.success && policyResult.data
           ? policyResult.data
           : schedulingRulesService.getDefaultCancellationPolicy();
+
+      if (!coachResult.success) {
+        if (coachResult.error.code !== 'NOT_FOUND') {
+          return err(coachResult.error);
+        }
+
+        if (apiClient.isMockMode) {
+          return ok<ReviewLoadData | null>(null);
+        }
+
+        const offeringsResult = await listPublicCoachOfferingsFromApi(
+          coachId,
+          new Date().toISOString(),
+        );
+        if (!offeringsResult.success && !draft.coachName) {
+          return ok<ReviewLoadData | null>(null);
+        }
+
+        const firstOffering = offeringsResult.success ? offeringsResult.data[0] : undefined;
+        return ok<ReviewLoadData | null>({
+          coach: createPublicBookingCoachFallback({
+            coachId,
+            coachName: draft.coachName,
+            minPrice: draft.price ?? firstOffering?.price,
+          }),
+          cancellationPolicy,
+        });
+      }
 
       return ok<ReviewLoadData | null>({
         coach: coachResult.data,
@@ -84,7 +125,7 @@ export default function ReviewScreen() {
       logger.error('Failed to load coach:', loadError);
       return err(serviceError('UNKNOWN', 'Failed to load coach details for review.', loadError));
     }
-  };
+  }, [coachId, draft.coachName, draft.price]);
 
   const {
     data,
@@ -139,7 +180,7 @@ export default function ReviewScreen() {
           updateDraft({ commercialMode: nextCommercialMode });
         }
       } else {
-        setClubLabel(draft.clubId ?? null);
+        setClubLabel(safeDisplayLabel(draft.clubId, 'Club session'));
         setCommercialMode('COACH_OWNED');
       }
     });
@@ -159,9 +200,9 @@ export default function ReviewScreen() {
     void userService.getUserById(draft.assigneeCoachId).then((result) => {
       if (cancelled) return;
       if (result.success) {
-        setAssigneeLabel(result.data.name?.trim() || draft.assigneeCoachId || null);
+        setAssigneeLabel(result.data.name?.trim() || safeDisplayLabel(draft.assigneeCoachId, 'Coach'));
       } else {
-        setAssigneeLabel(draft.assigneeCoachId ?? null);
+        setAssigneeLabel(safeDisplayLabel(draft.assigneeCoachId, 'Coach'));
       }
     });
     return () => {
@@ -170,8 +211,7 @@ export default function ReviewScreen() {
   }, [draft.assigneeCoachId]);
 
   const sessionPrice = draft.price ?? coach?.minPrice ?? 60;
-  const subtotal = sessionPrice;
-  const total = Math.max(0, subtotal - promoDiscount);
+  const total = sessionPrice;
   const locationSummary = (() => {
     const locationText = draft.locationText?.trim();
     if (!locationText) {
@@ -210,33 +250,6 @@ export default function ReviewScreen() {
     commercialMode,
   });
 
-  // Handle promo code application
-  const handleApplyPromo = () => {
-    setPromoError(null);
-    const code = promoCode.trim().toUpperCase();
-
-    // Demo promo codes
-    const promoCodes: Record<string, number> = {
-      FIRST10: 0.1, // 10% off
-      WELCOME20: 0.2, // 20% off
-      VIP50: 0.5, // 50% off
-    };
-
-    if (promoCodes[code]) {
-      const discount = Math.round(subtotal * promoCodes[code] * 100) / 100;
-      setPromoDiscount(discount);
-      setPromoApplied(true);
-    } else {
-      setPromoError('Invalid promo code');
-    }
-  };
-
-  const handleRemovePromo = () => {
-    setPromoCode('');
-    setPromoApplied(false);
-    setPromoDiscount(0);
-    setPromoError(null);
-  };
   const handleBack = () => {
     void bookingStepAnalyticsService.track({
       step: 'review',
@@ -296,31 +309,40 @@ export default function ReviewScreen() {
 
   if (status === 'error' && !coach) {
     return (
-      <View style={[styles.safeArea, { backgroundColor: palette.background }]}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: palette.background }]}
+        edges={['top', 'bottom']}
+      >
         <ErrorState
           message={error?.message ?? 'Failed to load booking review details.'}
           onRetry={retry}
         />
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (status === 'empty') {
     return (
-      <View style={[styles.safeArea, { backgroundColor: palette.background }]}>
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: palette.background }]}
+        edges={['top', 'bottom']}
+      >
         <EmptyState
           icon="person-outline"
-          title="Coach unavailable"
-          message="We could not load this coach's profile for review. Go back and choose another coach."
+          title="Booking details unavailable"
+          message="We could not load enough live booking details to review this request. Go back and choose the session again."
           actionLabel="Go back"
           onPressAction={() => router.back()}
         />
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={[styles.safeArea, { backgroundColor: palette.background }]}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
@@ -355,7 +377,10 @@ export default function ReviewScreen() {
               <SummaryRow label="Time" value={reviewTimeLabel} />
               <SummaryRow
                 label="Session"
-                value={draft.sessionTypeLabel || draft.sessionType || 'Select type'}
+                value={
+                  draft.sessionTypeLabel ||
+                  (draft.sessionType ? formatServiceTypeLabel(draft.sessionType) : 'Select type')
+                }
               />
               <SummaryRow label="Duration" value={`${draft.duration || 60} mins`} />
               <SummaryRow label="Location" value={locationSummary} />
@@ -371,16 +396,6 @@ export default function ReviewScreen() {
               paymentMethod={relationshipContext.paymentSummary}
             />
 
-            <PromoCodeCard
-              colors={palette}
-              promoCode={promoCode}
-              promoApplied={promoApplied}
-              promoError={promoError}
-              onPromoCodeChange={setPromoCode}
-              onApplyPromo={handleApplyPromo}
-              onRemovePromo={handleRemovePromo}
-            />
-
             {coach && cancellationPolicy ? (
               <>
                 <CancellationPolicyCard coachId={coach.id} policy={cancellationPolicy} />
@@ -394,7 +409,6 @@ export default function ReviewScreen() {
             <BookingTotalsCard
               colors={palette}
               sessionPrice={sessionPrice}
-              promoDiscount={promoDiscount}
               total={total}
             />
             {!hasRequiredDraft ? (
@@ -424,19 +438,17 @@ export default function ReviewScreen() {
         >
           <Row justify="center" align="center" gap="sm">
             <Ionicons
-              name={promoApplied ? 'checkmark-circle' : 'receipt-outline'}
+              name="receipt-outline"
               size={18}
               color={palette.onPrimary}
             />
             <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
-              {promoApplied
-                ? `Confirm booking (£${total.toFixed(2)})`
-                : `Continue to confirmation (£${total.toFixed(2)})`}
+              Continue to confirmation (£{total.toFixed(2)})
             </ThemedText>
           </Row>
         </Clickable>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

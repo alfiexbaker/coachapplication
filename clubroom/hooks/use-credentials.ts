@@ -6,10 +6,11 @@
  */
 
 import { useState } from 'react';
+import * as DocumentPicker from 'expo-document-picker';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
-import { verificationService } from '@/services/verification-service';
+import { verificationService, type VerificationDocumentUploadInput } from '@/services/verification-service';
 import type { VerificationStatus } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { err, serviceError, type ServiceError } from '@/types/result';
@@ -58,7 +59,7 @@ export function useCredentials() {
   const [showForm, setShowForm] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [customName, setCustomName] = useState('');
-  const [uploaded, setUploaded] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<VerificationDocumentUploadInput | null>(null);
 
   const loadStatus = async () => {
     if (!coachId) {
@@ -89,13 +90,32 @@ export function useCredentials() {
   });
 
   const loading = screenStatus === 'loading';
+  const uploaded = Boolean(selectedDocument);
 
   const handleUpload = async () => {
-    setUploaded(true);
+    if (!selectedType) return;
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ['application/pdf', 'image/*'],
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
+    const credentialLabel =
+      selectedType === 'other'
+        ? customName || 'Other Qualification'
+        : CREDENTIAL_TYPES.find((t) => t.id === selectedType)?.label || 'Credential';
+    setSelectedDocument({
+      uri: asset.uri,
+      fileName: asset.name || `credential-${selectedType}`,
+      contentType: asset.mimeType,
+      sizeBytes: asset.size,
+      label: credentialLabel,
+    });
   };
 
   const handleSubmit = async () => {
-    if (!selectedType || !uploaded || !coachId) return;
+    if (!selectedType || !selectedDocument || !coachId) return;
 
     const credentialLabel =
       selectedType === 'other'
@@ -107,7 +127,7 @@ export function useCredentials() {
     await runAsyncTryCatchFinally(async () => {
       const result = await verificationService.submitCredential(
         coachId,
-        `mock://credential-${selectedType}.pdf`,
+        selectedDocument,
         credentialLabel,
       );
       if (result.success) {
@@ -115,7 +135,7 @@ export function useCredentials() {
         setShowForm(false);
         setSelectedType(null);
         setCustomName('');
-        setUploaded(false);
+        setSelectedDocument(null);
       } else {
         logger.error('Failed to submit credential:', result.error);
       }
@@ -130,7 +150,7 @@ export function useCredentials() {
     setShowForm(false);
     setSelectedType(null);
     setCustomName('');
-    setUploaded(false);
+    setSelectedDocument(null);
   };
 
   const credentials = status?.credentials ?? [];
@@ -152,11 +172,16 @@ export function useCredentials() {
     customName,
     uploaded,
     setShowForm,
-    setSelectedType,
+    setSelectedType: (value: string | null) => {
+      setSelectedType(value);
+      setSelectedDocument(null);
+    },
     setCustomName,
     handleUpload,
     handleSubmit,
     resetForm,
-    setUploaded,
+    setUploaded: (value: boolean) => {
+      if (!value) setSelectedDocument(null);
+    },
   } satisfies UseCredentialsResult;
 }

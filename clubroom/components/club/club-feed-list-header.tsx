@@ -38,7 +38,9 @@ export const ClubFeedListHeader = function ClubFeedListHeader({
         />
       </View>
 
-      {hub.canRemoveMembers && <ClubAdminActions clubId={hub.membership!.clubId} />}
+      {hub.canRemoveMembers && (
+        <ClubAdminActions clubId={hub.membership!.clubId} viewerRole={hub.membership!.role} />
+      )}
 
       <ClubActivitiesPanel
         activities={hub.clubActivities}

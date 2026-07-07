@@ -153,6 +153,9 @@ export interface PentagonData {
 // ─── Media ───
 
 export interface PhotoAsset {
+  id?: string;
+  mediaObjectId?: string;
+  thumbnailMediaObjectId?: string;
   uri: string;
   thumbnailUri: string;
   width: number;
@@ -161,6 +164,9 @@ export interface PhotoAsset {
 }
 
 export interface VideoAsset {
+  id?: string;
+  mediaObjectId?: string;
+  thumbnailMediaObjectId?: string;
   uri: string;
   thumbnailUri: string;
   duration: number; // seconds

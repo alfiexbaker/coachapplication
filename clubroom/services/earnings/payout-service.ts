@@ -865,6 +865,10 @@ export const payoutService = {
    * Reset payout data to mock data
    */
   async resetToMockData(): Promise<void> {
+    if (!USE_MOCK) {
+      logger.warn('Skipped payout mock reset outside mock mode');
+      return;
+    }
     await savePayoutMethods([...MOCK_PAYOUT_METHODS]);
     await saveWithdrawals([...MOCK_WITHDRAWALS]);
     payoutMethodsCache = [...MOCK_PAYOUT_METHODS];

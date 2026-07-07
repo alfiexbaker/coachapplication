@@ -51,6 +51,13 @@ export async function upsertCompletedBookingSessions(
     return ok([]);
   }
 
+  if (!apiClient.isMockMode) {
+    logger.info('Skipping completed booking local session ingestion in API mode', {
+      bookingId: booking.id,
+    });
+    return ok([]);
+  }
+
   const athleteIds = resolveAthleteIds(booking);
   if (athleteIds.length === 0) {
     logger.warn('Skipping completed booking attendance ingestion: no athletes found', {

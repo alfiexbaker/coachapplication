@@ -37,6 +37,21 @@ const logger = createLogger("InvoiceService");
 // Default tax rate for UK VAT
 const DEFAULT_TAX_RATE = 20;
 
+export type ManualReceiptMethod = "cash" | "bank_transfer" | "other";
+
+export interface ManualPaymentReceiptInput {
+  method?: ManualReceiptMethod;
+  amountMinor?: number;
+  receivedAt?: string;
+  reference?: string;
+  evidenceMediaId?: string;
+  note?: string;
+}
+
+export interface MarkInvoicePaidOptions {
+  manualReceipt?: ManualPaymentReceiptInput;
+}
+
 // ============================================================================
 // MOCK DATA
 // ============================================================================
@@ -335,6 +350,34 @@ class InvoiceService {
   isUsingMockData(): boolean {
     return USE_MOCK;
   }
+  private buildInvoiceListParams(
+    filter?: InvoiceFilter,
+    options: { includeCoachId?: boolean } = {},
+  ): URLSearchParams {
+    const params = new URLSearchParams();
+    const includeCoachId = options.includeCoachId !== false;
+    if (filter?.status) {
+      const statuses = Array.isArray(filter.status)
+        ? filter.status
+        : [filter.status];
+      if (statuses.length > 0) {
+        params.set("status", statuses.join(","));
+      }
+    }
+    if (includeCoachId && filter?.coachId) {
+      params.set("coachId", filter.coachId);
+    }
+    if (filter?.bookingId) {
+      params.set("bookingId", filter.bookingId);
+    }
+    if (filter?.dateFrom) {
+      params.set("dateFrom", filter.dateFrom);
+    }
+    if (filter?.dateTo) {
+      params.set("dateTo", filter.dateTo);
+    }
+    return params;
+  }
   private buildInvoiceSummary(
     userId: string,
     invoices: Invoice[],
@@ -362,29 +405,26 @@ class InvoiceService {
   private async getAuthoritativeInvoices(
     filter?: InvoiceFilter,
   ): Promise<Invoice[]> {
-    const params = new URLSearchParams();
-    if (filter?.status) {
-      const statuses = Array.isArray(filter.status)
-        ? filter.status
-        : [filter.status];
-      if (statuses.length > 0) {
-        params.set("status", statuses.join(","));
-      }
-    }
-    if (filter?.coachId) {
-      params.set("coachId", filter.coachId);
-    }
-    if (filter?.bookingId) {
-      params.set("bookingId", filter.bookingId);
-    }
-    if (filter?.dateFrom) {
-      params.set("dateFrom", filter.dateFrom);
-    }
-    if (filter?.dateTo) {
-      params.set("dateTo", filter.dateTo);
-    }
+    const params = this.buildInvoiceListParams(filter);
     const result = await apiFetch<ApiInvoiceListResponse>(
       `/v1/invoices${params.size ? `?${params.toString()}` : ""}`,
+      {
+        method: "GET",
+      },
+    );
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return result.data.invoices;
+  }
+  private async getAuthoritativeCoachInvoices(
+    filter?: InvoiceFilter,
+  ): Promise<Invoice[]> {
+    const params = this.buildInvoiceListParams(filter, {
+      includeCoachId: false,
+    });
+    const result = await apiFetch<ApiInvoiceListResponse>(
+      `/v1/coaches/me/invoices${params.size ? `?${params.toString()}` : ""}`,
       {
         method: "GET",
       },
@@ -476,7 +516,10 @@ class InvoiceService {
     limit?: number,
   ): Promise<Invoice[]> {
     if (!USE_MOCK) {
-      const invoices = await this.getAuthoritativeInvoices(filter);
+      const invoices =
+        filter.coachId === userId
+          ? await this.getAuthoritativeCoachInvoices(filter)
+          : await this.getAuthoritativeInvoices(filter);
       return limit && limit > 0 ? invoices.slice(0, limit) : invoices;
     }
     let invoices = await this.getUserInvoices(userId);
@@ -858,11 +901,15 @@ class InvoiceService {
   /**
    * Mark invoice as paid
    */
-  async markAsPaid(invoiceId: string): Promise<Invoice | null> {
+  async markAsPaid(
+    invoiceId: string,
+    options?: MarkInvoicePaidOptions,
+  ): Promise<Invoice | null> {
     if (!USE_MOCK) {
       const invoice = await this.runInvoiceTransition(
         invoiceId,
         `/v1/invoices/${invoiceId}/mark-paid`,
+        options?.manualReceipt ? { manualReceipt: options.manualReceipt } : undefined,
       );
       if (invoice) {
         emitTyped(ServiceEvents.INVOICE_PAID, {

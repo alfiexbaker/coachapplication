@@ -1,14 +1,14 @@
 import type { Booking } from '@/constants/app-types';
-import { apiClient } from '@/services/api-client';
-import { notificationTriggers } from '@/services/notification-trigger';
+import { api } from '@/constants/config';
+import { apiClient, apiFetch } from '@/services/api-client';
 import {
-  err,
-  ok,
-  storageError,
-  unsupportedError,
-  type Result,
-  type ServiceError,
-} from '@/types/result';
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+  toApiAthleteId,
+} from '@/services/api-auth-context';
+import { notificationTriggers } from '@/services/notification-trigger';
+import { err, ok, storageError, type Result, type ServiceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('ProgressSelfAssessmentService');
@@ -63,31 +63,56 @@ function clampRatingOneToFive(value: number): number {
 let mockPromptsStore: SelfAssessmentPrompt[] = [];
 let mockEntriesStore: SelfAssessmentEntry[] = [];
 
+interface ApiSelfAssessmentPromptsResponse {
+  prompt: SelfAssessmentPrompt | null;
+  prompts: SelfAssessmentPrompt[];
+}
+
+interface ApiSelfAssessmentEntriesResponse {
+  entries: SelfAssessmentEntry[];
+}
+
+interface ApiSelfAssessmentMutationResponse {
+  entry: SelfAssessmentEntry;
+  prompt: SelfAssessmentPrompt | null;
+}
+
+interface ApiSelfAssessmentDispatchResponse {
+  dispatched: boolean;
+  prompt: SelfAssessmentPrompt;
+}
+
+function isApiMode(): boolean {
+  return !api.useMock;
+}
+
+async function resolveSelfAssessmentApiAccess(
+  athleteId: string,
+): Promise<Result<{ apiAthleteId: string; headers: Record<string, string> }, ServiceError>> {
+  const currentUserResult = await resolveSignedInApiUser('Sign in to use self-assessments.');
+  if (!currentUserResult.success) {
+    return err(currentUserResult.error);
+  }
+  const currentUser = currentUserResult.data;
+  const apiAthleteId = toApiAthleteId(athleteId);
+  const actingRole = deriveApiActingRole(currentUser);
+  return ok({
+    apiAthleteId,
+    headers: buildApiAuthHeaders({
+      actingRole,
+      coachAthleteIds: actingRole === 'coach' ? [apiAthleteId] : undefined,
+      guardianAthleteIds: actingRole === 'parent' ? [apiAthleteId] : undefined,
+      coachVerified: actingRole === 'coach' && currentUser.isVerified,
+    }),
+  });
+}
+
 function clonePrompt(prompt: SelfAssessmentPrompt): SelfAssessmentPrompt {
   return { ...prompt };
 }
 
 function cloneEntry(entry: SelfAssessmentEntry): SelfAssessmentEntry {
   return { ...entry };
-}
-
-function selfAssessmentUnsupportedError(action: string): ServiceError {
-  return unsupportedError(
-    `${action} needs a /v1 self-assessment API before it can run in API mode.`,
-  );
-}
-
-function logUnsupported(action: string, details?: unknown): void {
-  logger.warn('Self-assessment API unavailable in live API mode', {
-    action,
-    details,
-    requiredRoutes: [
-      'GET /v1/athletes/:athleteId/self-assessments',
-      'POST /v1/self-assessments',
-      'GET /v1/me/self-assessment-prompts',
-      'POST /v1/self-assessment-prompts/:promptId/dispatch',
-    ],
-  });
 }
 
 function resolveAthletePairs(booking: Booking): Array<{ athleteId: string; athleteName: string }> {
@@ -141,9 +166,26 @@ async function schedulePromptsForCompletedBooking(
   if (booking.status !== 'COMPLETED') {
     return ok([]);
   }
-  if (!apiClient.isMockMode) {
-    logUnsupported('Self-assessment prompt scheduling', { bookingId: booking.id });
-    return ok([]);
+  if (isApiMode()) {
+    const prompts: SelfAssessmentPrompt[] = [];
+    for (const athlete of resolveAthletePairs(booking)) {
+      const access = await resolveSelfAssessmentApiAccess(athlete.athleteId);
+      if (!access.success) {
+        return err(access.error);
+      }
+      const result = await apiFetch<ApiSelfAssessmentPromptsResponse>(
+        `/v1/me/self-assessment-prompts?athleteId=${encodeURIComponent(access.data.apiAthleteId)}`,
+        {
+          method: 'GET',
+          headers: access.data.headers,
+        },
+      );
+      if (!result.success) {
+        return err(result.error);
+      }
+      prompts.push(...result.data.prompts.filter((prompt) => prompt.bookingId === booking.id));
+    }
+    return ok(prompts);
   }
 
   try {
@@ -192,9 +234,41 @@ async function schedulePromptsForCompletedBooking(
 }
 
 async function dispatchDuePrompts(athleteId?: string): Promise<Result<number, ServiceError>> {
-  if (!apiClient.isMockMode) {
-    logUnsupported('Self-assessment prompt dispatch', { athleteId });
-    return ok(0);
+  if (isApiMode()) {
+    if (!athleteId) {
+      return ok(0);
+    }
+    const access = await resolveSelfAssessmentApiAccess(athleteId);
+    if (!access.success) {
+      return err(access.error);
+    }
+    const promptResult = await apiFetch<ApiSelfAssessmentPromptsResponse>(
+      `/v1/me/self-assessment-prompts?athleteId=${encodeURIComponent(access.data.apiAthleteId)}`,
+      {
+        method: 'GET',
+        headers: access.data.headers,
+      },
+    );
+    if (!promptResult.success) {
+      return err(promptResult.error);
+    }
+    let dispatched = 0;
+    for (const prompt of promptResult.data.prompts.filter((item) => !item.notificationSentAt)) {
+      const dispatchResult = await apiFetch<ApiSelfAssessmentDispatchResponse>(
+        `/v1/self-assessment-prompts/${encodeURIComponent(prompt.id)}/dispatch`,
+        {
+          method: 'POST',
+          headers: access.data.headers,
+        },
+      );
+      if (!dispatchResult.success) {
+        return err(dispatchResult.error);
+      }
+      if (dispatchResult.data.dispatched) {
+        dispatched += 1;
+      }
+    }
+    return ok(dispatched);
   }
 
   try {
@@ -244,9 +318,24 @@ async function getPendingPromptForAthlete(athleteId: string): Promise<SelfAssess
   if (!athleteId) {
     return null;
   }
-  if (!apiClient.isMockMode) {
-    logUnsupported('Self-assessment prompt read', { athleteId });
-    return null;
+  if (isApiMode()) {
+    const access = await resolveSelfAssessmentApiAccess(athleteId);
+    if (!access.success) {
+      logger.warn('self_assessment_prompt_api_access_denied', { athleteId, error: access.error });
+      return null;
+    }
+    const result = await apiFetch<ApiSelfAssessmentPromptsResponse>(
+      `/v1/me/self-assessment-prompts?athleteId=${encodeURIComponent(access.data.apiAthleteId)}`,
+      {
+        method: 'GET',
+        headers: access.data.headers,
+      },
+    );
+    if (!result.success) {
+      logger.error('self_assessment_prompt_api_read_failed', { athleteId, error: result.error });
+      return null;
+    }
+    return result.data.prompt;
   }
 
   const prompts = await getPrompts();
@@ -274,9 +363,24 @@ async function listAssessmentsForAthlete(athleteId: string): Promise<SelfAssessm
   if (!athleteId) {
     return [];
   }
-  if (!apiClient.isMockMode) {
-    logUnsupported('Self-assessment list read', { athleteId });
-    return [];
+  if (isApiMode()) {
+    const access = await resolveSelfAssessmentApiAccess(athleteId);
+    if (!access.success) {
+      logger.warn('self_assessment_api_access_denied', { athleteId, error: access.error });
+      return [];
+    }
+    const result = await apiFetch<ApiSelfAssessmentEntriesResponse>(
+      `/v1/athletes/${encodeURIComponent(access.data.apiAthleteId)}/self-assessments?limit=100`,
+      {
+        method: 'GET',
+        headers: access.data.headers,
+      },
+    );
+    if (!result.success) {
+      logger.error('self_assessment_api_list_failed', { athleteId, error: result.error });
+      return [];
+    }
+    return result.data.entries;
   }
 
   const entries = await getEntries();
@@ -290,13 +394,29 @@ async function listAssessmentsForAthlete(athleteId: string): Promise<SelfAssessm
 async function submitAssessment(
   input: SubmitSelfAssessmentInput,
 ): Promise<Result<SelfAssessmentEntry, ServiceError>> {
-  if (!apiClient.isMockMode) {
-    logUnsupported('Self-assessment submission', {
-      athleteId: input.athleteId,
-      bookingId: input.bookingId,
-      sessionId: input.sessionId,
+  if (isApiMode()) {
+    const access = await resolveSelfAssessmentApiAccess(input.athleteId);
+    if (!access.success) {
+      return err(access.error);
+    }
+    const result = await apiFetch<ApiSelfAssessmentMutationResponse>('/v1/self-assessments', {
+      method: 'POST',
+      headers: access.data.headers,
+      body: JSON.stringify({
+        athleteId: access.data.apiAthleteId,
+        coachId: input.coachId,
+        bookingId: input.bookingId,
+        sessionId: input.sessionId,
+        mood: clampRatingOneToFive(input.mood),
+        energyLevel: clampRatingOneToFive(input.energyLevel),
+        confidence: clampRatingOneToFive(input.confidence),
+        ...(input.notes?.trim() ? { notes: input.notes.trim() } : {}),
+      }),
     });
-    return err(selfAssessmentUnsupportedError('Self-assessment submission'));
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(result.data.entry);
   }
 
   try {

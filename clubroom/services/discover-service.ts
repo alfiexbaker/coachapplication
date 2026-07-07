@@ -23,7 +23,11 @@ import type {
 import type { SessionOffering } from "@/constants/session-types";
 import type { CoachDirectoryEntry } from "@/constants/relational-demo-seeds";
 import { apiClient } from "./api-client";
-import { listPublicCoachOfferingIndexFromApi } from "@/services/coach-offering-api";
+import {
+  listPublicCoachOfferingIndexFromApi,
+  type ApiPublicCoachProfile,
+  type SessionOfferingWithCoachProfile,
+} from "@/services/coach-offering-api";
 import { STORAGE_KEYS } from "@/constants/storage-keys";
 import { coachTravelService } from "@/services/coach-travel-service";
 import { getSessionOfferingHeadcount } from "@/utils/session-offering-capacity";
@@ -611,6 +615,135 @@ function buildCoachOfferingSummaryMap(
   }
   return summaries;
 }
+
+function toPricePounds(value: number | null | undefined): number | undefined {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.round(value / 100)
+    : undefined;
+}
+
+function mapQualificationLabels(
+  coachId: string,
+  qualifications: string[] | undefined,
+): CoachProfile["certifications"] {
+  return (qualifications ?? []).map((name, index) => ({
+    id: `qual_${coachId}_${index}`,
+    name,
+    issuer: "",
+    issueDate: "",
+  }));
+}
+
+function mapOfferingIndexToCoachProfiles(
+  offerings: SessionOfferingWithCoachProfile[],
+): CoachProfile[] {
+  const offeringsByCoachId = new Map<string, SessionOfferingWithCoachProfile[]>();
+  for (const offering of offerings) {
+    if (!offering.coachId || offering.status !== "active") {
+      continue;
+    }
+    const current = offeringsByCoachId.get(offering.coachId) ?? [];
+    current.push(offering);
+    offeringsByCoachId.set(offering.coachId, current);
+  }
+
+  const summaryByCoachId = buildCoachOfferingSummaryMap(offerings);
+  return Array.from(offeringsByCoachId.entries()).flatMap(
+    ([coachId, coachOfferings]) => {
+      const summary = summaryByCoachId.get(coachId);
+      if (!summary || summary.bookableCount <= 0) {
+        return [];
+      }
+      const profile: ApiPublicCoachProfile | undefined = coachOfferings.find(
+        (offering) => offering.coachProfile,
+      )?.coachProfile;
+
+      const prices = coachOfferings.flatMap((offering) =>
+        typeof offering.price === "number" && Number.isFinite(offering.price)
+          ? [offering.price]
+          : [],
+      );
+      const profileMinPrice = toPricePounds(profile?.sessionRateMinor);
+      const profileMaxPrice = toPricePounds(profile?.priceMaxMinor);
+      const minPrice = profileMinPrice ?? summary.minPrice ?? (prices.length > 0 ? Math.min(...prices) : 0);
+      const maxPrice =
+        profileMaxPrice ?? summary.maxPrice ?? (prices.length > 0 ? Math.max(...prices) : minPrice);
+      const sessionFormats: TrainingFormat[] =
+        summary.formats.size > 0 ? Array.from(summary.formats) : ["In-person"];
+      const titles = coachOfferings
+        .map((offering) => `${offering.title} ${offering.description ?? ""}`)
+        .join(" ");
+      const profileBio = profile?.bio?.trim() || "";
+      const displayName =
+        profile?.displayName?.trim() || `Coach ${coachId.replace(/^usr_/, "")}`;
+      const languages =
+        profile?.languages && profile.languages.length > 0
+          ? profile.languages
+          : [
+              {
+                id: "en",
+                name: "English",
+                proficiency: "Native" as const,
+              },
+            ];
+
+      return [
+        {
+          id: coachId,
+          fullName: displayName,
+          primarySport: "Football",
+          sports: ["Football"],
+          city: "London",
+          state: "England",
+          distanceMiles: 0,
+          rating: {
+            average: 0,
+            reviewCount: 0,
+          },
+          priceRange: {
+            min: minPrice,
+            max: maxPrice,
+            unitLabel: "per session",
+          },
+          sessionRate: minPrice,
+          nextAvailability:
+            summary.nextAvailability ?? coachOfferings[0]?.scheduledAt ?? new Date().toISOString(),
+          badges: [],
+          sessionFormats,
+          travelRadius: profile?.travelRadiusMiles,
+          acceptsTravelSessions:
+            profile?.acceptsTravelSessions ?? sessionFormats.includes("In-person"),
+          acceptsRemoteSessions:
+            profile?.acceptsRemoteSessions ?? sessionFormats.includes("Virtual"),
+          shortBio:
+            profileBio || "This coach has live API-backed offerings.",
+          profilePhotoUrl: "",
+          footballFocuses: normalizeCoachFocuses([
+            ...(profile?.specialties ?? []),
+            ...titles.split(/\s+/),
+          ]),
+          location: {
+            lat: DISCOVER_DEFAULT_LOCATION.lat,
+            lng: DISCOVER_DEFAULT_LOCATION.lng,
+          },
+          bio: profileBio || undefined,
+          website: profile?.website ?? undefined,
+          joinedDate: new Date().toISOString(),
+          totalSessions: 0,
+          experiences: profile?.experiences ?? [],
+          certifications: mapQualificationLabels(coachId, profile?.qualifications),
+          posts: [],
+          photoGallery: [],
+          videoGallery: [],
+          languages,
+          achievements: [],
+          socialLinks: profile?.socialLinks ?? {},
+        },
+      ];
+    },
+  );
+}
+
 function mapBadgeTone(label: string): "success" | "warning" | "default" {
   const lower = label.toLowerCase();
   if (lower.includes("premium")) return "warning";
@@ -707,8 +840,11 @@ function mapDirectoryCoachToProfile(
   };
 }
 class DiscoverService {
-  private coaches: CoachProfile[] = MOCK_DISCOVERY_COACHES;
-  private forceMockData = process.env.NODE_ENV === "test";
+  private coaches: CoachProfile[] = apiClient.isMockMode
+    ? MOCK_DISCOVERY_COACHES
+    : [];
+  private forceMockData =
+    process.env.NODE_ENV === "test" && apiClient.isMockMode;
   private lastHydratedAt = 0;
   private hydrationInFlight: Promise<void> | null = null;
   private readonly hydrationTtlMs = 15_000;
@@ -739,16 +875,27 @@ class DiscoverService {
         throw offeringsResult.error;
       }
       const offerings = offeringsResult.data;
+      if (!apiClient.isMockMode) {
+        this.coaches = mapOfferingIndexToCoachProfiles(offerings);
+        logger.info("discover_api_dataset_loaded", {
+          coachCount: this.coaches.length,
+          offerings: offerings.length,
+        });
+        return;
+      }
+
       const [directory, travelSettings] = await Promise.all([
         apiClient.get<CoachDirectoryEntry[]>(COACH_DIRECTORY_KEY, []),
-        apiClient.get<
-          Array<{
-            coachId: string;
-            radiusMiles: number;
-            acceptsTravelSessions: boolean;
-            acceptsRemoteSessions: boolean;
-          }>
-        >(STORAGE_KEYS.COACH_TRAVEL_SETTINGS, []),
+        apiClient.isMockMode
+          ? apiClient.get<
+              Array<{
+                coachId: string;
+                radiusMiles: number;
+                acceptsTravelSessions: boolean;
+                acceptsRemoteSessions: boolean;
+              }>
+            >(STORAGE_KEYS.COACH_TRAVEL_SETTINGS, [])
+          : Promise.resolve([]),
       ]);
       if (directory.length === 0) {
         return;

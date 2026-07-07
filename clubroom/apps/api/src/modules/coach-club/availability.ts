@@ -304,10 +304,12 @@ function getBookingBusyWindows(params: {
   coachUserId: string;
   rangeStart: Date;
   rangeEnd: Date;
+  excludeBookingId?: string;
 }): BusyWindow[] {
   return getActiveRows(asRows(params.tables.bookings)).flatMap((item) =>
     ((row) =>
       asString(row.coachUserId) === params.coachUserId &&
+      asString(row.id) !== params.excludeBookingId &&
       (asString(row.status) ?? '').toUpperCase() !== 'CANCELLED')(item)
       ? ((row) => {
           const mapped = (() => {
@@ -516,6 +518,7 @@ export function resolveCoachAvailabilitySlots(params: {
   endDate: string;
   durationMinutes: number;
   sessionTemplateId?: string;
+  excludeBookingId?: string;
   excludePendingInvites?: boolean;
   applySchedulingRules?: boolean;
   now?: Date;
@@ -534,6 +537,7 @@ export function resolveCoachAvailabilitySlots(params: {
     coachUserId: params.coachUserId,
     rangeStart: range.startsAt,
     rangeEnd: range.endsAt,
+    excludeBookingId: params.excludeBookingId,
   });
   const groupSessionWindows = getGroupSessionBusyWindows({
     tables: params.tables,
@@ -686,6 +690,7 @@ export function assertCoachAvailabilitySlotOpen(params: {
   scheduledAt: string;
   durationMinutes: number;
   sessionTemplateId?: string;
+  excludeBookingId?: string;
   excludePendingInvites?: boolean;
   applySchedulingRules?: boolean;
   now?: Date;
@@ -701,6 +706,7 @@ export function assertCoachAvailabilitySlotOpen(params: {
     endDate: date,
     durationMinutes: params.durationMinutes,
     sessionTemplateId: params.sessionTemplateId,
+    excludeBookingId: params.excludeBookingId,
     excludePendingInvites: params.excludePendingInvites,
     applySchedulingRules: params.applySchedulingRules,
     now: params.now,

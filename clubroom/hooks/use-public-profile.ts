@@ -104,6 +104,10 @@ interface PublicProfileData {
   sessionOfferings: SessionOffering[];
 }
 
+function isLegacyCoachProfileId(coachId: string | undefined): boolean {
+  return Boolean(coachId?.startsWith('coach-'));
+}
+
 export function usePublicProfile(coachId: string) {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<ProfileTabId>('about');
@@ -119,7 +123,8 @@ export function usePublicProfile(coachId: string) {
     }
 
     try {
-      const offeringsResultPromise = apiClient.isMockMode
+      const shouldUseLocalOfferings = apiClient.isMockMode;
+      const offeringsResultPromise = shouldUseLocalOfferings
         ? apiClient
             .get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, [])
             .then((offerings) => ok(getCoachProfileOfferings(offerings, coachId)))
@@ -186,7 +191,7 @@ export function usePublicProfile(coachId: string) {
   const offeringSummary = summarizeCoachOfferings(sessionOfferings);
   const blockedStatus = useScreen<boolean>({
     load: async () => {
-      if (!coachId || !currentUser?.id) {
+      if (!coachId || !currentUser?.id || isLegacyCoachProfileId(coachId)) {
         return ok(false);
       }
       return blockService.isBlocked(currentUser.id, coachId);

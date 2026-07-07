@@ -1,11 +1,12 @@
 /**
- * Seen Service — Tracks read/seen status for messages and other entities.
+ * Seen Service — Tracks local UI dismissal state.
  *
- * Provides WhatsApp-style read receipts for messages, notifications, etc.
+ * API-mode product read receipts and notifications are server-owned. This
+ * service is currently limited to device-local walkthrough visibility state.
  *
  * Usage:
  *   import { seenService } from './seen-service';
- *   await seenService.markSeen('message', messageId, userId);
+ *   await seenService.markSeen('demo_walkthrough', walkthroughId, userId);
  */
 
 import { apiClient } from "./api-client";
@@ -27,7 +28,7 @@ interface SeenEntry {
 }
 export const seenService = {
   /**
-   * Mark an entity (message, notification, etc.) as seen by a user.
+   * Mark a local UI entity as seen by a user.
    */
   async markSeen(
     entityType: string,

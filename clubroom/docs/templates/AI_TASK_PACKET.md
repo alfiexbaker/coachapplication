@@ -30,21 +30,21 @@ Required read path:
 
 Task-specific deep source:
 
-- 
+- TBD
 
 Current runtime truth being relied on:
 
-- 
+- TBD
 
 ## Scope
 
 Files likely involved:
 
-- 
+- TBD
 
 Explicitly out of scope:
 
-- 
+- TBD
 
 ## Constraints
 
@@ -60,23 +60,23 @@ Architecture and product rules that must hold:
 
 Additional constraints:
 
-- 
+- TBD
 
 ## Trust And Permission Risks
 
 Sensitive data or roles touched:
 
-- 
+- TBD
 
 Deny paths or audit events required:
 
-- 
+- TBD
 
 ## Plan
 
-1. 
-2. 
-3. 
+1. TBD
+2. TBD
+3. TBD
 
 ## Validation
 
@@ -88,7 +88,7 @@ npm run verify:slice
 
 Additional targeted checks:
 
-- 
+- TBD
 
 ## AI Self-Review
 

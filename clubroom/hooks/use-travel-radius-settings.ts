@@ -18,6 +18,7 @@ export function useTravelRadiusSettings() {
   const [settings, setSettings] = useState<CoachTravelSettings | null>(null);
   const [saving, setSaving] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const canSave = coachTravelService.canSaveTravelSettings();
 
   const load = async () => {
     if (!coachId) {
@@ -43,6 +44,10 @@ export function useTravelRadiusSettings() {
   }, [data]);
 
   const update = <K extends keyof CoachTravelSettings>(key: K, value: CoachTravelSettings[K]) => {
+    if (!canSave) {
+      return;
+    }
+
     setSettings((previous) => {
       if (!previous) return previous;
       const next = { ...previous, [key]: value };
@@ -78,6 +83,7 @@ export function useTravelRadiusSettings() {
     onRefresh,
     retry,
     saving,
+    canSave,
     update,
   };
 }

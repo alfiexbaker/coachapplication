@@ -10,9 +10,10 @@ type SeedTables = Record<string, SeedRow[]>;
 
 type AuditResult = 'SUCCESS' | 'DENY' | 'ERROR';
 type SecuritySeverity = 'low' | 'medium' | 'high' | 'critical';
+type AuditableRequest = Pick<FastifyRequest, 'auth' | 'ip' | 'requestId'>;
 
 interface AuditEventInput {
-  request?: Pick<FastifyRequest, 'auth' | 'headers' | 'ip' | 'requestId'>;
+  request?: AuditableRequest;
   action: string;
   resourceType: string;
   resourceId?: string | null;
@@ -23,7 +24,7 @@ interface AuditEventInput {
 }
 
 interface SecurityEventInput {
-  request?: Pick<FastifyRequest, 'auth' | 'headers' | 'ip' | 'requestId'>;
+  request?: AuditableRequest;
   eventType: string;
   severity: SecuritySeverity;
   message?: string;
@@ -35,18 +36,11 @@ const asString = (value: unknown): string | undefined => (typeof value === 'stri
 const now = () => new Date();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 
-function hashIpAddress(request: Pick<FastifyRequest, 'headers' | 'ip'> | undefined): string | null {
+function hashIpAddress(request: Pick<FastifyRequest, 'ip'> | undefined): string | null {
   if (!request) {
     return null;
   }
-  const forwarded = request.headers['x-forwarded-for'];
-  const forwardedIp =
-    typeof forwarded === 'string'
-      ? forwarded.split(',')[0]?.trim()
-      : Array.isArray(forwarded)
-        ? forwarded[0]?.split(',')[0]?.trim()
-        : undefined;
-  const source = forwardedIp || request.ip;
+  const source = request.ip;
   if (!source) {
     return null;
   }

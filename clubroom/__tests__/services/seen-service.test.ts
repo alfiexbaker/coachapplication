@@ -10,11 +10,18 @@ describe('seenService', () => {
     await apiClient.remove(STORAGE_KEYS.SEEN_STATUSES);
   });
 
-  it('marks seen status and retrieves it (happy path)', async () => {
-    const markResult = await seenService.markSeen('message', 'msg-1', 'user-1');
+  it('marks walkthrough seen status and retrieves it (happy path)', async () => {
+    const markResult = await seenService.markSeen(
+      'demo_walkthrough',
+      'user-1:coach_delivery',
+      'user-1',
+    );
     assert.equal(markResult.success, true);
 
-    const statusResult = await seenService.getSeenStatus('message', 'msg-1');
+    const statusResult = await seenService.getSeenStatus(
+      'demo_walkthrough',
+      'user-1:coach_delivery',
+    );
     assert.equal(statusResult.success, true);
     if (!statusResult.success) return;
 
@@ -23,7 +30,10 @@ describe('seenService', () => {
   });
 
   it('returns empty list when no statuses are present (empty path)', async () => {
-    const statusesResult = await seenService.getSeenStatuses('message', ['msg-1', 'msg-2']);
+    const statusesResult = await seenService.getSeenStatuses('demo_walkthrough', [
+      'user-1:coach_delivery',
+      'user-1:family_ops',
+    ]);
     assert.equal(statusesResult.success, true);
     if (!statusesResult.success) return;
 
@@ -40,7 +50,11 @@ describe('seenService', () => {
     };
 
     try {
-      const result = await seenService.markSeen('message', 'msg-err', 'user-err');
+      const result = await seenService.markSeen(
+        'demo_walkthrough',
+        'user-err:coach_delivery',
+        'user-err',
+      );
       assert.equal(result.success, false);
       if (result.success) return;
 

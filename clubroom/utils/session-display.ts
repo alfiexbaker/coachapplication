@@ -1,8 +1,9 @@
 import type { Session } from '@/constants/app-types';
 import type { SessionOffering, SessionRegistration } from '@/constants/types';
+import { safeDisplayLabel } from '@/utils/booking-display';
 
 export function getSessionOfferingCoachName(offering: SessionOffering): string {
-  return offering.coachId || 'Coach';
+  return safeDisplayLabel(offering.coachId, 'Coach');
 }
 
 function prettifyUserId(userId: string): string {
@@ -22,7 +23,12 @@ export function getSessionRegistrationUserName(
   const mappedName = userNameMap?.[registration.userId]?.trim();
   if (mappedName) return mappedName;
 
-  return registration.userId ? prettifyUserId(registration.userId) : 'User';
+  if (registration.userId) {
+    const safeUserId = safeDisplayLabel(registration.userId, '');
+    return safeUserId ? prettifyUserId(safeUserId) : 'User';
+  }
+
+  return 'User';
 }
 
 export function getSessionAthleteName(session: Session): string {
@@ -36,5 +42,6 @@ export function getSessionAthleteName(session: Session): string {
     return 'Athlete';
   }
 
-  return prettifyUserId(session.athleteId);
+  const safeAthleteId = safeDisplayLabel(session.athleteId, '');
+  return safeAthleteId ? prettifyUserId(safeAthleteId) : 'Athlete';
 }

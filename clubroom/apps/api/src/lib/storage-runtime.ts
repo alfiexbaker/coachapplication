@@ -62,7 +62,6 @@ const asString = (value: unknown): string | undefined => (typeof value === 'stri
 const nowIso = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 const nextVersion = (value: unknown) => (typeof value === 'number' ? value + 1 : 2);
-const BACKEND_SCAN_SCANNER = 'clubroom-backend-upload-finalizer';
 
 function encodeRfc3986(value: string): string {
   return encodeURIComponent(value).replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
@@ -446,7 +445,6 @@ function completeStoreUpload(input: UploadCompleteInput): UploadCompleteResult {
   const activeTables = store.tables;
   const uploadSessions = asRows(activeTables.uploadSessions);
   const mediaObjects = asRows(activeTables.mediaObjects);
-  const scans = asRows(activeTables.malwareScanResults);
   const uploadSession = uploadSessions.find(
     (row) => asString(row.id) === input.uploadSessionId && asString(row.mediaObjectId) === input.mediaObjectId,
   );
@@ -474,15 +472,8 @@ function completeStoreUpload(input: UploadCompleteInput): UploadCompleteResult {
 
   const latestScan = latestStoreScanForMedia(activeTables, input.mediaObjectId);
   const latestVerdict = normalizeScanVerdict(latestScan);
-  if (latestVerdict && latestVerdict !== 'PENDING' && latestVerdict !== 'CLEAN') {
+  if (latestVerdict !== 'CLEAN') {
     throw badRequest('Upload cannot be finalized because malware scanning did not pass', {
-      uploadSessionId: input.uploadSessionId,
-      mediaObjectId: input.mediaObjectId,
-      scanVerdict: latestVerdict,
-    });
-  }
-  if (asString(mediaObject.status) === 'AVAILABLE' && latestVerdict !== 'CLEAN') {
-    throw badRequest('Upload cannot be finalized because clean scan proof is missing', {
       uploadSessionId: input.uploadSessionId,
       mediaObjectId: input.mediaObjectId,
       scanVerdict: latestVerdict ?? null,
@@ -503,38 +494,13 @@ function completeStoreUpload(input: UploadCompleteInput): UploadCompleteResult {
   mediaObject.updatedAt = now;
   mediaObject.version = nextVersion(mediaObject.version);
 
-  if (latestVerdict === 'PENDING' && latestScan) {
-    latestScan.verdict = 'CLEAN';
-    latestScan.status = 'CLEAN';
-    latestScan.scanner = BACKEND_SCAN_SCANNER;
-    latestScan.engine = BACKEND_SCAN_SCANNER;
-    latestScan.scannedAt = now;
-    latestScan.updatedAt = now;
-  } else if (latestVerdict !== 'CLEAN') {
-    scans.push({
-      id: newId('msr'),
-      uploadSessionId: input.uploadSessionId,
-      mediaObjectId: input.mediaObjectId,
-      verdict: 'CLEAN',
-      status: 'CLEAN',
-      scanner: BACKEND_SCAN_SCANNER,
-      engine: BACKEND_SCAN_SCANNER,
-      detailsJson: {
-        source: 'backend_upload_finalize',
-      },
-      scannedAt: now,
-      createdAt: now,
-      updatedAt: now,
-    });
-  }
-
   return {
     uploadSessionId: input.uploadSessionId,
     mediaObjectId: input.mediaObjectId,
     mediaStatus: 'AVAILABLE',
     scanVerdict: 'CLEAN',
-    scanner: BACKEND_SCAN_SCANNER,
-    scannedAt: now,
+    scanner: asString(latestScan?.scanner) ?? asString(latestScan?.engine) ?? 'unknown',
+    scannedAt: asString(latestScan?.scannedAt) ?? asString(latestScan?.createdAt) ?? now,
     dataVersion: store.version,
   };
 }
@@ -543,6 +509,8 @@ async function completePrismaUpload(input: UploadCompleteInput): Promise<UploadC
   const prisma = getPrismaClientOrThrow();
   const checksum = normalizeSha256(input.sha256Hex);
   const now = new Date();
+  let cleanScanScanner = 'unknown';
+  let cleanScanScannedAt = now.toISOString();
   await prisma.$transaction(async (tx) => {
     const uploadSession = await tx.uploadSession.findFirst({
       where: {
@@ -562,6 +530,9 @@ async function completePrismaUpload(input: UploadCompleteInput): Promise<UploadC
                 select: {
                   id: true,
                   verdict: true,
+                  scanner: true,
+                  scannedAt: true,
+                  createdAt: true,
                 },
               },
             },
@@ -601,20 +572,15 @@ async function completePrismaUpload(input: UploadCompleteInput): Promise<UploadC
     }
     const latestScan = uploadSession.mediaObject.scans[0];
     const latestVerdict = latestScan?.verdict;
-    if (latestVerdict && latestVerdict !== 'PENDING' && latestVerdict !== 'CLEAN') {
+    if (latestVerdict !== 'CLEAN') {
       throw badRequest('Upload cannot be finalized because malware scanning did not pass', {
-        uploadSessionId: input.uploadSessionId,
-        mediaObjectId: input.mediaObjectId,
-        scanVerdict: latestVerdict,
-      });
-    }
-    if (mediaStatus === 'AVAILABLE' && latestVerdict !== 'CLEAN') {
-      throw badRequest('Upload cannot be finalized because clean scan proof is missing', {
         uploadSessionId: input.uploadSessionId,
         mediaObjectId: input.mediaObjectId,
         scanVerdict: latestVerdict ?? null,
       });
     }
+    cleanScanScanner = latestScan.scanner ?? 'unknown';
+    cleanScanScannedAt = (latestScan.scannedAt ?? latestScan.createdAt ?? now).toISOString();
 
     await tx.uploadSession.update({
       where: { id: input.uploadSessionId },
@@ -623,33 +589,6 @@ async function completePrismaUpload(input: UploadCompleteInput): Promise<UploadC
         completedAt: uploadSession.completedAt ?? now,
       },
     });
-
-    if (latestVerdict === 'PENDING' && latestScan) {
-      await tx.malwareScanResult.update({
-        where: { id: latestScan.id },
-        data: {
-          verdict: 'CLEAN',
-          scanner: BACKEND_SCAN_SCANNER,
-          detailsJson: {
-            source: 'backend_upload_finalize',
-          },
-          scannedAt: now,
-        },
-      });
-    } else if (latestVerdict !== 'CLEAN') {
-      await tx.malwareScanResult.create({
-        data: {
-          id: newId('msr'),
-          mediaObjectId: input.mediaObjectId,
-          verdict: 'CLEAN',
-          scanner: BACKEND_SCAN_SCANNER,
-          detailsJson: {
-            source: 'backend_upload_finalize',
-          },
-          scannedAt: now,
-        },
-      });
-    }
 
     await tx.mediaObject.update({
       where: { id: input.mediaObjectId },
@@ -667,8 +606,8 @@ async function completePrismaUpload(input: UploadCompleteInput): Promise<UploadC
     mediaObjectId: input.mediaObjectId,
     mediaStatus: 'AVAILABLE',
     scanVerdict: 'CLEAN',
-    scanner: BACKEND_SCAN_SCANNER,
-    scannedAt: now.toISOString(),
+    scanner: cleanScanScanner,
+    scannedAt: cleanScanScannedAt,
     dataVersion: null,
   };
 }

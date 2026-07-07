@@ -20,13 +20,15 @@ import type {
 } from '@/constants/types';
 import type { PositionRole } from '@/types/progress-types';
 import { useAuth } from '@/hooks/use-auth';
+import { authService, type UserProfile as AuthUserProfile } from '@/services/auth-service';
 import { childService } from '@/services/child-service';
+import { coachProfileService } from '@/services/coach-profile-service';
 import { discoverService } from '@/services/discover-service';
 import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
 
-import { runAsyncTryCatchFinally, runSyncFinally } from '@/utils/async-control';
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('EditProfile');
 
@@ -73,6 +75,8 @@ type EditableUserProfile = {
 type AuthLikeUser = {
   id: string;
   role?: string;
+  firstName?: string;
+  lastName?: string;
   fullName?: string;
   username?: string;
   name?: string;
@@ -107,6 +111,27 @@ const createBlankCertification = (): CoachCertification => ({
   expiryDate: '',
   credentialUrl: '',
 });
+
+function splitFullNameForAuth(value: string): { firstName?: string; lastName?: string } {
+  const parts = value.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return {};
+  if (parts.length === 1) return { firstName: parts[0] };
+  return {
+    firstName: parts[0],
+    lastName: parts.slice(1).join(' '),
+  };
+}
+
+function formatQualification(certification: CoachCertification): string | null {
+  const name = certification.name.trim();
+  if (!name) return null;
+  const issuer = certification.issuer.trim();
+  return issuer ? `${name} - ${issuer}` : name;
+}
+
+function stableJson(value: unknown): string {
+  return JSON.stringify(value ?? null);
+}
 
 const calculateAge = (dateOfBirth?: string): number => {
   if (!dateOfBirth) return 0;
@@ -586,71 +611,123 @@ export function useEditProfile() {
   };
 
   // ── Save handler ───────────────────────────────────────────────
-  const handleSave = () => {
+  const handleSave = async () => {
     if (isSavingRef.current) return;
     isSavingRef.current = true;
     setIsSaving(true);
     setFormMessage(null);
-    return runSyncFinally(() => {
+    return runAsyncTryCatchFinally(async () => {
       if (userIsCoach && priceRangeError) {
         setFormMessage(priceRangeError);
         return;
       }
+
+      const typedCurrentUser = currentUser as AuthLikeUser | null;
+      const currentDisplayName =
+        typedCurrentUser?.fullName || typedCurrentUser?.name || typedCurrentUser?.username || '';
+      const identityUpdates: Partial<AuthUserProfile> = {};
+      if (fullName.trim() && fullName.trim() !== currentDisplayName.trim()) {
+        Object.assign(identityUpdates, splitFullNameForAuth(fullName));
+      }
+      if (phone.trim() !== (typedCurrentUser?.phone ?? '').trim()) {
+        identityUpdates.phone = phone.trim();
+      }
+
       if (userIsCoach) {
         if (!coach) {
           setFormMessage('Coach profile is still loading. Please try again.');
           return;
         }
 
-        const payload = {
-          ...coach,
-          fullName,
-          bio,
-          email,
-          phone,
-          website,
-          priceRange: {
-            ...coach.priceRange,
-            min: Number(priceMin),
-            max: Number(priceMax),
-          },
-          footballFocuses: selectedFocuses,
+        if (Object.keys(identityUpdates).length > 0) {
+          const identityResult = await authService.updateProfile(identityUpdates);
+          if (!identityResult.success) {
+            setFormMessage(identityResult.error.message);
+            return;
+          }
+        }
+
+        const qualificationLabels = certifications
+          .map(formatQualification)
+          .filter((value): value is string => Boolean(value));
+        const maxPricePounds = parseOptionalInt(priceMax);
+        const profileResult = await coachProfileService.updateSelfProfile({
+          bio: bio.trim() || null,
+          sessionRateMinor: Math.round(Number(priceMin) * 100),
+          priceMaxMinor: maxPricePounds === null ? null : Math.round(maxPricePounds * 100),
+          currency: 'GBP',
+          website: website.trim() || null,
+          socialLinks,
           experiences,
           languages,
-          certifications,
-          socialLinks,
-        };
-        logger.info('Coach profile payload ready for API sync', payload);
+          specialties: selectedFocuses,
+          qualifications: qualificationLabels,
+        });
+        if (!profileResult.success) {
+          setFormMessage(profileResult.error.message);
+          return;
+        }
+
+        const unsupportedChanges = [
+          email.trim() !== (typedCurrentUser?.email ?? '').trim() ? 'email changes' : null,
+        ].filter((value): value is string => Boolean(value));
+
+        if (unsupportedChanges.length > 0) {
+          setFormMessage(
+            `Saved supported profile fields. Still needs backend support for: ${unsupportedChanges.join(', ')}.`,
+          );
+          uiFeedback.showToast('Profile saved with follow-up needed', 'default');
+          return;
+        }
       } else {
         if (!user) {
           setFormMessage('User profile is still loading. Please try again.');
           return;
         }
 
-        const payload = { ...user, fullName, bio, email, phone, children };
-        logger.info('User profile payload ready for API sync', payload);
+        if (bio.trim() !== (typedCurrentUser?.bio ?? '').trim()) {
+          identityUpdates.bio = bio.trim();
+        }
+        if (Object.keys(identityUpdates).length > 0) {
+          const identityResult = await authService.updateProfile(identityUpdates);
+          if (!identityResult.success) {
+            setFormMessage(identityResult.error.message);
+            return;
+          }
+        }
 
-        // Persist athlete position change via child service
         if (userIsAthlete && primaryPosition) {
-          void childService.updateChild(currentUser?.id ?? '', { primaryPosition });
+          const childResult = await childService.updateChild(typedCurrentUser?.id ?? '', {
+            primaryPosition,
+          });
+          if (!childResult.success) {
+            setFormMessage(childResult.error.message);
+            return;
+          }
+        }
+
+        const unsupportedChanges = [
+          email.trim() !== (typedCurrentUser?.email ?? '').trim() ? 'email changes' : null,
+          stableJson(children) !== stableJson(user.children) ? 'family child list edits' : null,
+        ].filter((value): value is string => Boolean(value));
+        if (unsupportedChanges.length > 0) {
+          setFormMessage(
+            `Saved supported profile fields. Still needs backend support for: ${unsupportedChanges.join(', ')}.`,
+          );
+          uiFeedback.showToast('Profile saved with follow-up needed', 'default');
+          return;
         }
       }
 
       uiFeedback.showToast('Profile updated successfully', 'success');
       router.back();
+    }, (error) => {
+      logger.error('Failed to save profile', error);
+      setFormMessage('Failed to save profile. Please try again.');
     }, () => {
       isSavingRef.current = false;
       setIsSaving(false);
     });
-  };
-
-  // ── Image picker ───────────────────────────────────────────────
-  const pickImage = (type: 'profile' | 'cover') => {
-    logger.info(`Photo picker requested for ${type}`);
-    uiFeedback.showToast(
-      `${type === 'profile' ? 'Profile' : 'Cover'} photo picker coming soon.`,
-      'default',
-    );
   };
 
   const canSave = (!userIsCoach || priceRangeError === null) && !isSaving;
@@ -735,6 +812,5 @@ export function useEditProfile() {
     handleSave,
     canSave,
     isSaving,
-    pickImage,
   };
 }

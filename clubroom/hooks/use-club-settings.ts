@@ -144,7 +144,12 @@ export function useClubSettings() {
     }
 
     try {
+      const authorityClubs = await clubAuthorityService.listClubs();
+      const authorityClub = authorityClubs.success
+        ? authorityClubs.data.clubs.find((candidate) => candidate.id === clubId) ?? null
+        : null;
       const clubData =
+        authorityClub ??
         (await socialFeedService.getClub(clubId)) ??
         knownClubs.find((candidate) => candidate.id === clubId) ??
         null;
@@ -244,7 +249,7 @@ export function useClubSettings() {
       showToast('Only club leaders can edit club details', 'error');
       return;
     }
-    const result = await socialFeedService.updateClubDetails(club.id, {
+    const result = await clubAuthorityService.updateClubDetails(club.id, {
       name: editName,
       tagline: editTagline,
       city: editCity,
@@ -291,7 +296,7 @@ export function useClubSettings() {
 
     return await runAsyncFinally(
       async () => {
-        const result = await socialFeedService.updateClubCommercialMode(club.id, nextMode);
+        const result = await clubAuthorityService.updateClubCommercialMode(club.id, nextMode);
         if (!result.success) {
           showToast(result.error.message, 'error');
           return;
@@ -352,13 +357,13 @@ export function useClubSettings() {
 
   const handleDeleteClub = () => {
     if (!canManageClub) {
-      showToast('Only club admins can delete a club', 'error');
+      showToast('Only club admins can archive a club', 'error');
       return;
     }
     const clubName = club?.name || 'this club';
     uiFeedback.alert(
-      'Delete Club',
-      `This will permanently delete "${clubName}" and all associated data:\n\n• All members will be removed\n• Training schedules deleted\n• Posts and events removed\n• This cannot be undone\n\nAre you sure?`,
+      'Archive Club',
+      `Archive "${clubName}"?\n\n• Members, squads, and invite codes leave active views\n• Existing records are retained for audit/history\n• This action requires owner or admin authority\n\nAre you sure?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -368,21 +373,21 @@ export function useClubSettings() {
             // Second confirmation
             uiFeedback.alert(
               'Final Confirmation',
-              `Type DELETE in your head and confirm: permanently delete "${clubName}"?`,
+              `Confirm archive for "${clubName}"?`,
               [
                 { text: 'Back', style: 'cancel' },
                 {
-                  text: 'Delete Forever',
+                  text: 'Archive Club',
                   style: 'destructive',
                   onPress: async () => {
                     if (!clubId) return;
-                    const result = await socialFeedService.deleteClub(clubId);
+                    const result = await clubAuthorityService.deleteClub(clubId);
                     if (!result.success) {
                       showToast(result.error.message, 'error');
                       return;
                     }
-                    logger.action('DeleteClub', { clubId });
-                    showToast('Club deleted', 'success');
+                    logger.action('ArchiveClub', { clubId });
+                    showToast('Club archived', 'success');
                     router.replace(Routes.CLUB_HUB);
                   },
                 },

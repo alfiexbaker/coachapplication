@@ -15,13 +15,11 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { Routes } from '@/navigation/routes';
-import { apiClient } from '@/services/api-client';
 import { availabilityService } from '@/services/availability-service';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import { sessionTemplateService } from '@/services/session-template-service';
 import { coachVenueService } from '@/services/coach-venue-service';
 import { ServiceEvents } from '@/services/event-bus';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { useAuth } from '@/hooks/use-auth';
@@ -35,7 +33,6 @@ import type {
   AvailabilityOverride,
   SessionOffering,
   CoachSchedulingRules,
-  BlockedDateRange,
   Booking,
   CoachVenue,
 } from '@/constants/types';
@@ -119,8 +116,7 @@ export function useSchedule() {
           coachVenueService.ensureDefaultVenues(coachId),
         ]);
 
-      const allOfferings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-      const offeringsData = allOfferings.filter((offering) => offering.coachId === coachId);
+      const offeringsData: SessionOffering[] = [];
 
       // Fetch bookings for a wide window: 4 weeks back + 8 weeks forward from today
       const today = new Date();
@@ -135,26 +131,7 @@ export function useSchedule() {
         toDateStr(fetchEnd),
       );
 
-      let blockedDatesData = new Set<string>();
-      try {
-        const allBlocked = await apiClient.get<Record<string, BlockedDateRange[]> | null>(
-          STORAGE_KEYS.BLOCKED_DATES,
-          null,
-        );
-        const coachBlocked = allBlocked?.[coachId] ?? [];
-        for (const blockedDate of coachBlocked) {
-          let cursor = blockedDate.startDate;
-          while (cursor <= blockedDate.endDate) {
-            blockedDatesData.add(cursor);
-            const day = new Date(cursor + 'T12:00:00');
-            day.setDate(day.getDate() + 1);
-            cursor = toDateStr(day);
-          }
-        }
-      } catch (blockedError) {
-        logger.warn('Failed to load blocked dates', blockedError);
-        blockedDatesData = new Set();
-      }
+      const blockedDatesData = new Set<string>();
 
       if (!rulesResult.success) {
         logger.error('Failed to load scheduling rules', rulesResult.error);
@@ -517,7 +494,7 @@ export function useSchedule() {
   };
 
   const handleDeleteTemplate = async (id: string) => {
-    await availabilityService.deleteTemplate(id);
+    await availabilityService.deleteTemplate(id, coachId);
     setTemplates((prev) => prev.filter((t) => t.id !== id));
     setDayEditorOpen(false);
     setDayEditorConfig(null);

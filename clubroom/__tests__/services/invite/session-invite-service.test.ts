@@ -1,14 +1,19 @@
 import { beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import { apiClient } from '@/services/api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { sessionInviteService, setInvitesCache } from '@/services/invite/session-invite-service';
+import { bookingService } from '@/services/booking';
+import {
+  getInvitesCache,
+  sessionInviteService,
+  setInvitesCache,
+} from '@/services/invite/session-invite-service';
 import { POC_ACCOUNT_IDS } from '@/constants/poc-accounts';
 import type { Result, ServiceError } from '@/types/result';
-import type { Booking } from '@/constants/app-types';
-import type { GroupSession, SessionInvite, SessionOffering, WeekAcceptance } from '@/constants/types';
+import type { GroupSession, SessionInvite, WeekAcceptance } from '@/constants/types';
 
 function expectOk<T>(result: Result<T, ServiceError>): T {
   assert.equal(result.success, true);
@@ -35,7 +40,6 @@ describe('sessionInviteService', () => {
     seq = 0;
     await apiClient.set(STORAGE_KEYS.INVITE_SLOT_HOLDS, []);
     await apiClient.set(STORAGE_KEYS.BOOKINGS, []);
-    await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, []);
     await apiClient.set(STORAGE_KEYS.GROUP_SESSIONS, []);
     await sessionInviteService.clearCache();
     setInvitesCache([]);
@@ -43,18 +47,20 @@ describe('sessionInviteService', () => {
 
   it('creates invite and retrieves it by id', async () => {
     const parentId = nextId('parent');
-    const invite = expectOk(await sessionInviteService.createInvite(nextId('athlete'), {
-      coachId: nextId('coach'),
-      coachName: 'Coach Test',
-      parentId,
-      parentName: 'Parent Test',
-      athleteNames: 'Athlete Test',
-      proposedSlots: [],
-      sessionType: '1:1 Coaching',
-      focus: 'Passing',
-      price: 50,
-      duration: 60,
-    }));
+    const invite = expectOk(
+      await sessionInviteService.createInvite(nextId('athlete'), {
+        coachId: nextId('coach'),
+        coachName: 'Coach Test',
+        parentId,
+        parentName: 'Parent Test',
+        athleteNames: 'Athlete Test',
+        proposedSlots: [],
+        sessionType: '1:1 Coaching',
+        focus: 'Passing',
+        price: 50,
+        duration: 60,
+      }),
+    );
 
     const fetched = await sessionInviteService.getInvite(invite.id);
     assert.ok(fetched);
@@ -64,35 +70,41 @@ describe('sessionInviteService', () => {
   });
 
   it('responds to invite with DECLINED and updates status', async () => {
-    const invite = expectOk(await sessionInviteService.createInvite(nextId('athlete'), {
-      coachId: nextId('coach'),
-      coachName: 'Coach Test',
-      parentId: nextId('parent'),
-      parentName: 'Parent Test',
-      athleteNames: 'Athlete Test',
-      proposedSlots: [],
-      sessionType: '1:1 Coaching',
-      focus: 'Finishing',
-    }));
+    const invite = expectOk(
+      await sessionInviteService.createInvite(nextId('athlete'), {
+        coachId: nextId('coach'),
+        coachName: 'Coach Test',
+        parentId: nextId('parent'),
+        parentName: 'Parent Test',
+        athleteNames: 'Athlete Test',
+        proposedSlots: [],
+        sessionType: '1:1 Coaching',
+        focus: 'Finishing',
+      }),
+    );
 
-    const updated = expectOk(await sessionInviteService.respondToInvite({
-      inviteId: invite.id,
-      response: 'DECLINED',
-    }));
+    const updated = expectOk(
+      await sessionInviteService.respondToInvite({
+        inviteId: invite.id,
+        response: 'DECLINED',
+      }),
+    );
     assert.equal(updated.status, 'DECLINED');
   });
 
   it('cancels invite and excludes it from open invites', async () => {
-    const invite = expectOk(await sessionInviteService.createInvite(nextId('athlete'), {
-      coachId: nextId('coach'),
-      coachName: 'Coach Test',
-      parentId: nextId('parent'),
-      parentName: 'Parent Test',
-      athleteNames: 'Athlete Test',
-      proposedSlots: [],
-      sessionType: '1:1 Coaching',
-      focus: 'Dribbling',
-    }));
+    const invite = expectOk(
+      await sessionInviteService.createInvite(nextId('athlete'), {
+        coachId: nextId('coach'),
+        coachName: 'Coach Test',
+        parentId: nextId('parent'),
+        parentName: 'Parent Test',
+        athleteNames: 'Athlete Test',
+        proposedSlots: [],
+        sessionType: '1:1 Coaching',
+        focus: 'Dribbling',
+      }),
+    );
 
     await sessionInviteService.cancelInvite(invite.id);
 
@@ -104,16 +116,18 @@ describe('sessionInviteService', () => {
   });
 
   it('matches canonical aliases in coach/parent invite lookups', async () => {
-    const created = expectOk(await sessionInviteService.createInvite(POC_ACCOUNT_IDS.athleteStorage, {
-      coachId: POC_ACCOUNT_IDS.coachStorage,
-      coachName: 'Coach Alias',
-      parentId: POC_ACCOUNT_IDS.parent,
-      parentName: 'Parent Alias',
-      athleteNames: 'Athlete Alias',
-      proposedSlots: [],
-      sessionType: '1:1 Coaching',
-      focus: 'Passing',
-    }));
+    const created = expectOk(
+      await sessionInviteService.createInvite(POC_ACCOUNT_IDS.athleteStorage, {
+        coachId: POC_ACCOUNT_IDS.coachStorage,
+        coachName: 'Coach Alias',
+        parentId: POC_ACCOUNT_IDS.parent,
+        parentName: 'Parent Alias',
+        athleteNames: 'Athlete Alias',
+        proposedSlots: [],
+        sessionType: '1:1 Coaching',
+        focus: 'Passing',
+      }),
+    );
 
     const byCoach = await sessionInviteService.getCoachInvites(POC_ACCOUNT_IDS.coach);
     const byParent = await sessionInviteService.getParentInvites(POC_ACCOUNT_IDS.parent);
@@ -122,75 +136,6 @@ describe('sessionInviteService', () => {
     assert.ok(byParent.length >= 1);
     assert.ok(byCoach.some((invite) => invite.id === created.id));
     assert.ok(byParent.some((invite) => invite.id === created.id));
-  });
-
-  it('accepting invite linked to offering propagates source lineage to created booking', async () => {
-    const linkedOffering: SessionOffering = {
-      id: 'offering_lineage_1',
-      source: 'event',
-      sourceEntityId: 'event_1',
-      coachId: 'coach_lineage_1',
-      clubId: 'club_lineage',
-      actingAs: 'club',
-      ownerCoachId: 'coach_owner',
-      assigneeCoachId: 'coach_assignee',
-      createdByUserId: 'admin_creator',
-      createdByRole: 'ADMIN',
-      title: 'Club Showcase',
-      description: 'Linked event offering',
-      sessionType: 'group',
-      maxParticipants: 20,
-      location: 'Main Arena',
-      scheduledAt: '2030-01-20T10:00:00.000Z',
-      isRecurring: false,
-      recurrenceType: 'none',
-      status: 'active',
-      registrations: [],
-      createdAt: '2030-01-01T09:00:00.000Z',
-    };
-    await apiClient.set(STORAGE_KEYS.SESSION_OFFERINGS, [linkedOffering]);
-
-    const slot = {
-      date: '2030-01-20',
-      startTime: '10:00',
-      endTime: '11:00',
-      location: 'Main Arena',
-    };
-    const invite = expectOk(
-      await sessionInviteService.createInvite('athlete_lineage_1', {
-        coachId: 'coach_lineage_1',
-        coachName: 'Coach Lineage',
-        parentId: 'parent_lineage_1',
-        parentName: 'Parent Lineage',
-        athleteNames: 'Athlete Lineage',
-        proposedSlots: [],
-        sessionType: 'Group Session',
-        focus: 'Passing',
-        existingSessionId: linkedOffering.id,
-      }),
-    );
-
-    const accepted = expectOk(
-      await sessionInviteService.respondToInvite({
-        inviteId: invite.id,
-        response: 'ACCEPTED',
-        selectedSlot: slot,
-      }),
-    );
-    assert.equal(accepted.status, 'ACCEPTED');
-    assert.ok(accepted.bookingId);
-
-    const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
-    const created = bookings.find((booking) => booking.id === accepted.bookingId);
-    assert.ok(created);
-    assert.equal(created?.sessionSource, 'event');
-    assert.equal(created?.sessionSourceEntityId, 'event_1');
-    assert.equal(created?.clubId, 'club_lineage');
-    assert.equal(created?.actingAs, 'club');
-    assert.equal(created?.ownerCoachId, 'coach_owner');
-    assert.equal(created?.assigneeCoachId, 'coach_assignee');
-    assert.equal(created?.createdByUserId, 'admin_creator');
-    assert.equal(created?.createdByRole, 'ADMIN');
   });
 
   it('accepting invite linked to group session infers group source lineage', async () => {
@@ -250,8 +195,7 @@ describe('sessionInviteService', () => {
     assert.equal(accepted.status, 'ACCEPTED');
     assert.ok(accepted.bookingId);
 
-    const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
-    const created = bookings.find((booking) => booking.id === accepted.bookingId);
+    const created = await bookingService.getBooking(accepted.bookingId);
     assert.ok(created);
     assert.equal(created?.sessionSource, 'group');
     assert.equal(created?.sessionSourceEntityId, linkedGroupSession.id);
@@ -298,20 +242,78 @@ describe('sessionInviteService', () => {
     setInvitesCache([invite]);
     setApiMockMode(false);
 
-    const result = await sessionInviteService.respondToRecurringInvite(
-      invite.id,
-      weekAcceptances,
-    );
+    const result = await sessionInviteService.respondToRecurringInvite(invite.id, weekAcceptances);
 
     assert.equal(result.success, false);
     if (!result.success) {
-      assert.equal(result.error.code, 'CONFLICT');
-      assert.match(result.error.message, /backend invite authority/i);
+      assert.equal(result.error.code, 'UNAUTHORIZED');
+      assert.match(result.error.message, /sign in/i);
     }
 
     setApiMockMode(true);
     const stored = await sessionInviteService.getInvite(invite.id);
     assert.equal(stored?.status, 'PENDING');
     assert.equal(stored?.bookingId, undefined);
+  });
+
+  it('rejects fabricated API create context before backend write', async () => {
+    setApiMockMode(false);
+    const originalFetch = globalThis.fetch;
+    let fetchCalls = 0;
+    globalThis.fetch = (async () => {
+      fetchCalls += 1;
+      throw new Error('API create should not be called for fabricated invite context');
+    }) as typeof fetch;
+
+    try {
+      const result = await sessionInviteService.createInvite(['athlete_api_default'], {
+        coachId: 'coach_api_default',
+        coachName: 'Coach',
+        parentId: 'parent_api_default',
+        parentName: 'Parent',
+        proposedSlots: [
+          {
+            date: '2030-03-01',
+            startTime: '10:00',
+            endTime: '11:00',
+            location: 'Main Pitch',
+          },
+        ],
+        sessionType: 'Existing Session',
+        focus: 'General',
+        price: 0,
+      });
+
+      assert.equal(result.success, false);
+      if (!result.success) {
+        assert.equal(result.error.code, 'VALIDATION');
+        assert.match(result.error.message, /resolved live invite context/i);
+        const details = result.error.details as { issues?: string[] };
+        assert.ok(details.issues?.some((issue) => issue.includes('coachName')));
+        assert.ok(details.issues?.some((issue) => issue.includes('parentName')));
+        assert.ok(details.issues?.some((issue) => issue.includes('athleteNames')));
+        assert.ok(details.issues?.some((issue) => issue.includes('focus')));
+      }
+      assert.equal(fetchCalls, 0);
+      assert.deepEqual(getInvitesCache(), []);
+    } finally {
+      globalThis.fetch = originalFetch;
+      setApiMockMode(true);
+    }
+  });
+
+  it('keeps API-mode invite hooks free of generic create payload defaults', () => {
+    const inviteFlowSource = readFileSync(
+      `${process.cwd()}/hooks/use-invite-session-flow.ts`,
+      'utf8',
+    );
+    const createSessionSource = readFileSync(`${process.cwd()}/hooks/use-create-session.ts`, 'utf8');
+
+    assert.doesNotMatch(inviteFlowSource, /coachName:\s*'Coach'/);
+    assert.doesNotMatch(inviteFlowSource, /parentName:[^\n]*'Parent'/);
+    assert.doesNotMatch(inviteFlowSource, /focus:\s*'General'/);
+    assert.doesNotMatch(inviteFlowSource, /price:\s*0/);
+    assert.doesNotMatch(createSessionSource, /\|\|\s*'Coach'/);
+    assert.doesNotMatch(createSessionSource, /parentName:[^\n]*'Parent'/);
   });
 });

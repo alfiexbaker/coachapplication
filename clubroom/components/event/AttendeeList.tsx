@@ -81,12 +81,13 @@ export function AttendeeList({
     { key: 'CHECKED_IN', label: 'Checked In', count: attendance.length },
   ];
 
-  const renderAttendeeItem = ({ item }: { item: EventRSVP }) => (
+  const renderAttendeeItem = ({ item, index }: { item: EventRSVP; index: number }) => (
     <AttendeeCard
       rsvp={item}
       attendance={attendanceMap.get(item.userId)}
       onPress={onAttendeePress ? () => onAttendeePress(item.userId) : undefined}
       showCheckInStatus={attendance.length > 0}
+      fallbackIndex={index + 1}
     />
   );
 

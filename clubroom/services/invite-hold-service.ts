@@ -9,10 +9,15 @@
  */
 
 import { apiClient } from './api-client';
+import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('InviteHoldService');
+
+function isMockMode(): boolean {
+  return api.useMock;
+}
 
 export interface InviteSlotHold {
   id: string;
@@ -26,6 +31,10 @@ export interface InviteSlotHold {
 }
 
 async function loadHolds(): Promise<InviteSlotHold[]> {
+  if (!isMockMode()) {
+    return [];
+  }
+
   try {
     const stored = await apiClient.get<InviteSlotHold[] | null>(
       STORAGE_KEYS.INVITE_SLOT_HOLDS,
@@ -39,6 +48,11 @@ async function loadHolds(): Promise<InviteSlotHold[]> {
 }
 
 async function saveHolds(holds: InviteSlotHold[]): Promise<void> {
+  if (!isMockMode()) {
+    logger.debug('Invite slot holds are mock-only; skipping local hold write in API mode');
+    return;
+  }
+
   try {
     await apiClient.set(STORAGE_KEYS.INVITE_SLOT_HOLDS, holds);
   } catch (error) {
@@ -56,6 +70,15 @@ export const inviteHoldService = {
     slots: { date: string; startTime: string; endTime: string }[],
     expiresAt: string,
   ): Promise<InviteSlotHold[]> {
+    if (!isMockMode()) {
+      logger.debug('Invite slot holds are mock-only; not creating local holds in API mode', {
+        coachId,
+        inviteId,
+        slotCount: slots.length,
+      });
+      return [];
+    }
+
     const holds = await loadHolds();
     const newHolds: InviteSlotHold[] = slots.map((slot, i) => ({
       id: `hold_${inviteId}_${i}`,

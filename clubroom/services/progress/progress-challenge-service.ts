@@ -7,15 +7,22 @@
  * - streak info
  * - quick-rate feedback corners
  * - badge awards
- * - journal entries
+ * - practice logs / reflections
  * - skill trends
  */
 
-import { apiClient } from '../api-client';
+import { api } from '@/constants/config';
+import { apiClient, apiFetch } from '../api-client';
 import { badgeService } from '../badge-service';
 import { emitTyped, onTyped, ServiceEvents } from '../event-bus';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { mapSkillToCorner } from '@/constants/position-skills';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+  toApiAthleteId,
+} from '@/services/api-auth-context';
 import {
   buildChallengeCandidates,
   buildChallengeFromCandidate,
@@ -33,6 +40,7 @@ import type {
 } from '@/types/progress-types';
 import { createLogger } from '@/utils/logger';
 import { progressFeedbackService } from './progress-feedback-service';
+import { progressPracticeLogService } from './progress-practice-log-service';
 import { progressReportService } from './progress-report-service';
 
 const logger = createLogger('ProgressChallengeService');
@@ -41,6 +49,165 @@ const CATEGORY_ORDER: BadgeCategory[] = ['technical', 'physical', 'psychological
 
 let eventHandlersRegistered = false;
 const eventUpdateLocks = new Set<string>();
+const apiChallengeAthleteScopeById = new Map<string, string>();
+
+interface ApiProgressChallengeResponse {
+  challenge: ProgressChallenge | null;
+}
+
+interface ApiProgressChallengeListResponse {
+  challenges: ProgressChallenge[];
+}
+
+function isApiMode(): boolean {
+  return !api.useMock;
+}
+
+function rememberApiChallenge(challenge: ProgressChallenge | null | undefined): void {
+  if (challenge?.id && challenge.athleteId) {
+    apiChallengeAthleteScopeById.set(challenge.id, challenge.athleteId);
+  }
+}
+
+async function resolveProgressChallengeApiAccess(
+  athleteId: string,
+): Promise<Result<{ apiAthleteId: string; headers: Record<string, string> }, ServiceError>> {
+  const currentUserResult = await resolveSignedInApiUser('Sign in to manage progress challenges.');
+  if (!currentUserResult.success) {
+    return err(currentUserResult.error);
+  }
+  const currentUser = currentUserResult.data;
+  const apiAthleteId = toApiAthleteId(athleteId);
+  const actingRole = deriveApiActingRole(currentUser);
+  return ok({
+    apiAthleteId,
+    headers: buildApiAuthHeaders({
+      actingRole,
+      coachAthleteIds: actingRole === 'coach' ? [apiAthleteId] : undefined,
+      guardianAthleteIds: actingRole === 'parent' ? [apiAthleteId] : undefined,
+      coachVerified: actingRole === 'coach' && currentUser.isVerified,
+    }),
+  });
+}
+
+async function resolveGeneralProgressChallengeApiHeaders(): Promise<
+  Result<Record<string, string>, ServiceError>
+> {
+  const currentUserResult = await resolveSignedInApiUser('Sign in to manage progress challenges.');
+  if (!currentUserResult.success) {
+    return err(currentUserResult.error);
+  }
+  const currentUser = currentUserResult.data;
+  const actingRole = deriveApiActingRole(currentUser);
+  return ok(
+    buildApiAuthHeaders({
+      actingRole,
+      coachVerified: actingRole === 'coach' && currentUser.isVerified,
+    }),
+  );
+}
+
+function toApiChallengeBody(challenge: ProgressChallenge) {
+  return {
+    type: challenge.type,
+    title: challenge.title,
+    description: challenge.description,
+    targetValue: challenge.targetValue,
+    currentValue: challenge.currentValue,
+    progress: challenge.progress,
+    rewardBadgeId: challenge.rewardBadgeId,
+    rewardLabel: challenge.rewardLabel,
+    status: challenge.status,
+    assignedAt: challenge.assignedAt,
+    expiresAt: challenge.expiresAt,
+    completedAt: challenge.completedAt ?? null,
+  };
+}
+
+async function apiGetActiveChallenge(
+  athleteId: string,
+): Promise<Result<ProgressChallenge | null, ServiceError>> {
+  const access = await resolveProgressChallengeApiAccess(athleteId);
+  if (!access.success) {
+    return err(access.error);
+  }
+  const result = await apiFetch<ApiProgressChallengeResponse>(
+    `/v1/athletes/${encodeURIComponent(access.data.apiAthleteId)}/progress-challenge`,
+    {
+      method: 'GET',
+      headers: access.data.headers,
+    },
+  );
+  if (!result.success) {
+    return err(result.error);
+  }
+  rememberApiChallenge(result.data.challenge);
+  return ok(result.data.challenge);
+}
+
+async function apiGetChallengeById(
+  challengeId: string,
+): Promise<Result<ProgressChallenge | null, ServiceError>> {
+  const headers = await resolveGeneralProgressChallengeApiHeaders();
+  if (!headers.success) {
+    return err(headers.error);
+  }
+  const result = await apiFetch<ApiProgressChallengeResponse>(
+    `/v1/progress-challenges/${encodeURIComponent(challengeId)}`,
+    {
+      method: 'GET',
+      headers: headers.data,
+    },
+  );
+  if (!result.success) {
+    return err(result.error);
+  }
+  rememberApiChallenge(result.data.challenge);
+  return ok(result.data.challenge);
+}
+
+async function apiListChallengeHistory(
+  athleteId: string,
+): Promise<Result<ProgressChallenge[], ServiceError>> {
+  const access = await resolveProgressChallengeApiAccess(athleteId);
+  if (!access.success) {
+    return err(access.error);
+  }
+  const result = await apiFetch<ApiProgressChallengeListResponse>(
+    `/v1/athletes/${encodeURIComponent(access.data.apiAthleteId)}/progress-challenges/history`,
+    {
+      method: 'GET',
+      headers: access.data.headers,
+    },
+  );
+  if (!result.success) {
+    return err(result.error);
+  }
+  result.data.challenges.forEach(rememberApiChallenge);
+  return ok(result.data.challenges);
+}
+
+async function apiSaveProgressChallenge(
+  challenge: ProgressChallenge,
+): Promise<Result<ProgressChallenge, ServiceError>> {
+  const access = await resolveProgressChallengeApiAccess(challenge.athleteId);
+  if (!access.success) {
+    return err(access.error);
+  }
+  const result = await apiFetch<{ challenge: ProgressChallenge }>(
+    `/v1/athletes/${encodeURIComponent(access.data.apiAthleteId)}/progress-challenges/${encodeURIComponent(challenge.id)}`,
+    {
+      method: 'PUT',
+      headers: access.data.headers,
+      body: JSON.stringify(toApiChallengeBody(challenge)),
+    },
+  );
+  if (!result.success) {
+    return err(result.error);
+  }
+  rememberApiChallenge(result.data.challenge);
+  return ok(result.data.challenge);
+}
 
 async function getActiveChallengeMap(): Promise<Record<string, ProgressChallenge>> {
   return apiClient.get<Record<string, ProgressChallenge>>(
@@ -53,6 +220,19 @@ async function saveActiveChallengeMap(
   challenges: Record<string, ProgressChallenge>,
 ): Promise<void> {
   await apiClient.set(STORAGE_KEYS.PROGRESS_ACTIVE_CHALLENGE, challenges);
+}
+
+async function saveActiveChallengeState(
+  challenge: ProgressChallenge,
+): Promise<Result<ProgressChallenge, ServiceError>> {
+  if (isApiMode()) {
+    return apiSaveProgressChallenge(challenge);
+  }
+
+  const activeMap = await getActiveChallengeMap();
+  activeMap[challenge.athleteId] = challenge;
+  await saveActiveChallengeMap(activeMap);
+  return ok(challenge);
 }
 
 async function getChallengeHistoryRecords(): Promise<ProgressChallenge[]> {
@@ -96,6 +276,12 @@ function clampRatingOneToFive(value: number): number {
     return 1;
   }
   return Math.max(1, Math.min(5, Math.round(value)));
+}
+
+function recentWeekStartDateKey(): string {
+  const date = new Date();
+  date.setDate(date.getDate() - 6);
+  return date.toISOString().slice(0, 10);
 }
 
 function weakestCornerFromRatings(ratings: FourCornerRatings): {
@@ -195,12 +381,13 @@ async function buildMetricsSnapshot(
   athleteId: string,
 ): Promise<Result<ChallengeMetricsSnapshot, ServiceError>> {
   try {
-    const [progress, streak, awards, feedback, definitions] = await Promise.all([
+    const [progress, streak, awards, feedback, definitions, practiceLogs] = await Promise.all([
       progressReportService.getAthleteProgress(athleteId, 'athlete'),
       badgeService.getStreakInfo(athleteId),
       badgeService.listAwardsForAthlete(athleteId),
       progressFeedbackService.getFeedbackForAthlete(athleteId, 'athlete'),
       badgeService.listDefinitions(),
+      progressPracticeLogService.listAthleteLogs(athleteId),
     ]);
 
     const definitionCategoryById = new Map(
@@ -249,7 +436,9 @@ async function buildMetricsSnapshot(
       ? weakestCornerFromRatings(latestWithCorners.fourCorners)
       : weakestCornerFromSkills(progress.skills);
 
-    const journalEntriesThisWeek = 0;
+    const weekStartKey = recentWeekStartDateKey();
+    const journalEntriesThisWeek = practiceLogs.filter((entry) => entry.dateKey >= weekStartKey)
+      .length;
 
     const improvingSkills = progress.skills.filter((skill) => skill.trend === 'improving').length;
 
@@ -296,24 +485,25 @@ async function assignNextChallenge(
     new Date().toISOString(),
   );
 
-  const activeMap = await getActiveChallengeMap();
-  activeMap[athleteId] = challenge;
-  await saveActiveChallengeMap(activeMap);
+  const savedChallenge = await saveActiveChallengeState(challenge);
+  if (!savedChallenge.success) {
+    return err(savedChallenge.error);
+  }
 
   emitTyped(ServiceEvents.PROGRESS_CHALLENGE_ASSIGNED, {
-    challengeId: challenge.id,
-    athleteId,
-    type: challenge.type,
+    challengeId: savedChallenge.data.id,
+    athleteId: savedChallenge.data.athleteId,
+    type: savedChallenge.data.type,
   });
 
   logger.info('progress_challenge_assigned', {
-    athleteId,
-    challengeId: challenge.id,
-    type: challenge.type,
-    targetValue: challenge.targetValue,
+    athleteId: savedChallenge.data.athleteId,
+    challengeId: savedChallenge.data.id,
+    type: savedChallenge.data.type,
+    targetValue: savedChallenge.data.targetValue,
   });
 
-  return ok(challenge);
+  return ok(savedChallenge.data);
 }
 
 async function awardRewardBadge(
@@ -347,6 +537,10 @@ async function awardRewardBadge(
 async function getChallengeHistory(
   athleteId: string,
 ): Promise<Result<ProgressChallenge[], ServiceError>> {
+  if (isApiMode()) {
+    return apiListChallengeHistory(athleteId);
+  }
+
   try {
     const history = await getChallengeHistoryRecords();
     const athleteHistory = history
@@ -363,10 +557,57 @@ async function getChallengeHistory(
   }
 }
 
+async function getApiActiveChallenge(
+  athleteId: string,
+): Promise<Result<ProgressChallenge | null, ServiceError>> {
+  const currentResult = await apiGetActiveChallenge(athleteId);
+  if (!currentResult.success) {
+    return currentResult;
+  }
+  const current = currentResult.data;
+
+  if (current && current.status === 'active' && !isExpired(current)) {
+    return ok(current);
+  }
+
+  if (current && current.status === 'active' && isExpired(current)) {
+    const expiredChallenge: ProgressChallenge = {
+      ...current,
+      status: 'expired',
+    };
+    const savedExpired = await apiSaveProgressChallenge(expiredChallenge);
+    if (!savedExpired.success) {
+      return err(savedExpired.error);
+    }
+
+    logger.info('progress_challenge_expired', {
+      athleteId: expiredChallenge.athleteId,
+      challengeId: expiredChallenge.id,
+    });
+
+    const assigned = await assignNextChallenge(expiredChallenge.athleteId, expiredChallenge.type);
+    if (!assigned.success) {
+      return assigned;
+    }
+    return ok(assigned.data);
+  }
+
+  const historyResult = await getChallengeHistory(athleteId);
+  if (!historyResult.success) {
+    return historyResult;
+  }
+  const lastType = historyResult.data[0]?.type ?? null;
+  return assignNextChallenge(athleteId, lastType);
+}
+
 async function getActiveChallenge(
   athleteId: string,
 ): Promise<Result<ProgressChallenge | null, ServiceError>> {
   ensureEventHandlersRegistered();
+
+  if (isApiMode()) {
+    return getApiActiveChallenge(athleteId);
+  }
 
   try {
     const activeMap = await getActiveChallengeMap();
@@ -415,6 +656,94 @@ async function getActiveChallenge(
   }
 }
 
+async function completeApiChallenge(challengeId: string): Promise<
+  Result<
+    {
+      completed: ProgressChallenge;
+      badgeAwarded: BadgeAward | null;
+      nextChallenge: ProgressChallenge | null;
+    },
+    ServiceError
+  >
+> {
+  let athleteId = apiChallengeAthleteScopeById.get(challengeId);
+  if (!athleteId) {
+    const fetched = await apiGetChallengeById(challengeId);
+    if (!fetched.success) {
+      return err(fetched.error);
+    }
+    athleteId = fetched.data?.athleteId;
+  }
+  if (!athleteId) {
+    return err(notFound('Progress challenge', challengeId));
+  }
+
+  const activeResult = await apiGetActiveChallenge(athleteId);
+  if (!activeResult.success) {
+    return activeResult;
+  }
+  const challenge = activeResult.data;
+  if (!challenge || challenge.id !== challengeId) {
+    return err(notFound('Progress challenge', challengeId));
+  }
+
+  const hadUpdateLock = eventUpdateLocks.has(athleteId);
+  if (!hadUpdateLock) {
+    eventUpdateLocks.add(athleteId);
+  }
+
+  try {
+    const completed: ProgressChallenge = {
+      ...challenge,
+      status: 'completed',
+      currentValue: Math.max(challenge.currentValue, challenge.targetValue),
+      progress: 100,
+      completedAt: new Date().toISOString(),
+    };
+
+    const savedCompleted = await apiSaveProgressChallenge(completed);
+    if (!savedCompleted.success) {
+      return err(savedCompleted.error);
+    }
+
+    const badgeResult = await awardRewardBadge(savedCompleted.data);
+    if (!badgeResult.success) {
+      return badgeResult;
+    }
+
+    emitTyped(ServiceEvents.PROGRESS_CHALLENGE_COMPLETED, {
+      challengeId: savedCompleted.data.id,
+      athleteId: savedCompleted.data.athleteId,
+      type: savedCompleted.data.type,
+      rewardBadgeId: savedCompleted.data.rewardBadgeId,
+    });
+
+    const nextChallengeResult = await assignNextChallenge(
+      savedCompleted.data.athleteId,
+      savedCompleted.data.type,
+    );
+    if (!nextChallengeResult.success) {
+      return nextChallengeResult;
+    }
+
+    logger.info('progress_challenge_completed', {
+      challengeId: savedCompleted.data.id,
+      athleteId: savedCompleted.data.athleteId,
+      rewardBadgeId: savedCompleted.data.rewardBadgeId,
+    });
+
+    return ok({
+      completed: savedCompleted.data,
+      badgeAwarded: badgeResult.data,
+      nextChallenge: nextChallengeResult.data,
+    });
+  } finally {
+    if (!hadUpdateLock) {
+      eventUpdateLocks.delete(athleteId);
+    }
+  }
+}
+
 async function completeChallenge(challengeId: string): Promise<
   Result<
     {
@@ -426,6 +755,10 @@ async function completeChallenge(challengeId: string): Promise<
   >
 > {
   ensureEventHandlersRegistered();
+
+  if (isApiMode()) {
+    return completeApiChallenge(challengeId);
+  }
 
   try {
     const [activeMap, history] = await Promise.all([
@@ -531,11 +864,11 @@ async function updateProgress(
     progress,
   };
 
-  const activeMap = await getActiveChallengeMap();
-  activeMap[athleteId] = updatedChallenge;
-
   if (updatedChallenge.progress >= 100) {
-    await saveActiveChallengeMap(activeMap);
+    const saved = await saveActiveChallengeState(updatedChallenge);
+    if (!saved.success) {
+      return err(saved.error);
+    }
     const completionResult = await completeChallenge(updatedChallenge.id);
     if (!completionResult.success) {
       return completionResult;
@@ -543,24 +876,56 @@ async function updateProgress(
     return ok(completionResult.data.nextChallenge);
   }
 
-  await saveActiveChallengeMap(activeMap);
+  const saved = await saveActiveChallengeState(updatedChallenge);
+  if (!saved.success) {
+    return err(saved.error);
+  }
 
   logger.info('progress_challenge_updated', {
-    athleteId,
-    challengeId: updatedChallenge.id,
-    type: updatedChallenge.type,
-    currentValue: updatedChallenge.currentValue,
-    targetValue: updatedChallenge.targetValue,
-    progress: updatedChallenge.progress,
+    athleteId: saved.data.athleteId,
+    challengeId: saved.data.id,
+    type: saved.data.type,
+    currentValue: saved.data.currentValue,
+    targetValue: saved.data.targetValue,
+    progress: saved.data.progress,
   });
 
-  return ok(updatedChallenge);
+  return ok(saved.data);
 }
 
 async function checkExpired(
   athleteId?: string,
 ): Promise<Result<ProgressChallenge[], ServiceError>> {
   ensureEventHandlersRegistered();
+
+  if (isApiMode()) {
+    // ponytail: no global scan here; add a backend job if expiry volume needs it.
+    if (!athleteId) {
+      return ok([]);
+    }
+    const activeResult = await apiGetActiveChallenge(athleteId);
+    if (!activeResult.success) {
+      return err(activeResult.error);
+    }
+    const current = activeResult.data;
+    if (!current || current.status !== 'active' || !isExpired(current)) {
+      return ok([]);
+    }
+
+    const expiredChallenge: ProgressChallenge = {
+      ...current,
+      status: 'expired',
+    };
+    const savedExpired = await apiSaveProgressChallenge(expiredChallenge);
+    if (!savedExpired.success) {
+      return err(savedExpired.error);
+    }
+    const assigned = await assignNextChallenge(savedExpired.data.athleteId, savedExpired.data.type);
+    if (!assigned.success) {
+      logger.error('Failed to assign replacement challenge after expiry', assigned.error);
+    }
+    return ok([savedExpired.data]);
+  }
 
   try {
     const activeMap = await getActiveChallengeMap();

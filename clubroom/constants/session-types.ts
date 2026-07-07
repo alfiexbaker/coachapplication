@@ -591,6 +591,7 @@ export interface GroupSession {
   schedule: GroupSessionSchedule[];
   maxParticipants: number;
   currentParticipants: number;
+  offPlatformParticipants?: number;
   waitlistEnabled: boolean;
   waitlistCount: number;
   pricePerParticipant: number;
@@ -610,6 +611,7 @@ export interface GroupSession {
   // Training/Recurring session fields
   isRecurring?: boolean;
   recurringPattern?: RecurringPattern;
+  cancelledInstances?: string[];
   squadId?: string;      // Link to specific squad
   parentSessionId?: string; // For recurring instances, links to the template
   isFree?: boolean;         // Quick flag for free sessions
@@ -680,6 +682,8 @@ export interface RecurringBooking {
   endDate?: string;
   /** Current status of the subscription */
   status: RecurringBookingStatus;
+  /** Backend series version used for optimistic lifecycle mutations */
+  version?: number;
   /** Price per session in GBP */
   pricePerSession?: number;
   /** Additional notes for the booking */
@@ -698,6 +702,8 @@ export interface RecurringBooking {
   cancellationReason?: string;
   /** IDs of bookings generated from this recurring subscription */
   generatedBookingIds: string[];
+  /** Generated booking occurrences with schedule/status details when supplied by backend series authority */
+  generatedBookings?: GeneratedBookingSummary[];
   /** Number of sessions completed */
   sessionsCompleted: number;
   /** Number of sessions remaining (if endDate is set) */

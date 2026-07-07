@@ -58,6 +58,13 @@ function ensureInvoices(tables: SeedTables): SeedRow[] {
   return tables.invoices;
 }
 
+function ensureTable(tables: SeedTables, key: string): SeedRow[] {
+  if (!Array.isArray(tables[key])) {
+    tables[key] = [];
+  }
+  return tables[key];
+}
+
 function addInvoice(
   tables: SeedTables,
   params: {
@@ -66,6 +73,9 @@ function addInvoice(
     status: 'PAID' | 'SENT';
     totalMinor: number;
     paidAt?: string;
+    bookingId?: string;
+    athleteId?: string;
+    sessionDate?: string;
   },
 ): void {
   const now = new Date().toISOString();
@@ -73,6 +83,8 @@ function addInvoice(
     id: params.id,
     invoiceNumber: `INV-${params.id}`,
     coachUserId: params.coachUserId,
+    bookingId: params.bookingId ?? null,
+    athleteId: params.athleteId ?? null,
     status: params.status,
     totalMinor: params.totalMinor,
     subtotalMinor: params.totalMinor,
@@ -80,11 +92,97 @@ function addInvoice(
     taxRatePercent: 0,
     currency: 'GBP',
     sessionType: 'one_to_one',
-    sessionDate: params.paidAt ?? now,
+    sessionDate: params.sessionDate ?? params.paidAt ?? now,
     paidAt: params.paidAt ?? null,
     createdAt: params.paidAt ?? now,
     updatedAt: params.paidAt ?? now,
     deletedAt: null,
+  });
+}
+
+function addCoachAnalyticsFixture(
+  tables: SeedTables,
+  params: {
+    coachUserId: string;
+    athleteId: string;
+    guardianUserId: string;
+    scheduledAt: string;
+    paidAt: string;
+  },
+): void {
+  const bookingId = 'booking_analytics_current';
+  ensureTable(tables, 'bookings').push({
+    id: bookingId,
+    coachUserId: params.coachUserId,
+    bookedByUserId: params.guardianUserId,
+    status: 'COMPLETED',
+    scheduledAt: params.scheduledAt,
+    durationMinutes: 60,
+    location: 'Analytics Pitch',
+    serviceType: 'one_to_one',
+    priceMinor: 6000,
+    currency: 'GBP',
+    createdAt: params.scheduledAt,
+    updatedAt: params.scheduledAt,
+    createdByUserId: params.guardianUserId,
+    updatedByUserId: params.coachUserId,
+    deletedAt: null,
+  });
+  ensureTable(tables, 'bookingParticipants').push({
+    id: 'bkp_analytics_current',
+    bookingId,
+    athleteId: params.athleteId,
+    guardianUserId: params.guardianUserId,
+    status: 'confirmed',
+    createdAt: params.scheduledAt,
+    updatedAt: params.scheduledAt,
+    createdByUserId: params.guardianUserId,
+    updatedByUserId: params.coachUserId,
+    deletedAt: null,
+  });
+  addInvoice(tables, {
+    id: 'invoice_analytics_current',
+    coachUserId: params.coachUserId,
+    status: 'PAID',
+    totalMinor: 6000,
+    paidAt: params.paidAt,
+    bookingId,
+    athleteId: params.athleteId,
+    sessionDate: params.scheduledAt,
+  });
+  ensureTable(tables, 'sessionFeedback').push({
+    id: 'sfb_analytics_current',
+    bookingId,
+    athleteId: params.athleteId,
+    authorUserId: params.guardianUserId,
+    rating: 5,
+    publicComment: 'Strong session.',
+    visibility: 'public',
+    createdAt: params.scheduledAt,
+    updatedAt: params.scheduledAt,
+    deletedAt: null,
+  });
+  const skillDefinitionId = asString(asRows(tables.skillDefinitions)[0]?.id) ?? 'skd_analytics';
+  if (!asRows(tables.skillDefinitions).some((row) => asString(row.id) === skillDefinitionId)) {
+    ensureTable(tables, 'skillDefinitions').push({
+      id: skillDefinitionId,
+      code: 'PASSING',
+      name: 'Passing',
+      category: 'Technical',
+      active: true,
+      createdAt: params.scheduledAt,
+      updatedAt: params.scheduledAt,
+    });
+  }
+  ensureTable(tables, 'athleteSkillAssessments').push({
+    id: 'ska_analytics_current',
+    athleteId: params.athleteId,
+    skillDefinitionId,
+    assessorUserId: params.coachUserId,
+    bookingId,
+    score: 8,
+    assessedAt: params.scheduledAt,
+    createdAt: params.scheduledAt,
   });
 }
 
@@ -201,7 +299,7 @@ describe('coach earnings route', () => {
       totalTransactions: number;
     };
     assert.equal(payload.earnings.coachId, coachUserId);
-    assert.equal(payload.earnings.availableBalance, 0);
+    assert.equal(payload.earnings.availableBalance, expectedPaidTotal(tables, coachUserId));
     assert.equal(payload.earnings.pendingBalance, expectedOpenTotal(tables, coachUserId));
     assert.equal(payload.earnings.totalEarned, expectedPaidTotal(tables, coachUserId));
     assert.equal(payload.earnings.totalWithdrawn, 0);
@@ -270,9 +368,78 @@ describe('coach earnings route', () => {
     }
   });
 
+  it('derives coach analytics from backend records and audits sensitive reads', async () => {
+    const tables = getMarketplaceSeedStore().tables as SeedTables;
+    const { coachUserId, otherCoachUserId } = findActors(tables);
+    const athleteId = asString(asRows(tables.athletes)[0]?.id);
+    const guardianUserId = asString(asRows(tables.users).find((row) => asString(row.id) !== coachUserId)?.id);
+    assert.ok(athleteId, 'expected seeded athlete');
+    assert.ok(guardianUserId, 'expected seeded guardian/user');
+    const now = new Date();
+    const currentMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const fixtureAt = new Date(
+      Math.max(currentMonthStart.getTime(), now.getTime() - 60 * 60 * 1000),
+    );
+    const scheduledAt = fixtureAt.toISOString();
+    const paidAt = fixtureAt.toISOString();
+    addCoachAnalyticsFixture(tables, {
+      coachUserId,
+      athleteId,
+      guardianUserId,
+      scheduledAt,
+      paidAt,
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/v1/coaches/${coachUserId}/analytics?period=MONTH`,
+      headers: authHeaders(coachUserId),
+    });
+    assert.equal(response.statusCode, 200);
+    const payload = response.json() as {
+      analytics: {
+        coachId: string;
+        totalRevenue: number;
+        avgRevenuePerSession: number;
+        sessions: { totalSessions: number; popularSessionType: string };
+        retention: { totalActiveClients: number };
+        avgRating: number;
+        reviewCount: number;
+        topSkills: Array<{ skill: string; sessionCount: number }>;
+      };
+    };
+    assert.equal(payload.analytics.coachId, coachUserId);
+    assert.equal(payload.analytics.totalRevenue, 60);
+    assert.equal(payload.analytics.avgRevenuePerSession, 60);
+    assert.equal(payload.analytics.sessions.totalSessions, 1);
+    assert.equal(payload.analytics.sessions.popularSessionType, 'one_to_one');
+    assert.equal(payload.analytics.retention.totalActiveClients, 1);
+    assert.equal(payload.analytics.avgRating, 5);
+    assert.equal(payload.analytics.reviewCount, 1);
+    assert.equal(payload.analytics.topSkills.length >= 1, true);
+    assert.equal(payload.analytics.topSkills[0]?.sessionCount, 1);
+
+    const denied = await app.inject({
+      method: 'GET',
+      url: `/v1/coaches/${coachUserId}/analytics?period=MONTH`,
+      headers: authHeaders(otherCoachUserId),
+    });
+    assert.equal(denied.statusCode, 403);
+    assert.equal(auditRows(tables, 'coach_analytics.read', 'SUCCESS').length, 1);
+    assert.equal(auditRows(tables, 'coach_analytics.read', 'DENY').length, 1);
+  });
+
   it('runs payout methods and withdrawals through audited simulated provider state', async () => {
     const tables = getMarketplaceSeedStore().tables as SeedTables;
     const { coachUserId, nonCoachUserId } = findActors(tables);
+    addInvoice(tables, {
+      id: 'invoice_payout_available_balance',
+      coachUserId,
+      status: 'PAID',
+      totalMinor: 5000,
+      paidAt: new Date().toISOString(),
+    });
+    const availableBeforeWithdrawal = expectedPaidTotal(tables, coachUserId);
 
     const payoutMethods = await app.inject({
       method: 'GET',
@@ -361,6 +528,17 @@ describe('coach earnings route', () => {
     assert.equal(withdrawalsPayload.status, 'pending');
     assert.equal(withdrawalsPayload.provider, 'simulated');
     assert.equal(withdrawalsPayload.providerConfigured, false);
+
+    const overdrawnWithdrawal = await app.inject({
+      method: 'POST',
+      url: '/v1/coaches/me/withdrawals',
+      headers: authHeaders(coachUserId),
+      payload: {
+        amount: availableBeforeWithdrawal + 1,
+        payoutMethodId,
+      },
+    });
+    assert.equal(overdrawnWithdrawal.statusCode, 400);
 
     const requestWithdrawal = await app.inject({
       method: 'POST',
@@ -455,6 +633,32 @@ describe('coach earnings route', () => {
     };
     assert.equal(cancelWithdrawalPayload.withdrawal.status, 'CANCELLED');
 
+    const earningsAfterPayout = await app.inject({
+      method: 'GET',
+      url: '/v1/coaches/me/earnings',
+      headers: authHeaders(coachUserId),
+    });
+    assert.equal(earningsAfterPayout.statusCode, 200);
+    const earningsAfterPayoutPayload = earningsAfterPayout.json() as {
+      earnings: {
+        availableBalance: number;
+        totalEarned: number;
+        totalWithdrawn: number;
+        pendingWithdrawals: unknown[];
+        payoutMethods: unknown[];
+        defaultPayoutMethodId?: string;
+      };
+    };
+    assert.equal(earningsAfterPayoutPayload.earnings.totalEarned, availableBeforeWithdrawal);
+    assert.equal(earningsAfterPayoutPayload.earnings.totalWithdrawn, 25);
+    assert.equal(
+      earningsAfterPayoutPayload.earnings.availableBalance,
+      availableBeforeWithdrawal - 25,
+    );
+    assert.deepEqual(earningsAfterPayoutPayload.earnings.pendingWithdrawals, []);
+    assert.equal(earningsAfterPayoutPayload.earnings.payoutMethods.length, 1);
+    assert.equal(earningsAfterPayoutPayload.earnings.defaultPayoutMethodId, payoutMethodId);
+
     const deletePayoutMethod = await app.inject({
       method: 'DELETE',
       url: `/v1/coaches/me/payout-methods/${encodeURIComponent(payoutMethodId)}`,
@@ -472,9 +676,10 @@ describe('coach earnings route', () => {
     assert.equal(auditRows(tables, 'coach_payout_methods.read', 'DENY').length, 1);
     assert.equal(auditRows(tables, 'coach_payout_methods.create', 'SUCCESS').length, 1);
     assert.equal(auditRows(tables, 'coach_payout_methods.set_default', 'SUCCESS').length, 1);
-    assert.equal(auditRows(tables, 'coach_payout_methods.delete', 'SUCCESS').length, 1);
+    assert.equal(auditRows(tables, 'coach_payout_methods.remove', 'SUCCESS').length, 1);
     assert.equal(auditRows(tables, 'coach_withdrawals.read', 'SUCCESS').length, 3);
     assert.equal(auditRows(tables, 'coach_withdrawals.create', 'SUCCESS').length, 2);
+    assert.equal(auditRows(tables, 'coach_withdrawals.create', 'DENY').length, 1);
     assert.equal(auditRows(tables, 'coach_withdrawals.complete', 'SUCCESS').length, 1);
     assert.equal(auditRows(tables, 'coach_withdrawals.cancel', 'SUCCESS').length, 1);
 

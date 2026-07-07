@@ -27,6 +27,7 @@ import { recurringBookingService } from '@/services/recurring-booking-service';
 import { groupSessionService } from '@/services/group-session-service';
 import { academyService } from '@/services/academy-service';
 import { userService } from '@/services/user-service';
+import { safeDisplayLabel } from '@/utils/booking-display';
 import type {
   AcademyMembership,
   OrganizationCommercialMode,
@@ -554,14 +555,14 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
       const labelById = new Map<string, string>();
       if (usersResult.success) {
         usersResult.data.forEach((user) => {
-          labelById.set(user.id, user.name || user.id);
+          labelById.set(user.id, user.name || '');
         });
       }
       const mapped = staff
         .map((member) => ({
           id: member.userId,
           role: member.role,
-          label: labelById.get(member.userId) ?? member.userId,
+          label: safeDisplayLabel(labelById.get(member.userId), academyService.formatRole(member.role)),
         }))
         .sort((a, b) => ASSIGNEE_ROLE_ORDER[a.role] - ASSIGNEE_ROLE_ORDER[b.role]);
       setAssigneeOptions(mapped);
@@ -894,13 +895,15 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         const selectedAssignee =
           assigneeOptions.find((entry) => entry.id === selectedAssigneeId) ?? null;
         const ownerCoachId = resolvedActingAs === 'club' ? selectedAssigneeId : currentUser.id;
+        const currentUserDisplayName = (currentUser.name || currentUser.fullName || '').trim();
+        const selectedAssigneeName = selectedAssignee?.label?.trim();
         const ownerCoachName =
           resolvedActingAs === 'club'
-            ? selectedAssignee?.label || currentUser.name || currentUser.fullName || 'Coach'
-            : currentUser.name || currentUser.fullName || 'Coach';
+            ? selectedAssigneeName || currentUserDisplayName
+            : currentUserDisplayName;
         const ownerClubId = resolvedActingAs === 'club' ? (selectedClubId ?? undefined) : undefined;
         const creatorRole = (currentUser.role as UserRole | undefined) ?? 'COACH';
-        const creatorDisplayName = currentUser.name || currentUser.fullName || 'Coach';
+        const creatorDisplayName = currentUserDisplayName;
         if (resolvedActingAs === 'club') {
           if (!selectedClubOption || !canPostAsClub(selectedClubOption.membership)) {
             setValidationMessage('Choose a club where you can post sessions.');
@@ -915,6 +918,16 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         }
         if (!ownerCoachId) {
           setValidationMessage('Unable to resolve session owner.');
+          setLoading(false);
+          return;
+        }
+        if (!ownerCoachName) {
+          setValidationMessage('Unable to resolve session owner name.');
+          setLoading(false);
+          return;
+        }
+        if (!creatorDisplayName) {
+          setValidationMessage('Unable to resolve creator name.');
           setLoading(false);
           return;
         }
@@ -948,6 +961,10 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
               if (parentId === 'unknown_parent' || athletesForParent.length === 0) {
                 return { sent: 0, failed: athletesForParent.length };
               }
+              const parentName = athletesForParent[0]?.parentName?.trim();
+              if (!parentName) {
+                return { sent: 0, failed: athletesForParent.length };
+              }
               const inviteResult = await sessionInviteService.createInvite(
                 athletesForParent.map((athlete) => athlete.id),
                 {
@@ -957,7 +974,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
                   inviteType,
                   athleteNames: athletesForParent.map((athlete) => athlete.name),
                   parentId,
-                  parentName: athletesForParent[0]?.parentName || 'Parent',
+                  parentName,
                   proposedSlots: options.proposedSlots,
                   sessionType: options.sessionTypeLabel,
                   focus: options.focusLabel,
@@ -1051,7 +1068,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
             assigneeCoachId: resolvedActingAs === 'club' ? ownerCoachId : undefined,
             createdByUserId: currentUser.id,
             createdByRole: creatorRole,
-            createdByName: currentUser.name || currentUser.fullName || 'Coach',
+            createdByName: creatorDisplayName,
             title,
             description: description || 'Football camp session',
             sessionType: 'CAMP',
@@ -1141,8 +1158,9 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
             clubId: ownerClubId,
           });
           if (result.success) {
-            // Generate first batch of upcoming bookings
-            await recurringBookingService.generateUpcomingBookings(result.data.id, 4);
+            if (apiClient.isMockMode) {
+              await recurringBookingService.generateUpcomingBookings(result.data.id, 4);
+            }
             const { invitesSent, inviteFailures } = await sendSelectedAthleteInvites({
               proposedSlots: [
                 {

@@ -249,6 +249,7 @@ export function useHeadCoachOversight() {
           clubId: activeSelectedClubId,
           actorUserId: currentUser.id,
           standardId: standard.id,
+          active: !standard.active,
         });
         if (!result.success) {
           showToast(result.error.message, 'error');

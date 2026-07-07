@@ -2,6 +2,9 @@
 
 # dependencies
 node_modules/
+.codex/
+outputs/**/node_modules/
+outputs/**/node_modules
 
 # Expo
 .expo/
@@ -40,12 +43,32 @@ app-example
 
 # Test build output
 .tmp-tests/
+.tmp-tsconfig*.json
 docs/backend-api/test-data/TEST_ACCOUNTS.local.txt
+docs/backend-api/test-data/TEST_ACCOUNTS.staging.local.txt
 
 # Screenshots (reference only, not code)
 screenshots/
 /.ui-shots/
 .playwright-cli/
+.playwright-mcp/
+
+# Generated launch audit outputs.
+reviews/launch-readiness.json
+reviews/launch-readiness.md
+reviews/launch-readiness-*.json
+reviews/launch-readiness-*.md
+reviews/launch-route-decisions-*.json
+reviews/launch-route-decisions-*.md
+reviews/worktree-triage.json
+reviews/worktree-triage.md
+
+# Local IDE state
+.idea/
+.claude/settings.local.json
+.claude/skills/
+.vscode/extensions.json
+.vscode/settings.json
 
 # generated native folders
 /ios

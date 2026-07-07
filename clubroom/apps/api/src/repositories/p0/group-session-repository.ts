@@ -6,7 +6,7 @@ import {
 } from '@clubroom/shared-contracts';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
-import { badRequest, forbidden, notFound } from '../../lib/http-errors.js';
+import { badRequest, conflict, forbidden, notFound } from '../../lib/http-errors.js';
 import {
   applyBookingCancellationInvoiceEffects,
   applyBookingCancellationInvoiceEffectsInDbTransaction,
@@ -27,6 +27,7 @@ type AppGroupSessionType =
   | 'TRAINING';
 type AppInviteType = 'OPEN' | 'CLOSED' | 'SQUAD_ONLY';
 type AppSkillLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ALL';
+type AppSessionRsvpStatus = 'pending' | 'going' | 'maybe' | 'not_going';
 export interface AppGroupSessionSchedule {
   date: string;
   startTime: string;
@@ -48,6 +49,7 @@ export interface AppGroupSession {
   schedule: AppGroupSessionSchedule[];
   maxParticipants: number;
   currentParticipants: number;
+  offPlatformParticipants: number;
   waitlistEnabled: boolean;
   waitlistCount: number;
   pricePerParticipant: number;
@@ -63,6 +65,7 @@ export interface AppGroupSession {
   equipment?: string[];
   isRecurring?: boolean;
   recurringPattern?: AppRecurringPattern;
+  cancelledInstances?: string[];
   squadId?: string;
   isFree?: boolean;
   inviteType?: AppInviteType;
@@ -78,6 +81,19 @@ export interface AppGroupRegistration {
   paidAt?: string;
   attendedDates: string[];
   notes?: string;
+}
+export interface AppSessionRsvp {
+  id: string;
+  sessionId: string;
+  userId: string;
+  childId?: string;
+  status: AppSessionRsvpStatus;
+  respondedAt?: string;
+  createdAt: string;
+}
+export interface SessionRsvpMemberInput {
+  userId: string;
+  childId?: string;
 }
 export interface GroupSessionListParams {
   authUserId: string;
@@ -124,6 +140,15 @@ export interface GroupSessionAccessParams {
   sessionId: string;
   requestId?: string;
 }
+export interface GroupSessionOffPlatformParticipantsParams extends GroupSessionAccessParams {
+  count: number;
+}
+export interface GroupSessionCancelInstanceParams extends GroupSessionAccessParams {
+  date: string;
+}
+export interface GroupSessionEndSeriesParams extends GroupSessionAccessParams {
+  fromDate: string;
+}
 export interface GroupSessionRegisterParams {
   authUserId: string;
   isPrivilegedAdmin: boolean;
@@ -132,6 +157,7 @@ export interface GroupSessionRegisterParams {
   athleteId: string;
   bookedByUserId: string;
   note: string;
+  waitlistOnly?: boolean;
 }
 export interface GroupSessionAttendanceParams {
   authUserId: string;
@@ -149,6 +175,33 @@ export interface GroupRegistrationListParams {
   authUserId: string;
   isPrivilegedAdmin: boolean;
   athleteIds: string[];
+}
+export interface GroupSessionRsvpAccessParams {
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+  sessionId: string;
+}
+export interface GroupSessionRsvpCreateParams extends GroupSessionRsvpAccessParams {
+  members: SessionRsvpMemberInput[];
+}
+export interface SessionRsvpAccessParams {
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+  rsvpId: string;
+}
+export interface SessionRsvpRespondParams extends SessionRsvpAccessParams {
+  status: Exclude<AppSessionRsvpStatus, 'pending'>;
+}
+export interface SessionRsvpUserListParams {
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+  userId: string;
+  status?: AppSessionRsvpStatus;
+}
+export interface SessionRsvpBatchCountsParams {
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+  sessionIds: string[];
 }
 export interface GroupSessionActionResult {
   session: AppGroupSession;
@@ -169,6 +222,8 @@ export interface GroupSessionRegisterResult {
   booking: {
     id: string;
     status: string;
+    recurringSeriesId?: string | null;
+    groupSessionId?: string | null;
   } | null;
   sessionStatus: GroupSessionStatus;
   dataVersion: string | null;
@@ -181,11 +236,42 @@ export interface GroupRegistrationListResult {
   registrations: AppGroupRegistration[];
   dataVersion: string | null;
 }
+export interface SessionRsvpListResult {
+  rsvps: AppSessionRsvp[];
+  dataVersion: string | null;
+}
+export interface SessionRsvpActionResult {
+  rsvp: AppSessionRsvp;
+  dataVersion: string | null;
+}
+export interface SessionRsvpCounts {
+  going: number;
+  notGoing: number;
+  maybe: number;
+  pending: number;
+}
+export interface SessionRsvpCountsResult {
+  counts: SessionRsvpCounts;
+  dataVersion: string | null;
+}
+export interface SessionRsvpBatchCountsResult {
+  countsBySessionId: Record<string, SessionRsvpCounts>;
+  dataVersion: string | null;
+}
+export interface SessionRsvpReminderResult {
+  reminded: number;
+  dataVersion: string | null;
+}
 export interface GroupSessionRepository {
   listVisibleSessions(params: GroupSessionListParams): Promise<GroupSessionListResult>;
   getVisibleSessionById(params: GroupSessionAccessParams): Promise<GroupSessionDetailResult>;
   createSession(params: GroupSessionCreateParams): Promise<GroupSessionActionResult>;
   publishSession(params: GroupSessionAccessParams): Promise<GroupSessionActionResult>;
+  updateOffPlatformParticipants(
+    params: GroupSessionOffPlatformParticipantsParams,
+  ): Promise<GroupSessionActionResult>;
+  cancelInstance(params: GroupSessionCancelInstanceParams): Promise<GroupSessionActionResult>;
+  endSeries(params: GroupSessionEndSeriesParams): Promise<GroupSessionActionResult>;
   cancelSession(params: GroupSessionAccessParams): Promise<GroupSessionActionResult>;
   registerAthlete(params: GroupSessionRegisterParams): Promise<GroupSessionRegisterResult>;
   listSessionRoster(params: GroupSessionAccessParams): Promise<GroupSessionRosterResult>;
@@ -197,6 +283,19 @@ export interface GroupSessionRepository {
     params: GroupRegistrationListParams,
   ): Promise<GroupRegistrationListResult>;
   findSessionById(sessionId: string): Promise<AppGroupSession | null>;
+  createSessionRsvps(params: GroupSessionRsvpCreateParams): Promise<SessionRsvpListResult>;
+  listSessionRsvps(params: GroupSessionRsvpAccessParams): Promise<SessionRsvpListResult>;
+  listSessionRsvpsForUser(params: SessionRsvpUserListParams): Promise<SessionRsvpListResult>;
+  getSessionRsvpById(params: SessionRsvpAccessParams): Promise<SessionRsvpActionResult>;
+  respondSessionRsvp(params: SessionRsvpRespondParams): Promise<SessionRsvpActionResult>;
+  getSessionRsvpCounts(params: GroupSessionRsvpAccessParams): Promise<SessionRsvpCountsResult>;
+  getBatchSessionRsvpCounts(
+    params: SessionRsvpBatchCountsParams,
+  ): Promise<SessionRsvpBatchCountsResult>;
+  remindSessionRsvps(params: GroupSessionRsvpAccessParams): Promise<SessionRsvpReminderResult>;
+  deleteSessionRsvpsForSession(
+    params: GroupSessionRsvpAccessParams,
+  ): Promise<SessionRsvpReminderResult>;
 }
 interface StoreProvider {
   version: string;
@@ -236,6 +335,18 @@ interface PrismaAttendanceRow {
   notes: string | null;
   recordedAt: string;
 }
+interface PrismaSessionRsvpRow {
+  id: string;
+  groupSessionId: string;
+  userId: string;
+  athleteId: string | null;
+  status: string;
+  respondedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+  deletedByUserId: string | null;
+}
 interface PrismaSessionRow {
   id: string;
   coachUserId: string;
@@ -246,6 +357,7 @@ interface PrismaSessionRow {
   sessionType: string;
   maxParticipants: number;
   currentParticipants: number;
+  offPlatformParticipants: number;
   waitlistEnabled: boolean;
   waitlistCount: number;
   pricePerParticipantMinor: number | null;
@@ -259,6 +371,7 @@ interface PrismaSessionRow {
   registrationDeadlineAt: string | null;
   inviteType: string | null;
   scheduleJson: unknown;
+  cancelledInstancesJson: unknown;
   focusJson: unknown;
   equipmentJson: unknown;
   createdAt: string;
@@ -381,6 +494,58 @@ function assertSessionOpenForRegistration(
   }
   return normalized;
 }
+function assertRecurringInstanceExists(sessionId: string, scheduleJson: unknown, date: string): void {
+  const schedule = buildScheduleEntries(scheduleJson);
+  if (schedule.length < 2) {
+    throw badRequest('Group session is not recurring', { sessionId });
+  }
+  if (!schedule.some((entry) => entry.date === date)) {
+    throw badRequest('Group session instance not found', { sessionId, date });
+  }
+}
+function scheduledRecurringDatesFrom(
+  sessionId: string,
+  scheduleJson: unknown,
+  fromDate: string,
+): string[] {
+  const schedule = buildScheduleEntries(scheduleJson);
+  if (schedule.length < 2) {
+    throw badRequest('Group session is not recurring', { sessionId });
+  }
+  return schedule.flatMap((entry) => (entry.date >= fromDate ? [entry.date] : []));
+}
+function groupSessionHeadcount(registered: number, offPlatform: number): number {
+  return Math.max(0, registered) + Math.max(0, offPlatform);
+}
+function derivePublishedSessionStatus(
+  maxParticipants: number,
+  registered: number,
+  offPlatform: number,
+): Extract<GroupSessionStatus, 'PUBLISHED' | 'FULL'> {
+  return maxParticipants > 0 && groupSessionHeadcount(registered, offPlatform) >= maxParticipants
+    ? 'FULL'
+    : 'PUBLISHED';
+}
+function deriveSessionStatusForHeadcount(
+  currentStatus: string | undefined,
+  maxParticipants: number,
+  registered: number,
+  offPlatform: number,
+): GroupSessionStatus {
+  const status = normalizeSessionStatus(currentStatus);
+  if (status !== 'PUBLISHED' && status !== 'FULL') {
+    return status;
+  }
+  return derivePublishedSessionStatus(maxParticipants, registered, offPlatform);
+}
+function requireAssignedDeliveryCoach(sessionId: string, coachUserId: string | undefined | null): string {
+  if (!coachUserId) {
+    throw badRequest('Group session needs an assigned delivery coach before registration', {
+      sessionId,
+    });
+  }
+  return coachUserId;
+}
 function buildScheduleEntries(value: unknown): AppGroupSessionSchedule[] {
   return asRows(value).flatMap((entry) => {
     const mapped = (() => {
@@ -497,6 +662,7 @@ function mapSessionRow(session: SeedRow): AppGroupSession {
     schedule,
     maxParticipants: asNumber(session.maxParticipants) ?? 0,
     currentParticipants: asNumber(session.currentParticipants) ?? 0,
+    offPlatformParticipants: asNumber(session.offPlatformParticipants) ?? 0,
     waitlistEnabled: asBoolean(session.waitlistEnabled) ?? true,
     waitlistCount: asNumber(session.waitlistCount) ?? 0,
     pricePerParticipant,
@@ -538,6 +704,11 @@ function mapSessionRow(session: SeedRow): AppGroupSession {
     ...(recurringPattern
       ? {
           recurringPattern,
+        }
+      : {}),
+    ...(asStringArray(session.cancelledInstancesJson).length > 0
+      ? {
+          cancelledInstances: asStringArray(session.cancelledInstancesJson),
         }
       : {}),
     ...(asString(session.squadId)
@@ -588,6 +759,78 @@ function mapRegistrationRow(
           notes: asString(registration.notes),
         }
       : {}),
+  };
+}
+function normalizeSessionRsvpStatus(value: unknown): AppSessionRsvpStatus {
+  const normalized = String(value ?? '').trim().toUpperCase();
+  if (normalized === 'GOING') return 'going';
+  if (normalized === 'MAYBE') return 'maybe';
+  if (normalized === 'NOT_GOING' || normalized === 'NOT GOING') return 'not_going';
+  return 'pending';
+}
+function toStoredSessionRsvpStatus(value: AppSessionRsvpStatus): string {
+  if (value === 'going') return 'GOING';
+  if (value === 'maybe') return 'MAYBE';
+  if (value === 'not_going') return 'NOT_GOING';
+  return 'PENDING';
+}
+function emptySessionRsvpCounts(): SessionRsvpCounts {
+  return {
+    going: 0,
+    notGoing: 0,
+    maybe: 0,
+    pending: 0,
+  };
+}
+function incrementSessionRsvpCounts(counts: SessionRsvpCounts, status: unknown): void {
+  const normalized = normalizeSessionRsvpStatus(status);
+  if (normalized === 'going') counts.going += 1;
+  else if (normalized === 'maybe') counts.maybe += 1;
+  else if (normalized === 'not_going') counts.notGoing += 1;
+  else counts.pending += 1;
+}
+function mapSessionRsvpRow(row: SeedRow): AppSessionRsvp {
+  return {
+    id: asString(row.id) ?? '',
+    sessionId: asString(row.groupSessionId) ?? asString(row.sessionId) ?? '',
+    userId: asString(row.userId) ?? '',
+    ...(asString(row.athleteId) ?? asString(row.childId)
+      ? {
+          childId: asString(row.athleteId) ?? asString(row.childId),
+        }
+      : {}),
+    status: normalizeSessionRsvpStatus(row.status),
+    ...(asString(row.respondedAt)
+      ? {
+          respondedAt: asString(row.respondedAt),
+        }
+      : {}),
+    createdAt: asString(row.createdAt) ?? isoNow(),
+  };
+}
+function sessionRsvpNotification(params: {
+  sessionId: string;
+  title: string;
+  userId: string;
+  now: string;
+}): SeedRow {
+  return {
+    id: newId('nfn'),
+    userId: params.userId,
+    type: 'SESSION_RSVP_REMINDER',
+    title: 'Reminder: Session RSVP',
+    body: `Please confirm attendance for "${params.title}".`,
+    status: 'UNREAD',
+    sourceType: 'group_session',
+    sourceId: params.sessionId,
+    deepLink: `/session/${params.sessionId}/rsvp`,
+    metadataJson: {
+      sessionId: params.sessionId,
+    },
+    createdAt: params.now,
+    updatedAt: params.now,
+    readAt: null,
+    dismissedAt: null,
   };
 }
 function mapContext(context: StoreSessionContext): GroupSessionRosterResult {
@@ -797,6 +1040,92 @@ function canUserReadSeedSession(
   }
   return false;
 }
+function canManageSeedSessionRsvps(
+  tables: SeedTables,
+  session: SeedRow,
+  authUserId: string,
+  isPrivilegedAdmin: boolean,
+): boolean {
+  if (isPrivilegedAdmin || asString(session.coachUserId) === authUserId) {
+    return true;
+  }
+  const clubId = asString(session.clubId);
+  if (!clubId) {
+    return false;
+  }
+  const membership = asRows(tables.clubMemberships).find(
+    (row) =>
+      asString(row.clubId) === clubId &&
+      asString(row.userId) === authUserId &&
+      row.active !== false &&
+      !asString(row.deletedAt),
+  );
+  const role = parseOrganizationRole(membership?.role);
+  return Boolean(
+    role &&
+      (isClubStaffRole(role) ||
+        canUseClubCapability(role, 'view_program_attendance', {
+          hasGrant: role === 'COACH',
+        })),
+  );
+}
+function assertSeedSessionRsvpReadAccess(
+  tables: SeedTables,
+  session: SeedRow,
+  authUserId: string,
+  isPrivilegedAdmin: boolean,
+): void {
+  if (canUserReadSeedSession(tables, session, authUserId, isPrivilegedAdmin, true)) {
+    return;
+  }
+  throw forbidden('Group session RSVP does not belong to authenticated user', {
+    sessionId: asString(session.id),
+  });
+}
+function assertSeedSessionRsvpManageAccess(
+  tables: SeedTables,
+  session: SeedRow,
+  authUserId: string,
+  isPrivilegedAdmin: boolean,
+): void {
+  if (canManageSeedSessionRsvps(tables, session, authUserId, isPrivilegedAdmin)) {
+    return;
+  }
+  throw forbidden('Only session staff can manage RSVP state', {
+    sessionId: asString(session.id),
+  });
+}
+function assertSeedSessionRsvpMemberWriteAccess(params: {
+  tables: SeedTables;
+  session: SeedRow;
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+  member: SessionRsvpMemberInput;
+}): void {
+  if (
+    canManageSeedSessionRsvps(
+      params.tables,
+      params.session,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    )
+  ) {
+    return;
+  }
+  if (params.member.userId !== params.authUserId) {
+    throw forbidden('RSVP userId must match authenticated user', {
+      userId: params.member.userId,
+    });
+  }
+  if (params.member.childId) {
+    assertAthleteReadAccess(
+      params.tables,
+      params.authUserId,
+      params.member.childId,
+      params.isPrivilegedAdmin,
+    );
+  }
+}
 function findLinkedSeedBooking(
   tables: SeedTables,
   sessionId: string,
@@ -859,6 +1188,8 @@ function createSeedLinkedBooking(params: {
 }): {
   id: string;
   status: string;
+  recurringSeriesId?: string | null;
+  groupSessionId?: string | null;
 } {
   const { tables, authUserId, requestId, session, athleteId, bookedByUserId, note } = params;
   const scheduleEntries = asRows(session.scheduleJson);
@@ -894,6 +1225,8 @@ function createSeedLinkedBooking(params: {
   return {
     id: booking.id,
     status: booking.status,
+    recurringSeriesId: booking.recurringSeriesId ?? null,
+    groupSessionId: booking.groupSessionId ?? null,
   };
 }
 async function generateLinkedRegistrationInvoiceIfBillable(params: {
@@ -1051,6 +1384,7 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
       sessionType: toStoredSessionType(params.body.sessionType),
       maxParticipants: params.body.maxParticipants,
       currentParticipants: 0,
+      offPlatformParticipants: 0,
       waitlistEnabled: params.body.waitlistEnabled ?? true,
       waitlistCount: 0,
       pricePerParticipantMinor:
@@ -1067,6 +1401,7 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
       registrationDeadlineAt: params.body.registrationDeadline ?? null,
       inviteType: toStoredInviteType(params.body.inviteType),
       scheduleJson: buildStoredScheduleJson(params.body.schedule),
+      cancelledInstancesJson: [],
       focusJson: params.body.focus ?? [],
       equipmentJson: params.body.equipment ?? [],
       createdByUserId: params.authUserId,
@@ -1098,8 +1433,101 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
     }
     const maxParticipants = asNumber(session.maxParticipants) ?? 0;
     const currentParticipants = asNumber(session.currentParticipants) ?? 0;
-    session.status =
-      currentParticipants >= maxParticipants && maxParticipants > 0 ? 'FULL' : 'PUBLISHED';
+    const offPlatformParticipants = asNumber(session.offPlatformParticipants) ?? 0;
+    session.status = derivePublishedSessionStatus(
+      maxParticipants,
+      currentParticipants,
+      offPlatformParticipants,
+    );
+    session.updatedAt = isoNow();
+    session.updatedByUserId = params.authUserId;
+    session.version = (asNumber(session.version) ?? 1) + 1;
+    return {
+      session: mapSessionRow(session),
+      dataVersion: store.version,
+    };
+  }
+  async updateOffPlatformParticipants(
+    params: GroupSessionOffPlatformParticipantsParams,
+  ): Promise<GroupSessionActionResult> {
+    const store = this.storeProvider();
+    const session = asRows(store.tables.groupSessions).find(
+      (row) => asString(row.id) === params.sessionId && !asString(row.deletedAt),
+    );
+    if (!session) {
+      throw notFound('Group session not found', {
+        sessionId: params.sessionId,
+      });
+    }
+    if (!params.isPrivilegedAdmin && asString(session.coachUserId) !== params.authUserId) {
+      throw forbidden('Group session does not belong to authenticated user');
+    }
+    const maxParticipants = asNumber(session.maxParticipants) ?? 0;
+    const currentParticipants = asNumber(session.currentParticipants) ?? 0;
+    session.offPlatformParticipants = params.count;
+    session.status = deriveSessionStatusForHeadcount(
+      asString(session.status),
+      maxParticipants,
+      currentParticipants,
+      params.count,
+    );
+    session.updatedAt = isoNow();
+    session.updatedByUserId = params.authUserId;
+    session.version = (asNumber(session.version) ?? 1) + 1;
+    return {
+      session: mapSessionRow(session),
+      dataVersion: store.version,
+    };
+  }
+  async cancelInstance(
+    params: GroupSessionCancelInstanceParams,
+  ): Promise<GroupSessionActionResult> {
+    const store = this.storeProvider();
+    const session = asRows(store.tables.groupSessions).find(
+      (row) => asString(row.id) === params.sessionId && !asString(row.deletedAt),
+    );
+    if (!session) {
+      throw notFound('Group session not found', {
+        sessionId: params.sessionId,
+      });
+    }
+    if (!params.isPrivilegedAdmin && asString(session.coachUserId) !== params.authUserId) {
+      throw forbidden('Group session does not belong to authenticated user');
+    }
+    assertRecurringInstanceExists(params.sessionId, session.scheduleJson, params.date);
+    const cancelled = new Set(asStringArray(session.cancelledInstancesJson));
+    cancelled.add(params.date);
+    session.cancelledInstancesJson = Array.from(cancelled).sort();
+    session.updatedAt = isoNow();
+    session.updatedByUserId = params.authUserId;
+    session.version = (asNumber(session.version) ?? 1) + 1;
+    return {
+      session: mapSessionRow(session),
+      dataVersion: store.version,
+    };
+  }
+  async endSeries(params: GroupSessionEndSeriesParams): Promise<GroupSessionActionResult> {
+    const store = this.storeProvider();
+    const session = asRows(store.tables.groupSessions).find(
+      (row) => asString(row.id) === params.sessionId && !asString(row.deletedAt),
+    );
+    if (!session) {
+      throw notFound('Group session not found', {
+        sessionId: params.sessionId,
+      });
+    }
+    if (!params.isPrivilegedAdmin && asString(session.coachUserId) !== params.authUserId) {
+      throw forbidden('Group session does not belong to authenticated user');
+    }
+    const cancelled = new Set(asStringArray(session.cancelledInstancesJson));
+    for (const date of scheduledRecurringDatesFrom(
+      params.sessionId,
+      session.scheduleJson,
+      params.fromDate,
+    )) {
+      cancelled.add(date);
+    }
+    session.cancelledInstancesJson = Array.from(cancelled).sort();
     session.updatedAt = isoNow();
     session.updatedByUserId = params.authUserId;
     session.version = (asNumber(session.version) ?? 1) + 1;
@@ -1221,30 +1649,46 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
         asString(row.status)?.toUpperCase() !== 'CANCELLED',
     );
     if (activeRegistration) {
+      const registration = mapRegistrationRow(
+        activeRegistration,
+        asRows(store.tables.attendanceRecords),
+      );
+      if (params.waitlistOnly && registration.status !== 'WAITLISTED') {
+        throw conflict('Athlete is already registered for this group session', {
+          sessionId: params.sessionId,
+          registrationId: registration.id,
+        });
+      }
+      const linkedBooking = findLinkedSeedBooking(store.tables, params.sessionId, params.athleteId);
       return {
-        registration: mapRegistrationRow(
-          activeRegistration,
-          asRows(store.tables.attendanceRecords),
-        ),
-        booking: findLinkedSeedBooking(store.tables, params.sessionId, params.athleteId)
+        registration,
+        booking: linkedBooking
           ? {
-              id:
-                asString(
-                  findLinkedSeedBooking(store.tables, params.sessionId, params.athleteId)?.id,
-                ) ?? '',
+              id: asString(linkedBooking.id) ?? '',
               status: 'CONFIRMED',
+              recurringSeriesId: asString(linkedBooking.recurringSeriesId) ?? null,
+              groupSessionId: asString(linkedBooking.groupSessionId) ?? null,
             }
           : null,
         sessionStatus: normalizeSessionStatus(asString(session.status)),
         dataVersion: store.version,
       };
     }
+    requireAssignedDeliveryCoach(params.sessionId, asString(session.coachUserId));
     const currentParticipants = asNumber(session.currentParticipants) ?? 0;
+    const offPlatformParticipants = asNumber(session.offPlatformParticipants) ?? 0;
     const maxParticipants = asNumber(session.maxParticipants) ?? 0;
     const waitlistEnabled = asBoolean(session.waitlistEnabled) ?? true;
-    const isFull = maxParticipants > 0 && currentParticipants >= maxParticipants;
+    const isFull =
+      maxParticipants > 0 &&
+      groupSessionHeadcount(currentParticipants, offPlatformParticipants) >= maxParticipants;
+    if (params.waitlistOnly && !isFull) {
+      throw conflict('Group session has spaces available; register instead', {
+        sessionId: params.sessionId,
+      });
+    }
     if (isFull && !waitlistEnabled) {
-      throw badRequest('Group session is full', {
+      throw badRequest(params.waitlistOnly ? 'Group session waitlist is not enabled' : 'Group session is full', {
         sessionId: params.sessionId,
       });
     }
@@ -1270,14 +1714,20 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
     let booking: {
       id: string;
       status: string;
+      recurringSeriesId?: string | null;
+      groupSessionId?: string | null;
     } | null = null;
     if (isFull) {
       session.waitlistCount = (asNumber(session.waitlistCount) ?? 0) + 1;
+      session.status = 'FULL';
     } else {
       const updatedParticipants = currentParticipants + 1;
       session.currentParticipants = updatedParticipants;
-      session.status =
-        updatedParticipants >= maxParticipants && maxParticipants > 0 ? 'FULL' : 'PUBLISHED';
+      session.status = derivePublishedSessionStatus(
+        maxParticipants,
+        updatedParticipants,
+        offPlatformParticipants,
+      );
       booking = createSeedLinkedBooking({
         tables: store.tables,
         authUserId: params.authUserId,
@@ -1442,10 +1892,12 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
       session.waitlistCount = Math.max(0, (asNumber(session.waitlistCount) ?? 0) - 1);
     }
     const maxParticipants = asNumber(session.maxParticipants) ?? 0;
-    session.status =
-      (asNumber(session.currentParticipants) ?? 0) >= maxParticipants && maxParticipants > 0
-        ? 'FULL'
-        : 'PUBLISHED';
+    session.status = deriveSessionStatusForHeadcount(
+      asString(session.status),
+      maxParticipants,
+      asNumber(session.currentParticipants) ?? 0,
+      asNumber(session.offPlatformParticipants) ?? 0,
+    );
     session.updatedAt = now;
     session.updatedByUserId = params.authUserId;
     session.version = (asNumber(session.version) ?? 1) + 1;
@@ -1545,6 +1997,294 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
     );
     return {
       registrations,
+      dataVersion: store.version,
+    };
+  }
+  async createSessionRsvps(
+    params: GroupSessionRsvpCreateParams,
+  ): Promise<SessionRsvpListResult> {
+    const store = this.storeProvider();
+    const session = asRows(store.tables.groupSessions).find(
+      (row) => asString(row.id) === params.sessionId && !asString(row.deletedAt),
+    );
+    if (!session) {
+      throw notFound('Group session not found', {
+        sessionId: params.sessionId,
+      });
+    }
+    if (!Array.isArray(store.tables.sessionRsvps)) {
+      store.tables.sessionRsvps = [];
+    }
+    const rsvps = asRows(store.tables.sessionRsvps);
+    const now = isoNow();
+    const result: AppSessionRsvp[] = [];
+    for (const member of params.members) {
+      assertSeedSessionRsvpMemberWriteAccess({
+        tables: store.tables,
+        session,
+        authUserId: params.authUserId,
+        isPrivilegedAdmin: params.isPrivilegedAdmin,
+        member,
+      });
+      const existing = rsvps.find(
+        (row) =>
+          asString(row.groupSessionId) === params.sessionId &&
+          asString(row.userId) === member.userId &&
+          (asString(row.athleteId) ?? null) === (member.childId ?? null) &&
+          !asString(row.deletedAt),
+      );
+      if (existing) {
+        result.push(mapSessionRsvpRow(existing));
+        continue;
+      }
+      const row: SeedRow = {
+        id: newId('srp'),
+        groupSessionId: params.sessionId,
+        userId: member.userId,
+        athleteId: member.childId ?? null,
+        status: 'PENDING',
+        respondedAt: null,
+        createdByUserId: params.authUserId,
+        updatedByUserId: params.authUserId,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+        deletedByUserId: null,
+      };
+      rsvps.push(row);
+      result.push(mapSessionRsvpRow(row));
+    }
+    return {
+      rsvps: result,
+      dataVersion: store.version,
+    };
+  }
+  async listSessionRsvps(params: GroupSessionRsvpAccessParams): Promise<SessionRsvpListResult> {
+    const store = this.storeProvider();
+    const session = asRows(store.tables.groupSessions).find(
+      (row) => asString(row.id) === params.sessionId && !asString(row.deletedAt),
+    );
+    if (!session) {
+      throw notFound('Group session not found', {
+        sessionId: params.sessionId,
+      });
+    }
+    assertSeedSessionRsvpReadAccess(
+      store.tables,
+      session,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+    const canReadAll = canManageSeedSessionRsvps(
+      store.tables,
+      session,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+    return {
+      rsvps: asRows(store.tables.sessionRsvps).flatMap((row) => {
+        if (asString(row.groupSessionId) !== params.sessionId || asString(row.deletedAt)) {
+          return [];
+        }
+        if (!canReadAll && asString(row.userId) !== params.authUserId) {
+          return [];
+        }
+        return [mapSessionRsvpRow(row)];
+      }),
+      dataVersion: store.version,
+    };
+  }
+  async listSessionRsvpsForUser(
+    params: SessionRsvpUserListParams,
+  ): Promise<SessionRsvpListResult> {
+    if (!params.isPrivilegedAdmin && params.userId !== params.authUserId) {
+      throw forbidden('RSVP userId must match authenticated user', {
+        userId: params.userId,
+      });
+    }
+    const store = this.storeProvider();
+    return {
+      rsvps: asRows(store.tables.sessionRsvps).flatMap((row) => {
+        if (asString(row.userId) !== params.userId || asString(row.deletedAt)) {
+          return [];
+        }
+        if (params.status && normalizeSessionRsvpStatus(row.status) !== params.status) {
+          return [];
+        }
+        return [mapSessionRsvpRow(row)];
+      }),
+      dataVersion: store.version,
+    };
+  }
+  async getSessionRsvpById(params: SessionRsvpAccessParams): Promise<SessionRsvpActionResult> {
+    const store = this.storeProvider();
+    const row = asRows(store.tables.sessionRsvps).find(
+      (candidate) => asString(candidate.id) === params.rsvpId && !asString(candidate.deletedAt),
+    );
+    if (!row) {
+      throw notFound('Session RSVP not found', {
+        rsvpId: params.rsvpId,
+      });
+    }
+    const session = asRows(store.tables.groupSessions).find(
+      (candidate) => asString(candidate.id) === asString(row.groupSessionId),
+    );
+    if (!session) {
+      throw notFound('Group session not found', {
+        sessionId: asString(row.groupSessionId),
+      });
+    }
+    const canReadAll = canManageSeedSessionRsvps(
+      store.tables,
+      session,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+    if (!canReadAll && asString(row.userId) !== params.authUserId) {
+      throw forbidden('Session RSVP does not belong to authenticated user', {
+        rsvpId: params.rsvpId,
+      });
+    }
+    return {
+      rsvp: mapSessionRsvpRow(row),
+      dataVersion: store.version,
+    };
+  }
+  async respondSessionRsvp(params: SessionRsvpRespondParams): Promise<SessionRsvpActionResult> {
+    const store = this.storeProvider();
+    const row = asRows(store.tables.sessionRsvps).find(
+      (candidate) => asString(candidate.id) === params.rsvpId && !asString(candidate.deletedAt),
+    );
+    if (!row) {
+      throw notFound('Session RSVP not found', {
+        rsvpId: params.rsvpId,
+      });
+    }
+    if (!params.isPrivilegedAdmin && asString(row.userId) !== params.authUserId) {
+      throw forbidden('Session RSVP does not belong to authenticated user', {
+        rsvpId: params.rsvpId,
+      });
+    }
+    const now = isoNow();
+    row.status = toStoredSessionRsvpStatus(params.status);
+    row.respondedAt = now;
+    row.updatedAt = now;
+    row.updatedByUserId = params.authUserId;
+    row.version = (asNumber(row.version) ?? 1) + 1;
+    return {
+      rsvp: mapSessionRsvpRow(row),
+      dataVersion: store.version,
+    };
+  }
+  async getSessionRsvpCounts(
+    params: GroupSessionRsvpAccessParams,
+  ): Promise<SessionRsvpCountsResult> {
+    const list = await this.listSessionRsvps(params);
+    const counts = emptySessionRsvpCounts();
+    for (const rsvp of list.rsvps) {
+      incrementSessionRsvpCounts(counts, rsvp.status);
+    }
+    return {
+      counts,
+      dataVersion: list.dataVersion,
+    };
+  }
+  async getBatchSessionRsvpCounts(
+    params: SessionRsvpBatchCountsParams,
+  ): Promise<SessionRsvpBatchCountsResult> {
+    const countsBySessionId = Object.fromEntries(
+      params.sessionIds.map((sessionId) => [sessionId, emptySessionRsvpCounts()]),
+    );
+    for (const sessionId of params.sessionIds) {
+      const list = await this.listSessionRsvps({
+        authUserId: params.authUserId,
+        isPrivilegedAdmin: params.isPrivilegedAdmin,
+        sessionId,
+      });
+      for (const rsvp of list.rsvps) {
+        incrementSessionRsvpCounts(countsBySessionId[sessionId]!, rsvp.status);
+      }
+    }
+    return {
+      countsBySessionId,
+      dataVersion: this.storeProvider().version,
+    };
+  }
+  async remindSessionRsvps(
+    params: GroupSessionRsvpAccessParams,
+  ): Promise<SessionRsvpReminderResult> {
+    const store = this.storeProvider();
+    const session = asRows(store.tables.groupSessions).find(
+      (row) => asString(row.id) === params.sessionId && !asString(row.deletedAt),
+    );
+    if (!session) {
+      throw notFound('Group session not found', {
+        sessionId: params.sessionId,
+      });
+    }
+    assertSeedSessionRsvpManageAccess(
+      store.tables,
+      session,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+    if (!Array.isArray(store.tables.notifications)) {
+      store.tables.notifications = [];
+    }
+    const now = isoNow();
+    const pending = asRows(store.tables.sessionRsvps).filter(
+      (row) =>
+        asString(row.groupSessionId) === params.sessionId &&
+        normalizeSessionRsvpStatus(row.status) === 'pending' &&
+        !asString(row.deletedAt),
+    );
+    asRows(store.tables.notifications).push(
+      ...pending.map((row) =>
+        sessionRsvpNotification({
+          sessionId: params.sessionId,
+          title: asString(session.title) ?? 'this session',
+          userId: asString(row.userId) ?? '',
+          now,
+        }),
+      ),
+    );
+    return {
+      reminded: pending.length,
+      dataVersion: store.version,
+    };
+  }
+  async deleteSessionRsvpsForSession(
+    params: GroupSessionRsvpAccessParams,
+  ): Promise<SessionRsvpReminderResult> {
+    const store = this.storeProvider();
+    const session = asRows(store.tables.groupSessions).find(
+      (row) => asString(row.id) === params.sessionId && !asString(row.deletedAt),
+    );
+    if (!session) {
+      throw notFound('Group session not found', {
+        sessionId: params.sessionId,
+      });
+    }
+    assertSeedSessionRsvpManageAccess(
+      store.tables,
+      session,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+    const now = isoNow();
+    let deleted = 0;
+    for (const row of asRows(store.tables.sessionRsvps)) {
+      if (asString(row.groupSessionId) === params.sessionId && !asString(row.deletedAt)) {
+        row.deletedAt = now;
+        row.deletedByUserId = params.authUserId;
+        row.updatedAt = now;
+        row.updatedByUserId = params.authUserId;
+        deleted += 1;
+      }
+    }
+    return {
+      reminded: deleted,
       dataVersion: store.version,
     };
   }
@@ -1883,6 +2623,100 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
       });
     }
   }
+  private async canManageSessionRsvps(
+    session: PrismaSessionRow,
+    authUserId: string,
+    isPrivilegedAdmin: boolean,
+  ): Promise<boolean> {
+    if (isPrivilegedAdmin || session.coachUserId === authUserId) {
+      return true;
+    }
+    if (!session.clubId) {
+      return false;
+    }
+    const prisma = getPrismaClientOrThrow();
+    const membership = await prisma.clubMembership.findUnique({
+      where: {
+        clubId_userId: {
+          clubId: session.clubId,
+          userId: authUserId,
+        },
+      },
+      select: {
+        role: true,
+        active: true,
+        deletedAt: true,
+      },
+    });
+    if (!membership?.active || membership.deletedAt) {
+      return false;
+    }
+    const role = parseOrganizationRole(membership.role);
+    return Boolean(
+      role &&
+        (isClubStaffRole(role) ||
+          canUseClubCapability(role, 'view_program_attendance', {
+            hasGrant: role === 'COACH',
+          })),
+    );
+  }
+  private async assertSessionRsvpReadAccess(
+    session: PrismaSessionRow,
+    authUserId: string,
+    isPrivilegedAdmin: boolean,
+  ): Promise<void> {
+    const visibleSessionIds = await this.resolveVisibleSessionIds(
+      [session],
+      authUserId,
+      isPrivilegedAdmin,
+      true,
+    );
+    if (!visibleSessionIds.has(session.id)) {
+      throw forbidden('Group session RSVP does not belong to authenticated user', {
+        sessionId: session.id,
+      });
+    }
+  }
+  private async assertSessionRsvpManageAccess(
+    session: PrismaSessionRow,
+    authUserId: string,
+    isPrivilegedAdmin: boolean,
+  ): Promise<void> {
+    if (await this.canManageSessionRsvps(session, authUserId, isPrivilegedAdmin)) {
+      return;
+    }
+    throw forbidden('Only session staff can manage RSVP state', {
+      sessionId: session.id,
+    });
+  }
+  private async assertSessionRsvpMemberWriteAccess(params: {
+    session: PrismaSessionRow;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+    member: SessionRsvpMemberInput;
+  }): Promise<void> {
+    if (
+      await this.canManageSessionRsvps(
+        params.session,
+        params.authUserId,
+        params.isPrivilegedAdmin,
+      )
+    ) {
+      return;
+    }
+    if (params.member.userId !== params.authUserId) {
+      throw forbidden('RSVP userId must match authenticated user', {
+        userId: params.member.userId,
+      });
+    }
+    if (params.member.childId) {
+      await this.assertAthleteAccess(
+        params.authUserId,
+        params.member.childId,
+        params.isPrivilegedAdmin,
+      );
+    }
+  }
   async listVisibleSessions(params: GroupSessionListParams): Promise<GroupSessionListResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.listVisibleSessions(params);
@@ -1992,6 +2826,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
           sessionType: toStoredSessionType(params.body.sessionType),
           maxParticipants: params.body.maxParticipants,
           currentParticipants: 0,
+          offPlatformParticipants: 0,
           waitlistEnabled: params.body.waitlistEnabled ?? true,
           waitlistCount: 0,
           pricePerParticipantMinor:
@@ -2010,6 +2845,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
             : null,
           inviteType: toStoredInviteType(params.body.inviteType),
           scheduleJson: buildStoredScheduleJson(params.body.schedule),
+          cancelledInstancesJson: [],
           focusJson: params.body.focus ?? [],
           equipmentJson: params.body.equipment ?? [],
           createdByUserId: params.authUserId,
@@ -2034,14 +2870,126 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
     const prisma = getPrismaClientOrThrow();
     const maxParticipants = session.maxParticipants;
     const currentParticipants = session.currentParticipants;
+    const offPlatformParticipants = session.offPlatformParticipants;
     const updated = normalizeForJson(
       await prisma.groupSession.update({
         where: {
           id: session.id,
         },
         data: {
-          status:
-            currentParticipants >= maxParticipants && maxParticipants > 0 ? 'FULL' : 'PUBLISHED',
+          status: derivePublishedSessionStatus(
+            maxParticipants,
+            currentParticipants,
+            offPlatformParticipants,
+          ),
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+      }),
+    ) as SeedRow;
+    return {
+      session: mapSessionRow(updated),
+      dataVersion: null,
+    };
+  }
+  async updateOffPlatformParticipants(
+    params: GroupSessionOffPlatformParticipantsParams,
+  ): Promise<GroupSessionActionResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.updateOffPlatformParticipants(params);
+    }
+    const session = await this.assertSessionWriteAccess(
+      params.authUserId,
+      params.isPrivilegedAdmin,
+      params.sessionId,
+    );
+    const prisma = getPrismaClientOrThrow();
+    const updated = normalizeForJson(
+      await prisma.groupSession.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          offPlatformParticipants: params.count,
+          status: deriveSessionStatusForHeadcount(
+            session.status,
+            session.maxParticipants,
+            session.currentParticipants,
+            params.count,
+          ),
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+      }),
+    ) as SeedRow;
+    return {
+      session: mapSessionRow(updated),
+      dataVersion: null,
+    };
+  }
+  async cancelInstance(
+    params: GroupSessionCancelInstanceParams,
+  ): Promise<GroupSessionActionResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.cancelInstance(params);
+    }
+    const session = await this.assertSessionWriteAccess(
+      params.authUserId,
+      params.isPrivilegedAdmin,
+      params.sessionId,
+    );
+    assertRecurringInstanceExists(params.sessionId, session.scheduleJson, params.date);
+    const cancelled = new Set(asStringArray(session.cancelledInstancesJson));
+    cancelled.add(params.date);
+    const prisma = getPrismaClientOrThrow();
+    const updated = normalizeForJson(
+      await prisma.groupSession.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          cancelledInstancesJson: Array.from(cancelled).sort(),
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+      }),
+    ) as SeedRow;
+    return {
+      session: mapSessionRow(updated),
+      dataVersion: null,
+    };
+  }
+  async endSeries(params: GroupSessionEndSeriesParams): Promise<GroupSessionActionResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.endSeries(params);
+    }
+    const session = await this.assertSessionWriteAccess(
+      params.authUserId,
+      params.isPrivilegedAdmin,
+      params.sessionId,
+    );
+    const cancelled = new Set(asStringArray(session.cancelledInstancesJson));
+    for (const date of scheduledRecurringDatesFrom(
+      params.sessionId,
+      session.scheduleJson,
+      params.fromDate,
+    )) {
+      cancelled.add(date);
+    }
+    const prisma = getPrismaClientOrThrow();
+    const updated = normalizeForJson(
+      await prisma.groupSession.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          cancelledInstancesJson: Array.from(cancelled).sort(),
           updatedByUserId: params.authUserId,
           version: {
             increment: 1,
@@ -2198,6 +3146,13 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
           },
         }),
       );
+      const registration = this.mapPrismaRegistration(existing, attendanceRecords);
+      if (params.waitlistOnly && registration.status !== 'WAITLISTED') {
+        throw conflict('Athlete is already registered for this group session', {
+          sessionId: params.sessionId,
+          registrationId: registration.id,
+        });
+      }
       const linkedBooking = normalizeAs<{
         id: string;
         status: string;
@@ -2219,21 +3174,32 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
           select: {
             id: true,
             status: true,
+            recurringSeriesId: true,
+            groupSessionId: true,
           },
         }),
       );
       return {
-        registration: this.mapPrismaRegistration(existing, attendanceRecords),
+        registration,
         booking: linkedBooking,
-        sessionStatus: 'PUBLISHED',
+        sessionStatus: normalizeSessionStatus(session.status),
         dataVersion: null,
       };
     }
+    const deliveryCoachUserId = requireAssignedDeliveryCoach(params.sessionId, session.coachUserId);
     const currentParticipants = session.currentParticipants;
+    const offPlatformParticipants = session.offPlatformParticipants;
     const maxParticipants = session.maxParticipants;
-    const isFull = maxParticipants > 0 && currentParticipants >= maxParticipants;
+    const isFull =
+      maxParticipants > 0 &&
+      groupSessionHeadcount(currentParticipants, offPlatformParticipants) >= maxParticipants;
+    if (params.waitlistOnly && !isFull) {
+      throw conflict('Group session has spaces available; register instead', {
+        sessionId: params.sessionId,
+      });
+    }
     if (isFull && !session.waitlistEnabled) {
-      throw badRequest('Group session is full', {
+      throw badRequest(params.waitlistOnly ? 'Group session waitlist is not enabled' : 'Group session is full', {
         sessionId: params.sessionId,
       });
     }
@@ -2261,6 +3227,8 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
       let booking: {
         id: string;
         status: string;
+        recurringSeriesId?: string | null;
+        groupSessionId?: string | null;
       } | null = null;
       if (isFull) {
         await tx.groupSession.update({
@@ -2271,6 +3239,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
             waitlistCount: {
               increment: 1,
             },
+            status: 'FULL',
             updatedByUserId: params.authUserId,
             version: {
               increment: 1,
@@ -2286,10 +3255,11 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
             currentParticipants: {
               increment: 1,
             },
-            status:
-              currentParticipants + 1 >= maxParticipants && maxParticipants > 0
-                ? 'FULL'
-                : 'PUBLISHED',
+            status: derivePublishedSessionStatus(
+              maxParticipants,
+              currentParticipants + 1,
+              offPlatformParticipants,
+            ),
             updatedByUserId: params.authUserId,
             version: {
               increment: 1,
@@ -2314,7 +3284,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
         await tx.booking.create({
           data: {
             id: bookingId,
-            coachUserId: session.coachUserId,
+            coachUserId: deliveryCoachUserId,
             bookedByUserId: params.bookedByUserId,
             clubId: session.clubId,
             coachingOfferingId: null,
@@ -2382,6 +3352,8 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
         booking = {
           id: bookingId,
           status: 'CONFIRMED',
+          recurringSeriesId: null,
+          groupSessionId: params.sessionId,
         };
       }
       return {
@@ -2959,6 +3931,369 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
           ),
         ),
       ),
+      dataVersion: null,
+    };
+  }
+  async createSessionRsvps(
+    params: GroupSessionRsvpCreateParams,
+  ): Promise<SessionRsvpListResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.createSessionRsvps(params);
+    }
+    const sessions = await this.querySessions({
+      sessionId: params.sessionId,
+    });
+    const session = sessions[0];
+    if (!session) {
+      throw notFound('Group session not found', {
+        sessionId: params.sessionId,
+      });
+    }
+    const prisma = getPrismaClientOrThrow();
+    const rows: AppSessionRsvp[] = [];
+    for (const member of params.members) {
+      await this.assertSessionRsvpMemberWriteAccess({
+        session,
+        authUserId: params.authUserId,
+        isPrivilegedAdmin: params.isPrivilegedAdmin,
+        member,
+      });
+      const existing = normalizeAs<PrismaSessionRsvpRow | null>(
+        await prisma.sessionRsvp.findFirst({
+          where: {
+            groupSessionId: params.sessionId,
+            userId: member.userId,
+            athleteId: member.childId ?? null,
+            deletedAt: null,
+          },
+        }),
+      );
+      if (existing) {
+        rows.push(mapSessionRsvpRow(existing as unknown as SeedRow));
+        continue;
+      }
+      const created = normalizeAs<PrismaSessionRsvpRow>(
+        await prisma.sessionRsvp.create({
+          data: {
+            id: newId('srp'),
+            groupSessionId: params.sessionId,
+            userId: member.userId,
+            athleteId: member.childId ?? null,
+            status: 'PENDING',
+            respondedAt: null,
+            createdByUserId: params.authUserId,
+            updatedByUserId: params.authUserId,
+          },
+        }),
+      );
+      rows.push(mapSessionRsvpRow(created as unknown as SeedRow));
+    }
+    return {
+      rsvps: rows,
+      dataVersion: null,
+    };
+  }
+  async listSessionRsvps(params: GroupSessionRsvpAccessParams): Promise<SessionRsvpListResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.listSessionRsvps(params);
+    }
+    const sessions = await this.querySessions({
+      sessionId: params.sessionId,
+    });
+    const session = sessions[0];
+    if (!session) {
+      throw notFound('Group session not found', {
+        sessionId: params.sessionId,
+      });
+    }
+    await this.assertSessionRsvpReadAccess(
+      session,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+    const canReadAll = await this.canManageSessionRsvps(
+      session,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+    const prisma = getPrismaClientOrThrow();
+    const rows = normalizeAs<PrismaSessionRsvpRow[]>(
+      await prisma.sessionRsvp.findMany({
+        where: {
+          groupSessionId: params.sessionId,
+          deletedAt: null,
+          ...(canReadAll
+            ? {}
+            : {
+                userId: params.authUserId,
+              }),
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      }),
+    );
+    return {
+      rsvps: rows.map((row) => mapSessionRsvpRow(row as unknown as SeedRow)),
+      dataVersion: null,
+    };
+  }
+  async listSessionRsvpsForUser(
+    params: SessionRsvpUserListParams,
+  ): Promise<SessionRsvpListResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.listSessionRsvpsForUser(params);
+    }
+    if (!params.isPrivilegedAdmin && params.userId !== params.authUserId) {
+      throw forbidden('RSVP userId must match authenticated user', {
+        userId: params.userId,
+      });
+    }
+    const prisma = getPrismaClientOrThrow();
+    const rows = normalizeAs<PrismaSessionRsvpRow[]>(
+      await prisma.sessionRsvp.findMany({
+        where: {
+          userId: params.userId,
+          deletedAt: null,
+          ...(params.status
+            ? {
+                status: toStoredSessionRsvpStatus(params.status) as never,
+              }
+            : {}),
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+    );
+    return {
+      rsvps: rows.map((row) => mapSessionRsvpRow(row as unknown as SeedRow)),
+      dataVersion: null,
+    };
+  }
+  async getSessionRsvpById(params: SessionRsvpAccessParams): Promise<SessionRsvpActionResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.getSessionRsvpById(params);
+    }
+    const prisma = getPrismaClientOrThrow();
+    const row = normalizeAs<
+      | (PrismaSessionRsvpRow & {
+          groupSession: PrismaSessionRow;
+        })
+      | null
+    >(
+      await prisma.sessionRsvp.findFirst({
+        where: {
+          id: params.rsvpId,
+          deletedAt: null,
+        },
+        include: {
+          groupSession: {
+            include: {
+              registrations: {
+                where: {
+                  deletedAt: null,
+                },
+                include: {
+                  athlete: true,
+                },
+              },
+              attendanceRecords: true,
+            },
+          },
+        },
+      }),
+    );
+    if (!row) {
+      throw notFound('Session RSVP not found', {
+        rsvpId: params.rsvpId,
+      });
+    }
+    const canReadAll = await this.canManageSessionRsvps(
+      row.groupSession,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+    if (!canReadAll && row.userId !== params.authUserId) {
+      throw forbidden('Session RSVP does not belong to authenticated user', {
+        rsvpId: params.rsvpId,
+      });
+    }
+    return {
+      rsvp: mapSessionRsvpRow(row as unknown as SeedRow),
+      dataVersion: null,
+    };
+  }
+  async respondSessionRsvp(params: SessionRsvpRespondParams): Promise<SessionRsvpActionResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.respondSessionRsvp(params);
+    }
+    const prisma = getPrismaClientOrThrow();
+    const existing = normalizeAs<PrismaSessionRsvpRow | null>(
+      await prisma.sessionRsvp.findFirst({
+        where: {
+          id: params.rsvpId,
+          deletedAt: null,
+        },
+      }),
+    );
+    if (!existing) {
+      throw notFound('Session RSVP not found', {
+        rsvpId: params.rsvpId,
+      });
+    }
+    if (!params.isPrivilegedAdmin && existing.userId !== params.authUserId) {
+      throw forbidden('Session RSVP does not belong to authenticated user', {
+        rsvpId: params.rsvpId,
+      });
+    }
+    const updated = normalizeAs<PrismaSessionRsvpRow>(
+      await prisma.sessionRsvp.update({
+        where: {
+          id: params.rsvpId,
+        },
+        data: {
+          status: toStoredSessionRsvpStatus(params.status) as never,
+          respondedAt: new Date(),
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+      }),
+    );
+    return {
+      rsvp: mapSessionRsvpRow(updated as unknown as SeedRow),
+      dataVersion: null,
+    };
+  }
+  async getSessionRsvpCounts(
+    params: GroupSessionRsvpAccessParams,
+  ): Promise<SessionRsvpCountsResult> {
+    const list = await this.listSessionRsvps(params);
+    const counts = emptySessionRsvpCounts();
+    for (const rsvp of list.rsvps) {
+      incrementSessionRsvpCounts(counts, rsvp.status);
+    }
+    return {
+      counts,
+      dataVersion: list.dataVersion,
+    };
+  }
+  async getBatchSessionRsvpCounts(
+    params: SessionRsvpBatchCountsParams,
+  ): Promise<SessionRsvpBatchCountsResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.getBatchSessionRsvpCounts(params);
+    }
+    const countsBySessionId = Object.fromEntries(
+      params.sessionIds.map((sessionId) => [sessionId, emptySessionRsvpCounts()]),
+    );
+    for (const sessionId of params.sessionIds) {
+      const list = await this.listSessionRsvps({
+        authUserId: params.authUserId,
+        isPrivilegedAdmin: params.isPrivilegedAdmin,
+        sessionId,
+      });
+      for (const rsvp of list.rsvps) {
+        incrementSessionRsvpCounts(countsBySessionId[sessionId]!, rsvp.status);
+      }
+    }
+    return {
+      countsBySessionId,
+      dataVersion: null,
+    };
+  }
+  async remindSessionRsvps(
+    params: GroupSessionRsvpAccessParams,
+  ): Promise<SessionRsvpReminderResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.remindSessionRsvps(params);
+    }
+    const sessions = await this.querySessions({
+      sessionId: params.sessionId,
+    });
+    const session = sessions[0];
+    if (!session) {
+      throw notFound('Group session not found', {
+        sessionId: params.sessionId,
+      });
+    }
+    await this.assertSessionRsvpManageAccess(
+      session,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+    const prisma = getPrismaClientOrThrow();
+    const pending = normalizeAs<PrismaSessionRsvpRow[]>(
+      await prisma.sessionRsvp.findMany({
+        where: {
+          groupSessionId: params.sessionId,
+          status: 'PENDING',
+          deletedAt: null,
+        },
+      }),
+    );
+    const now = new Date();
+    if (pending.length > 0) {
+      await prisma.notification.createMany({
+        data: pending.map((row) => ({
+          id: newId('nfn'),
+          userId: row.userId,
+          type: 'SESSION_RSVP_REMINDER',
+          title: 'Reminder: Session RSVP',
+          body: `Please confirm attendance for "${session.title}".`,
+          status: 'UNREAD',
+          sourceType: 'group_session',
+          sourceId: params.sessionId,
+          deepLink: `/session/${params.sessionId}/rsvp`,
+          metadataJson: {
+            sessionId: params.sessionId,
+          },
+          createdAt: now,
+          updatedAt: now,
+        })),
+      });
+    }
+    return {
+      reminded: pending.length,
+      dataVersion: null,
+    };
+  }
+  async deleteSessionRsvpsForSession(
+    params: GroupSessionRsvpAccessParams,
+  ): Promise<SessionRsvpReminderResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.deleteSessionRsvpsForSession(params);
+    }
+    const sessions = await this.querySessions({
+      sessionId: params.sessionId,
+    });
+    const session = sessions[0];
+    if (!session) {
+      throw notFound('Group session not found', {
+        sessionId: params.sessionId,
+      });
+    }
+    await this.assertSessionRsvpManageAccess(
+      session,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+    const prisma = getPrismaClientOrThrow();
+    const result = await prisma.sessionRsvp.updateMany({
+      where: {
+        groupSessionId: params.sessionId,
+        deletedAt: null,
+      },
+      data: {
+        deletedAt: new Date(),
+        deletedByUserId: params.authUserId,
+        updatedByUserId: params.authUserId,
+      },
+    });
+    return {
+      reminded: result.count,
       dataVersion: null,
     };
   }

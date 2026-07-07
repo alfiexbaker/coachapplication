@@ -1,5 +1,6 @@
 import { useEffect, useState, startTransition } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -258,7 +259,10 @@ export default function DetailsScreen() {
     Boolean(draft.childId) && (canSelectSelf || draft.childId !== currentUser?.id);
 
   return (
-    <View style={[styles.safeArea, { backgroundColor: palette.background }]}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
         <BookingWizardHeader
           title="Add details"
@@ -426,7 +430,7 @@ export default function DetailsScreen() {
           </Row>
         </Clickable>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

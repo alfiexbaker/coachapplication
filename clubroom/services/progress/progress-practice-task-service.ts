@@ -1,7 +1,15 @@
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { api } from '@/constants/config';
 import type { AssignedDrill } from '@/constants/types';
 import { drillService } from '@/services/drill-service';
-import { apiClient } from '@/services/api-client';
+import { apiClient, apiFetch } from '@/services/api-client';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+  toApiAthleteId,
+  toApiUserId,
+} from '@/services/api-auth-context';
 import { err, ok, serviceError, type Result, type ServiceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import type { SessionFeedback } from './progress-feedback-service';
@@ -77,6 +85,134 @@ interface SelfAssessmentSnapshot {
   mood: number;
   confidence: number;
   createdAt: string;
+}
+interface ApiPracticeTasksResponse {
+  athleteId: string;
+  tasks: PracticeTask[];
+  total: number;
+  seedVersion?: string | null;
+  requestId: string;
+}
+interface ApiCoachFollowUpQueueResponse {
+  coachId: string;
+  queue: CoachFollowUpItem[];
+  total: number;
+  seedVersion?: string | null;
+  requestId: string;
+}
+interface ApiPracticeTaskMutationResponse {
+  task: PracticeTask;
+  seedVersion?: string | null;
+  requestId: string;
+}
+interface ApiPracticeTaskBulkActionResponse extends CoachBulkActionResult {
+  dueAt?: string;
+  requestId: string;
+}
+interface ApiPracticeTaskAccess {
+  apiAthleteId?: string;
+  headers: Record<string, string>;
+}
+const apiTaskAthleteScopeById = new Map<string, string>();
+
+function isApiMode(): boolean {
+  return !api.useMock;
+}
+async function resolvePracticeTaskApiAccessForAthletes(
+  athleteIds: string[] = [],
+): Promise<Result<ApiPracticeTaskAccess, ServiceError>> {
+  const currentUserResult = await resolveSignedInApiUser('Sign in to view practice tasks.');
+  if (!currentUserResult.success) {
+    return err(currentUserResult.error);
+  }
+  const currentUser = currentUserResult.data;
+  const actingRole = deriveApiActingRole(currentUser);
+  const apiAthleteIds = Array.from(
+    new Set(athleteIds.map((athleteId) => toApiAthleteId(athleteId))),
+  );
+  return ok({
+    apiAthleteId: apiAthleteIds[0],
+    headers: buildApiAuthHeaders({
+      actingRole,
+      coachAthleteIds: actingRole === 'coach' ? apiAthleteIds : undefined,
+      guardianAthleteIds: actingRole === 'parent' ? apiAthleteIds : undefined,
+      coachVerified: actingRole === 'coach' && currentUser.isVerified,
+    }),
+  });
+}
+async function resolvePracticeTaskApiAccess(
+  athleteId?: string,
+): Promise<Result<ApiPracticeTaskAccess, ServiceError>> {
+  return resolvePracticeTaskApiAccessForAthletes(athleteId ? [athleteId] : []);
+}
+function rememberApiPracticeTaskScopes(tasks: Pick<PracticeTaskRecord, 'id' | 'athleteId'>[]): void {
+  for (const task of tasks) {
+    if (task.id && task.athleteId) {
+      apiTaskAthleteScopeById.set(task.id, task.athleteId);
+    }
+  }
+}
+function rememberApiCoachFollowUpScopes(queue: CoachFollowUpItem[]): void {
+  for (const item of queue) {
+    for (const taskId of item.taskIds) {
+      if (taskId && item.athleteId) {
+        apiTaskAthleteScopeById.set(taskId, item.athleteId);
+      }
+    }
+  }
+}
+function apiAthleteScopesForTaskIds(taskIds: string[]): string[] {
+  return Array.from(
+    new Set(
+      taskIds.flatMap((taskId) => {
+        const athleteId = apiTaskAthleteScopeById.get(taskId);
+        return athleteId ? [athleteId] : [];
+      }),
+    ),
+  );
+}
+async function mutateApiPracticeTask(
+  path: string,
+  method: 'PATCH' | 'POST',
+  payload: Record<string, unknown>,
+  athleteId?: string,
+): Promise<Result<PracticeTask, ServiceError>> {
+  const access = await resolvePracticeTaskApiAccess(athleteId);
+  if (!access.success) {
+    return err(access.error);
+  }
+  const result = await apiFetch<ApiPracticeTaskMutationResponse>(path, {
+    method,
+    headers: access.data.headers,
+    body: JSON.stringify(payload),
+  });
+  if (!result.success) {
+    return err(result.error);
+  }
+  return ok(result.data.task);
+}
+async function mutateApiPracticeTaskBulk(
+  path: string,
+  payload: Record<string, unknown>,
+  taskIds: string[],
+): Promise<Result<CoachBulkActionResult, ServiceError>> {
+  const access = await resolvePracticeTaskApiAccessForAthletes(apiAthleteScopesForTaskIds(taskIds));
+  if (!access.success) {
+    return err(access.error);
+  }
+  const result = await apiFetch<ApiPracticeTaskBulkActionResponse>(path, {
+    method: 'POST',
+    headers: access.data.headers,
+    body: JSON.stringify(payload),
+  });
+  if (!result.success) {
+    return err(result.error);
+  }
+  return ok({
+    requestedCount: result.data.requestedCount,
+    updatedCount: result.data.updatedCount,
+    skippedCount: result.data.skippedCount,
+  });
 }
 function parseTimestamp(value: string | undefined): number {
   if (!value) {
@@ -384,6 +520,29 @@ async function listTasksForAthlete(
   if (!athleteId?.trim()) {
     return [];
   }
+  if (isApiMode()) {
+    const access = await resolvePracticeTaskApiAccess(athleteId);
+    if (!access.success) {
+      logger.warn('practice_task_api_access_denied', { athleteId, error: access.error });
+      return [];
+    }
+    const result = await apiFetch<ApiPracticeTasksResponse>(
+      `/v1/athletes/${encodeURIComponent(access.data.apiAthleteId ?? toApiAthleteId(athleteId))}/practice-tasks?viewerRole=${encodeURIComponent(viewerRole)}`,
+      {
+        headers: access.data.headers,
+      },
+    );
+    if (!result.success) {
+      logger.warn('Failed to fetch practice tasks from API', {
+        athleteId,
+        viewerRole,
+        error: result.error,
+      });
+      return [];
+    }
+    rememberApiPracticeTaskScopes(result.data.tasks);
+    return result.data.tasks;
+  }
   const tasks = await syncPracticeTasks();
   const nowTs = Date.now();
   return tasks
@@ -401,6 +560,18 @@ async function setTaskCompletion(
 ): Promise<Result<PracticeTask, ServiceError>> {
   if (!taskId?.trim()) {
     return err(serviceError('VALIDATION', 'Missing practice task id.'));
+  }
+  if (isApiMode()) {
+    const athleteId = apiTaskAthleteScopeById.get(taskId);
+    return mutateApiPracticeTask(
+      `/v1/practice-tasks/${encodeURIComponent(taskId)}/completion`,
+      'POST',
+      {
+        completed,
+        completionNote: completionNote?.trim() || undefined,
+      },
+      athleteId,
+    );
   }
   try {
     const tasks = await syncPracticeTasks();
@@ -497,6 +668,17 @@ async function updateTaskDueAt(
   if (!normalizedDueAt) {
     return err(serviceError('VALIDATION', 'Invalid due date.'));
   }
+  if (isApiMode()) {
+    const athleteId = apiTaskAthleteScopeById.get(taskId);
+    return mutateApiPracticeTask(
+      `/v1/practice-tasks/${encodeURIComponent(taskId)}/due-at`,
+      'PATCH',
+      {
+        dueAt: normalizedDueAt,
+      },
+      athleteId,
+    );
+  }
   try {
     const tasks = await syncPracticeTasks();
     const taskIndex = tasks.findIndex((task) => task.id === taskId);
@@ -556,6 +738,17 @@ async function snoozeTask(
   if (!Number.isFinite(hours) || hours <= 0 || hours > 24 * 14) {
     return err(serviceError('VALIDATION', 'Snooze hours must be between 1 and 336.'));
   }
+  if (isApiMode()) {
+    const athleteId = apiTaskAthleteScopeById.get(taskId);
+    return mutateApiPracticeTask(
+      `/v1/practice-tasks/${encodeURIComponent(taskId)}/snooze`,
+      'POST',
+      {
+        hours,
+      },
+      athleteId,
+    );
+  }
   try {
     const tasks = await syncPracticeTasks();
     const task = tasks.find((entry) => entry.id === taskId);
@@ -586,6 +779,15 @@ async function markTasksReviewed(
   const normalizedTaskIds = normalizeTaskIds(taskIds);
   if (normalizedTaskIds.length === 0) {
     return err(serviceError('VALIDATION', 'No tasks selected.'));
+  }
+  if (isApiMode()) {
+    return mutateApiPracticeTaskBulk(
+      '/v1/practice-tasks/actions/review',
+      {
+        taskIds: normalizedTaskIds,
+      },
+      normalizedTaskIds,
+    );
   }
   try {
     const tasks = await syncPracticeTasks();
@@ -644,6 +846,16 @@ async function recordCoachFollowUp(
   if (normalizedTaskIds.length === 0) {
     return err(serviceError('VALIDATION', 'No tasks selected.'));
   }
+  if (isApiMode()) {
+    return mutateApiPracticeTaskBulk(
+      '/v1/practice-tasks/actions/follow-up',
+      {
+        taskIds: normalizedTaskIds,
+        actionType,
+      },
+      normalizedTaskIds,
+    );
+  }
   try {
     const tasks = await syncPracticeTasks();
     const taskIndexById = new Map(tasks.map((task, index) => [task.id, index]));
@@ -701,6 +913,16 @@ async function setRecoveryCheckpoint(
   const normalizedTaskIds = normalizeTaskIds(taskIds);
   if (normalizedTaskIds.length === 0) {
     return err(serviceError('VALIDATION', 'No tasks selected.'));
+  }
+  if (isApiMode()) {
+    return mutateApiPracticeTaskBulk(
+      '/v1/practice-tasks/actions/recovery-checkpoint',
+      {
+        taskIds: normalizedTaskIds,
+        hours,
+      },
+      normalizedTaskIds,
+    );
   }
   try {
     const tasks = await syncPracticeTasks();
@@ -799,6 +1021,28 @@ function resolveRecommendedAction(
 async function listCoachFollowUpQueue(coachId: string): Promise<CoachFollowUpItem[]> {
   if (!coachId?.trim()) {
     return [];
+  }
+  if (isApiMode()) {
+    const access = await resolvePracticeTaskApiAccess();
+    if (!access.success) {
+      logger.warn('practice_followup_api_access_denied', { coachId, error: access.error });
+      return [];
+    }
+    const result = await apiFetch<ApiCoachFollowUpQueueResponse>(
+      `/v1/coaches/${encodeURIComponent(toApiUserId(coachId))}/practice-follow-ups`,
+      {
+        headers: access.data.headers,
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to fetch practice follow-up queue from API', {
+        coachId,
+        error: result.error,
+      });
+      return [];
+    }
+    rememberApiCoachFollowUpScopes(result.data.queue);
+    return result.data.queue;
   }
   const [tasks, allAssessments] = await Promise.all([
     syncPracticeTasks(),

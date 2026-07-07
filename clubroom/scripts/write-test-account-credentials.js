@@ -84,12 +84,45 @@ function summarizeAttachments(tables, userId) {
   return parts.length > 0 ? parts.join('; ') : 'none';
 }
 
+function requireFixtureCoverage(tables, users) {
+  const coachProfiles = asRows(tables.coachProfiles);
+  const clubMemberships = asRows(tables.clubMemberships).filter(
+    (row) => row.active !== false && row.deletedAt == null,
+  );
+  const athletes = asRows(tables.athletes);
+  const guardianLinks = asRows(tables.guardianChildLinks);
+  const coaches = users.filter((user) => activeRoles(tables, user.id).includes('coach'));
+  const attachedCoaches = coaches.filter(
+    (user) =>
+      coachProfiles.some((row) => row.userId === user.id) &&
+      clubMemberships.some((row) => row.userId === user.id),
+  );
+
+  const failures = [];
+  if (users.length === 0) failures.push('no users with email addresses');
+  if (attachedCoaches.length === 0) failures.push('no coach with coachProfile and club membership');
+  if (athletes.length === 0) failures.push('no athlete profiles');
+  if (guardianLinks.length === 0) failures.push('no guardian-child links');
+  if (failures.length > 0) {
+    throw new Error(`Test account fixture is incomplete: ${failures.join('; ')}`);
+  }
+
+  return {
+    users: users.length,
+    coaches: coaches.length,
+    attachedCoaches: attachedCoaches.length,
+    athletes: athletes.length,
+    guardianLinks: guardianLinks.length,
+  };
+}
+
 function buildCredentialFile() {
   const dataset = JSON.parse(readFileSync(DATASET_PATH, 'utf8'));
   const tables = dataset.tables ?? {};
   const users = asRows(tables.users)
     .filter((user) => typeof user.email === 'string' && user.email.length > 0)
     .sort((a, b) => String(a.email).localeCompare(String(b.email)));
+  const coverage = requireFixtureCoverage(tables, users);
 
   const lines = [
     '# Clubroom local test accounts',
@@ -103,6 +136,13 @@ function buildCredentialFile() {
     '- club_admin/security_admin: admin',
     '- coach: coach',
     '- all other seeded users: user',
+    '',
+    'Fixture coverage:',
+    `- usersWithEmail: ${coverage.users}`,
+    `- coaches: ${coverage.coaches}`,
+    `- attachedCoaches: ${coverage.attachedCoaches}`,
+    `- athletes: ${coverage.athletes}`,
+    `- guardianChildLinks: ${coverage.guardianLinks}`,
     '',
   ];
 

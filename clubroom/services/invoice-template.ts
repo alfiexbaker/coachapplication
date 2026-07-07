@@ -7,6 +7,18 @@
 
 import type { Invoice, InvoiceStatus } from '@/constants/types';
 
+const INTERNAL_IDENTIFIER_PATTERN = /\b[a-z]{2,10}_[A-Za-z0-9-]{6,}\b/i;
+
+function formatInvoicePartyName(value: string | undefined, fallback: string): string {
+  const label = value?.trim();
+
+  if (!label || INTERNAL_IDENTIFIER_PATTERN.test(label)) {
+    return fallback;
+  }
+
+  return label;
+}
+
 export function generateInvoiceHtml(invoice: Invoice): string {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-GB', {
@@ -22,6 +34,10 @@ export function generateInvoiceHtml(invoice: Invoice): string {
 
   const dueDate = invoice.dueDate ?? invoice.createdAt;
   const lineItemDescription = invoice.sessionType ?? 'Coaching Session';
+  const coachName = formatInvoicePartyName(invoice.coachBusinessName, 'Coach account');
+  const recipientName = formatInvoicePartyName(invoice.sentTo, 'Family account');
+  const recipientContact = formatInvoicePartyName(invoice.sentTo, '');
+  const athleteReference = formatInvoicePartyName(invoice.athleteId, '');
   const lineItemDetails = [
     invoice.sessionDate ? `Date: ${formatDate(invoice.sessionDate)}` : null,
     invoice.sessionLocation,
@@ -103,7 +119,7 @@ export function generateInvoiceHtml(invoice: Invoice): string {
     <div class="party">
       <h3>From</h3>
       <p>
-        <strong>${invoice.coachBusinessName ?? invoice.coachId}</strong><br/>
+        <strong>${coachName}</strong><br/>
         ${invoice.coachBusinessEmail ?? ''}<br/>
         ${invoice.coachBusinessAddress ? `${invoice.coachBusinessAddress}<br/>` : ''}
         ${invoice.coachBusinessPhone ?? ''}
@@ -112,10 +128,10 @@ export function generateInvoiceHtml(invoice: Invoice): string {
     <div class="party">
       <h3>To</h3>
       <p>
-        <strong>${invoice.sentTo ?? invoice.userId}</strong><br/>
-        ${invoice.sentTo ?? ''}<br/>
+        <strong>${recipientName}</strong><br/>
+        ${recipientContact && recipientContact !== recipientName ? `${recipientContact}<br/>` : ''}
         ${invoice.billingAddress ? `${invoice.billingAddress}<br/>` : ''}
-        ${invoice.athleteId ?? ''}
+        ${athleteReference}
       </p>
     </div>
   </div>

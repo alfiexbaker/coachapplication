@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import type { ClubRole, OrganizationCommercialMode } from '@/constants/types';
 import { useUnsavedChangesWarning } from '@/hooks/use-unsaved-changes-warning';
-import { socialFeedService } from '@/services/social-feed-service';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import { uiFeedback } from '@/services/ui-feedback';
 
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
@@ -74,7 +74,7 @@ export function useCreateClub() {
     logger.action('CreateClub', { name, city });
 
     return await runAsyncTryCatchFinally(async () => {
-      const result = await socialFeedService.createClub({
+      const result = await clubAuthorityService.createClub({
         ownerId: currentUser.id,
         name: trimmedName,
         tagline: tagline.trim() || undefined,

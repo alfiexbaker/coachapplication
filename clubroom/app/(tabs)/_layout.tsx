@@ -162,8 +162,14 @@ export default function TabLayout() {
   const notificationBadge = useNotificationBadgeState();
   const [messageCount, setMessageCount] = useState(0);
   const lastRestrictedRouteRef = useRef<string | null>(null);
+  const currentUserId = currentUser?.id;
 
   useEffect(() => {
+    if (!currentUserId) {
+      setMessageCount(0);
+      return;
+    }
+
     let active = true;
     let messageCountRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -221,7 +227,7 @@ export default function TabLayout() {
       unsubscribeMessagesMarkedRead();
       unsubscribeThreadOpened();
     };
-  }, []);
+  }, [currentUserId]);
 
   const userRole = currentUser?.role ?? 'DEFAULT';
   const parentLikeUser = isParentLikeUser(currentUser);

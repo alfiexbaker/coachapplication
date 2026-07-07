@@ -6,7 +6,7 @@
  * club activities, matches, invites, and event bus subscriptions.
  */
 
-import { useEffect, useState, useRef, startTransition } from 'react';
+import { useEffect, useMemo, useState, useRef, startTransition } from 'react';
 import { Share } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -41,6 +41,7 @@ import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { inviteService as sessionInviteService } from '@/services/invite';
 import { createLogger } from '@/utils/logger';
 import { buildClubActivities } from '@/utils/club-activity-projections';
+import { canCreateClubPost, canManageClubUi } from '@/utils/club-ui-permissions';
 import { uiFeedback } from '@/services/ui-feedback';
 import { clubAuthorityService } from '@/services/club-authority-service';
 
@@ -145,9 +146,13 @@ export function useClubHub(): ClubHubState {
     inviteCode?: string;
   }>();
 
-  const userClubs = currentUser?.id ? socialFeedService.getUserClubs(currentUser.id) : [];
+  const userClubs = useMemo(
+    () => (currentUser?.id ? socialFeedService.getUserClubs(currentUser.id) : []),
+    [currentUser?.id],
+  );
 
-  const knownClubs = (() => {
+  const availableUserClubKey = availableUsers.map((user) => user.id).join('|');
+  const knownClubs = useMemo(() => {
     const deduped = new Map<string, Club>();
     userClubs.forEach((club) => deduped.set(club.id, club));
     availableUsers.forEach((user) => {
@@ -158,7 +163,7 @@ export function useClubHub(): ClubHubState {
       });
     });
     return Array.from(deduped.values());
-  })();
+  }, [availableUserClubKey, userClubs]);
 
   // ─── Core state ────────────────────────────────────────────────
   const [membership, setMembership] = useState<ClubMembership | undefined>(undefined);
@@ -192,14 +197,10 @@ export function useClubHub(): ClubHubState {
 
   // ─── Derived permissions ───────────────────────────────────────
   const userIsCoachAccount = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
-  const isTeamStaffRole = !!(
-    membership && ['OWNER', 'HEAD_COACH', 'ADMIN', 'COACH'].includes(membership.role)
-  );
-  const canManageTeams = !!(
-    membership && ['OWNER', 'HEAD_COACH', 'ADMIN'].includes(membership.role)
-  );
-  const canManagePosts = isTeamStaffRole;
-  const canCreatePosts = isTeamStaffRole;
+  const canManagePosts = canCreateClubPost(membership);
+  const canCreatePosts = canCreateClubPost(membership);
+  const canManageTeams = canManageClubUi(membership);
+  const isTeamStaffRole = canManageTeams || canCreatePosts;
   const canRemoveMembers = !!(membership && clubService.canRemoveMembers(membership.role));
   const isCoach = isTeamStaffRole || (!membership && userIsCoachAccount);
   const clubActivities = buildClubActivities({
@@ -372,7 +373,7 @@ export function useClubHub(): ClubHubState {
     startTransition(() => {
       void loadAllDataRef.current('initial');
     });
-  }, [currentUser, feedFilter, membership?.clubId]);
+  }, [currentUser?.id, feedFilter, membership?.clubId]);
 
   useEffect(() => {
     const unsubSessionPublished = onTyped(ServiceEvents.OPEN_SESSION_PUBLISHED, () => {

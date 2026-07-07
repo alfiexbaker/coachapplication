@@ -108,6 +108,13 @@ enum EventRsvpStatus {
   WAITLISTED
 }
 
+enum SessionRsvpStatus {
+  PENDING
+  GOING
+  MAYBE
+  NOT_GOING
+}
+
 enum InvoiceStatus {
   DRAFT
   SENT
@@ -257,33 +264,48 @@ model User {
   updatedAt           DateTime  @updatedAt
   deletedAt           DateTime?
 
-  profile                   UserProfile?
-  passwordCredential        PasswordCredential?
-  roles                     UserRoleMembership[]
-  devices                   UserDevice[]
-  sessions                  AuthSession[]
-  familyMemberships         FamilyMembership[]
-  linkedAthleteAccount      Athlete?
-  guardianChildLinks        GuardianChildLink[]
-  sentFamilyGuardianInvites FamilyGuardianInvite[]     @relation("FamilyGuardianInviteInviter")
-  coachProfile              CoachProfile?
-  clubMemberships           ClubMembership[]
-  eventRsvps                EventRsvp[]
-  eventAttendances          EventAttendance[]         @relation("EventAttendanceUser")
-  recordedEventAttendances  EventAttendance[]         @relation("EventAttendanceRecorder")
-  matchPlayerGuardians      ClubMatchPlayer[]         @relation("ClubMatchPlayerGuardian")
-  communityGroupMemberships CommunityGroupMembership[]
-  postReactions             PostReaction[]
-  postCommentReactions      PostCommentReaction[]
-  messageParticipations     MessageParticipant[]
-  messageReceipts           MessageReceipt[]
-  notifications             Notification[]
-  notificationPreference    NotificationPreference?
-  mutedSources              MutedSource[]
-  quietHours                QuietHours?
-  coachFavourites           CoachFavourite[]           @relation("UserCoachFavourites")
-  coachPayoutMethods        CoachPayoutMethod[]         @relation("CoachPayoutMethodCoach")
-  coachWithdrawals          CoachWithdrawal[]           @relation("CoachWithdrawalCoach")
+  profile                        UserProfile?
+  passwordCredential             PasswordCredential?
+  passwordResetTokens            PasswordResetToken[]
+  roles                          UserRoleMembership[]
+  devices                        UserDevice[]
+  sessions                       AuthSession[]
+  familyMemberships              FamilyMembership[]
+  linkedAthleteAccount           Athlete?
+  guardianChildLinks             GuardianChildLink[]
+  sentFamilyGuardianInvites      FamilyGuardianInvite[]     @relation("FamilyGuardianInviteInviter")
+  coachProfile                   CoachProfile?
+  clubMemberships                ClubMembership[]
+  assignedHeadCoachTasks         HeadCoachTask[]            @relation("HeadCoachTaskCoach")
+  eventRsvps                     EventRsvp[]
+  sessionRsvps                   SessionRsvp[]
+  eventAttendances               EventAttendance[]          @relation("EventAttendanceUser")
+  recordedEventAttendances       EventAttendance[]          @relation("EventAttendanceRecorder")
+  matchPlayerGuardians           ClubMatchPlayer[]          @relation("ClubMatchPlayerGuardian")
+  communityGroupMemberships      CommunityGroupMembership[]
+  postReactions                  PostReaction[]
+  postCommentReactions           PostCommentReaction[]
+  messageParticipations          MessageParticipant[]
+  messageReceipts                MessageReceipt[]
+  blockedUsers                   UserBlock[]                @relation("UserBlockBlocker")
+  blockedByUsers                 UserBlock[]                @relation("UserBlockBlocked")
+  followingUsers                 UserFollow[]               @relation("UserFollowFollower")
+  followedByUsers                UserFollow[]               @relation("UserFollowFollowing")
+  sentFollowRequests             UserFollowRequest[]        @relation("UserFollowRequestRequester")
+  receivedFollowRequests         UserFollowRequest[]        @relation("UserFollowRequestTarget")
+  notifications                  Notification[]
+  notificationPreference         NotificationPreference?
+  privacySetting                 UserPrivacySetting?
+  mutedSources                   MutedSource[]
+  quietHours                     QuietHours?
+  coachFavourites                CoachFavourite[]           @relation("UserCoachFavourites")
+  coachPayoutMethods             CoachPayoutMethod[]        @relation("CoachPayoutMethodCoach")
+  coachWithdrawals               CoachWithdrawal[]          @relation("CoachWithdrawalCoach")
+  createdCoachRosterEntries      CoachAthleteRosterEntry[]  @relation("CoachRosterEntryCreator")
+  updatedCoachRosterEntries      CoachAthleteRosterEntry[]  @relation("CoachRosterEntryUpdater")
+  coachedSelfAssessmentPrompts   SelfAssessmentPrompt[]     @relation("SelfAssessmentPromptCoach")
+  coachedSelfAssessmentEntries   SelfAssessmentEntry[]      @relation("SelfAssessmentEntryCoach")
+  submittedSelfAssessmentEntries SelfAssessmentEntry[]      @relation("SelfAssessmentEntrySubmitter")
 
   grantedAccess  AccessGrant[] @relation("AccessGrantGrantor")
   receivedAccess AccessGrant[] @relation("AccessGrantGrantee")
@@ -346,6 +368,63 @@ model UserDevice {
   @@index([userId])
 }
 
+model UserBlock {
+  id              String    @id
+  blockerUserId   String
+  blockedUserId   String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+  deletedByUserId String?
+
+  blocker User @relation("UserBlockBlocker", fields: [blockerUserId], references: [id], onDelete: Restrict)
+  blocked User @relation("UserBlockBlocked", fields: [blockedUserId], references: [id], onDelete: Restrict)
+
+  @@unique([blockerUserId, blockedUserId])
+  @@index([blockedUserId])
+  @@index([blockerUserId, deletedAt])
+}
+
+model UserFollow {
+  id              String    @id
+  followerUserId  String
+  followedUserId  String
+  followerType    String    @default("USER")
+  followingType   String    @default("USER")
+  notifyOnPost    Boolean   @default(true)
+  notifyOnSession Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+  deletedByUserId String?
+
+  follower User @relation("UserFollowFollower", fields: [followerUserId], references: [id], onDelete: Restrict)
+  followed User @relation("UserFollowFollowing", fields: [followedUserId], references: [id], onDelete: Restrict)
+
+  @@unique([followerUserId, followedUserId])
+  @@index([followedUserId, deletedAt])
+  @@index([followerUserId, deletedAt])
+}
+
+model UserFollowRequest {
+  id              String    @id
+  requesterUserId String
+  targetUserId    String
+  message         String?
+  status          String    @default("PENDING")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  respondedAt     DateTime?
+  deletedAt       DateTime?
+  deletedByUserId String?
+
+  requester User @relation("UserFollowRequestRequester", fields: [requesterUserId], references: [id], onDelete: Restrict)
+  target    User @relation("UserFollowRequestTarget", fields: [targetUserId], references: [id], onDelete: Restrict)
+
+  @@index([requesterUserId, status, deletedAt])
+  @@index([targetUserId, status, deletedAt])
+}
+
 model AuthSession {
   id             String    @id
   userId         String
@@ -375,6 +454,21 @@ model PasswordCredential {
   updatedAt    DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+}
+
+model PasswordResetToken {
+  id        String    @id
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, usedAt])
+  @@index([expiresAt])
 }
 
 model IdempotencyKey {
@@ -474,6 +568,8 @@ model Athlete {
   matchPlayers              ClubMatchPlayer[]
   bookingParticipants       BookingParticipant[]
   groupSessionRegistrations GroupSessionRegistration[]
+  sessionRsvps              SessionRsvp[]
+  headCoachTasks            HeadCoachTask[]
   attendanceRecords         AttendanceRecord[]
   sessionNotes              SessionNote[]
   sessionFeedbackEntries    SessionFeedback[]
@@ -481,6 +577,13 @@ model Athlete {
   skillAssessments          AthleteSkillAssessment[]
   badgeAwards               AthleteBadge[]
   drillAssignments          DrillAssignment[]
+  coachRosterEntries        CoachAthleteRosterEntry[]
+  practiceLogs              PracticeLog[]
+  progressChallenges        ProgressChallenge[]
+  sessionMediaAssets        SessionMediaAsset[]
+  selfAssessmentPrompts     SelfAssessmentPrompt[]
+  selfAssessmentEntries     SelfAssessmentEntry[]
+  termlyReportSnapshots     TermlyReportSnapshot[]
 
   @@index([status])
 }
@@ -654,19 +757,27 @@ model ChildConsent {
 // -----------------------------------------------------------------------------
 
 model CoachProfile {
-  userId           String    @id
-  bio              String?
-  yearsExperience  Int?
-  sessionRateMinor Int?
-  currency         String    @default("GBP")
-  dbsChecked       Boolean?
-  specialties      String[]
-  qualifications   String[]
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  deletedAt        DateTime?
+  userId                String    @id
+  bio                   String?
+  yearsExperience       Int?
+  sessionRateMinor      Int?
+  priceMaxMinor         Int?
+  currency              String    @default("GBP")
+  dbsChecked            Boolean?
+  travelRadiusMiles     Int       @default(10)
+  acceptsTravelSessions Boolean   @default(true)
+  acceptsRemoteSessions Boolean   @default(false)
+  website               String?
+  socialLinksJson       Json?
+  experiencesJson       Json?
+  languagesJson         Json?
+  specialties           String[]
+  qualifications        String[]
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  deletedAt             DateTime?
 
-  user                  User                     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  user                  User                      @relation(fields: [userId], references: [id], onDelete: Restrict)
   locations             CoachLocation[]
   offerings             CoachingOffering[]
   availabilityTemplates AvailabilityTemplate[]
@@ -674,7 +785,10 @@ model CoachProfile {
   schedulingRule        SchedulingRule?
   cancellationPolicies  CancellationPolicyRule[]
   verifications         CoachVerification[]
-  favouritedBy          CoachFavourite[]         @relation("CoachFavouritedBy")
+  favouritedBy          CoachFavourite[]          @relation("CoachFavouritedBy")
+  trialOffering         CoachTrialOffering?
+  paymentInstruction    CoachPaymentInstruction?
+  rosterEntries         CoachAthleteRosterEntry[]
 }
 
 model CoachFavourite {
@@ -697,6 +811,64 @@ model CoachFavourite {
   @@unique([userId, coachUserId])
   @@index([userId, isFavourite, deletedAt])
   @@index([coachUserId, isFavourite, deletedAt])
+}
+
+model CoachTrialOffering {
+  id               String    @id
+  coachUserId      String    @unique
+  enabled          Boolean   @default(false)
+  trialPriceMinor  Int
+  normalPriceMinor Int
+  currency         String    @default("GBP")
+  durationMinutes  Int
+  limitPerFamily   Int       @default(1)
+  description      String?
+  createdByUserId  String
+  updatedByUserId  String
+  version          BigInt    @default(1)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+  deletedByUserId  String?
+
+  coach CoachProfile @relation(fields: [coachUserId], references: [userId], onDelete: Restrict)
+
+  @@index([enabled, deletedAt])
+  @@index([coachUserId, enabled, deletedAt])
+}
+
+model CoachAthleteRosterEntry {
+  id                       String    @id
+  coachUserId              String
+  athleteId                String
+  status                   String    @default("ACTIVE")
+  tags                     String[]  @default([])
+  primaryFocus             String?
+  notificationPreference   String    @default("ALL")
+  removalReason            String?
+  customRemovalReason      String?
+  archived                 Boolean   @default(true)
+  removedTotalSessions     Int       @default(0)
+  removedTotalRevenueMinor Int       @default(0)
+  removedAt                DateTime?
+  restoredAt               DateTime?
+  createdByUserId          String
+  updatedByUserId          String
+  version                  BigInt    @default(1)
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  deletedAt                DateTime?
+  deletedByUserId          String?
+
+  coach   CoachProfile @relation(fields: [coachUserId], references: [userId], onDelete: Restrict)
+  athlete Athlete      @relation(fields: [athleteId], references: [id], onDelete: Restrict)
+  creator User         @relation("CoachRosterEntryCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  updater User         @relation("CoachRosterEntryUpdater", fields: [updatedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([coachUserId, athleteId])
+  @@index([coachUserId, deletedAt])
+  @@index([athleteId, deletedAt])
+  @@index([coachUserId, removedAt])
 }
 
 model CoachLocation {
@@ -839,6 +1011,8 @@ model CancellationPolicyRule {
 model Club {
   id              String    @id
   name            String
+  city            String?
+  country         String?
   tagline         String?
   badgeUrl        String?
   coverPhotoUrl   String?
@@ -846,6 +1020,7 @@ model Club {
   secondaryColor  String?
   slug            String?   @unique
   visibility      String    @default("private")
+  commercialMode  String    @default("COACH_OWNED")
   createdByUserId String
   updatedByUserId String
   version         BigInt    @default(1)
@@ -854,11 +1029,13 @@ model Club {
   deletedAt       DateTime?
   deletedByUserId String?
 
-  memberships ClubMembership[]
-  inviteCodes ClubInviteCode[]
-  squads      Squad[]
-  events      ClubEvent[]
-  matches     ClubMatch[]
+  memberships        ClubMembership[]
+  inviteCodes        ClubInviteCode[]
+  squads             Squad[]
+  events             ClubEvent[]
+  matches            ClubMatch[]
+  headCoachTasks     HeadCoachTask[]
+  headCoachStandards HeadCoachStandard[]
 }
 
 model ClubMembership {
@@ -916,13 +1093,73 @@ model Squad {
   deletedAt        DateTime?
   deletedByUserId  String?
 
-  club          Club              @relation(fields: [clubId], references: [id], onDelete: Restrict)
-  memberships   SquadMembership[]
-  groupSessions GroupSession[]
-  matches       ClubMatch[]
+  club            Club              @relation(fields: [clubId], references: [id], onDelete: Restrict)
+  memberships     SquadMembership[]
+  groupSessions   GroupSession[]
+  communityGroups CommunityGroup[]
+  matches         ClubMatch[]
+  headCoachTasks  HeadCoachTask[]
 
   @@index([clubId])
   @@index([ownerCoachUserId])
+}
+
+model HeadCoachTask {
+  id                String    @id
+  clubId            String
+  coachUserId       String
+  type              String
+  status            String    @default("open")
+  title             String
+  details           String?
+  dueAt             DateTime?
+  athleteId         String?
+  athleteName       String?
+  bookingId         String?
+  offeringId        String?
+  squadId           String?
+  createdByUserId   String
+  updatedByUserId   String
+  completedAt       DateTime?
+  completedByUserId String?
+  version           BigInt    @default(1)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+  deletedByUserId   String?
+
+  club    Club     @relation(fields: [clubId], references: [id], onDelete: Restrict)
+  coach   User     @relation("HeadCoachTaskCoach", fields: [coachUserId], references: [id], onDelete: Restrict)
+  athlete Athlete? @relation(fields: [athleteId], references: [id], onDelete: SetNull)
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  squad   Squad?   @relation(fields: [squadId], references: [id], onDelete: SetNull)
+
+  @@index([clubId, status, deletedAt])
+  @@index([coachUserId, status])
+  @@index([athleteId])
+  @@index([bookingId])
+  @@index([squadId])
+}
+
+model HeadCoachStandard {
+  id              String    @id
+  clubId          String
+  category        String
+  title           String
+  description     String?
+  active          Boolean   @default(true)
+  createdByUserId String
+  updatedByUserId String
+  version         BigInt    @default(1)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+  deletedByUserId String?
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Restrict)
+
+  @@index([clubId, active, deletedAt])
+  @@index([category])
 }
 
 model SquadMembership {
@@ -1016,13 +1253,16 @@ model Booking {
   deletedAt            DateTime?
   deletedByUserId      String?
 
-  participants    BookingParticipant[]
-  objectives      BookingObjective[]
-  statusEvents    BookingStatusEvent[]
-  changeRequests  BookingChangeRequest[]
-  sessionNotes    SessionNote[]
-  feedbackEntries SessionFeedback[]
-  invoices        Invoice[]
+  participants          BookingParticipant[]
+  objectives            BookingObjective[]
+  statusEvents          BookingStatusEvent[]
+  changeRequests        BookingChangeRequest[]
+  sessionNotes          SessionNote[]
+  feedbackEntries       SessionFeedback[]
+  selfAssessmentPrompts SelfAssessmentPrompt[]
+  selfAssessmentEntries SelfAssessmentEntry[]
+  invoices              Invoice[]
+  headCoachTasks        HeadCoachTask[]
 
   @@index([coachUserId, status])
   @@index([bookedByUserId, status])
@@ -1124,7 +1364,7 @@ model RecurringSeries {
 
 model GroupSession {
   id                       String             @id
-  coachUserId              String
+  coachUserId              String?
   clubId                   String?
   squadId                  String?
   recurringSeriesId        String?
@@ -1133,6 +1373,7 @@ model GroupSession {
   sessionType              String
   maxParticipants          Int
   currentParticipants      Int                @default(0)
+  offPlatformParticipants  Int                @default(0)
   waitlistEnabled          Boolean            @default(true)
   waitlistCount            Int                @default(0)
   pricePerParticipantMinor Int?
@@ -1146,6 +1387,7 @@ model GroupSession {
   registrationDeadlineAt   DateTime?
   inviteType               String?
   scheduleJson             Json // array of occurrences/schedule entries
+  cancelledInstancesJson   Json?
   focusJson                Json?
   equipmentJson            Json?
   createdByUserId          String
@@ -1158,6 +1400,7 @@ model GroupSession {
 
   squad             Squad?                     @relation(fields: [squadId], references: [id], onDelete: SetNull)
   registrations     GroupSessionRegistration[]
+  rsvps             SessionRsvp[]
   waitlistEntries   WaitlistEntry[]
   attendanceRecords AttendanceRecord[]
 
@@ -1187,6 +1430,31 @@ model GroupSessionRegistration {
 
   @@unique([groupSessionId, athleteId])
   @@index([athleteId, status])
+}
+
+model SessionRsvp {
+  id              String            @id
+  groupSessionId  String
+  userId          String
+  athleteId       String?
+  status          SessionRsvpStatus @default(PENDING)
+  respondedAt     DateTime?
+  createdByUserId String
+  updatedByUserId String
+  version         BigInt            @default(1)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  deletedAt       DateTime?
+  deletedByUserId String?
+
+  groupSession GroupSession @relation(fields: [groupSessionId], references: [id], onDelete: Restrict)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  athlete      Athlete?     @relation(fields: [athleteId], references: [id], onDelete: Restrict)
+
+  @@unique([groupSessionId, userId, athleteId])
+  @@index([groupSessionId, status])
+  @@index([userId, status])
+  @@index([athleteId])
 }
 
 model WaitlistEntry {
@@ -1312,8 +1580,8 @@ model ClubMatch {
   deletedAt        DateTime?
   deletedByUserId  String?
 
-  club  Club   @relation(fields: [clubId], references: [id], onDelete: Restrict)
-  squad Squad? @relation(fields: [squadId], references: [id], onDelete: SetNull)
+  club    Club              @relation(fields: [clubId], references: [id], onDelete: Restrict)
+  squad   Squad?            @relation(fields: [squadId], references: [id], onDelete: SetNull)
   players ClubMatchPlayer[]
 
   @@index([clubId, startsAt])
@@ -1323,25 +1591,25 @@ model ClubMatch {
 }
 
 model ClubMatchPlayer {
-  id              String   @id
+  id              String    @id
   matchId         String
   athleteId       String
   parentUserId    String
-  status          String   @default("INVITED")
+  status          String    @default("INVITED")
   responseAt      DateTime?
   parentNote      String?
   position        String?
   jerseyNumber    Int?
   createdByUserId String
   updatedByUserId String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   deletedAt       DateTime?
   deletedByUserId String?
 
-  match  ClubMatch @relation(fields: [matchId], references: [id], onDelete: Restrict)
+  match   ClubMatch @relation(fields: [matchId], references: [id], onDelete: Restrict)
   athlete Athlete   @relation(fields: [athleteId], references: [id], onDelete: Restrict)
-  parent User       @relation("ClubMatchPlayerGuardian", fields: [parentUserId], references: [id], onDelete: Restrict)
+  parent  User      @relation("ClubMatchPlayerGuardian", fields: [parentUserId], references: [id], onDelete: Restrict)
 
   @@unique([matchId, athleteId])
   @@index([athleteId])
@@ -1381,12 +1649,15 @@ model EventAttendance {
   distanceFromVenue Int?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+  deletedByUserId   String?
 
-  clubEvent  ClubEvent @relation(fields: [clubEventId], references: [id], onDelete: Restrict)
-  user       User      @relation("EventAttendanceUser", fields: [userId], references: [id], onDelete: Restrict)
-  checkedInBy User     @relation("EventAttendanceRecorder", fields: [checkedInByUserId], references: [id], onDelete: Restrict)
+  clubEvent   ClubEvent @relation(fields: [clubEventId], references: [id], onDelete: Restrict)
+  user        User      @relation("EventAttendanceUser", fields: [userId], references: [id], onDelete: Restrict)
+  checkedInBy User      @relation("EventAttendanceRecorder", fields: [checkedInByUserId], references: [id], onDelete: Restrict)
 
   @@unique([clubEventId, userId])
+  @@index([clubEventId, deletedAt])
   @@index([userId])
   @@index([checkedInByUserId])
 }
@@ -1533,6 +1804,22 @@ model PaymentInstructionTemplate {
   @@index([coachUserId, isDefault])
 }
 
+model CoachPaymentInstruction {
+  coachUserId         String   @id
+  payeeName           String   @default("")
+  bankTransferDetails String   @default("")
+  paymentNotes        String   @default("")
+  createdByUserId     String
+  updatedByUserId     String
+  version             BigInt   @default(1)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  coach CoachProfile @relation(fields: [coachUserId], references: [userId], onDelete: Restrict)
+
+  @@index([updatedAt])
+}
+
 model PaymentReminder {
   id              String   @id
   invoiceId       String
@@ -1596,7 +1883,7 @@ model CoachPayoutMethod {
   deletedAt       DateTime?
   deletedByUserId String?
 
-  coach      User              @relation("CoachPayoutMethodCoach", fields: [coachUserId], references: [id], onDelete: Restrict)
+  coach       User              @relation("CoachPayoutMethodCoach", fields: [coachUserId], references: [id], onDelete: Restrict)
   withdrawals CoachWithdrawal[]
 
   @@index([coachUserId, deletedAt])
@@ -1665,12 +1952,14 @@ model SessionNote {
 model SessionFeedback {
   id                      String    @id
   bookingId               String?
+  sessionId               String?
   athleteId               String
   authorUserId            String
   rating                  Int?
   publicComment           String?
   privateCommentEncrypted String?
   visibility              String    @default("public")
+  metadataJson            Json?
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
   deletedAt               DateTime?
@@ -1679,7 +1968,143 @@ model SessionFeedback {
   athlete Athlete  @relation(fields: [athleteId], references: [id], onDelete: Restrict)
 
   @@index([bookingId])
+  @@index([sessionId])
   @@index([athleteId])
+}
+
+model PracticeLog {
+  id              String    @id
+  athleteId       String
+  authorUserId    String
+  dateKey         String
+  minutes         Int
+  note            String?
+  createdByUserId String
+  updatedByUserId String
+  version         BigInt    @default(1)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+  deletedByUserId String?
+
+  athlete Athlete @relation(fields: [athleteId], references: [id], onDelete: Restrict)
+
+  @@unique([athleteId, authorUserId, dateKey])
+  @@index([athleteId, dateKey])
+  @@index([authorUserId, dateKey])
+}
+
+model ProgressChallenge {
+  id              String    @id
+  athleteId       String
+  type            String
+  title           String
+  description     String
+  targetValue     Int
+  currentValue    Int
+  progress        Int
+  rewardBadgeId   String
+  rewardLabel     String
+  status          String    @default("active")
+  assignedAt      DateTime
+  expiresAt       DateTime
+  completedAt     DateTime?
+  createdByUserId String
+  updatedByUserId String
+  version         BigInt    @default(1)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+  deletedByUserId String?
+
+  athlete Athlete @relation(fields: [athleteId], references: [id], onDelete: Restrict)
+
+  @@index([athleteId, status])
+  @@index([athleteId, assignedAt])
+  @@index([expiresAt, status])
+}
+
+model SelfAssessmentPrompt {
+  id                 String    @id
+  athleteId          String
+  coachUserId        String
+  bookingId          String?
+  sessionId          String?
+  athleteName        String
+  dueAt              DateTime
+  status             String    @default("pending")
+  notificationSentAt DateTime?
+  completedAt        DateTime?
+  createdByUserId    String
+  updatedByUserId    String
+  version            BigInt    @default(1)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+  deletedByUserId    String?
+
+  athlete Athlete               @relation(fields: [athleteId], references: [id], onDelete: Restrict)
+  coach   User                  @relation("SelfAssessmentPromptCoach", fields: [coachUserId], references: [id], onDelete: Restrict)
+  booking Booking?              @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  entries SelfAssessmentEntry[]
+
+  @@unique([bookingId, athleteId])
+  @@index([athleteId, status, dueAt])
+  @@index([coachUserId, status])
+}
+
+model SelfAssessmentEntry {
+  id                String    @id
+  athleteId         String
+  coachUserId       String
+  bookingId         String?
+  sessionId         String?
+  promptId          String?
+  submittedByUserId String
+  mood              Int
+  energyLevel       Int
+  confidence        Int
+  notes             String?
+  createdByUserId   String
+  updatedByUserId   String
+  version           BigInt    @default(1)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+  deletedByUserId   String?
+
+  athlete   Athlete               @relation(fields: [athleteId], references: [id], onDelete: Restrict)
+  coach     User                  @relation("SelfAssessmentEntryCoach", fields: [coachUserId], references: [id], onDelete: Restrict)
+  submitter User                  @relation("SelfAssessmentEntrySubmitter", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  booking   Booking?              @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  prompt    SelfAssessmentPrompt? @relation(fields: [promptId], references: [id], onDelete: SetNull)
+
+  @@unique([athleteId, bookingId])
+  @@index([athleteId, createdAt])
+  @@index([coachUserId, createdAt])
+  @@index([submittedByUserId, createdAt])
+}
+
+model TermlyReportSnapshot {
+  id              String    @id
+  athleteId       String
+  generatedAt     DateTime
+  rangeStart      DateTime
+  rangeEnd        DateTime
+  rangeLabel      String
+  reportJson      Json
+  summaryJson     Json
+  createdByUserId String
+  version         BigInt    @default(1)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+  deletedByUserId String?
+
+  athlete Athlete @relation(fields: [athleteId], references: [id], onDelete: Restrict)
+
+  @@index([athleteId, generatedAt])
+  @@index([createdByUserId, createdAt])
 }
 
 model Goal {
@@ -1690,6 +2115,7 @@ model Goal {
   title           String
   category        String?
   status          String    @default("ACTIVE")
+  progress        Int?
   targetDate      DateTime?
   notes           String?
   createdByUserId String
@@ -1873,14 +2299,45 @@ model MediaObject {
   deletedAt        DateTime?
   deletedByUserId  String?
 
-  uploadSessions        UploadSession[]
-  scans                 MalwareScanResult[]
-  videos                Video[]
-  verificationDocs      VerificationDocument[]
-  assignmentSubmissions AssignmentSubmission[]
+  uploadSessions         UploadSession[]
+  scans                  MalwareScanResult[]
+  videos                 Video[]
+  verificationDocs       VerificationDocument[]
+  assignmentSubmissions  AssignmentSubmission[]
+  sessionMediaAssets     SessionMediaAsset[]    @relation("SessionMediaAssetMedia")
+  sessionMediaThumbnails SessionMediaAsset[]    @relation("SessionMediaAssetThumbnail")
 
   @@index([ownerUserId])
   @@index([status])
+}
+
+model SessionMediaAsset {
+  id                     String    @id
+  sessionId              String
+  athleteId              String
+  coachUserId            String
+  kind                   String
+  mediaObjectId          String
+  thumbnailMediaObjectId String?
+  widthPx                Int?
+  heightPx               Int?
+  durationMs             Int?
+  capturedAt             DateTime
+  createdByUserId        String
+  updatedByUserId        String
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  deletedAt              DateTime?
+  deletedByUserId        String?
+
+  athlete              Athlete      @relation(fields: [athleteId], references: [id], onDelete: Restrict)
+  mediaObject          MediaObject  @relation("SessionMediaAssetMedia", fields: [mediaObjectId], references: [id], onDelete: Restrict)
+  thumbnailMediaObject MediaObject? @relation("SessionMediaAssetThumbnail", fields: [thumbnailMediaObjectId], references: [id], onDelete: SetNull)
+
+  @@index([sessionId])
+  @@index([athleteId])
+  @@index([coachUserId])
+  @@index([mediaObjectId])
 }
 
 model UploadSession {
@@ -1987,7 +2444,9 @@ model VideoAnnotation {
 
 model CommunityGroup {
   id              String                   @id
+  groupType       String                   @default("GENERAL")
   clubId          String?
+  squadId         String?
   ownerUserId     String
   name            String
   description     String?
@@ -2001,10 +2460,13 @@ model CommunityGroup {
   deletedByUserId String?
 
   memberships CommunityGroupMembership[]
+  squad       Squad?                     @relation(fields: [squadId], references: [id], onDelete: SetNull)
   posts       Post[]
   threads     MessageThread[]
 
+  @@index([groupType])
   @@index([clubId])
+  @@index([squadId])
   @@index([ownerUserId])
 }
 
@@ -2206,6 +2668,23 @@ model NotificationPreference {
   settingsJson Json?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+}
+
+model UserPrivacySetting {
+  userId             String   @id
+  profileVisible     Boolean  @default(true)
+  showLocation       Boolean  @default(true)
+  showOnlineStatus   Boolean  @default(true)
+  showActivityStatus Boolean  @default(false)
+  shareAnalytics     Boolean  @default(true)
+  personalizedAds    Boolean  @default(false)
+  shareWithPartners  Boolean  @default(false)
+  showEarnings       Boolean  @default(false)
+  showClientList     Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 }

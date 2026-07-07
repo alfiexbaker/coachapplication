@@ -27,7 +27,11 @@ import { createLogger } from '@/utils/logger';
 import type { ChildInfo, ChildContextValue } from '@/types/child-context';
 
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
-import { attachLiveSquadMemberships, reconcileChildren } from './child-context-helpers';
+import {
+  attachLiveSquadMemberships,
+  reconcileChildren,
+  shouldLoadFamilyChildren,
+} from './child-context-helpers';
 
 const logger = createLogger('ChildContext');
 const EMPTY_CHILD_REFS: ChildReference[] = [];
@@ -72,7 +76,7 @@ async function loadChildrenIntoState({
   return await runAsyncTryCatchFinally(
     async () => {
       const [profiles, storedActiveId] = await Promise.all([
-        childService.getChildren(userId),
+        childService.getChildren(userId, { includeTrustData: false }),
         childService.getActiveChildId(),
       ]);
 
@@ -153,11 +157,20 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
 
   const childRefs = currentUser?.children ?? EMPTY_CHILD_REFS;
   const userId = currentUser?.id;
-  const isParentUser = Boolean(currentUser?.hasChildren || childRefs.length > 0);
+  const isParentUser = shouldLoadFamilyChildren(currentUser);
 
   // Load on mount and when user changes
   useEffect(() => {
     mountedRef.current = true;
+    if (!isParentUser) {
+      setChildInfos([]);
+      setActiveChildIdState(null);
+      setLoading(false);
+      return () => {
+        mountedRef.current = false;
+      };
+    }
+
     void loadChildrenIntoState({
       userId,
       childRefs,
@@ -169,7 +182,7 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
     return () => {
       mountedRef.current = false;
     };
-  }, [childRefs, userId]);
+  }, [childRefs, isParentUser, userId]);
 
   useEffect(() => {
     if (!userId) {
@@ -248,6 +261,10 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
 
   // Subscribe to profile changes (create/update/delete)
   useEffect(() => {
+    if (!isParentUser) {
+      return;
+    }
+
     const unsub = onTyped(ServiceEvents.CHILD_PROFILES_UPDATED, () => {
       void loadChildrenIntoState({
         userId,
@@ -259,7 +276,7 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
       });
     });
     return unsub;
-  }, [childRefs, userId]);
+  }, [childRefs, isParentUser, userId]);
 
   // Subscribe to active child changes from elsewhere
   useEffect(() => {
@@ -514,6 +531,13 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
   ]);
 
   const refresh = async () => {
+    if (!isParentUser) {
+      setChildInfos([]);
+      setActiveChildIdState(null);
+      setLoading(false);
+      return;
+    }
+
     await loadChildrenIntoState({
       userId,
       childRefs,

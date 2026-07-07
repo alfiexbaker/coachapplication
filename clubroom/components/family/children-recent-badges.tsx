@@ -10,6 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { BadgeAward } from '@/constants/types';
+import { safeDisplayLabel } from '@/utils/booking-display';
 
 interface ChildrenRecentBadgesProps {
   badges: BadgeAward[];
@@ -24,8 +25,8 @@ const BadgeItem = function BadgeItem({
   onPress: () => void;
 }) {
   const { colors: palette } = useTheme();
-  const athleteLabel = badge.athleteId || 'Athlete';
-  const coachLabel = (badge.coachId || 'Coach').split(' ')[0];
+  const athleteLabel = safeDisplayLabel(badge.athleteId, 'Athlete');
+  const coachLabel = safeDisplayLabel(badge.coachId, 'Coach').split(' ')[0];
 
   return (
     <Clickable

@@ -18,6 +18,10 @@ const asRows = (value: unknown): SeedRow[] =>
   Array.isArray(value) ? (value as SeedRow[]) : [];
 const asString = (value: unknown): string | undefined =>
   typeof value === "string" ? value : undefined;
+const asNumber = (value: unknown): number | undefined =>
+  typeof value === "number" && Number.isFinite(value) ? value : undefined;
+const asBoolean = (value: unknown): boolean | undefined =>
+  typeof value === "boolean" ? value : undefined;
 const isoNow = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${randomUUID()}`;
 function normalizeTime(value: string | undefined): string {
@@ -44,6 +48,53 @@ function toSeedRow<T>(value: T): SeedRow {
 function toSeedRows<T>(values: T[]): SeedRow[] {
   return values.map((value) => toSeedRow(value));
 }
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === "string")
+    : [];
+}
+function mapPublicCoachProfile(profile: SeedRow, user?: SeedRow): SeedRow {
+  const nestedUser =
+    profile.user && typeof profile.user === "object" && !Array.isArray(profile.user)
+      ? (profile.user as SeedRow)
+      : undefined;
+  const displayName =
+    asString(user?.name) ?? asString(nestedUser?.name) ?? asString(profile.displayName);
+  return {
+    userId: asString(profile.userId),
+    ...(displayName ? { displayName } : {}),
+    bio: asString(profile.bio) ?? null,
+    sessionRateMinor: asNumber(profile.sessionRateMinor) ?? null,
+    priceMaxMinor: asNumber(profile.priceMaxMinor) ?? null,
+    currency: asString(profile.currency) ?? "GBP",
+    website: asString(profile.website) ?? null,
+    socialLinks:
+      profile.socialLinksJson &&
+      typeof profile.socialLinksJson === "object" &&
+      !Array.isArray(profile.socialLinksJson)
+        ? profile.socialLinksJson
+        : {},
+    experiences: Array.isArray(profile.experiencesJson)
+      ? profile.experiencesJson
+      : [],
+    languages: Array.isArray(profile.languagesJson) ? profile.languagesJson : [],
+    specialties: asStringArray(profile.specialties),
+    qualifications: asStringArray(profile.qualifications),
+    travelRadiusMiles: asNumber(profile.travelRadiusMiles) ?? 10,
+    acceptsTravelSessions: asBoolean(profile.acceptsTravelSessions) ?? true,
+    acceptsRemoteSessions: asBoolean(profile.acceptsRemoteSessions) ?? false,
+  };
+}
+function withPublicCoachProfile(
+  offering: SeedRow,
+  profile: SeedRow,
+  user?: SeedRow,
+): SeedRow {
+  return {
+    ...offering,
+    coachProfile: mapPublicCoachProfile(profile, user),
+  };
+}
 export interface CoachProfileBundleResult {
   profile: SeedRow;
   locations: SeedRow[];
@@ -52,6 +103,19 @@ export interface CoachProfileBundleResult {
   schedulingRules: SeedRow[];
   cancellationPolicyRules: SeedRow[];
   dataVersion: string | null;
+}
+export interface CoachProfilePatchBody {
+  bio?: string | null;
+  yearsExperience?: number | null;
+  sessionRateMinor?: number | null;
+  priceMaxMinor?: number | null;
+  currency?: string;
+  website?: string | null;
+  socialLinks?: Record<string, string | undefined>;
+  experiences?: Array<Record<string, unknown>>;
+  languages?: Array<Record<string, unknown>>;
+  specialties?: string[];
+  qualifications?: string[];
 }
 export interface CoachOfferingsResult {
   offerings: SeedRow[];
@@ -72,6 +136,10 @@ export interface CoachSchedulingRowsResult {
 }
 export interface CoachSelfRepository {
   getProfileBundle(authUserId: string): Promise<CoachProfileBundleResult>;
+  patchProfile(
+    authUserId: string,
+    body: CoachProfilePatchBody,
+  ): Promise<CoachProfileBundleResult>;
   listOfferings(authUserId: string): Promise<CoachOfferingsResult>;
   listPublicOfferingIndex(): Promise<CoachOfferingsResult>;
   listPublicOfferings(coachUserId: string): Promise<CoachOfferingsResult>;
@@ -90,6 +158,7 @@ export interface CoachSelfRepository {
       location?: string;
       sessionTemplateId?: string;
     },
+    actorUserId?: string,
   ): Promise<{
     row: SeedRow;
     dataVersion: string | null;
@@ -106,6 +175,7 @@ export interface CoachSelfRepository {
       location?: string;
       sessionTemplateId?: string;
     },
+    actorUserId?: string,
   ): Promise<{
     row: SeedRow;
     dataVersion: string | null;
@@ -113,6 +183,7 @@ export interface CoachSelfRepository {
   deleteAvailabilityTemplate(
     authUserId: string,
     templateId: string,
+    actorUserId?: string,
   ): Promise<{
     dataVersion: string | null;
   }>;
@@ -139,6 +210,7 @@ export interface CoachSelfRepository {
       repeatDayOfWeek?: number;
       repeatGroupId?: string;
     },
+    actorUserId?: string,
   ): Promise<{
     row: SeedRow;
     dataVersion: string | null;
@@ -159,6 +231,7 @@ export interface CoachSelfRepository {
       repeatDayOfWeek?: number;
       repeatGroupId?: string;
     },
+    actorUserId?: string,
   ): Promise<{
     row: SeedRow;
     dataVersion: string | null;
@@ -166,6 +239,7 @@ export interface CoachSelfRepository {
   deleteAvailabilityOverride(
     authUserId: string,
     overrideId: string,
+    actorUserId?: string,
   ): Promise<{
     dataVersion: string | null;
   }>;
@@ -235,6 +309,43 @@ class StoreCoachSelfRepository implements CoachSelfRepository {
       dataVersion: store.version,
     };
   }
+  async patchProfile(
+    authUserId: string,
+    body: CoachProfilePatchBody,
+  ): Promise<CoachProfileBundleResult> {
+    const store = this.storeProvider();
+    const profile = asRows(store.tables.coachProfiles).find(
+      (row) => asString(row.userId) === authUserId && !asString(row.deletedAt),
+    );
+    if (!profile) {
+      throw notFound("Coach profile not found", {
+        userId: authUserId,
+      });
+    }
+    if (body.bio !== undefined) profile.bio = body.bio;
+    if (body.yearsExperience !== undefined) {
+      profile.yearsExperience = body.yearsExperience;
+    }
+    if (body.sessionRateMinor !== undefined) {
+      profile.sessionRateMinor = body.sessionRateMinor;
+    }
+    if (body.priceMaxMinor !== undefined) {
+      profile.priceMaxMinor = body.priceMaxMinor;
+    }
+    if (body.currency !== undefined) profile.currency = body.currency;
+    if (body.website !== undefined) profile.website = body.website;
+    if (body.socialLinks !== undefined) profile.socialLinksJson = body.socialLinks;
+    if (body.experiences !== undefined) {
+      profile.experiencesJson = body.experiences;
+    }
+    if (body.languages !== undefined) profile.languagesJson = body.languages;
+    if (body.specialties !== undefined) profile.specialties = body.specialties;
+    if (body.qualifications !== undefined) {
+      profile.qualifications = body.qualifications;
+    }
+    profile.updatedAt = isoNow();
+    return this.getProfileBundle(authUserId);
+  }
   async listOfferings(authUserId: string): Promise<CoachOfferingsResult> {
     const store = this.storeProvider();
     return {
@@ -246,17 +357,26 @@ class StoreCoachSelfRepository implements CoachSelfRepository {
   }
   async listPublicOfferingIndex(): Promise<CoachOfferingsResult> {
     const store = this.storeProvider();
-    const activeCoachUserIds = new Set(
+    const profilesByUserId = new Map(
       getActiveRows(asRows(store.tables.coachProfiles)).flatMap((row) => {
-        const mapped = asString(row.userId);
-        return Boolean(mapped) ? [mapped] : [];
+        const userId = asString(row.userId);
+        return userId ? [[userId, row] as const] : [];
+      }),
+    );
+    const usersById = new Map(
+      getActiveRows(asRows(store.tables.users)).flatMap((row) => {
+        const userId = asString(row.id);
+        return userId ? [[userId, row] as const] : [];
       }),
     );
     return {
-      offerings: getActiveRows(asRows(store.tables.coachingOfferings)).filter(
+      offerings: getActiveRows(asRows(store.tables.coachingOfferings)).flatMap(
         (row) => {
           const coachUserId = asString(row.coachUserId);
-          return Boolean(coachUserId && activeCoachUserIds.has(coachUserId));
+          const profile = coachUserId ? profilesByUserId.get(coachUserId) : undefined;
+          return profile && coachUserId
+            ? [withPublicCoachProfile(row, profile, usersById.get(coachUserId))]
+            : [];
         },
       ),
       dataVersion: store.version,
@@ -274,9 +394,15 @@ class StoreCoachSelfRepository implements CoachSelfRepository {
         coachUserId,
       });
     }
+    const user = asRows(store.tables.users).find(
+      (row) => asString(row.id) === coachUserId && !asString(row.deletedAt),
+    );
     return {
-      offerings: getActiveRows(asRows(store.tables.coachingOfferings)).filter(
-        (row) => asString(row.coachUserId) === coachUserId,
+      offerings: getActiveRows(asRows(store.tables.coachingOfferings)).flatMap(
+        (row) =>
+          asString(row.coachUserId) === coachUserId
+            ? [withPublicCoachProfile(row, profile, user)]
+            : [],
       ),
       dataVersion: store.version,
     };
@@ -304,6 +430,7 @@ class StoreCoachSelfRepository implements CoachSelfRepository {
       location?: string;
       sessionTemplateId?: string;
     },
+    actorUserId = authUserId,
   ): Promise<{
     row: SeedRow;
     dataVersion: string | null;
@@ -324,8 +451,8 @@ class StoreCoachSelfRepository implements CoachSelfRepository {
       active: true,
       createdAt: now,
       updatedAt: now,
-      createdByUserId: authUserId,
-      updatedByUserId: authUserId,
+      createdByUserId: actorUserId,
+      updatedByUserId: actorUserId,
       version: 1,
       deletedAt: null,
       deletedByUserId: null,
@@ -348,6 +475,7 @@ class StoreCoachSelfRepository implements CoachSelfRepository {
       location?: string;
       sessionTemplateId?: string;
     },
+    actorUserId = authUserId,
   ): Promise<{
     row: SeedRow;
     dataVersion: string | null;
@@ -377,7 +505,7 @@ class StoreCoachSelfRepository implements CoachSelfRepository {
     if (body.sessionTemplateId !== undefined)
       row.sessionTemplateId = body.sessionTemplateId || null;
     row.updatedAt = isoNow();
-    row.updatedByUserId = authUserId;
+    row.updatedByUserId = actorUserId;
     row.version = Number(row.version ?? 1) + 1;
     return {
       row,
@@ -387,6 +515,7 @@ class StoreCoachSelfRepository implements CoachSelfRepository {
   async deleteAvailabilityTemplate(
     authUserId: string,
     templateId: string,
+    actorUserId = authUserId,
   ): Promise<{
     dataVersion: string | null;
   }> {
@@ -404,9 +533,9 @@ class StoreCoachSelfRepository implements CoachSelfRepository {
     }
     row.active = false;
     row.deletedAt = isoNow();
-    row.deletedByUserId = authUserId;
+    row.deletedByUserId = actorUserId;
     row.updatedAt = row.deletedAt;
-    row.updatedByUserId = authUserId;
+    row.updatedByUserId = actorUserId;
     return {
       dataVersion: store.version,
     };
@@ -456,6 +585,7 @@ class StoreCoachSelfRepository implements CoachSelfRepository {
       repeatDayOfWeek?: number;
       repeatGroupId?: string;
     },
+    actorUserId = authUserId,
   ): Promise<{
     row: SeedRow;
     dataVersion: string | null;
@@ -479,8 +609,8 @@ class StoreCoachSelfRepository implements CoachSelfRepository {
       active: true,
       createdAt: now,
       updatedAt: now,
-      createdByUserId: authUserId,
-      updatedByUserId: authUserId,
+      createdByUserId: actorUserId,
+      updatedByUserId: actorUserId,
       version: 1,
       deletedAt: null,
       deletedByUserId: null,
@@ -507,6 +637,7 @@ class StoreCoachSelfRepository implements CoachSelfRepository {
       repeatDayOfWeek?: number;
       repeatGroupId?: string;
     },
+    actorUserId = authUserId,
   ): Promise<{
     row: SeedRow;
     dataVersion: string | null;
@@ -541,7 +672,7 @@ class StoreCoachSelfRepository implements CoachSelfRepository {
     if (body.repeatGroupId !== undefined)
       row.repeatGroupId = body.repeatGroupId || null;
     row.updatedAt = isoNow();
-    row.updatedByUserId = authUserId;
+    row.updatedByUserId = actorUserId;
     row.version = Number(row.version ?? 1) + 1;
     return {
       row,
@@ -551,6 +682,7 @@ class StoreCoachSelfRepository implements CoachSelfRepository {
   async deleteAvailabilityOverride(
     authUserId: string,
     overrideId: string,
+    actorUserId = authUserId,
   ): Promise<{
     dataVersion: string | null;
   }> {
@@ -568,9 +700,9 @@ class StoreCoachSelfRepository implements CoachSelfRepository {
     }
     row.active = false;
     row.deletedAt = isoNow();
-    row.deletedByUserId = authUserId;
+    row.deletedByUserId = actorUserId;
     row.updatedAt = row.deletedAt;
-    row.updatedByUserId = authUserId;
+    row.updatedByUserId = actorUserId;
     return {
       dataVersion: store.version,
     };
@@ -789,6 +921,58 @@ class PrismaCoachSelfRepository implements CoachSelfRepository {
       dataVersion: null,
     };
   }
+  async patchProfile(
+    authUserId: string,
+    body: CoachProfilePatchBody,
+  ): Promise<CoachProfileBundleResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.patchProfile(authUserId, body);
+    }
+    const prisma = getPrismaClientOrThrow();
+    const profile = await prisma.coachProfile.findFirst({
+      where: {
+        userId: authUserId,
+        deletedAt: null,
+      },
+      select: {
+        userId: true,
+      },
+    });
+    if (!profile) {
+      throw notFound("Coach profile not found", {
+        userId: authUserId,
+      });
+    }
+    const data: Record<string, unknown> = {};
+    if (body.bio !== undefined) data.bio = body.bio;
+    if (body.yearsExperience !== undefined) {
+      data.yearsExperience = body.yearsExperience;
+    }
+    if (body.sessionRateMinor !== undefined) {
+      data.sessionRateMinor = body.sessionRateMinor;
+    }
+    if (body.priceMaxMinor !== undefined) {
+      data.priceMaxMinor = body.priceMaxMinor;
+    }
+    if (body.currency !== undefined) data.currency = body.currency;
+    if (body.website !== undefined) data.website = body.website;
+    if (body.socialLinks !== undefined) data.socialLinksJson = body.socialLinks;
+    if (body.experiences !== undefined) {
+      data.experiencesJson = body.experiences;
+    }
+    if (body.languages !== undefined) data.languagesJson = body.languages;
+    if (body.specialties !== undefined) data.specialties = body.specialties;
+    if (body.qualifications !== undefined) {
+      data.qualifications = body.qualifications;
+    }
+    await prisma.coachProfile.update({
+      where: {
+        userId: authUserId,
+      },
+      data,
+    });
+    return this.getProfileBundle(authUserId);
+  }
   async listOfferings(authUserId: string): Promise<CoachOfferingsResult> {
     if (shouldUseDbFixtureFallback()) {
       return this.fallback.listOfferings(authUserId);
@@ -828,9 +1012,25 @@ class PrismaCoachSelfRepository implements CoachSelfRepository {
           createdAt: "asc",
         },
       ],
+      include: {
+        coach: {
+          include: {
+            user: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
     });
     return {
-      offerings: toSeedRows(offerings),
+      offerings: offerings.map((offering) => {
+        const row = toSeedRow(offering);
+        const profile = row.coach as SeedRow | undefined;
+        delete row.coach;
+        return withPublicCoachProfile(row, profile ?? {});
+      }),
       dataVersion: null,
     };
   }
@@ -848,6 +1048,11 @@ class PrismaCoachSelfRepository implements CoachSelfRepository {
       },
       select: {
         userId: true,
+        user: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
     if (!profile) {
@@ -864,9 +1069,25 @@ class PrismaCoachSelfRepository implements CoachSelfRepository {
       orderBy: {
         createdAt: "asc",
       },
+      include: {
+        coach: {
+          include: {
+            user: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
     });
     return {
-      offerings: toSeedRows(offerings),
+      offerings: offerings.map((offering) => {
+        const row = toSeedRow(offering);
+        const includedProfile = row.coach as SeedRow | undefined;
+        delete row.coach;
+        return withPublicCoachProfile(row, includedProfile ?? toSeedRow(profile));
+      }),
       dataVersion: null,
     };
   }
@@ -909,12 +1130,13 @@ class PrismaCoachSelfRepository implements CoachSelfRepository {
       location?: string;
       sessionTemplateId?: string;
     },
+    actorUserId = authUserId,
   ): Promise<{
     row: SeedRow;
     dataVersion: string | null;
   }> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fallback.createAvailabilityTemplate(authUserId, body);
+      return this.fallback.createAvailabilityTemplate(authUserId, body, actorUserId);
     }
     const prisma = getPrismaClientOrThrow();
     const row = await prisma.availabilityTemplate.create({
@@ -929,8 +1151,8 @@ class PrismaCoachSelfRepository implements CoachSelfRepository {
         location: body.location ?? null,
         sessionTemplateId: body.sessionTemplateId ?? null,
         active: true,
-        createdByUserId: authUserId,
-        updatedByUserId: authUserId,
+        createdByUserId: actorUserId,
+        updatedByUserId: actorUserId,
         version: 1n,
       },
     });
@@ -951,6 +1173,7 @@ class PrismaCoachSelfRepository implements CoachSelfRepository {
       location?: string;
       sessionTemplateId?: string;
     },
+    actorUserId = authUserId,
   ): Promise<{
     row: SeedRow;
     dataVersion: string | null;
@@ -960,6 +1183,7 @@ class PrismaCoachSelfRepository implements CoachSelfRepository {
         authUserId,
         templateId,
         body,
+        actorUserId,
       );
     }
     const prisma = getPrismaClientOrThrow();
@@ -1016,7 +1240,7 @@ class PrismaCoachSelfRepository implements CoachSelfRepository {
               sessionTemplateId: body.sessionTemplateId || null,
             }
           : {}),
-        updatedByUserId: authUserId,
+        updatedByUserId: actorUserId,
         version: (existing.version ?? 1n) + 1n,
       },
     });
@@ -1028,11 +1252,12 @@ class PrismaCoachSelfRepository implements CoachSelfRepository {
   async deleteAvailabilityTemplate(
     authUserId: string,
     templateId: string,
+    actorUserId = authUserId,
   ): Promise<{
     dataVersion: string | null;
   }> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fallback.deleteAvailabilityTemplate(authUserId, templateId);
+      return this.fallback.deleteAvailabilityTemplate(authUserId, templateId, actorUserId);
     }
     const prisma = getPrismaClientOrThrow();
     const existing = await prisma.availabilityTemplate.findFirst({
@@ -1055,8 +1280,8 @@ class PrismaCoachSelfRepository implements CoachSelfRepository {
       data: {
         active: false,
         deletedAt: new Date(),
-        deletedByUserId: authUserId,
-        updatedByUserId: authUserId,
+        deletedByUserId: actorUserId,
+        updatedByUserId: actorUserId,
       },
     });
     return {
@@ -1126,12 +1351,13 @@ class PrismaCoachSelfRepository implements CoachSelfRepository {
       repeatDayOfWeek?: number;
       repeatGroupId?: string;
     },
+    actorUserId = authUserId,
   ): Promise<{
     row: SeedRow;
     dataVersion: string | null;
   }> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fallback.createAvailabilityOverride(authUserId, body);
+      return this.fallback.createAvailabilityOverride(authUserId, body, actorUserId);
     }
     const prisma = getPrismaClientOrThrow();
     const customSlot = body.customSlots?.[0];
@@ -1151,8 +1377,8 @@ class PrismaCoachSelfRepository implements CoachSelfRepository {
         repeatDayOfWeek: body.repeatDayOfWeek ?? null,
         repeatGroupId: body.repeatGroupId ?? null,
         active: true,
-        createdByUserId: authUserId,
-        updatedByUserId: authUserId,
+        createdByUserId: actorUserId,
+        updatedByUserId: actorUserId,
         version: 1n,
       },
     });
@@ -1177,6 +1403,7 @@ class PrismaCoachSelfRepository implements CoachSelfRepository {
       repeatDayOfWeek?: number;
       repeatGroupId?: string;
     },
+    actorUserId = authUserId,
   ): Promise<{
     row: SeedRow;
     dataVersion: string | null;
@@ -1186,6 +1413,7 @@ class PrismaCoachSelfRepository implements CoachSelfRepository {
         authUserId,
         overrideId,
         body,
+        actorUserId,
       );
     }
     const prisma = getPrismaClientOrThrow();
@@ -1251,7 +1479,7 @@ class PrismaCoachSelfRepository implements CoachSelfRepository {
               repeatGroupId: body.repeatGroupId || null,
             }
           : {}),
-        updatedByUserId: authUserId,
+        updatedByUserId: actorUserId,
         version: (existing.version ?? 1n) + 1n,
       },
     });
@@ -1263,11 +1491,12 @@ class PrismaCoachSelfRepository implements CoachSelfRepository {
   async deleteAvailabilityOverride(
     authUserId: string,
     overrideId: string,
+    actorUserId = authUserId,
   ): Promise<{
     dataVersion: string | null;
   }> {
     if (shouldUseDbFixtureFallback()) {
-      return this.fallback.deleteAvailabilityOverride(authUserId, overrideId);
+      return this.fallback.deleteAvailabilityOverride(authUserId, overrideId, actorUserId);
     }
     const prisma = getPrismaClientOrThrow();
     const existing = await prisma.availabilityOverride.findFirst({
@@ -1290,8 +1519,8 @@ class PrismaCoachSelfRepository implements CoachSelfRepository {
       data: {
         active: false,
         deletedAt: new Date(),
-        deletedByUserId: authUserId,
-        updatedByUserId: authUserId,
+        deletedByUserId: actorUserId,
+        updatedByUserId: actorUserId,
       },
     });
     return {

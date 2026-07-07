@@ -286,8 +286,22 @@ export const availabilityService = {
         coachId,
         error: result.error.message,
       });
+      return [];
     }
-    return (await loadTemplates()).filter((template) => template.coachId === coachId);
+    const result = await apiFetch<ApiAvailabilityTemplatesResponse>(
+      `/v1/coaches/${encodeURIComponent(coachId)}/availability/templates`,
+      {
+        method: 'GET',
+      },
+    );
+    if (result.success) {
+      return result.data.templates;
+    }
+    logger.error('Failed to load delegated availability templates', {
+      coachId,
+      error: result.error.message,
+    });
+    return [];
   },
   /**
    * Create or update a template
@@ -313,13 +327,14 @@ export const availabilityService = {
       return savedTemplate;
     }
     if (await isSignedInCoachSelf(savedTemplate.coachId)) {
+      const payload = template.id ? savedTemplate : template;
       const result = await apiFetch<AvailabilityTemplate>(
         template.id
           ? `/v1/coaches/me/availability/templates/${savedTemplate.id}`
           : '/v1/coaches/me/availability/templates',
         {
           method: template.id ? 'PATCH' : 'POST',
-          body: JSON.stringify(savedTemplate),
+          body: JSON.stringify(payload),
         },
       );
       if (result.success) {
@@ -327,20 +342,25 @@ export const availabilityService = {
       }
       throw new Error(result.error.message);
     }
-    templatesCache = await loadTemplates();
-    const existingIndex = templatesCache.findIndex((entry) => entry.id === savedTemplate.id);
-    if (existingIndex >= 0) {
-      templatesCache[existingIndex] = savedTemplate;
-    } else {
-      templatesCache.push(savedTemplate);
+    const payload = template.id ? savedTemplate : template;
+    const result = await apiFetch<AvailabilityTemplate>(
+      template.id
+        ? `/v1/coaches/${encodeURIComponent(savedTemplate.coachId)}/availability/templates/${savedTemplate.id}`
+        : `/v1/coaches/${encodeURIComponent(savedTemplate.coachId)}/availability/templates`,
+      {
+        method: template.id ? 'PATCH' : 'POST',
+        body: JSON.stringify(payload),
+      },
+    );
+    if (result.success) {
+      return result.data;
     }
-    await saveTemplates(templatesCache);
-    return savedTemplate;
+    throw new Error(result.error.message);
   },
   /**
    * Delete a template
    */
-  async deleteTemplate(templateId: string): Promise<void> {
+  async deleteTemplate(templateId: string, coachId?: string): Promise<void> {
     if (USE_MOCK) {
       templatesCache = await loadTemplates();
       const existing = templatesCache.find((t) => t.id === templateId);
@@ -352,26 +372,19 @@ export const availabilityService = {
       });
       return;
     }
-    const templates = await loadTemplates();
-    const existing = templates.find((template) => template.id === templateId);
-    if (existing && (await isSignedInCoachSelf(existing.coachId))) {
-      const result = await apiFetch<void>(`/v1/coaches/me/availability/templates/${templateId}`, {
-        method: 'DELETE',
-      });
-      if (!result.success) {
-        throw new Error(result.error.message);
-      }
-      emitTyped(ServiceEvents.AVAILABILITY_TEMPLATE_DELETED, {
-        templateId,
-        coachId: existing.coachId,
-      });
-      return;
+    const templatePath =
+      coachId && !(await isSignedInCoachSelf(coachId))
+        ? `/v1/coaches/${encodeURIComponent(coachId)}/availability/templates/${encodeURIComponent(templateId)}`
+        : `/v1/coaches/me/availability/templates/${encodeURIComponent(templateId)}`;
+    const result = await apiFetch<void>(templatePath, {
+      method: 'DELETE',
+    });
+    if (!result.success) {
+      throw new Error(result.error.message);
     }
-    templatesCache = templates.filter((template) => template.id !== templateId);
-    await saveTemplates(templatesCache);
     emitTyped(ServiceEvents.AVAILABILITY_TEMPLATE_DELETED, {
       templateId,
-      coachId: existing?.coachId,
+      coachId,
     });
   },
   /**
@@ -410,15 +423,25 @@ export const availabilityService = {
         coachId,
         error: result.error.message,
       });
+      return [];
     }
-    let filtered = (await loadOverrides()).filter((override) => override.coachId === coachId);
-    if (startDate) {
-      filtered = filtered.filter((override) => override.date >= startDate);
+    const params = new URLSearchParams();
+    if (startDate) params.append('start', startDate);
+    if (endDate) params.append('end', endDate);
+    const result = await apiFetch<ApiAvailabilityOverridesResponse>(
+      `/v1/coaches/${encodeURIComponent(coachId)}/availability/overrides${params.size ? `?${params.toString()}` : ''}`,
+      {
+        method: 'GET',
+      },
+    );
+    if (result.success) {
+      return result.data.overrides;
     }
-    if (endDate) {
-      filtered = filtered.filter((override) => override.date <= endDate);
-    }
-    return filtered;
+    logger.error('Failed to load delegated availability overrides', {
+      coachId,
+      error: result.error.message,
+    });
+    return [];
   },
   /**
    * Create or update an override
@@ -444,13 +467,14 @@ export const availabilityService = {
       return savedOverride;
     }
     if (await isSignedInCoachSelf(savedOverride.coachId)) {
+      const payload = override.id ? savedOverride : override;
       const result = await apiFetch<AvailabilityOverride>(
         override.id
           ? `/v1/coaches/me/availability/overrides/${savedOverride.id}`
           : '/v1/coaches/me/availability/overrides',
         {
           method: override.id ? 'PATCH' : 'POST',
-          body: JSON.stringify(savedOverride),
+          body: JSON.stringify(payload),
         },
       );
       if (result.success) {
@@ -458,18 +482,25 @@ export const availabilityService = {
       }
       throw new Error(result.error.message);
     }
-    overridesCache = await loadOverrides();
-    overridesCache = overridesCache.filter(
-      (entry) => !(entry.coachId === savedOverride.coachId && entry.date === savedOverride.date),
+    const payload = override.id ? savedOverride : override;
+    const result = await apiFetch<AvailabilityOverride>(
+      override.id
+        ? `/v1/coaches/${encodeURIComponent(savedOverride.coachId)}/availability/overrides/${savedOverride.id}`
+        : `/v1/coaches/${encodeURIComponent(savedOverride.coachId)}/availability/overrides`,
+      {
+        method: override.id ? 'PATCH' : 'POST',
+        body: JSON.stringify(payload),
+      },
     );
-    overridesCache.push(savedOverride);
-    await saveOverrides(overridesCache);
-    return savedOverride;
+    if (result.success) {
+      return result.data;
+    }
+    throw new Error(result.error.message);
   },
   /**
    * Delete an override
    */
-  async deleteOverride(overrideId: string): Promise<void> {
+  async deleteOverride(overrideId: string, coachId?: string): Promise<void> {
     if (USE_MOCK) {
       overridesCache = await loadOverrides();
       const existing = overridesCache.find((o) => o.id === overrideId);
@@ -482,28 +513,19 @@ export const availabilityService = {
       });
       return;
     }
-    const overrides = await loadOverrides();
-    const existing = overrides.find((override) => override.id === overrideId);
-    if (existing && (await isSignedInCoachSelf(existing.coachId))) {
-      const result = await apiFetch<void>(`/v1/coaches/me/availability/overrides/${overrideId}`, {
-        method: 'DELETE',
-      });
-      if (!result.success) {
-        throw new Error(result.error.message);
-      }
-      emitTyped(ServiceEvents.AVAILABILITY_OVERRIDE_DELETED, {
-        overrideId,
-        coachId: existing.coachId,
-        date: existing.date,
-      });
-      return;
+    const overridePath =
+      coachId && !(await isSignedInCoachSelf(coachId))
+        ? `/v1/coaches/${encodeURIComponent(coachId)}/availability/overrides/${encodeURIComponent(overrideId)}`
+        : `/v1/coaches/me/availability/overrides/${encodeURIComponent(overrideId)}`;
+    const result = await apiFetch<void>(overridePath, {
+      method: 'DELETE',
+    });
+    if (!result.success) {
+      throw new Error(result.error.message);
     }
-    overridesCache = overrides.filter((override) => override.id !== overrideId);
-    await saveOverrides(overridesCache);
     emitTyped(ServiceEvents.AVAILABILITY_OVERRIDE_DELETED, {
       overrideId,
-      coachId: existing?.coachId,
-      date: existing?.date,
+      coachId,
     });
   },
   /**
@@ -542,7 +564,7 @@ export const availabilityService = {
     const overrides = await this.getOverrides(coachId);
     const override = overrides.find((o) => o.date === date);
     if (override) {
-      await this.deleteOverride(override.id);
+      await this.deleteOverride(override.id, coachId);
     }
   },
   /**
@@ -550,6 +572,9 @@ export const availabilityService = {
    * Handles single-day ranges (remove entirely) and multi-day ranges (split).
    */
   async removeLegacyBlockedDate(coachId: string, date: string): Promise<void> {
+    if (!USE_MOCK) {
+      return;
+    }
     try {
       const allBlocked = await apiClient.get<Record<
         string,
@@ -831,34 +856,35 @@ export const availabilityService = {
     const groupId = apiClient.generateId('rpg');
     const startDate = new Date(override.date + 'T00:00:00');
     const endDate = new Date(override.repeatUntil + 'T00:00:00');
-    const overrides: AvailabilityOverride[] = [];
+    const overrides: Array<Omit<AvailabilityOverride, 'id'> & { id?: string }> = [];
     let current = new Date(startDate);
-    let index = 0;
     while (current <= endDate) {
       const dateStr = toDateStr(current);
       overrides.push({
         ...override,
         date: dateStr,
-        id: apiClient.generateId(`ovr_${index}`),
         repeatGroupId: groupId,
         repeatDayOfWeek: current.getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6,
         repeatUntil: override.repeatUntil,
       });
       current.setDate(current.getDate() + 7);
-      index++;
     }
 
     let results: AvailabilityOverride[];
-    if (!USE_MOCK && (await isSignedInCoachSelf(override.coachId))) {
-      results = await Promise.all(overrides.map((entry) => this.saveOverride(entry)));
-    } else {
-      const repeatedDates = new Set(overrides.map((entry) => entry.date));
+    if (USE_MOCK) {
+      const mockOverrides: AvailabilityOverride[] = overrides.map((entry, entryIndex) => ({
+        ...entry,
+        id: entry.id ?? apiClient.generateId(`ovr_${entryIndex}`),
+      }));
+      const repeatedDates = new Set(mockOverrides.map((entry) => entry.date));
       overridesCache = (await loadOverrides()).filter(
         (entry) => !(entry.coachId === override.coachId && repeatedDates.has(entry.date)),
       );
-      overridesCache.push(...overrides);
+      overridesCache.push(...mockOverrides);
       await saveOverrides(overridesCache);
-      results = overrides;
+      results = mockOverrides;
+    } else {
+      results = await Promise.all(overrides.map((entry) => this.saveOverride(entry)));
     }
 
     logger.info('Saved repeated overrides', {
@@ -937,6 +963,14 @@ export const availabilityService = {
         bookings: [],
         holds: [],
       };
+    if (!USE_MOCK) {
+      return {
+        bookingCount: 0,
+        holdCount: 0,
+        bookings: [],
+        holds: [],
+      };
+    }
     const dateSet = new Set(dates);
     const activeHolds = await inviteHoldService.getActiveHolds(coachId);
     const conflictHolds = activeHolds.flatMap((h) =>

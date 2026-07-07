@@ -38,4 +38,3 @@ export const NotificationDesign = {
     },
   },
 } as const;
-

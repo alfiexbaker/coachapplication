@@ -102,8 +102,8 @@ describe('InviteRsvpService', () => {
 
       assert.equal(result.success, false);
       if (!result.success) {
-        assert.equal(result.error.code, 'CONFLICT');
-        assert.match(result.error.message, /backend authority/i);
+        assert.equal(result.error.code, 'UNAUTHORIZED');
+        assert.match(result.error.message, /sign in/i);
       }
 
       setApiMockMode(true);

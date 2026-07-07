@@ -12,15 +12,16 @@
  * - Notification integration for new followers
  * - Feed filtering support for followed content
  *
- * Storage: AsyncStorage (mock data for development)
+ * Storage: AsyncStorage in mock mode; `/v1/follows` in API mode.
  * API Integration Notes:
- * - POST /api/follows - Create follow
- * - DELETE /api/follows/:id - Remove follow
- * - GET /api/follows?followerId=X - Get following list
- * - GET /api/follows?followingId=X - Get followers list
+ * - POST /v1/follows - Create follow for current actor
+ * - PATCH /v1/follows?followingId=X - Update notification preferences for current actor
+ * - DELETE /v1/follows?followingId=X - Remove follow for current actor
+ * - GET /v1/follows?followerId=X - Get following list
+ * - GET /v1/follows?followingId=X - Get followers list
  */
 
-import { apiClient } from './api-client';
+import { apiClient, apiFetch } from './api-client';
 import type { Follow, FollowRequest, NotificationItem } from '@/constants/types';
 import { notificationService } from './notification-service';
 import { coachService, type Coach } from './coach-service';
@@ -30,6 +31,8 @@ import type { Result, ServiceError } from '@/types/result';
 import { ok, err, storageError } from '@/types/result';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 const logger = createLogger('FollowService');
+const FOLLOW_API_ROUTE = '/v1/follows';
+const FOLLOW_REQUEST_API_ROUTE = '/v1/follow-requests';
 
 // Mock data for development - some pre-existing follows
 const MOCK_FOLLOWS: Follow[] = [
@@ -66,6 +69,39 @@ const MOCK_FOLLOWS: Follow[] = [
 ];
 let followsCache: Follow[] = [...MOCK_FOLLOWS];
 let requestsCache: FollowRequest[] = [];
+
+interface FollowsApiResponse {
+  follows?: Follow[];
+  followerIds?: string[];
+  followingIds?: string[];
+  total?: number;
+  follow?: Follow | null;
+  following?: boolean;
+  requestId?: string;
+}
+
+interface FollowMutationApiResponse {
+  follow: Follow | null;
+  removed?: boolean;
+  requestId?: string;
+}
+
+interface FollowRequestsApiResponse {
+  requests?: FollowRequest[];
+  total?: number;
+  requestId?: string;
+}
+
+interface FollowRequestMutationApiResponse {
+  request: FollowRequest | null;
+  created?: boolean;
+  requestId?: string;
+}
+
+function throwApiError(error: ServiceError): never {
+  throw new Error(error.message);
+}
+
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
   const userResult = await userService.getUserById(userId);
   if (!userResult.success) {
@@ -81,6 +117,13 @@ async function resolveFollowActorType(userId: string): Promise<'USER' | 'COACH'>
   return userResult.data.role === 'COACH' || userResult.data.role === 'ADMIN' ? 'COACH' : 'USER';
 }
 async function loadFollows(): Promise<Follow[]> {
+  if (!apiClient.isMockMode) {
+    const result = await apiFetch<FollowsApiResponse>(FOLLOW_API_ROUTE);
+    if (!result.success) {
+      throwApiError(result.error);
+    }
+    return result.data.follows ?? [];
+  }
   try {
     const stored = await apiClient.get<Follow[] | null>(STORAGE_KEYS.FOLLOWS, null);
     if (stored) {
@@ -92,6 +135,9 @@ async function loadFollows(): Promise<Follow[]> {
   return [...MOCK_FOLLOWS];
 }
 async function saveFollows(follows: Follow[]): Promise<Result<void, ServiceError>> {
+  if (!apiClient.isMockMode) {
+    return err(storageError(`Follow writes require ${FOLLOW_API_ROUTE} in API mode.`));
+  }
   try {
     await apiClient.set(STORAGE_KEYS.FOLLOWS, follows);
     return ok(undefined);
@@ -100,7 +146,17 @@ async function saveFollows(follows: Follow[]): Promise<Result<void, ServiceError
     return err(storageError(`Failed to save follows: ${String(error)}`));
   }
 }
-async function loadRequests(): Promise<FollowRequest[]> {
+async function loadRequests(targetId?: string): Promise<FollowRequest[]> {
+  if (!apiClient.isMockMode) {
+    const route = targetId
+      ? `${FOLLOW_REQUEST_API_ROUTE}?targetId=${encodeURIComponent(targetId)}`
+      : FOLLOW_REQUEST_API_ROUTE;
+    const result = await apiFetch<FollowRequestsApiResponse>(route);
+    if (!result.success) {
+      throwApiError(result.error);
+    }
+    return result.data.requests ?? [];
+  }
   try {
     const stored = await apiClient.get<FollowRequest[] | null>(STORAGE_KEYS.FOLLOW_REQUESTS, null);
     if (stored) {
@@ -112,6 +168,9 @@ async function loadRequests(): Promise<FollowRequest[]> {
   return [];
 }
 async function saveRequests(requests: FollowRequest[]): Promise<Result<void, ServiceError>> {
+  if (!apiClient.isMockMode) {
+    return err(storageError(`Follow request writes require ${FOLLOW_API_ROUTE} in API mode.`));
+  }
   try {
     await apiClient.set(STORAGE_KEYS.FOLLOW_REQUESTS, requests);
     return ok(undefined);
@@ -130,12 +189,39 @@ export interface FollowInput {
   notifyOnPost?: boolean;
   notifyOnSession?: boolean;
 }
+function assertMockFollowWrite(action: string): void {
+  if (!apiClient.isMockMode) {
+    throw new Error(
+      `${action} requires backend follow authority in API mode at ${FOLLOW_API_ROUTE}.`,
+    );
+  }
+}
+
 export const followService = {
   /**
    * Follow a user or coach
    * Creates a new follow relationship and notifies the followed user
    */
   async follow(input: FollowInput): Promise<Follow> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<FollowMutationApiResponse>(FOLLOW_API_ROUTE, {
+        method: 'POST',
+        body: JSON.stringify({
+          followingId: input.followingId,
+          followingType: input.followingType,
+          notifyOnPost: input.notifyOnPost,
+          notifyOnSession: input.notifyOnSession,
+        }),
+      });
+      if (!result.success) {
+        throwApiError(result.error);
+      }
+      if (!result.data.follow) {
+        throw new Error('Follow API did not return a follow relationship.');
+      }
+      return result.data.follow;
+    }
+
     followsCache = await loadFollows();
 
     // Check if already following
@@ -182,6 +268,19 @@ export const followService = {
    * Removes the follow relationship (silent - no notification)
    */
   async unfollow(followerId: string, followingId: string): Promise<void> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<FollowMutationApiResponse>(
+        `${FOLLOW_API_ROUTE}?followingId=${encodeURIComponent(followingId)}`,
+        {
+          method: 'DELETE',
+        },
+      );
+      if (!result.success) {
+        throwApiError(result.error);
+      }
+      return;
+    }
+
     followsCache = await loadFollows();
     const index = followsCache.findIndex(
       (f) => f.followerId === followerId && f.followingId === followingId,
@@ -202,6 +301,16 @@ export const followService = {
    * Check if a user is following another user/coach
    */
   async isFollowing(followerId: string, followingId: string): Promise<boolean> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<FollowsApiResponse>(
+        `${FOLLOW_API_ROUTE}?targetUserId=${encodeURIComponent(followingId)}`,
+      );
+      if (!result.success) {
+        throwApiError(result.error);
+      }
+      return result.data.following === true;
+    }
+
     followsCache = await loadFollows();
     return followsCache.some((f) => f.followerId === followerId && f.followingId === followingId);
   },
@@ -209,6 +318,16 @@ export const followService = {
    * Get all users/coaches that a user is following
    */
   async getFollowing(userId: string): Promise<Follow[]> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<FollowsApiResponse>(
+        `${FOLLOW_API_ROUTE}?followerId=${encodeURIComponent(userId)}`,
+      );
+      if (!result.success) {
+        throwApiError(result.error);
+      }
+      return result.data.follows ?? [];
+    }
+
     followsCache = await loadFollows();
     return followsCache.filter((f) => f.followerId === userId);
   },
@@ -216,6 +335,16 @@ export const followService = {
    * Get all followers of a user/coach
    */
   async getFollowers(userId: string): Promise<Follow[]> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<FollowsApiResponse>(
+        `${FOLLOW_API_ROUTE}?followingId=${encodeURIComponent(userId)}`,
+      );
+      if (!result.success) {
+        throwApiError(result.error);
+      }
+      return result.data.follows ?? [];
+    }
+
     followsCache = await loadFollows();
     return followsCache.filter((f) => f.followingId === userId);
   },
@@ -260,6 +389,14 @@ export const followService = {
    * Check if two users are mutually connected.
    */
   async areFriends(userAId: string, userBId: string): Promise<boolean> {
+    if (!apiClient.isMockMode) {
+      const [aFollowsB, followersOfA] = await Promise.all([
+        this.isFollowing(userAId, userBId),
+        this.getFollowers(userAId),
+      ]);
+      return aFollowsB && followersOfA.some((follow) => follow.followerId === userBId);
+    }
+
     const [aFollowsB, bFollowsA] = await Promise.all([
       this.isFollowing(userAId, userBId),
       this.isFollowing(userBId, userAId),
@@ -277,6 +414,20 @@ export const followService = {
       notifyOnSession?: boolean;
     },
   ): Promise<Follow | null> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<FollowMutationApiResponse>(
+        `${FOLLOW_API_ROUTE}?followingId=${encodeURIComponent(followingId)}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify(preferences),
+        },
+      );
+      if (!result.success) {
+        throwApiError(result.error);
+      }
+      return result.data.follow;
+    }
+
     followsCache = await loadFollows();
     const index = followsCache.findIndex(
       (f) => f.followerId === followerId && f.followingId === followingId,
@@ -300,6 +451,16 @@ export const followService = {
    * Get follow relationship details
    */
   async getFollow(followerId: string, followingId: string): Promise<Follow | null> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<FollowsApiResponse>(
+        `${FOLLOW_API_ROUTE}?followerId=${encodeURIComponent(followerId)}&followingId=${encodeURIComponent(followingId)}`,
+      );
+      if (!result.success) {
+        throwApiError(result.error);
+      }
+      return result.data.follow ?? null;
+    }
+
     followsCache = await loadFollows();
     return (
       followsCache.find((f) => f.followerId === followerId && f.followingId === followingId) || null
@@ -334,6 +495,24 @@ export const followService = {
     targetName: string;
     message?: string;
   }): Promise<FollowRequest> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<FollowRequestMutationApiResponse>(FOLLOW_REQUEST_API_ROUTE, {
+        method: 'POST',
+        body: JSON.stringify({
+          targetId: input.targetId,
+          message: input.message,
+        }),
+      });
+      if (!result.success) {
+        throwApiError(result.error);
+      }
+      if (!result.data.request) {
+        throw new Error('Follow request API did not return a request.');
+      }
+      return result.data.request;
+    }
+
+    assertMockFollowWrite('Sending follow requests');
     requestsCache = await loadRequests();
 
     // Check if request already exists
@@ -372,6 +551,10 @@ export const followService = {
    * Get pending follow requests for a user
    */
   async getPendingRequests(userId: string): Promise<FollowRequest[]> {
+    if (!apiClient.isMockMode) {
+      return loadRequests(userId);
+    }
+
     requestsCache = await loadRequests();
     return requestsCache.filter((r) => r.targetId === userId && r.status === 'PENDING');
   },
@@ -382,6 +565,21 @@ export const followService = {
     requestId: string,
     response: 'ACCEPTED' | 'DECLINED',
   ): Promise<FollowRequest | null> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<FollowRequestMutationApiResponse>(
+        `${FOLLOW_REQUEST_API_ROUTE}/${encodeURIComponent(requestId)}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ response }),
+        },
+      );
+      if (!result.success) {
+        throwApiError(result.error);
+      }
+      return result.data.request;
+    }
+
+    assertMockFollowWrite('Responding to follow requests');
     requestsCache = await loadRequests();
     const index = requestsCache.findIndex((r) => r.id === requestId);
     if (index === -1) return null;

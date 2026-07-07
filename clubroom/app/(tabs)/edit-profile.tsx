@@ -137,7 +137,6 @@ export default function EditProfileScreen() {
             userIsCoach={profile.userIsCoach}
             coverPhotoUrl={coverPhotoUrl}
             profilePhotoUrl={profilePhotoUrl}
-            onPickImage={profile.pickImage}
           />
 
           <EditBasicInfo

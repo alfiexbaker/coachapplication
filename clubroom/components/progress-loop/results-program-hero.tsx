@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 
@@ -99,21 +99,37 @@ export const ResultsProgramHero = function ResultsProgramHero({
                     key={metric.label}
                     style={[styles.metricWrap, { borderColor: withAlpha(metricColor, 0.24) }]}
                   >
-                    <BlurView
-                      intensity={24}
-                      tint={scheme === 'dark' ? 'dark' : 'light'}
-                      style={[
-                        styles.metricBlur,
-                        { backgroundColor: withAlpha(colors.surface, 0.2) },
-                      ]}
-                    >
-                      <ThemedText style={[styles.metricValue, { color: metricColor }]}>
-                        {metric.value}
-                      </ThemedText>
-                      <ThemedText style={[styles.metricLabel, { color: colors.muted }]}>
-                        {metric.label}
-                      </ThemedText>
-                    </BlurView>
+                    {Platform.OS === 'web' ? (
+                      <View
+                        style={[
+                          styles.metricBlur,
+                          { backgroundColor: withAlpha(colors.surface, 0.2) },
+                        ]}
+                      >
+                        <ThemedText style={[styles.metricValue, { color: metricColor }]}>
+                          {metric.value}
+                        </ThemedText>
+                        <ThemedText style={[styles.metricLabel, { color: colors.muted }]}>
+                          {metric.label}
+                        </ThemedText>
+                      </View>
+                    ) : (
+                      <BlurView
+                        intensity={24}
+                        tint={scheme === 'dark' ? 'dark' : 'light'}
+                        style={[
+                          styles.metricBlur,
+                          { backgroundColor: withAlpha(colors.surface, 0.2) },
+                        ]}
+                      >
+                        <ThemedText style={[styles.metricValue, { color: metricColor }]}>
+                          {metric.value}
+                        </ThemedText>
+                        <ThemedText style={[styles.metricLabel, { color: colors.muted }]}>
+                          {metric.label}
+                        </ThemedText>
+                      </BlurView>
+                    )}
                   </View>
                 );
               })}

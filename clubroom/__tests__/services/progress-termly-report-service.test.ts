@@ -5,10 +5,43 @@ import type { Booking } from '@/constants/app-types';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { Goal } from '@/constants/types';
 import { apiClient } from '@/services/api-client';
-import type { SessionFeedback } from '@/services/progress/progress-feedback-service';
+import { bookingService } from '@/services/booking';
+import {
+  progressFeedbackService,
+  type SessionFeedback,
+} from '@/services/progress/progress-feedback-service';
 import type { PracticeLogEntry } from '@/services/progress/progress-practice-log-service';
+import { progressSelfAssessmentService } from '@/services/progress/progress-self-assessment-service';
 import { progressSkillsService } from '@/services/progress/progress-skills-service';
 import { progressTermlyReportService } from '@/services/progress/progress-termly-report-service';
+
+async function withMockedDate<T>(now: Date, run: () => Promise<T>): Promise<T> {
+  const OriginalDate = Date;
+  class FixedDate extends OriginalDate {
+    constructor(...args: any[]) {
+      if (args.length === 0) {
+        super(now.getTime());
+        return;
+      }
+      if (args.length === 1) {
+        super(args[0]);
+        return;
+      }
+      super(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
+    }
+
+    static now(): number {
+      return now.getTime();
+    }
+  }
+
+  globalThis.Date = FixedDate as DateConstructor;
+  try {
+    return await run();
+  } finally {
+    globalThis.Date = OriginalDate;
+  }
+}
 
 describe('progressTermlyReportService', () => {
   beforeEach(async () => {
@@ -142,9 +175,34 @@ describe('progressTermlyReportService', () => {
     await progressSkillsService.updateSkillLevel(athleteId, 'First Touch', 6, 'coach_termly_1');
     await progressSkillsService.updateSkillLevel(athleteId, 'First Touch', 8, 'coach_termly_1');
 
+    for (const booking of bookings) {
+      const saveResult = await bookingService.saveBookingDirect(booking);
+      assert.equal(saveResult.success, true);
+    }
+
+    const selfAssessmentResult = await withMockedDate(new Date('2026-02-17T20:00:00.000Z'), () =>
+      progressSelfAssessmentService.submitAssessment({
+        athleteId,
+        coachId: 'coach_termly_1',
+        bookingId: 'booking_termly_2',
+        sessionId: 'session_termly_2',
+        mood: 4,
+        energyLevel: 4,
+        confidence: 5,
+        notes: 'Felt strong in transitions',
+      }),
+    );
+    assert.equal(selfAssessmentResult.success, true);
+
+    for (const entry of feedback) {
+      const { id: _id, createdAt, ...feedbackInput } = entry;
+      const savedFeedback = await withMockedDate(new Date(createdAt), () =>
+        progressFeedbackService.addSessionFeedback(feedbackInput, { skipSkillUpdate: true }),
+      );
+      assert.equal(savedFeedback.athleteId, athleteId);
+    }
+
     await Promise.all([
-      apiClient.set(STORAGE_KEYS.BOOKINGS, bookings),
-      apiClient.set(STORAGE_KEYS.SESSION_FEEDBACK, feedback),
       apiClient.set(STORAGE_KEYS.BADGE_AWARDS, [
         {
           id: 'award_termly_1',
@@ -159,20 +217,6 @@ describe('progressTermlyReportService', () => {
         },
       ]),
       apiClient.set(STORAGE_KEYS.PROGRESS_PRACTICE_LOGS, practiceLogs),
-      apiClient.set(STORAGE_KEYS.PROGRESS_SELF_ASSESSMENTS, [
-        {
-          id: 'self_termly_1',
-          athleteId,
-          coachId: 'coach_termly_1',
-          bookingId: 'booking_termly_2',
-          sessionId: 'session_termly_2',
-          mood: 4,
-          energyLevel: 4,
-          confidence: 5,
-          notes: 'Felt strong in transitions',
-          createdAt: '2026-02-17T20:00:00.000Z',
-        },
-      ]),
       apiClient.set(STORAGE_KEYS.GOALS, goals),
     ]);
 
@@ -208,7 +252,10 @@ describe('progressTermlyReportService', () => {
 
     assert.equal(listResult.data.length, 1);
     assert.equal(listResult.data[0].athleteId, athleteId);
-    assert.match(progressTermlyReportService.buildShareMessage(reportResult.data), /Termly Progress Report/);
+    assert.match(
+      progressTermlyReportService.buildShareMessage(reportResult.data),
+      /Termly Progress Report/,
+    );
     assert.match(progressTermlyReportService.buildCsv(reportResult.data), /sessions_attended/);
   });
 });

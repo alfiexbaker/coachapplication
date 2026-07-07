@@ -158,6 +158,7 @@ export interface FamilyCalendarEvent {
   /** ID of the child this event is for */
   childId: string;
   /** Name of the child */
+  childName?: string;
   /** Color code for the event */
   colorCode: string;
   /** Event title */
@@ -171,10 +172,15 @@ export interface FamilyCalendarEvent {
   /** Location of the event */
   location?: string;
   /** Coach name */
+  coachName?: string;
   /** Coach ID */
   coachId?: string;
   /** Session type */
   sessionType?: string;
+  /** Calendar source type */
+  type?: 'BOOKING' | 'EVENT';
+  /** Club event category, when the row represents a club event */
+  eventType?: string;
   /** Status of the booking */
   status: 'CONFIRMED' | 'PENDING' | 'CANCELLED' | 'COMPLETED';
   /** Price of the session */

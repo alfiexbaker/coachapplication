@@ -7,7 +7,7 @@ import * as VideoThumbnails from 'expo-video-thumbnails';
 
 import { mediaService } from '@/services/media-service';
 import { createLogger } from '@/utils/logger';
-import type { PhotoAsset, VideoAsset } from '@/types/progress-types';
+import type { PhotoAsset, SessionMedia, VideoAsset } from '@/types/progress-types';
 import { uiFeedback } from '@/services/ui-feedback';
 
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
@@ -117,6 +117,23 @@ async function deleteVideoAsset(video: VideoAsset): Promise<void> {
   ]);
 }
 
+function resolveAssetRemovalKey(
+  photos: PhotoAsset[],
+  video: VideoAsset | null,
+  uri: string,
+): string {
+  const photo = photos.find((entry) => entry.uri === uri || entry.thumbnailUri === uri);
+  if (photo) {
+    return photo.id ?? photo.mediaObjectId ?? photo.uri;
+  }
+
+  if (video && (video.uri === uri || video.thumbnailUri === uri)) {
+    return video.id ?? video.mediaObjectId ?? video.uri;
+  }
+
+  return uri;
+}
+
 export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMediaParams) {
   const [photos, setPhotos] = useState<PhotoAsset[]>([]);
   const [video, setVideo] = useState<VideoAsset | null>(null);
@@ -127,14 +144,14 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
   const isUploadingPhotosRef = useRef(false);
 
   const mediaIds = (() => {
-    const photoUris = photos.map((photo) => photo.uri);
-    return video ? [...photoUris, video.uri] : photoUris;
+    const photoIds = photos.map((photo) => photo.id ?? photo.mediaObjectId ?? photo.uri);
+    return video ? [...photoIds, video.id ?? video.mediaObjectId ?? video.uri] : photoIds;
   })();
 
   const persistMedia = async (
     nextPhotos: PhotoAsset[],
     nextVideo: VideoAsset | null,
-  ): Promise<boolean> => {
+  ): Promise<SessionMedia | null> => {
     const saveResult = await mediaService.saveSessionMedia({
       sessionId,
       athleteId,
@@ -147,9 +164,9 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
     if (!saveResult.success) {
       logger.error('Failed to persist session media', saveResult.error);
       uiFeedback.showToast(saveResult.error.message, 'error');
-      return false;
+      return null;
     }
-    return true;
+    return saveResult.data;
   };
 
   useEffect(() => {
@@ -210,7 +227,8 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
           await deletePhotoAsset(photoAsset);
           return;
         }
-        setPhotos(nextPhotos);
+        setPhotos(persisted.photos);
+        setVideo(persisted.video);
       }, async (error) => {
         logger.error('Failed to select photo from library', error);
         uiFeedback.showToast('Unable to save photo. Please try again.', 'error');
@@ -263,7 +281,8 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
         await deletePhotoAsset(photoAsset);
         return;
       }
-      setPhotos(nextPhotos);
+      setPhotos(persisted.photos);
+      setVideo(persisted.video);
     }, async error => {
       logger.error('Failed to process captured photo', error);
       uiFeedback.showToast('Unable to save photo. Please try again.', 'error');
@@ -281,7 +300,8 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
         await deleteVideoAsset(videoAsset);
         return;
       }
-      setVideo(videoAsset);
+      setPhotos(persisted.photos);
+      setVideo(persisted.video);
     }, async error => {
       logger.error('Failed to process captured video', error);
       uiFeedback.showToast('Unable to save video. Please try again.', 'error');
@@ -291,9 +311,11 @@ export function useSessionMedia({ sessionId, athleteId, coachId }: UseSessionMed
   };
 
   const removeMedia = async (uri: string) => {
-    const result = await mediaService.removeSessionMediaAsset(sessionId, athleteId, uri);
+    const assetKey = resolveAssetRemovalKey(photos, video, uri);
+    const result = await mediaService.removeSessionMediaAsset(sessionId, athleteId, assetKey);
     if (!result.success) {
       logger.error('Failed to remove media', result.error);
+      uiFeedback.showToast(result.error.message, 'error');
       return;
     }
 

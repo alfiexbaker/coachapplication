@@ -465,7 +465,10 @@ export const videoService = {
 
     const result = await apiFetch<ApiVideoDetailResponse>(`/v1/videos/${videoId}`);
     if (!result.success) {
-      return null;
+      if (result.error.code === 'NOT_FOUND') {
+        return null;
+      }
+      throw new Error(result.error.message || 'Failed to load video');
     }
     return mapApiVideo(result.data.video);
   },

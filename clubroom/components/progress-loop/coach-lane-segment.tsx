@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { Row } from '@/components/primitives/row';
@@ -26,27 +25,17 @@ export const CoachLaneSegment = function CoachLaneSegment({
   options,
   selectedId,
   onSelect,
-  reduceMotion = false,
 }: CoachLaneSegmentProps) {
   const { colors } = useTheme();
   const [containerWidth, setContainerWidth] = useState(0);
-  const indicatorX = useSharedValue(0);
 
   const selectedIndex = Math.max(0, options.findIndex((option) => option.id === selectedId));
 
   const segmentWidth =
     containerWidth > 0 ? (containerWidth - Spacing.micro * 2) / Math.max(1, options.length) : 0;
-
-  useEffect(() => {
-    indicatorX.set(withTiming(segmentWidth * selectedIndex + Spacing.micro, {
-      duration: reduceMotion ? 0 : 220,
-      easing: Easing.out(Easing.cubic),
-    }));
-  }, [indicatorX, reduceMotion, segmentWidth, selectedIndex]);
-
-  const indicatorStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: indicatorX.value }],
-  }));
+  const indicatorStyle = {
+    transform: [{ translateX: segmentWidth * selectedIndex + Spacing.micro }],
+  };
 
   const handleLayout = (event: LayoutChangeEvent) => {
     setContainerWidth(event.nativeEvent.layout.width);
@@ -60,7 +49,7 @@ export const CoachLaneSegment = function CoachLaneSegment({
       accessibilityLabel="Coach intervention lanes"
     >
       {segmentWidth > 0 ? (
-        <Animated.View
+        <View
           pointerEvents="none"
           style={[
             styles.indicator,

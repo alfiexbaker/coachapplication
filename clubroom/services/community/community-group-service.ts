@@ -7,7 +7,7 @@
  * Role hierarchy: OWNER > ADMIN > MODERATOR > MEMBER
  *
  * API Integration Notes:
- * - Groups are persisted via apiClient (AsyncStorage in dev, API in prod)
+ * - Groups are read from /v1 in API mode; local overlay persistence is mock-only
  * - Notifications are triggered on invite/join/role-change actions
  * - Role changes emit typed events via event bus
  */
@@ -26,6 +26,7 @@ import {
   conflictError,
   unauthorized,
   storageError,
+  unsupportedError,
 } from '@/types/result';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
@@ -39,6 +40,15 @@ import { getLocalOverlayValue, setLocalOverlayValue } from '../local-overlay-sto
 
 const logger = createLogger('CommunityGroupService');
 const USE_MOCK = api.useMock;
+
+function communityGroupApiUnsupported<T>(action: string): Result<T, ServiceError> {
+  logger.warn('Community group mutation blocked in API mode', { action });
+  return err(
+    unsupportedError(`${action} needs a /v1 community group API before it can run in API mode.`, {
+      missingAuthority: 'community_groups',
+    }),
+  );
+}
 
 async function resolveMemberName(parentId: string, fallback = 'Member'): Promise<string> {
   const userResult = await userService.getUserById(parentId);
@@ -79,66 +89,6 @@ function isAdminRole(role: GroupMemberRole): boolean {
   return ADMIN_ROLES.includes(role);
 }
 
-function sortMembers(members: GroupMember[]): GroupMember[] {
-  return Array.from(members).toSorted((left, right) =>
-    `${left.parentId}:${left.role}:${left.joinedAt}`.localeCompare(
-      `${right.parentId}:${right.role}:${right.joinedAt}`,
-    ),
-  );
-}
-
-function sameMembers(left: GroupMember[], right: GroupMember[]): boolean {
-  return JSON.stringify(sortMembers(left)) === JSON.stringify(sortMembers(right));
-}
-
-function mergeGroupRecord(authoritative: ParentGroup, overlay: ParentGroup): ParentGroup {
-  return {
-    ...authoritative,
-    members: overlay.members.length > 0 ? overlay.members : authoritative.members,
-    updatedAt: overlay.updatedAt || authoritative.updatedAt,
-    lastMessageAt: overlay.lastMessageAt ?? authoritative.lastMessageAt,
-    lastMessagePreview: overlay.lastMessagePreview ?? authoritative.lastMessagePreview,
-    unreadCount: overlay.unreadCount ?? authoritative.unreadCount,
-    isPublic: overlay.isPublic,
-    maxMembers: overlay.maxMembers ?? authoritative.maxMembers,
-  };
-}
-
-function mergeGroupLists(authoritative: ParentGroup[], overlay: ParentGroup[]): ParentGroup[] {
-  const authoritativeById = new Map(authoritative.map((group) => [group.id, group] as const));
-  const merged = authoritative.map((group) => {
-    const localOverride = overlay.find((candidate) => candidate.id === group.id);
-    return localOverride ? mergeGroupRecord(group, localOverride) : group;
-  });
-
-  return [
-    ...merged,
-    ...overlay.filter((group) => !authoritativeById.has(group.id)),
-  ];
-}
-
-function buildGroupOverlays(groups: ParentGroup[], authoritativeGroups: ParentGroup[]): ParentGroup[] {
-  const authoritativeById = new Map(authoritativeGroups.map((group) => [group.id, group] as const));
-
-  return groups.flatMap((group) => {
-    const authoritative = authoritativeById.get(group.id);
-    if (!authoritative) {
-      return [group];
-    }
-
-    const hasDiff =
-      !sameMembers(group.members, authoritative.members) ||
-      group.updatedAt !== authoritative.updatedAt ||
-      group.lastMessageAt !== authoritative.lastMessageAt ||
-      group.lastMessagePreview !== authoritative.lastMessagePreview ||
-      (group.unreadCount ?? 0) !== (authoritative.unreadCount ?? 0) ||
-      group.isPublic !== authoritative.isPublic ||
-      (group.maxMembers ?? null) !== (authoritative.maxMembers ?? null);
-
-    return hasDiff ? [mergeGroupRecord(authoritative, group)] : [];
-  });
-}
-
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -167,6 +117,7 @@ export interface CreateGroupParams {
   creatorName: string;
   isPublic?: boolean;
   clubId?: string;
+  squadId?: string;
   sessionId?: string;
   maxMembers?: number;
 }
@@ -254,15 +205,12 @@ class CommunityGroupService {
   async getAllGroups(): Promise<Result<ParentGroup[], ServiceError>> {
     try {
       if (!USE_MOCK) {
-        const [authoritativeResult, persisted] = await Promise.all([
-          communityMediaAuthorityService.listGroups(),
-          this.loadPersistedGroups(),
-        ]);
+        const authoritativeResult = await communityMediaAuthorityService.listGroups();
         if (!authoritativeResult.success) {
           return authoritativeResult;
         }
 
-        this.inMemoryGroups = mergeGroupLists(authoritativeResult.data, persisted);
+        this.inMemoryGroups = authoritativeResult.data;
         logger.info('all_groups_retrieved', { count: this.inMemoryGroups.length, source: 'api' });
         return ok(this.inMemoryGroups);
       }
@@ -353,6 +301,25 @@ class CommunityGroupService {
       if (!params.creatorId) {
         return err(validationError('Creator ID is required'));
       }
+      if (!USE_MOCK) {
+        const createdResult = await communityMediaAuthorityService.createGroup({
+          name: params.name,
+          description: params.description,
+          type: params.type,
+          memberIds: params.memberIds,
+          isPublic: params.isPublic,
+          clubId: params.clubId,
+          squadId: params.squadId,
+        });
+        if (!createdResult.success) {
+          return createdResult;
+        }
+        logger.info('group_created', {
+          groupId: createdResult.data.id,
+          type: createdResult.data.type,
+        });
+        return createdResult;
+      }
 
       const timestamp = new Date().toISOString();
 
@@ -408,6 +375,27 @@ class CommunityGroupService {
     parentName: string,
     options?: { isCoach?: boolean },
   ): Promise<Result<ParentGroup, ServiceError>> {
+    if (!USE_MOCK) {
+      if (options?.isCoach) {
+        const requestResult = await communityMediaAuthorityService.requestGroupJoin(groupId, {
+          isCoach: true,
+        });
+        if (!requestResult.success) {
+          return err(requestResult.error);
+        }
+        emitTyped(ServiceEvents.GROUP_APPROVAL_REQUESTED, {
+          groupId,
+          groupName: requestResult.data.groupName,
+          requesterId: requestResult.data.requesterId || parentId,
+          requesterName: requestResult.data.requesterName || parentName,
+          isCoach: true,
+        });
+        logger.info('coach_join_requires_approval', { groupId, parentId });
+        return err(validationError('Your join request has been sent to the group admins for approval.'));
+      }
+      return communityMediaAuthorityService.joinGroup(groupId);
+    }
+
     const allGroupsResult = await this.getAllGroups();
     if (!allGroupsResult.success) return allGroupsResult;
 
@@ -518,6 +506,14 @@ class CommunityGroupService {
    * Leave a group
    */
   async leaveGroup(groupId: string, parentId: string): Promise<Result<void, ServiceError>> {
+    if (!USE_MOCK) {
+      const leaveResult = await communityMediaAuthorityService.leaveGroup(groupId);
+      if (!leaveResult.success) {
+        return err(leaveResult.error);
+      }
+      return ok(undefined);
+    }
+
     const allGroupsResult = await this.getAllGroups();
     if (!allGroupsResult.success) return allGroupsResult;
 
@@ -569,6 +565,20 @@ class CommunityGroupService {
     inviteeId: string,
     inviteeName: string,
   ): Promise<Result<GroupInvite, ServiceError>> {
+    if (!USE_MOCK) {
+      const result = await communityMediaAuthorityService.createGroupInvite({
+        groupId,
+        inviteeUserId: inviteeId,
+      });
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok({
+        ...result.data,
+        inviteeName: result.data.inviteeName || inviteeName,
+      });
+    }
+
     const groupResult = await this.getGroup(groupId);
     if (!groupResult.success) return groupResult;
 
@@ -629,6 +639,14 @@ class CommunityGroupService {
    * Get pending group invites for a user
    */
   async getGroupInvites(userId: string): Promise<Result<GroupInvite[], ServiceError>> {
+    if (!USE_MOCK) {
+      const result = await communityMediaAuthorityService.listGroupInvites();
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(result.data);
+    }
+
     try {
       const allInvites = await apiClient.get<GroupInvite[]>(STORAGE_KEYS.GROUP_INVITES, []);
       const filtered = allInvites.filter((i) => accountIdsMatch(i.inviteeId, userId));
@@ -663,6 +681,14 @@ class CommunityGroupService {
    * Accept a group invite
    */
   async acceptGroupInvite(inviteId: string): Promise<Result<void, ServiceError>> {
+    if (!USE_MOCK) {
+      const result = await communityMediaAuthorityService.acceptGroupInvite(inviteId);
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(undefined);
+    }
+
     const allInvites = await apiClient.get<GroupInvite[]>(STORAGE_KEYS.GROUP_INVITES, []);
     const inviteIndex = allInvites.findIndex((i) => i.id === inviteId);
 
@@ -710,6 +736,14 @@ class CommunityGroupService {
    * Decline a group invite
    */
   async declineGroupInvite(inviteId: string): Promise<Result<void, ServiceError>> {
+    if (!USE_MOCK) {
+      const result = await communityMediaAuthorityService.declineGroupInvite(inviteId);
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(undefined);
+    }
+
     const allInvites = await apiClient.get<GroupInvite[]>(STORAGE_KEYS.GROUP_INVITES, []);
     const inviteIndex = allInvites.findIndex((i) => i.id === inviteId);
 
@@ -752,11 +786,23 @@ class CommunityGroupService {
    * 2. Cannot change your own role.
    * 3. Cannot assign a role higher than (or equal to) your own.
    * 4. Cannot change the role of someone who outranks you.
-   * 5. OWNER role cannot be assigned via this method.
+   * 5. In API mode, OWNER changes delegate to the dedicated transfer route.
    *
    * A notification is sent to the member and a typed event is emitted.
    */
   async changeMemberRole(params: ChangeMemberRoleParams): Promise<Result<void, ServiceError>> {
+    if (!USE_MOCK) {
+      const result = await communityMediaAuthorityService.changeMemberRole({
+        groupId: params.groupId,
+        memberUserId: params.memberId,
+        role: params.newRole,
+      });
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(undefined);
+    }
+
     const { groupId, requesterId, memberId, newRole } = params;
 
     const groupResult = await this.getGroup(groupId);
@@ -895,6 +941,14 @@ class CommunityGroupService {
     parentName: string,
     role: GroupMemberRole = 'MEMBER',
   ): Promise<Result<ParentGroup, ServiceError>> {
+    if (!USE_MOCK) {
+      return communityMediaAuthorityService.addMember({
+        groupId,
+        memberUserId: parentId,
+        role,
+      });
+    }
+
     const allGroupsResult = await this.getAllGroups();
     if (!allGroupsResult.success) return allGroupsResult;
 
@@ -937,6 +991,14 @@ class CommunityGroupService {
    * Used by automated processes (e.g. squad group auto-sync).
    */
   async removeMemberDirect(groupId: string, parentId: string): Promise<Result<void, ServiceError>> {
+    if (!USE_MOCK) {
+      const result = await communityMediaAuthorityService.removeMember(groupId, parentId);
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(undefined);
+    }
+
     const allGroupsResult = await this.getAllGroups();
     if (!allGroupsResult.success) return allGroupsResult;
 
@@ -965,10 +1027,18 @@ class CommunityGroupService {
   }
 
   /**
-   * Delete a group entirely.
-   * Used when a squad is deleted — removes its associated group.
+   * Archive a group.
+   * Mock mode keeps the legacy hard-remove behavior for compatibility.
    */
   async deleteGroup(groupId: string): Promise<Result<void, ServiceError>> {
+    if (!USE_MOCK) {
+      const result = await communityMediaAuthorityService.archiveGroup(groupId);
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(undefined);
+    }
+
     const allGroupsResult = await this.getAllGroups();
     if (!allGroupsResult.success) return allGroupsResult;
 
@@ -997,6 +1067,23 @@ class CommunityGroupService {
     approvalId: string,
     approverId: string,
   ): Promise<Result<ParentGroup, ServiceError>> {
+    if (!USE_MOCK) {
+      const result = await communityMediaAuthorityService.approveGroupJoinRequest(
+        groupId,
+        approvalId,
+      );
+      if (!result.success) {
+        return err(result.error);
+      }
+      emitTyped(ServiceEvents.GROUP_MEMBER_APPROVED, {
+        groupId,
+        memberId: result.data.request.requesterId,
+        memberName: result.data.request.requesterName,
+        approvedById: approverId,
+      });
+      return ok(result.data.group);
+    }
+
     const storageKey = STORAGE_KEYS.GROUP_APPROVAL_PREFIX + groupId;
     const approvals = await apiClient.get<Array<{
       id: string; groupId: string; requesterId: string; requesterName: string;
@@ -1051,6 +1138,23 @@ class CommunityGroupService {
     approvalId: string,
     rejectedById: string,
   ): Promise<Result<void, ServiceError>> {
+    if (!USE_MOCK) {
+      const result = await communityMediaAuthorityService.rejectGroupJoinRequest(
+        groupId,
+        approvalId,
+      );
+      if (!result.success) {
+        return err(result.error);
+      }
+      emitTyped(ServiceEvents.GROUP_MEMBER_REJECTED, {
+        groupId,
+        memberId: result.data.requesterId,
+        memberName: result.data.requesterName,
+        rejectedById,
+      });
+      return ok(undefined);
+    }
+
     const storageKey = STORAGE_KEYS.GROUP_APPROVAL_PREFIX + groupId;
     const approvals = await apiClient.get<Array<{
       id: string; groupId: string; requesterId: string; requesterName: string;
@@ -1094,6 +1198,14 @@ class CommunityGroupService {
     id: string; groupId: string; requesterId: string; requesterName: string;
     requestedRole: GroupMemberRole; isCoach: boolean; status: string; createdAt: string;
   }>, ServiceError>> {
+    if (!USE_MOCK) {
+      const result = await communityMediaAuthorityService.listGroupJoinRequests(groupId);
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(result.data);
+    }
+
     try {
       const storageKey = STORAGE_KEYS.GROUP_APPROVAL_PREFIX + groupId;
       const approvals = await apiClient.get<Array<{
@@ -1116,19 +1228,8 @@ class CommunityGroupService {
       return;
     }
 
-    const authoritativeResult = await communityMediaAuthorityService.listGroups();
-    if (!authoritativeResult.success) {
-      logger.warn('Persisting community group overlays without authority diff', {
-        error: authoritativeResult.error.message,
-      });
-      await setLocalOverlayValue(STORAGE_KEYS.PARENT_GROUPS, this.inMemoryGroups);
-      return;
-    }
-
-    await setLocalOverlayValue(
-      STORAGE_KEYS.PARENT_GROUPS,
-      buildGroupOverlays(this.inMemoryGroups, authoritativeResult.data),
-    );
+    logger.warn('Community group local overlay persistence skipped in API mode');
+    return;
   }
 }
 

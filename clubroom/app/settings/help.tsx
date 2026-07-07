@@ -8,6 +8,7 @@ import { Row } from '@/components/primitives/row';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useHelpScreen, FAQ_ITEMS } from '@/hooks/use-help-screen';
+import { formatSupportRef } from '@/utils/support-ref';
 
 export default function HelpSettingsScreen() {
   const { colors } = useTheme();
@@ -90,7 +91,7 @@ export default function HelpSettingsScreen() {
 
       <View style={styles.debugInfo}>
         <ThemedText style={[styles.debugText, { color: colors.muted }]}>
-          App Version: 1.0.0 | Support ref: {currentUser?.id || 'N/A'}
+          App Version: 1.0.0 | Support ref: {formatSupportRef(currentUser?.id)}
         </ThemedText>
       </View>
     </SettingsFormScreen>

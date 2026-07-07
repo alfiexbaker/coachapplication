@@ -39,8 +39,12 @@ export interface ClubMembershipSummary {
 export interface ClubSummary {
   id: string;
   name: string;
+  city?: string | null;
+  country?: string | null;
+  tagline?: string | null;
   slug?: string | null;
   visibility?: string | null;
+  commercialMode?: string | null;
   createdByUserId?: string;
   inviteCode: string | null;
 }
@@ -147,16 +151,56 @@ export interface RespondToInviteResult {
   membership: ClubMembershipSummary | null;
   club: ClubSummary;
 }
+export interface CreateClubInput {
+  name: string;
+  city: string;
+  country?: string | null;
+  tagline?: string | null;
+  badge?: string | null;
+  visibility?: string | null;
+  commercialMode?: string | null;
+  firstStaffRole?: string | null;
+  authUserId: string;
+}
+export interface CreateClubResult {
+  club: ClubSummary;
+  membership: ClubMembershipSummary;
+  primaryInvite: ClubInviteCodeRecord;
+  firstStaffInvite?: ClubInviteCodeRecord;
+}
+export interface UpdateClubInput {
+  clubId: string;
+  name?: string;
+  city?: string;
+  country?: string | null;
+  tagline?: string | null;
+  visibility?: string;
+  commercialMode?: string;
+  authUserId: string;
+  isPrivilegedAdmin: boolean;
+}
 export interface ClubAuthorityRepository {
+  createClub(params: CreateClubInput): Promise<CreateClubResult>;
   listVisibleClubs(params: {
     authUserId: string;
     isPrivilegedAdmin: boolean;
   }): Promise<VisibleClub[]>;
+  updateClub(params: UpdateClubInput): Promise<VisibleClub>;
+  deleteClub(params: {
+    clubId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<void>;
   listClubMembers(params: {
     clubId: string;
     authUserId: string;
     isPrivilegedAdmin: boolean;
   }): Promise<ClubMemberRecord[]>;
+  listClubMemberRemovals(params: {
+    clubId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubMemberRemovalRecord[]>;
   listClubSquads(params: {
     clubId: string;
     authUserId: string;
@@ -273,6 +317,16 @@ function buildCodePrefix(clubName: string): string {
   const normalized = clubName.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
   return normalized.slice(0, 5) || 'CLUB';
 }
+function buildSlug(value: string): string {
+  return (
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 64) || 'club'
+  );
+}
 function buildInviteCode(clubName: string, role: string): string {
   const suffix = role === 'MEMBER' ? 'JOIN' : role.replace(/[^A-Za-z]/g, '').slice(0, 4) || 'TEAM';
   return `${buildCodePrefix(clubName)}-${suffix}`;
@@ -355,6 +409,18 @@ function requireManageClubSquads(membershipRole: string | undefined): void {
     throw forbidden('You do not have permission to manage club squads');
   }
 }
+function requireEditClubProfile(membershipRole: string | undefined): void {
+  const viewerRole = parseOrganizationRole(membershipRole);
+  if (!viewerRole || !canUseClubCapability(viewerRole, 'edit_org_profile')) {
+    throw forbidden('You do not have permission to edit club details');
+  }
+}
+function requireOwner(membershipRole: string | undefined): void {
+  const viewerRole = parseOrganizationRole(membershipRole);
+  if (viewerRole !== 'OWNER') {
+    throw forbidden('Only the club owner can manage this club setting');
+  }
+}
 function toContractRoleString(role: unknown): string {
   return parseOrganizationRole(role) ?? 'MEMBER';
 }
@@ -386,6 +452,74 @@ function buildClubMemberRecord(params: {
     status: membershipStatus(params.membership),
     joinedAt: createdAt,
     squadIds: params.squadIds ?? [],
+  };
+}
+function getClubMemberRemovalAuditMetadata(audit?: SeedRow | null): Record<string, unknown> {
+  return asObject(audit?.metadataJson) ?? {};
+}
+function findLatestStoreClubMemberRemovalAudit(
+  tables: SeedTables,
+  clubId: string,
+  userId: string,
+): SeedRow | null {
+  return (
+    asRows(tables.auditEvents)
+      .filter(
+        (row) =>
+          (asString(row.action) === 'club_member.remove' ||
+            asString(row.action) === 'club_member.ban') &&
+          asString(row.resourceId) === `${clubId}:${userId}` &&
+          asString(row.result) === 'SUCCESS',
+      )
+      .sort((a, b) => Date.parse(asIsoString(b.occurredAt)) - Date.parse(asIsoString(a.occurredAt)))[0] ??
+    null
+  );
+}
+function buildClubMemberRemovalRecord(params: {
+  membership: SeedRow;
+  user?: SeedRow | null;
+  removedByUser?: SeedRow | null;
+  audit?: SeedRow | null;
+}): ClubMemberRemovalRecord {
+  const metadata = getClubMemberRemovalAuditMetadata(params.audit);
+  const isBan = asString(params.audit?.action) === 'club_member.ban';
+  const clubId = asString(params.membership.clubId) ?? '';
+  const userId = asString(params.membership.userId) ?? '';
+  const removedBy =
+    asString(params.membership.deletedByUserId) ??
+    asString(params.audit?.actorUserId) ??
+    '';
+  return {
+    id: asString(params.membership.id) ?? `${clubId}:${userId}`,
+    clubId,
+    userId,
+    userName:
+      asString(params.user?.name) ??
+      asString(params.user?.fullName) ??
+      asString(params.user?.email) ??
+      userId,
+    userRole: toContractRoleString(params.membership.role),
+    reason: isBan ? 'CONDUCT' : asString(metadata.reason) ?? 'OTHER',
+    customReason: isBan ? asString(metadata.reason) ?? null : asString(metadata.customReason) ?? null,
+    removedBy,
+    removedByName:
+      asString(params.removedByUser?.name) ??
+      asString(params.removedByUser?.fullName) ??
+      asString(params.removedByUser?.email) ??
+      removedBy,
+    removedAt:
+      asIsoString(params.membership.deletedAt, '') ||
+      asIsoString(params.audit?.occurredAt, '') ||
+      asIsoString(params.membership.updatedAt),
+    originalMembership: toMembershipSummary({
+      id: asString(params.membership.id) ?? `${clubId}:${userId}`,
+      clubId,
+      userId,
+      role: toContractRoleString(params.membership.role),
+      active: true,
+      createdAt: params.membership.createdAt as string | Date | null,
+      updatedAt: params.membership.updatedAt as string | Date | null,
+    }),
   };
 }
 function buildClubSquadRecord(params: {
@@ -500,8 +634,12 @@ function buildClubSummary(
   club: {
     id: string;
     name: string;
+    city?: string | null;
+    country?: string | null;
+    tagline?: string | null;
     slug?: string | null;
     visibility?: string | null;
+    commercialMode?: string | null;
     createdByUserId?: string | null;
   },
   inviteCode: string | null,
@@ -509,8 +647,12 @@ function buildClubSummary(
   return {
     id: club.id,
     name: club.name,
+    city: club.city ?? null,
+    country: club.country ?? null,
+    tagline: club.tagline ?? null,
     slug: club.slug ?? null,
     visibility: club.visibility ?? null,
+    commercialMode: club.commercialMode ?? null,
     createdByUserId: club.createdByUserId ?? undefined,
     inviteCode,
   };
@@ -976,6 +1118,129 @@ function createOrReviveStoreMembership(params: {
 }
 class SeedClubAuthorityRepository implements ClubAuthorityRepository {
   constructor(private readonly getTables: () => SeedTables) {}
+
+  async createClub(params: CreateClubInput): Promise<CreateClubResult> {
+    const tables = this.getTables();
+    const name = params.name.trim();
+    const city = params.city.trim();
+    const country = params.country?.trim() || 'UK';
+    const tagline = params.tagline?.trim() || null;
+    if (name.length < 3) {
+      throw badRequest('Club name must be at least 3 characters');
+    }
+    if (city.length < 2) {
+      throw badRequest('City is required');
+    }
+    const clubs = ensureTable(tables, 'clubs');
+    const duplicate = clubs.some(
+      (club) =>
+        !asString(club.deletedAt) &&
+        asString(club.createdByUserId) === params.authUserId &&
+        (asString(club.name) ?? '').trim().toLowerCase() === name.toLowerCase(),
+    );
+    if (duplicate) {
+      throw conflict('You already have a club with this name');
+    }
+
+    const now = new Date().toISOString();
+    const clubId = `clb_${randomUUID()}`;
+    const slug = `${buildSlug(name)}-${clubId.slice(-6)}`;
+    const club: SeedRow = {
+      id: clubId,
+      name,
+      city,
+      country,
+      tagline,
+      badgeUrl: null,
+      coverPhotoUrl: null,
+      primaryColor: null,
+      secondaryColor: null,
+      slug,
+      visibility: params.visibility ?? 'private',
+      commercialMode: params.commercialMode ?? 'COACH_OWNED',
+      createdByUserId: params.authUserId,
+      updatedByUserId: params.authUserId,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      deletedByUserId: null,
+    };
+    clubs.unshift(club);
+
+    const membership: SeedRow = {
+      id: `cmb_${randomUUID()}`,
+      clubId,
+      userId: params.authUserId,
+      role: 'OWNER',
+      active: true,
+      createdByUserId: params.authUserId,
+      updatedByUserId: params.authUserId,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      deletedByUserId: null,
+    };
+    ensureTable(tables, 'clubMemberships').unshift(membership);
+
+    const primaryInvite: SeedRow = {
+      id: `cinv_${randomUUID()}`,
+      clubId,
+      code: `${buildInviteCode(name, 'MEMBER')}-${randomUUID().slice(0, 4).toUpperCase()}`,
+      role: 'MEMBER',
+      remainingUses: 999,
+      expiresAt: addDaysIso(365),
+      createdByUserId: params.authUserId,
+      updatedByUserId: params.authUserId,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      deletedByUserId: null,
+    };
+    const inviteRows = [primaryInvite];
+    const firstStaffRole = params.firstStaffRole ?? null;
+    if (firstStaffRole) {
+      inviteRows.push({
+        id: `cinv_${randomUUID()}`,
+        clubId,
+        code: `${buildInviteCode(name, firstStaffRole)}-${randomUUID().slice(0, 4).toUpperCase()}`,
+        role: firstStaffRole,
+        remainingUses: 25,
+        expiresAt: addDaysIso(30),
+        createdByUserId: params.authUserId,
+        updatedByUserId: params.authUserId,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+        deletedByUserId: null,
+      });
+    }
+    ensureTable(tables, 'clubInviteCodes').unshift(...inviteRows);
+
+    return {
+      club: buildClubSummary(
+        {
+          id: clubId,
+          name,
+          city,
+          country,
+          tagline,
+          slug,
+          visibility: asString(club.visibility) ?? 'private',
+          commercialMode: asString(club.commercialMode) ?? 'COACH_OWNED',
+          createdByUserId: params.authUserId,
+        },
+        asString(primaryInvite.code) ?? null,
+      ),
+      membership: buildMembershipSummaryFromRow(membership),
+      primaryInvite: mapInviteCodeRecordFromRow(primaryInvite),
+      firstStaffInvite: inviteRows[1] ? mapInviteCodeRecordFromRow(inviteRows[1]) : undefined,
+    };
+  }
+
   async listVisibleClubs(params: {
     authUserId: string;
     isPrivilegedAdmin: boolean;
@@ -1027,8 +1292,12 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
           {
             id: clubId,
             name: asString(club.name) ?? 'Club',
+            city: asString(club.city) ?? null,
+            country: asString(club.country) ?? null,
+            tagline: asString(club.tagline) ?? null,
             slug: asString(club.slug) ?? null,
             visibility: asString(club.visibility) ?? null,
+            commercialMode: asString(club.commercialMode) ?? null,
             createdByUserId: asString(club.createdByUserId) ?? null,
           },
           primaryInviteCode ?? null,
@@ -1039,6 +1308,109 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
       };
     });
   }
+
+  async updateClub(params: UpdateClubInput): Promise<VisibleClub> {
+    const tables = this.getTables();
+    const club = findStoreClubById(tables, params.clubId);
+    if (!club) {
+      throw notFound('Club not found');
+    }
+    const viewerMembership = getStoreViewerMembership(tables, params.clubId, params.authUserId);
+    if (!params.isPrivilegedAdmin) {
+      requireEditClubProfile(asString(viewerMembership?.role));
+      if (params.commercialMode !== undefined) {
+        requireOwner(asString(viewerMembership?.role));
+      }
+    }
+    const nextName = params.name?.trim();
+    const nextCity = params.city?.trim();
+    if (params.name !== undefined && (!nextName || nextName.length < 3)) {
+      throw badRequest('Club name must be at least 3 characters');
+    }
+    if (params.city !== undefined && (!nextCity || nextCity.length < 2)) {
+      throw badRequest('City is required');
+    }
+    const now = new Date().toISOString();
+    Object.assign(club, {
+      ...(nextName !== undefined ? { name: nextName } : {}),
+      ...(nextCity !== undefined ? { city: nextCity } : {}),
+      ...(params.country !== undefined ? { country: params.country?.trim() || null } : {}),
+      ...(params.tagline !== undefined ? { tagline: params.tagline?.trim() || null } : {}),
+      ...(params.visibility !== undefined ? { visibility: params.visibility } : {}),
+      ...(params.commercialMode !== undefined ? { commercialMode: params.commercialMode } : {}),
+      updatedByUserId: params.authUserId,
+      updatedAt: now,
+      version: Number(club.version ?? 1) + 1,
+    });
+    const visible = await this.listVisibleClubs({
+      authUserId: params.authUserId,
+      isPrivilegedAdmin: params.isPrivilegedAdmin,
+    });
+    const updated = visible.find((candidate) => candidate.id === params.clubId);
+    if (!updated) {
+      throw notFound('Club not found');
+    }
+    return updated;
+  }
+
+  async deleteClub(params: {
+    clubId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<void> {
+    const tables = this.getTables();
+    const club = findStoreClubById(tables, params.clubId);
+    if (!club) {
+      throw notFound('Club not found');
+    }
+    const viewerMembership = getStoreViewerMembership(tables, params.clubId, params.authUserId);
+    if (!params.isPrivilegedAdmin) {
+      requireOwner(asString(viewerMembership?.role));
+    }
+    const now = new Date().toISOString();
+    Object.assign(club, {
+      deletedAt: now,
+      deletedByUserId: params.authUserId,
+      updatedAt: now,
+      updatedByUserId: params.authUserId,
+      version: Number(club.version ?? 1) + 1,
+    });
+    for (const membership of asRows(tables.clubMemberships)) {
+      if (asString(membership.clubId) === params.clubId && !asString(membership.deletedAt)) {
+        Object.assign(membership, {
+          active: false,
+          deletedAt: now,
+          deletedByUserId: params.authUserId,
+          updatedAt: now,
+          updatedByUserId: params.authUserId,
+          version: Number(membership.version ?? 1) + 1,
+        });
+      }
+    }
+    for (const invite of asRows(tables.clubInviteCodes)) {
+      if (asString(invite.clubId) === params.clubId && !asString(invite.deletedAt)) {
+        Object.assign(invite, {
+          deletedAt: now,
+          deletedByUserId: params.authUserId,
+          updatedAt: now,
+          updatedByUserId: params.authUserId,
+          version: Number(invite.version ?? 1) + 1,
+        });
+      }
+    }
+    for (const squad of asRows(tables.squads)) {
+      if (asString(squad.clubId) === params.clubId && !asString(squad.deletedAt)) {
+        Object.assign(squad, {
+          deletedAt: now,
+          deletedByUserId: params.authUserId,
+          updatedAt: now,
+          updatedByUserId: params.authUserId,
+          version: Number(squad.version ?? 1) + 1,
+        });
+      }
+    }
+  }
+
   async listClubMembers(params: {
     clubId: string;
     authUserId: string;
@@ -1065,6 +1437,41 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
         ),
       }),
     );
+  }
+  async listClubMemberRemovals(params: {
+    clubId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubMemberRemovalRecord[]> {
+    const tables = this.getTables();
+    const club = findStoreClubById(tables, params.clubId);
+    if (!club) {
+      throw notFound('Club not found');
+    }
+    const viewerMembership = getStoreViewerMembership(tables, params.clubId, params.authUserId);
+    if (!params.isPrivilegedAdmin) {
+      requireManageMembers(asString(viewerMembership?.role));
+    }
+    const users = asRows(tables.users);
+    const usersById = new Map(users.map((user) => [asString(user.id) ?? '', user]));
+    return asRows(tables.clubMemberships)
+      .filter(
+        (membership) =>
+          asString(membership.clubId) === params.clubId &&
+          (membership.active === false || Boolean(asString(membership.deletedAt))),
+      )
+      .map((membership) => {
+        const userId = asString(membership.userId) ?? '';
+        const audit = findLatestStoreClubMemberRemovalAudit(tables, params.clubId, userId);
+        const removedBy = asString(membership.deletedByUserId) ?? asString(audit?.actorUserId) ?? '';
+        return buildClubMemberRemovalRecord({
+          membership,
+          user: usersById.get(userId) ?? null,
+          removedByUser: usersById.get(removedBy) ?? null,
+          audit,
+        });
+      })
+      .sort((a, b) => Date.parse(b.removedAt) - Date.parse(a.removedAt));
   }
   async listClubSquads(params: {
     clubId: string;
@@ -1994,6 +2401,164 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
 }
 class DbClubAuthorityRepository implements ClubAuthorityRepository {
   private readonly fixture = new SeedClubAuthorityRepository(() => getDbFixtureStore().tables);
+
+  async createClub(params: CreateClubInput): Promise<CreateClubResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fixture.createClub(params);
+    }
+    const name = params.name.trim();
+    const city = params.city.trim();
+    const country = params.country?.trim() || 'UK';
+    const tagline = params.tagline?.trim() || null;
+    if (name.length < 3) {
+      throw badRequest('Club name must be at least 3 characters');
+    }
+    if (city.length < 2) {
+      throw badRequest('City is required');
+    }
+    const prisma = getPrismaClientOrThrow();
+    const [user, duplicate] = await Promise.all([
+      prisma.user.findUnique({
+        where: {
+          id: params.authUserId,
+        },
+        select: {
+          id: true,
+        },
+      }),
+      prisma.club.findFirst({
+        where: {
+          createdByUserId: params.authUserId,
+          deletedAt: null,
+          name: {
+            equals: name,
+            mode: 'insensitive',
+          },
+        },
+        select: {
+          id: true,
+        },
+      }),
+    ]);
+    if (!user) {
+      throw notFound('User not found');
+    }
+    if (duplicate) {
+      throw conflict('You already have a club with this name');
+    }
+
+    const clubId = `clb_${randomUUID()}`;
+    const slug = `${buildSlug(name)}-${clubId.slice(-6)}`;
+    const primaryCode = `${buildInviteCode(name, 'MEMBER')}-${randomUUID().slice(0, 4).toUpperCase()}`;
+    const firstStaffRole = params.firstStaffRole ?? null;
+    const created = await prisma.$transaction(async (tx) => {
+      const club = await tx.club.create({
+        data: {
+          id: clubId,
+          name,
+          city,
+          country,
+          tagline,
+          slug,
+          visibility: params.visibility ?? 'private',
+          commercialMode: params.commercialMode ?? 'COACH_OWNED',
+          createdByUserId: params.authUserId,
+          updatedByUserId: params.authUserId,
+        },
+      });
+      const membership = await tx.clubMembership.create({
+        data: {
+          id: `cmb_${randomUUID()}`,
+          clubId,
+          userId: params.authUserId,
+          role: 'OWNER',
+          active: true,
+          createdByUserId: params.authUserId,
+          updatedByUserId: params.authUserId,
+        },
+      });
+      const primaryInvite = await tx.clubInviteCode.create({
+        data: {
+          id: `cinv_${randomUUID()}`,
+          clubId,
+          code: primaryCode,
+          role: 'MEMBER',
+          remainingUses: 999,
+          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          createdByUserId: params.authUserId,
+          updatedByUserId: params.authUserId,
+        },
+      });
+      const firstStaffInvite = firstStaffRole
+        ? await tx.clubInviteCode.create({
+            data: {
+              id: `cinv_${randomUUID()}`,
+              clubId,
+              code: `${buildInviteCode(name, firstStaffRole)}-${randomUUID().slice(0, 4).toUpperCase()}`,
+              role: firstStaffRole,
+              remainingUses: 25,
+              expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+              createdByUserId: params.authUserId,
+              updatedByUserId: params.authUserId,
+            },
+          })
+        : undefined;
+      return {
+        club,
+        membership,
+        primaryInvite,
+        firstStaffInvite,
+      };
+    });
+    return normalizeForJson({
+      club: buildClubSummary(
+        {
+          id: created.club.id,
+          name: created.club.name,
+          city: created.club.city,
+          country: created.club.country,
+          tagline: created.club.tagline,
+          slug: created.club.slug,
+          visibility: created.club.visibility,
+          commercialMode: created.club.commercialMode,
+          createdByUserId: created.club.createdByUserId,
+        },
+        created.primaryInvite.code,
+      ),
+      membership: toMembershipSummary({
+        id: created.membership.id,
+        clubId: created.membership.clubId,
+        userId: created.membership.userId,
+        role: created.membership.role,
+        active: created.membership.active,
+        createdAt: created.membership.createdAt,
+        updatedAt: created.membership.updatedAt,
+      }),
+      primaryInvite: {
+        id: created.primaryInvite.id,
+        clubId: created.primaryInvite.clubId,
+        code: created.primaryInvite.code,
+        role: created.primaryInvite.role,
+        createdByUserId: created.primaryInvite.createdByUserId,
+        createdAt: created.primaryInvite.createdAt.toISOString(),
+        expiresAt: created.primaryInvite.expiresAt.toISOString(),
+        remainingUses: created.primaryInvite.remainingUses,
+      },
+      firstStaffInvite: created.firstStaffInvite
+        ? {
+            id: created.firstStaffInvite.id,
+            clubId: created.firstStaffInvite.clubId,
+            code: created.firstStaffInvite.code,
+            role: created.firstStaffInvite.role,
+            createdByUserId: created.firstStaffInvite.createdByUserId,
+            createdAt: created.firstStaffInvite.createdAt.toISOString(),
+            expiresAt: created.firstStaffInvite.expiresAt.toISOString(),
+            remainingUses: created.firstStaffInvite.remainingUses,
+          }
+        : undefined,
+    });
+  }
+
   private async hasClubMemberBanEvent(params: { clubId: string; userId: string }): Promise<boolean> {
     const prisma = getPrismaClientOrThrow();
     const ban = await prisma.auditEvent.findFirst({
@@ -2283,8 +2848,12 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
           {
             id: club.id,
             name: club.name,
+            city: club.city,
+            country: club.country,
+            tagline: club.tagline,
             slug: club.slug,
             visibility: club.visibility,
+            commercialMode: club.commercialMode,
             createdByUserId: club.createdByUserId,
           },
           club.inviteCodes[0]?.code ?? null,
@@ -2318,6 +2887,139 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
       })),
     );
   }
+
+  async updateClub(params: UpdateClubInput): Promise<VisibleClub> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fixture.updateClub(params);
+    }
+    const context = await this.requireDbClubReadContext({
+      clubId: params.clubId,
+      authUserId: params.authUserId,
+      isPrivilegedAdmin: params.isPrivilegedAdmin,
+      denyMessage: 'You do not have permission to edit club details',
+    });
+    if (!params.isPrivilegedAdmin) {
+      requireEditClubProfile(context.viewerMembership?.role);
+      if (params.commercialMode !== undefined) {
+        requireOwner(context.viewerMembership?.role);
+      }
+    }
+    const nextName = params.name?.trim();
+    const nextCity = params.city?.trim();
+    if (params.name !== undefined && (!nextName || nextName.length < 3)) {
+      throw badRequest('Club name must be at least 3 characters');
+    }
+    if (params.city !== undefined && (!nextCity || nextCity.length < 2)) {
+      throw badRequest('City is required');
+    }
+    const prisma = getPrismaClientOrThrow();
+    await prisma.club.update({
+      where: {
+        id: params.clubId,
+      },
+      data: {
+        ...(nextName !== undefined ? { name: nextName } : {}),
+        ...(nextCity !== undefined ? { city: nextCity } : {}),
+        ...(params.country !== undefined ? { country: params.country?.trim() || null } : {}),
+        ...(params.tagline !== undefined ? { tagline: params.tagline?.trim() || null } : {}),
+        ...(params.visibility !== undefined ? { visibility: params.visibility } : {}),
+        ...(params.commercialMode !== undefined ? { commercialMode: params.commercialMode } : {}),
+        updatedByUserId: params.authUserId,
+        version: {
+          increment: 1n,
+        },
+      },
+    });
+    const visible = await this.listVisibleClubs({
+      authUserId: params.authUserId,
+      isPrivilegedAdmin: params.isPrivilegedAdmin,
+    });
+    const updated = visible.find((candidate) => candidate.id === params.clubId);
+    if (!updated) {
+      throw notFound('Club not found');
+    }
+    return updated;
+  }
+
+  async deleteClub(params: {
+    clubId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<void> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fixture.deleteClub(params);
+    }
+    const context = await this.requireDbClubReadContext({
+      clubId: params.clubId,
+      authUserId: params.authUserId,
+      isPrivilegedAdmin: params.isPrivilegedAdmin,
+      denyMessage: 'You do not have permission to delete this club',
+    });
+    if (!params.isPrivilegedAdmin) {
+      requireOwner(context.viewerMembership?.role);
+    }
+    const prisma = getPrismaClientOrThrow();
+    const now = new Date();
+    await prisma.$transaction([
+      prisma.club.update({
+        where: {
+          id: params.clubId,
+        },
+        data: {
+          deletedAt: now,
+          deletedByUserId: params.authUserId,
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1n,
+          },
+        },
+      }),
+      prisma.clubMembership.updateMany({
+        where: {
+          clubId: params.clubId,
+          deletedAt: null,
+        },
+        data: {
+          active: false,
+          deletedAt: now,
+          deletedByUserId: params.authUserId,
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1n,
+          },
+        },
+      }),
+      prisma.clubInviteCode.updateMany({
+        where: {
+          clubId: params.clubId,
+          deletedAt: null,
+        },
+        data: {
+          deletedAt: now,
+          deletedByUserId: params.authUserId,
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1n,
+          },
+        },
+      }),
+      prisma.squad.updateMany({
+        where: {
+          clubId: params.clubId,
+          deletedAt: null,
+        },
+        data: {
+          deletedAt: now,
+          deletedByUserId: params.authUserId,
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1n,
+          },
+        },
+      }),
+    ]);
+  }
+
   async listClubMembers(params: {
     clubId: string;
     authUserId: string;
@@ -2445,6 +3147,120 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
           },
           user: membership.user,
           squadIds: squadIdsByAthleteId.get(athleteIdByUserId.get(membership.userId) ?? '') ?? [],
+        }),
+      ),
+    );
+  }
+  async listClubMemberRemovals(params: {
+    clubId: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<ClubMemberRemovalRecord[]> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fixture.listClubMemberRemovals(params);
+    }
+    const context = await this.requireDbClubReadContext({
+      clubId: params.clubId,
+      authUserId: params.authUserId,
+      isPrivilegedAdmin: params.isPrivilegedAdmin,
+      denyMessage: 'You do not have permission to view club member removal history',
+    });
+    if (!params.isPrivilegedAdmin) {
+      requireManageMembers(context.viewerMembership?.role);
+    }
+    const prisma = getPrismaClientOrThrow();
+    const memberships = await prisma.clubMembership.findMany({
+      where: {
+        clubId: params.clubId,
+        OR: [
+          {
+            active: false,
+          },
+          {
+            deletedAt: {
+              not: null,
+            },
+          },
+        ],
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+    if (memberships.length === 0) {
+      return [];
+    }
+    const removedByUserIds = Array.from(
+      new Set(memberships.map((membership) => membership.deletedByUserId).filter(isTruthy)),
+    );
+    const [removedByUsers, auditEvents] = await Promise.all([
+      removedByUserIds.length > 0
+        ? prisma.user.findMany({
+            where: {
+              id: {
+                in: removedByUserIds,
+              },
+            },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatarUrl: true,
+            },
+          })
+        : [],
+      prisma.auditEvent.findMany({
+        where: {
+          resourceType: 'club_member',
+          resourceId: {
+            in: memberships.map((membership) => `${params.clubId}:${membership.userId}`),
+          },
+          action: {
+            in: ['club_member.remove', 'club_member.ban'],
+          },
+          result: 'SUCCESS',
+        },
+        orderBy: {
+          occurredAt: 'desc',
+        },
+      }),
+    ]);
+    const removedByUserById = new Map(removedByUsers.map((user) => [user.id, user]));
+    const auditByResourceId = new Map<string, SeedRow>();
+    for (const audit of auditEvents) {
+      if (audit.resourceId && !auditByResourceId.has(audit.resourceId)) {
+        auditByResourceId.set(audit.resourceId, audit as unknown as SeedRow);
+      }
+    }
+    return normalizeForJson(
+      memberships.map((membership) =>
+        buildClubMemberRemovalRecord({
+          membership: {
+            id: membership.id,
+            clubId: membership.clubId,
+            userId: membership.userId,
+            role: membership.role,
+            active: membership.active,
+            createdAt: membership.createdAt,
+            updatedAt: membership.updatedAt,
+            deletedAt: membership.deletedAt,
+            deletedByUserId: membership.deletedByUserId,
+          },
+          user: membership.user,
+          removedByUser: membership.deletedByUserId
+            ? removedByUserById.get(membership.deletedByUserId)
+            : null,
+          audit: auditByResourceId.get(`${params.clubId}:${membership.userId}`) ?? null,
         }),
       ),
     );

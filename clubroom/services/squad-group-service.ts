@@ -119,6 +119,7 @@ export const squadGroupService = {
         creatorName,
         isPublic: false,
         clubId: squad.clubId,
+        squadId,
       });
       if (!newGroup.success) {
         return err(newGroup.error);

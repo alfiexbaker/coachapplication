@@ -5,7 +5,7 @@
  * session completion wizard. The screen component only handles rendering.
  */
 
-import { useState, useEffect, useRef, startTransition } from 'react';
+import { useState, useEffect, useMemo, useRef, startTransition } from 'react';
 import { Linking, Platform } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -42,6 +42,8 @@ import type { QuickRateInput } from '@/types/progress-types';
 import { uiFeedback } from '@/services/ui-feedback';
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
 const logger = createLogger('SessionComplete');
+const API_COMPLETION_MESSAGE_UNSUPPORTED_REASON =
+  'Session completion messages need backend thread mapping before they can send in API mode.';
 
 function clearReviewPromptTimer(ref: { current: ReturnType<typeof setTimeout> | null }) {
   if (ref.current) {
@@ -109,6 +111,17 @@ function normalizeSkills(skills: string[] | undefined): string[] {
     ),
   );
 }
+function resolveAttendanceDate(scheduledAt: string | undefined): string {
+  const scheduled = scheduledAt ? new Date(scheduledAt) : null;
+  if (scheduled && !Number.isNaN(scheduled.getTime())) {
+    return scheduled.toISOString().slice(0, 10);
+  }
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getRegistrationName(_registration: SessionRegistration): string {
+  return 'Athlete';
+}
 
 // ============================================================================
 // HOOK
@@ -116,8 +129,6 @@ function normalizeSkills(skills: string[] | undefined): string[] {
 
 export function useSessionCompletion(sessionId: string | undefined) {
   const { currentUser } = useAuth();
-  const getRegistrationName = (registration: SessionRegistration) =>
-    registration.userId || 'Athlete';
 
   // Unmount guard for async setState safety
   const isMountedRef = useRef(true);
@@ -194,7 +205,9 @@ export function useSessionCompletion(sessionId: string | undefined) {
     }
     const [usersResult, rosterEntries] = await Promise.all([
       userService.getUsersByIds(athleteIds),
-      apiClient.get<RosterEntry[]>(STORAGE_KEYS.ROSTER, []),
+      apiClient.isMockMode
+        ? apiClient.get<RosterEntry[]>(STORAGE_KEYS.ROSTER, [])
+        : Promise.resolve([]),
     ]);
     const nextParticipantNames: Record<string, string> = {};
     const nextParentByAthleteId: Record<
@@ -209,9 +222,9 @@ export function useSessionCompletion(sessionId: string | undefined) {
         nextParticipantNames[user.id] = user.name;
       }
     }
-    for (const athleteId of athleteIds) {
+    for (const [index, athleteId] of athleteIds.entries()) {
       if (!nextParticipantNames[athleteId]) {
-        nextParticipantNames[athleteId] = athleteId || 'Athlete';
+        nextParticipantNames[athleteId] = `Athlete ${index + 1}`;
       }
     }
     const athleteIdSet = new Set(athleteIds);
@@ -224,7 +237,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
       }
       nextParentByAthleteId[entry.athleteId] = {
         parentId: entry.parentId,
-        parentName: entry.parentName || entry.parentId,
+        parentName: entry.parentName || 'Parent/guardian',
       };
     }
     setParticipantNames(nextParticipantNames);
@@ -241,33 +254,35 @@ export function useSessionCompletion(sessionId: string | undefined) {
     setError(null);
     return await runAsyncTryCatchFinally(
       async () => {
-        const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-        if (offerings.length > 0) {
-          const found = offerings.find((o) => o.id === sessionId);
-          if (found) {
-            setSession(found);
-            setSourceType('offering');
-            setSessionTemplateContext({});
-            const initialAttendance: Record<string, AthleteAttendance> = {};
-            found.registrations.forEach((r) => {
-              if (!(r.status === 'confirmed')) return;
-              initialAttendance[r.id] = {
-                registration: r,
-                status: 'present',
-                effort: 3,
-                note: '',
-                badges: [],
-              };
-            });
-            setAttendance(initialAttendance);
-            if (found.footballSkill) {
-              setSkillsFocused([found.footballSkill]);
-            } else {
-              setSkillsFocused([]);
+        if (apiClient.isMockMode) {
+          const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
+          if (offerings.length > 0) {
+            const found = offerings.find((o) => o.id === sessionId);
+            if (found) {
+              setSession(found);
+              setSourceType('offering');
+              setSessionTemplateContext({});
+              const initialAttendance: Record<string, AthleteAttendance> = {};
+              found.registrations.forEach((r) => {
+                if (!(r.status === 'confirmed')) return;
+                initialAttendance[r.id] = {
+                  registration: r,
+                  status: 'present',
+                  effort: 3,
+                  note: '',
+                  badges: [],
+                };
+              });
+              setAttendance(initialAttendance);
+              if (found.footballSkill) {
+                setSkillsFocused([found.footballSkill]);
+              } else {
+                setSkillsFocused([]);
+              }
+              await loadParticipantContext(found.registrations, found.coachId);
+              setLoading(false);
+              return;
             }
-            await loadParticipantContext(found.registrations, found.coachId);
-            setLoading(false);
-            return;
           }
         }
 
@@ -464,9 +479,26 @@ export function useSessionCompletion(sessionId: string | undefined) {
       return nextAttendance;
     });
   };
-  const appendThreadMessage = async (threadId: string, body: string) => {
+  const appendThreadMessage = async (
+    threadId: string,
+    body: string,
+  ): Promise<{ ok: true } | { ok: false; reason: string }> => {
     if (!session || !currentUser) {
-      return;
+      return {
+        ok: false,
+        reason: 'Session or coach identity is missing.',
+      };
+    }
+    if (!apiClient.isMockMode) {
+      logger.warn('Blocked local session-completion message write in API mode', {
+        sessionId: session.id,
+        threadId,
+        route: '/v1/message-threads/:threadId/messages',
+      });
+      return {
+        ok: false,
+        reason: API_COMPLETION_MESSAGE_UNSUPPORTED_REASON,
+      };
     }
     const messagesByThread = await apiClient.get<Record<string, ChatMessage[]>>(
       STORAGE_KEYS.MESSAGES,
@@ -483,14 +515,19 @@ export function useSessionCompletion(sessionId: string | undefined) {
     const existingThread = messagesByThread[threadId] ?? [];
     messagesByThread[threadId] = [...existingThread, nextMessage];
     await apiClient.set(STORAGE_KEYS.MESSAGES, messagesByThread);
+    return { ok: true };
   };
-  const sendGroupBroadcast = async (message: string): Promise<boolean> => {
+  const sendGroupBroadcast = async (
+    message: string,
+  ): Promise<{ ok: true } | { ok: false; reason: string }> => {
     const trimmed = message.trim();
     if (!session || !trimmed) {
-      return false;
+      return {
+        ok: false,
+        reason: 'Write a group update before sending.',
+      };
     }
-    await appendThreadMessage(`thread_group_${session.id}`, trimmed);
-    return true;
+    return appendThreadMessage(`thread_group_${session.id}`, trimmed);
   };
   const sendPersonalUpdate = async (registrationId: string) => {
     const athleteAttendance = attendance[registrationId];
@@ -508,7 +545,13 @@ export function useSessionCompletion(sessionId: string | undefined) {
     const body = note
       ? `Personal update for ${athleteName}: ${note}`
       : `Personal update for ${athleteName}: marked ${statusLabel} in ${session.title}.`;
-    await appendThreadMessage(`thread_athlete_${athleteId}_${session.id}`, body);
+    const result = await appendThreadMessage(`thread_athlete_${athleteId}_${session.id}`, body);
+    if (!result.ok) {
+      return {
+        ok: false,
+        reason: result.reason,
+      };
+    }
     return {
       ok: true,
       athleteName,
@@ -534,7 +577,13 @@ export function useSessionCompletion(sessionId: string | undefined) {
     const body = parentLink
       ? `${athleteName} update from ${session.title}: attendance marked ${athleteAttendance.status}. Reply if you want a full personal recap.`
       : `Session update for ${athleteName}: attendance marked ${athleteAttendance.status}.`;
-    await appendThreadMessage(threadId, body);
+    const result = await appendThreadMessage(threadId, body);
+    if (!result.ok) {
+      return {
+        ok: false,
+        reason: result.reason,
+      };
+    }
     return {
       ok: true as const,
       athleteName,
@@ -657,24 +706,27 @@ export function useSessionCompletion(sessionId: string | undefined) {
         const availableBadgeById = new Map(availableBadges.map((badge) => [badge.id, badge]));
 
         // 1-3. Save notes, badge awards, and base feedback.
-        const saveSessionNotes = progressService
-          .saveSessionNote(session.id, {
-            summary: sessionSummary,
-            focus: skillsFocused,
-            improvements,
-            homework,
-            effort: overallEffort,
-            attendance: `${present} present, ${absent} absent`,
-            videoUrls,
-            imageUrls,
-          })
-          .then(() => {
-            emitTyped(ServiceEvents.SESSION_NOTES_SAVED, {
-              sessionId: session.id,
-              bookingId: sourceType === 'booking' ? session.id : undefined,
-              coachId: session.coachId,
-            });
-          });
+        const saveSessionNotes =
+          !apiClient.isMockMode && sourceType === 'booking'
+            ? Promise.resolve()
+            : progressService
+                .saveSessionNote(session.id, {
+                  summary: sessionSummary,
+                  focus: skillsFocused,
+                  improvements,
+                  homework,
+                  effort: overallEffort,
+                  attendance: `${present} present, ${absent} absent`,
+                  videoUrls,
+                  imageUrls,
+                })
+                .then(() => {
+                  emitTyped(ServiceEvents.SESSION_NOTES_SAVED, {
+                    sessionId: session.id,
+                    bookingId: sourceType === 'booking' ? session.id : undefined,
+                    coachId: session.coachId,
+                  });
+                });
 
         const awardBadges = Promise.all(
           attendanceValues.flatMap((athleteData) => {
@@ -835,13 +887,12 @@ export function useSessionCompletion(sessionId: string | undefined) {
         ).then(() => undefined);
 
         // 4. Save sharing preferences
-        const persistSharingPreferences = apiClient.set(
-          `${STORAGE_KEYS.SESSION_SHARING}_${session.id}`,
-          {
-            shareNotesWithParents,
-            shareAttendance,
-          },
-        );
+        const persistSharingPreferences = apiClient.isMockMode
+          ? apiClient.set(`${STORAGE_KEYS.SESSION_SHARING}_${session.id}`, {
+              shareNotesWithParents,
+              shareAttendance,
+            })
+          : Promise.resolve();
 
         // 5. Create and persist attendance records
         const attendanceRecords: AttendanceRecord[] = attendanceValues.map((ad) => ({
@@ -851,24 +902,56 @@ export function useSessionCompletion(sessionId: string | undefined) {
           effortRating: ad.effort,
           focusAreas: skillsFocused,
         }));
+        const bookingCompletionAttendance = attendanceValues.map((ad) => ({
+          athleteId: ad.registration.userId,
+          status: mapAttendanceStatus(ad.status),
+          ...(ad.note ? { notes: ad.note } : {}),
+          ...(typeof ad.effort === 'number' ? { effortRating: ad.effort } : {}),
+        }));
         const sessionAttendanceData: SessionAttendance = {
           bookingId: session.id,
           records: attendanceRecords,
           completedAt: new Date().toISOString(),
           completedBy: currentUser.id,
         };
-        const persistAttendance = apiClient
-          .set(`${STORAGE_KEYS.SESSION_ATTENDANCE}_${session.id}`, sessionAttendanceData)
-          .then(() => {
-            emitTyped(ServiceEvents.ATTENDANCE_RECORDED, {
-              sessionId: session.id,
-              bookingId: sourceType === 'booking' ? session.id : undefined,
-              coachId: session.coachId,
-              athleteIds: attendanceRecords.map((r) => r.athleteId),
-              presentCount: present,
-              absentCount: absent,
-            });
+        const emitAttendanceRecorded = () => {
+          emitTyped(ServiceEvents.ATTENDANCE_RECORDED, {
+            sessionId: session.id,
+            bookingId: sourceType === 'booking' ? session.id : undefined,
+            coachId: session.coachId,
+            athleteIds: attendanceRecords.map((r) => r.athleteId),
+            presentCount: present,
+            absentCount: absent,
           });
+        };
+        const persistAttendance = (async () => {
+          if (apiClient.isMockMode) {
+            await apiClient.set(
+              `${STORAGE_KEYS.SESSION_ATTENDANCE}_${session.id}`,
+              sessionAttendanceData,
+            );
+            emitAttendanceRecorded();
+            return;
+          }
+
+          if (sourceType === 'offering') {
+            const attendanceDate = resolveAttendanceDate(session.scheduledAt);
+            const results = await Promise.all(
+              attendanceValues.map((athleteData) =>
+                groupSessionService.markAttendance(
+                  athleteData.registration.id,
+                  attendanceDate,
+                  athleteData.status === 'present',
+                ),
+              ),
+            );
+            const failed = results.find((result) => !result.success);
+            if (failed && !failed.success) {
+              throw new Error(failed.error.message);
+            }
+            emitAttendanceRecorded();
+          }
+        })();
 
         await Promise.all([
           persistBaseSessionData,
@@ -880,15 +963,17 @@ export function useSessionCompletion(sessionId: string | undefined) {
         // 6. Update session/booking status to completed
         let completedBookingId: string | undefined;
         if (sourceType === 'booking') {
-          let updateResult = await bookingService.updateBooking(session.id, {
-            status: 'COMPLETED' as const,
-          });
+          const completeBookingInput = {
+            completedAt: sessionAttendanceData.completedAt,
+            attendance: bookingCompletionAttendance,
+            ...(sessionSummary.trim() ? { note: sessionSummary.trim() } : {}),
+            idempotencyKey: `booking-complete-${session.id}-${sessionAttendanceData.completedAt}`,
+          };
+          let updateResult = await bookingService.completeBooking(session.id, completeBookingInput);
           // Retry once on failure
           if (!updateResult.success) {
             logger.error('Booking status update failed, retrying once', updateResult.error.message);
-            updateResult = await bookingService.updateBooking(session.id, {
-              status: 'COMPLETED' as const,
-            });
+            updateResult = await bookingService.completeBooking(session.id, completeBookingInput);
           }
           if (!updateResult.success) {
             logger.error('Booking status update failed after retry', updateResult.error.message);
@@ -897,6 +982,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
             const verifyBooking = await bookingService.getBooking(session.id);
             if (verifyBooking && verifyBooking.status === 'COMPLETED') {
               completedBookingId = session.id;
+              emitAttendanceRecorded();
             } else {
               logger.error(
                 'Booking status verification failed — status did not transition to COMPLETED',
@@ -904,18 +990,20 @@ export function useSessionCompletion(sessionId: string | undefined) {
             }
           }
         } else {
-          const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
-          if (offerings.length > 0) {
-            const updated = offerings.map((o) => {
-              if (o.id === session.id && !o.isRecurring) {
-                return {
-                  ...o,
-                  status: 'completed' as const,
-                };
-              }
-              return o;
-            });
-            await apiClient.set('session_offerings', updated);
+          if (apiClient.isMockMode) {
+            const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
+            if (offerings.length > 0) {
+              const updated = offerings.map((o) => {
+                if (o.id === session.id && !o.isRecurring) {
+                  return {
+                    ...o,
+                    status: 'completed' as const,
+                  };
+                }
+                return o;
+              });
+              await apiClient.set('session_offerings', updated);
+            }
           }
 
           // Complete linked group bookings so coach completion queue clears properly.
@@ -986,7 +1074,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
         for (const athleteId of athleteIds) {
           const recipientId = parentByAthleteId[athleteId]?.parentId || athleteId;
           if (!recipientId) continue;
-          const athleteName = participantNames[athleteId] || athleteId || 'Athlete';
+          const athleteName = participantNames[athleteId] || 'Athlete';
           const existingAthletes = recipientToAthletes.get(recipientId) || [];
           existingAthletes.push(athleteName);
           recipientToAthletes.set(recipientId, existingAthletes);
@@ -1064,7 +1152,11 @@ export function useSessionCompletion(sessionId: string | undefined) {
       async (err) => {
         logger.error('Failed to complete session', err);
         if (isMountedRef.current) {
-          uiFeedback.showToast('Failed to complete session. Please try again.', 'error');
+          const message =
+            err instanceof Error && err.message.includes('/v1')
+              ? err.message
+              : 'Failed to complete session. Please try again.';
+          uiFeedback.showToast(message, 'error');
         }
         return null;
       },
@@ -1080,26 +1172,34 @@ export function useSessionCompletion(sessionId: string | undefined) {
   // DERIVED DATA
   // ============================================================================
 
-  const attendanceList = Object.values(attendance);
-  const attendanceStepData = attendanceList.map((a) => ({
-    registrationId: a.registration.id,
-    userName: participantNames[a.registration.userId] || getRegistrationName(a.registration),
-    status: a.status,
-    badges: a.badges,
-  }));
-  const presentAthletes = attendanceList.flatMap((a) =>
-    a.status === 'present'
-      ? [
-          {
-            registrationId: a.registration.id,
-            userName:
-              participantNames[a.registration.userId] || getRegistrationName(a.registration),
-            badges: a.badges,
-          },
-        ]
-      : [],
+  const attendanceList = useMemo(() => Object.values(attendance), [attendance]);
+  const attendanceStepData = useMemo(
+    () =>
+      attendanceList.map((a) => ({
+        registrationId: a.registration.id,
+        userName: participantNames[a.registration.userId] || getRegistrationName(a.registration),
+        status: a.status,
+        badges: a.badges,
+      })),
+    [attendanceList, participantNames],
   );
-  const parentNameByRegistration = (() => {
+  const presentAthletes = useMemo(
+    () =>
+      attendanceList.flatMap((a) =>
+        a.status === 'present'
+          ? [
+              {
+                registrationId: a.registration.id,
+                userName:
+                  participantNames[a.registration.userId] || getRegistrationName(a.registration),
+                badges: a.badges,
+              },
+            ]
+          : [],
+      ),
+    [attendanceList, participantNames],
+  );
+  const parentNameByRegistration = useMemo(() => {
     const map: Record<string, string> = {};
     for (const athleteAttendance of attendanceList) {
       const athleteId = athleteAttendance.registration.userId;
@@ -1109,10 +1209,19 @@ export function useSessionCompletion(sessionId: string | undefined) {
       }
     }
     return map;
-  })();
-  const presentCount = attendanceList.filter((a) => a.status === 'present').length;
-  const absentCount = attendanceList.filter((a) => a.status === 'absent').length;
-  const totalBadgesAwarded = attendanceList.reduce((sum, a) => sum + a.badges.length, 0);
+  }, [attendanceList, parentByAthleteId]);
+  const presentCount = useMemo(
+    () => attendanceList.filter((a) => a.status === 'present').length,
+    [attendanceList],
+  );
+  const absentCount = useMemo(
+    () => attendanceList.filter((a) => a.status === 'absent').length,
+    [attendanceList],
+  );
+  const totalBadgesAwarded = useMemo(
+    () => attendanceList.reduce((sum, a) => sum + a.badges.length, 0),
+    [attendanceList],
+  );
   const currentStepIndex = Math.max(0, activeSteps.indexOf(currentStep));
   return {
     // Data

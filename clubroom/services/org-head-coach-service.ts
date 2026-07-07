@@ -143,8 +143,6 @@ type ApiHeadCoachOversightResponse = HeadCoachOversightData & {
   requestId?: string;
 };
 
-const MISSING_HEAD_COACH_API_MESSAGE =
-  'Head coach task and standard mutations require backend authority. Missing API: /v1 club head-coach task and standard routes.';
 const MOCK_HEAD_COACH_API_MESSAGE =
   'Head coach oversight requires live /v1 API data. Local mock oversight data is disabled.';
 
@@ -198,8 +196,35 @@ class OrgHeadCoachService {
     title?: string;
     details?: string;
   }): Promise<Result<HeadCoachTask, ServiceError>> {
-    void params;
-    return err(validationError(MISSING_HEAD_COACH_API_MESSAGE));
+    void params.actorUserId;
+    if (api.useMock) {
+      return err(validationError(MOCK_HEAD_COACH_API_MESSAGE));
+    }
+    const headersResult = await resolveHeadCoachHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+    const result = await apiFetch<HeadCoachTask>(
+      `/v1/clubs/${encodeURIComponent(params.clubId)}/head-coach/tasks`,
+      {
+        method: 'POST',
+        headers: headersResult.data,
+        body: JSON.stringify({
+          coachId: params.coachId,
+          type: params.type,
+          ...(params.dueAt ? { dueAt: params.dueAt } : {}),
+          ...(params.athleteId ? { athleteId: params.athleteId } : {}),
+          ...(params.athleteName ? { athleteName: params.athleteName } : {}),
+          ...(params.bookingId ? { bookingId: params.bookingId } : {}),
+          ...(params.title ? { title: params.title } : {}),
+          ...(params.details ? { details: params.details } : {}),
+        }),
+      },
+    );
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(result.data);
   }
 
   async setTaskStatus(params: {
@@ -208,8 +233,28 @@ class OrgHeadCoachService {
     taskId: string;
     status: HeadCoachTaskStatus;
   }): Promise<Result<HeadCoachTask, ServiceError>> {
-    void params;
-    return err(validationError(MISSING_HEAD_COACH_API_MESSAGE));
+    void params.actorUserId;
+    if (api.useMock) {
+      return err(validationError(MOCK_HEAD_COACH_API_MESSAGE));
+    }
+    const headersResult = await resolveHeadCoachHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+    const result = await apiFetch<HeadCoachTask>(
+      `/v1/clubs/${encodeURIComponent(params.clubId)}/head-coach/tasks/${encodeURIComponent(params.taskId)}`,
+      {
+        method: 'PATCH',
+        headers: headersResult.data,
+        body: JSON.stringify({
+          status: params.status,
+        }),
+      },
+    );
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(result.data);
   }
 
   async createStandard(params: {
@@ -219,17 +264,62 @@ class OrgHeadCoachService {
     description?: string;
     category?: HeadCoachStandardCategory;
   }): Promise<Result<HeadCoachStandard, ServiceError>> {
-    void params;
-    return err(validationError(MISSING_HEAD_COACH_API_MESSAGE));
+    void params.actorUserId;
+    if (api.useMock) {
+      return err(validationError(MOCK_HEAD_COACH_API_MESSAGE));
+    }
+    const headersResult = await resolveHeadCoachHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+    const result = await apiFetch<HeadCoachStandard>(
+      `/v1/clubs/${encodeURIComponent(params.clubId)}/head-coach/standards`,
+      {
+        method: 'POST',
+        headers: headersResult.data,
+        body: JSON.stringify({
+          title: params.title,
+          ...(params.description ? { description: params.description } : {}),
+          ...(params.category ? { category: params.category } : {}),
+        }),
+      },
+    );
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(result.data);
   }
 
   async toggleStandard(params: {
     clubId: string;
     actorUserId: string;
     standardId: string;
+    active?: boolean;
   }): Promise<Result<HeadCoachStandard, ServiceError>> {
-    void params;
-    return err(validationError(MISSING_HEAD_COACH_API_MESSAGE));
+    void params.actorUserId;
+    if (api.useMock) {
+      return err(validationError(MOCK_HEAD_COACH_API_MESSAGE));
+    }
+    const headersResult = await resolveHeadCoachHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+    const result = await apiFetch<HeadCoachStandard>(
+      `/v1/clubs/${encodeURIComponent(params.clubId)}/head-coach/standards/${encodeURIComponent(
+        params.standardId,
+      )}`,
+      {
+        method: 'PATCH',
+        headers: headersResult.data,
+        body: JSON.stringify({
+          ...(typeof params.active === 'boolean' ? { active: params.active } : {}),
+        }),
+      },
+    );
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(result.data);
   }
 }
 

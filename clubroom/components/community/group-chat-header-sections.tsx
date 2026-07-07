@@ -23,7 +23,7 @@ type HeaderProps = {
   roleBreakdown: RoleBreakdown | null;
   onBack: () => void;
   onInfoOrMembersPress: () => void;
-  onLeavePress: () => void;
+  onLeavePress?: () => void;
 };
 
 const renderRoleBreakdown = (roleBreakdown: RoleBreakdown | null) => {
@@ -66,7 +66,7 @@ export const GroupChatHeader = function GroupChatHeader({
           {roleBreakdown ? ` \u00B7 ${renderRoleBreakdown(roleBreakdown)}` : ''}
         </ThemedText>
       </Clickable>
-      {group.type === 'SQUAD' ? (
+      {group.type === 'SQUAD' || !onLeavePress ? (
         <Clickable
           onPress={onInfoOrMembersPress}
           style={styles.moreButton}

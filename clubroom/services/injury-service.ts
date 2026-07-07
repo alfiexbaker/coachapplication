@@ -1118,6 +1118,10 @@ function getDaysUntilRecovery(injury: Injury): number | null {
  * Reset injuries to mock data (for development/testing)
  */
 async function resetToMockData(): Promise<void> {
+  if (!apiClient.isMockMode) {
+    logger.warn('Skipped injury mock reset outside mock mode');
+    return;
+  }
   await saveInjuries([...MOCK_INJURIES]);
   logger.info('injuries_reset_to_mock');
 }

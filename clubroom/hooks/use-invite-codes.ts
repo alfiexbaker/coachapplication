@@ -12,7 +12,7 @@ import type { InviteCode, School } from '@/constants/types';
 import { INVITE_CODE_SEEDS } from '@/constants/invite-code-seeds';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { apiClient } from '@/services/api-client';
-import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { err, ok, serviceError, unsupportedError, type ServiceError } from '@/types/result';
 
 const INVITE_CODES_STORAGE_KEY = 'clubroom.invite_codes';
 
@@ -53,6 +53,17 @@ export function useInviteCodes(): UseInviteCodesResult {
   const [maxUses, setMaxUses] = useState('20');
 
   const loadCodes = async () => {
+    if (!apiClient.isMockMode) {
+      return err(
+        unsupportedError(
+          'Global admin invite codes are mock-only. Use club-scoped invite codes from club settings in API mode.',
+          {
+            route: '/v1/clubs/:clubId/invite-codes',
+          },
+        ),
+      );
+    }
+
     try {
       const storedCodes = await apiClient.get<InviteCode[]>(
         INVITE_CODES_STORAGE_KEY,
@@ -77,6 +88,10 @@ export function useInviteCodes(): UseInviteCodesResult {
 
   const generateCode = () => {
     if (!selectedSchool) return;
+    if (!apiClient.isMockMode) {
+      showToast('Use club settings to create live invite codes.', 'error');
+      return;
+    }
 
     const code = newCodeText.trim().toUpperCase() || generateRandomCode();
     const newCode: InviteCode = {
@@ -102,6 +117,11 @@ export function useInviteCodes(): UseInviteCodesResult {
   };
 
   const deactivateCode = (codeId: string) => {
+    if (!apiClient.isMockMode) {
+      showToast('Use club settings to manage live invite codes.', 'error');
+      return;
+    }
+
     const next = codes.map((code) =>
       code.id === codeId
         ? {

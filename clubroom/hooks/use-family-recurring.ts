@@ -7,8 +7,9 @@ import {
   familyRecurringService,
   type FamilyRecurringPlanSummary,
 } from '@/services/family-recurring-service';
+import { bookingService } from '@/services/booking';
 import { recurringBookingService } from '@/services/recurring-booking-service';
-import { ok } from '@/types/result';
+import { err, ok, storageError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
 
 export function useFamilyRecurring() {
@@ -64,6 +65,20 @@ export function useFamilyRecurring() {
       'Recurring plan cancelled. Future recurring sessions have been removed.',
     );
 
+  const handleSkipNext = async (recurringId: string, bookingId: string, reason?: string) =>
+    runAndRefresh(async () => {
+      const skipped = await bookingService.cancel(
+        bookingId,
+        reason || 'Skipped from recurring plan',
+        'parent',
+        { note: `Skipped from recurring plan ${recurringId}` },
+      );
+      if (!skipped) {
+        return err(storageError('Failed to skip the next recurring session.'));
+      }
+      return ok(skipped);
+    }, 'Next recurring session skipped.');
+
   const handleCreatePlan = () => {
     router.push(Routes.BOOKINGS_SUBSCRIBE);
   };
@@ -79,6 +94,7 @@ export function useFamilyRecurring() {
     handlePause,
     handleResume,
     handleCancel,
+    handleSkipNext,
     handleCreatePlan,
   };
 }

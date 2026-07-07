@@ -11,7 +11,7 @@ import { createLogger } from '@/utils/logger';
 import type { BadgeAward } from '@/constants/types';
 import type { Session } from '@/constants/app-types';
 import { BADGE_REASONS } from '@/components/badges/badge-award-modal';
-import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { err, ok, serviceError, unsupportedError, type ServiceError } from '@/types/result';
 
 const logger = createLogger('useDevBadges');
 const EMPTY_SESSIONS: Session[] = [];
@@ -114,6 +114,17 @@ export function useDevBadges() {
   const loadSessions = async () => {
     if (!currentUser?.id) {
       return ok<DevBadgesData>({ sessions: [], coachAwards: [], athleteNameById: {} });
+    }
+
+    if (!apiClient.isMockMode) {
+      return err(
+        unsupportedError(
+          'Development badge recognition needs backend session badge and badge-award routes before it can open in API mode.',
+          {
+            routes: ['/v1/sessions/:sessionId/badges', '/v1/athletes/:athleteId/badge-awards'],
+          },
+        ),
+      );
     }
 
     try {

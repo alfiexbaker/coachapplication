@@ -241,7 +241,7 @@ export default function ClubSettingsScreen() {
               <ThemedText
                 style={[Typography.small, { color: colors.muted, marginTop: Spacing.micro }]}
               >
-                These actions are irreversible
+                Archive actions remove records from active views and keep audit history
               </ThemedText>
               <Clickable
                 style={[styles.dangerBtn, { borderColor: colors.error }]}
@@ -250,7 +250,7 @@ export default function ClubSettingsScreen() {
                 <Row align="center" justify="center" gap="sm">
                   <Ionicons name="trash-outline" size={18} color={colors.error} />
                   <ThemedText style={{ color: colors.error, fontWeight: '600' }}>
-                    Delete Club
+                    Archive Club
                   </ThemedText>
                 </Row>
               </Clickable>

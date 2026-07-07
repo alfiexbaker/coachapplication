@@ -23,6 +23,7 @@ import type {
   RefundCalculation,
   RefundTier,
 } from '@/constants/types';
+import { api } from '@/constants/config';
 import { createLogger } from '@/utils/logger';
 import {
   type Result,
@@ -31,6 +32,7 @@ import {
   err,
   validationError,
   storageError,
+  unsupportedError,
 } from '@/types/result';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -223,31 +225,32 @@ class SchedulingRulesService {
 
   private async getAuthoritativeRulesResponse(
     coachId: string,
-  ): Promise<ApiCoachSchedulingRulesResponse | null> {
-    if (!(await isSignedInCoachSelf(coachId))) {
-      return null;
+  ): Promise<Result<ApiCoachSchedulingRulesResponse | null, ServiceError>> {
+    if (api.useMock) {
+      return ok(null);
     }
+    const isCoachSelf = await isSignedInCoachSelf(coachId);
+    const path = isCoachSelf
+      ? '/v1/coaches/me/scheduling-rules'
+      : `/v1/coaches/${encodeURIComponent(coachId)}/scheduling-rules`;
 
-    const result = await apiFetch<ApiCoachSchedulingRulesResponse>('/v1/coaches/me/scheduling-rules', {
+    const result = await apiFetch<ApiCoachSchedulingRulesResponse>(path, {
       method: 'GET',
     });
     if (result.success) {
       this.rulesCache.set(coachId, result.data.rules);
       this.policiesCache = result.data.cancellationPolicy ? [result.data.cancellationPolicy] : [];
-      return result.data;
+      return ok(result.data);
     }
 
     logger.error('Failed to load authoritative coach scheduling rules', {
       coachId,
       error: result.error.message,
     });
-    return null;
+    return err(result.error);
   }
 
-  private buildTierDescription(
-    tier: RefundTier,
-    nextLowerTierHours: number | null,
-  ): string {
+  private buildTierDescription(tier: RefundTier, nextLowerTierHours: number | null): string {
     if (tier.hoursBeforeSession === 0) {
       if (nextLowerTierHours !== null && nextLowerTierHours > 0) {
         return `${tier.refundPercentage}% refund if cancelled less than ${nextLowerTierHours} hours before`;
@@ -268,7 +271,10 @@ class SchedulingRulesService {
 
     for (const tier of source) {
       const hoursBeforeSession = Math.max(0, Math.floor(tier.hoursBeforeSession));
-      const refundPercentage = Math.max(0, Math.min(100, Math.round(tier.refundPercentage / 5) * 5));
+      const refundPercentage = Math.max(
+        0,
+        Math.min(100, Math.round(tier.refundPercentage / 5) * 5),
+      );
 
       deduped.set(hoursBeforeSession, {
         hoursBeforeSession,
@@ -285,16 +291,17 @@ class SchedulingRulesService {
       });
     }
 
-    const sorted = Array.from(deduped.values()).sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
+    const sorted = Array.from(deduped.values()).sort(
+      (a, b) => b.hoursBeforeSession - a.hoursBeforeSession,
+    );
 
     return sorted.map((tier, index) => {
       const nextLowerTier = sorted[index + 1];
       return {
         ...tier,
-        description: tier.description?.trim() || this.buildTierDescription(
-          tier,
-          nextLowerTier ? nextLowerTier.hoursBeforeSession : null,
-        ),
+        description:
+          tier.description?.trim() ||
+          this.buildTierDescription(tier, nextLowerTier ? nextLowerTier.hoursBeforeSession : null),
       };
     });
   }
@@ -324,15 +331,24 @@ class SchedulingRulesService {
   /**
    * Get scheduling rules for a coach
    */
-  private async getCoachRulesValue(coachId: string): Promise<CoachSchedulingRules> {
+  private async getCoachRulesValue(
+    coachId: string,
+  ): Promise<Result<CoachSchedulingRules, ServiceError>> {
     const authoritative = await this.getAuthoritativeRulesResponse(coachId);
-    if (authoritative) {
-      return authoritative.rules;
+    if (!authoritative.success) {
+      return err(authoritative.error);
+    }
+    if (authoritative.data) {
+      return ok(authoritative.data.rules);
+    }
+
+    if (!api.useMock) {
+      return ok(this.getDefaultRules(coachId));
     }
 
     // Check cache first
     if (this.rulesCache.has(coachId)) {
-      return this.rulesCache.get(coachId)!;
+      return ok(this.rulesCache.get(coachId)!);
     }
 
     const allRules = await this.loadAllRules();
@@ -340,11 +356,11 @@ class SchedulingRulesService {
 
     if (coachRules) {
       this.rulesCache.set(coachId, coachRules);
-      return coachRules;
+      return ok(coachRules);
     }
 
     // Return default rules if none exist
-    return this.getDefaultRules(coachId);
+    return ok(this.getDefaultRules(coachId));
   }
 
   /**
@@ -352,7 +368,7 @@ class SchedulingRulesService {
    */
   async getCoachRules(coachId: string): Promise<Result<CoachSchedulingRules, ServiceError>> {
     try {
-      return ok(await this.getCoachRulesValue(coachId));
+      return await this.getCoachRulesValue(coachId);
     } catch (error) {
       logger.error('Failed to get scheduling rules', { coachId, error });
       return err(storageError('Failed to load scheduling rules'));
@@ -380,17 +396,20 @@ class SchedulingRulesService {
     updates: Partial<CoachSchedulingRules>,
   ): Promise<Result<CoachSchedulingRules, ServiceError>> {
     try {
-      if (await isSignedInCoachSelf(coachId)) {
-        const result = await apiFetch<ApiCoachSchedulingRulesResponse>('/v1/coaches/me/scheduling-rules', {
-          method: 'PATCH',
-          body: JSON.stringify({
-            minimumAdvanceBookingHours: updates.minimumAdvanceBookingHours,
-            maxAdvanceBookingDays: updates.maxAdvanceBookingDays,
-            bufferMinutesDefault: updates.bufferMinutesDefault,
-            maxConcurrentDefault: updates.maxConcurrentDefault,
-            allowSameDayBookings: updates.allowSameDayBookings,
-          }),
-        });
+      if (!api.useMock && (await isSignedInCoachSelf(coachId))) {
+        const result = await apiFetch<ApiCoachSchedulingRulesResponse>(
+          '/v1/coaches/me/scheduling-rules',
+          {
+            method: 'PATCH',
+            body: JSON.stringify({
+              minimumAdvanceBookingHours: updates.minimumAdvanceBookingHours,
+              maxAdvanceBookingDays: updates.maxAdvanceBookingDays,
+              bufferMinutesDefault: updates.bufferMinutesDefault,
+              maxConcurrentDefault: updates.maxConcurrentDefault,
+              allowSameDayBookings: updates.allowSameDayBookings,
+            }),
+          },
+        );
         if (result.success) {
           this.rulesCache.set(coachId, result.data.rules);
           if (result.data.cancellationPolicy) {
@@ -399,6 +418,14 @@ class SchedulingRulesService {
           return ok(result.data.rules);
         }
         return err(result.error);
+      }
+
+      if (!api.useMock) {
+        return err(
+          unsupportedError(
+            'Scheduling rules can only be changed by the signed-in coach in API mode.',
+          ),
+        );
       }
 
       const allRules = await this.loadAllRules();
@@ -457,7 +484,11 @@ class SchedulingRulesService {
     proposedTime: Date,
   ): Promise<Result<BookingValidation, ServiceError>> {
     try {
-      const rules = await this.getCoachRulesValue(coachId);
+      const rulesResult = await this.getCoachRulesValue(coachId);
+      if (!rulesResult.success) {
+        return err(rulesResult.error);
+      }
+      const rules = rulesResult.data;
       const now = new Date();
 
       // Calculate hours until proposed session
@@ -576,6 +607,9 @@ class SchedulingRulesService {
    */
   async loadPolicies(): Promise<Result<CancellationPolicy[], ServiceError>> {
     try {
+      if (!api.useMock) {
+        return ok([]);
+      }
       return ok(await this.loadPoliciesValue());
     } catch (error) {
       logger.error('Failed to load cancellation policies', error);
@@ -599,8 +633,15 @@ class SchedulingRulesService {
   ): Promise<Result<CancellationPolicy | null, ServiceError>> {
     try {
       const authoritative = await this.getAuthoritativeRulesResponse(coachId);
-      if (authoritative) {
-        return ok(authoritative.cancellationPolicy);
+      if (!authoritative.success) {
+        return err(authoritative.error);
+      }
+      if (authoritative.data) {
+        return ok(authoritative.data.cancellationPolicy);
+      }
+
+      if (!api.useMock) {
+        return ok(null);
       }
 
       const policies = await this.loadPoliciesValue();
@@ -646,7 +687,7 @@ class SchedulingRulesService {
         };
       }
 
-      if (await isSignedInCoachSelf(coachId)) {
+      if (!api.useMock && (await isSignedInCoachSelf(coachId))) {
         const current = await this.getCancellationPolicy(coachId);
         if (!current.success) {
           return err(current.error);
@@ -661,19 +702,22 @@ class SchedulingRulesService {
           updatedAt: now,
         };
 
-        const result = await apiFetch<ApiCoachSchedulingRulesResponse>('/v1/coaches/me/scheduling-rules', {
-          method: 'PATCH',
-          body: JSON.stringify({
-            cancellationPolicy: {
-              name: policyPayload.name,
-              description: policyPayload.description,
-              tiers: policyPayload.tiers,
-              minimumNoticeHours: policyPayload.minimumNoticeHours,
-              allowCancellations: policyPayload.allowCancellations,
-              isDefault: policyPayload.isDefault,
-            },
-          }),
-        });
+        const result = await apiFetch<ApiCoachSchedulingRulesResponse>(
+          '/v1/coaches/me/scheduling-rules',
+          {
+            method: 'PATCH',
+            body: JSON.stringify({
+              cancellationPolicy: {
+                name: policyPayload.name,
+                description: policyPayload.description,
+                tiers: policyPayload.tiers,
+                minimumNoticeHours: policyPayload.minimumNoticeHours,
+                allowCancellations: policyPayload.allowCancellations,
+                isDefault: policyPayload.isDefault,
+              },
+            }),
+          },
+        );
         if (!result.success) {
           return err(result.error);
         }
@@ -681,6 +725,14 @@ class SchedulingRulesService {
         this.rulesCache.set(coachId, result.data.rules);
         this.policiesCache = [savedPolicy];
         return ok(savedPolicy);
+      }
+
+      if (!api.useMock) {
+        return err(
+          unsupportedError(
+            'Cancellation policy can only be changed by the signed-in coach in API mode.',
+          ),
+        );
       }
 
       const policies = await this.loadPoliciesValue();

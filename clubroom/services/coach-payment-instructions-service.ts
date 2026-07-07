@@ -1,6 +1,14 @@
-import { apiClient } from '@/services/api-client';
+import { apiClient, apiFetch } from '@/services/api-client';
+import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { ok, err, serviceError, validationError, type Result, type ServiceError } from '@/types/result';
+import {
+  ok,
+  err,
+  serviceError,
+  validationError,
+  type Result,
+  type ServiceError,
+} from '@/types/result';
 import type { Invoice } from '@/constants/types';
 
 export interface CoachPaymentInstructions {
@@ -39,10 +47,14 @@ interface BatchReminderMessageParams {
 }
 
 type StoredInstructionsMap = Record<string, CoachPaymentInstructions>;
+interface CoachPaymentInstructionsResponse {
+  instructions: CoachPaymentInstructions;
+}
 
 const MAX_PAYEE_NAME = 80;
 const MAX_BANK_DETAILS = 600;
 const MAX_PAYMENT_NOTES = 400;
+const USE_MOCK = api.useMock;
 
 function formatGBP(amount: number): string {
   return `£${amount.toFixed(2)}`;
@@ -97,7 +109,9 @@ function getDefaultInstructions(coachId: string): CoachPaymentInstructions {
   };
 }
 
-function sanitizeInstructions(input: CoachPaymentInstructions): Result<CoachPaymentInstructions, ServiceError> {
+function sanitizeInstructions(
+  input: CoachPaymentInstructions,
+): Result<CoachPaymentInstructions, ServiceError> {
   const sanitized: CoachPaymentInstructions = {
     coachId: input.coachId.trim(),
     payeeName: trimAndLimit(input.payeeName || '', MAX_PAYEE_NAME),
@@ -111,7 +125,9 @@ function sanitizeInstructions(input: CoachPaymentInstructions): Result<CoachPaym
   }
 
   if (!sanitized.bankTransferDetails && !sanitized.paymentNotes) {
-    return err(validationError('Add bank details or payment notes so families know how to pay you'));
+    return err(
+      validationError('Add bank details or payment notes so families know how to pay you'),
+    );
   }
 
   return ok(sanitized);
@@ -126,7 +142,20 @@ export const coachPaymentInstructionsService = {
     }
 
     try {
-      const map = await apiClient.get<StoredInstructionsMap>(STORAGE_KEYS.COACH_PAYMENT_INSTRUCTIONS, {});
+      if (!USE_MOCK) {
+        const result = await apiFetch<CoachPaymentInstructionsResponse>(
+          '/v1/coaches/me/payment-instructions',
+        );
+        if (!result.success) {
+          return err(result.error);
+        }
+        return ok(result.data.instructions);
+      }
+
+      const map = await apiClient.get<StoredInstructionsMap>(
+        STORAGE_KEYS.COACH_PAYMENT_INSTRUCTIONS,
+        {},
+      );
       return ok(map[coachId] ?? getDefaultInstructions(coachId));
     } catch (error) {
       return err(serviceError('STORAGE', 'Failed to load payment instructions', error));
@@ -141,8 +170,29 @@ export const coachPaymentInstructionsService = {
       return sanitized;
     }
 
+    if (!USE_MOCK) {
+      const result = await apiFetch<CoachPaymentInstructionsResponse>(
+        '/v1/coaches/me/payment-instructions',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            payeeName: sanitized.data.payeeName,
+            bankTransferDetails: sanitized.data.bankTransferDetails,
+            paymentNotes: sanitized.data.paymentNotes,
+          }),
+        },
+      );
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(result.data.instructions);
+    }
+
     try {
-      const map = await apiClient.get<StoredInstructionsMap>(STORAGE_KEYS.COACH_PAYMENT_INSTRUCTIONS, {});
+      const map = await apiClient.get<StoredInstructionsMap>(
+        STORAGE_KEYS.COACH_PAYMENT_INSTRUCTIONS,
+        {},
+      );
       const next: StoredInstructionsMap = {
         ...map,
         [sanitized.data.coachId]: sanitized.data,
@@ -182,16 +232,14 @@ export const coachPaymentInstructionsService = {
     }
 
     lines.push('');
-    lines.push(`Please reply once payment is sent so ${coachLabel} can mark it as paid in the reconciler.`);
+    lines.push(
+      `Please reply once payment is sent so ${coachLabel} can mark it as paid in the reconciler.`,
+    );
 
     return lines.join('\n');
   },
 
-  buildReminderMessage({
-    item,
-    coachName,
-    instructions,
-  }: ReminderMessageParams): string {
+  buildReminderMessage({ item, coachName, instructions }: ReminderMessageParams): string {
     const dueDate = formatDate(item.invoice.dueDate);
     const coachLabel = coachName?.trim() ? coachName.trim() : 'Coach';
     const lines = [
@@ -244,5 +292,9 @@ export const coachPaymentInstructionsService = {
       bankTransferDetails: MAX_BANK_DETAILS,
       paymentNotes: MAX_PAYMENT_NOTES,
     };
+  },
+
+  canSavePaymentInstructions() {
+    return true;
   },
 };

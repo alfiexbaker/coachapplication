@@ -31,12 +31,19 @@ import {
   resolveFamilyAuthorityContext,
   type ApiFamilyAthlete,
 } from '@/services/family/family-api-support';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+  toApiAthleteId,
+} from '@/services/api-auth-context';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('ChildService');
 
 const USE_MOCK = api.useMock;
+const API_READ_CACHE_TTL_MS = 30_000;
 
 interface ApiFamilyResponse {
   athletes: ApiFamilyAthlete[];
@@ -53,9 +60,42 @@ export interface ChildSquadMembership {
   joinedAt: string;
 }
 
+interface GetChildrenOptions {
+  includeTrustData?: boolean;
+}
+
 interface ApiAthleteSquadMembershipsResponse {
   athleteId: string;
   memberships: ChildSquadMembership[];
+}
+
+interface CachedSquadMemberships {
+  data: ChildSquadMembership[];
+  expiresAt: number;
+}
+
+const squadMembershipCache = new Map<string, CachedSquadMemberships>();
+const pendingSquadMembershipReads = new Map<
+  string,
+  Promise<Result<ChildSquadMembership[], ServiceError>>
+>();
+
+function cloneSquadMemberships(memberships: ChildSquadMembership[]): ChildSquadMembership[] {
+  return memberships.map((membership) => ({ ...membership }));
+}
+
+function cloneSquadMembershipResult(
+  result: Result<ChildSquadMembership[], ServiceError>,
+): Result<ChildSquadMembership[], ServiceError> {
+  return result.success ? ok(cloneSquadMemberships(result.data)) : result;
+}
+
+function squadMembershipCacheKey(params: {
+  userId: string;
+  actingRole: string;
+  athleteId: string;
+}): string {
+  return `${params.userId}:${params.actingRole}:${params.athleteId}`;
 }
 
 // ============================================================================
@@ -754,8 +794,6 @@ async function removeChildTrustData(childId: string): Promise<void> {
         error: removeResult.error.message,
       });
     }
-
-    await apiClient.remove(`${STORAGE_KEYS.AUDIT_LOG_PREFIX}${childId}`).catch(() => {});
   } catch (error) {
     logger.warn('Failed to remove child trust data', { childId, error });
   }
@@ -808,20 +846,25 @@ export const childService = {
   /**
    * Get all children for a parent
    */
-  async getChildren(parentId: string): Promise<ChildProfile[]> {
+  async getChildren(parentId: string, options: GetChildrenOptions = {}): Promise<ChildProfile[]> {
+    const includeTrustData = options.includeTrustData ?? true;
+
     if (USE_MOCK) {
       childrenCache = await loadFromStorage();
       const matchingChildren = childrenCache.filter((c) => c.parentId === parentId);
+      if (!includeTrustData) {
+        return matchingChildren.map((child) => sanitizeChildProfile(child));
+      }
       return Promise.all(matchingChildren.map((child) => hydrateChildTrustData(child)));
     }
 
     const contextResult = await resolveFamilyAuthorityContext('Sign in to view child profiles.');
     if (!contextResult.success) {
-      logger.error('Failed to resolve family authority context', {
+      logger.warn('Failed to resolve family authority context', {
         parentId,
         error: contextResult.error.message,
       });
-      return [];
+      throw new Error(contextResult.error.message);
     }
 
     const familyResult = await apiFetch<ApiFamilyResponse>(
@@ -831,16 +874,19 @@ export const childService = {
       },
     );
     if (!familyResult.success) {
-      logger.error('Failed to load children via API', {
+      logger.warn('Failed to load children via API', {
         parentId,
         error: familyResult.error.message,
       });
-      return [];
+      throw new Error(familyResult.error.message);
     }
 
     const children = familyResult.data.athletes.map((athlete) =>
       mapApiFamilyAthleteToChildProfile(athlete, contextResult.data.parentId),
     );
+    if (!includeTrustData) {
+      return children.map((child) => sanitizeChildProfile(child));
+    }
     return Promise.all(children.map((child) => hydrateChildTrustData(child)));
   },
 
@@ -854,15 +900,37 @@ export const childService = {
       return child ? hydrateChildTrustData(child) : null;
     }
 
-    const athleteResult = await apiFetch<ApiFamilyAthlete>(`/v1/athletes/${childId}`, {
+    const currentUserResult = await resolveSignedInApiUser('Sign in to view athlete profile.');
+    if (!currentUserResult.success) {
+      logger.warn('Missing user context for athlete profile read', {
+        childId,
+        error: currentUserResult.error.message,
+      });
+      throw new Error(currentUserResult.error.message);
+    }
+
+    const apiAthleteId = toApiAthleteId(childId);
+    const actingRole = deriveApiActingRole(currentUserResult.data);
+    const athleteResult = await apiFetch<ApiFamilyAthlete>(`/v1/athletes/${apiAthleteId}`, {
       method: 'GET',
+      headers: buildApiAuthHeaders({
+        actingRole,
+        coachAthleteIds: actingRole === 'coach' ? [apiAthleteId] : undefined,
+        guardianAthleteIds: actingRole === 'parent' ? [apiAthleteId] : undefined,
+        coachVerified: actingRole === 'coach' && currentUserResult.data.isVerified,
+      }),
     });
     if (!athleteResult.success) {
-      logger.error('Failed to load child via athlete detail route', {
-        childId,
-        error: athleteResult.error.message,
-      });
-      return null;
+      const details = { childId, error: athleteResult.error.message };
+      if (athleteResult.error.code === 'NETWORK') {
+        logger.warn('Failed to load child via athlete detail route', details);
+      } else {
+        logger.error('Failed to load child via athlete detail route', details);
+      }
+      if (athleteResult.error.code === 'NOT_FOUND') {
+        return null;
+      }
+      throw new Error(athleteResult.error.message);
     }
 
     return hydrateChildTrustData(
@@ -877,16 +945,48 @@ export const childService = {
       return ok([]);
     }
 
-    const result = await apiFetch<ApiAthleteSquadMembershipsResponse>(
-      `/v1/athletes/${encodeURIComponent(athleteId)}/squad-memberships`,
-      {
-        method: 'GET',
-      },
-    );
-    if (!result.success) {
-      return err(result.error);
+    const currentUserResult = await resolveSignedInApiUser('Sign in to view squad memberships.');
+    if (!currentUserResult.success) {
+      return currentUserResult;
     }
-    return ok(result.data.memberships);
+    const cacheKey = squadMembershipCacheKey({
+      userId: currentUserResult.data.id,
+      actingRole: deriveApiActingRole(currentUserResult.data),
+      athleteId,
+    });
+
+    const cached = squadMembershipCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return ok(cloneSquadMemberships(cached.data));
+    }
+
+    const pending = pendingSquadMembershipReads.get(cacheKey);
+    if (pending) {
+      return cloneSquadMembershipResult(await pending);
+    }
+
+    const readPromise = apiFetch<ApiAthleteSquadMembershipsResponse>(
+      `/v1/athletes/${encodeURIComponent(athleteId)}/squad-memberships`,
+      { method: 'GET' },
+    ).then((result) => {
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(result.data.memberships);
+    });
+
+    pendingSquadMembershipReads.set(cacheKey, readPromise);
+    const result = await readPromise.finally(() => {
+      pendingSquadMembershipReads.delete(cacheKey);
+    });
+    if (!result.success) {
+      return result;
+    }
+    squadMembershipCache.set(cacheKey, {
+      data: cloneSquadMemberships(result.data),
+      expiresAt: Date.now() + API_READ_CACHE_TTL_MS,
+    });
+    return ok(cloneSquadMemberships(result.data));
   },
 
   /**
@@ -1066,22 +1166,24 @@ export const childService = {
   },
 
   /**
-   * Delete a child profile
+   * Remove a child profile from active family views.
+   *
+   * API mode uses the audited soft-remove route. The legacy name stays for callers.
    */
   async deleteChild(childId: string): Promise<void> {
     if (USE_MOCK) {
       childrenCache = await loadFromStorage();
-      const deletedChild = childrenCache.find((c) => c.id === childId);
+      const removedChild = childrenCache.find((c) => c.id === childId);
       childrenCache = childrenCache.filter((c) => c.id !== childId);
       await Promise.all([
         saveToStorage(childrenCache),
         removeGeneratedChildUserRecord(childId),
         removeChildTrustData(childId),
       ]);
-      if (deletedChild) {
+      if (removedChild) {
         emitTyped(ServiceEvents.CHILD_PROFILES_UPDATED, {
-          parentId: deletedChild.parentId,
-          action: 'deleted',
+          parentId: removedChild.parentId,
+          action: 'removed',
           childId,
         });
       }
@@ -1103,7 +1205,7 @@ export const childService = {
     await removeChildTrustData(childId);
     emitTyped(ServiceEvents.CHILD_PROFILES_UPDATED, {
       parentId: existingChild.parentId,
-      action: 'deleted',
+      action: 'removed',
       childId,
     });
   },

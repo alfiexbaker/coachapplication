@@ -468,7 +468,7 @@ export const STORAGE_KEYS = {
   /** Prefix for per-form draft keys (suffix with formId) */
   FORM_DRAFT_PREFIX: 'clubroom.form_draft.',
 
-  /** Seen/read status tracking for messages and entities */
+  /** Device-local walkthrough/UI dismissal state; message/notification read authority is backend-owned */
   SEEN_STATUSES: 'clubroom.seen_statuses',
 
   /** Blocked users list */

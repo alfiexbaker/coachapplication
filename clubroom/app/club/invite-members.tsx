@@ -6,6 +6,7 @@
  */
 
 import { View, StyleSheet, ScrollView, ViewStyle } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -49,14 +50,20 @@ export default function InviteMembersScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        edges={['top', 'bottom']}
+      >
         <LoadingState variant="list" />
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
       <PageHeader
         title="Invite Members"
         showBack
@@ -160,7 +167,7 @@ export default function InviteMembersScreen() {
           </Clickable>
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -12,7 +12,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { clubFeedService } from '@/services/social-feed-service';
 import { squadService } from '@/services/squad-service';
 import { eventService } from '@/services/event';
-import type { ClubPostType, FeedType, ClubMembership, ClubSquad, ClubEvent } from '@/constants/types';
+import type { ClubPostType, FeedType, ClubSquad, ClubEvent } from '@/constants/types';
+import { canCreateClubPost } from '@/utils/club-ui-permissions';
 
 import { runAsyncFinally } from '@/utils/async-control';
 
@@ -56,8 +57,6 @@ export const POST_TYPES: PostTypeOption[] = [
   },
 ];
 
-const CLUB_POSTING_ROLES: ClubMembership['role'][] = ['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH'];
-
 export function useCreateClubPost(clubId: string | undefined) {
   const { currentUser } = useAuth();
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
@@ -69,15 +68,7 @@ export function useCreateClubPost(clubId: string | undefined) {
     if (!currentUser?.id || !resolvedClubId) return undefined;
     return clubFeedService.getMembership(currentUser.id, resolvedClubId);
   })();
-  const canPostAsClub = Boolean(
-    isCoach
-      && membership
-      && (membership.canPostAsClub === true || CLUB_POSTING_ROLES.includes(membership.role)),
-  );
-  const personalAudienceEstimate = Math.max(
-    0,
-    Math.round((club?.memberCount ?? 0) * 0.35),
-  );
+  const canPostAsClub = canCreateClubPost(membership);
 
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -257,9 +248,15 @@ export function useCreateClubPost(clubId: string | undefined) {
     }
   };
 
+  const canPublishSelectedPost =
+    (postAs === 'club' && canPostAsClub) ||
+    (postAs === 'self' && isCoach && feedType !== 'CLUB') ||
+    (postAs === 'self' && feedType === 'CLUB' && canPostAsClub);
+
   const handlePost = async () => {
     if (!body.trim() && !imageUri && !videoUri) return;
     if (!currentUser || !resolvedClubId || !membership) return;
+    if (!canPublishSelectedPost) return;
     if (feedType === 'CLUB' && audienceType === 'squad' && !selectedSquadId) return;
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -340,6 +337,7 @@ export function useCreateClubPost(clubId: string | undefined) {
     (body.trim().length > 0 || imageUri !== null || videoUri !== null) &&
     !!resolvedClubId &&
     !!membership &&
+    canPublishSelectedPost &&
     hasAudienceTarget &&
     !isPosting;
 

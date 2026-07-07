@@ -79,10 +79,31 @@ function buildActivitySignals(
   });
 
   bookings.forEach((booking) => {
-    upsertSignal(signalKeyFromBooking(booking), toTimestamp(booking.scheduledAt ?? booking.createdAt));
+    upsertSignal(
+      signalKeyFromBooking(booking),
+      toTimestamp(booking.scheduledAt ?? booking.createdAt),
+    );
   });
 
   return signals;
+}
+
+async function withProgressFallback<T>(
+  athleteId: string,
+  resource: string,
+  loader: Promise<T>,
+  fallback: T,
+): Promise<T> {
+  try {
+    return await loader;
+  } catch (error) {
+    logger.warn('Progress subresource unavailable', {
+      athleteId,
+      resource,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return fallback;
+  }
 }
 
 // ============================================================================
@@ -130,16 +151,52 @@ async function getAthleteProgress(
   athleteId: string,
   viewerRole: 'coach' | 'parent' | 'athlete' = 'parent',
 ): Promise<AthleteProgress> {
+  const emptyBadgeProgress = {
+    currentLevel: { level: 1, name: 'Starting Out', pointsRequired: 0 },
+    nextLevel: null,
+    progressPercent: 0,
+    pointsToNext: 0,
+    totalPoints: 0,
+  };
+
   // Fetch all data in parallel
-  const [skillLevels, feedback, goals, badgeProgress, badges, allSessions, allBookings] = await Promise.all([
-    progressSkillsService.getAthleteSkillLevels(athleteId),
-    progressFeedbackService.getFeedbackForAthlete(athleteId, viewerRole),
-    progressGoalsService.getGoalsForAthlete(athleteId),
-    badgeService.getProgressToNextLevel(athleteId),
-    badgeService.listAwardsForAthlete(athleteId),
-    apiClient.get<Session[]>(STORAGE_KEYS.COACH_SESSIONS, []),
-    bookingService.list(),
-  ]);
+  const [skillLevels, feedback, goals, badgeProgress, badges, allSessions, allBookings] =
+    await Promise.all([
+      withProgressFallback(
+        athleteId,
+        'skills',
+        progressSkillsService.getAthleteSkillLevels(athleteId),
+        null,
+      ),
+      withProgressFallback<SessionFeedback[]>(
+        athleteId,
+        'feedback',
+        progressFeedbackService.getFeedbackForAthlete(athleteId, viewerRole),
+        [],
+      ),
+      withProgressFallback(
+        athleteId,
+        'goals',
+        progressGoalsService.getGoalsForAthlete(athleteId),
+        { active: [], completed: [] },
+      ),
+      withProgressFallback(
+        athleteId,
+        'badge-progress',
+        badgeService.getProgressToNextLevel(athleteId),
+        emptyBadgeProgress,
+      ),
+      withProgressFallback(athleteId, 'badges', badgeService.listAwardsForAthlete(athleteId), []),
+      apiClient.isMockMode
+        ? withProgressFallback(
+            athleteId,
+            'sessions',
+            apiClient.get<Session[]>(STORAGE_KEYS.COACH_SESSIONS, []),
+            [],
+          )
+        : Promise.resolve([]),
+      withProgressFallback(athleteId, 'bookings', bookingService.list(), []),
+    ]);
 
   // Convert skills to array
   const skills = skillLevels ? Object.values(skillLevels.skills) : [];
@@ -162,7 +219,11 @@ async function getAthleteProgress(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
-  const activitySignals = buildActivitySignals(sessionsForAthlete, uniqueFeedback, completedBookings);
+  const activitySignals = buildActivitySignals(
+    sessionsForAthlete,
+    uniqueFeedback,
+    completedBookings,
+  );
 
   // Calculate metrics from sessions + feedback + completed bookings.
   const totalSessions = activitySignals.size;
@@ -186,7 +247,9 @@ async function getAthleteProgress(
       : 0;
 
   const attendanceRecords = sessionsForAthlete.filter((session) => Boolean(session.attendance));
-  const attendedCount = attendanceRecords.filter((session) => session.attendance === 'ATTENDED').length;
+  const attendedCount = attendanceRecords.filter(
+    (session) => session.attendance === 'ATTENDED',
+  ).length;
   const attendanceRate =
     attendanceRecords.length > 0
       ? Math.round((attendedCount / attendanceRecords.length) * 100)

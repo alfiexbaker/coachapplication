@@ -168,6 +168,8 @@ function hasOnboardingProgress(state: OnboardingState): boolean {
 function sanitizeHydratedState(state: OnboardingState): OnboardingState {
   return {
     ...state,
+    password: '',
+    confirmPassword: '',
     isSubmitting: false,
     error: null,
   };

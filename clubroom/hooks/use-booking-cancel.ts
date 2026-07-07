@@ -3,7 +3,7 @@
  * Manages flow state, booking data loading, refund calculation, and cancellation handlers.
  */
 
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -114,7 +114,7 @@ export function useBookingCancel(id: string, mode?: string) {
     return true;
   })();
 
-  const loadBookingDetails = async () => {
+  const loadBookingDetails = useCallback(async () => {
     if (!id) {
       return err(serviceError('UNKNOWN', 'Missing booking id for cancellation.'));
     }
@@ -163,7 +163,7 @@ export function useBookingCancel(id: string, mode?: string) {
         serviceError('UNKNOWN', 'Failed to load booking cancellation details.', loadError),
       );
     }
-  };
+  }, [id]);
 
   const { data, status, error, refreshing, onRefresh, retry, colors } =
     useScreen<CancelLoadData | null>({

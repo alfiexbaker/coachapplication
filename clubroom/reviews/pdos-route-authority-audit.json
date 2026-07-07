@@ -1,0 +1,4729 @@
+{
+  "generatedAt": "2026-07-03T22:04:20.126Z",
+  "totals": {
+    "routes": 152,
+    "needsDecision": 0,
+    "needsImplementation": 0,
+    "byPdos": {
+      "PDOS-06": 32,
+      "PDOS-02": 11,
+      "PDOS-10": 28,
+      "PDOS-01": 27,
+      "PDOS-03": 18,
+      "PDOS-09": 4,
+      "PDOS-04": 16,
+      "PDOS-08": 9,
+      "PDOS-05": 4,
+      "PDOS-07": 3
+    },
+    "byVerdict": {
+      "TRUST-CORE": 26,
+      "COMMUNICATION-REVIEW": 11,
+      "OPS-CORE": 62,
+      "PROTECT": 18,
+      "PAID-CORE": 22,
+      "COMMERCIAL-CORE": 4,
+      "DEVELOPMENT-CORE": 9
+    }
+  },
+  "routes": [
+    {
+      "file": "app/(modal)/add-child.tsx",
+      "route": "/modal/add-child",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child profile, medical, emergency, SEN, and readiness context",
+      "loadingStrategy": "submit-only",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [
+        "api-client",
+        "child-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-add-child",
+        "use-focus-trap",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority",
+        "child-profile-write-api-authority"
+      ],
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(modal)/create-club-post.tsx",
+      "route": "/modal/create-club-post",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "staff-led communication, coach homepage, comments, or operational messaging",
+      "loadingStrategy": "submit-only",
+      "loadingOwner": "UI-LOAD-03",
+      "serviceImports": [
+        "event",
+        "social-feed-service",
+        "squad-service"
+      ],
+      "hookImports": [
+        "use-create-club-post",
+        "use-focus-trap",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "post-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(modal)/create-squad.tsx",
+      "route": "/modal/create-squad",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "submit-only",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "social-feed-service",
+        "squad-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-create-squad",
+        "use-focus-trap",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(modal)/edit-child-profile.tsx",
+      "route": "/modal/edit-child-profile",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child profile, medical, emergency, SEN, and readiness context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [
+        "child-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-edit-child-profile",
+        "use-focus-trap",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority",
+        "child-profile-write-api-authority"
+      ],
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(modal)/edit-child-sen.tsx",
+      "route": "/modal/edit-child-sen",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child profile, medical, emergency, SEN, and readiness context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [
+        "child-service",
+        "event-bus",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-edit-child-sen",
+        "use-focus-trap",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority",
+        "child-profile-write-api-authority"
+      ],
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(modal)/post-detail.tsx",
+      "route": "/modal/post-detail",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "staff-led communication, coach homepage, comments, or operational messaging",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-03",
+      "serviceImports": [
+        "comment-service",
+        "social-feed-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-focus-trap",
+        "use-post-detail",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "post-api-authority",
+        "comment-api-authority"
+      ],
+      "riskFlags": [
+        "comment-control-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/_layout.tsx",
+      "route": "/_layout",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "app shell, providers, routing, and account/session frame",
+      "loadingStrategy": "static",
+      "loadingOwner": "UI-LOAD-01",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "messaging-service",
+        "notification-service",
+        "notification/notification-attention",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-notifications",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/admin/invite-codes.tsx",
+      "route": "/admin/invite-codes",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "compliance"
+      ],
+      "job": "club invite-code operations and access control",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "api-client"
+      ],
+      "hookImports": [
+        "use-invite-codes",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/athletes.tsx",
+      "route": "/athletes",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "coach",
+        "club",
+        "parent",
+        "child",
+        "compliance"
+      ],
+      "job": "athlete roster and trust-context entry",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-04",
+      "serviceImports": [
+        "booking-service",
+        "event-bus",
+        "roster-service"
+      ],
+      "hookImports": [
+        "use-athletes-screen"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/availability.tsx",
+      "route": "/availability",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "personas": [
+        "coach",
+        "club"
+      ],
+      "job": "coach availability and bookable storefront readiness entry",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [],
+      "hookImports": [
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/bookings/[id].tsx",
+      "route": "/bookings/[id]",
+      "pdos": "PDOS-06",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "child"
+      ],
+      "job": "booking lifecycle, readiness, cancellation, receipt, and session state",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking-service",
+        "booking-weather-service",
+        "cancellation-service",
+        "coach-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "invoice-service",
+        "progress-service",
+        "recurring-booking-service",
+        "review-sync-service",
+        "social-feed-service",
+        "ui-feedback",
+        "user-service"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-booking-detail",
+        "use-required-param",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "invoice-read-api-authority",
+        "invoice-reconciler-api-authority",
+        "invoice-manual-receipt-api-authority",
+        "booking-series-api-authority"
+      ],
+      "riskFlags": [
+        "money-hard-wall-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/bookings/_layout.tsx",
+      "route": "/bookings/_layout",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "app shell, providers, routing, and account/session frame",
+      "loadingStrategy": "static",
+      "loadingOwner": "UI-LOAD-01",
+      "serviceImports": [],
+      "hookImports": [
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/bookings/index.tsx",
+      "route": "/bookings",
+      "pdos": "PDOS-06",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "child"
+      ],
+      "job": "booking lifecycle, readiness, cancellation, receipt, and session state",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "api-client",
+        "booking",
+        "event",
+        "event-bus",
+        "group-session",
+        "invite",
+        "relational-demo-seed-service",
+        "social-feed-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-bookings",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/bookings/report-problem.tsx",
+      "route": "/bookings/report-problem",
+      "pdos": "PDOS-06",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "child"
+      ],
+      "job": "booking lifecycle, readiness, cancellation, receipt, and session state",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "api-client",
+        "booking-communications-service",
+        "booking-service",
+        "event-bus",
+        "social-feed-service",
+        "trust",
+        "trust/safeguarding-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "safeguarding-api-authority"
+      ],
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/bookings/session-feedback.tsx",
+      "route": "/bookings/session-feedback",
+      "pdos": "PDOS-06",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "child"
+      ],
+      "job": "booking lifecycle, readiness, cancellation, receipt, and session state",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-auth",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [
+        "stale-placeholder-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/children.tsx",
+      "route": "/children",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [
+        "api-client",
+        "badge-service",
+        "child-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-children-hub"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/club-hub.tsx",
+      "route": "/club-hub",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-05",
+      "serviceImports": [
+        "club-authority-service",
+        "club-invite-link-service",
+        "club-service",
+        "event-bus",
+        "event-service",
+        "group-session-service",
+        "invite",
+        "match-service",
+        "roster-service",
+        "social-feed-service",
+        "squad-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-club-hub",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "match-api-authority"
+      ],
+      "riskFlags": [
+        "comment-control-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/coach-profile.tsx",
+      "route": "/coach-profile",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "storefront, trust, follow, and booking entry",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-04",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-offering-api",
+        "discover-service",
+        "event-bus",
+        "follow-service",
+        "social-feed-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-coach-profile",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/earnings.tsx",
+      "route": "/earnings",
+      "pdos": "PDOS-09",
+      "verdict": "COMMERCIAL-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "compliance"
+      ],
+      "job": "invoice, payment state, reconciliation, and earnings",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus"
+      ],
+      "hookImports": [
+        "use-auth",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/edit-profile.tsx",
+      "route": "/edit-profile",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "role home, identity, and profile management entry",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-04",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "child-service",
+        "coach-profile-service",
+        "coach-session-seed-service",
+        "discover-service",
+        "event-bus",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-edit-profile",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority",
+        "child-profile-write-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/feed.tsx",
+      "route": "/feed",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "staff-led communication, coach homepage, comments, or operational messaging",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-03",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "follow-service",
+        "social-feed-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-screen",
+        "use-scroll-to-top-on-tab-reselect"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [
+        "comment-control-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/index.tsx",
+      "route": "/(tabs)",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "role home, identity, and profile management entry",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-03",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus"
+      ],
+      "hookImports": [
+        "use-auth",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/messages.tsx",
+      "route": "/messages",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "operational messaging and notification entry",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-03",
+      "serviceImports": [
+        "booking-service",
+        "event-bus",
+        "messaging-service"
+      ],
+      "hookImports": [
+        "use-messages",
+        "use-scroll-to-top-on-tab-reselect",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/more.tsx",
+      "route": "/more",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "secondary navigation to account, help, and operating settings",
+      "loadingStrategy": "static",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/notifications.tsx",
+      "route": "/notifications",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "operational messaging and notification entry",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-03",
+      "serviceImports": [
+        "badge-service",
+        "event-bus",
+        "notification-service",
+        "notification/notification-attention",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-notifications",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/profile.tsx",
+      "route": "/profile",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "role home, identity, and profile management entry",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-04",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus"
+      ],
+      "hookImports": [
+        "use-auth",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/roster.tsx",
+      "route": "/roster",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "coach",
+        "club",
+        "parent",
+        "child",
+        "compliance"
+      ],
+      "job": "athlete roster and trust-context entry",
+      "loadingStrategy": "static",
+      "loadingOwner": "UI-LOAD-04",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/schedule.tsx",
+      "route": "/schedule",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "child"
+      ],
+      "job": "schedule and operational activity entry",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-05",
+      "serviceImports": [
+        "api-client",
+        "availability-service",
+        "coach-venue-service",
+        "event-bus",
+        "scheduling-rules-service",
+        "session-template-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-schedule",
+        "use-scroll-to-top-on-tab-reselect",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "scheduling-policy-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/(tabs)/settings.tsx",
+      "route": "/settings",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "account, communication, trust, and operating settings",
+      "loadingStrategy": "static",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/+html.tsx",
+      "route": "/+html",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "app shell, providers, routing, and account/session frame",
+      "loadingStrategy": "static",
+      "loadingOwner": "UI-LOAD-01",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/_layout.tsx",
+      "route": "/_layout",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "app shell, providers, routing, and account/session frame",
+      "loadingStrategy": "static",
+      "loadingOwner": "UI-LOAD-01",
+      "serviceImports": [
+        "api-client",
+        "app-lifecycle-service",
+        "auth-service",
+        "booking-self-setting-service",
+        "child-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "notification",
+        "notification-service",
+        "observability/sentry-service",
+        "offline-queue",
+        "pre-api-live-mode-service",
+        "push-notification-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "theme-provider",
+        "use-auth",
+        "use-child-context",
+        "use-token-expiry-alert",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/availability/add-template.tsx",
+      "route": "/availability/add-template",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "personas": [
+        "coach",
+        "club"
+      ],
+      "job": "coach availability management and bookable storefront readiness",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "availability-service",
+        "event-bus",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-add-template",
+        "use-screen"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [
+        "spinner-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/availability/block-date.tsx",
+      "route": "/availability/block-date",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "personas": [
+        "coach",
+        "club"
+      ],
+      "job": "coach availability blocking and bookable-slot protection",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "availability-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-screen"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/availability/calendar.tsx",
+      "route": "/availability/calendar",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "personas": [
+        "coach",
+        "club"
+      ],
+      "job": "coach availability management and bookable storefront readiness",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "availability-service"
+      ],
+      "hookImports": [
+        "use-availability-calendar",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/availability/edit-template.tsx",
+      "route": "/availability/edit-template",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "personas": [
+        "coach",
+        "club"
+      ],
+      "job": "coach availability management and bookable storefront readiness",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "availability-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-edit-template",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [
+        "spinner-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/book-coach.tsx",
+      "route": "/book-coach",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "storefront, trust, follow, and booking entry",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "discover-service",
+        "event-bus"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-screen",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/book/[coachId]/_layout.tsx",
+      "route": "/book/[coachId]/_layout",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "app shell, providers, routing, and account/session frame",
+      "loadingStrategy": "static",
+      "loadingOwner": "UI-LOAD-01",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/book/[coachId]/confirmation.tsx",
+      "route": "/book/[coachId]/confirmation",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking-self-setting-service",
+        "booking-service",
+        "booking/booking-step-analytics-service",
+        "cancellation-service",
+        "child-service",
+        "coach-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "social-feed-service",
+        "user-service"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-child-context",
+        "use-screen"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "riskFlags": [
+        "spinner-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/book/[coachId]/details.tsx",
+      "route": "/book/[coachId]/details",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking-self-setting-service",
+        "booking/booking-step-analytics-service",
+        "child-service",
+        "coach-session-seed-service",
+        "event-bus"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-child-context",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/book/[coachId]/index.tsx",
+      "route": "/book/[coachId]",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/book/[coachId]/multi-week.tsx",
+      "route": "/book/[coachId]/multi-week",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "availability-service",
+        "multi-week-booking-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-multi-week"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/book/[coachId]/review.tsx",
+      "route": "/book/[coachId]/review",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking-self-setting-service",
+        "booking/booking-step-analytics-service",
+        "child-service",
+        "coach-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "scheduling-rules-service",
+        "social-feed-service",
+        "user-service"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-child-context",
+        "use-screen"
+      ],
+      "authorityEvidence": [
+        "scheduling-policy-api-authority",
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "riskFlags": [
+        "money-hard-wall-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/book/[coachId]/schedule.tsx",
+      "route": "/book/[coachId]/schedule",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "availability-service",
+        "booking-self-setting-service",
+        "booking/booking-step-analytics-service",
+        "child-service",
+        "coach-offering-api",
+        "coach-session-seed-service",
+        "event-bus"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-child-context",
+        "use-required-param",
+        "use-screen",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/book/[coachId]/session-type.tsx",
+      "route": "/book/[coachId]/session-type",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking-self-setting-service",
+        "booking/booking-step-analytics-service",
+        "child-service",
+        "coach-offering-api",
+        "coach-session-seed-service",
+        "event-bus",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-child-context",
+        "use-screen"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/booking/[id]/cancel.tsx",
+      "route": "/booking/[id]/cancel",
+      "pdos": "PDOS-06",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "child"
+      ],
+      "job": "booking lifecycle, readiness, cancellation, receipt, and session state",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "booking-service",
+        "scheduling-rules-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-booking-cancel"
+      ],
+      "authorityEvidence": [
+        "booking-cancel-api-authority",
+        "scheduling-policy-api-authority"
+      ],
+      "riskFlags": [
+        "money-hard-wall-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/bookings/subscribe.tsx",
+      "route": "/bookings/subscribe",
+      "pdos": "PDOS-06",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "child"
+      ],
+      "job": "booking lifecycle, readiness, cancellation, receipt, and session state",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "discover-service",
+        "recurring-booking-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-subscribe",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "booking-series-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/chat/[threadId].tsx",
+      "route": "/chat/[threadId]",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "operational communication, invite, and response entry",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-03",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "block-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "messaging-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-block-user-action",
+        "use-screen"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/chat/index.tsx",
+      "route": "/chat",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "operational messaging and notification entry",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-03",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/child/[id]/emergency.tsx",
+      "route": "/child/[id]/emergency",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child profile, medical, emergency, SEN, and readiness context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [
+        "event-bus",
+        "safety-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-emergency-contacts",
+        "use-required-param",
+        "use-screen"
+      ],
+      "authorityEvidence": [
+        "athlete-medical-api-authority"
+      ],
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/child/[id]/medical.tsx",
+      "route": "/child/[id]/medical",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child profile, medical, emergency, SEN, and readiness context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [
+        "event-bus",
+        "safety-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-medical-info",
+        "use-screen"
+      ],
+      "authorityEvidence": [
+        "athlete-medical-api-authority"
+      ],
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/[clubId]/_layout.tsx",
+      "route": "/club/[clubId]/_layout",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "app shell, providers, routing, and account/session frame",
+      "loadingStrategy": "static",
+      "loadingOwner": "UI-LOAD-01",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/[clubId]/calendar.tsx",
+      "route": "/club/[clubId]/calendar",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-05",
+      "serviceImports": [
+        "club-service"
+      ],
+      "hookImports": [
+        "use-club-calendar",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/[clubId]/dashboard.tsx",
+      "route": "/club/[clubId]/dashboard",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-05",
+      "serviceImports": [
+        "event-bus",
+        "org-head-coach-service",
+        "org-owner-dashboard-service",
+        "org-staffing-service",
+        "seen-service"
+      ],
+      "hookImports": [
+        "use-club-dashboard",
+        "use-demo-walkthrough-visibility",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/[clubId]/member/[memberId].tsx",
+      "route": "/club/[clubId]/member/[memberId]",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-05",
+      "serviceImports": [
+        "club-service",
+        "event-bus",
+        "social-feed-service",
+        "squad-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-member-management",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/[id].tsx",
+      "route": "/club/[id]",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-05",
+      "serviceImports": [
+        "club-authority-service",
+        "club-invite-link-service",
+        "club-schedule-service",
+        "club-service",
+        "event-bus",
+        "event-service",
+        "group-session-service",
+        "match-service",
+        "roster-service",
+        "social-feed-service",
+        "squad-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-club-detail",
+        "use-required-param",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "match-api-authority",
+        "post-api-authority"
+      ],
+      "riskFlags": [
+        "comment-control-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/[id]/activity/[activityId].tsx",
+      "route": "/club/[id]/activity/[activityId]",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-05",
+      "serviceImports": [
+        "club-schedule-service",
+        "event-bus"
+      ],
+      "hookImports": [
+        "use-required-param",
+        "use-screen",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/[id]/schedule.tsx",
+      "route": "/club/[id]/schedule",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-05",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/create.tsx",
+      "route": "/club/create",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "submit-only",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "club-authority-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-create-club",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/invite-members.tsx",
+      "route": "/club/invite-members",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "booking-service",
+        "social-feed-service"
+      ],
+      "hookImports": [
+        "use-club-invite",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/my-clubs.tsx",
+      "route": "/club/my-clubs",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-05",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "club-authority-service",
+        "club-invite-link-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "social-feed-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-screen"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/settings.tsx",
+      "route": "/club/settings",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "club-authority-service",
+        "club-invite-link-service",
+        "club-service",
+        "event-bus",
+        "social-feed-service",
+        "squad-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-club-settings",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/setup-complete.tsx",
+      "route": "/club/setup-complete",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "event-bus",
+        "social-feed-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-screen",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/squad/[id].tsx",
+      "route": "/club/squad/[id]",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "club-service",
+        "squad-group-service",
+        "squad-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-squad-detail",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/squad/[id]/schedule.tsx",
+      "route": "/club/squad/[id]/schedule",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-05",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/squad/create.tsx",
+      "route": "/club/squad/create",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "event-bus",
+        "social-feed-service",
+        "squad-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-create-squad",
+        "use-screen"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/club/training-schedule.tsx",
+      "route": "/club/training-schedule",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-05",
+      "serviceImports": [
+        "group-session-service",
+        "social-feed-service",
+        "squad-service"
+      ],
+      "hookImports": [
+        "use-training-schedule",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/coach-invites.tsx",
+      "route": "/coach-invites",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "operational communication, invite, and response entry",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "api-client",
+        "club-authority-service",
+        "social-feed-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-coach-invites",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/coach/[coachId]/public.tsx",
+      "route": "/coach/[coachId]/public",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "storefront, trust, follow, and booking entry",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-04",
+      "serviceImports": [
+        "api-client",
+        "block-service",
+        "coach-offering-api",
+        "coach-service",
+        "event-bus",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-public-profile",
+        "use-screen",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/coach/[id].tsx",
+      "route": "/coach/[id]",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "storefront, trust, follow, and booking entry",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-04",
+      "serviceImports": [
+        "api-client",
+        "block-service",
+        "coach-offering-api",
+        "coach-service",
+        "event-bus",
+        "follow-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-coach-detail",
+        "use-screen"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/coach/invite.tsx",
+      "route": "/coach/invite",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "storefront, trust, follow, and booking entry",
+      "loadingStrategy": "static",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/community/[groupId].tsx",
+      "route": "/community/[groupId]",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "staff-led communication, coach homepage, comments, or operational messaging",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-03",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "community-service",
+        "community/community-group-service",
+        "event-bus",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-screen",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "community-chat-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/development/athlete/[athleteId]/_layout.tsx",
+      "route": "/development/athlete/[athleteId]/_layout",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "app shell, providers, routing, and account/session frame",
+      "loadingStrategy": "static",
+      "loadingOwner": "UI-LOAD-01",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/development/athlete/[athleteId]/index.tsx",
+      "route": "/development/athlete/[athleteId]",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-07",
+      "serviceImports": [
+        "badge-service",
+        "child-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "ui-feedback",
+        "user-service"
+      ],
+      "hookImports": [
+        "use-athlete-development",
+        "use-required-param",
+        "use-screen"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority",
+        "child-profile-write-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/development/athlete/[athleteId]/special-needs.tsx",
+      "route": "/development/athlete/[athleteId]/special-needs",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [
+        "child-service",
+        "coach-observation-service",
+        "event-bus",
+        "ui-feedback",
+        "user-service"
+      ],
+      "hookImports": [
+        "use-coach-observations",
+        "use-screen",
+        "use-special-needs"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/development/child-progress/[childId].tsx",
+      "route": "/development/child-progress/[childId]",
+      "pdos": "PDOS-08",
+      "verdict": "DEVELOPMENT-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "child"
+      ],
+      "job": "development proof, video, review, rebook, and next work",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-07",
+      "serviceImports": [
+        "badge-service",
+        "child-service",
+        "event-bus",
+        "progress-service"
+      ],
+      "hookImports": [
+        "use-child-progress",
+        "use-required-param",
+        "use-screen",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/development/media-gallery.tsx",
+      "route": "/development/media-gallery",
+      "pdos": "PDOS-08",
+      "verdict": "DEVELOPMENT-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "child"
+      ],
+      "job": "development proof, video, review, rebook, and next work",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-07",
+      "serviceImports": [
+        "media-service"
+      ],
+      "hookImports": [
+        "use-media-gallery",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/development/my-progress.tsx",
+      "route": "/development/my-progress",
+      "pdos": "PDOS-08",
+      "verdict": "DEVELOPMENT-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "child"
+      ],
+      "job": "development proof, video, review, rebook, and next work",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-07",
+      "serviceImports": [
+        "api-client",
+        "badge-service",
+        "booking",
+        "event-bus",
+        "media-service",
+        "progress-service",
+        "progress/monthly-summary-service",
+        "progress/progress-demo-seed-lazy-service",
+        "progress/progress-position-service",
+        "progress/progress-termly-report-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-my-progress",
+        "use-scroll-animations",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/development/progress-loop.tsx",
+      "route": "/development/progress-loop",
+      "pdos": "PDOS-08",
+      "verdict": "DEVELOPMENT-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "child"
+      ],
+      "job": "development proof, video, review, rebook, and next work",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-07",
+      "serviceImports": [
+        "event-bus",
+        "progress/progress-feedback-service",
+        "progress/progress-practice-log-service",
+        "progress/progress-practice-task-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-progress-loop",
+        "use-results-program-motion",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/development/session-history.tsx",
+      "route": "/development/session-history",
+      "pdos": "PDOS-08",
+      "verdict": "DEVELOPMENT-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "child"
+      ],
+      "job": "development proof, video, review, rebook, and next work",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-07",
+      "serviceImports": [
+        "badge-service",
+        "media-service",
+        "progress-service"
+      ],
+      "hookImports": [
+        "use-session-history",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/development/session/[sessionId].tsx",
+      "route": "/development/session/[sessionId]",
+      "pdos": "PDOS-08",
+      "verdict": "DEVELOPMENT-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "child"
+      ],
+      "job": "development proof, video, review, rebook, and next work",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-07",
+      "serviceImports": [
+        "api-client",
+        "badge-service",
+        "child-service",
+        "event-bus",
+        "media-service",
+        "progress-service",
+        "progress/progress-feedback-service",
+        "progress/progress-position-service",
+        "progress/progress-skills-service",
+        "ui-feedback",
+        "user-service"
+      ],
+      "hookImports": [
+        "use-dev-session",
+        "use-screen"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/discover-sessions.tsx",
+      "route": "/discover-sessions",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "storefront, trust, follow, and booking entry",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "PRUNE-02",
+      "serviceImports": [
+        "booking",
+        "group-session",
+        "invite",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-discover-sessions",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/discover/map.tsx",
+      "route": "/discover/map",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "storefront, trust, follow, and booking entry",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "PRUNE-02",
+      "serviceImports": [
+        "coach-offering-api",
+        "discover-service",
+        "event-bus"
+      ],
+      "hookImports": [
+        "use-screen",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/earnings.tsx",
+      "route": "/earnings",
+      "pdos": "PDOS-09",
+      "verdict": "COMMERCIAL-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "compliance"
+      ],
+      "job": "invoice, payment state, reconciliation, and earnings",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking",
+        "coach-payment-instructions-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "invoice-service",
+        "roster-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-session-payments",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "invoice-read-api-authority",
+        "invoice-reconciler-api-authority",
+        "invoice-manual-receipt-api-authority",
+        "invoice-adjustment-api-authority"
+      ],
+      "riskFlags": [
+        "money-hard-wall-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/events/[id].tsx",
+      "route": "/events/[id]",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-05",
+      "serviceImports": [
+        "event-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-event-detail",
+        "use-required-param",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/events/[id]/attendees.tsx",
+      "route": "/events/[id]/attendees",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-05",
+      "serviceImports": [
+        "event-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-event-attendees",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/events/[id]/rsvp.tsx",
+      "route": "/events/[id]/rsvp",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-05",
+      "serviceImports": [
+        "event-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-event-rsvp",
+        "use-required-param",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [
+        "spinner-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/events/create.tsx",
+      "route": "/events/create",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-05",
+      "serviceImports": [
+        "event-bus",
+        "event-service",
+        "invite",
+        "squad-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-create-event",
+        "use-screen"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/events/index.tsx",
+      "route": "/events",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-05",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "event-service"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-screen",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/family/[legacy].tsx",
+      "route": "/family/[legacy]",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/family/calendar.tsx",
+      "route": "/family/calendar",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/family/index.tsx",
+      "route": "/family",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [],
+      "hookImports": [
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/family/recurring.tsx",
+      "route": "/family/recurring",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [
+        "family-recurring-service",
+        "recurring-booking-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-family-recurring",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "booking-series-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/family/sharing.tsx",
+      "route": "/family/sharing",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [
+        "family",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-family-sharing",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/favourites/index.tsx",
+      "route": "/favourites",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "storefront, trust, follow, and booking entry",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "favourite-service"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-screen"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/group-sessions/[id].tsx",
+      "route": "/group-sessions/[id]",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-07",
+      "serviceImports": [
+        "calendar-service",
+        "cancellation-service",
+        "event-bus",
+        "group-session-service",
+        "rsvp-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-group-session",
+        "use-required-param",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "group-session-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/group-sessions/[id]/roster.tsx",
+      "route": "/group-sessions/[id]/roster",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-07",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "child-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "group-session-service",
+        "injury-service",
+        "progress/progress-feedback-service",
+        "progress/progress-position-service",
+        "progress/progress-skills-service",
+        "rsvp-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-group-roster",
+        "use-quick-rate",
+        "use-required-param",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "group-session-api-authority",
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority",
+        "athlete-injury-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/group-sessions/create.tsx",
+      "route": "/group-sessions/create",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-07",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/group-sessions/index.tsx",
+      "route": "/group-sessions",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-07",
+      "serviceImports": [
+        "event-bus",
+        "group-session-service",
+        "group-session/session-registration-service"
+      ],
+      "hookImports": [
+        "use-group-sessions",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/health/[id].tsx",
+      "route": "/health/[id]",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "health, injury, and readiness context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [
+        "event-bus",
+        "injury-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-health-detail",
+        "use-screen"
+      ],
+      "authorityEvidence": [
+        "athlete-injury-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/health/index.tsx",
+      "route": "/health",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "health, injury, and readiness context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [
+        "event-bus",
+        "injury-service"
+      ],
+      "hookImports": [
+        "use-health-hub",
+        "use-screen"
+      ],
+      "authorityEvidence": [
+        "athlete-injury-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/health/injuries.tsx",
+      "route": "/health/injuries",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child profile, medical, emergency, SEN, and readiness context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [
+        "event-bus",
+        "injury-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-injuries",
+        "use-screen"
+      ],
+      "authorityEvidence": [
+        "athlete-injury-api-authority"
+      ],
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/health/log.tsx",
+      "route": "/health/log",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "health, injury, and readiness context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking-self-setting-service",
+        "child-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "injury-service"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-child-context",
+        "use-screen"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority",
+        "athlete-injury-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/invites.tsx",
+      "route": "/invites",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "operational communication, invite, and response entry",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "invite",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-invites",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/invoices/[id].tsx",
+      "route": "/invoices/[id]",
+      "pdos": "PDOS-09",
+      "verdict": "COMMERCIAL-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "compliance"
+      ],
+      "job": "invoice, payment state, reconciliation, and earnings",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "invoice-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-invoice-detail",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "invoice-read-api-authority",
+        "invoice-reconciler-api-authority",
+        "invoice-manual-receipt-api-authority",
+        "invoice-payment-session-api-authority",
+        "invoice-adjustment-api-authority"
+      ],
+      "riskFlags": [
+        "money-hard-wall-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/invoices/index.tsx",
+      "route": "/invoices",
+      "pdos": "PDOS-09",
+      "verdict": "COMMERCIAL-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "compliance"
+      ],
+      "job": "invoice, payment state, reconciliation, and earnings",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "invoice-service"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-screen",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "invoice-read-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/manage/[legacy].tsx",
+      "route": "/manage/[legacy]",
+      "pdos": "PDOS-05",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "compliance"
+      ],
+      "job": "staff authority, assignment, and operations control",
+      "loadingStrategy": "static",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/manage/bookings.tsx",
+      "route": "/manage/bookings",
+      "pdos": "PDOS-05",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "compliance"
+      ],
+      "job": "staff authority, assignment, and operations control",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "invite",
+        "org-staffing-service",
+        "social-feed-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-manage-bookings",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "club-work-assignment-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/manage/head-coach.tsx",
+      "route": "/manage/head-coach",
+      "pdos": "PDOS-05",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "compliance"
+      ],
+      "job": "staff authority, assignment, and operations control",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "org-head-coach-service",
+        "social-feed-service"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-head-coach-oversight",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/manage/index.tsx",
+      "route": "/manage",
+      "pdos": "PDOS-05",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "compliance"
+      ],
+      "job": "staff authority, assignment, and operations control",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "social-feed-service"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-screen"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/matches/[id].tsx",
+      "route": "/matches/[id]",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent"
+      ],
+      "job": "club and selected-squad fixture schedule context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-07",
+      "serviceImports": [
+        "match-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-match-detail"
+      ],
+      "authorityEvidence": [
+        "match-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/matches/create.tsx",
+      "route": "/matches/create",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent"
+      ],
+      "job": "club and selected-squad fixture schedule context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-07",
+      "serviceImports": [
+        "club-authority-service",
+        "event-bus",
+        "invite",
+        "match-service",
+        "squad-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-create-match",
+        "use-screen",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "match-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/matches/index.tsx",
+      "route": "/matches",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent"
+      ],
+      "job": "club and selected-squad fixture schedule context",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-07",
+      "serviceImports": [
+        "club-authority-service",
+        "match-service"
+      ],
+      "hookImports": [
+        "use-matches-screen",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "match-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/profile/[userId].tsx",
+      "route": "/profile/[userId]",
+      "pdos": "PDOS-02",
+      "verdict": "COMMUNICATION-REVIEW",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "staff-led communication, coach homepage, comments, or operational messaging",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-04",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "follow-service",
+        "social-feed-service",
+        "ui-feedback",
+        "user-service"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-screen"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [
+        "comment-control-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/review/[bookingId].tsx",
+      "route": "/review/[bookingId]",
+      "pdos": "PDOS-08",
+      "verdict": "DEVELOPMENT-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "child"
+      ],
+      "job": "development proof, video, review, rebook, and next work",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "review-sync-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-required-param",
+        "use-screen",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/roster/[athleteId]/add-to-session.tsx",
+      "route": "/roster/[athleteId]/add-to-session",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-04",
+      "serviceImports": [],
+      "hookImports": [
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/roster/[athleteId]/emergency.tsx",
+      "route": "/roster/[athleteId]/emergency",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-04",
+      "serviceImports": [
+        "roster-service",
+        "safety-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-emergency-access",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "athlete-medical-api-authority"
+      ],
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/roster/[athleteId]/health.tsx",
+      "route": "/roster/[athleteId]/health",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-04",
+      "serviceImports": [
+        "injury-service",
+        "roster-service"
+      ],
+      "hookImports": [
+        "use-coach-athlete-health",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "athlete-injury-api-authority"
+      ],
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/roster/[athleteId]/index.tsx",
+      "route": "/roster/[athleteId]",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-04",
+      "serviceImports": [
+        "booking-service",
+        "child-service",
+        "event-bus",
+        "roster-service",
+        "safety-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-athlete-detail",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "athlete-medical-api-authority",
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/roster/[athleteId]/raise-concern.tsx",
+      "route": "/roster/[athleteId]/raise-concern",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-04",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "concern-service",
+        "event-bus",
+        "roster-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-screen",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "safeguarding-api-authority"
+      ],
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/roster/consents.tsx",
+      "route": "/roster/consents",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [
+        "consent-service",
+        "user-service"
+      ],
+      "hookImports": [
+        "use-consents",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "athlete-medical-api-authority"
+      ],
+      "riskFlags": [
+        "sensitive-read-audit-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/roster/index.tsx",
+      "route": "/roster",
+      "pdos": "PDOS-06",
+      "verdict": "TRUST-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child",
+        "compliance"
+      ],
+      "job": "child readiness, roster, medical, consent, emergency, and trust context",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-04",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "roster-service"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-screen",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/session-invites/[id].tsx",
+      "route": "/session-invites/[id]",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking-self-setting-service",
+        "child-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "invite",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-child-context",
+        "use-screen"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/session-invites/create.tsx",
+      "route": "/session-invites/create",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/session-invites/group.tsx",
+      "route": "/session-invites/group",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/session-invites/index.tsx",
+      "route": "/session-invites",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "loadingStrategy": "warm-first",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "booking-self-setting-service",
+        "child-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "invite",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-child-context",
+        "use-screen"
+      ],
+      "authorityEvidence": [
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/session-notes/[bookingId].tsx",
+      "route": "/session-notes/[bookingId]",
+      "pdos": "PDOS-07",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "coach",
+        "parent",
+        "child",
+        "club"
+      ],
+      "job": "delivery, attendance, completion, and feedback entry",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "progress-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-screen",
+        "use-session-note"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/session/[id]/complete.tsx",
+      "route": "/session/[id]/complete",
+      "pdos": "PDOS-07",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "coach",
+        "parent",
+        "child",
+        "club"
+      ],
+      "job": "delivery, attendance, completion, and feedback entry",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "badge-service",
+        "booking-service",
+        "child-service",
+        "coach-session-seed-service",
+        "earnings",
+        "event-bus",
+        "group-session-service",
+        "media-service",
+        "notification-trigger",
+        "progress-service",
+        "progress/progress-feedback-service",
+        "progress/progress-position-service",
+        "progress/progress-skills-service",
+        "session-template-service",
+        "ui-feedback",
+        "user-service"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-quick-rate",
+        "use-session-completion",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "group-session-api-authority",
+        "child-profile-api-authority",
+        "child-trust-sensitive-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/session/[id]/rsvp.tsx",
+      "route": "/session/[id]/rsvp",
+      "pdos": "PDOS-07",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "coach",
+        "parent",
+        "child",
+        "club"
+      ],
+      "job": "delivery, attendance, completion, and feedback entry",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-02",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "group-session-service",
+        "rsvp-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-required-param",
+        "use-screen",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "group-session-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/sessions/create.tsx",
+      "route": "/sessions/create",
+      "pdos": "PDOS-04",
+      "verdict": "PAID-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "paid product selection, booking, registration, invite, or package setup",
+      "loadingStrategy": "submit-only",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "academy-service",
+        "api-client",
+        "auth-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "group-session-service",
+        "invite",
+        "recurring-booking-service",
+        "roster-service",
+        "ui-feedback",
+        "user-service"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-create-session",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "booking-series-api-authority",
+        "group-session-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/_layout.tsx",
+      "route": "/settings/_layout",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "app shell, providers, routing, and account/session frame",
+      "loadingStrategy": "static",
+      "loadingOwner": "UI-LOAD-01",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/account.tsx",
+      "route": "/settings/account",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "account, communication, trust, and operating settings",
+      "loadingStrategy": "static",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "api-client",
+        "ui-feedback",
+        "user-service"
+      ],
+      "hookImports": [
+        "use-account-settings",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/blocked-users.tsx",
+      "route": "/settings/blocked-users",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "account, communication, trust, and operating settings",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "block-service",
+        "ui-feedback",
+        "user-service"
+      ],
+      "hookImports": [
+        "use-blocked-users-settings",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/calendar-sync.tsx",
+      "route": "/settings/calendar-sync",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "account, communication, trust, and operating settings",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "booking-service",
+        "calendar-service",
+        "event",
+        "group-session-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-calendar-sync",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/cancellation-policy.tsx",
+      "route": "/settings/cancellation-policy",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "account, communication, trust, and operating settings",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "scheduling-rules-service"
+      ],
+      "hookImports": [
+        "use-cancellation-policy-settings",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "scheduling-policy-api-authority"
+      ],
+      "riskFlags": [
+        "money-hard-wall-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/coaching.tsx",
+      "route": "/settings/coaching",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "account, communication, trust, and operating settings",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "availability-service",
+        "coach-travel-service",
+        "scheduling-rules-service"
+      ],
+      "hookImports": [
+        "use-coaching-settings",
+        "useTheme"
+      ],
+      "authorityEvidence": [
+        "scheduling-policy-api-authority"
+      ],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/help.tsx",
+      "route": "/settings/help",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "account, communication, trust, and operating settings",
+      "loadingStrategy": "static",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-help-screen",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/index.tsx",
+      "route": "/settings",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "account, communication, trust, and operating settings",
+      "loadingStrategy": "static",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "booking-self-setting-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-settings-hub",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/notifications/_layout.tsx",
+      "route": "/settings/notifications/_layout",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club",
+        "child"
+      ],
+      "job": "app shell, providers, routing, and account/session frame",
+      "loadingStrategy": "static",
+      "loadingOwner": "UI-LOAD-01",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/notifications/index.tsx",
+      "route": "/settings/notifications",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "account, communication, trust, and operating settings",
+      "loadingStrategy": "static",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/notifications/preferences.tsx",
+      "route": "/settings/notifications/preferences",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "account, communication, trust, and operating settings",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "notification-service"
+      ],
+      "hookImports": [
+        "use-notification-prefs",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/privacy-policy.tsx",
+      "route": "/settings/privacy-policy",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "account, communication, trust, and operating settings",
+      "loadingStrategy": "static",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/privacy.tsx",
+      "route": "/settings/privacy",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "account, communication, trust, and operating settings",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [
+        "api-client",
+        "auth-service",
+        "block-service",
+        "coach-session-seed-service",
+        "event-bus",
+        "privacy-settings-service"
+      ],
+      "hookImports": [
+        "use-auth",
+        "use-privacy-settings",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/terms.tsx",
+      "route": "/settings/terms",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "account, communication, trust, and operating settings",
+      "loadingStrategy": "static",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [],
+      "hookImports": [],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": false,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/settings/travel-radius.tsx",
+      "route": "/settings/travel-radius",
+      "pdos": "PDOS-01",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "club"
+      ],
+      "job": "account, communication, trust, and operating settings",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "coach-travel-service"
+      ],
+      "hookImports": [
+        "use-travel-radius-settings",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/squads/[id]/invite.tsx",
+      "route": "/squads/[id]/invite",
+      "pdos": "PDOS-10",
+      "verdict": "OPS-CORE",
+      "personas": [
+        "club",
+        "coach",
+        "parent",
+        "compliance"
+      ],
+      "job": "club activity operations, schedule, squads, staff-led updates, and evidence",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-08",
+      "serviceImports": [
+        "invite",
+        "squad-service",
+        "ui-feedback"
+      ],
+      "hookImports": [
+        "use-squad-invite",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/verification/background.tsx",
+      "route": "/verification/background",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "personas": [
+        "coach",
+        "club",
+        "compliance"
+      ],
+      "job": "coach verification and trusted storefront readiness",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [
+        "verification-service"
+      ],
+      "hookImports": [
+        "use-background-check",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [
+        "stale-placeholder-check"
+      ],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/verification/credentials.tsx",
+      "route": "/verification/credentials",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "personas": [
+        "coach",
+        "club",
+        "compliance"
+      ],
+      "job": "coach verification and trusted storefront readiness",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [
+        "verification-service"
+      ],
+      "hookImports": [
+        "use-credentials",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/verification/id.tsx",
+      "route": "/verification/id",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "personas": [
+        "coach",
+        "club",
+        "compliance"
+      ],
+      "job": "coach verification and trusted storefront readiness",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [
+        "verification-service"
+      ],
+      "hookImports": [
+        "use-id-verification",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/verification/index.tsx",
+      "route": "/verification",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "personas": [
+        "coach",
+        "club",
+        "compliance"
+      ],
+      "job": "coach verification and trusted storefront readiness",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [
+        "verification-service"
+      ],
+      "hookImports": [
+        "use-verification-hub",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/verification/insurance.tsx",
+      "route": "/verification/insurance",
+      "pdos": "PDOS-03",
+      "verdict": "PROTECT",
+      "personas": [
+        "coach",
+        "club",
+        "compliance"
+      ],
+      "job": "coach verification and trusted storefront readiness",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-06",
+      "serviceImports": [
+        "ui-feedback",
+        "verification-service"
+      ],
+      "hookImports": [
+        "use-insurance-verification",
+        "useTheme"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/videos/[id].tsx",
+      "route": "/videos/[id]",
+      "pdos": "PDOS-08",
+      "verdict": "DEVELOPMENT-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "child"
+      ],
+      "job": "development proof, video, review, rebook, and next work",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-07",
+      "serviceImports": [
+        "event-bus",
+        "ui-feedback",
+        "video-service"
+      ],
+      "hookImports": [
+        "use-required-param",
+        "use-screen",
+        "use-video-detail"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    },
+    {
+      "file": "app/videos/upload.tsx",
+      "route": "/videos/upload",
+      "pdos": "PDOS-08",
+      "verdict": "DEVELOPMENT-CORE",
+      "personas": [
+        "parent",
+        "coach",
+        "child"
+      ],
+      "job": "development proof, video, review, rebook, and next work",
+      "loadingStrategy": "section-skeleton",
+      "loadingOwner": "UI-LOAD-07",
+      "serviceImports": [
+        "event-bus",
+        "ui-feedback",
+        "video-service"
+      ],
+      "hookImports": [
+        "use-screen",
+        "use-video-upload"
+      ],
+      "authorityEvidence": [],
+      "riskFlags": [],
+      "hasAuthorityImport": true,
+      "needsDecision": false,
+      "needsImplementation": false
+    }
+  ]
+}

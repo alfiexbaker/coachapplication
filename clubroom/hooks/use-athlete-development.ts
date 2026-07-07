@@ -45,6 +45,26 @@ interface AthleteDevelopmentData {
   progressionSummary: ProgressionSummary | null;
 }
 
+function getChildProfileDisplayName(profile: ChildProfile): string {
+  return (
+    profile.nickname?.trim() ||
+    [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim() ||
+    'Athlete'
+  );
+}
+
+function mapChildProfileToUser(profile: ChildProfile): User {
+  return {
+    id: profile.id,
+    name: getChildProfileDisplayName(profile),
+    avatar: profile.photoUrl,
+    email: '',
+    role: 'USER',
+    postcode: '',
+    dateOfBirth: profile.dateOfBirth ?? '',
+  };
+}
+
 function formatDate(date: Date | string): string {
   const resolvedDate = typeof date === 'string' ? new Date(date) : date;
   return resolvedDate.toLocaleDateString('en-GB', {
@@ -70,7 +90,10 @@ export function useAthleteDevelopment(athleteId: string) {
     }
 
     try {
-      const athleteResult = await userService.getUserById(athleteId);
+      const childProfile = await childService.getChild(athleteId);
+      const athleteResult = childProfile
+        ? ok<User>(mapChildProfileToUser(childProfile))
+        : await userService.getUserById(athleteId);
       if (!athleteResult.success) {
         logger.error('Failed to load athlete profile', { athleteId, error: athleteResult.error });
         if (athleteResult.error.code === 'NOT_FOUND') {
@@ -85,11 +108,10 @@ export function useAthleteDevelopment(athleteId: string) {
         return err(athleteResult.error);
       }
 
-      const [allSessions, awardsData, progression, childProfile] = await Promise.all([
+      const [allSessions, awardsData, progression] = await Promise.all([
         ensureCoachSessionsSeeded(),
         badgeService.listAwardsForAthlete(athleteId),
         badgeService.getProgressionSummary(athleteId),
-        childService.getChild(athleteId),
       ]);
 
       const athleteSessions = allSessions.filter(

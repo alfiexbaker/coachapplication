@@ -3,7 +3,7 @@
  * Manages week loading from availability, selection, and series booking creation.
  */
 
-import { useState, useEffect, startTransition } from 'react';
+import { useCallback, useState, useEffect, startTransition } from 'react';
 import { Platform } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -73,7 +73,7 @@ export function useMultiWeek() {
     }
     return null;
   })();
-  const loadWeeks = async () => {
+  const loadWeeks = useCallback(async () => {
     if (!coachId) {
       return ok([]);
     }
@@ -124,7 +124,7 @@ export function useMultiWeek() {
       logger.error('Failed to load weeks', loadError);
       return err(serviceError('UNKNOWN', 'Failed to load multi-week availability.', loadError));
     }
-  };
+  }, [coachId, sessionDuration, sessionPrice]);
   const { data, status, error, refreshing, onRefresh, retry, colors } = useScreen<WeekRow[]>({
     load: loadWeeks,
     deps: [loadWeeks],

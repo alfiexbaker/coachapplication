@@ -88,20 +88,32 @@ export function useAthleteDetail(athleteId: string) {
 
   const handleUpdateStatus = async (newStatus: RosterEntry['status']) => {
     if (!data?.entry) return;
-    await rosterService.updateStatus(coachId, data.entry.athleteId, newStatus);
+    const result = await rosterService.updateStatus(coachId, data.entry.athleteId, newStatus);
+    if (!result.success) {
+      uiFeedback.showToast(result.error.message, 'error');
+      return;
+    }
     setShowStatusModal(false);
     onRefresh();
   };
 
   const handleUpdateFocus = async (focus: FootballObjective) => {
     if (!data?.entry) return;
-    await rosterService.updatePrimaryFocus(coachId, data.entry.athleteId, focus);
+    const result = await rosterService.updatePrimaryFocus(coachId, data.entry.athleteId, focus);
+    if (!result.success) {
+      uiFeedback.showToast(result.error.message, 'error');
+      return;
+    }
     onRefresh();
   };
 
   const handleAddNote = async (content: string) => {
     if (!data?.entry) return;
-    await rosterService.addNote(coachId, data.entry.athleteId, content);
+    const result = await rosterService.addNote(coachId, data.entry.athleteId, content);
+    if (!result.success) {
+      uiFeedback.showToast(result.error.message, 'error');
+      return;
+    }
     onRefresh();
   };
 
@@ -113,7 +125,11 @@ export function useAthleteDetail(athleteId: string) {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          await rosterService.deleteNote(coachId, data.entry.athleteId, noteId);
+          const result = await rosterService.deleteNote(coachId, data.entry.athleteId, noteId);
+          if (!result.success) {
+            uiFeedback.showToast(result.error.message, 'error');
+            return;
+          }
           onRefresh();
         },
       },
@@ -123,7 +139,11 @@ export function useAthleteDetail(athleteId: string) {
   const handleTagRemove = async (tag: string) => {
     if (!data?.entry) return;
     const tags = data.entry.tags.filter((t) => t !== tag);
-    await rosterService.updateTags(coachId, data.entry.athleteId, tags);
+    const result = await rosterService.updateTags(coachId, data.entry.athleteId, tags);
+    if (!result.success) {
+      uiFeedback.showToast(result.error.message, 'error');
+      return;
+    }
     onRefresh();
   };
 
@@ -132,7 +152,11 @@ export function useAthleteDetail(athleteId: string) {
   const handleAddTagSubmit = async () => {
     if (!data?.entry || !newTag.trim()) return;
     const tags = [...data.entry.tags, newTag.trim().toLowerCase()];
-    await rosterService.updateTags(coachId, data.entry.athleteId, tags);
+    const result = await rosterService.updateTags(coachId, data.entry.athleteId, tags);
+    if (!result.success) {
+      uiFeedback.showToast(result.error.message, 'error');
+      return;
+    }
     setNewTag('');
     setShowTagsModal(false);
     onRefresh();
@@ -171,7 +195,11 @@ export function useAthleteDetail(athleteId: string) {
           text: 'Remove',
           style: 'destructive',
           onPress: async () => {
-            await rosterService.removeAthlete(coachId, data.entry.athleteId, 'OTHER');
+            const result = await rosterService.removeAthlete(coachId, data.entry.athleteId, 'OTHER');
+            if (!result.success) {
+              uiFeedback.showToast(result.error.message, 'error');
+              return;
+            }
             router.back();
           },
         },

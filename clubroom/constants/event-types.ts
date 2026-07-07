@@ -60,6 +60,7 @@ export interface ClubEvent {
   // Attendance
   targetAudience: EventTargetAudience;
   squadIds?: string[]; // if squad-specific
+  athleteIds?: string[]; // if athlete-specific
   allClub?: boolean; // true if all club members invited (alias for targetAudience === 'ALL')
   maxAttendees?: number;
   maxParticipants?: number; // alias for maxAttendees

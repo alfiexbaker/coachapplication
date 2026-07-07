@@ -34,13 +34,23 @@ let idCounter = 0;
   return `${prefix}-test-${idCounter}`;
 };
 
+Object.defineProperty(apiClient, 'isMockMode', {
+  configurable: true,
+  get: () => true,
+});
+
 // ============================================================================
 // TESTS
 // ============================================================================
 
 describe('CoachObservationService', () => {
   beforeEach(() => {
-    storage = {};
+    storage = {
+      [STORAGE_KEYS.USERS]: [
+        { id: 'athlete-1', name: 'Athlete One' },
+        { id: 'athlete-2', name: 'Athlete Two' },
+      ],
+    };
     idCounter = 0;
   });
 

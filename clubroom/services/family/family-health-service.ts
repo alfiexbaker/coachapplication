@@ -19,6 +19,8 @@ const logger = createLogger('FamilyHealthService');
 
 type ActingRole = 'coach' | 'parent' | 'athlete' | 'club_admin';
 
+const pendingEmergencyInfoReads = new Map<string, Promise<Result<EmergencyInfo, ServiceError>>>();
+
 interface ApiMedicalRecord {
   athleteId: string;
   conditions: string[];
@@ -135,8 +137,53 @@ function normalizeConsents(records: ApiConsentRecord[]): Consent[] {
   });
 }
 
+function cloneEmergencyInfo(info: EmergencyInfo): EmergencyInfo {
+  return {
+    ...info,
+    contacts: info.contacts.map((contact) => ({ ...contact })),
+    medical: {
+      ...info.medical,
+      conditions: [...info.medical.conditions],
+      allergies: [...info.medical.allergies],
+      medications: [...info.medical.medications],
+      restrictions: [...info.medical.restrictions],
+    },
+    consents: info.consents.map((consent) => ({ ...consent })),
+  };
+}
+
+function cloneEmergencyInfoResult(
+  result: Result<EmergencyInfo, ServiceError>,
+): Result<EmergencyInfo, ServiceError> {
+  return result.success ? ok(cloneEmergencyInfo(result.data)) : result;
+}
+
+function cacheKeyForAccess(params: {
+  userId: string;
+  actingRole: ActingRole;
+  apiAthleteId: string;
+}): string {
+  return `${params.userId}:${params.actingRole}:${params.apiAthleteId}`;
+}
+
+function clearEmergencyInfoCacheForAthlete(apiAthleteId: string): void {
+  for (const key of pendingEmergencyInfoReads.keys()) {
+    if (key.endsWith(`:${apiAthleteId}`)) {
+      pendingEmergencyInfoReads.delete(key);
+    }
+  }
+}
+
 async function resolveApiAccessContext(targetAthleteId: string): Promise<
-  Result<{ apiAthleteId: string; headers: Record<string, string> }, ServiceError>
+  Result<
+    {
+      apiAthleteId: string;
+      headers: Record<string, string>;
+      userId: string;
+      actingRole: ActingRole;
+    },
+    ServiceError
+  >
 > {
   const currentUserResult = await resolveSignedInApiUser('Sign in to access athlete medical data.');
   if (!currentUserResult.success) {
@@ -153,7 +200,7 @@ async function resolveApiAccessContext(targetAthleteId: string): Promise<
     coachVerified: actingRole === 'coach' && currentUser.isVerified,
   });
 
-  return ok({ apiAthleteId, headers });
+  return ok({ apiAthleteId, headers, userId: currentUser.id, actingRole });
 }
 
 class FamilyHealthService {
@@ -163,7 +210,26 @@ class FamilyHealthService {
       return access;
     }
 
-    const { apiAthleteId, headers } = access.data;
+    const { apiAthleteId, headers, userId, actingRole } = access.data;
+    const cacheKey = cacheKeyForAccess({ userId, actingRole, apiAthleteId });
+    const pending = pendingEmergencyInfoReads.get(cacheKey);
+    if (pending) {
+      return cloneEmergencyInfoResult(await pending);
+    }
+
+    const readPromise = this.fetchEmergencyInfo(athleteId, apiAthleteId, headers);
+    pendingEmergencyInfoReads.set(cacheKey, readPromise);
+    const result = await readPromise.finally(() => {
+      pendingEmergencyInfoReads.delete(cacheKey);
+    });
+    return cloneEmergencyInfoResult(result);
+  }
+
+  private async fetchEmergencyInfo(
+    athleteId: string,
+    apiAthleteId: string,
+    headers: Record<string, string>,
+  ): Promise<Result<EmergencyInfo, ServiceError>> {
     const [medicalResult, emergencyResult, consentsResult] = await Promise.all([
       apiFetch<ApiMedicalRecord>(`/v1/athletes/${apiAthleteId}/medical`, {
         method: 'GET',
@@ -180,15 +246,15 @@ class FamilyHealthService {
     ]);
 
     if (!medicalResult.success) {
-      logger.error('Failed to load medical record', { athleteId, error: medicalResult.error });
+      logger.warn('Failed to load medical record', { athleteId, error: medicalResult.error });
       return err(medicalResult.error);
     }
     if (!emergencyResult.success) {
-      logger.error('Failed to load emergency contacts', { athleteId, error: emergencyResult.error });
+      logger.warn('Failed to load emergency contacts', { athleteId, error: emergencyResult.error });
       return err(emergencyResult.error);
     }
     if (!consentsResult.success) {
-      logger.error('Failed to load athlete consents', { athleteId, error: consentsResult.error });
+      logger.warn('Failed to load athlete consents', { athleteId, error: consentsResult.error });
       return err(consentsResult.error);
     }
 
@@ -204,6 +270,7 @@ class FamilyHealthService {
       return access;
     }
 
+    clearEmergencyInfoCacheForAthlete(access.data.apiAthleteId);
     const body: Record<string, unknown> = {};
 
     if ('conditions' in medical) body.conditions = medical.conditions;
@@ -234,6 +301,7 @@ class FamilyHealthService {
       return err(result.error);
     }
 
+    clearEmergencyInfoCacheForAthlete(access.data.apiAthleteId);
     return this.getEmergencyInfo(athleteId);
   }
 
@@ -246,6 +314,7 @@ class FamilyHealthService {
       return access;
     }
 
+    clearEmergencyInfoCacheForAthlete(access.data.apiAthleteId);
     const result = await apiFetch<ApiEmergencyContactsResponse>(
       `/v1/athletes/${access.data.apiAthleteId}/emergency-contacts`,
       {
@@ -270,6 +339,7 @@ class FamilyHealthService {
       return err(result.error);
     }
 
+    clearEmergencyInfoCacheForAthlete(access.data.apiAthleteId);
     return this.getEmergencyInfo(athleteId);
   }
 
@@ -282,6 +352,7 @@ class FamilyHealthService {
       return access;
     }
 
+    clearEmergencyInfoCacheForAthlete(access.data.apiAthleteId);
     const result = await apiFetch<ApiConsentsResponse>(
       `/v1/athletes/${access.data.apiAthleteId}/consents`,
       {
@@ -304,6 +375,7 @@ class FamilyHealthService {
       return err(result.error);
     }
 
+    clearEmergencyInfoCacheForAthlete(access.data.apiAthleteId);
     return this.getEmergencyInfo(athleteId);
   }
 }

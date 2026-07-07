@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ElementRef } from 'react';
 import { RefreshControl, Share, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -388,34 +389,36 @@ export default function MyProgressScreen() {
   };
   if (loading) {
     return (
-      <View
+      <SafeAreaView
         style={[
           styles.container,
           {
             backgroundColor: colors.background,
           },
         ]}
+        edges={['top', 'bottom']}
       >
         <PageHeader title={pageTitle} showBack centerTitle onBackPress={() => router.back()} />
         {childFocusCard}
         <LoadingState variant="hero" />
-      </View>
+      </SafeAreaView>
     );
   }
   if (status === 'error') {
     return (
-      <View
+      <SafeAreaView
         style={[
           styles.container,
           {
             backgroundColor: colors.background,
           },
         ]}
+        edges={['top', 'bottom']}
       >
         <PageHeader title={pageTitle} showBack centerTitle onBackPress={() => router.back()} />
         {childFocusCard}
         <ErrorState message={error?.message ?? 'Unable to load progress.'} onRetry={retry} />
-      </View>
+      </SafeAreaView>
     );
   }
   if (!currentUser || status === 'empty' || !progress) {
@@ -432,13 +435,14 @@ export default function MyProgressScreen() {
         ? 'Book a Session'
         : 'Find a Coach';
     return (
-      <View
+      <SafeAreaView
         style={[
           styles.container,
           {
             backgroundColor: colors.background,
           },
         ]}
+        edges={['top', 'bottom']}
       >
         <PageHeader title={pageTitle} showBack centerTitle onBackPress={() => router.back()} />
         {childFocusCard}
@@ -457,17 +461,18 @@ export default function MyProgressScreen() {
             }
           }}
         />
-      </View>
+      </SafeAreaView>
     );
   }
   return (
-    <View
+    <SafeAreaView
       style={[
         styles.container,
         {
           backgroundColor: colors.background,
         },
       ]}
+      edges={['top', 'bottom']}
     >
       <PageHeader title={pageTitle} showBack centerTitle onBackPress={() => router.back()} />
 
@@ -673,7 +678,7 @@ export default function MyProgressScreen() {
 
       <CelebrationOverlay ref={celebrationRef} />
       <LevelUpCeremony ref={levelUpRef} />
-    </View>
+    </SafeAreaView>
   );
 }
 const styles = StyleSheet.create({

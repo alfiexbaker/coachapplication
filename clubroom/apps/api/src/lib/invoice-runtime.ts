@@ -110,12 +110,22 @@ export type InvoiceTransitionAction =
   | 'write-off'
   | 'restore'
   | 'void';
+export type ManualReceiptMethod = 'cash' | 'bank_transfer' | 'other';
+export interface ManualPaymentReceiptInput {
+  method?: ManualReceiptMethod;
+  amountMinor?: number;
+  receivedAt?: string;
+  reference?: string;
+  evidenceMediaId?: string;
+  note?: string;
+}
 export interface TransitionInvoiceInput {
   invoiceId: string;
   actorUserId: string;
   action: InvoiceTransitionAction;
   reason?: string;
   requestId?: string;
+  manualReceipt?: ManualPaymentReceiptInput;
 }
 export interface BookingInvoiceLifecycleInput {
   bookingId: string;
@@ -291,6 +301,184 @@ function canAccessInvoiceRow(authUserId: string, isAdmin: boolean, invoice: Seed
     asString(invoice.payerUserId) === authUserId
   );
 }
+
+const CLUB_INVOICE_FINANCE_ROLES = ['ADMIN', 'CLUB_ADMIN', 'OWNER'] as const;
+const CLUB_INVOICE_FINANCE_ROLE_SET = new Set<string>(CLUB_INVOICE_FINANCE_ROLES);
+
+function hasClubInvoiceFinanceRole(value: unknown): boolean {
+  return CLUB_INVOICE_FINANCE_ROLE_SET.has(
+    String(value ?? '')
+      .trim()
+      .toUpperCase(),
+  );
+}
+
+function isActiveClubMembershipRow(row: SeedRow): boolean {
+  return row.active !== false && !asString(row.deletedAt);
+}
+
+function resolveInvoiceClubIdFromTables(tables: SeedTables, invoice: SeedRow): string | null {
+  const bookingId = asString(invoice.bookingId);
+  if (!bookingId) {
+    return null;
+  }
+  const booking = asRows(tables.bookings).find(
+    (row) => asString(row.id) === bookingId && !asString(row.deletedAt),
+  );
+  if (!booking) {
+    return null;
+  }
+  const bookingClubId = asString(booking.clubId);
+  if (bookingClubId) {
+    return bookingClubId;
+  }
+  const groupSessionId = asString(booking.groupSessionId);
+  if (!groupSessionId) {
+    return null;
+  }
+  const groupSession = asRows(tables.groupSessions).find(
+    (row) => asString(row.id) === groupSessionId && !asString(row.deletedAt),
+  );
+  return asString(groupSession?.clubId) ?? null;
+}
+
+function canManageClubInvoiceInTables(
+  tables: SeedTables,
+  invoice: SeedRow,
+  authUserId: string,
+): boolean {
+  const clubId = resolveInvoiceClubIdFromTables(tables, invoice);
+  if (!clubId) {
+    return false;
+  }
+  return asRows(tables.clubMemberships).some(
+    (row) =>
+      asString(row.clubId) === clubId &&
+      asString(row.userId) === authUserId &&
+      isActiveClubMembershipRow(row) &&
+      hasClubInvoiceFinanceRole(row.role),
+  );
+}
+
+async function listClubInvoiceAccessInDb(authUserId: string): Promise<{
+  clubIds: string[];
+  groupSessionIds: string[];
+}> {
+  const prisma = getPrismaClientOrThrow();
+  const memberships = await prisma.clubMembership.findMany({
+    where: {
+      userId: authUserId,
+      active: true,
+      deletedAt: null,
+      role: {
+        in: [...CLUB_INVOICE_FINANCE_ROLES],
+      },
+    },
+    select: {
+      clubId: true,
+    },
+  });
+  const clubIds = [...new Set(memberships.map((membership) => membership.clubId))];
+  if (clubIds.length === 0) {
+    return {
+      clubIds,
+      groupSessionIds: [],
+    };
+  }
+  const groupSessions = await prisma.groupSession.findMany({
+    where: {
+      clubId: {
+        in: clubIds,
+      },
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+    },
+  });
+  return {
+    clubIds,
+    groupSessionIds: groupSessions.map((session) => session.id),
+  };
+}
+
+async function canManageClubInvoiceInDb(invoice: SeedRow, authUserId: string): Promise<boolean> {
+  const bookingId = asString(invoice.bookingId);
+  if (!bookingId) {
+    return false;
+  }
+  const prisma = getPrismaClientOrThrow();
+  const booking = await prisma.booking.findFirst({
+    where: {
+      id: bookingId,
+      deletedAt: null,
+    },
+    select: {
+      clubId: true,
+      groupSessionId: true,
+    },
+  });
+  if (!booking) {
+    return false;
+  }
+  let clubId = booking.clubId;
+  if (!clubId && booking.groupSessionId) {
+    const groupSession = await prisma.groupSession.findFirst({
+      where: {
+        id: booking.groupSessionId,
+        deletedAt: null,
+      },
+      select: {
+        clubId: true,
+      },
+    });
+    clubId = groupSession?.clubId ?? null;
+  }
+  if (!clubId) {
+    return false;
+  }
+  const membership = await prisma.clubMembership.findUnique({
+    where: {
+      clubId_userId: {
+        clubId,
+        userId: authUserId,
+      },
+    },
+    select: {
+      active: true,
+      deletedAt: true,
+      role: true,
+    },
+  });
+  return Boolean(
+    membership?.active &&
+      !membership.deletedAt &&
+      hasClubInvoiceFinanceRole(membership.role),
+  );
+}
+
+export async function canManageClubInvoice(invoice: SeedRow, authUserId: string): Promise<boolean> {
+  if (getApiDataBackend() === 'db') {
+    if (shouldUseDbFixtureFallback()) {
+      return canManageClubInvoiceInTables(getDbFixtureStore().tables, invoice, authUserId);
+    }
+    return canManageClubInvoiceInDb(invoice, authUserId);
+  }
+  return canManageClubInvoiceInTables(getMarketplaceSeedStore().tables, invoice, authUserId);
+}
+
+export async function canManageInvoiceMoneyAction(
+  invoice: SeedRow,
+  authUserId: string,
+  isAdmin: boolean,
+): Promise<boolean> {
+  return (
+    isAdmin ||
+    asString(invoice.coachUserId) === authUserId ||
+    (await canManageClubInvoice(invoice, authUserId))
+  );
+}
+
 function resolveMutableTables(): {
   tables: SeedTables;
   version: string;
@@ -469,18 +657,85 @@ function cancelActivePaymentAttemptsForInvoice(params: {
   invoiceId: string;
   now: string;
   reason: string;
-}): void {
+}): string[] {
+  const canceledAttemptIds: string[] = [];
   for (const row of params.paymentAttempts) {
     if (
       asString(row.invoiceId) === params.invoiceId &&
       ACTIVE_PAYMENT_ATTEMPT_STATUSES.has(coerceAttemptStatus(row.status))
     ) {
+      const attemptId = asString(row.id);
       row.status = 'CANCELED';
       row.canceledAt = params.now;
       row.updatedAt = params.now;
       row.failureReason = params.reason;
+      if (attemptId) {
+        canceledAttemptIds.push(attemptId);
+      }
     }
   }
+  return canceledAttemptIds;
+}
+function latestMarkedPaidEvent(invoiceEvents: SeedRow[], invoiceId: string): SeedRow | undefined {
+  return invoiceEvents
+    .filter(
+      (row) =>
+        asString(row.invoiceId) === invoiceId &&
+        asString(row.eventType)?.toUpperCase() === 'MARKED_PAID',
+    )
+    .sort((left, right) => {
+      const leftTime = Date.parse(asString(left.occurredAt) ?? '');
+      const rightTime = Date.parse(asString(right.occurredAt) ?? '');
+      return (Number.isFinite(rightTime) ? rightTime : 0) -
+        (Number.isFinite(leftTime) ? leftTime : 0);
+    })[0];
+}
+function assertCanMarkPaidInvoiceUnpaid(params: {
+  paidEvent: SeedRow | null | undefined;
+  invoiceId: string;
+}): void {
+  const source = asString(coerceMetadata(params.paidEvent?.metadataJson).source);
+  if (source && source !== 'manual-receipt' && source !== 'coach-reconciler') {
+    throw badRequest('Provider-confirmed payments cannot be moved back to unpaid here', {
+      invoiceId: params.invoiceId,
+      paymentSource: source,
+    });
+  }
+}
+function normalizeManualReceipt(params: {
+  input?: ManualPaymentReceiptInput;
+  invoice: SeedRow;
+  invoiceId: string;
+  actorUserId: string;
+  now: string;
+}): Record<string, unknown> {
+  const totalMinor = asNumber(params.invoice.totalMinor) ?? 0;
+  const amountMinor = params.input?.amountMinor ?? totalMinor;
+  if (amountMinor !== totalMinor) {
+    throw badRequest('Manual receipt amount must match invoice total', {
+      invoiceId: params.invoiceId,
+      amountMinor,
+      totalMinor,
+    });
+  }
+  const receivedAt = params.input?.receivedAt ?? params.now;
+  const receivedAtDate = new Date(receivedAt);
+  if (Number.isNaN(receivedAtDate.valueOf())) {
+    throw badRequest('Manual receipt receivedAt must be a valid date', {
+      invoiceId: params.invoiceId,
+      receivedAt,
+    });
+  }
+  return {
+    method: params.input?.method ?? 'other',
+    amountMinor,
+    currency: asString(params.invoice.currency) ?? 'GBP',
+    receivedAt: receivedAtDate.toISOString(),
+    receivedByUserId: params.actorUserId,
+    reference: params.input?.reference ?? null,
+    evidenceMediaId: params.input?.evidenceMediaId ?? null,
+    note: params.input?.note ?? null,
+  };
 }
 function getInvoiceTransitionPlan(params: {
   action: InvoiceTransitionAction;
@@ -1314,6 +1569,8 @@ function mapPaymentAttemptRow(row: SeedRow): SeedRow {
     currency: asString(row.currency) ?? 'GBP',
     expiresAt: asString(row.expiresAt) ?? null,
     confirmedAt: asString(row.confirmedAt) ?? null,
+    failedAt: asString(row.failedAt) ?? null,
+    canceledAt: asString(row.canceledAt) ?? null,
     failureCode: asString(row.failureCode) ?? null,
     failureReason: asString(row.failureReason) ?? null,
     metadataJson: coerceMetadata(row.metadataJson),
@@ -1331,7 +1588,10 @@ export async function listAccessibleInvoices(
     const users = asRows(mutable.tables.users);
     return getActiveRows(asRows(mutable.tables.invoices))
       .flatMap((row) => {
-        if (!canAccessInvoiceRow(authUserId, isAdmin, row)) return [];
+        const canAccess =
+          canAccessInvoiceRow(authUserId, isAdmin, row) ||
+          canManageClubInvoiceInTables(mutable.tables, row, authUserId);
+        if (!canAccess) return [];
         return matchesInvoiceFilters(row, query) ? [mapInvoice(row, users)] : [];
       })
       .sort(
@@ -1346,19 +1606,51 @@ export async function listAccessibleInvoices(
         return INVOICE_STATUSES.includes(mapped) ? [mapped] : [];
       })
     : undefined;
+  const clubInvoiceAccess = isAdmin
+    ? { clubIds: [], groupSessionIds: [] }
+    : await listClubInvoiceAccessInDb(authUserId);
+  const accessOr = [
+    {
+      coachUserId: authUserId,
+    },
+    {
+      payerUserId: authUserId,
+    },
+    ...(clubInvoiceAccess.clubIds.length > 0
+      ? [
+          {
+            booking: {
+              is: {
+                clubId: {
+                  in: clubInvoiceAccess.clubIds,
+                },
+                deletedAt: null,
+              },
+            },
+          },
+        ]
+      : []),
+    ...(clubInvoiceAccess.groupSessionIds.length > 0
+      ? [
+          {
+            booking: {
+              is: {
+                groupSessionId: {
+                  in: clubInvoiceAccess.groupSessionIds,
+                },
+                deletedAt: null,
+              },
+            },
+          },
+        ]
+      : []),
+  ];
   const where = {
     deletedAt: null,
     ...(isAdmin
       ? {}
       : {
-          OR: [
-            {
-              coachUserId: authUserId,
-            },
-            {
-              payerUserId: authUserId,
-            },
-          ],
+          OR: accessOr,
         }),
     ...(query.coachId
       ? {
@@ -1523,7 +1815,14 @@ export async function transitionInvoiceStatus(input: TransitionInvoiceInput): Pr
     }
     const bookingId = asString(invoice.bookingId);
     assertMutableInvoiceBookingLink(mutable.tables, invoice, input.invoiceId);
+    const invoiceEvents = getMutableRows(mutable.tables, 'invoiceEvents');
     const currentStatus = toInvoiceStatus(invoice.status);
+    if (input.action === 'mark-unpaid') {
+      assertCanMarkPaidInvoiceUnpaid({
+        paidEvent: latestMarkedPaidEvent(invoiceEvents, input.invoiceId),
+        invoiceId: input.invoiceId,
+      });
+    }
     const plan = getInvoiceTransitionPlan({
       action: input.action,
       currentStatus,
@@ -1534,6 +1833,25 @@ export async function transitionInvoiceStatus(input: TransitionInvoiceInput): Pr
       return invoice;
     }
     const now = nowIso();
+    const manualReceipt =
+      input.action === 'mark-paid'
+        ? normalizeManualReceipt({
+            input: input.manualReceipt,
+            invoice,
+            invoiceId: input.invoiceId,
+            actorUserId: input.actorUserId,
+            now,
+          })
+        : null;
+    const canceledPaymentAttemptIds =
+      input.action === 'mark-paid'
+        ? cancelActivePaymentAttemptsForInvoice({
+            paymentAttempts: getMutableRows(mutable.tables, 'paymentAttempts'),
+            invoiceId: input.invoiceId,
+            now,
+            reason: 'Canceled after manual receipt was recorded.',
+          })
+        : [];
     invoice.status = plan.nextStatus;
     invoice.updatedAt = now;
     invoice.updatedByUserId = input.actorUserId;
@@ -1559,7 +1877,7 @@ export async function transitionInvoiceStatus(input: TransitionInvoiceInput): Pr
         break;
     }
     appendInvoiceEvent({
-      invoiceEvents: getMutableRows(mutable.tables, 'invoiceEvents'),
+      invoiceEvents,
       invoiceId: input.invoiceId,
       eventType: plan.eventType,
       actorUserId: input.actorUserId,
@@ -1567,8 +1885,14 @@ export async function transitionInvoiceStatus(input: TransitionInvoiceInput): Pr
       requestId: input.requestId,
       occurredAt: now,
       metadata: {
-        source: 'coach-reconciler',
+        source: input.action === 'mark-paid' ? 'manual-receipt' : 'coach-reconciler',
         bookingId: bookingId ?? null,
+        ...(manualReceipt
+          ? {
+              manualReceipt,
+              canceledPaymentAttemptIds,
+            }
+          : {}),
       },
     });
     updateReconcilerEntry({
@@ -1615,6 +1939,21 @@ export async function transitionInvoiceStatus(input: TransitionInvoiceInput): Pr
       }
     }
     const currentStatus = toInvoiceStatus(invoice.status);
+    if (input.action === 'mark-unpaid') {
+      const paidEvent = await tx.invoiceEvent.findFirst({
+        where: {
+          invoiceId: input.invoiceId,
+          eventType: 'MARKED_PAID',
+        },
+        orderBy: {
+          occurredAt: 'desc',
+        },
+      });
+      assertCanMarkPaidInvoiceUnpaid({
+        paidEvent: paidEvent as unknown as SeedRow | null,
+        invoiceId: input.invoiceId,
+      });
+    }
     const plan = getInvoiceTransitionPlan({
       action: input.action,
       currentStatus,
@@ -1625,6 +1964,32 @@ export async function transitionInvoiceStatus(input: TransitionInvoiceInput): Pr
       return normalizeForJson(invoice);
     }
     const now = new Date();
+    const nowIsoString = now.toISOString();
+    const manualReceipt =
+      input.action === 'mark-paid'
+        ? normalizeManualReceipt({
+            input: input.manualReceipt,
+            invoice: invoice as unknown as SeedRow,
+            invoiceId: input.invoiceId,
+            actorUserId: input.actorUserId,
+            now: nowIsoString,
+          })
+        : null;
+    const activePaymentAttempts =
+      input.action === 'mark-paid'
+        ? await tx.paymentAttempt.findMany({
+            where: {
+              invoiceId: input.invoiceId,
+              status: {
+                in: ['PENDING', 'ACTION_REQUIRED'],
+              },
+            },
+            select: {
+              id: true,
+            },
+          })
+        : [];
+    const canceledPaymentAttemptIds = activePaymentAttempts.map((attempt) => attempt.id);
     const data = {
       status: plan.nextStatus,
       updatedByUserId: input.actorUserId,
@@ -1676,8 +2041,14 @@ export async function transitionInvoiceStatus(input: TransitionInvoiceInput): Pr
           reason: plan.reason,
           requestId: input.requestId ?? null,
           metadataJson: {
-            source: 'coach-reconciler',
+            source: input.action === 'mark-paid' ? 'manual-receipt' : 'coach-reconciler',
             bookingId: invoice.bookingId ?? null,
+            ...(manualReceipt
+              ? {
+                  manualReceipt,
+                  canceledPaymentAttemptIds,
+                }
+              : {}),
           } as never,
         },
       }),
@@ -1686,6 +2057,20 @@ export async function transitionInvoiceStatus(input: TransitionInvoiceInput): Pr
           invoiceId: input.invoiceId,
         },
       }),
+      canceledPaymentAttemptIds.length > 0
+        ? tx.paymentAttempt.updateMany({
+            where: {
+              id: {
+                in: canceledPaymentAttemptIds,
+              },
+            },
+            data: {
+              status: 'CANCELED',
+              canceledAt: now,
+              failureReason: 'Canceled after manual receipt was recorded.',
+            },
+          })
+        : Promise.resolve(null),
     ]);
     if (existingReconciler) {
       await tx.reconcilerEntry.update({
@@ -2679,6 +3064,12 @@ export async function completeSimulatedInvoicePayment(
         attemptId: input.attemptId,
       });
     }
+    if (asString(attempt.provider) !== 'simulated') {
+      throw badRequest('Payment attempt is not managed by the simulated provider', {
+        attemptId: input.attemptId,
+        provider: asString(attempt.provider) ?? null,
+      });
+    }
     if ((asNumber(attempt.amountMinor) ?? 0) !== payload.amountMinor) {
       throw badRequest('Payment attempt amount mismatch', {
         attemptId: input.attemptId,
@@ -2792,6 +3183,12 @@ export async function completeSimulatedInvoicePayment(
   if (attempt.providerSessionId !== payload.providerSessionId) {
     throw badRequest('Payment attempt provider session mismatch', {
       attemptId: input.attemptId,
+    });
+  }
+  if (attempt.provider !== 'simulated') {
+    throw badRequest('Payment attempt is not managed by the simulated provider', {
+      attemptId: input.attemptId,
+      provider: attempt.provider,
     });
   }
   if (attempt.amountMinor !== payload.amountMinor) {

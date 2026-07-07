@@ -14,7 +14,8 @@
  *
  * API Integration Notes:
  * - GET /v1/athletes/:id/goals - Get backend-authoritative goals
- * - Live analytics, skill history, and goal mutations fail closed until dedicated /v1 routes exist.
+ * - Goal CRUD/milestone writes live in progressGoalsService and analyticsTrackingService
+ *   through named /v1 routes; coach analytics reads derive from /v1 backend truth.
  */
 
 // Re-export individual services for direct use
@@ -161,7 +162,7 @@ export const coachAnalyticsService = {
     analyticsExportService.getSessionStats(...args),
 
   /**
-   * Reset to mock data (useful for testing)
+   * Reset mock analytics fixtures. Live analytics are derived and are not resettable.
    */
   resetToMockData: (...args: Parameters<typeof analyticsExportService.resetToMockData>) =>
     analyticsExportService.resetToMockData(...args),

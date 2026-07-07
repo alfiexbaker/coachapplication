@@ -26,7 +26,7 @@ export function WarningBox({ archive }: WarningBoxProps) {
       <ThemedText style={{ ...Typography.small, color: palette.warning, flex: 1 }}>
         {archive
           ? 'This will remove them from active roster but keep their history.'
-          : 'This action cannot be undone. All data will be permanently deleted.'}
+          : 'This will remove them from active roster without a restore snapshot. Existing records are not erased.'}
       </ThemedText>
     </Row>
   );

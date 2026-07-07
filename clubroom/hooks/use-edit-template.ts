@@ -150,7 +150,7 @@ export function useEditTemplate(id: string | undefined) {
         style: 'destructive',
         onPress: async () => {
           try {
-            await availabilityService.deleteTemplate(template.id);
+            await availabilityService.deleteTemplate(template.id, template.coachId);
             uiFeedback.showToast('Template removed', 'success');
             router.back();
           } catch {

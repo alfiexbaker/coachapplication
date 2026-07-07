@@ -15,6 +15,7 @@ import {
 import { useTheme } from '@/hooks/useTheme';
 import { getStatusColor, getStatusIcon, formatRecurringTime } from './recurring-card-helpers';
 import { getRecurringCoachName } from '@/utils/recurring-display';
+import { formatServiceTypeLabel } from '@/utils/booking-display';
 
 export const HeaderRow = function HeaderRow({ recurring }: { recurring: RecurringBooking }) {
   const { colors: palette } = useTheme();
@@ -31,7 +32,7 @@ export const HeaderRow = function HeaderRow({ recurring }: { recurring: Recurrin
           {coachName}
         </ThemedText>
         <ThemedText style={[styles.sessionType, { color: palette.muted }]}>
-          {recurring.sessionType}
+          {formatServiceTypeLabel(recurring.sessionType)}
         </ThemedText>
       </View>
       <Row
@@ -130,6 +131,7 @@ interface ActionsRowProps {
   onPause?: () => void;
   onResume?: () => void;
   onCancel?: () => void;
+  onSkipNext?: () => void;
 }
 
 export const ActionsRow = function ActionsRow({
@@ -137,10 +139,22 @@ export const ActionsRow = function ActionsRow({
   onPause,
   onResume,
   onCancel,
+  onSkipNext,
 }: ActionsRowProps) {
   const { colors: palette } = useTheme();
   return (
     <Row gap="sm" style={styles.actionsRow}>
+      {status === 'ACTIVE' && onSkipNext && (
+        <Clickable
+          onPress={onSkipNext}
+          style={[styles.actionButton, { backgroundColor: withAlpha(palette.info, 0.1) }]}
+        >
+          <Ionicons name="play-skip-forward" size={16} color={palette.info} />
+          <ThemedText style={[styles.actionButtonText, { color: palette.info }]}>
+            Skip Next
+          </ThemedText>
+        </Clickable>
+      )}
       {status === 'ACTIVE' && onPause && (
         <Clickable
           onPress={onPause}

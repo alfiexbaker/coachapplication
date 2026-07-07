@@ -1,8 +1,15 @@
 import type { Booking } from '@/constants/app-types';
+import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { Goal } from '@/constants/types';
 import { badgeService } from '@/services/badge-service';
-import { apiClient } from '@/services/api-client';
+import { apiClient, apiFetch } from '@/services/api-client';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+  toApiAthleteId,
+} from '@/services/api-auth-context';
 import { bookingService } from '@/services/booking';
 import { progressFeedbackService } from '@/services/progress/progress-feedback-service';
 import { progressPracticeLogService } from '@/services/progress/progress-practice-log-service';
@@ -76,6 +83,12 @@ export interface TermlyReportSnapshot {
   generatedAt: string;
   report: TermlyProgressReport;
 }
+interface ApiTermlyReportSnapshotsResponse {
+  snapshots: TermlyReportSnapshot[];
+}
+interface ApiTermlyReportSnapshotResponse {
+  snapshot: TermlyReportSnapshot;
+}
 interface GenerateTermlyReportInput {
   athleteId: string;
   athleteName: string;
@@ -123,6 +136,29 @@ function getWeekStartIso(isoDate: string): string | null {
 }
 function toOneDecimal(value: number): number {
   return Math.round(value * 10) / 10;
+}
+function isApiMode(): boolean {
+  return !api.useMock;
+}
+async function resolveTermlyReportApiAccess(
+  athleteId: string,
+): Promise<Result<{ apiAthleteId: string; headers: Record<string, string> }, ServiceError>> {
+  const currentUserResult = await resolveSignedInApiUser('Sign in to save termly reports.');
+  if (!currentUserResult.success) {
+    return err(currentUserResult.error);
+  }
+  const currentUser = currentUserResult.data;
+  const apiAthleteId = toApiAthleteId(athleteId);
+  const actingRole = deriveApiActingRole(currentUser);
+  return ok({
+    apiAthleteId,
+    headers: buildApiAuthHeaders({
+      actingRole,
+      coachAthleteIds: actingRole === 'coach' ? [apiAthleteId] : undefined,
+      guardianAthleteIds: actingRole === 'parent' ? [apiAthleteId] : undefined,
+      coachVerified: actingRole === 'coach' && currentUser.isVerified,
+    }),
+  });
 }
 function buildHighlights(report: Omit<TermlyProgressReport, 'highlights'>): string[] {
   const next: string[] = [];
@@ -314,6 +350,27 @@ async function generateTermlyReport(
 async function saveReportSnapshot(
   report: TermlyProgressReport,
 ): Promise<Result<TermlyReportSnapshot, ServiceError>> {
+  if (isApiMode()) {
+    const access = await resolveTermlyReportApiAccess(report.athleteId);
+    if (!access.success) {
+      return err(access.error);
+    }
+    const result = await apiFetch<ApiTermlyReportSnapshotResponse>(
+      `/v1/athletes/${encodeURIComponent(access.data.apiAthleteId)}/termly-reports`,
+      {
+        method: 'POST',
+        headers: access.data.headers,
+        body: JSON.stringify({
+          report: {
+            ...report,
+            athleteId: access.data.apiAthleteId,
+          },
+        }),
+      },
+    );
+    return result.success ? ok(result.data.snapshot) : err(result.error);
+  }
+
   try {
     const snapshot: TermlyReportSnapshot = {
       id: `termly_snapshot_${report.athleteId}_${Date.now()}`,
@@ -339,6 +396,21 @@ async function listReportSnapshots(
   if (!athleteId.trim()) {
     return ok([]);
   }
+  if (isApiMode()) {
+    const access = await resolveTermlyReportApiAccess(athleteId);
+    if (!access.success) {
+      return err(access.error);
+    }
+    const result = await apiFetch<ApiTermlyReportSnapshotsResponse>(
+      `/v1/athletes/${encodeURIComponent(access.data.apiAthleteId)}/termly-reports`,
+      {
+        method: 'GET',
+        headers: access.data.headers,
+      },
+    );
+    return result.success ? ok(result.data.snapshots) : err(result.error);
+  }
+
   try {
     const snapshots = await apiClient.get<TermlyReportSnapshot[]>(TERM_REPORTS_STORAGE_KEY, []);
     return ok(

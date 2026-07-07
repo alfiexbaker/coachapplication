@@ -659,6 +659,10 @@ export const earningsReportService = {
    * Reset earnings and transactions to mock data (useful for testing)
    */
   async resetToMockData(): Promise<void> {
+    if (!USE_MOCK) {
+      logger.warn('Skipped earnings mock reset outside mock mode');
+      return;
+    }
     await saveEarnings({ ...MOCK_EARNINGS });
     await saveTransactions([...MOCK_TRANSACTIONS]);
     earningsCache = { ...MOCK_EARNINGS };

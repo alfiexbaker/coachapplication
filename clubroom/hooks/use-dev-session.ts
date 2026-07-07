@@ -43,7 +43,7 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { buildFeedbackPrefillFromQuickRate } from '@/utils/feedback-prefill';
 import type { Session, BadgeAward } from '@/constants/types';
 import type { QuickRateInput } from '@/types/progress-types';
-import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { err, ok, serviceError, unsupportedError, type ServiceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
 const logger = createLogger('SessionDetailScreen');
@@ -196,6 +196,16 @@ export function useDevSession({
   const loadSessionData = async () => {
     if (!sessionId) {
       return ok<DevSessionData>(emptyDevSessionData());
+    }
+    if (!apiClient.isMockMode) {
+      return err(
+        unsupportedError(
+          'Detailed per-athlete feedback needs a backend-loaded session-feedback context before this local editor can open in API mode.',
+          {
+            route: '/v1/session-feedback',
+          },
+        ),
+      );
     }
     try {
       const sessions = await apiClient.get<SessionRecord[]>(STORAGE_KEYS.COACH_SESSIONS, []);
@@ -452,6 +462,13 @@ export function useDevSession({
   // ─── Save ─────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (!session || !athlete || !currentUser || !sessionId) return;
+    if (!apiClient.isMockMode) {
+      uiFeedback.showToast(
+        'Detailed per-athlete feedback needs a backend-loaded session-feedback context before it can save in API mode.',
+        'error',
+      );
+      return;
+    }
     setSaving(true);
     await runAsyncTryCatchFinally(
       async () => {

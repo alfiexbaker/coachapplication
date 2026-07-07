@@ -15,6 +15,7 @@ import {
   type CreateInviteInput,
 } from '@/services/invite/session-invite-service';
 import { availabilityService } from '@/services/availability-service';
+import { bookingService } from '@/services/booking';
 
 /**
  * Seed availability templates so the invite slot validation passes.
@@ -123,11 +124,7 @@ describe('Integration: Invite -> RSVP Chain', () => {
     assert.ok(acceptedInvite.bookingId, 'accepted invite should have a bookingId');
 
     // Step 4: Verify a booking was actually created
-    const bookings = await apiClient.get<Array<{ id: string; coachId: string; status: string }>>(
-      STORAGE_KEYS.BOOKINGS,
-      [],
-    );
-    const linkedBooking = bookings.find((b) => b.id === acceptedInvite.bookingId);
+    const linkedBooking = await bookingService.getBooking(acceptedInvite.bookingId);
     assert.ok(linkedBooking, 'a booking should exist for the accepted invite');
     assert.equal(linkedBooking!.coachId, 'coach-inv1');
     assert.equal(linkedBooking!.status, 'CONFIRMED');

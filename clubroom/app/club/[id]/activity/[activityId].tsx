@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -29,12 +29,12 @@ export default function ClubActivityRoute() {
   const clubId = clubIdParam.valid ? clubIdParam.value : '';
   const activityId = activityIdParam.valid ? activityIdParam.value : '';
 
-  const loadActivity = () => {
+  const loadActivity = useCallback(() => {
     if (!clubIdParam.valid || !activityIdParam.valid) {
       return Promise.resolve(err(validationError('Invalid club activity link.')));
     }
     return clubScheduleService.getClubActivity(clubId, activityId);
-  };
+  }, [activityId, activityIdParam.valid, clubId, clubIdParam.valid]);
 
   const { data: activity, status, error, retry } = useScreen({
     load: loadActivity,
@@ -61,7 +61,14 @@ export default function ClubActivityRoute() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top', 'bottom']}>
       <PageHeader title="Opening Activity" showBack onBackPress={handleBack} />
       {status === 'error' ? (
-        <ErrorState message={error?.message ?? 'Failed to open this activity.'} onRetry={retry} />
+        <ErrorState
+          message={
+            error?.code === 'NOT_FOUND'
+              ? 'This club activity is no longer available.'
+              : 'Failed to open this activity.'
+          }
+          onRetry={retry}
+        />
       ) : (
         <LoadingState variant="detail" />
       )}

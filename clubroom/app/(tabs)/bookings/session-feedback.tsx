@@ -1,11 +1,12 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { apiClient } from '@/services/api-client';
+import { bookingService } from '@/services/booking-service';
 
-import { LoadingState } from '@/components/ui/screen-states';
+import { ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { FootballObjective, Booking } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -22,7 +23,7 @@ export default function SessionFeedbackScreen() {
 
   // Get athlete's objectives from params
   const athleteObjectivesParam = params.athleteObjectives as string;
-  const athleteObjectives: FootballObjective[] = (() => {
+  const athleteObjectives: FootballObjective[] = useMemo(() => {
     if (!athleteObjectivesParam) return [];
     try {
       return JSON.parse(athleteObjectivesParam) as FootballObjective[];
@@ -30,18 +31,60 @@ export default function SessionFeedbackScreen() {
       logger.error('Failed to parse athleteObjectives param');
       return [];
     }
-  })();
+  }, [athleteObjectivesParam]);
   const athleteName = (params.athleteName as string) || 'the athlete';
   const athleteId = params.athleteId as string;
   const bookingId = params.bookingId as string;
+  const missingBookingId = !bookingId;
 
-  // Create session record and navigate to detail screen
+  // API mode uses backend booking/note authority; mock mode keeps the legacy local session bridge.
   useEffect(() => {
-    const createSessionAndNavigate = async () => {
+    if (missingBookingId) return;
+
+    const prepareFeedbackAndNavigate = async () => {
       if (isCreatingRef.current) return;
       isCreatingRef.current = true;
 
       try {
+        if (!apiClient.isMockMode) {
+          if (!bookingId) {
+            logger.error('Missing booking id for session feedback');
+            uiFeedback.showToast('Choose a completed booking before opening session feedback.', 'error');
+            router.back();
+            return;
+          }
+
+          const booking = await bookingService.getBooking(bookingId);
+          if (!booking) {
+            logger.error('Booking not found for session feedback', { bookingId });
+            uiFeedback.showToast('Booking not found for session feedback.', 'error');
+            router.back();
+            return;
+          }
+
+          if (booking.status !== 'COMPLETED') {
+            const updateResult = await bookingService.updateBooking(bookingId, {
+              status: 'COMPLETED',
+            });
+            if (!updateResult.success) {
+              logger.error('Failed to mark booking completed before session feedback', {
+                bookingId,
+                error: updateResult.error,
+              });
+              uiFeedback.showToast(updateResult.error.message, 'error');
+              router.back();
+              return;
+            }
+          }
+
+          logger.success('Booking session feedback ready', {
+            bookingId,
+            athleteId,
+          });
+          router.replace(Routes.sessionNotes(bookingId));
+          return;
+        }
+
         // Create minimal session record
         const sessionId = `session-${Date.now()}`;
         const sessionRecord = {
@@ -82,14 +125,25 @@ export default function SessionFeedbackScreen() {
         // Navigate to session detail screen to add notes/media
         router.replace(Routes.developmentSession(sessionId));
       } catch (error) {
-        logger.error('Failed to create session', error);
-        uiFeedback.showToast('Failed to create session. Please try again.', 'error');
+        logger.error('Failed to prepare session feedback', error);
+        uiFeedback.showToast('Failed to open session feedback. Please try again.', 'error');
         router.back();
       }
     };
 
-    createSessionAndNavigate();
-  }, [athleteId, athleteName, currentUser, bookingId, athleteObjectives]);
+    prepareFeedbackAndNavigate();
+  }, [athleteId, athleteName, currentUser, bookingId, athleteObjectives, missingBookingId]);
+
+  if (missingBookingId) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+        <ErrorState
+          message="Choose a completed booking before opening session feedback."
+          onRetry={() => router.back()}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>

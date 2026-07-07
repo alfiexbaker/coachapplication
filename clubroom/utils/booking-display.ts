@@ -16,8 +16,74 @@ export interface BookingRelationshipContext {
   reportProblemLabel: string;
 }
 
+const INTERNAL_ID_PATTERN = /^(?:usr|ath|clb|sqd)_[0-9a-z][0-9a-z-]{6,}$/i;
+const SERVICE_TYPE_LABELS: Record<string, string> = {
+  '1on1': '1-on-1 session',
+  '1-on-1': '1-on-1 session',
+  '1-to-1': '1-on-1 session',
+  one_to_one: '1-on-1 session',
+  small_group: 'Small-group session',
+  'small-group': 'Small-group session',
+  group: 'Group session',
+  group_session: 'Group session',
+  GROUP_SESSION: 'Group session',
+  team: 'Team session',
+  camp: 'Camp',
+};
+
+export function isInternalIdentifier(value: string | null | undefined): boolean {
+  return Boolean(value?.trim() && INTERNAL_ID_PATTERN.test(value.trim()));
+}
+
+export function safeDisplayLabel(
+  value: string | null | undefined,
+  fallback: string,
+): string {
+  const trimmed = value?.trim();
+  if (!trimmed || isInternalIdentifier(trimmed)) {
+    return fallback;
+  }
+  return trimmed;
+}
+
+export function formatServiceTypeLabel(value: string | null | undefined): string {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return 'Session';
+  }
+
+  const mapped = SERVICE_TYPE_LABELS[trimmed] ?? SERVICE_TYPE_LABELS[trimmed.toLowerCase()];
+  if (mapped) {
+    return mapped;
+  }
+
+  return trimmed
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+export function getBookingServiceLabel(
+  booking: Pick<Booking, 'service' | 'serviceType' | 'isGroupSession' | 'maxParticipants'>,
+): string {
+  const service = safeDisplayLabel(booking.service, '');
+  if (service) {
+    return formatServiceTypeLabel(service);
+  }
+
+  const serviceType = safeDisplayLabel(booking.serviceType, '');
+  if (serviceType) {
+    return formatServiceTypeLabel(serviceType);
+  }
+
+  if (booking.isGroupSession || (booking.maxParticipants ?? 1) > 1) {
+    return 'Group session';
+  }
+
+  return '1-on-1 session';
+}
+
 export function getBookingSummaryCoachName(booking: BookingSummary): string {
-  return booking.coach?.name || booking.coachId || 'Coach';
+  return safeDisplayLabel(booking.coach?.name, safeDisplayLabel(booking.coachId, 'Coach'));
 }
 
 export function getBookingSummaryCoachPhotoUrl(booking: BookingSummary): string {
@@ -25,7 +91,7 @@ export function getBookingSummaryCoachPhotoUrl(booking: BookingSummary): string 
 }
 
 export function getBookingSummaryClientName(booking: BookingSummary): string {
-  return booking.client?.name || booking.clientId || 'Athlete';
+  return safeDisplayLabel(booking.client?.name, safeDisplayLabel(booking.clientId, 'Athlete'));
 }
 
 export function getBookingOwnershipLabel(booking: BookingSummary): string | null {
@@ -47,11 +113,10 @@ export function getBookingOwnershipLabel(booking: BookingSummary): string | null
 export function getBookingAthleteName(booking: Booking): string {
   const legacyAthleteName = (booking as Booking & { athleteName?: string }).athleteName;
   return (
-    booking.athleteNames?.[0] ||
-    legacyAthleteName ||
-    booking.athleteId ||
-    booking.athleteIds?.[0] ||
-    'Athlete'
+    safeDisplayLabel(booking.athleteNames?.[0], '') ||
+    safeDisplayLabel(legacyAthleteName, '') ||
+    safeDisplayLabel(booking.athleteId, '') ||
+    safeDisplayLabel(booking.athleteIds?.[0], 'Athlete')
   );
 }
 
@@ -64,13 +129,13 @@ export function getBookingClubOwnershipContext(
     return null;
   }
 
-  const coachFallback = booking.coachName || booking.coachId || 'Coach';
-  const owner = booking.ownerCoachId || coachFallback;
-  const deliveredBy = booking.assigneeCoachId || coachFallback;
+  const coachFallback = safeDisplayLabel(booking.coachName, safeDisplayLabel(booking.coachId, 'Coach'));
+  const owner = safeDisplayLabel(booking.ownerCoachId, coachFallback);
+  const deliveredBy = safeDisplayLabel(booking.assigneeCoachId, coachFallback);
   const hasSeparateOwner = owner && deliveredBy && owner !== deliveredBy;
 
   return {
-    clubLabel: booking.clubId ? `Club: ${booking.clubId}` : 'Club session',
+    clubLabel: booking.clubId ? `Club: ${safeDisplayLabel(booking.clubId, 'Club session')}` : 'Club session',
     deliveredBy,
     ...(hasSeparateOwner ? { owner } : {}),
   };
@@ -83,10 +148,12 @@ export function getBookingRelationshipContext(input: {
   deliveredByLabel?: string | null;
   commercialMode?: OrganizationCommercialMode | null;
 }): BookingRelationshipContext {
-  const coachLabel = input.coachLabel?.trim() || 'Coach';
-  const deliveredByLabel = input.deliveredByLabel?.trim() || coachLabel;
+  const coachLabel = safeDisplayLabel(input.coachLabel, 'Coach');
+  const deliveredByLabel = safeDisplayLabel(input.deliveredByLabel, coachLabel);
   const organizationLabel =
-    input.actingAs === 'club' ? input.organizationLabel?.trim() || 'Organization' : null;
+    input.actingAs === 'club'
+      ? safeDisplayLabel(input.organizationLabel, 'Organization')
+      : null;
   const commercialMode = input.commercialMode ?? 'COACH_OWNED';
 
   if (organizationLabel && commercialMode === 'ORG_OWNED') {

@@ -538,7 +538,7 @@ export interface EventPayloads {
   };
   [ServiceEvents.CHILD_PROFILES_UPDATED]: {
     parentId: string;
-    action: 'created' | 'updated' | 'deleted';
+    action: 'created' | 'updated' | 'removed';
     childId: string;
   };
 

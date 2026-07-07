@@ -10,4 +10,3 @@ export function AccessibleListCell({ children, ...props }: AccessibleListCellPro
     </View>
   );
 }
-

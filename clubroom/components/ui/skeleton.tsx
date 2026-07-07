@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import {
   AccessibilityInfo,
+  Platform,
   StyleSheet,
   View,
   type DimensionValue,
@@ -89,23 +90,36 @@ export function Skeleton({
     opacity: pulseOpacity.value,
   }));
 
+  const baseStyle = [
+    styles.base,
+    {
+      height,
+      width,
+      borderRadius: radius,
+      backgroundColor:
+        scheme === 'dark' ? withAlpha(palette.border, 0.33) : withAlpha(palette.border, 0.5),
+    },
+    Platform.OS === 'web' ? null : pulseStyle,
+    style,
+  ];
+
+  if (Platform.OS === 'web') {
+    return (
+      <View
+        pointerEvents="none"
+        accessibilityRole="none"
+        accessibilityLabel={accessibilityLabel}
+        style={baseStyle}
+      />
+    );
+  }
+
   return (
     <Animated.View
       pointerEvents="none"
       accessibilityRole="none"
       accessibilityLabel={accessibilityLabel}
-      style={[
-        styles.base,
-        {
-          height,
-          width,
-          borderRadius: radius,
-          backgroundColor:
-            scheme === 'dark' ? withAlpha(palette.border, 0.33) : withAlpha(palette.border, 0.5),
-        },
-        pulseStyle,
-        style,
-      ]}
+      style={baseStyle}
     />
   );
 }

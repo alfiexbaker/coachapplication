@@ -6,6 +6,7 @@
  */
 
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import type { ReactNode } from 'react';
@@ -26,10 +27,13 @@ export default function EmergencyQuickAccessScreen() {
   const { colors: palette } = useTheme();
   const e = useEmergencyAccess();
   const renderState = (content: ReactNode) => (
-    <View style={[styles.container, { backgroundColor: palette.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
       <PageHeader title="Emergency Info" showBack centerTitle />
       {content}
-    </View>
+    </SafeAreaView>
   );
 
   if (e.status === 'loading') {
@@ -58,7 +62,10 @@ export default function EmergencyQuickAccessScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: palette.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
       <PageHeader
         title="Emergency Info"
         showBack
@@ -127,7 +134,7 @@ export default function EmergencyQuickAccessScreen() {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -5,17 +5,19 @@ Use it to keep code, docs, UX, and delivery decisions aligned to the real repo.
 
 Read order at task start:
 
-1. `CODEX.md` (this file)
-2. `docs/START_HERE.md`
-3. One task-specific deep doc, not the whole `docs/` tree
-4. `docs/newsprints/sprints/BACKLOG.md` and `laststep.md` only when the task is active implementation or planning
+1. `docs/START_HERE.md`
+2. `docs/SOURCE_OF_TRUTH.md`
+3. `docs/KNOWLEDGE_SPINE.md`
+4. exactly one task-specific deep doc, not the whole `docs/` tree
+5. `docs/APP_REPORT.md` only for broad PM/project-status work
 
 MCP/tooling expectation:
 
 - Project MCP config lives in `.mcp.json`, `.cursor/mcp.json`, and `.vscode/mcp.json`.
 - Codex global MCP config lives in `~/.codex/config.toml`.
-- Supabase should be available as the project-scoped MCP for `oucxazyrimujqmakxfiv`.
-- Sentry should be available as the hosted Sentry MCP.
+- Supabase MCP is mandatory for database, auth, RLS, storage, migration, seed, and schema work. Use the project-scoped MCP for `oucxazyrimujqmakxfiv` before guessing from code or stale docs.
+- Sentry MCP is mandatory for production/runtime error triage, release health, crash investigation, and regression checks. Use hosted Sentry MCP before inferring production state from local logs.
+- If either MCP is unavailable for a task that needs it, stop and report the missing MCP/auth state instead of silently falling back to memory.
 - Do not commit tokens or secrets into MCP config; use OAuth/client auth flows or local environment variables.
 
 ## 1) Prime Directive
@@ -46,9 +48,7 @@ MCP/tooling expectation:
   - Exact plan
   - Quality bar
   - Regression plan
-- End that preflight with an explicit permission gate:
-  - `Proceed with this plan?`
-- Do not start implementation until the user approves, unless the user explicitly says to skip approval and just run.
+- Do not wait for approval when the user has already asked for implementation and the safe next step is clear.
 
 ## 3) Architecture Standards
 
@@ -155,7 +155,7 @@ Default AI slice gate:
 - use `npm run verify:slice:ui` when controls, loading states, empty states, accessibility labels, or route interactions change
 - use `npm run verify:slice:full` when a slice crosses app, API, and UI behavior
 - use `docs/templates/AI_TASK_PACKET.md` to scope non-trivial AI tasks before implementation
-- use `docs/AI_DEVELOPMENT_PIPELINE.md` for the full no-human-review operating loop
+- use `docs/AI_DEVELOPMENT_PIPELINE.md` for the full no-human-review operating loop when process discipline is part of the task
 
 Minimum gate for non-trivial changes:
 
@@ -164,7 +164,7 @@ Minimum gate for non-trivial changes:
 - run targeted audit/lint commands when relevant
 - for API packet changes, run API typecheck/tests and prove authz deny paths where the feature is trust-sensitive
 - for UI linkup changes, run app typecheck plus the narrowest role/flow validation that exercises the linked API path
-- for API/UI boundary changes, update route inventory or bilateral alignment docs in the same slice
+- for API/UI boundary changes, update route inventory or service ownership docs in the same slice
 
 Common checks:
 

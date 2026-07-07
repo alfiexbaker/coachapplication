@@ -16,6 +16,7 @@ import {
   isSessionOfferingFull,
 } from '@/utils/session-offering-capacity';
 import { getCoachWorkContextDisplay } from '@/utils/coach-business-context';
+import { safeDisplayLabel } from '@/utils/booking-display';
 
 import { SessionTypeBadge, SessionFooterBadges } from './session-offering-card-sections';
 import { uiFeedback } from '@/services/ui-feedback';
@@ -81,8 +82,11 @@ export function SessionOfferingCard({
         ? 'Assigned by Club'
         : 'Club-owned'
       : null;
-  const ownerLabel = offering.ownerCoachId || coachName;
-  const assigneeLabel = offering.assigneeCoachId || null;
+  const ownerLabel = safeDisplayLabel(offering.ownerCoachId, coachName);
+  const assigneeLabel = offering.assigneeCoachId
+    ? safeDisplayLabel(offering.assigneeCoachId, 'Assigned coach')
+    : null;
+  const clubLabel = safeDisplayLabel(offering.clubId, 'Club session');
 
   const formatSchedule = () => {
     if (offering.isRecurring && offering.dayOfWeek !== undefined && offering.timeOfDay) {
@@ -159,7 +163,7 @@ export function SessionOfferingCard({
               <Row align="center" gap="xxs">
                 <Ionicons name="business-outline" size={12} color={palette.info} />
                 <ThemedText style={[styles.ownershipText, { color: palette.info }]}>
-                  Club: {offering.clubId || 'Club session'}
+                  Club: {clubLabel}
                 </ThemedText>
               </Row>
               <ThemedText style={[styles.metaText, { color: palette.text }]} numberOfLines={1}>

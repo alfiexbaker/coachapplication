@@ -10,6 +10,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ClubSquad } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { Row } from '@/components/primitives';
+import { safeDisplayLabel } from '@/utils/booking-display';
 
 interface TeamsPanelProps {
   squads: ClubSquad[];
@@ -93,6 +94,8 @@ function keyTeamItem(item: TeamItem) {
 
 function renderTeamItem({ item }: ListRenderItemInfo<TeamItem>) {
   const { squad, palette, canManageTeams } = item;
+  const primaryCoachLabel = safeDisplayLabel(squad.primaryCoach, 'Assigned coach');
+
   return (
     <SurfaceCard
       style={styles.teamCard}
@@ -112,7 +115,7 @@ function renderTeamItem({ item }: ListRenderItemInfo<TeamItem>) {
         <Row style={styles.coachRow}>
           <Ionicons name="person-circle-outline" size={12} color={palette.muted} />
           <ThemedText style={[styles.coachName, { color: palette.muted }]} numberOfLines={1}>
-            {squad.primaryCoach}
+            {primaryCoachLabel}
           </ThemedText>
         </Row>
       )}

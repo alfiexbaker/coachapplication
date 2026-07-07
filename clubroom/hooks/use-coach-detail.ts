@@ -48,12 +48,24 @@ interface CoachConnectionSnapshot {
   isBlocked: boolean;
 }
 
+function isLegacyCoachProfileId(coachId: string | undefined): boolean {
+  return Boolean(coachId?.startsWith('coach-'));
+}
+
 async function getCoachConnectionSnapshot(
   currentUserId: string | undefined,
   coachId: string | undefined,
   isOwnProfile: boolean,
 ): Promise<CoachConnectionSnapshot> {
-  if (!coachId || !currentUserId || isOwnProfile) {
+  if (!coachId || !currentUserId || isLegacyCoachProfileId(coachId)) {
+    return {
+      connectionState: 'none',
+      incomingRequestId: null,
+      isBlocked: false,
+    };
+  }
+
+  if (isOwnProfile) {
     return {
       connectionState: 'self',
       incomingRequestId: null,
@@ -137,7 +149,8 @@ export function useCoachDetail(coachId: string | undefined) {
     }
 
     try {
-      const offeringsResultPromise = apiClient.isMockMode
+      const shouldUseLocalOfferings = apiClient.isMockMode;
+      const offeringsResultPromise = shouldUseLocalOfferings
         ? apiClient
             .get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, [])
             .then((offerings) => ok(getCoachProfileOfferings(offerings, coachId)))
@@ -202,7 +215,9 @@ export function useCoachDetail(coachId: string | undefined) {
   const reviews = data?.reviews ?? [];
   const sessionOfferings = data?.sessionOfferings ?? [];
   const offeringSummary = summarizeCoachOfferings(sessionOfferings);
+  const usesBackendRelationshipActions = !isLegacyCoachProfileId(coachId);
   const canFollowAction =
+    usesBackendRelationshipActions &&
     !followLoading &&
     !isOwnProfile &&
     !isBlocked &&
@@ -238,7 +253,15 @@ export function useCoachDetail(coachId: string | undefined) {
   }, [currentUserId, coachId, isOwnProfile]);
 
   const handleFollow = async () => {
-    if (!coachId || !currentUser?.id || !canFollowAction || followLoading || isBlocked) return;
+    if (
+      !coachId ||
+      !currentUser?.id ||
+      !canFollowAction ||
+      followLoading ||
+      isBlocked ||
+      !usesBackendRelationshipActions
+    )
+      return;
 
     setFollowLoading(true);
 
@@ -302,6 +325,7 @@ export function useCoachDetail(coachId: string | undefined) {
   };
   const handleRefresh = () => {
     onRefresh();
+    if (!usesBackendRelationshipActions) return;
     void getCoachConnectionSnapshot(currentUserId, coachId, isOwnProfile).then((snapshot) => {
       applyCoachConnectionSnapshot(
         snapshot,
@@ -313,7 +337,7 @@ export function useCoachDetail(coachId: string | undefined) {
   };
 
   const handleBlock = async () => {
-    if (!coachId || !currentUser?.id || isOwnProfile) return;
+    if (!coachId || !currentUser?.id || isOwnProfile || !usesBackendRelationshipActions) return;
 
     const confirmed = await uiFeedback.confirm({
       title: `Block ${coach?.name || 'this coach'}?`,
@@ -361,6 +385,7 @@ export function useCoachDetail(coachId: string | undefined) {
     isOwnProfile,
     isBlocked,
     relationshipDisplay,
+    showFollowAction: usesBackendRelationshipActions,
     handleRefresh,
     handleFollow,
     handleBook,
@@ -392,6 +417,7 @@ export function useCoachDetail(coachId: string | undefined) {
     isOwnProfile: boolean;
     isBlocked: boolean;
     relationshipDisplay: ReturnType<typeof getCoachRelationshipDisplay>;
+    showFollowAction: boolean;
     handleRefresh: () => void;
     handleFollow: () => Promise<void>;
     handleBook: () => void;

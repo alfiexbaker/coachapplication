@@ -5,7 +5,7 @@
  * modal state, and all navigation/action handlers.
  */
 
-import { useState, useRef, useEffect } from "react";
+import { useCallback, useMemo, useState, useRef, useEffect } from "react";
 import { router } from "expo-router";
 import { Routes } from "@/navigation/routes";
 import { bookingService } from "@/services/booking";
@@ -25,7 +25,11 @@ import { useChildContext } from "@/hooks/use-child-context";
 import { useScreen } from "@/hooks/use-screen";
 import { createLogger } from "@/utils/logger";
 import { getSessionInviteCoachName } from "@/utils/session-invite-display";
-import { getBookingAthleteName } from "@/utils/booking-display";
+import {
+  getBookingAthleteName,
+  getBookingServiceLabel,
+  safeDisplayLabel,
+} from "@/utils/booking-display";
 import { isCoach, isAdmin } from "@/utils/user-helpers";
 import {
   extractGroupSessionIdFromOfferingId,
@@ -169,16 +173,35 @@ export function useBookings(): UseBookingsResult {
   const userRole = currentUser?.role;
   const isCoachUser = isCoach(currentUser) || isAdmin(currentUser);
   const hasChildProfiles = contextChildren.length > 0;
-  const ensureSeedOnce = async () => {
+  const hasParentInviteScope = Boolean(
+    currentUser &&
+      !isCoachUser &&
+      (currentUser.role === "PARENT" ||
+        currentUser.hasChildren ||
+        (currentUser.children?.length ?? 0) > 0 ||
+        hasChildProfiles),
+  );
+  const contextChildrenSignature = contextChildren
+    .map((child) =>
+      [
+        child.id,
+        child.referenceId,
+        child.profileId ?? "",
+        child.name,
+        child.clubIds.join(","),
+      ].join(":"),
+    )
+    .join("|");
+  const ensureSeedOnce = useCallback(async () => {
     if (seedEnsuredRef.current) {
       return;
     }
     await ensureRelationalDemoSeeded();
     seedEnsuredRef.current = true;
-  };
+  }, []);
 
   // Load all data
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const loadId = ++loadCycleRef.current;
     logger.debug("Load cycle start", {
       loadId,
@@ -205,10 +228,11 @@ export function useBookings(): UseBookingsResult {
         viewerNameById.set(currentUser.id, "You");
       }
       for (const child of contextChildren) {
-        viewerNameById.set(child.id, child.name);
-        viewerNameById.set(child.referenceId, child.name);
+        const childLabel = safeDisplayLabel(child.name, "Child");
+        viewerNameById.set(child.id, childLabel);
+        viewerNameById.set(child.referenceId, childLabel);
         if (child.profileId) {
-          viewerNameById.set(child.profileId, child.name);
+          viewerNameById.set(child.profileId, childLabel);
         }
       }
       const recurringBookings = await apiClient.get<RecurringBooking[]>(
@@ -227,19 +251,20 @@ export function useBookings(): UseBookingsResult {
         const isSelfBooking = Boolean(
           currentUser?.id && athleteId && athleteId === currentUser.id,
         );
-        const audienceLabel = isSelfBooking
-          ? "You"
-          : viewerNameById.get(athleteId) || athleteName;
+        const audienceLabel = safeDisplayLabel(
+          isSelfBooking ? "You" : viewerNameById.get(athleteId) || athleteName,
+          "Athlete",
+        );
         return {
           id: booking.id,
-          service: booking.service ?? "Session",
+          service: getBookingServiceLabel(booking),
           sessionSource: booking.sessionSource,
           sessionSourceEntityId: booking.sessionSourceEntityId,
           start: booking.scheduledAt,
           status: mapBookingStatus(booking.status),
           locationLabel: booking.location,
           coach: {
-            name: booking.coachName ?? "Coach",
+            name: safeDisplayLabel(booking.coachName, "Coach"),
             photoUrl: "https://i.pravatar.cc/100?u=" + booking.coachId,
           },
           client: {
@@ -277,14 +302,21 @@ export function useBookings(): UseBookingsResult {
         statusCounts: bookingStatusCounts,
       });
       const viewerIds = new Set<string>();
+      const registrationAthleteIds = new Set<string>();
       if (currentUser?.id) {
         viewerIds.add(currentUser.id);
+        if (!hasChildProfiles && currentUser.id.startsWith("ath_")) {
+          registrationAthleteIds.add(currentUser.id);
+        }
       }
       for (const child of contextChildren) {
         viewerIds.add(child.id);
         viewerIds.add(child.referenceId);
+        registrationAthleteIds.add(child.id);
+        registrationAthleteIds.add(child.referenceId);
         if (child.profileId) {
           viewerIds.add(child.profileId);
+          registrationAthleteIds.add(child.profileId);
         }
       }
       logger.debug("Viewer identity scope resolved", {
@@ -298,11 +330,29 @@ export function useBookings(): UseBookingsResult {
           childClubIds.add(clubId);
         }
       }
-      const [groupSessions, groupRegistrations] = await Promise.all([
+      const groupSessionsPromise = (
         isCoachUser && currentUser?.id
           ? groupSessionService.getCoachSessions(currentUser.id)
-          : groupSessionService.discoverSessions(),
-        sessionRegistrationService.getRegistrationsForAthletes(viewerIds),
+          : groupSessionService.discoverSessions()
+      ).catch((sessionError) => {
+        logger.warn("Failed to load group session offerings", {
+          loadId,
+          error: sessionError,
+        });
+        return [];
+      });
+      const groupRegistrationsPromise = sessionRegistrationService
+        .getRegistrationsForAthletes(registrationAthleteIds)
+        .catch((registrationError) => {
+          logger.warn("Failed to load group session registrations", {
+            loadId,
+            error: registrationError,
+          });
+          return [];
+        });
+      const [groupSessions, groupRegistrations] = await Promise.all([
+        groupSessionsPromise,
+        groupRegistrationsPromise,
       ]);
       const registrationsBySessionId = new Map<string, GroupRegistration[]>();
       for (const registration of groupRegistrations) {
@@ -393,7 +443,7 @@ export function useBookings(): UseBookingsResult {
         sampleOfferingIds: offerings.slice(0, 8).map((offering) => offering.id),
       });
       let pendingInvitesList: SessionInvite[] = [];
-      if (currentUser && !isCoachUser) {
+      if (hasParentInviteScope && currentUser) {
         try {
           const invites = await sessionInviteService.getPendingInvites(
             currentUser.id,
@@ -435,7 +485,17 @@ export function useBookings(): UseBookingsResult {
         ),
       );
     }
-  };
+  }, [
+    contextChildrenSignature,
+    currentUser?.fullName,
+    currentUser?.id,
+    currentUser?.name,
+    currentUser?.role,
+    ensureSeedOnce,
+    hasParentInviteScope,
+    hasChildProfiles,
+    isCoachUser,
+  ]);
   const {
     data,
     status,
@@ -445,7 +505,7 @@ export function useBookings(): UseBookingsResult {
     retry,
   } = useScreen<BookingsScreenData>({
     load: loadData,
-    deps: [loadData],
+    deps: [contextChildrenSignature, currentUser?.id, currentUser?.role],
     events: [
       ServiceEvents.BOOKING_CREATED,
       ServiceEvents.BOOKING_UPDATED,
@@ -478,7 +538,7 @@ export function useBookings(): UseBookingsResult {
       ? (screenError?.message ??
         "Failed to load bookings. Pull down to refresh.")
       : null;
-  const displayItems = (() => {
+  const displayItems = useMemo(() => {
     const now = new Date();
     const isPastBooking = (booking: BookingSummary) =>
       booking.status === "Completed" ||
@@ -507,15 +567,16 @@ export function useBookings(): UseBookingsResult {
       viewerNameById.set(currentUser.id, "You");
     }
     for (const child of contextChildren) {
+      const childLabel = safeDisplayLabel(child.name, "Child");
       viewerIds.add(child.id);
       viewerIds.add(child.referenceId);
       if (child.profileId) {
         viewerIds.add(child.profileId);
       }
-      viewerNameById.set(child.id, child.name);
-      viewerNameById.set(child.referenceId, child.name);
+      viewerNameById.set(child.id, childLabel);
+      viewerNameById.set(child.referenceId, childLabel);
       if (child.profileId) {
-        viewerNameById.set(child.profileId, child.name);
+        viewerNameById.set(child.profileId, childLabel);
       }
     }
     const myRegisteredOfferings = (sessionOfferings ?? []).reduce<
@@ -533,12 +594,11 @@ export function useBookings(): UseBookingsResult {
             if (currentUser?.id && registration.userId === currentUser.id) {
               return "You";
             }
-            if (registration.userName?.trim()) {
-              return registration.userName.trim();
+            const registrationLabel = safeDisplayLabel(registration.userName, "");
+            if (registrationLabel) {
+              return registrationLabel;
             }
-            return (
-              viewerNameById.get(registration.userId) || registration.userId
-            );
+            return safeDisplayLabel(viewerNameById.get(registration.userId), "Athlete");
           }),
         ),
       ).filter((name) => !isOffPlatformAudienceLabel(name));
@@ -571,8 +631,18 @@ export function useBookings(): UseBookingsResult {
           ),
           ...filteredBookings.filter((booking) => isPastBooking(booking)),
         ];
-  })();
-  const businessCounts = (() => {
+  }, [
+    businessFilter,
+    contextChildrenSignature,
+    currentUser?.fullName,
+    currentUser?.id,
+    currentUser?.name,
+    isCoachUser,
+    sessionBookings,
+    sessionOfferings,
+    timeFilter,
+  ]);
+  const businessCounts = useMemo(() => {
     if (!isCoachUser) {
       const count = displayItems.length;
       return {
@@ -602,15 +672,21 @@ export function useBookings(): UseBookingsResult {
         matchesCoachBusinessFilter(offering, "independent"),
       ).length,
     };
-  })();
-  const overallVisibleItemCount = (() => {
+  }, [
+    currentUser?.id,
+    displayItems.length,
+    isCoachUser,
+    sessionOfferings,
+    timeFilter,
+  ]);
+  const overallVisibleItemCount = useMemo(() => {
     if (isCoachUser) {
       return (sessionOfferings ?? []).filter((offering) =>
         isOfferingVisibleToCoachUser(offering, currentUser?.id),
       ).length;
     }
     return displayItems.length;
-  })();
+  }, [currentUser?.id, displayItems.length, isCoachUser, sessionOfferings]);
   const totalVisibleItemCount = isCoachUser
     ? businessCounts.all
     : displayItems.length;

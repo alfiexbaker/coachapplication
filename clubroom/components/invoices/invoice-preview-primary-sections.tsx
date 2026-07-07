@@ -10,7 +10,7 @@ import type { Invoice } from '@/constants/types';
 import { invoiceService } from '@/services/invoice-service';
 import { getInvoiceStatusColor } from './invoice-card-helpers';
 
-import { formatDate } from './invoice-preview-helpers';
+import { formatDate, formatInvoicePartyName } from './invoice-preview-helpers';
 import { styles } from './invoice-preview-styles';
 
 interface InvoiceHeaderProps {
@@ -95,12 +95,15 @@ const renderInvoicePartiesRow = function renderInvoicePartiesRow({
   invoice,
   palette,
 }: InvoicePartiesRowProps) {
+  const coachName = formatInvoicePartyName(invoice.coachBusinessName, 'Coach account');
+  const recipientName = formatInvoicePartyName(invoice.sentTo, 'Family account');
+
   return (
     <Row gap="sm">
       <SurfaceCard style={[styles.card, styles.partyCard]}>
         <ThemedText style={[styles.partyLabel, { color: palette.muted }]}>FROM</ThemedText>
         <ThemedText type="defaultSemiBold" style={styles.partyName}>
-          {invoice.coachBusinessName || invoice.coachId}
+          {coachName}
         </ThemedText>
         {invoice.coachBusinessEmail && (
           <ThemedText style={[styles.partyDetail, { color: palette.muted }]}>
@@ -117,7 +120,7 @@ const renderInvoicePartiesRow = function renderInvoicePartiesRow({
       <SurfaceCard style={[styles.card, styles.partyCard]}>
         <ThemedText style={[styles.partyLabel, { color: palette.muted }]}>BILL TO</ThemedText>
         <ThemedText type="defaultSemiBold" style={styles.partyName}>
-          {invoice.userId}
+          {recipientName}
         </ThemedText>
         {invoice.billingAddress && (
           <ThemedText style={[styles.partyDetail, { color: palette.muted }]}>

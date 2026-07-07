@@ -67,9 +67,8 @@ export const ClubPostEventFields = function ClubPostEventFields({
           placeholderTextColor={palette.muted}
           value={eventLocation}
           onChangeText={onChangeLocation}
-
-            maxLength={100}
-          />
+          maxLength={100}
+        />
       </Row>
     </View>
   );

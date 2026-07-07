@@ -22,6 +22,7 @@ test('direct booking confirmation screen does not show success before API create
 
 test('booking mirrors are not classified as client-local authority in API mode', () => {
   const apiClientSource = readSource('services/api-client.ts');
+  const bookingAuthoritySource = readSource('services/booking/booking-authority-service.ts');
   const bookingCrudSource = readSource('services/booking/booking-crud-service.ts');
   const recurringSource = readSource('services/recurring-booking-service.ts');
   const multiWeekSource = readSource('services/multi-week-booking-service.ts');
@@ -36,11 +37,21 @@ test('booking mirrors are not classified as client-local authority in API mode',
   assert.ok(bookingCrudSource.includes('bookingAuthorityService.getBooking(id)'));
   assert.ok(bookingCrudSource.includes('bookingAuthorityService.createBooking('));
   assert.ok(bookingCrudSource.includes('bookingAuthorityService.cancelBooking(id,'));
+  assert.ok(bookingCrudSource.includes('bookingAuthorityService.completeBooking(id,'));
   assert.ok(bookingCrudSource.includes('bookingAuthorityService.reopenBooking(id,'));
+  assert.ok(
+    bookingCrudSource.includes(
+      'Booking status updates require an explicit /v1 lifecycle contract in API mode.',
+    ),
+  );
+  assert.ok(bookingCrudSource.includes('Failed to update booking status through API authority'));
+  assert.ok(bookingAuthoritySource.includes('async confirmBooking('));
+  assert.ok(bookingAuthoritySource.includes('/confirm'));
+  assert.ok(bookingCrudSource.includes('bookingAuthorityService.confirmBooking(id,'));
   assert.ok(
     bookingCrudSource.includes('Multi-week booking batches require backend series authority'),
   );
   assert.ok(bookingCrudSource.includes('Direct local booking saves are disabled in API mode'));
   assert.ok(recurringSource.includes('Recurring booking plans require backend series authority'));
-  assert.ok(multiWeekSource.includes('Multi-week booking series require backend series authority'));
+  assert.ok(multiWeekSource.includes('bookingAuthorityService.createBookingSeries({'));
 });

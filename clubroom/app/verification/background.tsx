@@ -26,6 +26,8 @@ export default function BackgroundCheckScreen() {
     submitting,
     isVerified,
     isPending,
+    canStartBackgroundCheck,
+    canUseMockApproval,
     handleStartCheck,
     handleMockApprove,
   } = useBackgroundCheck();
@@ -86,7 +88,7 @@ export default function BackgroundCheckScreen() {
             <ThemedText style={[styles.statusText, { color: colors.muted }]}>
               Your background check is being processed. This typically takes 2-5 business days.
             </ThemedText>
-            {__DEV__ && (
+            {canUseMockApproval && (
               <Clickable onPress={handleMockApprove} style={[styles.mockButton, { borderColor: colors.success }]}>
                 <ThemedText style={{ color: colors.success, fontWeight: '600' }}>
                   Complete Now (DEV ONLY)
@@ -117,7 +119,11 @@ export default function BackgroundCheckScreen() {
               <InfoRow
                 icon="card"
                 title="Cost"
-                subtitle="Free for Clubroom coaches (Mock)"
+                subtitle={
+                  canStartBackgroundCheck
+                    ? 'Free for Clubroom coaches (Mock)'
+                    : 'Handled outside the app for now'
+                }
                 colors={colors}
               />
             </SurfaceCard>
@@ -165,11 +171,13 @@ export default function BackgroundCheckScreen() {
               ))}
             </View>
 
-            <Button
-              onPress={handleStartCheck}
-              disabled={submitting}
-              label={submitting ? 'Starting...' : 'Start Background Check'}
-            />
+            {canStartBackgroundCheck ? (
+              <Button
+                onPress={handleStartCheck}
+                disabled={submitting}
+                label={submitting ? 'Starting...' : 'Start Background Check'}
+              />
+            ) : null}
           </>
         )}
       </ScrollView>

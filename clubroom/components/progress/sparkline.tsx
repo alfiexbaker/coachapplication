@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 
 import { useTheme } from '@/hooks/useTheme';
@@ -81,6 +81,39 @@ export const Sparkline = function Sparkline({
 
   if (data.length === 0) {
     return <View style={{ width, height }} />;
+  }
+
+  if (Platform.OS === 'web') {
+    const visibleValues = data.slice(-8);
+    const min = Math.min(...visibleValues);
+    const max = Math.max(...visibleValues);
+    const range = max - min || 1;
+    return (
+      <View
+        style={{
+          width,
+          height,
+          flexDirection: 'row',
+          alignItems: 'flex-end',
+          gap: 1,
+        }}
+      >
+        {visibleValues.map((value, index) => {
+          const barHeight = Math.max(3, ((value - min) / range) * height);
+          return (
+            <View
+              key={`${index}-${value}`}
+              style={{
+                flex: 1,
+                height: barHeight,
+                borderRadius: 2,
+                backgroundColor: withAlpha(lineColor, 0.72),
+              }}
+            />
+          );
+        })}
+      </View>
+    );
   }
 
   return (

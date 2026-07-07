@@ -9,20 +9,24 @@
  *   await reportService.submitReport({ ... });
  */
 
-import { apiClient } from './api-client';
+import { apiClient, apiFetch } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from './event-bus';
 import { blockService } from './block-service';
-import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  storageError,
+} from '@/types/result';
 
 const logger = createLogger('ReportService');
+const REPORTS_ROUTE = '/v1/reports';
 
 /** Report categories that trigger automatic safeguarding actions */
-export const SERIOUS_REPORT_CATEGORIES = [
-  'safety_concern',
-  'inappropriate',
-] as const;
+export const SERIOUS_REPORT_CATEGORIES = ['safety_concern', 'inappropriate'] as const;
 
 export interface Report {
   id: string;
@@ -35,6 +39,18 @@ export interface Report {
   status: 'pending' | 'reviewed' | 'resolved';
 }
 
+interface ReportsApiResponse {
+  reports: Report[];
+  total: number;
+  requestId?: string;
+}
+
+interface ReportMutationApiResponse {
+  report: Report;
+  autoBlocked: boolean;
+  requestId?: string;
+}
+
 export const reportService = {
   /**
    * Submit a new report against a user.
@@ -43,6 +59,32 @@ export const reportService = {
   async submitReport(
     report: Omit<Report, 'id' | 'createdAt' | 'status'>,
   ): Promise<Result<Report, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<ReportMutationApiResponse>(REPORTS_ROUTE, {
+        method: 'POST',
+        body: JSON.stringify({
+          reportedUserId: report.reportedUserId,
+          type: report.type,
+          description: report.description,
+          context: report.context,
+        }),
+      });
+      if (!result.success) {
+        return err(result.error);
+      }
+      const newReport = result.data.report;
+      emitTyped(ServiceEvents.SAFEGUARDING_REPORT_SUBMITTED, {
+        reportId: newReport.id,
+        reporterId: newReport.reportedByUserId,
+        reportedUserId: newReport.reportedUserId,
+        category: newReport.type,
+        severity: result.data.autoBlocked ? 'high' : 'medium',
+        autoBlocked: result.data.autoBlocked,
+        timestamp: newReport.createdAt,
+      });
+      return ok(newReport);
+    }
+
     try {
       const newReport: Report = {
         ...report,
@@ -96,9 +138,14 @@ export const reportService = {
   },
 
   /**
-   * Get all reports submitted by the current user or against a user.
+   * Get reports submitted by the current user.
    */
   async getReports(): Promise<Result<Report[], ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<ReportsApiResponse>(REPORTS_ROUTE);
+      return result.success ? ok(result.data.reports) : err(result.error);
+    }
+
     try {
       const reports = await apiClient.get<Report[]>(STORAGE_KEYS.REPORTS, []);
       return ok(reports);

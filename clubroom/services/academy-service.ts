@@ -5,16 +5,16 @@
  * Enables coaches to create branded coaching businesses.
  *
  * API Integration Notes:
- * - POST /api/academies - Create academy
- * - GET /api/academies/:id - Get details
- * - PUT /api/academies/:id/branding - Update branding
- * - POST /api/academies/:id/invite - Invite member
- * - GET /api/academies/:id/staff - List staff
+ * - Academy is a club compatibility label in API mode.
+ * - Reads use /v1/clubs and member/staff projections.
+ * - Compatible create, branding, invite, join, role, removal, commercial-mode, and delete writes
+ *   delegate to club /v1 routes.
+ * - Academy visibility-only actions fail closed until matching club contracts exist.
  */
 
 import { apiClient } from './api-client';
 import { clubAuthorityService } from './club-authority-service';
-import { clubService, type ClubMember } from './club-service';
+import { clubService, type ClubBranding, type ClubMember } from './club-service';
 import { api } from '@/constants/config';
 import type {
   Academy,
@@ -25,6 +25,7 @@ import type {
   SportCategory,
   FootballObjective,
   Club,
+  ClubInvite,
   ClubMembership,
 } from '@/constants/types';
 import { canUseClubCapability } from '@/contracts/club-governance';
@@ -63,11 +64,25 @@ const ACADEMY_STAFF_ROLES = new Set<AcademyMembership['role']>([
 
 function academyUnsupportedError(action: string): ServiceError {
   return unsupportedError(
-    `${action} needs a /v1 academy or club authority API before it can run in API mode.`,
+    `${action} needs a club-backed /v1 authority before it can run in API mode. Academy is a club compatibility label in the current product model.`,
     {
       missingAuthority: 'academy',
+      canonicalAuthority: 'club',
     },
   );
+}
+
+function parseAcademyMembershipId(
+  membershipId: string,
+): { academyId: string; userId: string } | null {
+  const separatorIndex = membershipId.indexOf(':');
+  if (separatorIndex <= 0 || separatorIndex === membershipId.length - 1) {
+    return null;
+  }
+  return {
+    academyId: membershipId.slice(0, separatorIndex),
+    userId: membershipId.slice(separatorIndex + 1),
+  };
 }
 
 function toSlug(value: string): string {
@@ -159,6 +174,49 @@ async function listAcademiesFromClubs(): Promise<Result<Academy[], ServiceError>
     return err(result.error);
   }
   return ok(result.data.clubs.map(mapClubToAcademy));
+}
+
+async function getAcademyFromClub(academyId: string): Promise<Result<Academy, ServiceError>> {
+  const result = await listAcademiesFromClubs();
+  if (!result.success) {
+    return err(result.error);
+  }
+  const academy = result.data.find((candidate) => candidate.id === academyId);
+  return academy ? ok(academy) : err(notFound('Academy', academyId));
+}
+
+function mapClubInviteToAcademyInvite(
+  invite: ClubInvite,
+  permissions: AcademyPermission[],
+): AcademyInvite {
+  return {
+    id: `${invite.clubId}:${invite.code}`,
+    academyId: invite.clubId,
+    code: invite.code,
+    role: invite.role,
+    permissions,
+    createdBy: invite.createdBy,
+    expiresAt: invite.expiresAt,
+    maxUses: invite.remainingUses,
+    currentUses: 0,
+  };
+}
+
+function brandingPatchFromAcademyInput(input: UpdateBrandingInput): Partial<ClubBranding> {
+  const branding: Partial<ClubBranding> = {};
+  if (input.logoUrl !== undefined) {
+    branding.badgeUrl = input.logoUrl;
+  }
+  if (input.bannerUrl !== undefined) {
+    branding.coverPhotoUrl = input.bannerUrl;
+  }
+  if (input.primaryColor !== undefined) {
+    branding.primaryColor = input.primaryColor;
+  }
+  if (input.secondaryColor !== undefined) {
+    branding.secondaryColor = input.secondaryColor;
+  }
+  return branding;
 }
 
 // Mock academies
@@ -525,9 +583,15 @@ export const academyService = {
         await saveMemberships(membershipsCache);
         return ok(newAcademy);
       }
-      void newAcademy;
-      void ownerMembership;
-      return err(academyUnsupportedError('Creating academies'));
+      const result = await clubAuthorityService.createClub({
+        ownerId: input.ownerId,
+        name: input.name,
+        city: input.city,
+        tagline: input.description,
+        commercialMode: 'COACH_OWNED',
+      });
+      if (!result.success) return err(result.error);
+      return ok(mapClubToAcademy(result.data.club));
     } catch (error) {
       logger.error('Failed to create academy', error);
       return err(storageError('Failed to create academy'));
@@ -548,9 +612,18 @@ export const academyService = {
       await saveAcademies(academiesCache);
       return ok(academy);
     }
-    void academyId;
-    void branding;
-    return err(academyUnsupportedError('Updating academy branding'));
+    const current = await getAcademyFromClub(academyId);
+    if (!current.success) return current;
+    const patch = brandingPatchFromAcademyInput(branding);
+    const result = await clubService.updateBranding(academyId, patch);
+    if (!result.success) return err(result.error);
+    return ok({
+      ...current.data,
+      logoUrl: result.data.badgeUrl,
+      bannerUrl: result.data.coverPhotoUrl,
+      primaryColor: result.data.primaryColor,
+      secondaryColor: result.data.secondaryColor,
+    });
   },
   /**
    * Update academy settings
@@ -567,9 +640,22 @@ export const academyService = {
       await saveAcademies(academiesCache);
       return ok(academy);
     }
-    void academyId;
-    void settings;
-    return err(academyUnsupportedError('Updating academy settings'));
+    if (settings.isPublic !== undefined || settings.requiresApproval !== undefined) {
+      return err(academyUnsupportedError('Updating academy visibility or approval settings'));
+    }
+    const current = await getAcademyFromClub(academyId);
+    if (!current.success) return current;
+    const result = await clubService.updateBranding(academyId, {
+      ...(settings.name !== undefined ? { name: settings.name } : {}),
+      ...(settings.description !== undefined ? { tagline: settings.description } : {}),
+    });
+    if (!result.success) return err(result.error);
+    return ok({
+      ...current.data,
+      name: result.data.name,
+      slug: toSlug(result.data.name),
+      description: result.data.tagline,
+    });
   },
   async updateCommercialMode(
     academyId: string,
@@ -583,9 +669,9 @@ export const academyService = {
       await saveAcademies(academiesCache);
       return ok(academy);
     }
-    void academyId;
-    void commercialMode;
-    return err(academyUnsupportedError('Updating academy commercial mode'));
+    const result = await clubAuthorityService.updateClubCommercialMode(academyId, commercialMode);
+    if (!result.success) return err(result.error);
+    return ok(mapClubToAcademy(result.data));
   },
   /**
    * Get academy staff
@@ -609,7 +695,7 @@ export const academyService = {
         .sort((a, b) => STAFF_ROLE_ORDER[a.role] - STAFF_ROLE_ORDER[b.role]);
       return ok(staff);
     } catch (error) {
-      logger.error('Failed to get academy staff', error);
+      logger.warn('Failed to get academy staff', error);
       return err(storageError('Failed to load academy staff'));
     }
   },
@@ -650,8 +736,9 @@ export const academyService = {
         await saveInvites(invitesCache);
         return ok(invite);
       }
-      void invite;
-      return err(academyUnsupportedError('Creating academy invites'));
+      const result = await clubAuthorityService.createInviteCode(academyId, role);
+      if (!result.success) return err(result.error);
+      return ok(mapClubInviteToAcademyInvite(result.data, permissions));
     } catch (error) {
       logger.error('Failed to create academy invite', error);
       return err(storageError('Failed to create academy invite'));
@@ -709,7 +796,12 @@ export const academyService = {
     void userId;
     void userName;
     void userPhotoUrl;
-    return err(academyUnsupportedError('Joining academies by invite code'));
+    const result = await clubAuthorityService.joinWithCode(code);
+    if (!result.success) return err(result.error);
+    if (!result.data.membership) {
+      return err(validationError('Club invite join is pending approval'));
+    }
+    return ok(mapClubMembershipToAcademyMembership(result.data.membership));
   },
   /**
    * Update member role
@@ -728,10 +820,17 @@ export const academyService = {
       await saveMemberships(membershipsCache);
       return ok(membership);
     }
-    void membershipId;
-    void role;
     void permissions;
-    return err(academyUnsupportedError('Updating academy member roles'));
+    const parsed = parseAcademyMembershipId(membershipId);
+    if (!parsed) {
+      return err(validationError('Academy member role updates require a clubId:userId membership id'));
+    }
+    const result = await clubService.changeMemberRole(parsed.academyId, parsed.userId, role, {
+      id: 'api',
+      name: 'API actor',
+    });
+    if (!result.success) return err(result.error);
+    return ok(mapClubMemberToAcademyMembership(parsed.academyId, result.data));
   },
   /**
    * Remove member from academy
@@ -748,8 +847,18 @@ export const academyService = {
       await saveMemberships(membershipsCache);
       return ok(undefined);
     }
-    void membershipId;
-    return err(academyUnsupportedError('Removing academy members'));
+    const parsed = parseAcademyMembershipId(membershipId);
+    if (!parsed) {
+      return err(validationError('Academy member removals require a clubId:userId membership id'));
+    }
+    const result = await clubService.removeMember(parsed.academyId, parsed.userId, 'OTHER', {
+      id: 'api',
+      name: 'API actor',
+    }, {
+      customReason: 'Removed through academy compatibility alias',
+    });
+    if (!result.success) return err(result.error);
+    return ok(undefined);
   },
   /**
    * Check if user has permission
@@ -800,8 +909,9 @@ export const academyService = {
       await saveAcademies(academiesCache);
       return ok(undefined);
     }
-    void academyId;
-    return err(academyUnsupportedError('Deleting academies'));
+    const result = await clubAuthorityService.deleteClub(academyId);
+    if (!result.success) return err(result.error);
+    return ok(undefined);
   },
   /**
    * Format role for display

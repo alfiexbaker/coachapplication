@@ -7,6 +7,21 @@ import { ApiProblemError } from '../lib/http-errors.js';
 
 const errorHandlerPlugin: FastifyPluginAsync = async (app) => {
   app.setErrorHandler(async (error, request, reply) => {
+    const errorWithStatus = error as { statusCode?: unknown; message?: unknown };
+    const statusCode = typeof errorWithStatus.statusCode === 'number' ? errorWithStatus.statusCode : null;
+    if (statusCode !== null && statusCode >= 400 && statusCode < 500) {
+      const code = statusCode === 429 ? 'RATE_LIMITED' : 'VALIDATION_FAILED';
+      const title = statusCode === 429 ? 'Rate limit exceeded' : 'Bad request';
+      return reply.status(statusCode).type('application/problem+json').send({
+        type: `https://api.clubroom.local/errors/${code.toLowerCase()}`,
+        title,
+        status: statusCode,
+        code,
+        detail: typeof errorWithStatus.message === 'string' ? errorWithStatus.message : title,
+        requestId: request.requestId,
+      });
+    }
+
     if (error instanceof ZodError) {
       return reply.status(400).type('application/problem+json').send({
         type: 'https://api.clubroom.local/errors/validation-failed',

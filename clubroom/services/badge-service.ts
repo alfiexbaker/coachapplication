@@ -1,17 +1,25 @@
+import { BadgeAward, BadgeDefinition, BadgeVisibility, BadgeCategory } from '@/constants/types';
+import { apiClient, apiFetch } from './api-client';
 import {
-  BadgeAward,
-  BadgeDefinition,
-  BadgeVisibility,
-  BadgeCategory,
-} from '@/constants/types';
-import { apiClient } from './api-client';
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+  toApiAthleteId,
+} from './api-auth-context';
 import { socialFeedService } from './social-feed-service';
 import { notificationSenderService } from './notification/notification-sender';
 import { bookingService } from './booking-service';
 import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
-import { type Result, type ServiceError, ok, err, validationError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  validationError,
+  serviceError,
+} from '@/types/result';
 import {
   ProgressionLevel,
   getProgressToNextLevel,
@@ -42,6 +50,210 @@ type AwardBadgeInput = {
   context?: 'session' | 'athlete_profile';
   recipientId?: string; // Optional notification recipient
 };
+
+type ApiBadgeRow = Record<string, unknown>;
+type ApiBadgeDefinitionRow = Record<string, unknown>;
+type ApiBadgesResponse = {
+  athleteId: string;
+  badges: ApiBadgeRow[];
+  badgeDefinitions: ApiBadgeDefinitionRow[];
+  seedVersion?: string | null;
+  requestId?: string;
+};
+type ApiSessionBadgesResponse = {
+  sessionId: string;
+  badges: ApiBadgeRow[];
+  badgeDefinitions: ApiBadgeDefinitionRow[];
+  seedVersion?: string | null;
+  requestId?: string;
+};
+type ApiBadgeAwardResponse = {
+  athleteId: string;
+  badge: ApiBadgeRow;
+  badgeDefinition: ApiBadgeDefinitionRow;
+  postIds?: string[];
+  createdPostCount?: number;
+  seedVersion?: string | null;
+  requestId?: string;
+};
+type BadgeApiAccess = {
+  apiAthleteId: string;
+  headers: Record<string, string>;
+};
+
+function stringValue(row: Record<string, unknown> | undefined, key: string, fallback = ''): string {
+  const value = row?.[key];
+  return typeof value === 'string' && value.trim().length > 0 ? value : fallback;
+}
+
+function numberValue(
+  row: Record<string, unknown> | undefined,
+  key: string,
+  fallback: number,
+): number {
+  const value = row?.[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function badgeCategory(value: unknown): BadgeCategory | undefined {
+  const normalized = typeof value === 'string' ? value.toLowerCase() : '';
+  if (
+    normalized === 'technical' ||
+    normalized === 'physical' ||
+    normalized === 'psychological' ||
+    normalized === 'social'
+  ) {
+    return normalized;
+  }
+  return undefined;
+}
+
+function badgeVisibility(value: unknown): BadgeVisibility {
+  return value === 'coach_only' || value === 'athlete' || value === 'supporters'
+    ? value
+    : 'supporters';
+}
+
+function booleanValue(
+  row: Record<string, unknown> | undefined,
+  key: string,
+  fallback = false,
+): boolean {
+  const value = row?.[key];
+  return typeof value === 'boolean' ? value : fallback;
+}
+
+function badgeTierValue(
+  row: Record<string, unknown> | undefined,
+  definition: Record<string, unknown> | undefined,
+): 1 | 2 | 3 | undefined {
+  const value = numberValue(row, 'badgeTier', numberValue(definition, 'tier', 0));
+  return value === 1 || value === 2 || value === 3 ? value : undefined;
+}
+
+function mapApiBadgeAward(
+  row: ApiBadgeRow,
+  definitionsById: Map<string, ApiBadgeDefinitionRow>,
+  fallbackAthleteId: string,
+): BadgeAward {
+  const badgeDefinitionId = stringValue(row, 'badgeDefinitionId', stringValue(row, 'badgeId'));
+  const definition = definitionsById.get(badgeDefinitionId);
+  const awardedAt = stringValue(
+    row,
+    'awardedAt',
+    stringValue(row, 'createdAt', new Date(0).toISOString()),
+  );
+  return {
+    id: stringValue(row, 'id'),
+    badgeId: badgeDefinitionId,
+    badgeLabel: stringValue(definition, 'name', stringValue(definition, 'label', 'Badge')),
+    athleteId: stringValue(row, 'athleteId', fallbackAthleteId),
+    coachId: stringValue(row, 'awardedByUserId', stringValue(row, 'coachId')),
+    sessionId: stringValue(row, 'bookingId', stringValue(row, 'sessionId')) || undefined,
+    reason: stringValue(
+      row,
+      'reason',
+      stringValue(row, 'note', stringValue(definition, 'description')),
+    ),
+    note: stringValue(row, 'note') || undefined,
+    presetId: stringValue(row, 'presetId') || undefined,
+    cooldownBypassed: booleanValue(row, 'cooldownBypassed'),
+    cooldownWindowDays: numberValue(row, 'cooldownWindowDays', 7),
+    context:
+      stringValue(row, 'context') === 'session' || stringValue(row, 'context') === 'athlete_profile'
+        ? (stringValue(row, 'context') as 'session' | 'athlete_profile')
+        : undefined,
+    overrideNote: stringValue(row, 'overrideNote') || undefined,
+    awardedBy: stringValue(row, 'awardedByUserId', stringValue(row, 'coachId')),
+    awardedAt,
+    visibility: badgeVisibility(row.visibility),
+    shared: booleanValue(row, 'shared'),
+    feedPostId: stringValue(row, 'feedPostId') || undefined,
+    seenByParent: booleanValue(row, 'seenByParent'),
+    seenAt: stringValue(row, 'seenAt') || undefined,
+    badgeCategory: badgeCategory(row.badgeCategory) ?? badgeCategory(definition?.category),
+    badgeTier: badgeTierValue(row, definition),
+    badgePointValue: numberValue(row, 'badgePointValue', numberValue(definition, 'pointValue', 0)),
+  };
+}
+
+async function resolveBadgeApiAccess(athleteId: string): Promise<BadgeApiAccess> {
+  const currentUserResult = await resolveSignedInApiUser('Sign in to view athlete badges.');
+  if (!currentUserResult.success) {
+    throw new Error(currentUserResult.error.message);
+  }
+
+  const currentUser = currentUserResult.data;
+  const apiAthleteId = toApiAthleteId(athleteId);
+  const actingRole = deriveApiActingRole(currentUser);
+  return {
+    apiAthleteId,
+    headers: buildApiAuthHeaders({
+      actingRole,
+      coachAthleteIds: actingRole === 'coach' ? [apiAthleteId] : undefined,
+      guardianAthleteIds: actingRole === 'parent' ? [apiAthleteId] : undefined,
+      coachVerified: actingRole === 'coach' && currentUser.isVerified,
+    }),
+  };
+}
+
+async function resolveBadgeActionHeaders(message: string): Promise<Record<string, string>> {
+  const currentUserResult = await resolveSignedInApiUser(message);
+  if (!currentUserResult.success) {
+    throw new Error(currentUserResult.error.message);
+  }
+  const currentUser = currentUserResult.data;
+  const actingRole = deriveApiActingRole(currentUser);
+  return buildApiAuthHeaders({
+    actingRole,
+    coachVerified: actingRole === 'coach' && currentUser.isVerified,
+  });
+}
+
+async function listApiAwardsForAthlete(athleteId: string): Promise<BadgeAward[]> {
+  const access = await resolveBadgeApiAccess(athleteId);
+  const result = await apiFetch<ApiBadgesResponse>(
+    `/v1/athletes/${encodeURIComponent(access.apiAthleteId)}/badges`,
+    { method: 'GET', headers: access.headers },
+  );
+  if (!result.success) {
+    throw new Error(result.error.message);
+  }
+  const definitionsById = new Map(
+    result.data.badgeDefinitions.map((definition) => [stringValue(definition, 'id'), definition]),
+  );
+  return result.data.badges
+    .map((badge) => mapApiBadgeAward(badge, definitionsById, result.data.athleteId))
+    .sort((a, b) => new Date(b.awardedAt).getTime() - new Date(a.awardedAt).getTime());
+}
+
+async function listApiAwardsForSession(sessionId: string): Promise<BadgeAward[]> {
+  const currentUserResult = await resolveSignedInApiUser('Sign in to view session badges.');
+  if (!currentUserResult.success) {
+    throw new Error(currentUserResult.error.message);
+  }
+  const currentUser = currentUserResult.data;
+  const actingRole = deriveApiActingRole(currentUser);
+  const result = await apiFetch<ApiSessionBadgesResponse>(
+    `/v1/sessions/${encodeURIComponent(sessionId)}/badges`,
+    {
+      method: 'GET',
+      headers: buildApiAuthHeaders({
+        actingRole,
+        coachVerified: actingRole === 'coach' && currentUser.isVerified,
+      }),
+    },
+  );
+  if (!result.success) {
+    throw new Error(result.error.message);
+  }
+  const definitionsById = new Map(
+    result.data.badgeDefinitions.map((definition) => [stringValue(definition, 'id'), definition]),
+  );
+  return result.data.badges
+    .map((badge) => mapApiBadgeAward(badge, definitionsById, stringValue(badge, 'athleteId')))
+    .sort((a, b) => new Date(b.awardedAt).getTime() - new Date(a.awardedAt).getTime());
+}
 
 // Badge catalog imported from constants/badge-registry.ts (single source of truth)
 const BASE_BADGE_CATALOG: BadgeDefinition[] = SKILL_BADGES;
@@ -173,21 +385,75 @@ class BadgeService {
   }
 
   async listAwards(): Promise<BadgeAward[]> {
+    if (!apiClient.isMockMode) {
+      return [];
+    }
+
     const stored = await this.getStoredAwards();
     return this.mergeAwards(stored);
   }
 
   async listAwardsForAthlete(athleteId: string): Promise<BadgeAward[]> {
+    if (!apiClient.isMockMode) {
+      return listApiAwardsForAthlete(athleteId);
+    }
+
     const awards = await this.listAwards();
     return awards.filter((award) => award.athleteId === athleteId);
   }
 
   async listAwardsForSession(sessionId: string): Promise<BadgeAward[]> {
+    if (!apiClient.isMockMode) {
+      return listApiAwardsForSession(sessionId);
+    }
+
     const awards = await this.listAwards();
     return awards.filter((award) => award.sessionId === sessionId);
   }
 
   async awardBadge(input: AwardBadgeInput): Promise<Result<BadgeAward, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      try {
+        const access = await resolveBadgeApiAccess(input.athleteId);
+        const definition = (await this.listDefinitions()).find((badge) => badge.id === input.badgeId);
+        const result = await apiFetch<ApiBadgeAwardResponse>(
+          `/v1/athletes/${encodeURIComponent(access.apiAthleteId)}/badge-awards`,
+          {
+            method: 'POST',
+            headers: access.headers,
+            body: JSON.stringify({
+              badgeId: input.badgeId,
+              badgeLabel: definition?.label,
+              badgeCategory: definition?.category,
+              badgeTier: definition?.tier,
+              badgePointValue: definition?.pointValue,
+              sessionId: input.sessionId,
+              reason: input.reason,
+              note: input.note,
+              visibility: input.visibility ?? 'athlete',
+              presetId: input.presetId,
+              overrideCooldown: Boolean(input.overrideCooldown),
+              overrideNote: input.overrideNote,
+              context: input.context ?? (input.sessionId ? 'session' : 'athlete_profile'),
+            }),
+          },
+        );
+        if (!result.success) {
+          return err(result.error);
+        }
+        const definitionsById = new Map([[stringValue(result.data.badgeDefinition, 'id'), result.data.badgeDefinition]]);
+        return ok(mapApiBadgeAward(result.data.badge, definitionsById, result.data.athleteId));
+      } catch (error) {
+        return err(
+          serviceError(
+            'UNKNOWN',
+            error instanceof Error ? error.message : 'Failed to award badge through API.',
+            { athleteId: input.athleteId, badgeId: input.badgeId },
+          ),
+        );
+      }
+    }
+
     const [stored, allDefs] = await Promise.all([this.getStoredAwards(), this.listDefinitions()]);
     const definition = allDefs.find((badge) => badge.id === input.badgeId);
     const allAwards = this.mergeAwards(stored);
@@ -347,6 +613,33 @@ class BadgeService {
   }
 
   async markShared(awardId: string): Promise<BadgeAward | undefined> {
+    if (!apiClient.isMockMode) {
+      try {
+        const headers = await resolveBadgeActionHeaders('Sign in to share badge awards.');
+        const result = await apiFetch<ApiBadgeAwardResponse>(
+          `/v1/badge-awards/${encodeURIComponent(awardId)}/share`,
+          { method: 'POST', headers },
+        );
+        if (!result.success) {
+          this.logger.warn('badge_share_api_route_failed', {
+            awardId,
+            error: result.error.message,
+          });
+          return undefined;
+        }
+        const definitionsById = new Map([
+          [stringValue(result.data.badgeDefinition, 'id'), result.data.badgeDefinition],
+        ]);
+        return mapApiBadgeAward(result.data.badge, definitionsById, result.data.athleteId);
+      } catch (error) {
+        this.logger.warn('badge_share_api_route_failed', {
+          awardId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return undefined;
+      }
+    }
+
     const stored = await this.getStoredAwards();
     const merged = this.mergeAwards(stored);
     const target = merged.find((award) => award.id === awardId);
@@ -392,6 +685,28 @@ class BadgeService {
    * Called when user taps "Add to Feed" from notification
    */
   async postBadgeToFeed(awardId: string): Promise<void> {
+    if (!apiClient.isMockMode) {
+      try {
+        const headers = await resolveBadgeActionHeaders('Sign in to post badge awards.');
+        const result = await apiFetch<ApiBadgeAwardResponse>(
+          `/v1/badge-awards/${encodeURIComponent(awardId)}/feed-post`,
+          { method: 'POST', headers },
+        );
+        if (!result.success) {
+          this.logger.warn('badge_feed_post_api_route_failed', {
+            awardId,
+            error: result.error.message,
+          });
+        }
+      } catch (error) {
+        this.logger.warn('badge_feed_post_api_route_failed', {
+          awardId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      return;
+    }
+
     const stored = await this.getStoredAwards();
     const merged = this.mergeAwards(stored);
     const award = merged.find((a) => a.id === awardId);
@@ -426,6 +741,33 @@ class BadgeService {
    * Mark a badge as seen by parent
    */
   async markSeenByParent(awardId: string): Promise<BadgeAward | undefined> {
+    if (!apiClient.isMockMode) {
+      try {
+        const headers = await resolveBadgeActionHeaders('Sign in to update badge read state.');
+        const result = await apiFetch<ApiBadgeAwardResponse>(
+          `/v1/badge-awards/${encodeURIComponent(awardId)}/seen`,
+          { method: 'POST', headers },
+        );
+        if (!result.success) {
+          this.logger.warn('badge_seen_api_route_failed', {
+            awardId,
+            error: result.error.message,
+          });
+          return undefined;
+        }
+        const definitionsById = new Map([
+          [stringValue(result.data.badgeDefinition, 'id'), result.data.badgeDefinition],
+        ]);
+        return mapApiBadgeAward(result.data.badge, definitionsById, result.data.athleteId);
+      } catch (error) {
+        this.logger.warn('badge_seen_api_route_failed', {
+          awardId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return undefined;
+      }
+    }
+
     const stored = await this.getStoredAwards();
     const merged = this.mergeAwards(stored);
     const target = merged.find((award) => award.id === awardId);
@@ -446,6 +788,28 @@ class BadgeService {
    * Mark all badges for an athlete as seen by parent
    */
   async markAllSeenByParent(athleteId: string): Promise<void> {
+    if (!apiClient.isMockMode) {
+      try {
+        const access = await resolveBadgeApiAccess(athleteId);
+        const result = await apiFetch<ApiBadgesResponse & { seenCount?: number }>(
+          `/v1/athletes/${encodeURIComponent(access.apiAthleteId)}/badge-awards/seen`,
+          { method: 'POST', headers: access.headers },
+        );
+        if (!result.success) {
+          this.logger.warn('badge_seen_all_api_route_failed', {
+            athleteId,
+            error: result.error.message,
+          });
+        }
+      } catch (error) {
+        this.logger.warn('badge_seen_all_api_route_failed', {
+          athleteId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      return;
+    }
+
     const stored = await this.getStoredAwards();
     const merged = this.mergeAwards(stored);
     const now = new Date().toISOString();

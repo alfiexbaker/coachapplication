@@ -236,7 +236,9 @@ let emergencyCache: EmergencyCache = {};
 
 class SafetyService {
   private async getEmergencyInfoValue(athleteId: string): Promise<EmergencyInfo> {
-    return cloneEmergencyInfo(mockEmergencyInfo[athleteId] ?? createDefaultEmergencyInfo(athleteId));
+    return cloneEmergencyInfo(
+      mockEmergencyInfo[athleteId] ?? createDefaultEmergencyInfo(athleteId),
+    );
   }
 
   private async updateEmergencyInfoValue(
@@ -810,7 +812,7 @@ class SafetyService {
 
   /**
    * Get quick access emergency data for a single athlete
-   * Caches data for offline access during sessions
+   * Caches data for mock/offline demo access during sessions
    */
   async getAthleteEmergency(
     athleteId: string,
@@ -824,9 +826,14 @@ class SafetyService {
       const emergencyInfoResult = await this.getEmergencyInfo(athleteId);
       if (emergencyInfoResult.success) {
         info = emergencyInfoResult.data;
-        // Cache for offline access
-        await this.cacheEmergencyInfo(athleteId, info, resolvedName);
+        if (apiClient.isMockMode) {
+          await this.cacheEmergencyInfo(athleteId, info, resolvedName);
+        }
       } else {
+        if (!apiClient.isMockMode) {
+          return err(emergencyInfoResult.error);
+        }
+
         // Try to get from cache if loading fails
         const cached = await this.getCachedEmergencyInfo(athleteId);
         if (cached) {
@@ -1062,11 +1069,15 @@ class SafetyService {
 
   /**
    * Pre-cache emergency info for all athletes in an upcoming session
-   * Call this before a session starts to ensure offline access
+   * Call this before a mock/demo session starts to ensure offline access
    */
   async preCacheSessionEmergencyInfo(
     attendees: { athleteId: string; athleteName: string }[],
   ): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return ok(undefined);
+    }
+
     try {
       await Promise.all(
         attendees.map(async (attendee) => {
@@ -1130,6 +1141,11 @@ class SafetyService {
    * Reset to mock data (for testing)
    */
   async resetToMockData(): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      logger.warn('Ignoring safety mock reset while API mode is enabled');
+      return ok(undefined);
+    }
+
     try {
       mockEmergencyInfo = cloneEmergencyInfoStore(MOCK_EMERGENCY_INFO);
       const clearResult = await this.clearCache();

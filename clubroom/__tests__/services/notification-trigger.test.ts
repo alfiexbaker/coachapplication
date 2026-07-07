@@ -12,6 +12,7 @@ import test, { describe, beforeEach } from 'node:test';
 import { triggerNotification, notificationTriggers } from '@/services/notification-trigger';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { notificationService } from '@/services/notification-service';
 
 const rid = () => Math.random().toString(36).slice(2, 10);
 
@@ -159,6 +160,39 @@ describe('notification-trigger', () => {
         });
       } finally {
         (apiClient as Record<string, unknown>).get = originalGet;
+      }
+    });
+
+    test('skips local notification creates in API mode', async () => {
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+      const originalCreate = notificationService.create;
+      let createCalls = 0;
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+      notificationService.create = (async () => {
+        createCalls += 1;
+        return { success: true, data: [] };
+      }) as typeof notificationService.create;
+
+      try {
+        const result = await triggerNotification({
+          type: 'booking_confirmed',
+          recipientId: 'user_parent_1',
+          recipientRole: 'parent',
+          title: 'Booking Confirmed',
+          body: 'Your session is booked',
+        });
+
+        assert.equal(result.success, true);
+        assert.equal(createCalls, 0);
+      } finally {
+        if (originalIsMockMode) {
+          Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+        }
+        notificationService.create = originalCreate;
       }
     });
   });

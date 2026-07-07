@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { verificationService } from '@/services/verification-service';
+import { apiClient } from '@/services/api-client';
 import { createLogger } from '@/utils/logger';
 import type { VerificationStatus } from '@/constants/types';
 import { err, serviceError, type ServiceError } from '@/types/result';
@@ -38,6 +39,8 @@ export interface UseBackgroundCheckResult {
   submitting: boolean;
   isVerified: boolean;
   isPending: boolean;
+  canStartBackgroundCheck: boolean;
+  canUseMockApproval: boolean;
   handleStartCheck: () => Promise<void>;
   handleMockApprove: () => Promise<void>;
 }
@@ -76,9 +79,11 @@ export function useBackgroundCheck() {
   });
 
   const loading = screenStatus === 'loading';
+  const canUseMockApproval = __DEV__ && apiClient.isMockMode;
+  const canStartBackgroundCheck = apiClient.isMockMode;
 
   const handleStartCheck = async () => {
-    if (!coachId) return;
+    if (!coachId || !canStartBackgroundCheck) return;
 
     setSubmitting(true);
 
@@ -97,7 +102,7 @@ export function useBackgroundCheck() {
   };
 
   const handleMockApprove = async () => {
-    if (!coachId) return;
+    if (!coachId || !canUseMockApproval) return;
 
     setSubmitting(true);
 
@@ -130,6 +135,8 @@ export function useBackgroundCheck() {
     submitting,
     isVerified,
     isPending,
+    canStartBackgroundCheck,
+    canUseMockApproval,
     handleStartCheck,
     handleMockApprove,
   } satisfies UseBackgroundCheckResult;

@@ -1,12 +1,13 @@
 import { useEffect, useState, startTransition } from 'react';
 
 import { api } from '@/constants/config';
+import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
 import { clubAuthorityService } from '@/services/club-authority-service';
 import { clubScheduleService } from '@/services/club-schedule-service';
 import { squadService } from '@/services/squad-service';
 import { socialFeedService } from '@/services/social-feed-service';
-import type { Club, ClubActivity, ClubSquad } from '@/constants/types';
+import type { Club, ClubActivity, ClubMembership, ClubSquad } from '@/constants/types';
 import { ok, type ServiceError } from '@/types/result';
 import {
   type ClubScheduleDayGroup,
@@ -29,6 +30,7 @@ const USE_MOCK = api.useMock;
 interface ScheduleLoadData {
   activities: ClubActivity[];
   club: Club | null;
+  membership: ClubMembership | null;
   squad: ClubSquad | null;
 }
 
@@ -37,34 +39,54 @@ interface UseClubScheduleOptions {
   squadId?: string;
 }
 
-async function loadClubHeader(clubId: string | undefined): Promise<Club | null> {
+function isMembershipForUser(membership: ClubMembership, userId: string | undefined): boolean {
+  if (!userId) {
+    return false;
+  }
+  const normalizedUserId = userId.replace(/^usr_/, '');
+  return membership.userId === userId || membership.userId === normalizedUserId;
+}
+
+async function loadClubContext(
+  clubId: string | undefined,
+  userId: string | undefined,
+): Promise<{ club: Club | null; membership: ClubMembership | null }> {
   if (!clubId) {
-    return null;
+    return { club: null, membership: null };
   }
 
   if (USE_MOCK) {
-    return (await socialFeedService.getClub(clubId)) ?? null;
+    return {
+      club: (await socialFeedService.getClub(clubId)) ?? null,
+      membership: userId ? socialFeedService.getMembership(userId, clubId) ?? null : null,
+    };
   }
 
   const result = await clubAuthorityService.listClubs();
   if (!result.success) {
-    return null;
+    return { club: null, membership: null };
   }
 
-  return result.data.clubs.find((club) => club.id === clubId) ?? null;
+  return {
+    club: result.data.clubs.find((club) => club.id === clubId) ?? null,
+    membership:
+      result.data.memberships.find(
+        (candidate) => candidate.clubId === clubId && isMembershipForUser(candidate, userId),
+      ) ?? null,
+  };
 }
 
 export function useClubSchedule({ clubId, squadId }: UseClubScheduleOptions) {
+  const { currentUser } = useAuth();
   const [filter, setFilter] = useState<ClubScheduleFilter>('all');
 
   const loadSchedule = async () => {
     if (!clubId && !squadId) {
-      return ok({ activities: [], club: null, squad: null });
+      return ok({ activities: [], club: null, membership: null, squad: null });
     }
 
-    const [scheduleResult, club, squad] = await Promise.all([
+    const [scheduleResult, squad] = await Promise.all([
       squadId ? clubScheduleService.getSquadSchedule(squadId) : clubScheduleService.getClubSchedule(clubId!),
-      loadClubHeader(clubId),
       squadId ? squadService.getSquad(squadId) : Promise.resolve(null),
     ]);
 
@@ -72,16 +94,19 @@ export function useClubSchedule({ clubId, squadId }: UseClubScheduleOptions) {
       return scheduleResult;
     }
 
+    const clubContext = await loadClubContext(clubId ?? squad?.clubId, currentUser?.id);
+
     return ok({
       activities: scheduleResult.data,
-      club: club ?? null,
+      club: clubContext.club,
+      membership: clubContext.membership,
       squad,
     });
   };
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<ScheduleLoadData>({
     load: loadSchedule,
-    deps: [clubId, squadId],
+    deps: [clubId, squadId, currentUser?.id],
     refetchOnFocus: true,
   });
 
@@ -118,6 +143,7 @@ export function useClubSchedule({ clubId, squadId }: UseClubScheduleOptions) {
     filteredActivities,
     groupedActivities,
     club: data?.club ?? null,
+    membership: data?.membership ?? null,
     squad: data?.squad ?? null,
     retry,
     onRefresh,

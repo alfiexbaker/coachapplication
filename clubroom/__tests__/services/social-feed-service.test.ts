@@ -135,6 +135,8 @@ describe('clubFeedService', () => {
     assert.equal(result.data.club.ownerId, ownerId);
     assert.equal(result.data.club.commercialMode, 'ORG_OWNED');
     assert.equal(result.data.membership.role, 'OWNER');
+    assert.equal(result.data.membership.canPostAsClub, true);
+    assert.equal(result.data.membership.canCreateSessions, true);
     assert.equal(result.data.primaryInvite.role, 'MEMBER');
     assert.equal(result.data.firstStaffInvite?.role, 'HEAD_COACH');
 
@@ -144,6 +146,7 @@ describe('clubFeedService', () => {
 
     assert.equal(reloadedClub?.inviteCode, result.data.primaryInvite.code);
     assert.equal(ownerMembership?.role, 'OWNER');
+    assert.equal(ownerMembership?.canCreateSessions, true);
     assert.ok(inviteCodes.some((invite) => invite.role === 'MEMBER'));
     assert.ok(inviteCodes.some((invite) => invite.role === 'HEAD_COACH'));
   });

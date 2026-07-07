@@ -64,7 +64,7 @@ async function fetchNotificationBadgeStateInto(
 ) {
   const listResult = await notificationService.list();
   if (!listResult.success) {
-    logger.error('Failed to fetch notification badge state', { error: listResult.error });
+    logger.warn('Failed to fetch notification badge state', { error: listResult.error });
     return;
   }
 

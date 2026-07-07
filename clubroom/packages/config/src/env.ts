@@ -20,6 +20,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   API_HOST: z.string().default('127.0.0.1'),
   API_PORT: z.coerce.number().int().min(1).max(65535).default(4000),
+  API_TRUST_PROXY: boolish.default(false),
 
   DATABASE_URL: z.string().url().optional(),
 
@@ -41,6 +42,22 @@ const envSchema = z.object({
   API_PAYMENT_PROVIDER: z.enum(['simulated', 'stripe']).default('simulated'),
   API_PAYMENT_SIMULATION_SECRET: z.string().min(16).default(DEFAULT_API_PAYMENT_SIMULATION_SECRET),
   API_PAYMENT_ALLOWED_RETURN_ORIGINS: z.string().optional(),
+  API_PASSWORD_RESET_EMAIL_WEBHOOK_URL: z.string().url().optional(),
+  API_PASSWORD_RESET_EMAIL_WEBHOOK_SECRET: z.string().optional(),
+  API_PASSWORD_RESET_EMAIL_FROM: z.string().optional(),
+  API_PASSWORD_RESET_LINK_BASE: z.string().min(1).default('clubroom://reset-password'),
+  API_PASSWORD_RESET_EMAIL_TIMEOUT_MS: z.coerce.number().int().min(500).max(30_000).default(5000),
+  API_PASSWORD_RESET_BREVO_API_KEY: z.string().optional(),
+  API_PASSWORD_RESET_BREVO_ENDPOINT: z
+    .string()
+    .url()
+    .default('https://api.brevo.com/v3/smtp/email'),
+  API_PASSWORD_RESET_DEV_OUTBOX: boolish.default(false),
+  API_PASSWORD_RESET_SMTP_HOST: z.string().optional(),
+  API_PASSWORD_RESET_SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
+  API_PASSWORD_RESET_SMTP_USERNAME: z.string().optional(),
+  API_PASSWORD_RESET_SMTP_PASSWORD: z.string().optional(),
+  API_PASSWORD_RESET_SMTP_SECURE: boolish.default(false),
 
   SENTRY_URL: z.string().url().default('https://sentry.io/'),
   SENTRY_DSN: z.string().url().optional(),

@@ -6,7 +6,7 @@
  * separate from parent-provided information on ChildProfile.
  */
 
-import { apiClient } from './api-client';
+import { apiClient, apiFetch } from './api-client';
 import { createLogger } from '@/utils/logger';
 import {
   type Result,
@@ -21,6 +21,29 @@ import { emitTyped, ServiceEvents } from './event-bus';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('CoachObservationService');
+
+interface ApiCoachObservationListResponse {
+  observations: CoachObservation[];
+  total: number;
+  seedVersion?: string | null;
+  requestId: string;
+}
+
+interface ApiCoachObservationResponse {
+  athleteId: string;
+  observation: CoachObservation;
+  seedVersion?: string | null;
+  requestId: string;
+}
+
+interface ApiCoachObservationRemoveResponse {
+  removed: true;
+  observationId: string;
+  athleteId: string;
+  coachId: string;
+  seedVersion?: string | null;
+  requestId: string;
+}
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -56,7 +79,11 @@ export interface CreateObservationInput {
   isPrivate?: boolean;
 }
 
-export const OBSERVATION_CATEGORIES: readonly { id: ObservationCategory; label: string; icon: string }[] = [
+export const OBSERVATION_CATEGORIES: readonly {
+  id: ObservationCategory;
+  label: string;
+  icon: string;
+}[] = [
   { id: 'BEHAVIORAL', label: 'Behaviour', icon: 'person' },
   { id: 'PHYSICAL', label: 'Physical', icon: 'fitness' },
   { id: 'COMMUNICATION', label: 'Communication', icon: 'chatbubble' },
@@ -96,6 +123,21 @@ async function saveAll(data: CoachObservation[]): Promise<Result<void, ServiceEr
 export const coachObservationService = {
   async getObservations(athleteId: string): Promise<Result<CoachObservation[], ServiceError>> {
     try {
+      if (!apiClient.isMockMode) {
+        const result = await apiFetch<ApiCoachObservationListResponse>(
+          `/v1/athletes/${encodeURIComponent(athleteId)}/coach-observations`,
+        );
+        if (!result.success) {
+          logger.error('get_observations_api_failed', { athleteId, error: result.error });
+          return err(result.error);
+        }
+        return ok(
+          [...result.data.observations].sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          ),
+        );
+      }
+
       const all = await loadAll();
       const filtered = all.filter((o) => o.athleteId === athleteId);
       filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -106,7 +148,9 @@ export const coachObservationService = {
     }
   },
 
-  async createObservation(input: CreateObservationInput): Promise<Result<CoachObservation, ServiceError>> {
+  async createObservation(
+    input: CreateObservationInput,
+  ): Promise<Result<CoachObservation, ServiceError>> {
     if (!input.athleteId?.trim()) {
       return err(validationError('Athlete ID is required'));
     }
@@ -117,9 +161,36 @@ export const coachObservationService = {
       return err(validationError('Observation text must be under 2000 characters'));
     }
 
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<ApiCoachObservationResponse>(
+        `/v1/athletes/${encodeURIComponent(input.athleteId)}/coach-observations`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            text: input.text.trim(),
+            category: input.category,
+            isPrivate: input.isPrivate ?? false,
+          }),
+        },
+      );
+      if (!result.success) {
+        logger.error('create_observation_api_failed', { input, error: result.error });
+        return err(result.error);
+      }
+
+      const observation = result.data.observation;
+      emitTyped(ServiceEvents.COACH_OBSERVATION_CREATED, {
+        observationId: observation.id,
+        athleteId: observation.athleteId,
+        coachId: observation.coachId,
+        category: observation.category,
+      });
+      return ok(observation);
+    }
+
     // Validate athlete exists
     const users = await apiClient.get<{ id: string; name: string }[]>(STORAGE_KEYS.USERS, []);
-    const athlete = users.find(u => u.id === input.athleteId);
+    const athlete = users.find((u) => u.id === input.athleteId);
     if (!athlete) {
       return err(notFound('Athlete', input.athleteId));
     }
@@ -169,6 +240,32 @@ export const coachObservationService = {
       return err(validationError('Observation text must be under 2000 characters'));
     }
 
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<ApiCoachObservationResponse>(
+        `/v1/coach-observations/${encodeURIComponent(observationId)}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify(updates),
+        },
+      );
+      if (!result.success) {
+        logger.error('update_observation_api_failed', {
+          observationId,
+          updates,
+          error: result.error,
+        });
+        return err(result.error);
+      }
+
+      const observation = result.data.observation;
+      emitTyped(ServiceEvents.COACH_OBSERVATION_UPDATED, {
+        observationId,
+        athleteId: observation.athleteId,
+        coachId: observation.coachId,
+      });
+      return ok(observation);
+    }
+
     const all = await loadAll();
     const index = all.findIndex((o) => o.id === observationId);
     if (index === -1) return err(notFound('Observation', observationId));
@@ -197,6 +294,26 @@ export const coachObservationService = {
   },
 
   async deleteObservation(observationId: string): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<ApiCoachObservationRemoveResponse>(
+        `/v1/coach-observations/${encodeURIComponent(observationId)}`,
+        {
+          method: 'DELETE',
+        },
+      );
+      if (!result.success) {
+        logger.error('remove_observation_api_failed', { observationId, error: result.error });
+        return err(result.error);
+      }
+
+      emitTyped(ServiceEvents.COACH_OBSERVATION_DELETED, {
+        observationId,
+        athleteId: result.data.athleteId,
+        coachId: result.data.coachId,
+      });
+      return ok(undefined);
+    }
+
     const all = await loadAll();
     const existing = all.find((o) => o.id === observationId);
     if (!existing) return err(notFound('Observation', observationId));

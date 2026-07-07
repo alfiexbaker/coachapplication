@@ -1,0 +1,2 @@
+ALTER TABLE "GroupSession"
+  ALTER COLUMN "coachUserId" DROP NOT NULL;

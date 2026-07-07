@@ -31,4 +31,3 @@ Every exception must include:
 1. Callsite comment with rationale
 2. Owner
 3. Removal target date
-

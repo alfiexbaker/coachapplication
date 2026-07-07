@@ -9,6 +9,7 @@ import { invoiceService } from '@/services/invoice-service';
 import type { Invoice } from '@/constants/types';
 import type { useTheme } from '@/hooks/useTheme';
 import { formatShortDate, getInvoiceStatusColor } from './invoice-card-helpers';
+import { formatServiceTypeLabel, safeDisplayLabel } from '@/utils/booking-display';
 
 type ThemeColors = ReturnType<typeof useTheme>['colors'];
 
@@ -44,7 +45,8 @@ export const CompactInvoiceRow = function CompactInvoiceRow({
         </Row>
         <Row justify="space-between" align="center">
           <ThemedText style={[styles.compactSubtext, { color: palette.muted }]} numberOfLines={1}>
-            {invoice.athleteId || 'Athlete'} - {invoice.sessionType || 'Training'}
+            {safeDisplayLabel(invoice.athleteId, 'Athlete')} -{' '}
+            {formatServiceTypeLabel(invoice.sessionType || 'Training')}
           </ThemedText>
           <ThemedText style={[styles.compactDate, { color: palette.muted }]}>
             {formatShortDate(invoice.sessionDate)}

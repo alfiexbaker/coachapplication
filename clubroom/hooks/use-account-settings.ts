@@ -6,7 +6,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
 import { userService } from '@/services/user-service';
+import { authService } from '@/services/auth-service';
 import { buildMailtoUrl, openExternalUrl } from '@/utils/external-url';
+import { formatSupportRef } from '@/utils/support-ref';
 
 const logger = createLogger('useAccountSettings');
 const SUPPORT_EMAIL = 'support@clubroom.app';
@@ -25,7 +27,23 @@ export function useAccountSettings() {
     if (!currentUser?.id) return;
 
     logger.press('SaveEmail', { email });
-    const result = await userService.updateUserProfile(currentUser.id, { email: email.trim() });
+    const nextEmail = email.trim();
+    if (!apiClient.isMockMode) {
+      const result = await authService.updateProfile({ email: nextEmail });
+      if (!result.success) {
+        uiFeedback.showToast(result.error.message, 'error');
+        return;
+      }
+
+      setEditingEmail(false);
+      uiFeedback.showToast(
+        'Email updated. Verification stays managed separately from this field in the current build.',
+        'success',
+      );
+      return;
+    }
+
+    const result = await userService.updateUserProfile(currentUser.id, { email: nextEmail });
     if (!result.success) {
       uiFeedback.showToast(result.error.message, 'error');
       return;
@@ -47,6 +65,21 @@ export function useAccountSettings() {
 
     logger.press('SavePhone', { phone });
     const nextPhone = phone.trim();
+    if (!apiClient.isMockMode) {
+      const result = await authService.updateProfile({ phone: nextPhone });
+      if (!result.success) {
+        uiFeedback.showToast(result.error.message, 'error');
+        return;
+      }
+
+      setEditingPhone(false);
+      uiFeedback.showToast(
+        'Phone number updated. Any verification review is handled separately from this field.',
+        'success',
+      );
+      return;
+    }
+
     const result = await userService.updateUserProfile(currentUser.id, {
       phone: nextPhone,
     });
@@ -72,7 +105,7 @@ export function useAccountSettings() {
     const body = [
       'I need help resetting the password for my Clubroom account.',
       '',
-      `Account: ${currentUser?.id ?? 'unknown'}`,
+      `Support ref: ${formatSupportRef(currentUser?.id)}`,
       `Email on file: ${email.trim() || currentUser?.email || 'not set'}`,
     ].join('\n');
 
@@ -97,7 +130,7 @@ export function useAccountSettings() {
     const body = [
       intro,
       '',
-      `Account: ${currentUser?.id ?? 'unknown'}`,
+      `Support ref: ${formatSupportRef(currentUser?.id)}`,
       `Email on file: ${email.trim() || currentUser?.email || 'not set'}`,
     ].join('\n');
 

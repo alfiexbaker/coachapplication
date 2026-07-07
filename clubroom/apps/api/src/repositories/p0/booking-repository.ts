@@ -4,9 +4,11 @@ import {
   bookingStatusSchema,
   type BookingResponse,
   type CancelBookingRequest,
+  type ConfirmBookingRequest,
   type CompleteBookingRequest,
   type CreateBookingRequest,
   type ReopenBookingRequest,
+  type UpdateBookingRequest,
 } from '@clubroom/shared-contracts';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
@@ -27,6 +29,10 @@ const asString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
 const asNumber = (value: unknown): number | undefined =>
   typeof value === 'number' ? value : undefined;
+const asStringArray = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+const asObject = (value: unknown): SeedRow =>
+  value && typeof value === 'object' && !Array.isArray(value) ? (value as SeedRow) : {};
 const isoNow = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 type BookingStatusCode =
@@ -36,10 +42,25 @@ type BookingStatusCode =
   | 'AWAITING_COMPLETION'
   | 'COMPLETED'
   | 'CANCELLED';
+type BookingCompletionAttendance = NonNullable<CompleteBookingRequest['attendance']>[number];
+type NormalizedCompletionAttendance = {
+  athleteId: string;
+  status: BookingCompletionAttendance['status'];
+  notes: string | null;
+  effortRating: number | null;
+};
+type CompletionAttendanceRecordRef = {
+  athleteId: string;
+  id: string;
+  status: BookingCompletionAttendance['status'];
+};
 const BOOKING_CREATE_ENDPOINT_KEY = 'POST:/v1/bookings';
 const IDEMPOTENCY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const bookingLifecycleEndpointKey = (bookingId: string, action: 'cancel' | 'reopen' | 'complete') =>
-  `POST:/v1/bookings/${bookingId}/${action}`;
+const bookingLifecycleEndpointKey = (
+  bookingId: string,
+  action: 'cancel' | 'confirm' | 'reopen' | 'complete' | 'update',
+) => `POST:/v1/bookings/${bookingId}/${action}`;
+const bookingUpdateEndpointKey = (bookingId: string) => `PATCH:/v1/bookings/${bookingId}`;
 export interface ListBookingsParams {
   authUserId: string;
   statusFilter?: string;
@@ -62,17 +83,54 @@ export interface CancelBookingParams {
   bookingId: string;
   body: CancelBookingRequest;
 }
+export interface UpdateBookingParams {
+  authUserId: string;
+  requestId: string;
+  bookingId: string;
+  body: UpdateBookingRequest;
+}
 export interface ReopenBookingParams {
   authUserId: string;
   requestId: string;
   bookingId: string;
   body: ReopenBookingRequest;
 }
+export interface ConfirmBookingParams {
+  authUserId: string;
+  requestId: string;
+  bookingId: string;
+  body: ConfirmBookingRequest;
+}
 export interface CompleteBookingParams {
   authUserId: string;
   requestId: string;
   bookingId: string;
   body: CompleteBookingRequest;
+}
+export interface BookingSessionNoteFields {
+  summary: string;
+  focus: string[];
+  improvements: string;
+  homework: string;
+  effort: number;
+  attendance: string;
+  videoUrls?: string[];
+  imageUrls?: string[];
+}
+export interface BookingSessionNoteRecord extends BookingSessionNoteFields {
+  id: string;
+  bookingId: string;
+  athleteId: string;
+  updatedAt: string;
+}
+export interface BookingSessionNoteResult {
+  note: BookingSessionNoteRecord | null;
+  dataVersion: string | null;
+}
+export interface SaveBookingSessionNoteParams {
+  authUserId: string;
+  bookingId: string;
+  input: BookingSessionNoteFields;
 }
 export interface ListBookingsResult {
   bookings: BookingResponse[];
@@ -81,8 +139,12 @@ export interface ListBookingsResult {
 export interface BookingRepository {
   listVisibleBookings(params: ListBookingsParams): Promise<ListBookingsResult>;
   getVisibleBookingById(params: GetBookingParams): Promise<BookingResponse>;
+  getBookingSessionNote(params: GetBookingParams): Promise<BookingSessionNoteResult>;
+  saveBookingSessionNote(params: SaveBookingSessionNoteParams): Promise<BookingSessionNoteResult>;
   createBooking(params: CreateBookingParams): Promise<BookingResponse>;
+  updateBooking(params: UpdateBookingParams): Promise<BookingResponse>;
   cancelBooking(params: CancelBookingParams): Promise<BookingResponse>;
+  confirmBooking(params: ConfirmBookingParams): Promise<BookingResponse>;
   reopenBooking(params: ReopenBookingParams): Promise<BookingResponse>;
   completeBooking(params: CompleteBookingParams): Promise<BookingResponse>;
 }
@@ -116,7 +178,12 @@ function hashCreateBookingRequest(body: CreateBookingRequest): string {
 }
 function hashBookingLifecycleRequest(params: {
   bookingId: string;
-  body: CancelBookingRequest | ReopenBookingRequest | CompleteBookingRequest;
+  body:
+    | CancelBookingRequest
+    | ConfirmBookingRequest
+    | ReopenBookingRequest
+    | CompleteBookingRequest
+    | UpdateBookingRequest;
 }): string {
   return crypto
     .createHash('sha256')
@@ -314,6 +381,55 @@ function getObjectiveValuesForBooking(tables: SeedTables, bookingId: string): st
       return mapped ? [mapped] : [];
     });
 }
+function normalizeCompletionAttendance(params: {
+  participantAthleteIds: string[];
+  attendance?: CompleteBookingRequest['attendance'];
+  fallbackNote?: string | null;
+}): NormalizedCompletionAttendance[] {
+  const participantAthleteIds = Array.from(new Set(params.participantAthleteIds));
+  const participantAthleteIdSet = new Set(participantAthleteIds);
+  const attendanceByAthleteId = new Map<string, BookingCompletionAttendance>();
+
+  for (const row of params.attendance ?? []) {
+    if (attendanceByAthleteId.has(row.athleteId)) {
+      throw badRequest('Duplicate booking completion attendance entry', {
+        athleteId: row.athleteId,
+      });
+    }
+    if (!participantAthleteIdSet.has(row.athleteId)) {
+      throw badRequest('Booking completion attendance athlete is not a booking participant', {
+        athleteId: row.athleteId,
+      });
+    }
+    attendanceByAthleteId.set(row.athleteId, row);
+  }
+
+  return participantAthleteIds.map((athleteId) => {
+    const explicit = attendanceByAthleteId.get(athleteId);
+    return {
+      athleteId,
+      status: explicit?.status ?? 'ATTENDED',
+      notes: explicit?.notes ?? params.fallbackNote ?? null,
+      effortRating: explicit?.effortRating ?? null,
+    };
+  });
+}
+function summarizeCompletionAttendance(attendance: NormalizedCompletionAttendance[]): {
+  attended: number;
+  noShow: number;
+} {
+  return attendance.reduce(
+    (summary, row) => {
+      if (row.status === 'NO_SHOW') {
+        summary.noShow += 1;
+      } else {
+        summary.attended += 1;
+      }
+      return summary;
+    },
+    { attended: 0, noShow: 0 },
+  );
+}
 function canUserAccessSeedBooking(
   tables: SeedTables,
   booking: SeedRow,
@@ -336,6 +452,39 @@ function canUserAccessSeedBooking(
     return Boolean(athleteId && athleteUserIdsByAthleteId.get(athleteId) === authUserId);
   });
 }
+function canUserWriteSeedBooking(
+  tables: SeedTables,
+  booking: SeedRow,
+  authUserId: string,
+  participantRowsByBooking = getParticipantRowsByBooking(tables),
+): boolean {
+  if (
+    asString(booking.coachUserId) === authUserId ||
+    asString(booking.bookedByUserId) === authUserId
+  ) {
+    return true;
+  }
+  const bookingId = asString(booking.id) ?? '';
+  const participantRows = participantRowsByBooking.get(bookingId) ?? [];
+  const athleteIds = Array.from(
+    new Set(
+      participantRows.flatMap((participant) => {
+        const athleteId = asString(participant.athleteId);
+        return athleteId ? [athleteId] : [];
+      }),
+    ),
+  );
+  if (athleteIds.length === 0) {
+    return false;
+  }
+  return athleteIds.every((athleteId) =>
+    participantRows.some(
+      (participant) =>
+        asString(participant.athleteId) === athleteId &&
+        asString(participant.guardianUserId) === authUserId,
+    ),
+  );
+}
 function mapSeedBookingRow(
   tables: SeedTables,
   booking: SeedRow,
@@ -353,6 +502,8 @@ function mapSeedBookingRow(
     id: bookingId,
     coachUserId: asString(booking.coachUserId),
     bookedByUserId: asString(booking.bookedByUserId),
+    recurringSeriesId: asString(booking.recurringSeriesId) ?? null,
+    groupSessionId: asString(booking.groupSessionId) ?? null,
     status: asString(booking.status),
     scheduledAt: asString(booking.scheduledAt),
     durationMinutes: asNumber(booking.durationMinutes) ?? 60,
@@ -364,6 +515,40 @@ function mapSeedBookingRow(
     priceMinor: asNumber(booking.priceMinor) ?? null,
     currency: asString(booking.currency) ?? 'GBP',
     participants: bookingParticipants,
+    version: asNumber(booking.version) ?? 1,
+    createdAt: asString(booking.createdAt) ?? isoNow(),
+    updatedAt: asString(booking.updatedAt) ?? isoNow(),
+    cancelledAt: asString(booking.cancelledAt) ?? null,
+  });
+}
+function mapNormalizedDbBookingRow(booking: SeedRow): BookingResponse {
+  const objectives = asRows(booking.objectives)
+    .sort((a, b) => (asNumber(a.sortOrder) ?? 0) - (asNumber(b.sortOrder) ?? 0))
+    .flatMap((objective) => {
+      const value = asString(objective.objective);
+      return value ? [value] : [];
+    });
+  return bookingResponseSchema.parse({
+    id: asString(booking.id),
+    coachUserId: asString(booking.coachUserId),
+    bookedByUserId: asString(booking.bookedByUserId) ?? undefined,
+    recurringSeriesId: asString(booking.recurringSeriesId) ?? null,
+    groupSessionId: asString(booking.groupSessionId) ?? null,
+    status: asString(booking.status),
+    scheduledAt: asString(booking.scheduledAt),
+    durationMinutes: asNumber(booking.durationMinutes) ?? 60,
+    location: asString(booking.location) ?? 'TBD',
+    serviceType: asString(booking.serviceType) ?? undefined,
+    sessionTemplateId: null,
+    objectives,
+    notes: asString(booking.notes) ?? null,
+    priceMinor: asNumber(booking.priceMinor) ?? null,
+    currency: asString(booking.currency) ?? 'GBP',
+    participants: asRows(booking.participants).map((participant) => ({
+      athleteId: asString(participant.athleteId) ?? '',
+      guardianUserId: asString(participant.guardianUserId),
+      status: (asString(participant.status) ?? 'pending').toLowerCase(),
+    })),
     version: asNumber(booking.version) ?? 1,
     createdAt: asString(booking.createdAt) ?? isoNow(),
     updatedAt: asString(booking.updatedAt) ?? isoNow(),
@@ -400,15 +585,14 @@ function mapSeedBookingsFromTables(
 function upsertSeedBookingAttendanceRecords(params: {
   tables: SeedTables;
   booking: SeedRow;
-  participantRows: SeedRow[];
+  completionAttendance: NormalizedCompletionAttendance[];
   actorUserId: string;
   recordedAt: string;
-  note?: string | null;
-}): string[] {
+}): CompletionAttendanceRecordRef[] {
   const attendanceRecords = getMutableRows(params.tables, 'attendanceRecords');
   const bookingId = asString(params.booking.id) ?? '';
   const focusAreas = getObjectiveValuesForBooking(params.tables, bookingId);
-  const attendanceRecordIds: string[] = [];
+  const attendanceRecordRefs: CompletionAttendanceRecordRef[] = [];
   const attendanceByAthleteId = new Map(
     attendanceRecords.flatMap((row) => {
       if (asString(row.bookingId) !== bookingId) {
@@ -418,21 +602,24 @@ function upsertSeedBookingAttendanceRecords(params: {
       return athleteId ? [[athleteId, row] as const] : [];
     }),
   );
-  for (const participant of params.participantRows) {
-    const athleteId = asString(participant.athleteId);
-    if (!athleteId) {
-      continue;
-    }
-    const existing = attendanceByAthleteId.get(athleteId);
+  for (const attendance of params.completionAttendance) {
+    const existing = attendanceByAthleteId.get(attendance.athleteId);
     if (existing) {
-      existing.status = 'ATTENDED';
-      existing.notes = params.note ?? null;
-      existing.effortRating = asNumber(existing.effortRating) ?? null;
+      existing.status = attendance.status;
+      existing.notes = attendance.notes;
+      existing.effortRating = attendance.effortRating;
       existing.focusAreasJson = focusAreas;
       existing.recordedByUserId = params.actorUserId;
       existing.recordedAt = params.recordedAt;
       existing.updatedAt = params.recordedAt;
-      attendanceRecordIds.push(asString(existing.id) ?? '');
+      const existingId = asString(existing.id);
+      if (existingId) {
+        attendanceRecordRefs.push({
+          athleteId: attendance.athleteId,
+          id: existingId,
+          status: attendance.status,
+        });
+      }
       continue;
     }
     const recordId = newId('att');
@@ -440,10 +627,10 @@ function upsertSeedBookingAttendanceRecords(params: {
       id: recordId,
       bookingId,
       groupSessionId: asString(params.booking.groupSessionId) ?? null,
-      athleteId,
-      status: 'ATTENDED',
-      notes: params.note ?? null,
-      effortRating: null,
+      athleteId: attendance.athleteId,
+      status: attendance.status,
+      notes: attendance.notes,
+      effortRating: attendance.effortRating,
       focusAreasJson: focusAreas,
       recordedByUserId: params.actorUserId,
       recordedAt: params.recordedAt,
@@ -451,16 +638,19 @@ function upsertSeedBookingAttendanceRecords(params: {
       updatedAt: params.recordedAt,
     };
     attendanceRecords.push(createdRecord);
-    attendanceByAthleteId.set(athleteId, createdRecord);
-    attendanceRecordIds.push(recordId);
+    attendanceByAthleteId.set(attendance.athleteId, createdRecord);
+    attendanceRecordRefs.push({
+      athleteId: attendance.athleteId,
+      id: recordId,
+      status: attendance.status,
+    });
   }
-  return attendanceRecordIds.filter(Boolean);
+  return attendanceRecordRefs;
 }
 function upsertSeedBookingCompletionSessionNotes(params: {
   tables: SeedTables;
   booking: SeedRow;
-  participantRows: SeedRow[];
-  attendanceRecordIds: string[];
+  attendanceRecordRefs: CompletionAttendanceRecordRef[];
   actorUserId: string;
   recordedAt: string;
   note?: string | null;
@@ -473,24 +663,22 @@ function upsertSeedBookingCompletionSessionNotes(params: {
   const bookingId = asString(params.booking.id) ?? '';
   const focusAreas = getObjectiveValuesForBooking(params.tables, bookingId);
   const sessionNoteIds: string[] = [];
-  params.participantRows.forEach((participant, index) => {
-    const athleteId = asString(participant.athleteId);
-    if (!athleteId) {
+  params.attendanceRecordRefs.forEach((attendanceRecordRef) => {
+    if (attendanceRecordRef.status !== 'ATTENDED') {
       return;
     }
-    const attendanceRecordId = params.attendanceRecordIds[index] ?? null;
     const metadataJson = {
       source: 'booking-completion',
       proofSource: 'attendance-record',
-      attendanceRecordId,
-      attendanceRecordIds: attendanceRecordId ? [attendanceRecordId] : [],
+      attendanceRecordId: attendanceRecordRef.id,
+      attendanceRecordIds: [attendanceRecordRef.id],
       focus: focusAreas,
       completedAt: params.recordedAt,
     };
     const existing = sessionNotes.find(
       (row) =>
         asString(row.bookingId) === bookingId &&
-        asString(row.athleteId) === athleteId &&
+        asString(row.athleteId) === attendanceRecordRef.athleteId &&
         asString(row.createdByUserId) === params.actorUserId &&
         !asString(row.deletedAt),
     );
@@ -511,7 +699,7 @@ function upsertSeedBookingCompletionSessionNotes(params: {
       id: sessionNoteId,
       bookingId,
       groupSessionId: asString(params.booking.groupSessionId) ?? null,
-      athleteId,
+      athleteId: attendanceRecordRef.athleteId,
       coachUserId: params.actorUserId,
       visibility: 'PUBLIC',
       noteText,
@@ -528,6 +716,38 @@ function upsertSeedBookingCompletionSessionNotes(params: {
     sessionNoteIds.push(sessionNoteId);
   });
   return sessionNoteIds.filter(Boolean);
+}
+function sessionNoteMetadata(input: BookingSessionNoteFields): SeedRow {
+  return {
+    source: 'session-notes-screen',
+    focus: input.focus,
+    improvements: input.improvements,
+    homework: input.homework,
+    effort: input.effort,
+    attendance: input.attendance,
+    videoUrls: input.videoUrls ?? [],
+    imageUrls: input.imageUrls ?? [],
+  };
+}
+function mapSessionNoteRow(row: SeedRow): BookingSessionNoteRecord {
+  const metadata = asObject(row.metadataJson);
+  return {
+    id: asString(row.id) ?? '',
+    bookingId: asString(row.bookingId) ?? '',
+    athleteId: asString(row.athleteId) ?? '',
+    summary: asString(row.noteText) ?? '',
+    focus: asStringArray(metadata.focus),
+    improvements: asString(metadata.improvements) ?? '',
+    homework: asString(metadata.homework) ?? '',
+    effort: asNumber(metadata.effort) ?? 3,
+    attendance: asString(metadata.attendance) ?? '',
+    videoUrls: asStringArray(metadata.videoUrls),
+    imageUrls: asStringArray(metadata.imageUrls),
+    updatedAt: asString(row.updatedAt) ?? asString(row.createdAt) ?? isoNow(),
+  };
+}
+function canReadSessionNote(booking: BookingResponse, note: SeedRow, authUserId: string): boolean {
+  return asString(note.visibility) !== 'COACH_ONLY' || booking.coachUserId === authUserId;
 }
 function getVisibleSeedBookingById(
   tables: SeedTables,
@@ -710,6 +930,8 @@ export function createBookingInSeedTables(params: {
     id: bookingId,
     coachUserId: body.coachUserId,
     bookedByUserId: body.bookedByUserId,
+    recurringSeriesId: asString(bookingRowOverrides?.recurringSeriesId) ?? null,
+    groupSessionId: asString(bookingRowOverrides?.groupSessionId) ?? null,
     status: 'CONFIRMED',
     scheduledAt: body.scheduledAt,
     durationMinutes: body.durationMinutes,
@@ -753,6 +975,87 @@ class SeedBookingRepository implements BookingRepository {
     const store = this.loadStore();
     return getVisibleSeedBookingById(store.tables, params.authUserId, params.bookingId);
   }
+  async getBookingSessionNote(params: GetBookingParams): Promise<BookingSessionNoteResult> {
+    const store = this.loadStore();
+    const booking = getVisibleSeedBookingById(store.tables, params.authUserId, params.bookingId);
+    const note = asRows(store.tables.sessionNotes).find(
+      (row) => asString(row.bookingId) === params.bookingId && !asString(row.deletedAt),
+    );
+    return {
+      note:
+        note && canReadSessionNote(booking, note, params.authUserId)
+          ? mapSessionNoteRow(note)
+          : null,
+      dataVersion: store.version,
+    };
+  }
+  async saveBookingSessionNote(
+    params: SaveBookingSessionNoteParams,
+  ): Promise<BookingSessionNoteResult> {
+    const store = this.loadStore();
+    const booking = getVisibleSeedBookingById(store.tables, params.authUserId, params.bookingId);
+    if (booking.coachUserId !== params.authUserId) {
+      throw forbidden('Only the assigned coach can submit session notes');
+    }
+    const participantRows = getParticipantRowsByBooking(store.tables).get(params.bookingId) ?? [];
+    if (participantRows.length === 0) {
+      throw badRequest('Booking has no athlete participants', {
+        bookingId: params.bookingId,
+      });
+    }
+    const sessionNotes = getMutableRows(store.tables, 'sessionNotes');
+    const now = isoNow();
+    const metadataJson = sessionNoteMetadata(params.input);
+    const savedNotes: SeedRow[] = [];
+    for (const participant of participantRows) {
+      const athleteId = asString(participant.athleteId);
+      if (!athleteId) {
+        continue;
+      }
+      const existing = sessionNotes.find(
+        (row) =>
+          asString(row.bookingId) === params.bookingId &&
+          asString(row.athleteId) === athleteId &&
+          asString(row.createdByUserId) === params.authUserId &&
+          !asString(row.deletedAt),
+      );
+      if (existing) {
+        existing.coachUserId = params.authUserId;
+        existing.visibility = 'PUBLIC';
+        existing.noteText = params.input.summary;
+        existing.metadataJson = metadataJson;
+        existing.updatedByUserId = params.authUserId;
+        existing.updatedAt = now;
+        existing.version = (asNumber(existing.version) ?? 1) + 1;
+        savedNotes.push(existing);
+        continue;
+      }
+      const created = {
+        id: newId('snt'),
+        bookingId: params.bookingId,
+        groupSessionId: null,
+        athleteId,
+        coachUserId: params.authUserId,
+        visibility: 'PUBLIC',
+        noteText: params.input.summary,
+        privateNotesEncrypted: null,
+        metadataJson,
+        createdByUserId: params.authUserId,
+        updatedByUserId: params.authUserId,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+        deletedByUserId: null,
+      };
+      sessionNotes.push(created);
+      savedNotes.push(created);
+    }
+    return {
+      note: savedNotes[0] ? mapSessionNoteRow(savedNotes[0]) : null,
+      dataVersion: store.version,
+    };
+  }
   async createBooking(params: CreateBookingParams): Promise<BookingResponse> {
     const store = this.loadStore();
     return createBookingInSeedTables({
@@ -762,6 +1065,131 @@ class SeedBookingRepository implements BookingRepository {
       body: params.body,
       bookingRowOverrides: params.bookingRowOverrides,
     });
+  }
+  async updateBooking(params: UpdateBookingParams): Promise<BookingResponse> {
+    const store = this.loadStore();
+    const bookings = asRows(store.tables.bookings);
+    const participantRowsByBooking = getParticipantRowsByBooking(store.tables);
+    const athleteUserIdsByAthleteId = getAthleteUserIdsByAthleteId(store.tables);
+    const endpointKey = bookingUpdateEndpointKey(params.bookingId);
+    const requestHash = hashBookingLifecycleRequest({
+      bookingId: params.bookingId,
+      body: params.body,
+    });
+    const idempotentResponse = findSeedLifecycleBookingIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      endpointKey,
+      idempotencyKey: params.body.idempotencyKey,
+      requestHash,
+    });
+    if (idempotentResponse) {
+      return idempotentResponse;
+    }
+    const booking = bookings.find((row) => asString(row.id) === params.bookingId);
+    if (!booking) {
+      throw notFound('Booking not found', {
+        bookingId: params.bookingId,
+      });
+    }
+    if (
+      !canUserAccessSeedBooking(
+        store.tables,
+        booking,
+        params.authUserId,
+        participantRowsByBooking,
+        athleteUserIdsByAthleteId,
+      )
+    ) {
+      throw forbidden('Booking does not belong to authenticated user');
+    }
+    if (
+      !canUserWriteSeedBooking(store.tables, booking, params.authUserId, participantRowsByBooking)
+    ) {
+      throw forbidden(
+        'Only the assigned coach, booking owner, or linked guardian can update this booking',
+      );
+    }
+    const currentStatus = asString(booking.status)?.toUpperCase();
+    if (!currentStatus || !isSupportedBookingStatus(currentStatus)) {
+      throw badRequest('Booking has an unsupported status', {
+        bookingId: params.bookingId,
+        status: currentStatus ?? null,
+      });
+    }
+    if (currentStatus === 'CANCELLED' || currentStatus === 'COMPLETED') {
+      throw badRequest('Only active bookings can be updated');
+    }
+    assertExpectedBookingVersion(asNumber(booking.version) ?? 1, params.body.expectedVersion);
+    if (params.body.scheduledAt && Date.parse(params.body.scheduledAt) <= Date.now()) {
+      throw badRequest('Booking scheduledAt must be in the future');
+    }
+
+    const changedFields: string[] = [];
+    const setIfChanged = (field: string, value: unknown): void => {
+      if (value === undefined || booking[field] === value) {
+        return;
+      }
+      booking[field] = value;
+      changedFields.push(field);
+    };
+    setIfChanged('scheduledAt', params.body.scheduledAt);
+    setIfChanged('durationMinutes', params.body.durationMinutes);
+    setIfChanged('location', params.body.location);
+    setIfChanged('serviceType', params.body.serviceType);
+    setIfChanged('notes', params.body.notes);
+    setIfChanged('priceMinor', params.body.priceMinor);
+    setIfChanged('currency', params.body.currency);
+
+    if (params.body.objectives !== undefined) {
+      const objectiveRows = getMutableRows(store.tables, 'bookingObjectives');
+      for (let index = objectiveRows.length - 1; index >= 0; index -= 1) {
+        if (asString(objectiveRows[index]?.bookingId) === params.bookingId) {
+          objectiveRows.splice(index, 1);
+        }
+      }
+      params.body.objectives.forEach((objective, index) => {
+        objectiveRows.push({
+          id: newId('bobj'),
+          bookingId: params.bookingId,
+          objective,
+          sortOrder: index,
+          createdAt: isoNow(),
+        });
+      });
+      changedFields.push('objectives');
+    }
+
+    const now = isoNow();
+    booking.updatedByUserId = params.authUserId;
+    booking.updatedAt = now;
+    booking.version = (asNumber(booking.version) ?? 1) + 1;
+    getMutableRows(store.tables, 'bookingStatusEvents').push({
+      id: newId('bse'),
+      bookingId: params.bookingId,
+      fromStatus: currentStatus,
+      toStatus: currentStatus,
+      actorUserId: params.authUserId,
+      reason: 'Booking details updated',
+      metadataJson: {
+        changedFields,
+        source: 'api-runtime',
+      },
+      requestId: params.requestId,
+      occurredAt: now,
+    });
+
+    const response = mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
+    recordSeedLifecycleBookingIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      endpointKey,
+      idempotencyKey: params.body.idempotencyKey,
+      requestHash,
+      response,
+      now,
+    });
+    return response;
   }
   async cancelBooking(params: CancelBookingParams): Promise<BookingResponse> {
     const store = this.loadStore();
@@ -834,6 +1262,84 @@ class SeedBookingRepository implements BookingRepository {
       toStatus: 'CANCELLED',
       actorUserId: params.authUserId,
       reason: params.body.reason,
+      metadataJson: {
+        note: params.body.note ?? null,
+        source: 'api-runtime',
+      },
+      requestId: params.requestId,
+      occurredAt: now,
+    });
+    const response = mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
+    recordSeedLifecycleBookingIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      endpointKey,
+      idempotencyKey: params.body.idempotencyKey,
+      requestHash,
+      response,
+      now,
+    });
+    return response;
+  }
+  async confirmBooking(params: ConfirmBookingParams): Promise<BookingResponse> {
+    const store = this.loadStore();
+    const bookings = asRows(store.tables.bookings);
+    const statusEvents = asRows(store.tables.bookingStatusEvents);
+    const participantRowsByBooking = getParticipantRowsByBooking(store.tables);
+    const endpointKey = bookingLifecycleEndpointKey(params.bookingId, 'confirm');
+    const requestHash = hashBookingLifecycleRequest({
+      bookingId: params.bookingId,
+      body: params.body,
+    });
+    const idempotentResponse = findSeedLifecycleBookingIdempotency({
+      tables: store.tables,
+      authUserId: params.authUserId,
+      endpointKey,
+      idempotencyKey: params.body.idempotencyKey,
+      requestHash,
+    });
+    if (idempotentResponse) {
+      return idempotentResponse;
+    }
+    const booking = bookings.find((row) => asString(row.id) === params.bookingId);
+    if (!booking) {
+      throw notFound('Booking not found', {
+        bookingId: params.bookingId,
+      });
+    }
+    if (asString(booking.coachUserId) !== params.authUserId) {
+      throw forbidden('Only the assigned coach can confirm this booking');
+    }
+    const currentStatus = asString(booking.status)?.toUpperCase();
+    if (currentStatus === 'CONFIRMED') {
+      return mapSeedBookingRow(store.tables, booking, participantRowsByBooking);
+    }
+    assertExpectedBookingVersion(asNumber(booking.version) ?? 1, params.body.expectedVersion);
+    if (currentStatus === 'CANCELLED' || currentStatus === 'COMPLETED') {
+      throw badRequest('Terminal bookings cannot be confirmed', {
+        bookingId: params.bookingId,
+        status: currentStatus,
+      });
+    }
+    if (currentStatus !== 'PENDING' && currentStatus !== 'AWAITING_CONFIRMATION') {
+      throw badRequest('Only pending bookings can be confirmed', {
+        bookingId: params.bookingId,
+        status: currentStatus,
+      });
+    }
+    const now = isoNow();
+    booking.status = 'CONFIRMED';
+    booking.confirmedAt = now;
+    booking.updatedByUserId = params.authUserId;
+    booking.updatedAt = now;
+    booking.version = (asNumber(booking.version) ?? 1) + 1;
+    statusEvents.push({
+      id: newId('bse'),
+      bookingId: params.bookingId,
+      fromStatus: currentStatus,
+      toStatus: 'CONFIRMED',
+      actorUserId: params.authUserId,
+      reason: 'Booking confirmed',
       metadataJson: {
         note: params.body.note ?? null,
         source: 'api-runtime',
@@ -998,19 +1504,26 @@ class SeedBookingRepository implements BookingRepository {
       });
     }
     const participantRows = participantRowsByBooking.get(params.bookingId) ?? [];
-    const attendanceRecordIds = upsertSeedBookingAttendanceRecords({
+    const completionAttendance = normalizeCompletionAttendance({
+      participantAthleteIds: participantRows.flatMap((participant) => {
+        const athleteId = asString(participant.athleteId);
+        return athleteId ? [athleteId] : [];
+      }),
+      attendance: params.body.attendance,
+      fallbackNote: params.body.note ?? null,
+    });
+    const attendanceRecordRefs = upsertSeedBookingAttendanceRecords({
       tables: store.tables,
       booking,
-      participantRows,
+      completionAttendance,
       actorUserId: params.authUserId,
       recordedAt: completedAt,
-      note: params.body.note ?? null,
     });
+    const attendanceRecordIds = attendanceRecordRefs.map((ref) => ref.id);
     const sessionNoteIds = upsertSeedBookingCompletionSessionNotes({
       tables: store.tables,
       booking,
-      participantRows,
-      attendanceRecordIds,
+      attendanceRecordRefs,
       actorUserId: params.authUserId,
       recordedAt: completedAt,
       note: params.body.note ?? null,
@@ -1031,6 +1544,7 @@ class SeedBookingRepository implements BookingRepository {
         source: 'api-runtime',
         attendanceRecordIds,
         sessionNoteIds,
+        attendanceSummary: summarizeCompletionAttendance(completionAttendance),
         proofSource: 'attendance-record',
         proofSources: sessionNoteIds.length
           ? ['attendance-record', 'session-note']
@@ -1106,8 +1620,13 @@ export async function resolveCreateBookingIdempotency(params: {
 async function resolveLifecycleBookingIdempotency(params: {
   authUserId: string;
   bookingId: string;
-  action: 'cancel' | 'reopen' | 'complete';
-  body: CancelBookingRequest | ReopenBookingRequest | CompleteBookingRequest;
+  action: 'cancel' | 'confirm' | 'reopen' | 'complete' | 'update';
+  body:
+    | CancelBookingRequest
+    | ConfirmBookingRequest
+    | ReopenBookingRequest
+    | CompleteBookingRequest
+    | UpdateBookingRequest;
 }): Promise<{
   responseStatus: number;
   response: BookingResponse;
@@ -1115,7 +1634,10 @@ async function resolveLifecycleBookingIdempotency(params: {
   if (!params.body.idempotencyKey) {
     return null;
   }
-  const endpointKey = bookingLifecycleEndpointKey(params.bookingId, params.action);
+  const endpointKey =
+    params.action === 'update'
+      ? bookingUpdateEndpointKey(params.bookingId)
+      : bookingLifecycleEndpointKey(params.bookingId, params.action);
   const requestHash = hashBookingLifecycleRequest({
     bookingId: params.bookingId,
     body: params.body,
@@ -1161,6 +1683,34 @@ async function resolveLifecycleBookingIdempotency(params: {
     responseStatus: entry.responseStatus,
     response,
   };
+}
+function canUserWriteDbBooking(params: {
+  authUserId: string;
+  booking: {
+    coachUserId: string;
+    bookedByUserId: string | null;
+    participants: Array<{
+      athleteId: string;
+      guardianUserId: string | null;
+    }>;
+  };
+}): boolean {
+  if (
+    params.booking.coachUserId === params.authUserId ||
+    params.booking.bookedByUserId === params.authUserId
+  ) {
+    return true;
+  }
+  const athleteIds = Array.from(new Set(params.booking.participants.map((row) => row.athleteId)));
+  if (athleteIds.length === 0) {
+    return false;
+  }
+  return athleteIds.every((athleteId) =>
+    params.booking.participants.some(
+      (participant) =>
+        participant.athleteId === athleteId && participant.guardianUserId === params.authUserId,
+    ),
+  );
 }
 class DbBookingRepository implements BookingRepository {
   async listVisibleBookings(params: ListBookingsParams): Promise<ListBookingsResult> {
@@ -1245,6 +1795,8 @@ class DbBookingRepository implements BookingRepository {
         id: asString(booking.id),
         coachUserId: asString(booking.coachUserId),
         bookedByUserId: asString(booking.bookedByUserId) ?? undefined,
+        recurringSeriesId: asString(booking.recurringSeriesId) ?? null,
+        groupSessionId: asString(booking.groupSessionId) ?? null,
         status: asString(booking.status),
         scheduledAt: asString(booking.scheduledAt),
         durationMinutes: asNumber(booking.durationMinutes) ?? 60,
@@ -1311,6 +1863,8 @@ class DbBookingRepository implements BookingRepository {
         id: booking.id,
         coachUserId: booking.coachUserId,
         bookedByUserId: booking.bookedByUserId ?? undefined,
+        recurringSeriesId: booking.recurringSeriesId ?? null,
+        groupSessionId: booking.groupSessionId ?? null,
         status: booking.status,
         scheduledAt: booking.scheduledAt.toISOString(),
         durationMinutes: booking.durationMinutes,
@@ -1334,6 +1888,123 @@ class DbBookingRepository implements BookingRepository {
         cancelledAt: booking.cancelledAt?.toISOString() ?? null,
       }),
     );
+  }
+  async getBookingSessionNote(params: GetBookingParams): Promise<BookingSessionNoteResult> {
+    if (shouldUseDbFixtureFallback()) {
+      const seedRepository = new SeedBookingRepository(getDbFixtureStore);
+      return seedRepository.getBookingSessionNote(params);
+    }
+    const booking = await this.getVisibleBookingById(params);
+    const prisma = getPrismaClientOrThrow();
+    const note = await prisma.sessionNote.findFirst({
+      where: {
+        bookingId: params.bookingId,
+        deletedAt: null,
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+    const normalizedNote = note ? (normalizeForJson(note) as SeedRow) : null;
+    return {
+      note:
+        normalizedNote && canReadSessionNote(booking, normalizedNote, params.authUserId)
+          ? mapSessionNoteRow(normalizedNote)
+          : null,
+      dataVersion: null,
+    };
+  }
+  async saveBookingSessionNote(
+    params: SaveBookingSessionNoteParams,
+  ): Promise<BookingSessionNoteResult> {
+    if (shouldUseDbFixtureFallback()) {
+      const seedRepository = new SeedBookingRepository(getDbFixtureStore);
+      return seedRepository.saveBookingSessionNote(params);
+    }
+    const bookingResponse = await this.getVisibleBookingById(params);
+    if (bookingResponse.coachUserId !== params.authUserId) {
+      throw forbidden('Only the assigned coach can submit session notes');
+    }
+    const prisma = getPrismaClientOrThrow();
+    const booking = await prisma.booking.findUnique({
+      where: {
+        id: params.bookingId,
+      },
+      include: {
+        participants: {
+          where: {
+            deletedAt: null,
+          },
+        },
+      },
+    });
+    if (!booking) {
+      throw notFound('Booking not found', {
+        bookingId: params.bookingId,
+      });
+    }
+    if (booking.participants.length === 0) {
+      throw badRequest('Booking has no athlete participants', {
+        bookingId: params.bookingId,
+      });
+    }
+    const metadataJson = sessionNoteMetadata(params.input);
+    const savedNotes = await prisma.$transaction(async (tx) => {
+      const rows = [];
+      for (const participant of booking.participants) {
+        const existing = await tx.sessionNote.findFirst({
+          where: {
+            bookingId: params.bookingId,
+            athleteId: participant.athleteId,
+            createdByUserId: params.authUserId,
+            deletedAt: null,
+          },
+        });
+        if (existing) {
+          rows.push(
+            await tx.sessionNote.update({
+              where: {
+                id: existing.id,
+              },
+              data: {
+                groupSessionId: booking.groupSessionId ?? null,
+                coachUserId: params.authUserId,
+                visibility: 'PUBLIC',
+                noteText: params.input.summary,
+                metadataJson: metadataJson as never,
+                updatedByUserId: params.authUserId,
+                version: {
+                  increment: 1,
+                },
+              },
+            }),
+          );
+          continue;
+        }
+        rows.push(
+          await tx.sessionNote.create({
+            data: {
+              id: newId('snt'),
+              bookingId: params.bookingId,
+              groupSessionId: booking.groupSessionId ?? null,
+              athleteId: participant.athleteId,
+              coachUserId: params.authUserId,
+              visibility: 'PUBLIC',
+              noteText: params.input.summary,
+              privateNotesEncrypted: null,
+              metadataJson: metadataJson as never,
+              createdByUserId: params.authUserId,
+              updatedByUserId: params.authUserId,
+            },
+          }),
+        );
+      }
+      return rows;
+    });
+    return {
+      note: savedNotes[0] ? mapSessionNoteRow(normalizeForJson(savedNotes[0]) as SeedRow) : null,
+      dataVersion: null,
+    };
   }
   async createBooking(params: CreateBookingParams): Promise<BookingResponse> {
     if (shouldUseDbFixtureFallback()) {
@@ -1417,6 +2088,8 @@ class DbBookingRepository implements BookingRepository {
       id: bookingId,
       coachUserId: body.coachUserId,
       bookedByUserId: body.bookedByUserId,
+      recurringSeriesId: null,
+      groupSessionId: null,
       status: 'CONFIRMED',
       scheduledAt: body.scheduledAt,
       durationMinutes: body.durationMinutes,
@@ -1519,6 +2192,251 @@ class DbBookingRepository implements BookingRepository {
     }
     return normalizeForJson(response);
   }
+  async updateBooking(params: UpdateBookingParams): Promise<BookingResponse> {
+    if (shouldUseDbFixtureFallback()) {
+      const seedRepository = new SeedBookingRepository(getDbFixtureStore);
+      return seedRepository.updateBooking(params);
+    }
+    const prisma = getPrismaClientOrThrow();
+    const idempotentResponse = await resolveLifecycleBookingIdempotency({
+      authUserId: params.authUserId,
+      bookingId: params.bookingId,
+      action: 'update',
+      body: params.body,
+    });
+    if (idempotentResponse) {
+      return idempotentResponse.response;
+    }
+    const booking = await prisma.booking.findUnique({
+      where: {
+        id: params.bookingId,
+      },
+      include: {
+        participants: {
+          where: {
+            deletedAt: null,
+          },
+          include: {
+            athlete: {
+              select: {
+                userId: true,
+              },
+            },
+          },
+        },
+        objectives: true,
+      },
+    });
+    if (!booking || booking.deletedAt) {
+      throw notFound('Booking not found', {
+        bookingId: params.bookingId,
+      });
+    }
+    const hasAccess =
+      booking.coachUserId === params.authUserId ||
+      booking.bookedByUserId === params.authUserId ||
+      booking.participants.some(
+        (participant) =>
+          participant.guardianUserId === params.authUserId ||
+          participant.athlete.userId === params.authUserId,
+      );
+    if (!hasAccess) {
+      throw forbidden('Booking does not belong to authenticated user');
+    }
+    if (
+      !canUserWriteDbBooking({
+        authUserId: params.authUserId,
+        booking,
+      })
+    ) {
+      throw forbidden(
+        'Only the assigned coach, booking owner, or participant guardian can update this booking',
+      );
+    }
+    if (booking.status === 'CANCELLED' || booking.status === 'COMPLETED') {
+      throw badRequest('Only active bookings can be updated');
+    }
+    assertExpectedBookingVersion(Number(booking.version), params.body.expectedVersion);
+    const updateData: {
+      scheduledAt?: Date;
+      durationMinutes?: number;
+      location?: string;
+      serviceType?: string;
+      notes?: string;
+      priceMinor?: number;
+      currency?: 'GBP';
+      objectivesJson?: Record<string, string | null>;
+    } = {};
+    const changedFields: string[] = [];
+    if (params.body.scheduledAt !== undefined) {
+      const scheduledAt = new Date(params.body.scheduledAt);
+      if (Number.isNaN(scheduledAt.getTime())) {
+        throw badRequest('Booking scheduledAt must be a valid ISO datetime');
+      }
+      if (scheduledAt.getTime() <= Date.now()) {
+        throw badRequest('Booking scheduledAt must be in the future');
+      }
+      if (booking.scheduledAt.toISOString() !== scheduledAt.toISOString()) {
+        updateData.scheduledAt = scheduledAt;
+        changedFields.push('scheduledAt');
+      }
+    }
+    if (
+      params.body.durationMinutes !== undefined &&
+      booking.durationMinutes !== params.body.durationMinutes
+    ) {
+      updateData.durationMinutes = params.body.durationMinutes;
+      changedFields.push('durationMinutes');
+    }
+    if (params.body.location !== undefined && booking.location !== params.body.location) {
+      updateData.location = params.body.location;
+      changedFields.push('location');
+    }
+    if (params.body.serviceType !== undefined && booking.serviceType !== params.body.serviceType) {
+      updateData.serviceType = params.body.serviceType;
+      changedFields.push('serviceType');
+    }
+    if (params.body.notes !== undefined && (booking.notes ?? '') !== params.body.notes) {
+      updateData.notes = params.body.notes;
+      changedFields.push('notes');
+    }
+    if (params.body.priceMinor !== undefined && booking.priceMinor !== params.body.priceMinor) {
+      updateData.priceMinor = params.body.priceMinor;
+      changedFields.push('priceMinor');
+    }
+    if (params.body.currency !== undefined && booking.currency !== params.body.currency) {
+      updateData.currency = params.body.currency;
+      changedFields.push('currency');
+    }
+    const currentObjectives = [...booking.objectives]
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((objective) => objective.objective);
+    const objectivesChanged =
+      params.body.objectives !== undefined &&
+      JSON.stringify(currentObjectives) !== JSON.stringify(params.body.objectives);
+    if (objectivesChanged) {
+      updateData.objectivesJson = {
+        primary: params.body.objectives?.[0] ?? null,
+        secondary: params.body.objectives?.[1] ?? null,
+      };
+      changedFields.push('objectives');
+    }
+    const now = new Date();
+    const endpointKey = bookingUpdateEndpointKey(params.bookingId);
+    const requestHash = hashBookingLifecycleRequest({
+      bookingId: params.bookingId,
+      body: params.body,
+    });
+    try {
+      const response = await prisma.$transaction(async (tx) => {
+        if (changedFields.length > 0) {
+          const updateResult = await tx.booking.updateMany({
+            where: {
+              id: params.bookingId,
+              version: booking.version,
+            },
+            data: {
+              ...updateData,
+              updatedByUserId: params.authUserId,
+              updatedAt: now,
+              version: {
+                increment: 1,
+              },
+            },
+          });
+          if (updateResult.count !== 1) {
+            throw conflict('Booking version changed since it was loaded', {
+              currentVersion: Number(booking.version),
+            });
+          }
+          if (objectivesChanged) {
+            await tx.bookingObjective.deleteMany({
+              where: {
+                bookingId: params.bookingId,
+              },
+            });
+            if (params.body.objectives && params.body.objectives.length > 0) {
+              await tx.bookingObjective.createMany({
+                data: params.body.objectives.map((objective, index) => ({
+                  id: newId('boj'),
+                  bookingId: params.bookingId,
+                  objective,
+                  sortOrder: index + 1,
+                  createdAt: now,
+                })),
+              });
+            }
+          }
+          await tx.bookingStatusEvent.create({
+            data: {
+              id: newId('bse'),
+              bookingId: params.bookingId,
+              fromStatus: booking.status,
+              toStatus: booking.status,
+              actorUserId: params.authUserId,
+              reason: 'Booking details updated',
+              metadataJson: {
+                changedFields,
+                source: 'api-db-runtime',
+              },
+              requestId: params.requestId,
+              occurredAt: now,
+            },
+          });
+        }
+        const updated = await tx.booking.findUniqueOrThrow({
+          where: {
+            id: params.bookingId,
+          },
+          include: {
+            participants: {
+              where: {
+                deletedAt: null,
+              },
+              include: {
+                athlete: {
+                  select: {
+                    userId: true,
+                  },
+                },
+              },
+            },
+            objectives: true,
+          },
+        });
+        const nextResponse = mapNormalizedDbBookingRow(normalizeForJson(updated) as SeedRow);
+        if (params.body.idempotencyKey) {
+          await tx.idempotencyKey.create({
+            data: {
+              id: newId('idk'),
+              userId: params.authUserId,
+              endpointKey,
+              idempotencyKey: params.body.idempotencyKey,
+              requestHash,
+              responseStatus: 200,
+              responseBodyJson: nextResponse as never,
+              expiresAt: new Date(now.getTime() + IDEMPOTENCY_TTL_MS),
+            },
+          });
+        }
+        return nextResponse;
+      });
+      return normalizeForJson(response);
+    } catch (error) {
+      if (params.body.idempotencyKey && isCreateBookingIdempotencyRace(error)) {
+        const replay = await resolveLifecycleBookingIdempotency({
+          authUserId: params.authUserId,
+          bookingId: params.bookingId,
+          action: 'update',
+          body: params.body,
+        });
+        if (replay) {
+          return replay.response;
+        }
+      }
+      throw error;
+    }
+  }
   async cancelBooking(params: CancelBookingParams): Promise<BookingResponse> {
     if (shouldUseDbFixtureFallback()) {
       const seedRepository = new SeedBookingRepository(getDbFixtureStore);
@@ -1579,6 +2497,8 @@ class DbBookingRepository implements BookingRepository {
           id: booking.id,
           coachUserId: booking.coachUserId,
           bookedByUserId: booking.bookedByUserId ?? undefined,
+          recurringSeriesId: booking.recurringSeriesId ?? null,
+          groupSessionId: booking.groupSessionId ?? null,
           status: booking.status,
           scheduledAt: booking.scheduledAt.toISOString(),
           durationMinutes: booking.durationMinutes,
@@ -1669,6 +2589,8 @@ class DbBookingRepository implements BookingRepository {
           id: updated.id,
           coachUserId: updated.coachUserId,
           bookedByUserId: updated.bookedByUserId ?? undefined,
+          recurringSeriesId: updated.recurringSeriesId ?? null,
+          groupSessionId: updated.groupSessionId ?? null,
           status: updated.status,
           scheduledAt: updated.scheduledAt.toISOString(),
           durationMinutes: updated.durationMinutes,
@@ -1714,6 +2636,199 @@ class DbBookingRepository implements BookingRepository {
           authUserId: params.authUserId,
           bookingId: params.bookingId,
           action: 'cancel',
+          body: params.body,
+        });
+        if (replay) {
+          return replay.response;
+        }
+      }
+      throw error;
+    }
+  }
+  async confirmBooking(params: ConfirmBookingParams): Promise<BookingResponse> {
+    if (shouldUseDbFixtureFallback()) {
+      const seedRepository = new SeedBookingRepository(getDbFixtureStore);
+      return seedRepository.confirmBooking({
+        ...params,
+        requestId: params.requestId,
+        authUserId: params.authUserId,
+        body: params.body,
+      });
+    }
+    const prisma = getPrismaClientOrThrow();
+    const idempotentResponse = await resolveLifecycleBookingIdempotency({
+      authUserId: params.authUserId,
+      bookingId: params.bookingId,
+      action: 'confirm',
+      body: params.body,
+    });
+    if (idempotentResponse) {
+      return idempotentResponse.response;
+    }
+    const booking = await prisma.booking.findUnique({
+      where: {
+        id: params.bookingId,
+      },
+      include: {
+        participants: true,
+        objectives: true,
+      },
+    });
+    if (!booking) {
+      throw notFound('Booking not found', {
+        bookingId: params.bookingId,
+      });
+    }
+    if (booking.coachUserId !== params.authUserId) {
+      throw forbidden('Only the assigned coach can confirm this booking');
+    }
+    if (booking.status === 'CONFIRMED') {
+      return normalizeForJson(
+        bookingResponseSchema.parse({
+          id: booking.id,
+          coachUserId: booking.coachUserId,
+          bookedByUserId: booking.bookedByUserId ?? undefined,
+          recurringSeriesId: booking.recurringSeriesId ?? null,
+          groupSessionId: booking.groupSessionId ?? null,
+          status: booking.status,
+          scheduledAt: booking.scheduledAt.toISOString(),
+          durationMinutes: booking.durationMinutes,
+          location: booking.location,
+          serviceType: booking.serviceType ?? undefined,
+          sessionTemplateId: null,
+          objectives: booking.objectives
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .map((objective) => objective.objective),
+          notes: booking.notes ?? null,
+          priceMinor: booking.priceMinor ?? null,
+          currency: booking.currency,
+          participants: booking.participants.map((participant) => ({
+            athleteId: participant.athleteId,
+            guardianUserId: participant.guardianUserId ?? undefined,
+            status: participant.status as 'confirmed' | 'pending' | 'cancelled',
+          })),
+          version: Number(booking.version),
+          createdAt: booking.createdAt.toISOString(),
+          updatedAt: booking.updatedAt.toISOString(),
+          cancelledAt: booking.cancelledAt?.toISOString() ?? null,
+        }),
+      );
+    }
+    assertExpectedBookingVersion(Number(booking.version), params.body.expectedVersion);
+    if (booking.status === 'CANCELLED' || booking.status === 'COMPLETED') {
+      throw badRequest('Terminal bookings cannot be confirmed', {
+        bookingId: params.bookingId,
+        status: booking.status,
+      });
+    }
+    if (booking.status !== 'PENDING' && booking.status !== 'AWAITING_CONFIRMATION') {
+      throw badRequest('Only pending bookings can be confirmed', {
+        bookingId: params.bookingId,
+        status: booking.status,
+      });
+    }
+    const now = new Date();
+    const endpointKey = bookingLifecycleEndpointKey(params.bookingId, 'confirm');
+    const requestHash = hashBookingLifecycleRequest({
+      bookingId: params.bookingId,
+      body: params.body,
+    });
+    try {
+      const response = await prisma.$transaction(async (tx) => {
+        const updateResult = await tx.booking.updateMany({
+          where: {
+            id: params.bookingId,
+            version: booking.version,
+          },
+          data: {
+            status: 'CONFIRMED',
+            confirmedAt: now,
+            updatedByUserId: params.authUserId,
+            updatedAt: now,
+            version: {
+              increment: 1,
+            },
+          },
+        });
+        if (updateResult.count !== 1) {
+          throw conflict('Booking version changed since it was loaded', {
+            currentVersion: Number(booking.version),
+          });
+        }
+        const [updated] = await Promise.all([
+          tx.booking.findUniqueOrThrow({
+            where: {
+              id: params.bookingId,
+            },
+          }),
+          tx.bookingStatusEvent.create({
+            data: {
+              id: newId('bse'),
+              bookingId: params.bookingId,
+              fromStatus: booking.status,
+              toStatus: 'CONFIRMED',
+              actorUserId: params.authUserId,
+              reason: 'Booking confirmed',
+              metadataJson: {
+                note: params.body.note ?? null,
+                source: 'api-db-runtime',
+              },
+              requestId: params.requestId,
+              occurredAt: now,
+            },
+          }),
+        ]);
+        const nextResponse = bookingResponseSchema.parse({
+          id: updated.id,
+          coachUserId: updated.coachUserId,
+          bookedByUserId: updated.bookedByUserId ?? undefined,
+          recurringSeriesId: updated.recurringSeriesId ?? null,
+          groupSessionId: updated.groupSessionId ?? null,
+          status: updated.status,
+          scheduledAt: updated.scheduledAt.toISOString(),
+          durationMinutes: updated.durationMinutes,
+          location: updated.location,
+          serviceType: updated.serviceType ?? undefined,
+          sessionTemplateId: null,
+          objectives: booking.objectives
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .map((objective) => objective.objective),
+          notes: updated.notes ?? null,
+          priceMinor: updated.priceMinor ?? null,
+          currency: updated.currency,
+          participants: booking.participants.map((participant) => ({
+            athleteId: participant.athleteId,
+            guardianUserId: participant.guardianUserId ?? undefined,
+            status: participant.status as 'confirmed' | 'pending' | 'cancelled',
+          })),
+          version: Number(updated.version),
+          createdAt: updated.createdAt.toISOString(),
+          updatedAt: updated.updatedAt.toISOString(),
+          cancelledAt: updated.cancelledAt?.toISOString() ?? null,
+        });
+        if (params.body.idempotencyKey) {
+          await tx.idempotencyKey.create({
+            data: {
+              id: newId('idk'),
+              userId: params.authUserId,
+              endpointKey,
+              idempotencyKey: params.body.idempotencyKey,
+              requestHash,
+              responseStatus: 200,
+              responseBodyJson: nextResponse as never,
+              expiresAt: new Date(now.getTime() + IDEMPOTENCY_TTL_MS),
+            },
+          });
+        }
+        return nextResponse;
+      });
+      return normalizeForJson(response);
+    } catch (error) {
+      if (params.body.idempotencyKey && isCreateBookingIdempotencyRace(error)) {
+        const replay = await resolveLifecycleBookingIdempotency({
+          authUserId: params.authUserId,
+          bookingId: params.bookingId,
+          action: 'confirm',
           body: params.body,
         });
         if (replay) {
@@ -1855,6 +2970,8 @@ class DbBookingRepository implements BookingRepository {
           id: updated.id,
           coachUserId: updated.coachUserId,
           bookedByUserId: updated.bookedByUserId ?? undefined,
+          recurringSeriesId: updated.recurringSeriesId ?? null,
+          groupSessionId: updated.groupSessionId ?? null,
           status: updated.status,
           scheduledAt: updated.scheduledAt.toISOString(),
           durationMinutes: updated.durationMinutes,
@@ -1960,6 +3077,8 @@ class DbBookingRepository implements BookingRepository {
           id: booking.id,
           coachUserId: booking.coachUserId,
           bookedByUserId: booking.bookedByUserId ?? undefined,
+          recurringSeriesId: booking.recurringSeriesId ?? null,
+          groupSessionId: booking.groupSessionId ?? null,
           status: booking.status,
           scheduledAt: booking.scheduledAt.toISOString(),
           durationMinutes: booking.durationMinutes,
@@ -2005,6 +3124,13 @@ class DbBookingRepository implements BookingRepository {
         bookingId: params.bookingId,
       });
     }
+    const completionAttendance = normalizeCompletionAttendance({
+      participantAthleteIds: booking.participants.map((participant) => participant.athleteId),
+      attendance: params.body.attendance,
+      fallbackNote: params.body.note ?? null,
+    });
+    const attendanceSummary = summarizeCompletionAttendance(completionAttendance);
+    const focusAreas = booking.objectives.map((objective) => objective.objective);
     const endpointKey = bookingLifecycleEndpointKey(params.bookingId, 'complete');
     const requestHash = hashBookingLifecycleRequest({
       bookingId: params.bookingId,
@@ -2050,19 +3176,18 @@ class DbBookingRepository implements BookingRepository {
           existingAttendance.map((record) => [record.athleteId, record]),
         );
         const attendanceWrites = await Promise.all(
-          booking.participants.map(async (participant) => {
-            const existing = existingAttendanceByAthleteId.get(participant.athleteId);
+          completionAttendance.map(async (attendance) => {
+            const existing = existingAttendanceByAthleteId.get(attendance.athleteId);
             const attendanceRecord = existing
               ? await tx.attendanceRecord.update({
                   where: {
                     id: existing.id,
                   },
                   data: {
-                    status: 'ATTENDED',
-                    notes: params.body.note ?? null,
-                    focusAreasJson: booking.objectives.map(
-                      (objective) => objective.objective,
-                    ) as never,
+                    status: attendance.status,
+                    notes: attendance.notes,
+                    effortRating: attendance.effortRating,
+                    focusAreasJson: focusAreas as never,
                     recordedByUserId: params.authUserId,
                     recordedAt: completedAt,
                   },
@@ -2072,82 +3197,85 @@ class DbBookingRepository implements BookingRepository {
                     id: newId('att'),
                     bookingId: params.bookingId,
                     groupSessionId: booking.groupSessionId ?? null,
-                    athleteId: participant.athleteId,
-                    status: 'ATTENDED',
-                    notes: params.body.note ?? null,
-                    effortRating: null,
-                    focusAreasJson: booking.objectives.map(
-                      (objective) => objective.objective,
-                    ) as never,
+                    athleteId: attendance.athleteId,
+                    status: attendance.status,
+                    notes: attendance.notes,
+                    effortRating: attendance.effortRating,
+                    focusAreasJson: focusAreas as never,
                     recordedByUserId: params.authUserId,
                     recordedAt: completedAt,
                   },
                 });
-            return { participant, attendanceRecord };
+            return { attendance, attendanceRecord };
           }),
         );
         attendanceRecordIds.push(
           ...attendanceWrites.map(({ attendanceRecord }) => attendanceRecord.id),
         );
-        attendanceWrites.forEach(({ participant, attendanceRecord }) => {
-          existingAttendanceByAthleteId.set(participant.athleteId, attendanceRecord);
+        attendanceWrites.forEach(({ attendance, attendanceRecord }) => {
+          existingAttendanceByAthleteId.set(attendance.athleteId, attendanceRecord);
         });
         const sessionNoteIds: string[] = [];
         const completionNoteText = params.body.note?.trim();
-        const focusAreas = booking.objectives.map((objective) => objective.objective);
         if (completionNoteText) {
           const sessionNoteWrites = await Promise.all(
-            booking.participants.map(async (participant, index) => {
-              const attendanceRecordId = attendanceRecordIds[index] ?? null;
+            attendanceWrites.flatMap(({ attendance, attendanceRecord }) => {
+              if (attendance.status !== 'ATTENDED') {
+                return [];
+              }
               const metadataJson = {
                 source: 'booking-completion',
                 proofSource: 'attendance-record',
-                attendanceRecordId,
-                attendanceRecordIds: attendanceRecordId ? [attendanceRecordId] : [],
+                attendanceRecordId: attendanceRecord.id,
+                attendanceRecordIds: [attendanceRecord.id],
                 focus: focusAreas,
                 completedAt: completedAt.toISOString(),
               };
-              const existingSessionNote = await tx.sessionNote.findFirst({
-                where: {
-                  bookingId: params.bookingId,
-                  athleteId: participant.athleteId,
-                  createdByUserId: params.authUserId,
-                  deletedAt: null,
-                },
-              });
-              if (existingSessionNote) {
-                return tx.sessionNote.update({
-                  where: {
-                    id: existingSessionNote.id,
-                  },
-                  data: {
-                    groupSessionId: booking.groupSessionId ?? null,
-                    coachUserId: params.authUserId,
-                    visibility: 'PUBLIC',
-                    noteText: completionNoteText,
-                    metadataJson: metadataJson as never,
-                    updatedByUserId: params.authUserId,
-                    version: {
-                      increment: 1,
+              return [
+                (async () => {
+                  const existingSessionNote = await tx.sessionNote.findFirst({
+                    where: {
+                      bookingId: params.bookingId,
+                      athleteId: attendance.athleteId,
+                      createdByUserId: params.authUserId,
+                      deletedAt: null,
                     },
-                  },
-                });
-              }
-              return tx.sessionNote.create({
-                data: {
-                  id: newId('snt'),
-                  bookingId: params.bookingId,
-                  groupSessionId: booking.groupSessionId ?? null,
-                  athleteId: participant.athleteId,
-                  coachUserId: params.authUserId,
-                  visibility: 'PUBLIC',
-                  noteText: completionNoteText,
-                  privateNotesEncrypted: null,
-                  metadataJson: metadataJson as never,
-                  createdByUserId: params.authUserId,
-                  updatedByUserId: params.authUserId,
-                },
-              });
+                  });
+                  if (existingSessionNote) {
+                    return tx.sessionNote.update({
+                      where: {
+                        id: existingSessionNote.id,
+                      },
+                      data: {
+                        groupSessionId: booking.groupSessionId ?? null,
+                        coachUserId: params.authUserId,
+                        visibility: 'PUBLIC',
+                        noteText: completionNoteText,
+                        metadataJson: metadataJson as never,
+                        updatedByUserId: params.authUserId,
+                        version: {
+                          increment: 1,
+                        },
+                      },
+                    });
+                  }
+                  return tx.sessionNote.create({
+                    data: {
+                      id: newId('snt'),
+                      bookingId: params.bookingId,
+                      groupSessionId: booking.groupSessionId ?? null,
+                      athleteId: attendance.athleteId,
+                      coachUserId: params.authUserId,
+                      visibility: 'PUBLIC',
+                      noteText: completionNoteText,
+                      privateNotesEncrypted: null,
+                      metadataJson: metadataJson as never,
+                      createdByUserId: params.authUserId,
+                      updatedByUserId: params.authUserId,
+                    },
+                  });
+                })(),
+              ];
             }),
           );
           sessionNoteIds.push(...sessionNoteWrites.map((sessionNote) => sessionNote.id));
@@ -2165,6 +3293,7 @@ class DbBookingRepository implements BookingRepository {
               source: 'api-db-runtime',
               attendanceRecordIds,
               sessionNoteIds,
+              attendanceSummary,
               proofSource: 'attendance-record',
               proofSources: sessionNoteIds.length
                 ? ['attendance-record', 'session-note']
@@ -2178,6 +3307,8 @@ class DbBookingRepository implements BookingRepository {
           id: updated.id,
           coachUserId: updated.coachUserId,
           bookedByUserId: updated.bookedByUserId ?? undefined,
+          recurringSeriesId: updated.recurringSeriesId ?? null,
+          groupSessionId: updated.groupSessionId ?? null,
           status: updated.status,
           scheduledAt: updated.scheduledAt.toISOString(),
           durationMinutes: updated.durationMinutes,

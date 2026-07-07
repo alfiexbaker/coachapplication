@@ -24,6 +24,7 @@ import {
 import type { BookingSeries } from '@/constants/session-types';
 import type { Booking } from '@/constants/app-types';
 import { bookingCrudService } from './booking/booking-crud-service';
+import { safeDisplayLabel } from '@/utils/booking-display';
 const logger = createLogger('MultiWeekBookingService');
 
 /** Maximum age (ms) before cache is considered stale. */
@@ -102,11 +103,13 @@ function mapApiSeriesToBookingSeries(
     id: apiSeries.id,
     bookingIds: apiSeries.bookingIds,
     createdById: fallback.createdById ?? apiSeries.bookedByUserId,
-    createdByName: fallback.createdByName ?? apiSeries.bookedByUserId,
+    createdByName: fallback.createdByName ?? safeDisplayLabel(apiSeries.bookedByUserId, 'Parent'),
     coachId: fallback.coachId ?? apiSeries.coachUserId,
-    coachName: fallback.coachName ?? apiSeries.coachUserId,
+    coachName: fallback.coachName ?? safeDisplayLabel(apiSeries.coachUserId, 'Coach'),
     athleteIds: fallback.athleteIds ?? apiSeries.athleteIds,
-    athleteNames: fallback.athleteNames ?? apiSeries.athleteIds,
+    athleteNames:
+      fallback.athleteNames ??
+      apiSeries.athleteIds.map((athleteId) => safeDisplayLabel(athleteId, 'Athlete')),
     sessionType: fallback.sessionType ?? apiSeries.serviceType ?? 'one_to_one',
     focus: fallback.focus ?? apiSeries.objectives?.[0],
     pricePerSession,

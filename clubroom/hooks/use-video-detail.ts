@@ -20,6 +20,16 @@ import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('useVideoDetail');
 
+export function assertVideoMutationSucceeded(
+  result: ReturnType<typeof videoService.shareVideo> extends Promise<infer T> ? T : never,
+  fallbackMessage: string,
+): SessionVideo {
+  if (!result.success) {
+    throw new Error(result.error.message || fallbackMessage);
+  }
+  return result.data;
+}
+
 export function useVideoDetail(id: string | undefined) {
   const { currentUser } = useAuth();
 
@@ -116,15 +126,25 @@ export function useVideoDetail(id: string | undefined) {
     if (!video) return;
     try {
       if (video.visibility === 'PRIVATE') {
-        await videoService.shareVideo(video.id, []);
+        assertVideoMutationSucceeded(
+          await videoService.shareVideo(video.id, []),
+          'Failed to share video.',
+        );
         uiFeedback.showToast('Video has been shared with the linked family.');
       } else {
-        await videoService.makePrivate(video.id);
+        assertVideoMutationSucceeded(
+          await videoService.makePrivate(video.id),
+          'Failed to make video private.',
+        );
         uiFeedback.showToast('Video is now private.');
       }
       onRefresh();
     } catch (error) {
       logger.error('Failed to toggle visibility:', error);
+      uiFeedback.showToast(
+        error instanceof Error && error.message ? error.message : 'Failed to update video visibility.',
+        'error',
+      );
     }
   };
 

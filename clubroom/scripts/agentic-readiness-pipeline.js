@@ -55,11 +55,13 @@ function interpretPdosReport(output) {
   if (!report) return null;
 
   const needsDecision = report.totals?.needsDecision ?? 0;
+  const needsImplementation = report.totals?.needsImplementation ?? 0;
   return {
-    status: needsDecision > 0 ? 'warn' : 'pass',
+    status: needsDecision > 0 || needsImplementation > 0 ? 'warn' : 'pass',
     output: [
       `routes: ${report.totals?.routes ?? 0}`,
       `needsDecision: ${needsDecision}`,
+      `needsImplementation: ${needsImplementation}`,
       `byPdos: ${summarizeMap(report.totals?.byPdos)}`,
       `byVerdict: ${summarizeMap(report.totals?.byVerdict)}`,
     ].join('\n'),

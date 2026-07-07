@@ -8,7 +8,7 @@
  *   await blockService.blockUser(myId, theirId);
  */
 
-import { apiClient } from './api-client';
+import { apiClient, apiFetch } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
@@ -19,17 +19,22 @@ interface BlockedUsersMap {
   [userId: string]: string[];
 }
 
-export type BlockRelationship =
-  | 'none'
-  | 'blocked_by_actor'
-  | 'blocked_by_target'
-  | 'mutual';
+export type BlockRelationship = 'none' | 'blocked_by_actor' | 'blocked_by_target' | 'mutual';
 
 export interface BlockStatus {
   relationship: BlockRelationship;
   blocked: boolean;
   blockerId: string | null;
   blockedId: string | null;
+}
+
+interface BlocksApiResponse {
+  blockedUserIds: string[];
+  status?: BlockStatus | null;
+}
+
+interface BlockMutationApiResponse {
+  status: BlockStatus;
 }
 
 export function getBlockActionMessage(action: 'booking' | 'messaging'): string {
@@ -44,6 +49,14 @@ export const blockService = {
    * or find the blocking user in search.
    */
   async blockUser(userId: string, blockedUserId: string): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<BlockMutationApiResponse>('/v1/blocks', {
+        method: 'POST',
+        body: JSON.stringify({ blockedUserId }),
+      });
+      return result.success ? ok(undefined) : err(result.error);
+    }
+
     try {
       const allBlocked = await apiClient.get<BlockedUsersMap>(STORAGE_KEYS.BLOCKED_USERS, {});
       const userBlocked = allBlocked[userId] || [];
@@ -65,6 +78,16 @@ export const blockService = {
    * Unblock a previously blocked user.
    */
   async unblockUser(userId: string, blockedUserId: string): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<BlockMutationApiResponse>(
+        `/v1/blocks?blockedUserId=${encodeURIComponent(blockedUserId)}`,
+        {
+          method: 'DELETE',
+        },
+      );
+      return result.success ? ok(undefined) : err(result.error);
+    }
+
     try {
       const allBlocked = await apiClient.get<BlockedUsersMap>(STORAGE_KEYS.BLOCKED_USERS, {});
       const userBlocked = allBlocked[userId] || [];
@@ -82,6 +105,11 @@ export const blockService = {
    * Get the list of user IDs blocked by the given user.
    */
   async getBlockedUsers(userId: string): Promise<Result<string[], ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<BlocksApiResponse>('/v1/blocks');
+      return result.success ? ok(result.data.blockedUserIds) : err(result.error);
+    }
+
     try {
       const allBlocked = await apiClient.get<BlockedUsersMap>(STORAGE_KEYS.BLOCKED_USERS, {});
       return ok(allBlocked[userId] || []);
@@ -102,7 +130,27 @@ export const blockService = {
     return ok(statusResult.data.blocked);
   },
 
-  async getBlockStatus(userId: string, targetId: string): Promise<Result<BlockStatus, ServiceError>> {
+  async getBlockStatus(
+    userId: string,
+    targetId: string,
+  ): Promise<Result<BlockStatus, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<BlocksApiResponse>(
+        `/v1/blocks?targetUserId=${encodeURIComponent(targetId)}`,
+      );
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(
+        result.data.status ?? {
+          relationship: 'none',
+          blocked: false,
+          blockerId: null,
+          blockedId: null,
+        },
+      );
+    }
+
     try {
       const allBlocked = await apiClient.get<BlockedUsersMap>(STORAGE_KEYS.BLOCKED_USERS, {});
       const blockedByUser = allBlocked[userId] || [];

@@ -2532,4 +2532,3 @@ ALTER TABLE "RetentionRun" ADD CONSTRAINT "RetentionRun_retentionPolicyId_fkey" 
 
 -- AddForeignKey
 ALTER TABLE "FeatureFlagOverride" ADD CONSTRAINT "FeatureFlagOverride_featureFlagId_fkey" FOREIGN KEY ("featureFlagId") REFERENCES "FeatureFlag"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-

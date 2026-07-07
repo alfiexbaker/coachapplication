@@ -5,7 +5,7 @@
  * marking as read, and message status updates.
  *
  * API Integration Notes:
- * - Messages are persisted via apiClient (AsyncStorage in dev, API in prod)
+ * - Messages are read from /v1 in API mode; local overlay persistence is mock-only
  * - Group metadata (lastMessageAt, unreadCount) is updated on message events
  */
 
@@ -26,7 +26,7 @@ import { communityGroupService } from './community-group-service';
 import { accountIdsMatch } from '@/utils/account-id';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 import { api } from '@/constants/config';
-import { communityMediaAuthorityService, mergeById } from '../community-media-authority-service';
+import { communityMediaAuthorityService } from '../community-media-authority-service';
 import { getLocalOverlayValue, setLocalOverlayValue } from '../local-overlay-store';
 
 const logger = createLogger('CommunityMessagingService');
@@ -78,18 +78,13 @@ class CommunityMessagingService {
   async getGroupMessages(groupId: string): Promise<Result<GroupMessage[], ServiceError>> {
     try {
       if (!USE_MOCK) {
-        const [authoritativeResult, persisted] = await Promise.all([
-          communityMediaAuthorityService.listGroupMessages(groupId),
-          this.loadPersistedMessages(),
-        ]);
+        const authoritativeResult = await communityMediaAuthorityService.listGroupMessages(groupId);
         if (!authoritativeResult.success) {
           return authoritativeResult;
         }
 
-        const overlayMessages = persisted[groupId] || [];
-        const messages = mergeById(authoritativeResult.data, overlayMessages);
         return ok(
-          messages.sort(
+          authoritativeResult.data.sort(
             (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
           ),
         );

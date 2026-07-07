@@ -16,7 +16,7 @@
  * - GET /api/coaches/:id/roster/removed - Get removal history
  */
 
-import { apiClient } from './api-client';
+import { apiClient, apiFetch } from './api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { RosterNote, FootballObjective, RosterEntry } from '@/constants/types';
@@ -28,6 +28,7 @@ import {
   notFound,
   validationError,
   storageError,
+  unsupportedError,
 } from '@/types/result';
 import { BaseService } from './base-service';
 import { createLogger } from '@/utils/logger';
@@ -61,6 +62,10 @@ const STATUS_COLORS: Record<RosterEntry['status'], string> = {
 };
 
 const USE_MOCK = api.useMock;
+
+function rosterApiUnsupported(action: string, route = '/v1/coaches/:coachId/roster'): ServiceError {
+  return unsupportedError(`${action} requires backend roster authority in API mode.`, { route });
+}
 
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
   const userResult = await userService.getUserById(userId);
@@ -229,6 +234,162 @@ export interface RosterStats {
   averageSessionsPerAthlete: number;
 }
 
+interface RosterApiListResponse {
+  entries: RosterEntry[];
+}
+
+interface RosterApiEntryResponse {
+  entry: RosterEntry;
+}
+
+interface RosterApiNoteResponse {
+  note: RosterNote;
+}
+
+interface RosterApiRemovalResponse {
+  removal: AthleteRemovalRecord;
+}
+
+interface RosterApiRemovalHistoryResponse {
+  removals: AthleteRemovalRecord[];
+}
+
+function rosterEntryApiPath(coachId: string, athleteId: string): string {
+  return `/v1/coaches/${encodeURIComponent(coachId)}/roster/${encodeURIComponent(athleteId)}`;
+}
+
+function rosterNoteApiPath(coachId: string, athleteId: string, noteId?: string): string {
+  const base = `${rosterEntryApiPath(coachId, athleteId)}/notes`;
+  return noteId ? `${base}/${encodeURIComponent(noteId)}` : base;
+}
+
+async function patchApiRosterEntry(
+  coachId: string,
+  athleteId: string,
+  updates: {
+    status?: RosterEntry['status'];
+    tags?: string[];
+    primaryFocus?: FootballObjective | null;
+    notificationPreference?: RosterEntry['notificationPreference'];
+  },
+): Promise<Result<RosterEntry, ServiceError>> {
+  const response = await apiFetch<RosterApiEntryResponse>(rosterEntryApiPath(coachId, athleteId), {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
+  });
+  if (!response.success) return err(response.error);
+  return ok(response.data.entry);
+}
+
+async function createApiRosterEntry(
+  input: Omit<RosterEntry, 'id' | 'createdAt' | 'updatedAt'>,
+): Promise<Result<RosterEntry, ServiceError>> {
+  const response = await apiFetch<RosterApiEntryResponse>(
+    `/v1/coaches/${encodeURIComponent(input.coachId)}/roster`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        athleteId: input.athleteId,
+        status: input.status,
+        tags: input.tags,
+        primaryFocus: input.primaryFocus,
+        notificationPreference: input.notificationPreference,
+      }),
+    },
+  );
+  if (!response.success) return err(response.error);
+  return ok(response.data.entry);
+}
+
+async function createApiRosterNote(
+  coachId: string,
+  athleteId: string,
+  content: string,
+): Promise<Result<RosterNote, ServiceError>> {
+  const response = await apiFetch<RosterApiNoteResponse>(rosterNoteApiPath(coachId, athleteId), {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  });
+  if (!response.success) return err(response.error);
+  return ok(response.data.note);
+}
+
+async function updateApiRosterNote(
+  coachId: string,
+  athleteId: string,
+  noteId: string,
+  content: string,
+): Promise<Result<RosterNote, ServiceError>> {
+  const response = await apiFetch<RosterApiNoteResponse>(
+    rosterNoteApiPath(coachId, athleteId, noteId),
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ content }),
+    },
+  );
+  if (!response.success) return err(response.error);
+  return ok(response.data.note);
+}
+
+async function deleteApiRosterNote(
+  coachId: string,
+  athleteId: string,
+  noteId: string,
+): Promise<Result<void, ServiceError>> {
+  const response = await apiFetch<{ removed: boolean }>(
+    rosterNoteApiPath(coachId, athleteId, noteId),
+    { method: 'DELETE' },
+  );
+  if (!response.success) return err(response.error);
+  return ok(undefined);
+}
+
+async function deleteApiRosterEntry(
+  coachId: string,
+  athleteId: string,
+  reason: RemovalReason,
+  options?: {
+    customReason?: string;
+    archive?: boolean;
+  },
+): Promise<Result<AthleteRemovalRecord, ServiceError>> {
+  const response = await apiFetch<RosterApiRemovalResponse>(rosterEntryApiPath(coachId, athleteId), {
+    method: 'DELETE',
+    body: JSON.stringify({
+      reason,
+      customReason: options?.customReason,
+      archive: options?.archive ?? true,
+    }),
+  });
+  if (!response.success) return err(response.error);
+  return ok(response.data.removal);
+}
+
+async function fetchApiRemovalHistory(
+  coachId: string,
+): Promise<Result<AthleteRemovalRecord[], ServiceError>> {
+  const response = await apiFetch<RosterApiRemovalHistoryResponse>(
+    `/v1/coaches/${encodeURIComponent(coachId)}/roster/removals`,
+    { method: 'GET' },
+  );
+  if (!response.success) {
+    return err(response.error);
+  }
+  return ok(response.data.removals);
+}
+
+async function undoApiRemoval(
+  coachId: string,
+  removalId: string,
+): Promise<Result<RosterEntry, ServiceError>> {
+  const response = await apiFetch<RosterApiEntryResponse>(
+    `/v1/coaches/${encodeURIComponent(coachId)}/roster/removals/${encodeURIComponent(removalId)}/undo`,
+    { method: 'POST' },
+  );
+  if (!response.success) return err(response.error);
+  return ok(response.data.entry);
+}
+
 // ============================================================================
 // REMOVAL HISTORY HELPERS
 // ============================================================================
@@ -237,6 +398,10 @@ let removalHistoryCache: AthleteRemovalRecord[] = [];
 
 async function loadRemovalHistory(): Promise<AthleteRemovalRecord[]> {
   try {
+    if (!apiClient.isMockMode) {
+      return [];
+    }
+
     return await apiClient.get<AthleteRemovalRecord[]>(STORAGE_KEYS.ROSTER_REMOVAL_HISTORY, []);
   } catch (error) {
     logger.error('Failed to load removal history', error);
@@ -248,12 +413,51 @@ async function saveRemovalHistory(
   history: AthleteRemovalRecord[],
 ): Promise<Result<void, ServiceError>> {
   try {
+    if (!apiClient.isMockMode) {
+      return err(rosterApiUnsupported('Roster removal history updates'));
+    }
+
     await apiClient.set(STORAGE_KEYS.ROSTER_REMOVAL_HISTORY, history);
     return ok(undefined);
   } catch (error) {
     logger.error('Failed to save removal history', error);
     return err(storageError(`Failed to save removal history: ${String(error)}`));
   }
+}
+
+function filterRosterEntries(
+  roster: RosterEntry[],
+  filters?: RosterFilters,
+): RosterEntry[] {
+  let filtered = roster;
+
+  if (filters?.status) {
+    filtered = filtered.filter((r) => r.status === filters.status);
+  }
+  if (filters?.skillLevel) {
+    filtered = filtered.filter((r) => {
+      const skillLevel = (r as unknown as { athleteSkillLevel?: RosterFilters['skillLevel'] })
+        .athleteSkillLevel;
+      return skillLevel === filters.skillLevel;
+    });
+  }
+  if (filters?.tags?.length) {
+    filtered = filtered.filter((r) => filters.tags!.some((tag) => r.tags.includes(tag)));
+  }
+  if (filters?.search) {
+    const search = filters.search.toLowerCase();
+    filtered = filtered.filter((entry) => {
+      const athleteName = entry.athleteName ?? '';
+      const parentName = entry.parentName ?? '';
+      return athleteName.toLowerCase().includes(search) || parentName.toLowerCase().includes(search);
+    });
+  }
+
+  return Array.from(filtered).sort((a, b) => {
+    if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') return -1;
+    if (a.status !== 'ACTIVE' && b.status === 'ACTIVE') return 1;
+    return (a.athleteName || '').localeCompare(b.athleteName || '');
+  });
 }
 
 // ============================================================================
@@ -274,6 +478,39 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
   // Query methods
   // --------------------------------------------------------------------------
 
+  async create(
+    input: Omit<RosterEntry, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<Result<RosterEntry, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return createApiRosterEntry(input);
+    }
+    return super.create(input);
+  }
+
+  async update(
+    id: string,
+    updates: Partial<RosterEntry>,
+  ): Promise<Result<RosterEntry, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return err(rosterApiUnsupported('Roster entry updates'));
+    }
+    return super.update(id, updates);
+  }
+
+  async delete(id: string): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return err(rosterApiUnsupported('Roster entry removal'));
+    }
+    return super.delete(id);
+  }
+
+  async hardDelete(id: string): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return err(rosterApiUnsupported('Roster entry removal'));
+    }
+    return super.hardDelete(id);
+  }
+
   /**
    * Check if coach has valid DBS verification.
    */
@@ -290,6 +527,21 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
    * Get full roster for a coach, with optional filters and sorting.
    */
   async getRoster(coachId: string, filters?: RosterFilters): Promise<RosterEntry[]> {
+    if (!apiClient.isMockMode) {
+      const response = await apiFetch<RosterApiListResponse>(
+        `/v1/coaches/${encodeURIComponent(coachId)}/roster`,
+        { method: 'GET' },
+      );
+      if (!response.success) {
+        logger.warn('Failed to load roster via API', {
+          coachId,
+          error: response.error,
+        });
+        throw response.error;
+      }
+      return filterRosterEntries(response.data.entries, filters);
+    }
+
     const result = await this.getAll({ filter: { coachId } as Partial<RosterEntry> });
     if (!result.success) {
       logger.error('Failed to get roster', result.error);
@@ -310,19 +562,6 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
       filtered = filtered.filter((entry) => !entry.coachId || entry.coachId === coachId);
     }
 
-    if (filters?.status) {
-      filtered = filtered.filter((r) => r.status === filters.status);
-    }
-    if (filters?.skillLevel) {
-      filtered = filtered.filter((r) => {
-        const skillLevel = (r as unknown as { athleteSkillLevel?: RosterFilters['skillLevel'] })
-          .athleteSkillLevel;
-        return skillLevel === filters.skillLevel;
-      });
-    }
-    if (filters?.tags?.length) {
-      filtered = filtered.filter((r) => filters.tags!.some((tag) => r.tags.includes(tag)));
-    }
     const entryNames = new Map<string, { athleteName: string; parentName: string }>();
     await Promise.all(
       filtered.map(async (entry) => {
@@ -334,32 +573,39 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
       }),
     );
 
-    if (filters?.search) {
-      const search = filters.search.toLowerCase();
-      filtered = filtered.filter((entry) => {
-        const names = entryNames.get(entry.id);
-        if (!names) return false;
-        return (
-          names.athleteName.toLowerCase().includes(search) ||
-          names.parentName.toLowerCase().includes(search)
-        );
-      });
-    }
-
-    return filtered.sort((a, b) => {
-      // Active first, then by name
-      if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') return -1;
-      if (a.status !== 'ACTIVE' && b.status === 'ACTIVE') return 1;
-      return (entryNames.get(a.id)?.athleteName || '').localeCompare(
-        entryNames.get(b.id)?.athleteName || '',
-      );
-    });
+    return filterRosterEntries(
+      filtered.map((entry) => ({
+        ...entry,
+        athleteName: entry.athleteName ?? entryNames.get(entry.id)?.athleteName,
+        parentName: entry.parentName ?? entryNames.get(entry.id)?.parentName,
+      })),
+      filters,
+    );
   }
 
   /**
    * Get single roster entry by coach + athlete lookup.
    */
   async getRosterEntry(coachId: string, athleteId: string): Promise<RosterEntry | null> {
+    if (!apiClient.isMockMode) {
+      const response = await apiFetch<RosterApiEntryResponse>(
+        `/v1/coaches/${encodeURIComponent(coachId)}/roster/${encodeURIComponent(athleteId)}`,
+        { method: 'GET' },
+      );
+      if (!response.success) {
+        logger.warn('Failed to load roster entry via API', {
+          coachId,
+          athleteId,
+          error: response.error,
+        });
+        if (response.error.code !== 'NOT_FOUND') {
+          throw response.error;
+        }
+        return null;
+      }
+      return response.data.entry;
+    }
+
     const result = await this.findOne({ coachId, athleteId } as Partial<RosterEntry>);
     if (!result.success) {
       logger.error('Failed to get roster entry', result.error);
@@ -375,7 +621,15 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
   /**
    * Add note to athlete
    */
-  async addNote(coachId: string, athleteId: string, content: string): Promise<RosterNote> {
+  async addNote(
+    coachId: string,
+    athleteId: string,
+    content: string,
+  ): Promise<Result<RosterNote, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return createApiRosterNote(coachId, athleteId, content);
+    }
+
     const note: RosterNote = {
       id: apiClient.generateId('note'),
       content,
@@ -387,8 +641,9 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
     if (entry) {
       entry.notes.push(note);
       await this.saveToStorage(data);
+      return ok(note);
     }
-    return note;
+    return err(notFound('Roster entry', athleteId));
   }
 
   /**
@@ -400,6 +655,10 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
     noteId: string,
     content: string,
   ): Promise<Result<RosterNote, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return updateApiRosterNote(coachId, athleteId, noteId, content);
+    }
+
     const data = await this.loadFromStorage();
     const entry = data.find((r) => r.coachId === coachId && r.athleteId === athleteId);
     if (entry) {
@@ -417,7 +676,22 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
   /**
    * Delete note
    */
-  async deleteNote(coachId: string, athleteId: string, noteId: string): Promise<void> {
+  async deleteNote(
+    coachId: string,
+    athleteId: string,
+    noteId: string,
+  ): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const result = await deleteApiRosterNote(coachId, athleteId, noteId);
+      if (!result.success) return result;
+      emitTyped(ServiceEvents.ROSTER_NOTE_DELETED, {
+        athleteId,
+        noteId,
+        coachId,
+      });
+      return ok(undefined);
+    }
+
     const data = await this.loadFromStorage();
     const entry = data.find((r) => r.coachId === coachId && r.athleteId === athleteId);
     if (entry) {
@@ -428,7 +702,9 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
         noteId,
         coachId,
       });
+      return ok(undefined);
     }
+    return err(notFound('Note', noteId));
   }
 
   // --------------------------------------------------------------------------
@@ -443,6 +719,10 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
     athleteId: string,
     status: RosterEntry['status'],
   ): Promise<Result<RosterEntry, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return patchApiRosterEntry(coachId, athleteId, { status });
+    }
+
     const data = await this.loadFromStorage();
     const entry = data.find((r) => r.coachId === coachId && r.athleteId === athleteId);
     if (!entry) return err(notFound('Roster entry', athleteId));
@@ -460,6 +740,10 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
     athleteId: string,
     tags: string[],
   ): Promise<Result<RosterEntry, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return patchApiRosterEntry(coachId, athleteId, { tags });
+    }
+
     const data = await this.loadFromStorage();
     const entry = data.find((r) => r.coachId === coachId && r.athleteId === athleteId);
     if (!entry) return err(notFound('Roster entry', athleteId));
@@ -477,6 +761,10 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
     athleteId: string,
     focus: FootballObjective,
   ): Promise<Result<RosterEntry, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return patchApiRosterEntry(coachId, athleteId, { primaryFocus: focus });
+    }
+
     const data = await this.loadFromStorage();
     const entry = data.find((r) => r.coachId === coachId && r.athleteId === athleteId);
     if (!entry) return err(notFound('Roster entry', athleteId));
@@ -574,9 +862,13 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
     reason: RemovalReason,
     options?: {
       customReason?: string;
-      archive?: boolean; // If true, keep history; if false, permanently delete
+      archive?: boolean; // If true, keep a restore snapshot; if false, remove without undo.
     },
   ): Promise<Result<AthleteRemovalRecord, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return deleteApiRosterEntry(coachId, athleteId, reason, options);
+    }
+
     const archive = options?.archive ?? true; // Default to archiving
 
     const data = await this.loadFromStorage();
@@ -622,6 +914,10 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
     coachId: string,
     removalId: string,
   ): Promise<Result<RosterEntry, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      return undoApiRemoval(coachId, removalId);
+    }
+
     removalHistoryCache = await loadRemovalHistory();
     const recordIndex = removalHistoryCache.findIndex(
       (r) => r.id === removalId && r.coachId === coachId,
@@ -634,7 +930,7 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
     const record = removalHistoryCache[recordIndex];
 
     if (!record.originalEntry) {
-      return err(validationError('Cannot restore - athlete was permanently deleted'));
+      return err(validationError('Cannot restore - removal did not keep a restore snapshot'));
     }
 
     // Restore to roster
@@ -653,6 +949,18 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
    * Get removal history for a coach
    */
   async getRemovalHistory(coachId: string): Promise<AthleteRemovalRecord[]> {
+    if (!apiClient.isMockMode) {
+      const response = await fetchApiRemovalHistory(coachId);
+      if (!response.success) {
+        logger.warn('Failed to load roster removal history via API', {
+          coachId,
+          error: response.error,
+        });
+        throw response.error;
+      }
+      return response.data;
+    }
+
     removalHistoryCache = await loadRemovalHistory();
     return removalHistoryCache.filter((r) => r.coachId === coachId);
   }

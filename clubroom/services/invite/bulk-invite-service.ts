@@ -8,6 +8,7 @@
  */
 
 import { type Result, type ServiceError, ok, err, notFound, validationError } from '@/types/result';
+import { api } from '@/constants/config';
 import type {
   SessionInvite,
   TimeSlot,
@@ -38,6 +39,7 @@ import {
 } from './squad-invite-service';
 
 const logger = createLogger('BulkInviteService');
+const USE_MOCK = api.useMock;
 
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
   const userResult = await userService.getUserById(userId);
@@ -160,8 +162,8 @@ export const bulkInviteService = {
    * Get all invites that are part of a group send
    */
   async getGroupInvites(groupId: string): Promise<SessionInvite[]> {
-    const invitesCache = getInvitesCache();
-    if (invitesCache.length > 0) {
+    if (USE_MOCK) {
+      const invitesCache = getInvitesCache();
       const localMatches = invitesCache.filter((inv) => inv.groupId === groupId);
       if (localMatches.length > 0) {
         return localMatches;
@@ -272,6 +274,8 @@ export const bulkInviteService = {
             coachName: input.coachName,
             coachPhotoUrl: input.coachPhotoUrl,
             clubName: input.clubName || squad?.name,
+            inviteType: 'SQUAD_ONLY',
+            squadIds: [input.squadId],
             athleteIds,
             athleteNames,
             parentId,
@@ -284,6 +288,7 @@ export const bulkInviteService = {
               : `Squad Training: ${squad?.name}`,
             price: input.price,
             groupId,
+            existingSessionId: input.sessionId,
           });
           return { sent: 1, failed: 0, error: null, memberId: athletes[0].athleteId };
         } catch (error) {
@@ -412,6 +417,8 @@ export const bulkInviteService = {
             coachName: input.coachName,
             coachPhotoUrl: input.coachPhotoUrl,
             clubName: input.clubName || squad.name,
+            inviteType: 'SQUAD_ONLY',
+            squadIds: [input.squadId],
             athleteIds,
             athleteNames,
             parentId,
@@ -423,6 +430,7 @@ export const bulkInviteService = {
             price: input.price,
             expiresInDays: input.expiresInDays ?? 7,
             groupId,
+            existingSessionId: input.sessionId,
           });
 
           return { athletes, inviteId: invite.id, error: null };

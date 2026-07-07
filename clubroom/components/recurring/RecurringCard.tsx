@@ -27,17 +27,23 @@ import { runAsyncFinally } from '@/utils/async-control';
 
 interface RecurringCardProps {
   recurring: RecurringBooking;
+  nextBookingId?: string;
+  nextScheduledAt?: string;
   onPause?: (id: string, reason?: string) => Promise<void>;
   onResume?: (id: string) => Promise<void>;
   onCancel?: (id: string, reason?: string) => Promise<void>;
+  onSkipNext?: (id: string, bookingId: string, reason?: string) => Promise<void>;
   loading?: boolean;
 }
 
 export const RecurringCard = function RecurringCard({
   recurring,
+  nextBookingId,
+  nextScheduledAt,
   onPause,
   onResume,
   onCancel,
+  onSkipNext,
   loading = false,
 }: RecurringCardProps) {
   const { colors: palette } = useTheme();
@@ -48,8 +54,10 @@ export const RecurringCard = function RecurringCard({
 
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showSkipModal, setShowSkipModal] = useState(false);
   const [pauseReason, setPauseReason] = useState('');
   const [cancelReason, setCancelReason] = useState('');
+  const [skipReason, setSkipReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
   const handlePauseConfirm = async () => {
@@ -78,6 +86,19 @@ export const RecurringCard = function RecurringCard({
     });
   };
 
+  const handleSkipConfirm = async () => {
+    if (!onSkipNext || !nextBookingId) return;
+    setActionLoading(true);
+
+    await runAsyncFinally(async () => {
+      await onSkipNext(recurring.id, nextBookingId, skipReason || undefined);
+      setShowSkipModal(false);
+      setSkipReason('');
+    }, () => {
+      setActionLoading(false);
+    });
+  };
+
   const handleResume = () => {
     if (!onResume) return;
     uiFeedback.showToast(
@@ -101,6 +122,15 @@ export const RecurringCard = function RecurringCard({
     year: 'numeric',
   });
   const freqLabel = getFrequencyLabel(recurring.frequency).toLowerCase();
+  const nextSessionLabel = nextScheduledAt
+    ? new Date(nextScheduledAt).toLocaleString('en-GB', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    : 'the next generated session';
 
   return (
     <>
@@ -157,8 +187,27 @@ export const RecurringCard = function RecurringCard({
           onPause={onPause ? () => setShowPauseModal(true) : undefined}
           onResume={onResume ? handleResume : undefined}
           onCancel={onCancel ? () => setShowCancelModal(true) : undefined}
+          onSkipNext={
+            onSkipNext && nextBookingId && recurring.status === 'ACTIVE'
+              ? () => setShowSkipModal(true)
+              : undefined
+          }
         />
       </SurfaceCard>
+
+      <RecurringConfirmModal
+        visible={showSkipModal}
+        title="Skip Next Session"
+        description={`Skip ${nextSessionLabel} without pausing the rest of your ${freqLabel} plan.`}
+        reason={skipReason}
+        onReasonChange={setSkipReason}
+        placeholder="Reason for skipping (optional)"
+        confirmLabel="Skip Session"
+        loadingLabel="Skipping..."
+        loading={actionLoading}
+        onConfirm={handleSkipConfirm}
+        onCancel={() => setShowSkipModal(false)}
+      />
 
       <RecurringConfirmModal
         visible={showPauseModal}

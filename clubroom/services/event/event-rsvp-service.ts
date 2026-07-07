@@ -5,9 +5,13 @@
  * and calendar integration for user events.
  *
  * API Integration Notes:
- * - POST /api/events/:id/rsvp - RSVP to event
- * - GET /api/events/:id/rsvps - Get RSVPs
- * - PATCH /api/rsvps/:id - Update RSVP
+ * - POST /v1/events/:eventId/rsvp - RSVP to event
+ * - GET /v1/events/:eventId/rsvps - Get RSVPs
+ * - GET /v1/events/:eventId/rsvps/:userId - Get one user's RSVP
+ * - POST /v1/events/:eventId/rsvps/remind - Queue RSVP reminders
+ *
+ * There is no dedicated user-wide event calendar /v1 API yet, so user calendar
+ * reads compose readable club events plus per-event RSVP reads in API mode.
  */
 
 import { apiClient, apiFetch } from '../api-client';
@@ -19,6 +23,7 @@ import { userService } from '../user-service';
 import { emitTyped, ServiceEvents } from '../event-bus';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import {
   type Result,
   type ServiceError,
@@ -35,7 +40,7 @@ import type {
   RSVPStatus,
   SubmitRSVPInput,
 } from '@/constants/types';
-import { loadEvents, saveEvents } from './event-crud-service';
+import { eventCrudService, loadEvents, saveEvents } from './event-crud-service';
 const USE_MOCK = api.useMock;
 const logger = createLogger('EventRsvpService');
 
@@ -104,6 +109,26 @@ async function resolveUserName(userId: string, fallback: string): Promise<string
     return fallback;
   }
   return userResult.data.name?.trim() || fallback;
+}
+
+async function listReadableUserEventsFromApi(): Promise<ClubEvent[]> {
+  const clubsResult = await clubAuthorityService.listClubs();
+  if (!clubsResult.success) {
+    logger.warn('Failed to resolve user clubs for event calendar via API', {
+      error: clubsResult.error,
+    });
+    return [];
+  }
+
+  // ponytail: fan-out over readable clubs; add /v1/me/events if this becomes hot.
+  const eventGroups = await Promise.all(
+    clubsResult.data.clubs.map((club) => eventCrudService.getAllClubEvents(club.id)),
+  );
+  const byId = new Map<string, ClubEvent>();
+  for (const event of eventGroups.flat()) {
+    byId.set(event.id, event);
+  }
+  return [...byId.values()];
 }
 
 // ============================================================================
@@ -493,8 +518,11 @@ export const eventRsvpService = {
       rsvpsCache = await loadRSVPs();
       return rsvpsCache.filter((r) => r.userId === userId);
     }
-    logger.warn('User event RSVP list reads need a /v1 event RSVP API', { userId });
-    return [];
+    const events = await listReadableUserEventsFromApi();
+    const rsvps = await Promise.all(
+      events.map((event) => this.getUserEventRSVP(event.id, userId)),
+    );
+    return rsvps.filter((rsvp): rsvp is EventRSVP => Boolean(rsvp));
   },
   /**
    * Get a specific user's RSVP for an event
@@ -639,12 +667,30 @@ export const eventRsvpService = {
         status: rsvpMap.get(event.id) || null,
       }));
     }
-    logger.warn('Calendar event reads need a /v1 event calendar API', {
-      userId,
-      startDate,
-      endDate,
+    const events = await listReadableUserEventsFromApi();
+    const start = new Date(startDate).getTime();
+    const end = new Date(endDate).getTime();
+    const eventsInRange = events.filter((event) => {
+      const eventDate = new Date(event.date).getTime();
+      return eventDate >= start && eventDate <= end && event.status === 'PUBLISHED';
     });
-    return [];
+    const rsvps = await Promise.all(
+      eventsInRange.map((event) => this.getUserEventRSVP(event.id, userId)),
+    );
+    const statusByEventId = new Map(
+      rsvps.flatMap((rsvp) => (rsvp ? [[rsvp.eventId, rsvp.status] as const] : [])),
+    );
+    return eventsInRange.map((event) => ({
+      id: event.id,
+      title: event.title,
+      date: event.date,
+      startTime: event.startTime,
+      endTime: event.endTime ?? event.startTime,
+      location: event.venue || event.address || 'TBD',
+      type: 'EVENT' as const,
+      eventType: event.eventType,
+      status: statusByEventId.get(event.id) || null,
+    }));
   },
   /**
    * Get upcoming events for a user (events they've RSVP'd to or are invited to)
@@ -665,7 +711,22 @@ export const eventRsvpService = {
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
         .slice(0, limit);
     }
-    logger.warn('Upcoming user event reads need a /v1 event calendar API', { userId, limit });
-    return [];
+    const events = await listReadableUserEventsFromApi();
+    const now = new Date().getTime();
+    const rsvps = await Promise.all(events.map((event) => this.getUserEventRSVP(event.id, userId)));
+    const goingEventIds = new Set(
+      rsvps.flatMap((rsvp) => (rsvp?.status === 'GOING' ? [rsvp.eventId] : [])),
+    );
+    return events
+      .filter((event) => {
+        const eventDate = new Date(event.date).getTime();
+        return (
+          eventDate > now &&
+          event.status === 'PUBLISHED' &&
+          goingEventIds.has(event.id)
+        );
+      })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .slice(0, limit);
   },
 };

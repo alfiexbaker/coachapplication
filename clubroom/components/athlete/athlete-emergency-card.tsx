@@ -7,6 +7,7 @@ import * as Haptics from 'expo-haptics';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Button } from '@/components/primitives/button';
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
@@ -15,6 +16,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { safetyService } from '@/services/safety-service';
 import { createLogger } from '@/utils/logger';
+import { getRosterAthleteName } from '@/utils/roster-display';
 import type { RosterEntry, EmergencyContact } from '@/constants/types';
 import type { AthleteEmergencyQuickView } from '@/services/safety-service';
 import { uiFeedback } from '@/services/ui-feedback';
@@ -29,6 +31,7 @@ export const AthleteEmergencyCard = function AthleteEmergencyCard({
   emergencyData: AthleteEmergencyQuickView | null;
 }) {
   const { colors } = useTheme();
+  const athleteName = getRosterAthleteName(athlete);
 
   const handlePress = () => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -72,9 +75,12 @@ export const AthleteEmergencyCard = function AthleteEmergencyCard({
           borderColor: emergencyData?.hasAlerts ? withAlpha(alertColor, 0.25) : colors.border,
         },
       ]}
-      onPress={handlePress}
     >
-      <Row gap="sm" align="center" style={styles.header}>
+      <Clickable
+        onPress={handlePress}
+        accessibilityLabel={`View emergency information for ${athleteName}`}
+      >
+        <Row gap="sm" align="center" style={styles.header}>
         <View style={[styles.icon, { backgroundColor: withAlpha(alertColor, 0.09) }]}>
           <Ionicons
             name={emergencyData?.hasAlerts ? 'warning' : 'shield-checkmark'}
@@ -89,7 +95,8 @@ export const AthleteEmergencyCard = function AthleteEmergencyCard({
           </ThemedText>
         </Column>
         <Ionicons name="chevron-forward" size={20} color={colors.muted} />
-      </Row>
+        </Row>
+      </Clickable>
 
       {emergencyData?.hasAlerts && (
         <Row gap="xxs" style={styles.alertBadges} wrap>

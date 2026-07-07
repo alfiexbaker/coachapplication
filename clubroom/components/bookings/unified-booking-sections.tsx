@@ -20,6 +20,7 @@ import type { BookingSummary } from '@/constants/types';
 import { formatPrice } from '@/constants/styles';
 import { Row } from '@/components/primitives';
 import {
+  getBookingServiceLabel,
   getBookingSummaryClientName,
   getBookingSummaryCoachName,
 } from '@/utils/booking-display';
@@ -47,6 +48,7 @@ export const CompactBookingCard = function CompactBookingCard({
   palette,
 }: CompactBookingCardProps) {
   const coachName = getBookingSummaryCoachName(booking);
+  const serviceLabel = getBookingServiceLabel(booking);
   return (
     <Clickable onPress={onPress}>
       <SurfaceCard style={styles.compactCard}>
@@ -54,7 +56,7 @@ export const CompactBookingCard = function CompactBookingCard({
           <Image source={{ uri: coachPhotoUrl }} style={styles.avatarSmall} />
           <View style={styles.compactContent}>
             <ThemedText style={styles.compactTitle} numberOfLines={1}>
-              {booking.service}
+              {serviceLabel}
             </ThemedText>
             <ThemedText style={[styles.compactMeta, { color: palette.muted }]} numberOfLines={1}>
               {coachName} · {day}
@@ -114,6 +116,7 @@ export const DetailedBookingCard = function DetailedBookingCard({
 }: DetailedBookingCardProps) {
   const coachName = getBookingSummaryCoachName(booking);
   const childName = getBookingSummaryClientName(booking);
+  const serviceLabel = getBookingServiceLabel(booking);
   return (
     <Clickable onPress={onPress}>
       <SurfaceCard style={styles.detailedCard}>
@@ -121,7 +124,7 @@ export const DetailedBookingCard = function DetailedBookingCard({
         <Row style={styles.detailedHeader}>
           <Image source={{ uri: coachPhotoUrl }} style={styles.avatarMedium} />
           <View style={styles.detailedHeaderContent}>
-            <ThemedText style={styles.detailedTitle}>{booking.service}</ThemedText>
+            <ThemedText style={styles.detailedTitle}>{serviceLabel}</ThemedText>
             <ThemedText style={[styles.detailedSubtitle, { color: palette.muted }]}>
               with {coachName}
             </ThemedText>

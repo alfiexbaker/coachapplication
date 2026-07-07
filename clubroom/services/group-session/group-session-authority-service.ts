@@ -142,7 +142,7 @@ class GroupSessionAuthorityService {
       headers: headersResult.data,
     });
     if (!result.success) {
-      logger.error('Failed to list group sessions via API', { params, error: result.error });
+      logger.warn('Failed to list group sessions via API', { params, error: result.error });
       return err(result.error);
     }
     return ok(result.data.groupSessions);
@@ -246,6 +246,92 @@ class GroupSessionAuthorityService {
     return ok(result.data.groupSession);
   }
 
+  async updateOffPlatformParticipants(
+    sessionId: string,
+    count: number,
+  ): Promise<Result<GroupSession, ServiceError>> {
+    const headersResult = await resolveAuthorityHeaders('Sign in to update off-platform attendees.');
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiGroupSessionMutationResponse>(
+      `/v1/group-sessions/${encodeURIComponent(sessionId)}/off-platform-attendees`,
+      {
+        method: 'PATCH',
+        headers: headersResult.data,
+        body: JSON.stringify({
+          offPlatformParticipants: count,
+        }),
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to update off-platform group session attendees via API', {
+        sessionId,
+        count,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    return ok(result.data.groupSession);
+  }
+
+  async cancelInstance(
+    sessionId: string,
+    date: string,
+  ): Promise<Result<GroupSession, ServiceError>> {
+    const headersResult = await resolveAuthorityHeaders('Sign in to cancel recurring sessions.');
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiGroupSessionMutationResponse>(
+      `/v1/group-sessions/${encodeURIComponent(sessionId)}/instances/cancel`,
+      {
+        method: 'PATCH',
+        headers: headersResult.data,
+        body: JSON.stringify({ date }),
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to cancel group session instance via API', {
+        sessionId,
+        date,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    return ok(result.data.groupSession);
+  }
+
+  async endSeries(
+    sessionId: string,
+    fromDate: string,
+  ): Promise<Result<GroupSession, ServiceError>> {
+    const headersResult = await resolveAuthorityHeaders('Sign in to end recurring sessions.');
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiGroupSessionMutationResponse>(
+      `/v1/group-sessions/${encodeURIComponent(sessionId)}/series/end`,
+      {
+        method: 'PATCH',
+        headers: headersResult.data,
+        body: JSON.stringify({ fromDate }),
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to end group session series via API', {
+        sessionId,
+        fromDate,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    return ok(result.data.groupSession);
+  }
+
   async listRoster(sessionId: string): Promise<Result<GroupRegistration[], ServiceError>> {
     const headersResult = await resolveAuthorityHeaders('Sign in to view this group session roster.');
     if (!headersResult.success) {
@@ -289,6 +375,42 @@ class GroupSessionAuthorityService {
     );
     if (!result.success) {
       logger.error('Failed to register group session via API', {
+        params,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+
+    return ok({
+      ...result.data.registration,
+      booking: result.data.booking ?? null,
+      sessionStatus: result.data.sessionStatus,
+    });
+  }
+
+  async joinWaitlist(params: {
+    sessionId: string;
+    athleteId: string;
+    parentUserId?: string;
+  }): Promise<Result<ApiGroupSessionRegisterResponse['registration'] & { booking?: { id: string; status: string } | null; sessionStatus: string }, ServiceError>> {
+    const headersResult = await resolveAuthorityHeaders('Sign in to join group session waitlists.');
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiGroupSessionRegisterResponse>(
+      `/v1/group-sessions/${params.sessionId}/waitlist`,
+      {
+        method: 'POST',
+        headers: headersResult.data,
+        body: JSON.stringify({
+          athleteId: toApiAthleteId(params.athleteId),
+          ...(params.parentUserId ? { parentUserId: toApiUserId(params.parentUserId) } : {}),
+        }),
+      },
+    );
+    if (!result.success) {
+      logger.error('Failed to join group session waitlist via API', {
         params,
         error: result.error,
       });

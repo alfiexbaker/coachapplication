@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import type { Href } from 'expo-router';
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
@@ -16,8 +17,8 @@ import { useDemoWalkthroughVisibility } from '@/hooks/use-demo-walkthrough-visib
 import { Routes } from '@/navigation/routes';
 import { buildOwnerDemoWalkthrough } from '@/utils/demo-walkthrough';
 import type {
+  OrgOwnerDashboardData,
   OwnerDashboardSupportIssue,
-  OwnerDashboardSummary,
 } from '@/services/org-owner-dashboard-service';
 import type {
   HeadCoachCoachHealth,
@@ -29,12 +30,151 @@ function formatDateLabel(iso?: string): string {
   if (!iso) return 'Date pending';
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleDateString('en-GB', {
+  return date.toLocaleString('en-GB', {
     day: 'numeric',
     month: 'short',
     hour: 'numeric',
     minute: '2-digit',
   });
+}
+
+type PriorityAction = {
+  title: string;
+  description: string;
+  actionLabel: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  tone: 'tint' | 'warning' | 'success' | 'error';
+  route: Href;
+};
+
+function getPriorityAction(dashboard: OrgOwnerDashboardData, clubId: string): PriorityAction {
+  const { finance, summary, supportIssues } = dashboard;
+  const firstSupportIssue = supportIssues[0];
+
+  if (firstSupportIssue) {
+    return {
+      title: 'Review open family support',
+      description: `${summary.supportIssueCount} open issue${summary.supportIssueCount === 1 ? '' : 's'} tied to live club bookings. Start with ${firstSupportIssue.athleteLabel}.`,
+      actionLabel: 'Open issue',
+      icon: 'chatbubble-ellipses-outline',
+      tone: 'error',
+      route: Routes.booking(firstSupportIssue.bookingId),
+    };
+  }
+
+  if (summary.unassignedCount > 0) {
+    return {
+      title: 'Assign delivery coaches',
+      description: `${summary.unassignedCount} club session${summary.unassignedCount === 1 ? '' : 's'} cannot safely take bookings until a staff member owns delivery.`,
+      actionLabel: 'Open staffing',
+      icon: 'alert-circle-outline',
+      tone: 'warning',
+      route: Routes.manageBookings({ clubId }),
+    };
+  }
+
+  if (summary.overdueCompletionCount > 0 || summary.overdueFollowUpCount > 0) {
+    return {
+      title: 'Clear overdue delivery follow-up',
+      description: `${summary.overdueCompletionCount} completion item${summary.overdueCompletionCount === 1 ? '' : 's'} and ${summary.overdueFollowUpCount} follow-up item${summary.overdueFollowUpCount === 1 ? '' : 's'} are late.`,
+      actionLabel: 'Open oversight',
+      icon: 'time-outline',
+      tone: 'warning',
+      route: Routes.manageHeadCoach({ clubId }),
+    };
+  }
+
+  if (finance.overdueCount > 0) {
+    return {
+      title: 'Reconcile overdue money',
+      description: `${finance.overdueCount} overdue finance item${finance.overdueCount === 1 ? '' : 's'} remain open across club bookings.`,
+      actionLabel: 'Open reconciler',
+      icon: 'wallet-outline',
+      tone: 'warning',
+      route: Routes.EARNINGS,
+    };
+  }
+
+  if (summary.activeOrgSessions > 0) {
+    return {
+      title: 'Club operations are covered',
+      description: `${summary.activeOrgSessions} live club session${summary.activeOrgSessions === 1 ? '' : 's'} are staffed. Keep an eye on completion and support exceptions.`,
+      actionLabel: 'Open staffing',
+      icon: 'shield-checkmark-outline',
+      tone: 'success',
+      route: Routes.manageBookings({ clubId }),
+    };
+  }
+
+  return {
+    title: 'Build the next club session',
+    description: 'No live club sessions are currently active. Create the next staffed football session from this club context.',
+    actionLabel: 'Create session',
+    icon: 'sparkles-outline',
+    tone: 'tint',
+    route: Routes.sessionsCreateIntent({
+      intent: 'new',
+      source: 'club_manage',
+      actingAs: 'club',
+      clubId,
+    }),
+  };
+}
+
+function LiveCommandCard(props: {
+  dashboard: OrgOwnerDashboardData;
+  clubId: string;
+  navigateTo: (path: Href) => void;
+}) {
+  const { colors } = useTheme();
+  const priority = getPriorityAction(props.dashboard, props.clubId);
+  const toneColor = colors[priority.tone];
+
+  return (
+    <SurfaceCard
+      style={[
+        styles.commandCard,
+        { borderColor: withAlpha(toneColor, 0.42), backgroundColor: colors.surface },
+      ]}
+      tactile={false}
+    >
+      <Row align="start" gap="sm">
+        <View style={[styles.commandIcon, { backgroundColor: withAlpha(toneColor, 0.12) }]}>
+          <Ionicons name={priority.icon} size={20} color={toneColor} />
+        </View>
+        <View style={styles.commandCopy}>
+          <ThemedText style={[styles.commandEyebrow, { color: colors.muted }]}>
+            Live operations
+          </ThemedText>
+          <ThemedText style={styles.commandTitle}>{priority.title}</ThemedText>
+          <ThemedText style={[styles.commandDescription, { color: colors.muted }]}>
+            {priority.description}
+          </ThemedText>
+        </View>
+      </Row>
+
+      <ThemedText style={[styles.commandMeta, { color: colors.muted }]}>
+        {props.dashboard.summary.activeStaffCount} staff ·{' '}
+        {props.dashboard.summary.activeOrgSessions} live session
+        {props.dashboard.summary.activeOrgSessions === 1 ? '' : 's'} · GBP{' '}
+        {props.dashboard.finance.openTotal.toFixed(0)} open ·{' '}
+        {props.dashboard.summary.supportIssueCount} support issue
+        {props.dashboard.summary.supportIssueCount === 1 ? '' : 's'}
+      </ThemedText>
+
+      <Clickable
+        onPress={() => props.navigateTo(priority.route)}
+        accessibilityRole="button"
+        accessibilityLabel={priority.actionLabel}
+        style={[styles.commandButton, { backgroundColor: toneColor }]}
+      >
+        <ThemedText style={[styles.commandButtonText, { color: colors.onPrimary }]}>
+          {priority.actionLabel}
+        </ThemedText>
+        <Ionicons name="chevron-forward" size={18} color={colors.onPrimary} />
+      </Clickable>
+    </SurfaceCard>
+  );
 }
 
 function MetricCard(props: {
@@ -209,30 +349,6 @@ function SupportIssueRow(props: { item: OwnerDashboardSupportIssue; onPress: () 
   );
 }
 
-function SnapshotCopy({ summary }: { summary: OwnerDashboardSummary }) {
-  const { colors } = useTheme();
-  return (
-    <SurfaceCard style={[styles.snapshotCard, { borderColor: colors.border }]} tactile={false}>
-      <ThemedText style={styles.snapshotTitle}>Today&apos;s org picture</ThemedText>
-      <ThemedText style={[styles.snapshotText, { color: colors.muted }]}>
-        {summary.unassignedCount > 0
-          ? `${summary.unassignedCount} session${summary.unassignedCount === 1 ? '' : 's'} still need a coach assignment.`
-          : 'All live org sessions currently have a delivery coach assigned.'}
-      </ThemedText>
-      <ThemedText style={[styles.snapshotText, { color: colors.muted }]}>
-        {summary.overdueCompletionCount > 0 || summary.overdueFollowUpCount > 0
-          ? `${summary.overdueCompletionCount} completion item${summary.overdueCompletionCount === 1 ? '' : 's'} and ${summary.overdueFollowUpCount} follow-up item${summary.overdueFollowUpCount === 1 ? '' : 's'} are overdue.`
-          : 'Delivery follow-up is currently inside the expected window.'}
-      </ThemedText>
-      <ThemedText style={[styles.snapshotText, { color: colors.muted }]}>
-        {summary.supportIssueCount > 0
-          ? `${summary.supportIssueCount} parent support issue${summary.supportIssueCount === 1 ? '' : 's'} still need review.`
-          : 'No unresolved parent support issues are currently open.'}
-      </ThemedText>
-    </SurfaceCard>
-  );
-}
-
 export default function DashboardScreen() {
   const { colors } = useTheme();
   const { clubId, dashboard, status, error, retry, refreshing, onRefresh, navigateTo } =
@@ -286,14 +402,7 @@ export default function DashboardScreen() {
       onRefresh={onRefresh}
       gap={Spacing.md}
     >
-      {visibleWalkthrough ? (
-        <DemoWalkthroughCard
-          walkthrough={visibleWalkthrough}
-          onPressStep={(step) => navigateTo(step.route)}
-          onDismiss={dismissWalkthrough}
-        />
-      ) : null}
-      <SnapshotCopy summary={dashboard.summary} />
+      <LiveCommandCard dashboard={dashboard} clubId={clubId} navigateTo={navigateTo} />
 
       <View style={styles.metricGrid}>
         <MetricCard
@@ -326,10 +435,52 @@ export default function DashboardScreen() {
         />
       </View>
 
+      <View style={styles.section}>
+        <SectionHeader
+          title="Immediate exceptions"
+          caption="These are the issues that need owner attention first."
+        />
+        {dashboard.unassignedWork.length > 0 ? (
+          dashboard.unassignedWork
+            .slice(0, 3)
+            .map((item) => (
+              <UnassignedRow
+                key={item.offeringId}
+                item={item}
+                onPress={() => navigateTo(Routes.manageBookings({ clubId }))}
+              />
+            ))
+        ) : (
+          <SurfaceCard style={[styles.emptyCard, { borderColor: colors.border }]} tactile={false}>
+            <ThemedText style={[styles.emptyText, { color: colors.muted }]}>
+              No unassigned org work is currently waiting for allocation.
+            </ThemedText>
+          </SurfaceCard>
+        )}
+
+        {dashboard.supportIssues.length > 0 ? (
+          dashboard.supportIssues
+            .slice(0, 3)
+            .map((item) => (
+              <SupportIssueRow
+                key={item.id}
+                item={item}
+                onPress={() => navigateTo(Routes.booking(item.bookingId))}
+              />
+            ))
+        ) : (
+          <SurfaceCard style={[styles.emptyCard, { borderColor: colors.border }]} tactile={false}>
+            <ThemedText style={[styles.emptyText, { color: colors.muted }]}>
+              No unresolved parent support issues are open right now.
+            </ThemedText>
+          </SurfaceCard>
+        )}
+      </View>
+
       <SurfaceCard style={[styles.financeCard, { borderColor: colors.border }]} tactile={false}>
         <SectionHeader
           title="Finance state"
-          caption="Honest reconciler view only. No fake payout rails."
+          caption="Manual and direct payment state only until provider settlement is live."
         />
         <Row style={styles.financeMetrics}>
           <View style={styles.financeMetric}>
@@ -429,48 +580,6 @@ export default function DashboardScreen() {
 
       <View style={styles.section}>
         <SectionHeader
-          title="Immediate exceptions"
-          caption="These are the issues that need owner attention first."
-        />
-        {dashboard.unassignedWork.length > 0 ? (
-          dashboard.unassignedWork
-            .slice(0, 3)
-            .map((item) => (
-              <UnassignedRow
-                key={item.offeringId}
-                item={item}
-                onPress={() => navigateTo(Routes.manageBookings({ clubId }))}
-              />
-            ))
-        ) : (
-          <SurfaceCard style={[styles.emptyCard, { borderColor: colors.border }]} tactile={false}>
-            <ThemedText style={[styles.emptyText, { color: colors.muted }]}>
-              No unassigned org work is currently waiting for allocation.
-            </ThemedText>
-          </SurfaceCard>
-        )}
-
-        {dashboard.supportIssues.length > 0 ? (
-          dashboard.supportIssues
-            .slice(0, 3)
-            .map((item) => (
-              <SupportIssueRow
-                key={item.id}
-                item={item}
-                onPress={() => navigateTo(Routes.booking(item.bookingId))}
-              />
-            ))
-        ) : (
-          <SurfaceCard style={[styles.emptyCard, { borderColor: colors.border }]} tactile={false}>
-            <ThemedText style={[styles.emptyText, { color: colors.muted }]}>
-              No unresolved parent support issues are open right now.
-            </ThemedText>
-          </SurfaceCard>
-        )}
-      </View>
-
-      <View style={styles.section}>
-        <SectionHeader
           title="Delivery health"
           caption="Use these links to move from summary into coach-level follow-up."
         />
@@ -503,20 +612,67 @@ export default function DashboardScreen() {
           </SurfaceCard>
         )}
       </View>
+
+      {visibleWalkthrough ? (
+        <View style={styles.section}>
+          <SectionHeader
+            title="Optional walkthrough"
+            caption="Keep this below the operating surface so live work stays first."
+          />
+          <DemoWalkthroughCard
+            walkthrough={visibleWalkthrough}
+            onPressStep={(step) => navigateTo(step.route)}
+            onDismiss={dismissWalkthrough}
+          />
+        </View>
+      ) : null}
     </PageContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  snapshotCard: {
+  commandCard: {
     borderWidth: 1,
-    gap: Spacing.xs,
+    gap: Spacing.sm,
   },
-  snapshotTitle: {
+  commandIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  commandCopy: {
+    flex: 1,
+    gap: Spacing.xxs,
+  },
+  commandEyebrow: {
+    ...Typography.caption,
+    textTransform: 'uppercase',
+    letterSpacing: 0,
+  },
+  commandTitle: {
     ...Typography.subheading,
   },
-  snapshotText: {
+  commandDescription: {
     ...Typography.bodySmall,
+    lineHeight: 19,
+  },
+  commandMeta: {
+    ...Typography.caption,
+    lineHeight: 16,
+  },
+  commandButton: {
+    minHeight: 44,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+  },
+  commandButtonText: {
+    ...Typography.bodySemiBold,
   },
   metricGrid: {
     flexDirection: 'row',

@@ -18,6 +18,28 @@ import { hasAccountChildren } from '@/utils/booking-self-capability';
 import { uiFeedback } from '@/services/ui-feedback';
 
 const logger = createLogger('SettingsHub');
+const DEMO_IMAGE_HOST = 'cdn.clubroom.demo';
+
+function isUsableProfilePhoto(uri: string | undefined): uri is string {
+  if (!uri) return false;
+  try {
+    const parsed = new URL(uri);
+    return parsed.hostname !== DEMO_IMAGE_HOST;
+  } catch {
+    return !uri.startsWith('http');
+  }
+}
+
+function getInitials(name: string | undefined) {
+  if (!name) return 'U';
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('');
+  return initials || 'U';
+}
 
 export default function SettingsHubScreen() {
   const { colors } = useTheme();
@@ -69,11 +91,13 @@ export default function SettingsHubScreen() {
         }}
       >
         <Row align="center" gap="md">
-          {currentUser?.avatar ? (
+          {isUsableProfilePhoto(currentUser?.avatar) ? (
             <Image source={{ uri: currentUser.avatar }} style={styles.profilePhoto} />
           ) : (
             <View style={[styles.profilePhoto, { backgroundColor: colors.border }]}>
-              <Ionicons name="person" size={32} color={colors.muted} />
+              <ThemedText style={[styles.profileInitials, { color: colors.muted }]}>
+                {getInitials(currentUser?.fullName || currentUser?.name)}
+              </ThemedText>
             </View>
           )}
           <View style={styles.profileInfo}>
@@ -287,6 +311,7 @@ const styles = StyleSheet.create({
   profileInfo: { flex: 1, gap: Spacing.micro },
   profileName: { ...Typography.heading },
   profileEmail: { ...Typography.bodySmall },
+  profileInitials: { ...Typography.heading },
   versionContainer: { alignItems: 'center', gap: Spacing.xs, marginTop: Spacing.md },
   versionText: { ...Typography.small },
 });

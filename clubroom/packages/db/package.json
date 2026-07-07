@@ -13,6 +13,7 @@
     "prisma:validate": "prisma validate",
     "prisma:db:push": "prisma db push",
     "seed:p0:import": "node ./scripts/import-marketplace-p0-seed.mjs",
+    "practice-tasks:import": "node ./scripts/import-practice-tasks.mjs",
     "demo-passwords:reset": "node ./scripts/reset-demo-passwords.mjs"
   },
   "dependencies": {

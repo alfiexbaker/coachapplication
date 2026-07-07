@@ -22,6 +22,7 @@ import { useBlockUserAction } from '@/hooks/use-block-user-action';
 import { Routes } from '@/navigation/routes';
 import { onTyped, emitTyped, ServiceEvents } from '@/services/event-bus';
 import { messagingService } from '@/services/messaging-service';
+import { apiClient } from '@/services/api-client';
 import { ChatMessage, ChatThreadSummary } from '@/constants/types';
 import { combineResults, err, ok, validationError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
@@ -122,7 +123,7 @@ export default function ChatScreen() {
       uiFeedback.showToast(sendResult.error.message, 'error');
       return;
     }
-    if (thread?.id) {
+    if (thread?.id && apiClient.isMockMode) {
       emitTyped(ServiceEvents.USER_TYPING, {
         threadId: thread.id,
         userId: 'coach_demo',

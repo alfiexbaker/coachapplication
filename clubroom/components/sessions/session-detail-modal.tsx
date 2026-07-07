@@ -74,6 +74,7 @@ export function SessionDetailModal({
     showInstanceManagement,
     setShowInstanceManagement,
     upcomingInstances,
+    canManageRecurringInstances,
     handleCancelInstance,
     handleCancelBooking,
     handleOpenReview,
@@ -266,7 +267,7 @@ export function SessionDetailModal({
             </View>
           )}
 
-          {isMyOffering && offering.isRecurring && (
+          {canManageRecurringInstances && (
             <SessionInstanceManager
               showInstanceManagement={showInstanceManagement}
               onToggle={() => setShowInstanceManagement(!showInstanceManagement)}

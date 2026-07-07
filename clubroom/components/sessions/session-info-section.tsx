@@ -4,6 +4,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
+import { safeDisplayLabel } from '@/utils/booking-display';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -134,7 +135,7 @@ function SessionInfoSectionInner({
                     hour: 'numeric',
                     minute: '2-digit',
                   })}{' '}
-                  by {award.awardedBy || award.coachId || 'Coach'}
+                  by {award.awardedBy || safeDisplayLabel(award.coachId, 'Coach')}
                 </ThemedText>
               </View>
             ))}

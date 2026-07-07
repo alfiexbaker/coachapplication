@@ -6,25 +6,27 @@
  * Athletes can view, complete, and track their assigned drills.
  *
  * API Integration Notes:
- * - POST /api/drills - Create drill
- * - GET /api/drills?coachId=X - Get coach's drill library
- * - GET /api/drills/:id - Get drill details
- * - PATCH /api/drills/:id - Update drill
- * - DELETE /api/drills/:id - Delete drill
- * - POST /api/assignments - Assign drill to athlete
- * - GET /api/assignments?athleteId=X - Get athlete's assignments
- * - PATCH /api/assignments/:id/complete - Complete assignment
- * - GET /api/assignments/:athleteId/stats - Get assignment statistics
+ * - GET /v1/drills?coachUserId=X - Get coach's drill library.
+ * - GET /v1/drills/:id - Get one drill from backend authority.
+ * - POST /v1/drill-assignments and PATCH /v1/drill-assignments/:id/completion
+ *   own assignment create and completion in API mode.
  */
 
-import { apiClient } from './api-client';
+import { apiClient, apiFetch } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from './notification-trigger';
 import { childService } from './child-service';
 import { userService } from './user-service';
 import { createLogger } from '../utils/logger';
 import { toDateStr } from '@/utils/format';
-import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  notFound,
+  serviceError,
+} from '@/types/result';
 import type {
   Drill,
   DrillCategory,
@@ -35,12 +37,368 @@ import type {
   DrillAssignmentStats,
 } from '../constants/types';
 const logger = createLogger('DrillService');
+
+type ApiDrillRow = Record<string, unknown> & {
+  assignments?: Record<string, unknown>[];
+};
+type ApiDrillsResponse = {
+  drills: ApiDrillRow[];
+  total: number;
+  seedVersion?: string | null;
+  requestId?: string;
+};
+type ApiDrillResponse = {
+  drill?: ApiDrillRow;
+  seedVersion?: string | null;
+  requestId?: string;
+};
+type ApiDrillMutationResponse = ApiDrillResponse & {
+  removed?: boolean;
+};
+type ApiDrillAssignmentRow = Record<string, unknown> & {
+  drill?: ApiDrillRow;
+  submissions?: Record<string, unknown>[];
+};
+type ApiDrillAssignmentsResponse = {
+  athleteId: string;
+  assignments: ApiDrillAssignmentRow[];
+  total: number;
+  seedVersion?: string | null;
+  requestId?: string;
+};
+type ApiDrillAssignmentMutationResponse = {
+  removed?: boolean;
+  assignment?: ApiDrillAssignmentRow;
+  seedVersion?: string | null;
+  requestId?: string;
+};
+type ApiDrillAssignmentCompletionResponse = ApiDrillAssignmentMutationResponse & {
+  task?: Record<string, unknown>;
+};
+
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
   const userResult = await userService.getUserById(userId);
   if (!userResult.success) {
     return fallback;
   }
   return userResult.data.name?.trim() || fallback;
+}
+
+function stringValue(row: Record<string, unknown> | undefined, key: string, fallback = ''): string {
+  const value = row?.[key];
+  return typeof value === 'string' && value.trim().length > 0 ? value : fallback;
+}
+
+function numberValue(row: Record<string, unknown>, key: string, fallback: number): number {
+  const value = row[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function booleanValue(row: Record<string, unknown>, key: string, fallback = false): boolean {
+  const value = row[key];
+  return typeof value === 'boolean' ? value : fallback;
+}
+
+function toDrillApiAthleteId(athleteId: string): string {
+  return athleteId.startsWith('ath_') ? athleteId : `ath_${athleteId.replace(/^usr_/, '')}`;
+}
+
+function stringArrayValue(row: Record<string, unknown>, key: string): string[] | undefined {
+  const value = row[key];
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const strings = value.filter((entry): entry is string => typeof entry === 'string');
+  return strings.length > 0 ? strings : undefined;
+}
+
+function drillCategory(value: unknown): DrillCategory {
+  const normalized = typeof value === 'string' ? value.toUpperCase() : '';
+  if (
+    normalized === 'WARMUP' ||
+    normalized === 'TECHNIQUE' ||
+    normalized === 'FITNESS' ||
+    normalized === 'COOLDOWN' ||
+    normalized === 'TACTICAL'
+  ) {
+    return normalized;
+  }
+  return 'TECHNIQUE';
+}
+
+function drillDifficulty(value: unknown): DrillDifficulty {
+  const normalized = typeof value === 'string' ? value.toUpperCase() : '';
+  if (normalized === 'BEGINNER' || normalized === 'INTERMEDIATE' || normalized === 'ADVANCED') {
+    return normalized;
+  }
+  return 'BEGINNER';
+}
+
+function mapApiDrill(row: ApiDrillRow): Drill {
+  const assignments = Array.isArray(row.assignments) ? row.assignments : [];
+  return {
+    id: stringValue(row, 'id'),
+    coachId: stringValue(row, 'authorUserId', stringValue(row, 'coachId')),
+    title: stringValue(row, 'title', 'Untitled drill'),
+    description: stringValue(row, 'description'),
+    category: drillCategory(row.category),
+    videoUrl: stringValue(row, 'videoUrl') || undefined,
+    thumbnailUrl: stringValue(row, 'thumbnailUrl') || undefined,
+    duration: numberValue(row, 'duration', numberValue(row, 'durationMinutes', 15)),
+    difficulty: drillDifficulty(row.difficulty),
+    equipment: stringArrayValue(row, 'equipment'),
+    tags: stringArrayValue(row, 'tags'),
+    assignmentCount: assignments.length,
+    createdAt: stringValue(row, 'createdAt', new Date(0).toISOString()),
+    updatedAt: stringValue(
+      row,
+      'updatedAt',
+      stringValue(row, 'createdAt', new Date(0).toISOString()),
+    ),
+  };
+}
+
+function addDaysIso(value: string, days: number): string {
+  const baseMs = Date.parse(value);
+  const base = Number.isNaN(baseMs) ? Date.now() : baseMs;
+  return new Date(base + days * 24 * 60 * 60 * 1000).toISOString();
+}
+
+function assignmentSubmissions(row: ApiDrillAssignmentRow): Record<string, unknown>[] {
+  return Array.isArray(row.submissions) ? row.submissions : [];
+}
+
+function latestSubmission(row: ApiDrillAssignmentRow): Record<string, unknown> | undefined {
+  return [...assignmentSubmissions(row)].sort(
+    (left, right) =>
+      Date.parse(stringValue(right, 'submittedAt')) - Date.parse(stringValue(left, 'submittedAt')),
+  )[0];
+}
+
+function isApiAssignmentCompleted(row: ApiDrillAssignmentRow): boolean {
+  const status = stringValue(row, 'status').toUpperCase();
+  if (status === 'SUBMITTED' || status === 'COMPLETED') {
+    return true;
+  }
+  return stringValue(latestSubmission(row), 'status').toUpperCase() === 'SUBMITTED';
+}
+
+function mapApiAssignment(row: ApiDrillAssignmentRow): AssignedDrill {
+  const assignedAt = stringValue(row, 'createdAt', new Date(0).toISOString());
+  const latest = latestSubmission(row);
+  const isCompleted = isApiAssignmentCompleted(row);
+  return {
+    id: stringValue(row, 'id'),
+    drillId: stringValue(row, 'drillId'),
+    drill: row.drill ? mapApiDrill(row.drill) : undefined,
+    athleteId: stringValue(row, 'athleteId'),
+    assignedBy: stringValue(row, 'coachUserId', stringValue(row, 'assignedBy')),
+    assignedAt,
+    dueDate: stringValue(row, 'dueDate', addDaysIso(assignedAt, 3)),
+    isCompleted,
+    completedAt: isCompleted ? stringValue(latest, 'submittedAt') || undefined : undefined,
+    notes: stringValue(row, 'instructions') || undefined,
+    athleteFeedback: isCompleted ? stringValue(latest, 'notes') || undefined : undefined,
+    requiresEvidence: booleanValue(row, 'requiresEvidence'),
+  };
+}
+
+function drillCompletionRequestBody(
+  completed: boolean,
+  athleteFeedbackOrOptions?:
+    | string
+    | {
+        athleteFeedback?: string;
+        evidenceVideoUri?: string;
+        evidenceNotes?: string;
+      },
+): { completed: boolean; completionNote?: string } {
+  const options =
+    typeof athleteFeedbackOrOptions === 'string'
+      ? {
+          athleteFeedback: athleteFeedbackOrOptions,
+        }
+      : (athleteFeedbackOrOptions ?? {});
+
+  if (options.evidenceVideoUri) {
+    throw new Error(
+      'Drill completion video evidence requires backend upload proof before API completion.',
+    );
+  }
+
+  const completionNote = [options.athleteFeedback, options.evidenceNotes]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value))
+    .join('\n\n');
+
+  return {
+    completed,
+    ...(completionNote ? { completionNote } : {}),
+  };
+}
+
+async function fetchApiDrills(coachId: string): Promise<ApiDrillRow[]> {
+  const query = new URLSearchParams({ coachUserId: coachId });
+  const result = await apiFetch<ApiDrillsResponse>(`/v1/drills?${query.toString()}`, {
+    method: 'GET',
+  });
+  if (!result.success) {
+    throw new Error(result.error.message);
+  }
+  return result.data.drills;
+}
+
+async function fetchApiDrill(drillId: string): Promise<ApiDrillRow | null> {
+  const result = await apiFetch<ApiDrillResponse>(`/v1/drills/${encodeURIComponent(drillId)}`, {
+    method: 'GET',
+  });
+  if (!result.success) {
+    if (result.error.code === 'NOT_FOUND') {
+      return null;
+    }
+    throw new Error(result.error.message);
+  }
+  return result.data.drill ?? null;
+}
+
+async function postApiDrill(coachId: string, params: CreateDrillInput): Promise<ApiDrillRow> {
+  const result = await apiFetch<ApiDrillMutationResponse>('/v1/drills', {
+    method: 'POST',
+    body: JSON.stringify({
+      coachId,
+      ...params,
+    }),
+  });
+  if (!result.success) {
+    throw new Error(result.error.message);
+  }
+  if (!result.data.drill) {
+    throw new Error('Drill create API did not return a drill.');
+  }
+  return result.data.drill;
+}
+
+async function patchApiDrill(
+  drillId: string,
+  updates: Partial<CreateDrillInput>,
+): Promise<ApiDrillRow | null> {
+  const result = await apiFetch<ApiDrillMutationResponse>(
+    `/v1/drills/${encodeURIComponent(drillId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    },
+  );
+  if (!result.success) {
+    if (result.error.code === 'NOT_FOUND') {
+      return null;
+    }
+    throw new Error(result.error.message);
+  }
+  return result.data.drill ?? null;
+}
+
+async function deleteApiDrill(drillId: string): Promise<boolean> {
+  const result = await apiFetch<ApiDrillMutationResponse>(
+    `/v1/drills/${encodeURIComponent(drillId)}`,
+    {
+      method: 'DELETE',
+    },
+  );
+  if (!result.success) {
+    if (result.error.code === 'NOT_FOUND') {
+      return false;
+    }
+    throw new Error(result.error.message);
+  }
+  return result.data.removed === true || Boolean(result.data.drill);
+}
+
+async function fetchApiAthleteAssignments(
+  athleteId: string,
+  includeCompleted: boolean,
+): Promise<ApiDrillAssignmentRow[]> {
+  const apiAthleteId = toDrillApiAthleteId(athleteId);
+  const query = new URLSearchParams({ includeCompleted: String(includeCompleted) });
+  const result = await apiFetch<ApiDrillAssignmentsResponse>(
+    `/v1/athletes/${encodeURIComponent(apiAthleteId)}/drill-assignments?${query.toString()}`,
+    { method: 'GET' },
+  );
+  if (!result.success) {
+    throw new Error(result.error.message);
+  }
+  return result.data.assignments;
+}
+
+async function postApiDrillAssignment(
+  drillId: string,
+  athleteId: string,
+  params: AssignDrillInput,
+): Promise<Result<AssignedDrill, ServiceError>> {
+  const instructions = params.notes?.trim();
+  const result = await apiFetch<ApiDrillAssignmentMutationResponse>('/v1/drill-assignments', {
+    method: 'POST',
+    body: JSON.stringify({
+      drillId,
+      athleteId: toDrillApiAthleteId(athleteId),
+      dueDate: params.dueDate,
+      ...(instructions ? { instructions } : {}),
+    }),
+  });
+  if (!result.success) {
+    return err(result.error);
+  }
+  if (!result.data.assignment) {
+    return err(serviceError('UNKNOWN', 'Drill assignment API did not return an assignment.'));
+  }
+  return ok(mapApiAssignment(result.data.assignment));
+}
+
+async function patchApiAssignmentCompletion(
+  assignmentId: string,
+  completed: boolean,
+  athleteFeedbackOrOptions?:
+    | string
+    | {
+        athleteFeedback?: string;
+        evidenceVideoUri?: string;
+        evidenceNotes?: string;
+      },
+): Promise<AssignedDrill | null> {
+  const result = await apiFetch<ApiDrillAssignmentCompletionResponse>(
+    `/v1/drill-assignments/${encodeURIComponent(assignmentId)}/completion`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(drillCompletionRequestBody(completed, athleteFeedbackOrOptions)),
+    },
+  );
+  if (!result.success) {
+    if (result.error.code === 'NOT_FOUND') {
+      return null;
+    }
+    throw new Error(result.error.message);
+  }
+  return result.data.assignment ? mapApiAssignment(result.data.assignment) : null;
+}
+
+async function deleteApiDrillAssignment(assignmentId: string): Promise<boolean> {
+  const result = await apiFetch<ApiDrillAssignmentMutationResponse>(
+    `/v1/drill-assignments/${encodeURIComponent(assignmentId)}`,
+    {
+      method: 'DELETE',
+    },
+  );
+  if (!result.success) {
+    if (result.error.code === 'NOT_FOUND') {
+      return false;
+    }
+    throw new Error(result.error.message);
+  }
+  return result.data.removed === true || Boolean(result.data.assignment);
+}
+
+function throwUnsupportedDrillMutation(action: string, route: string): never {
+  throw new Error(`${action} requires backend drill mutation authority in API mode: ${route}`);
 }
 
 // Using centralized storage keys
@@ -267,6 +625,11 @@ async function saveAssignments(assignments: AssignedDrill[]): Promise<void> {
  * @returns Array of drills created by the coach
  */
 async function getDrillLibrary(coachId: string): Promise<Drill[]> {
+  if (!apiClient.isMockMode) {
+    const drills = (await fetchApiDrills(coachId)).map(mapApiDrill);
+    return drills.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }
+
   const drills = await getAllDrills();
   const coachDrills = drills.filter((d) => d.coachId === coachId);
 
@@ -282,6 +645,11 @@ async function getDrillLibrary(coachId: string): Promise<Drill[]> {
  * @returns The drill or null if not found
  */
 async function getDrillById(drillId: string): Promise<Drill | null> {
+  if (!apiClient.isMockMode) {
+    const drill = await fetchApiDrill(drillId);
+    return drill ? mapApiDrill(drill) : null;
+  }
+
   const drills = await getAllDrills();
   return drills.find((d) => d.id === drillId) ?? null;
 }
@@ -298,6 +666,10 @@ async function createDrill(
   _coachName: string,
   params: CreateDrillInput,
 ): Promise<Drill> {
+  if (!apiClient.isMockMode) {
+    return mapApiDrill(await postApiDrill(coachId, params));
+  }
+
   const drills = await getAllDrills();
   const now = new Date().toISOString();
   const newDrill: Drill = {
@@ -337,6 +709,11 @@ async function updateDrill(
   drillId: string,
   updates: Partial<CreateDrillInput>,
 ): Promise<Drill | null> {
+  if (!apiClient.isMockMode) {
+    const drill = await patchApiDrill(drillId, updates);
+    return drill ? mapApiDrill(drill) : null;
+  }
+
   const drills = await getAllDrills();
   const drillIndex = drills.findIndex((d) => d.id === drillId);
   if (drillIndex === -1) {
@@ -366,6 +743,10 @@ async function updateDrill(
  * @returns True if deleted, false if not found
  */
 async function deleteDrill(drillId: string): Promise<boolean> {
+  if (!apiClient.isMockMode) {
+    return deleteApiDrill(drillId);
+  }
+
   const drills = await getAllDrills();
   const drillIndex = drills.findIndex((d) => d.id === drillId);
   if (drillIndex === -1) {
@@ -400,6 +781,10 @@ async function assignDrill(
   assignedByName: string,
   params: AssignDrillInput,
 ): Promise<Result<AssignedDrill, ServiceError>> {
+  if (!apiClient.isMockMode) {
+    return postApiDrillAssignment(drillId, athleteId, params);
+  }
+
   const [assignments, drills] = await Promise.all([getAllAssignments(), getAllDrills()]);
 
   // Get the drill details
@@ -463,6 +848,11 @@ async function getAthleteAssignments(
   athleteId: string,
   includeCompleted: boolean = true,
 ): Promise<AssignedDrill[]> {
+  if (!apiClient.isMockMode) {
+    const assignments = await fetchApiAthleteAssignments(athleteId, includeCompleted);
+    return assignments.map(mapApiAssignment);
+  }
+
   const [assignments, drills] = await Promise.all([getAllAssignments(), getAllDrills()]);
   let athleteAssignments = assignments.filter((a) => a.athleteId === athleteId);
   if (!includeCompleted) {
@@ -496,6 +886,14 @@ async function getAthleteAssignments(
  * @returns The assignment with drill details or null if not found
  */
 async function getAssignmentById(assignmentId: string): Promise<AssignedDrill | null> {
+  if (!apiClient.isMockMode) {
+    logger.warn('drill_assignment_detail_api_route_missing', {
+      assignmentId,
+      route: '/v1/drill-assignments/:assignmentId',
+    });
+    return null;
+  }
+
   const [assignments, drills] = await Promise.all([getAllAssignments(), getAllDrills()]);
   const assignment = assignments.find((a) => a.id === assignmentId);
   if (!assignment) {
@@ -523,6 +921,10 @@ async function completeDrill(
         evidenceNotes?: string;
       },
 ): Promise<AssignedDrill | null> {
+  if (!apiClient.isMockMode) {
+    return patchApiAssignmentCompletion(assignmentId, true, athleteFeedbackOrOptions);
+  }
+
   const assignments = await getAllAssignments();
   const assignmentIndex = assignments.findIndex((a) => a.id === assignmentId);
   if (assignmentIndex === -1) {
@@ -580,6 +982,10 @@ async function completeDrill(
  * @returns The updated assignment or null if not found
  */
 async function uncompleteDrill(assignmentId: string): Promise<AssignedDrill | null> {
+  if (!apiClient.isMockMode) {
+    return patchApiAssignmentCompletion(assignmentId, false);
+  }
+
   const assignments = await getAllAssignments();
   const assignmentIndex = assignments.findIndex((a) => a.id === assignmentId);
   if (assignmentIndex === -1) {
@@ -612,6 +1018,10 @@ async function uncompleteDrill(assignmentId: string): Promise<AssignedDrill | nu
  * @returns True if deleted, false if not found
  */
 async function deleteAssignment(assignmentId: string): Promise<boolean> {
+  if (!apiClient.isMockMode) {
+    return deleteApiDrillAssignment(assignmentId);
+  }
+
   const assignments = await getAllAssignments();
   const assignmentIndex = assignments.findIndex((a) => a.id === assignmentId);
   if (assignmentIndex === -1) {
@@ -836,6 +1246,10 @@ function formatDuration(minutes: number): string {
  * Reset to mock data (for development/testing)
  */
 async function resetToMockData(): Promise<void> {
+  if (!apiClient.isMockMode) {
+    throwUnsupportedDrillMutation('Drill mock reset', 'mock mode only');
+  }
+
   await saveDrills([...MOCK_DRILLS]);
   await saveAssignments([...MOCK_ASSIGNMENTS]);
   logger.info('drills_reset_to_mock');

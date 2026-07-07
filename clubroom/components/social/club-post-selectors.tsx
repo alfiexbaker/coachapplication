@@ -15,16 +15,12 @@ interface FeedTypeSelectorProps {
   feedType: FeedType;
   canTargetClub?: boolean;
   onSelect: (ft: FeedType) => void;
-  clubMemberCount?: number;
-  followerCountEstimate?: number;
 }
 
 export const FeedTypeSelector = function FeedTypeSelector({
   feedType,
   canTargetClub = false,
   onSelect,
-  clubMemberCount = 0,
-  followerCountEstimate = 0,
 }: FeedTypeSelectorProps) {
   const { colors: palette } = useTheme();
   const opts: { key: FeedType; label: string; icon: string; color: string }[] = [
@@ -53,20 +49,17 @@ export const FeedTypeSelector = function FeedTypeSelector({
   ];
   const distributionCopy: Record<
     FeedType,
-    { description: string; count: number; recommended?: boolean; caution?: string }
+    { description: string; recommended?: boolean; caution?: string }
   > = {
     PERSONAL: {
       description: 'Only people following your personal coaching feed will see this.',
-      count: followerCountEstimate,
     },
     CLUB: {
       description: 'Visible to active members in this club.',
-      count: clubMemberCount,
       recommended: true,
     },
     BOTH: {
       description: 'Visible on your personal feed and in the club feed.',
-      count: clubMemberCount + followerCountEstimate,
       caution: 'This may reach people outside the club if they follow your personal feed.',
     },
   };
@@ -135,11 +128,6 @@ export const FeedTypeSelector = function FeedTypeSelector({
                 </View>
               ) : null}
             </Row>
-            <ThemedText
-              style={[Typography.caption, { color: palette.tint, marginTop: Spacing.micro }]}
-            >
-              Estimated audience: ~{Math.max(0, distributionCopy[feedType].count)} people
-            </ThemedText>
             {distributionCopy[feedType].caution ? (
               <ThemedText
                 style={[Typography.caption, { color: palette.warning, marginTop: Spacing.micro }]}

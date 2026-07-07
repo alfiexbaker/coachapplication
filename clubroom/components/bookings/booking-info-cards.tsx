@@ -30,7 +30,11 @@ import {
   type BookingWeatherTone,
 } from '@/services/booking-weather-service';
 import type { BookingSummary } from '@/constants/types';
-import { getBookingRelationshipContext, getBookingSummaryCoachName } from '@/utils/booking-display';
+import {
+  getBookingRelationshipContext,
+  getBookingSummaryCoachName,
+  safeDisplayLabel,
+} from '@/utils/booking-display';
 import { formatCommercialModeLabel } from '@/utils/organization-commercial-mode';
 
 const getWeatherToneColor = (
@@ -573,10 +577,11 @@ export const BookingOwnershipCard = function BookingOwnershipCard({
   showAuditTrail = false,
 }: BookingOwnershipCardProps) {
   const { colors: palette } = useTheme();
-  const [organizationLabel, setOrganizationLabel] = useState<string | null>(booking.clubId ?? null);
+  const [organizationLabel, setOrganizationLabel] = useState<string | null>(null);
   const resolvedCoachLabel =
     coachLabel || booking.ownerCoachName || getBookingSummaryCoachName(booking);
-  const deliveryLabel = booking.assigneeCoachName || booking.assigneeCoachId || resolvedCoachLabel;
+  const deliveryLabel =
+    booking.assigneeCoachName || safeDisplayLabel(booking.assigneeCoachId, resolvedCoachLabel);
   const relationshipContext = getBookingRelationshipContext({
     actingAs: booking.actingAs,
     organizationLabel,
@@ -635,7 +640,7 @@ export const BookingOwnershipCard = function BookingOwnershipCard({
     let cancelled = false;
     void socialFeedService.getClub(booking.clubId).then((club) => {
       if (cancelled) return;
-      setOrganizationLabel(club?.name || booking.clubId || null);
+      setOrganizationLabel(club?.name || safeDisplayLabel(booking.clubId, 'Club session'));
     });
 
     return () => {

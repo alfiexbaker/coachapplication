@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import * as DocumentPicker from 'expo-document-picker';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
-import { verificationService } from '@/services/verification-service';
+import { verificationService, type VerificationDocumentUploadInput } from '@/services/verification-service';
+import { apiClient } from '@/services/api-client';
 import { uiFeedback } from '@/services/ui-feedback';
 import { createLogger } from '@/utils/logger';
 import type { VerificationStatus } from '@/constants/types';
@@ -23,13 +25,19 @@ export interface UseInsuranceVerificationResult {
   submitting: boolean;
   isVerified: boolean;
   isPending: boolean;
+  uploaded: boolean;
+  canUseMockApproval: boolean;
   handleUpload: () => Promise<void>;
+  handleSubmit: () => Promise<void>;
+  handleMockApprove: () => Promise<void>;
+  setUploaded: (value: boolean) => void;
 }
 
 export function useInsuranceVerification() {
   const { currentUser } = useAuth();
   const coachId = currentUser?.id ?? null;
   const [submitting, setSubmitting] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<VerificationDocumentUploadInput | null>(null);
 
   const loadStatus = async () => {
     if (!coachId) {
@@ -60,9 +68,53 @@ export function useInsuranceVerification() {
   });
 
   const loading = screenStatus === 'loading';
+  const uploaded = Boolean(selectedDocument);
+  const canUseMockApproval = __DEV__ && apiClient.isMockMode;
 
   const handleUpload = async () => {
-    if (!coachId) return;
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ['application/pdf', 'image/*'],
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
+    setSelectedDocument({
+      uri: asset.uri,
+      fileName: asset.name || 'insurance-certificate',
+      contentType: asset.mimeType,
+      sizeBytes: asset.size,
+      label: 'Public liability insurance certificate',
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!coachId || !selectedDocument) return;
+
+    setSubmitting(true);
+
+    await runAsyncTryCatchFinally(async () => {
+      const result = await verificationService.submitInsuranceVerification(
+        coachId,
+        selectedDocument,
+      );
+      if (result.success) {
+        setSelectedDocument(null);
+        onRefresh();
+        uiFeedback.showToast('Insurance document submitted for review.', 'success');
+      } else {
+        uiFeedback.showToast(result.error.message, 'error');
+      }
+    }, async error => {
+      logger.error('Failed to submit insurance:', error);
+      uiFeedback.showToast('Failed to submit insurance document.', 'error');
+    }, () => {
+      setSubmitting(false);
+    });
+  };
+
+  const handleMockApprove = async () => {
+    if (!coachId || !canUseMockApproval) return;
 
     setSubmitting(true);
 
@@ -96,6 +148,13 @@ export function useInsuranceVerification() {
     submitting,
     isVerified,
     isPending,
+    uploaded,
+    canUseMockApproval,
     handleUpload,
+    handleSubmit,
+    handleMockApprove,
+    setUploaded: (value: boolean) => {
+      if (!value) setSelectedDocument(null);
+    },
   } satisfies UseInsuranceVerificationResult;
 }

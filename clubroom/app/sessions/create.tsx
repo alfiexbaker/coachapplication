@@ -34,6 +34,7 @@ import { groupSessionService } from '@/services/group-session-service';
 import { academyService } from '@/services/academy-service';
 import { userService } from '@/services/user-service';
 import { getRosterAthleteName, getRosterParentName } from '@/utils/roster-display';
+import { safeDisplayLabel } from '@/utils/booking-display';
 import type {
   Academy,
   AcademyMembership,
@@ -315,7 +316,7 @@ function ExistingInviteFlow({
       const nameById = new Map<string, string>();
       if (usersResult.success) {
         usersResult.data.forEach((user) => {
-          const label = user.name?.trim() || user.id;
+          const label = user.name?.trim() || '';
           nameById.set(user.id, label);
         });
       }
@@ -323,7 +324,7 @@ function ExistingInviteFlow({
         .map((member) => ({
           id: member.userId,
           role: member.role,
-          label: nameById.get(member.userId) ?? member.userId,
+          label: safeDisplayLabel(nameById.get(member.userId), academyService.formatRole(member.role)),
         }))
         .sort((a, b) => STAFF_ROLE_ORDER[a.role] - STAFF_ROLE_ORDER[b.role]);
       setAssigneeOptions(options);

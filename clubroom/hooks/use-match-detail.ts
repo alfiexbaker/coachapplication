@@ -83,7 +83,7 @@ export function useMatchDetail() {
   const match = data?.match ?? null;
   const loading = status === 'loading';
   const currentPlayerInfo = match?.selectedPlayers.find(
-    (p) => p.parentId === currentUser?.id || p.parentId === 'parent_1',
+    (player) => player.parentId === currentUser?.id,
   );
 
   const handleSetLineup = async (

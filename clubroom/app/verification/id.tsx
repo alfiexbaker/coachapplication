@@ -28,6 +28,7 @@ export default function IdUploadScreen() {
     uploaded,
     isVerified,
     isPending,
+    canUseMockApproval,
     setSelectedType,
     setUploaded,
     handleUpload,
@@ -72,7 +73,7 @@ export default function IdUploadScreen() {
             <ThemedText style={[styles.statusText, { color: colors.muted }]}>
               Your ID document is being reviewed. This usually takes 1-2 business days.
             </ThemedText>
-            {__DEV__ && (
+            {canUseMockApproval && (
               <Clickable onPress={handleMockApprove} style={[styles.mockButton, { borderColor: colors.success }]}>
                 <ThemedText style={{ color: colors.success, fontWeight: '600' }}>
                   Approve Now (DEV ONLY)

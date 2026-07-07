@@ -1,14 +1,12 @@
 # Entity Relationship Map
 
-Validated: 2026-03-11
+Validated: 2026-07-06
 Purpose: give a fast, human-readable overview of the core entities and how they relate across identity, family, booking, org, development, and trust.
 
 ## Canonical Sources
 
 - `docs/backend-api/DATA_MODEL_AND_IDENTIFIERS.md`
 - `packages/db/prisma/schema.prisma`
-- `docs/product-reality/ORG_RELATIONSHIP_MODEL_2026-03-10.md`
-- `docs/product-reality/ORG_PERMISSION_AND_VISIBILITY_MATRIX_2026-03-10.md`
 
 ## Core Identity Spine
 
@@ -34,11 +32,23 @@ Purpose: give a fast, human-readable overview of the core entities and how they 
 - sensitive child records
   - medical
   - emergency contacts
-  - consent
+  - consent, where replacements create new `ChildConsent` rows and link prior current rows through `supersededById` rather than hard-deleting consent history
+  - SEN tags, where profile replacements soft-remove old `ChildSenTag` rows with `deletedAt`/`deletedByUserId` before creating the new current set
   - safeguarding context
 
 ## Booking Spine
 
+- `Club`
+  - backend-owned organisation record for club and academy-labelled surfaces
+  - stores public/private visibility, city/country, and commercial-mode ownership for new club bookings
+  - soft-delete removes it from live authority surfaces while preserving linked history
+- `HeadCoachTask`
+  - backend-owned oversight action for a club coach
+  - belongs to one `Club` and target coach `User`
+  - may link to a `Booking`, `Athlete`, and `Squad` when raised from completion queues or assigned-squad follow-up
+- `HeadCoachStandard`
+  - backend-owned oversight checklist/standard for one `Club`
+  - appears in head-coach oversight through the same club/squad scope gate as task reads
 - `ClubActivity`
   - club-facing schedule read model
   - projects `ClubEvent`, `GroupSession`, and `ClubMatch` into one linked activity surface
@@ -59,8 +69,20 @@ Purpose: give a fast, human-readable overview of the core entities and how they 
   - one booking between the commercial side and delivery side
 - `BookingParticipant`
   - which athlete or guardian context is attached to the booking
+- `CoachAthleteRosterEntry`
+  - explicit coach-athlete roster overlay for status, tags, focus, notification preference, removal history, and undo
+  - base roster visibility still derives from backend booking participation; removing a roster entry hides that coach-athlete relationship and preserves athlete, booking, and audit history
 - `BookingStatusEvent`
   - append-only booking lifecycle
+- `GroupSession`
+  - backend-owned group, squad, or club training session
+  - `coachUserId` is nullable only while club work is waiting for assignment; registration/payment is blocked until a delivery coach is assigned
+- `SessionRsvp`
+  - parent/athlete attendance intent for a `GroupSession`
+  - belongs to one `User`, may be child-scoped to one `Athlete`, and is separate from registration/payment/attendance proof
+- `Invite` / `InviteTarget`
+  - session-invite authority and target response state
+  - `Invite` owns social invite RSVP response metadata in the current route adapter; each response belongs to one `User` and may be child-scoped to one `Athlete`
 
 ## Money Spine
 
@@ -76,6 +98,7 @@ Purpose: give a fast, human-readable overview of the core entities and how they 
 - `CoachWithdrawal`
   - coach-owned simulated payout lifecycle record
   - belongs to one `CoachPayoutMethod`; request/cancel/complete transitions do not move real money
+  - non-failed/non-cancelled withdrawals reduce the coach's backend-derived available earnings balance
 
 ## Organization Spine
 
@@ -94,12 +117,21 @@ Do not collapse these into one "club owns everything" assumption.
 - `SessionNote`
 - `SessionFeedback`
 - `Goal`
+- `PracticeLog`
+- `SelfAssessmentPrompt`
+- `SelfAssessmentEntry`
 - `SkillAssessment`
 - `BadgeAward`
+- `DrillAssignment`
+- `AssignmentSubmission`
 - `Video`
 - `VideoAnnotation`
 
 These objects should attach back to a booking, athlete, coach, or session context explicitly.
+`Goal.progress` is a nullable manual percentage override; when it is null, progress is derived from milestone completion or completed status.
+`PracticeLog` records self-reported athlete practice minutes by athlete, author, and day. It is separate from private journaling and uses athlete health read/write gates in the API.
+`SelfAssessmentPrompt` and `SelfAssessmentEntry` record athlete/guardian self-assessment prompts and submissions against completed booking proof. Prompts attach to athlete, coach, and booking context; entries derive coach ownership from the booking and use athlete health gates plus audit events in the API.
+`DrillAssignment` attaches coach-assigned practice work to one athlete and one coach; `AssignmentSubmission` records athlete completion proof against that assignment. API-mode practice-task reads derive from these rows. Completion writes set assignment status and create or retract submission proof; due-date update, snooze, and recovery checkpoints write `DrillAssignment.dueDate`. Review and follow-up action state is intentionally lightweight and derives from `AuditEvent` rows for the assignment. Feedback-homework synthesis still needs dedicated DB shape.
 
 ## Trust and Ops Spine
 
@@ -129,5 +161,5 @@ Extra rule for club-facing schedule work:
 
 ## Validation Notes
 
-- The deep relationship truth is currently split across backend docs and product-reality docs.
+- The deep relationship truth is split across backend docs, Prisma schema, shared contracts, and club governance code.
 - This file is intentionally an index and condensed map, not a replacement for those sources.

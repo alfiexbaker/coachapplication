@@ -45,6 +45,10 @@ function CommentListSkeleton() {
   );
 }
 
+function keyCommentItem(item: FlatItem): string {
+  return item.data.id;
+}
+
 export default function PostDetailScreen() {
   const { colors: palette } = useTheme();
   const p = usePostDetail();
@@ -62,7 +66,6 @@ export default function PostDetailScreen() {
     />
   );
 
-  const keyExtractor = (item: FlatItem) => item.data.id;
   const shouldShowCommentSkeleton =
     p.status === 'loading' ||
     (p.showSectionSkeleton && p.pendingState.mode === 'dependency-change');
@@ -183,11 +186,11 @@ export default function PostDetailScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <FlatList<FlatItem>
-        CellRendererComponent={AccessibleListCell}
-        accessibilityRole="list"
+          CellRendererComponent={AccessibleListCell}
+          accessibilityRole="list"
           data={shouldShowCommentSkeleton ? [] : p.flatItems}
           renderItem={renderComment}
-          keyExtractor={keyExtractor}
+          keyExtractor={keyCommentItem}
           ListHeaderComponent={ListHeader}
           ListEmptyComponent={ListEmpty}
           contentContainerStyle={styles.listContent}

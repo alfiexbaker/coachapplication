@@ -14,6 +14,7 @@ import type {
   BulkInviteResult,
   BulkInviteError,
 } from '@/constants/types';
+import { apiClient } from '../api-client';
 import { notificationService } from '../notification-service';
 import { squadService } from '../squad-service';
 import { matchService } from '../match-service';
@@ -72,7 +73,7 @@ export const matchInviteService = {
       : members;
 
     // Create match using match service
-    const match = await matchService.createMatch({
+    const createdMatch = await matchService.createMatch({
       clubId: input.clubId,
       clubName: input.clubName,
       squadId: input.squadId,
@@ -90,24 +91,45 @@ export const matchInviteService = {
       notes: input.notes,
     });
 
-    // Invite all squad members
-    if (match) {
-      const players = await Promise.all(
-        eligibleMembers.map(async (member, index) => ({
-          athleteId: member.athleteId,
-          athleteName: await resolveUserName(member.athleteId, `Athlete ${index + 1}`),
-          parentId: member.parentId,
-          parentName: await resolveUserName(member.parentId, 'Parent'),
-        })),
-      );
-      await matchService.invitePlayers({
+    const players = await Promise.all(
+      eligibleMembers.map(async (member, index) => ({
+        athleteId: member.athleteId,
+        athleteName: await resolveUserName(member.athleteId, `Athlete ${index + 1}`),
+        parentId: member.parentId,
+        parentName: await resolveUserName(member.parentId, 'Parent'),
+      })),
+    );
+    const playerInviteResult = await matchService.invitePlayers({
+      matchId: createdMatch.id,
+      players,
+    });
+    if (!playerInviteResult.success) {
+      throw new Error(playerInviteResult.error.message);
+    }
+
+    const match = playerInviteResult.data;
+    const groupId = `squad_match_${match.id}`;
+    if (!apiClient.isMockMode) {
+      logger.info('match_squad_invites_sent_via_api', {
         matchId: match.id,
-        players,
+        squadId: input.squadId,
+        invitedCount: players.length,
       });
+      return {
+        match,
+        inviteResult: {
+          sent: players.length,
+          successful: players.length,
+          failed: 0,
+          skipped: 0,
+          totalAttempted: eligibleMembers.length,
+          errors: [],
+          groupId,
+        },
+      };
     }
 
     // Track squad invite
-    const groupId = `squad_match_${match.id}`;
     const squadInvite: SquadInvite = {
       id: groupId,
       squadId: input.squadId,

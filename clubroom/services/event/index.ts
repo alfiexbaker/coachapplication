@@ -53,6 +53,7 @@ export const eventService = {
   getAllClubEvents: eventCrudService.getAllClubEvents.bind(eventCrudService),
   inviteClub: eventCrudService.inviteClub.bind(eventCrudService),
   inviteSquads: eventCrudService.inviteSquads.bind(eventCrudService),
+  inviteAthletes: eventCrudService.inviteAthletes.bind(eventCrudService),
 
   // ==========================================================================
   // RSVP METHODS (from eventRsvpService)

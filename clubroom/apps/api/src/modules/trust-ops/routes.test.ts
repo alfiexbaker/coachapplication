@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import { after, describe, it } from 'node:test';
 import { buildApp } from '../../app.js';
+import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
+
+type SeedRow = Record<string, unknown>;
+
+const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
+const asString = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined;
 
 describe('trust-ops safeguarding routes', () => {
   const app = buildApp();
@@ -167,6 +174,29 @@ describe('trust-ops safeguarding routes', () => {
   });
 
   it('booking report-problem safety path enforces guardian relationship', async () => {
+    const tables = getMarketplaceSeedStore().tables as Record<string, SeedRow[]>;
+    const now = new Date().toISOString();
+    const bookingId = 'bok_booking-issue-2';
+    asRows(tables.bookings).push({
+      id: bookingId,
+      coachUserId: 'usr_coach1',
+      bookedByUserId: 'usr_parent1',
+      clubId: null,
+      status: 'CONFIRMED',
+      scheduledAt: now,
+      durationMinutes: 60,
+      location: 'Test pitch',
+      serviceType: 'Support route test',
+      groupSessionId: null,
+      createdByUserId: 'usr_parent1',
+      updatedByUserId: 'usr_parent1',
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      deletedByUserId: null,
+    });
+
     const denied = await app.inject({
       method: 'POST',
       url: '/v1/safeguarding/incidents',
@@ -197,13 +227,21 @@ describe('trust-ops safeguarding routes', () => {
       },
       payload: {
         athleteId: 'ath_user2',
-        bookingId: 'bok_booking-issue-2',
+        bookingId,
         category: 'booking_issue_safety',
         severity: 'high',
         summary: 'Safety report from bookings/report-problem for related child.',
       },
     });
     assert.equal(allowed.statusCode, 201);
+    const incident = allowed.json() as { id: string };
+    const supportNotification = asRows(tables.notifications).find(
+      (row) =>
+        asString(row.sourceType) === 'safeguarding_incident' &&
+        asString(row.sourceId) === incident.id,
+    );
+    assert.equal(asString(supportNotification?.userId), 'usr_coach1');
+    assert.equal(asString(supportNotification?.type), 'SUPPORT_UPDATE');
   });
 
   it('one-to-one raise concern path enforces coach assignment and verification', async () => {

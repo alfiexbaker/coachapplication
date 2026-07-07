@@ -1,7 +1,7 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
-import type { ReactNode } from 'react';
+import { useCallback, useMemo, type ReactNode } from 'react';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -84,7 +84,7 @@ export default function ScheduleScreen() {
   });
 
   // Calculate date range (next 14 days)
-  const dateRange = (() => {
+  const dateRange = useMemo(() => {
     const today = new Date();
     const startDate = toDateStr(today);
     const endDate = new Date(today);
@@ -93,10 +93,10 @@ export default function ScheduleScreen() {
       startDate,
       endDate: toDateStr(endDate),
     };
-  })();
+  }, []);
 
   // Fetch availability for the date range
-  const loadAvailability = async () => {
+  const loadAvailability = useCallback(async () => {
     if (!coachId) {
       return ok([]);
     }
@@ -132,7 +132,16 @@ export default function ScheduleScreen() {
         serviceError('UNKNOWN', 'Unable to load available times. Please try again.', loadError),
       );
     }
-  };
+  }, [
+    coachId,
+    dateRange.endDate,
+    dateRange.startDate,
+    draft.duration,
+    draft.sessionOfferingId,
+    scheduleLocked,
+    selectedOfferingError,
+    selectedOfferingStatus,
+  ]);
 
   const {
     data,

@@ -15,6 +15,7 @@ type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
 const ACCESS_TOKEN_TTL_SEC = 15 * 60;
 const REFRESH_TOKEN_TTL_SEC = 7 * 24 * 60 * 60;
+const PASSWORD_RESET_TOKEN_TTL_MS = 30 * 60 * 1000;
 const DEFAULT_DEV_JWT_SECRET = 'clubroom-dev-jwt-secret-change-me';
 const CLOCK_SKEW_SEC = 30;
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
@@ -197,6 +198,15 @@ interface MemoryPasswordCredential {
   passwordHash: string;
   userId: string;
 }
+interface MemoryPasswordResetToken {
+  id: string;
+  userId: string;
+  tokenHash: string;
+  expiresAt: string;
+  usedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 interface MemoryDeviceRecord extends DeviceRecord {
   createdAt: string;
   updatedAt: string;
@@ -207,10 +217,12 @@ interface MemorySessionRecord extends SessionRecord {
   updatedAt: string;
 }
 const memoryPasswordCredentials = new Map<string, MemoryPasswordCredential>();
+const memoryPasswordResetTokens = new Map<string, MemoryPasswordResetToken>();
 const memoryDevices = new Map<string, MemoryDeviceRecord>();
 const memorySessions = new Map<string, MemorySessionRecord>();
 export function resetAuthRuntimeForTests(): void {
   memoryPasswordCredentials.clear();
+  memoryPasswordResetTokens.clear();
   memoryDevices.clear();
   memorySessions.clear();
 }
@@ -554,6 +566,9 @@ async function verifyAccessToken(token: string): Promise<VerifiedAccessToken> {
 function randomHex(bytes = 16): string {
   return crypto.randomBytes(bytes).toString('hex');
 }
+function hashResetToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
 function hashPassword(password: string): string {
   const salt = randomHex(16);
   const derived = crypto.scryptSync(password, salt, 64).toString('hex');
@@ -860,6 +875,37 @@ async function verifyUserPassword(identity: AuthIdentity, password: string): Pro
     return false;
   }
   return password === expectedPasswordForRoles(identity.roles);
+}
+function retireActiveMemoryResetTokens(userId: string, usedAt: string): void {
+  for (const resetToken of memoryPasswordResetTokens.values()) {
+    if (resetToken.userId !== userId || resetToken.usedAt) {
+      continue;
+    }
+    resetToken.usedAt = usedAt;
+    resetToken.updatedAt = usedAt;
+  }
+}
+function revokeMemorySessionsForPasswordReset(userId: string, revokedAt: string): number {
+  let revokedCount = 0;
+  for (const session of memorySessions.values()) {
+    if (session.userId !== userId || session.revokedAt) {
+      continue;
+    }
+    session.revokedAt = revokedAt;
+    session.revokeReason = 'password_reset';
+    session.updatedAt = revokedAt;
+    revokedCount += 1;
+  }
+  return revokedCount;
+}
+function incrementMemoryTokenEpoch(userId: string): void {
+  const tables = getActiveTables();
+  const user = asRows(tables?.users).find((row) => asString(row.id) === userId);
+  if (!user) {
+    return;
+  }
+  user.tokenEpoch = (asNumber(user.tokenEpoch) ?? 0) + 1;
+  user.updatedAt = isoNow();
 }
 function normalizeUserAgent(userAgent: string | undefined): string {
   const trimmed = (userAgent ?? '').trim();
@@ -1654,6 +1700,143 @@ export async function registerAuthUser(
     user: await getAuthUserProfile(identity.id),
     tokens: buildTokens(identity, session),
   };
+}
+export async function requestPasswordReset(email: string): Promise<{
+  expiresAt?: string;
+  resetToken?: string;
+  userId?: string;
+}> {
+  const identity = await loadAuthIdentityByEmail(email);
+  if (!identity) {
+    return {};
+  }
+  const resetToken = randomHex(32);
+  const tokenHash = hashResetToken(resetToken);
+  const expiresAt = new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL_MS);
+  if (getApiDataBackend() !== 'db' || shouldUseDbFixtureFallback()) {
+    const now = isoNow();
+    retireActiveMemoryResetTokens(identity.id, now);
+    memoryPasswordResetTokens.set(tokenHash, {
+      id: newId('prt'),
+      userId: identity.id,
+      tokenHash,
+      expiresAt: expiresAt.toISOString(),
+      usedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return {
+      expiresAt: expiresAt.toISOString(),
+      resetToken,
+      userId: identity.id,
+    };
+  }
+  const prisma = getPrismaClientOrThrow();
+  await prisma.$transaction(async (tx) => {
+    await tx.passwordResetToken.updateMany({
+      where: {
+        userId: identity.id,
+        usedAt: null,
+      },
+      data: {
+        usedAt: new Date(),
+      },
+    });
+    await tx.passwordResetToken.create({
+      data: {
+        id: newId('prt'),
+        userId: identity.id,
+        tokenHash,
+        expiresAt,
+      },
+    });
+  });
+  return {
+    expiresAt: expiresAt.toISOString(),
+    resetToken,
+    userId: identity.id,
+  };
+}
+export async function resetPasswordWithToken(
+  token: string,
+  newPassword: string,
+): Promise<{
+  revokedSessionCount: number;
+  userId: string;
+}> {
+  const tokenHash = hashResetToken(token);
+  const passwordHash = hashPassword(newPassword);
+  if (getApiDataBackend() !== 'db' || shouldUseDbFixtureFallback()) {
+    const resetToken = memoryPasswordResetTokens.get(tokenHash);
+    if (!resetToken || resetToken.usedAt || Date.parse(resetToken.expiresAt) <= Date.now()) {
+      throw badRequest('Invalid or expired reset token');
+    }
+    const now = isoNow();
+    resetToken.usedAt = now;
+    resetToken.updatedAt = now;
+    await setPasswordCredentialHash(resetToken.userId, passwordHash);
+    incrementMemoryTokenEpoch(resetToken.userId);
+    return {
+      revokedSessionCount: revokeMemorySessionsForPasswordReset(resetToken.userId, now),
+      userId: resetToken.userId,
+    };
+  }
+  const prisma = getPrismaClientOrThrow();
+  return prisma.$transaction(async (tx) => {
+    const resetToken = await tx.passwordResetToken.findUnique({
+      where: {
+        tokenHash,
+      },
+    });
+    if (!resetToken || resetToken.usedAt || resetToken.expiresAt <= new Date()) {
+      throw badRequest('Invalid or expired reset token');
+    }
+    const now = new Date();
+    await tx.passwordResetToken.update({
+      where: {
+        id: resetToken.id,
+      },
+      data: {
+        usedAt: now,
+      },
+    });
+    await tx.passwordCredential.upsert({
+      where: {
+        userId: resetToken.userId,
+      },
+      create: {
+        userId: resetToken.userId,
+        passwordHash,
+      },
+      update: {
+        passwordHash,
+      },
+    });
+    await tx.user.update({
+      where: {
+        id: resetToken.userId,
+      },
+      data: {
+        tokenEpoch: {
+          increment: 1,
+        },
+      },
+    });
+    const revoked = await tx.authSession.updateMany({
+      where: {
+        userId: resetToken.userId,
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: now,
+        revokeReason: 'password_reset',
+      },
+    });
+    return {
+      revokedSessionCount: revoked.count,
+      userId: resetToken.userId,
+    };
+  });
 }
 export async function refreshAuthSession(
   refreshToken: string,

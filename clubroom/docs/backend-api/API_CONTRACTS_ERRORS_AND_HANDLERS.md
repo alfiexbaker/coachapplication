@@ -77,7 +77,7 @@ No `/v1` endpoint is production-ready until it has all of these:
 - audit events for writes and sensitive reads
 - predictable error mapping to frontend `ServiceErrorCode`
 - tests for success, validation failure, forbidden access, and the main conflict/race path
-- at least one traced UI consumer in `UI_API_BILATERAL_ALIGNMENT.md`
+- at least one traced UI consumer named in `ROUTE_INVENTORY_V1.md` or the relevant service ownership doc
 
 If the route touches children, medical, safeguarding, payments, refunds, attendance, media, club roles, grants, or private coach data, missing any item above is a release blocker.
 
@@ -231,4 +231,4 @@ Always specify stable tie-breakers (usually `id` or `created_at`) to avoid pagin
 - Frontend adapters convert HTTP responses -> frontend `Result<T, ServiceError>` shape
 - Add contract snapshot tests for key DTOs (booking, family medical, invoice, session notes)
 - Add CI contract diff check: breaking changes require explicit version bump or migration plan
-- Track endpoint consumers in `UI_API_BILATERAL_ALIGNMENT.md`
+- Track endpoint consumers in `ROUTE_INVENTORY_V1.md` or `docs/architecture/service-ownership-map.md`

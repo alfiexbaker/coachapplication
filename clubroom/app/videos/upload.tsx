@@ -1,4 +1,5 @@
 import { View, StyleSheet, ScrollView, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -33,7 +34,10 @@ export default function VideoUploadScreen() {
   } = useVideoUpload();
 
   return (
-    <View style={[styles.safeArea, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
       <Row
         justify="space-between"
         align="center"
@@ -145,7 +149,7 @@ export default function VideoUploadScreen() {
           </ThemedText>
         </SurfaceCard>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -37,15 +37,25 @@ export function ShareReportCard({
     { icon: 'calendar-outline', label: 'Sessions', value: `${summary.sessionsAttended}` },
     { icon: 'trending-up-outline', label: 'Skills Improved', value: `${summary.skillsImproved}` },
     { icon: 'ribbon-outline', label: 'Badges Earned', value: `${summary.badgesEarned}` },
-    { icon: 'checkmark-circle-outline', label: 'Goals Completed', value: `${summary.goalsCompleted}` },
+    {
+      icon: 'checkmark-circle-outline',
+      label: 'Goals Completed',
+      value: `${summary.goalsCompleted}`,
+    },
   ];
 
   return (
-    <View ref={ref} collapsable={false} style={[styles.card, { backgroundColor: colors.background }]}>
+    <View
+      ref={ref}
+      collapsable={false}
+      style={[styles.card, { backgroundColor: colors.background }]}
+    >
       {/* Header gradient band */}
       <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <Column gap="xxs" align="center">
-          <ThemedText style={[styles.headerMonth, { color: colors.muted }]}>{monthTitle}</ThemedText>
+          <ThemedText style={[styles.headerMonth, { color: colors.muted }]}>
+            {monthTitle}
+          </ThemedText>
           <ThemedText style={[styles.headerName, { color: colors.text }]}>{athleteName}</ThemedText>
         </Column>
       </View>
@@ -53,10 +63,17 @@ export function ShareReportCard({
       {/* Stats grid */}
       <Row wrap style={styles.statsGrid}>
         {rows.map((row) => (
-          <View key={row.label} style={[styles.statCell, { backgroundColor: withAlpha(colors.tint, 0.05) }]}>
+          <View
+            key={row.label}
+            style={[styles.statCell, { backgroundColor: withAlpha(colors.tint, 0.05) }]}
+          >
             <Ionicons name={row.icon} size={18} color={colors.tint} />
-            <ThemedText style={[styles.statCellValue, { color: colors.text }]}>{row.value}</ThemedText>
-            <ThemedText style={[styles.statCellLabel, { color: colors.muted }]}>{row.label}</ThemedText>
+            <ThemedText style={[styles.statCellValue, { color: colors.text }]}>
+              {row.value}
+            </ThemedText>
+            <ThemedText style={[styles.statCellLabel, { color: colors.muted }]}>
+              {row.label}
+            </ThemedText>
           </View>
         ))}
       </Row>
@@ -64,9 +81,13 @@ export function ShareReportCard({
       {/* Coach quote */}
       {coachQuote ? (
         <View style={styles.quoteSection}>
-          <ThemedText style={[styles.quoteText, { color: withAlpha(colors.text, 0.8) }]}>"{coachQuote}"</ThemedText>
+          <ThemedText style={[styles.quoteText, { color: withAlpha(colors.text, 0.8) }]}>
+            {`"${coachQuote}"`}
+          </ThemedText>
           {coachName ? (
-            <ThemedText style={[styles.quoteName, { color: colors.tint }]}>Coach {coachName}</ThemedText>
+            <ThemedText style={[styles.quoteName, { color: colors.tint }]}>
+              Coach {coachName}
+            </ThemedText>
           ) : null}
         </View>
       ) : null}

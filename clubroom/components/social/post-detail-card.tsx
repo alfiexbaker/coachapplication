@@ -20,7 +20,7 @@ interface PostDetailCardProps {
   liked: boolean;
   likeCount: number;
   commentCount: number;
-  onLike: () => void;
+  onLike: () => void | Promise<void>;
 }
 
 export const PostDetailCard = function PostDetailCard({
@@ -68,7 +68,16 @@ export const PostDetailCard = function PostDetailCard({
       {imageUrl ? <Image source={{ uri: imageUrl }} style={styles.postImage} contentFit="cover" /> : null}
       {!imageUrl && videoUrl ? <VideoPlayer videoUrl={videoUrl} height={220} title={title || 'Video'} /> : null}
       <Row gap="md" style={[styles.actions, { borderTopColor: palette.border }]}>
-        <Clickable style={styles.actionButton} onPress={onLike} hitSlop={8}>
+        <Clickable
+          style={styles.actionButton}
+          onPress={() => {
+            void onLike();
+          }}
+          hitSlop={8}
+          accessibilityLabel={liked ? 'Unlike post' : 'Like post'}
+          accessibilityRole="button"
+          accessibilityState={{ selected: liked }}
+        >
           <Ionicons
             name={liked ? 'heart' : 'heart-outline'}
             size={20}
@@ -76,12 +85,16 @@ export const PostDetailCard = function PostDetailCard({
           />
           <ThemedText style={[styles.actionText, { color: palette.muted }]}>{likeCount}</ThemedText>
         </Clickable>
-        <Row align="center" gap="xxs" style={styles.actionButtonView}>
+        <View
+          style={[styles.actionButtonView, styles.commentCount]}
+          accessible
+          accessibilityLabel={`${commentCount} comments`}
+        >
           <Ionicons name="chatbubble-outline" size={20} color={palette.muted} />
           <ThemedText style={[styles.actionText, { color: palette.muted }]}>
             {commentCount}
           </ThemedText>
-        </Row>
+        </View>
       </Row>
       <ThemedText style={styles.commentsHeading}>Comments ({commentCount})</ThemedText>
     </View>
@@ -119,6 +132,7 @@ const styles = StyleSheet.create({
   actions: { paddingTop: Spacing.xs, borderTopWidth: 1 },
   actionButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, minHeight: 44 },
   actionButtonView: { minHeight: 44 },
+  commentCount: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
   actionText: { ...Typography.bodySmall },
   commentsHeading: { ...Typography.bodySemiBold, paddingTop: Spacing.xs },
 });

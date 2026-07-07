@@ -12,9 +12,13 @@ import { useScreen } from '@/hooks/use-screen';
 import { useToast } from '@/components/ui/toast';
 import { api } from '@/constants/config';
 import { bookingService } from '@/services/booking';
-import { invoiceService } from '@/services/invoice-service';
+import {
+  invoiceService,
+  type ManualReceiptMethod,
+} from '@/services/invoice-service';
 import { rosterService } from '@/services/roster-service';
 import { ServiceEvents } from '@/services/event-bus';
+import { uiFeedback } from '@/services/ui-feedback';
 import {
   getCoachBusinessContext,
   getCoachMoneyContext,
@@ -62,6 +66,19 @@ interface SessionPaymentsData {
   overdueCount: number;
   orgSummary: PaymentBusinessSummary;
   independentSummary: PaymentBusinessSummary;
+}
+
+const MANUAL_PAYMENT_OPTIONS: Array<{
+  id: ManualReceiptMethod;
+  label: string;
+}> = [
+  { id: 'bank_transfer', label: 'Bank transfer' },
+  { id: 'cash', label: 'Cash' },
+  { id: 'other', label: 'Other' },
+];
+
+function toMinorUnits(amount: number): number {
+  return Math.round(amount * 100);
 }
 
 function createPaymentBusinessSummary(): PaymentBusinessSummary {
@@ -301,13 +318,30 @@ export function useSessionPayments() {
   const orgSummary = data?.orgSummary ?? createPaymentBusinessSummary();
   const independentSummary = data?.independentSummary ?? createPaymentBusinessSummary();
 
-  const handleMarkPaid = async (invoiceId: string) => {
+  const handleMarkPaid = async (item: SessionPaymentItem) => {
+    const invoiceId = item.invoice.id;
     if (processingInvoiceIdsRef.current.has(invoiceId)) return;
+
+    const method = await uiFeedback.choose({
+      title: 'Record payment received',
+      message: `How did ${item.athleteName}'s \u00A3${item.invoice.total.toFixed(2)} payment arrive?`,
+      options: MANUAL_PAYMENT_OPTIONS,
+      cancelText: 'Cancel',
+    });
+    if (!method) return;
+
     processingInvoiceIdsRef.current.add(invoiceId);
 
     await runAsyncFinally(
       async () => {
-        const result = await invoiceService.markAsPaid(invoiceId);
+        const result = await invoiceService.markAsPaid(invoiceId, {
+          manualReceipt: {
+            method: method as ManualReceiptMethod,
+            amountMinor: toMinorUnits(item.invoice.total),
+            receivedAt: new Date().toISOString(),
+            note: `Recorded from earnings reconciler for booking ${item.booking.id}`,
+          },
+        });
         if (result) {
           showToast('Marked as paid', 'success');
         } else {

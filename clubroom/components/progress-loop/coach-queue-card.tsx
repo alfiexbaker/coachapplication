@@ -83,7 +83,7 @@ export const CoachQueueCard = function CoachQueueCard({
 
   return (
     <SurfaceCard
-      onPress={selectionMode ? () => onToggleSelect(row.athleteId) : () => onOpenPlaybook(row)}
+      onPress={selectionMode ? () => onToggleSelect(row.athleteId) : undefined}
       style={[
         styles.card,
         {
@@ -94,7 +94,7 @@ export const CoachQueueCard = function CoachQueueCard({
       accessibilityLabel={
         selectionMode
           ? `${selected ? 'Deselect' : 'Select'} ${row.athleteName}`
-          : `Open intervention playbook for ${row.athleteName}`
+          : undefined
       }
     >
       <Column gap="xs">

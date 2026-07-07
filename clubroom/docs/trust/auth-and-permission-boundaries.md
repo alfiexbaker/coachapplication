@@ -1,12 +1,11 @@
 # Auth And Permission Boundaries
 
-Validated: 2026-04-12
+Validated: 2026-07-05
 Purpose: state what is enforced today, what is design truth, and where auth and permission work is still incomplete.
 
 ## Canonical Sources
 
 - `docs/backend-api/AUTHZ_AUDIT_AND_SECURITY.md`
-- `docs/product-reality/ORG_PERMISSION_AND_VISIBILITY_MATRIX_2026-03-10.md`
 - `components/auth/route-access-gate.tsx`
 - `hooks/use-auth.tsx`
 - `services/auth-service.ts`
@@ -20,6 +19,7 @@ Current frontend access control is a combination of:
 - auth state from `hooks/use-auth.tsx`
 - route redirection via `components/auth/route-access-gate.tsx`
 - service-level checks and role-aware UI branching
+- native token storage in `expo-secure-store`, with web tokens scoped to browser `sessionStorage` so a same-tab reload can restore bearer auth
 
 Rule:
 
@@ -45,6 +45,7 @@ Validated reality:
 - Frontend role-aware navigation and redirects exist
 - Backend test coverage exists for several authz-sensitive routes
 - Trust and medical access rules now resolve through backend authz helpers plus repository-backed relationship checks
+- Athlete self-access is resolved from the athlete record's linked `userId`; authz must not assume `athlete.id` is mechanically derived from `user.id`
 - App `/v1` authority services now rely on bearer auth plus `x-acting-role` and scoped relationship headers instead of client-supplied identity headers
 - `/v1/auth/login`, `/v1/auth/register`, `/v1/auth/refresh`, `/v1/auth/logout`, `/v1/auth/revoke`, and `/v1/auth/me` now run on the JWT/session runtime
 - `/v1/me/sessions`, `/v1/me/sessions/revoke-all`, and `/v1/me/sessions/:sessionId/revoke` now expose the same runtime session registry used by bearer auth

@@ -23,6 +23,8 @@ function makeProductionEnv(overrides: Partial<AppEnv> = {}): AppEnv {
     API_PAYMENT_PROVIDER: 'simulated',
     API_PAYMENT_SIMULATION_SECRET: 'clubroom-production-payment-secret',
     API_PAYMENT_ALLOWED_RETURN_ORIGINS: 'clubroom://invoices,https://clubroom.app',
+    API_PASSWORD_RESET_EMAIL_WEBHOOK_URL: 'https://email.clubroom.app/password-reset',
+    API_PASSWORD_RESET_DEV_OUTBOX: false,
     SENTRY_DSN: 'https://public@example.ingest.sentry.io/123',
     SENTRY_RELEASE: 'clubroom-api@test',
     ...overrides,
@@ -60,6 +62,8 @@ describe('health routes', () => {
       API_JWT_ISSUER: undefined,
       API_JWT_AUDIENCE: undefined,
       API_PAYMENT_ALLOWED_RETURN_ORIGINS: undefined,
+      API_PASSWORD_RESET_EMAIL_WEBHOOK_URL: undefined,
+      API_PASSWORD_RESET_DEV_OUTBOX: true,
       SENTRY_DSN: undefined,
     }));
 
@@ -68,7 +72,39 @@ describe('health routes', () => {
     assert(codes.includes('API_JWT_ISSUER_MISSING'));
     assert(codes.includes('API_JWT_AUDIENCE_MISSING'));
     assert(codes.includes('PAYMENT_RETURN_ORIGINS_MISSING'));
+    assert(codes.includes('PASSWORD_RESET_EMAIL_DELIVERY_MISSING'));
+    assert(codes.includes('PASSWORD_RESET_DEV_OUTBOX_ENABLED'));
     assert(codes.includes('SENTRY_DSN_MISSING'));
+  });
+
+  it('accepts complete SMTP password reset delivery config without a webhook', () => {
+    const issues = getStartupConfigIssues(makeProductionEnv({
+      API_PASSWORD_RESET_EMAIL_WEBHOOK_URL: undefined,
+      API_PASSWORD_RESET_BREVO_API_KEY: undefined,
+      API_PASSWORD_RESET_EMAIL_FROM: 'support@clubroom.app',
+      API_PASSWORD_RESET_SMTP_HOST: 'smtp-relay.brevo.com',
+      API_PASSWORD_RESET_SMTP_PORT: 587,
+      API_PASSWORD_RESET_SMTP_USERNAME: 'smtp-user',
+      API_PASSWORD_RESET_SMTP_PASSWORD: 'smtp-password',
+      API_PASSWORD_RESET_SMTP_SECURE: false,
+    }));
+
+    const codes = issues.map((issue) => issue.code);
+    assert.equal(codes.includes('PASSWORD_RESET_EMAIL_DELIVERY_MISSING'), false);
+  });
+
+  it('accepts complete Brevo API password reset delivery config without webhook or SMTP', () => {
+    const issues = getStartupConfigIssues(makeProductionEnv({
+      API_PASSWORD_RESET_EMAIL_WEBHOOK_URL: undefined,
+      API_PASSWORD_RESET_EMAIL_FROM: 'support@clubroom.app',
+      API_PASSWORD_RESET_BREVO_API_KEY: 'brevo-api-key',
+      API_PASSWORD_RESET_SMTP_HOST: undefined,
+      API_PASSWORD_RESET_SMTP_USERNAME: undefined,
+      API_PASSWORD_RESET_SMTP_PASSWORD: undefined,
+    }));
+
+    const codes = issues.map((issue) => issue.code);
+    assert.equal(codes.includes('PASSWORD_RESET_EMAIL_DELIVERY_MISSING'), false);
   });
 
   it('fails release guardrails when storage runtime is still scaffolded or migrations are missing', async () => {

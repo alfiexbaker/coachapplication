@@ -20,6 +20,9 @@ global.__DEV__ = true;
 
 // Keep USE_MOCK=true so apiClient uses AsyncStorage (not real HTTP).
 // Individual BaseService subclasses' useMock flag is handled separately in tests.
+if (!process.env.EXPO_PUBLIC_USE_MOCK) {
+  process.env.EXPO_PUBLIC_USE_MOCK = 'true';
+}
 
 const tmpTestsDir = path.resolve(__dirname, '..', '.tmp-tests');
 
@@ -107,6 +110,16 @@ const MOCKS = {
     setStringAsync: async () => {},
     getStringAsync: async () => '',
   },
+  'expo-secure-store': (() => {
+    const store = new Map();
+    return {
+      isAvailableAsync: async () => true,
+      getItemAsync: async (key) => store.get(key) ?? null,
+      setItemAsync: async (key, value) => { store.set(key, value); },
+      deleteItemAsync: async (key) => { store.delete(key); },
+      WHEN_UNLOCKED_THIS_DEVICE_ONLY: 1,
+    };
+  })(),
   'expo-image-manipulator': {
     manipulateAsync: async (uri) => ({ uri, width: 200, height: 200 }),
     SaveFormat: { JPEG: 'jpeg', PNG: 'png' },

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 
-import { payoutService } from '@/services/earnings/payout-service';
+process.env.EXPO_PUBLIC_USE_MOCK = 'false';
 
 const originalFetch = globalThis.fetch;
 
@@ -20,6 +20,20 @@ afterEach(() => {
 
 describe('payoutService API mode', () => {
   it('returns simulated /v1 payout method and withdrawal results', async () => {
+    const [{ payoutService }, { apiClient }] = await Promise.all([
+      import('@/services/earnings/payout-service'),
+      import('@/services/api-client'),
+    ]);
+    const client = apiClient as unknown as {
+      get: typeof apiClient.get;
+      set: typeof apiClient.set;
+      remove: typeof apiClient.remove;
+    };
+    const originalClient = {
+      get: client.get,
+      set: client.set,
+      remove: client.remove,
+    };
     const coachId = 'coach_live_test';
     const payoutMethod = {
       id: 'pm_live_test',
@@ -57,11 +71,24 @@ describe('payoutService API mode', () => {
       id: 'wd_cancel_test',
       status: 'CANCELLED' as const,
     };
+    const calls: Array<{ method: string; path: string; body?: unknown }> = [];
+
+    client.get = async () => {
+      throw new Error('local payout reads should not run in API mode');
+    };
+    client.set = async () => {
+      throw new Error('local payout writes should not run in API mode');
+    };
+    client.remove = async () => {
+      throw new Error('local payout deletes should not run in API mode');
+    };
 
     globalThis.fetch = (async (input, init) => {
-      const url = String(input);
+      const url = new URL(String(input));
       const method = init?.method ?? 'GET';
-      if (url.endsWith('/v1/coaches/me/payout-methods') && method === 'POST') {
+      const body = init?.body ? JSON.parse(String(init.body)) : undefined;
+      calls.push({ method, path: `${url.pathname}${url.search}`, body });
+      if (url.pathname === '/v1/coaches/me/payout-methods' && method === 'POST') {
         return jsonResponse({
           payoutMethod,
           payoutMethods: [payoutMethod],
@@ -71,7 +98,7 @@ describe('payoutService API mode', () => {
           requestId: 'req_add',
         });
       }
-      if (url.endsWith('/v1/coaches/me/payout-methods') && method === 'GET') {
+      if (url.pathname === '/v1/coaches/me/payout-methods' && method === 'GET') {
         return jsonResponse({
           payoutMethods: [payoutMethod],
           total: 1,
@@ -80,7 +107,7 @@ describe('payoutService API mode', () => {
           requestId: 'req_list',
         });
       }
-      if (url.endsWith(`/v1/coaches/me/payout-methods/${payoutMethod.id}/default`)) {
+      if (url.pathname === `/v1/coaches/me/payout-methods/${payoutMethod.id}/default`) {
         return jsonResponse({
           payoutMethod,
           payoutMethods: [payoutMethod],
@@ -90,7 +117,7 @@ describe('payoutService API mode', () => {
           requestId: 'req_default',
         });
       }
-      if (url.endsWith(`/v1/coaches/me/payout-methods/${payoutMethod.id}`)) {
+      if (url.pathname === `/v1/coaches/me/payout-methods/${payoutMethod.id}`) {
         return jsonResponse({
           payoutMethods: [],
           total: 0,
@@ -99,7 +126,7 @@ describe('payoutService API mode', () => {
           requestId: 'req_delete',
         });
       }
-      if (url.endsWith('/v1/coaches/me/withdrawals') && method === 'POST') {
+      if (url.pathname === '/v1/coaches/me/withdrawals' && method === 'POST') {
         return jsonResponse({
           withdrawal: pendingWithdrawal,
           withdrawals: [pendingWithdrawal],
@@ -110,7 +137,10 @@ describe('payoutService API mode', () => {
           requestId: 'req_withdraw',
         });
       }
-      if (url.endsWith('/v1/coaches/me/withdrawals?status=pending')) {
+      if (
+        url.pathname === '/v1/coaches/me/withdrawals' &&
+        url.searchParams.get('status') === 'pending'
+      ) {
         return jsonResponse({
           withdrawals: [pendingWithdrawal],
           total: 1,
@@ -120,7 +150,7 @@ describe('payoutService API mode', () => {
           requestId: 'req_pending',
         });
       }
-      if (url.endsWith('/v1/coaches/me/withdrawals') && method === 'GET') {
+      if (url.pathname === '/v1/coaches/me/withdrawals' && method === 'GET') {
         return jsonResponse({
           withdrawals: [completedWithdrawal, cancelledWithdrawal],
           total: 2,
@@ -130,7 +160,7 @@ describe('payoutService API mode', () => {
           requestId: 'req_history',
         });
       }
-      if (url.endsWith(`/v1/coaches/me/withdrawals/${pendingWithdrawal.id}/complete`)) {
+      if (url.pathname === `/v1/coaches/me/withdrawals/${pendingWithdrawal.id}/complete`) {
         return jsonResponse({
           withdrawal: completedWithdrawal,
           withdrawals: [completedWithdrawal],
@@ -141,7 +171,7 @@ describe('payoutService API mode', () => {
           requestId: 'req_complete',
         });
       }
-      if (url.endsWith(`/v1/coaches/me/withdrawals/${cancelledWithdrawal.id}/cancel`)) {
+      if (url.pathname === `/v1/coaches/me/withdrawals/${cancelledWithdrawal.id}/cancel`) {
         return jsonResponse({
           withdrawal: cancelledWithdrawal,
           withdrawals: [cancelledWithdrawal],
@@ -152,47 +182,72 @@ describe('payoutService API mode', () => {
           requestId: 'req_cancel',
         });
       }
-      return jsonResponse({ message: `Unhandled ${method} ${url}` }, 500);
+      return jsonResponse({ message: `Unhandled ${method} ${url.pathname}${url.search}` }, 500);
     }) as typeof fetch;
 
-    const added = await payoutService.addPayoutMethod(coachId, {
-      type: 'BANK_ACCOUNT',
-      isDefault: true,
-      bankName: 'Test Bank',
-      accountLastFour: '1234',
-      sortCode: '12-34-56',
+    try {
+      const added = await payoutService.addPayoutMethod(coachId, {
+        type: 'BANK_ACCOUNT',
+        isDefault: true,
+        bankName: 'Test Bank',
+        accountLastFour: '1234',
+        sortCode: '12-34-56',
+      });
+      assert.equal(added.success, true);
+      assert.equal(added.success && added.data.id, payoutMethod.id);
+
+      const listed = await payoutService.getPayoutMethods(coachId);
+      assert.equal(listed.success, true);
+      assert.equal(listed.success && listed.data.length, 1);
+
+      const defaulted = await payoutService.setDefaultPayoutMethod(coachId, payoutMethod.id);
+      assert.equal(defaulted.success, true);
+      assert.equal(defaulted.success && defaulted.data.isDefault, true);
+
+      const requested = await payoutService.requestWithdrawal(coachId, 50, payoutMethod.id);
+      assert.equal(requested.success, true);
+      assert.equal(requested.success && requested.data.status, 'PENDING');
+
+      const pending = await payoutService.getPendingWithdrawals(coachId);
+      assert.equal(pending.success, true);
+      assert.equal(pending.success && pending.data[0]?.id, pendingWithdrawal.id);
+
+      const completed = await payoutService.completeWithdrawal(pendingWithdrawal.id);
+      assert.equal(completed.success, true);
+      assert.equal(completed.success && completed.data.status, 'COMPLETED');
+
+      const cancelled = await payoutService.cancelWithdrawal(cancelledWithdrawal.id);
+      assert.equal(cancelled.success, true);
+
+      const history = await payoutService.getWithdrawalHistory(coachId);
+      assert.equal(history.success, true);
+      assert.equal(history.success && history.data.length, 2);
+
+      const removed = await payoutService.removePayoutMethod(coachId, payoutMethod.id);
+      assert.equal(removed.success, true);
+    } finally {
+      client.get = originalClient.get;
+      client.set = originalClient.set;
+      client.remove = originalClient.remove;
+    }
+
+    assert.deepEqual(
+      calls.map((call) => `${call.method} ${call.path}`),
+      [
+        'POST /v1/coaches/me/payout-methods',
+        'GET /v1/coaches/me/payout-methods',
+        'PATCH /v1/coaches/me/payout-methods/pm_live_test/default',
+        'POST /v1/coaches/me/withdrawals',
+        'GET /v1/coaches/me/withdrawals?status=pending',
+        'POST /v1/coaches/me/withdrawals/wd_live_test/complete',
+        'POST /v1/coaches/me/withdrawals/wd_cancel_test/cancel',
+        'GET /v1/coaches/me/withdrawals',
+        'DELETE /v1/coaches/me/payout-methods/pm_live_test',
+      ],
+    );
+    assert.deepEqual(calls[3]?.body, {
+      amount: 50,
+      payoutMethodId: payoutMethod.id,
     });
-    assert.equal(added.success, true);
-    assert.equal(added.success && added.data.id, payoutMethod.id);
-
-    const listed = await payoutService.getPayoutMethods(coachId);
-    assert.equal(listed.success, true);
-    assert.equal(listed.success && listed.data.length, 1);
-
-    const defaulted = await payoutService.setDefaultPayoutMethod(coachId, payoutMethod.id);
-    assert.equal(defaulted.success, true);
-    assert.equal(defaulted.success && defaulted.data.isDefault, true);
-
-    const requested = await payoutService.requestWithdrawal(coachId, 50, payoutMethod.id);
-    assert.equal(requested.success, true);
-    assert.equal(requested.success && requested.data.status, 'PENDING');
-
-    const pending = await payoutService.getPendingWithdrawals(coachId);
-    assert.equal(pending.success, true);
-    assert.equal(pending.success && pending.data[0]?.id, pendingWithdrawal.id);
-
-    const completed = await payoutService.completeWithdrawal(pendingWithdrawal.id);
-    assert.equal(completed.success, true);
-    assert.equal(completed.success && completed.data.status, 'COMPLETED');
-
-    const cancelled = await payoutService.cancelWithdrawal(cancelledWithdrawal.id);
-    assert.equal(cancelled.success, true);
-
-    const history = await payoutService.getWithdrawalHistory(coachId);
-    assert.equal(history.success, true);
-    assert.equal(history.success && history.data.length, 2);
-
-    const removed = await payoutService.removePayoutMethod(coachId, payoutMethod.id);
-    assert.equal(removed.success, true);
   });
 });

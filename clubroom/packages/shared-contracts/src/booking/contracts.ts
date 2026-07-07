@@ -26,6 +26,32 @@ export const createBookingRequestSchema = z.object({
   idempotencyKey: z.string().min(8).max(200).optional(),
 });
 
+export const updateBookingRequestSchema = z
+  .object({
+    scheduledAt: z.string().datetime().optional(),
+    durationMinutes: z.number().int().min(15).max(480).optional(),
+    location: z.string().min(1).max(200).optional(),
+    serviceType: z.string().min(1).max(80).optional(),
+    objectives: z.array(z.string().min(1).max(120)).max(20).optional(),
+    notes: z.string().max(2000).optional(),
+    priceMinor: z.number().int().nonnegative().optional(),
+    currency: z.literal('GBP').optional(),
+    expectedVersion: z.number().int().positive().optional(),
+    idempotencyKey: z.string().min(8).max(200).optional(),
+  })
+  .refine(
+    (value) =>
+      value.scheduledAt !== undefined ||
+      value.durationMinutes !== undefined ||
+      value.location !== undefined ||
+      value.serviceType !== undefined ||
+      value.objectives !== undefined ||
+      value.notes !== undefined ||
+      value.priceMinor !== undefined ||
+      value.currency !== undefined,
+    'At least one booking update field is required',
+  );
+
 export const bookingSeriesFrequencySchema = z.enum(['WEEKLY', 'BIWEEKLY', 'MONTHLY', 'CUSTOM']);
 
 export const createBookingSeriesOccurrenceSchema = z.object({
@@ -80,7 +106,11 @@ export const resumeBookingSeriesRequestSchema = z.object({
 
 export const updateBookingSeriesRequestSchema = z
   .object({
-    time: z.string().regex(/^\d{2}:\d{2}$/, 'Expected HH:mm time').optional(),
+    coachUserId: userIdSchema.optional(),
+    time: z
+      .string()
+      .regex(/^\d{2}:\d{2}$/, 'Expected HH:mm time')
+      .optional(),
     durationMinutes: z.number().int().min(15).max(480).optional(),
     location: z.string().min(1).max(200).optional(),
     notes: z.string().max(2000).optional(),
@@ -90,6 +120,7 @@ export const updateBookingSeriesRequestSchema = z
   })
   .refine(
     (value) =>
+      value.coachUserId !== undefined ||
       value.time !== undefined ||
       value.durationMinutes !== undefined ||
       value.location !== undefined ||
@@ -104,9 +135,25 @@ export const reopenBookingRequestSchema = z.object({
   idempotencyKey: z.string().min(8).max(200).optional(),
 });
 
+export const confirmBookingRequestSchema = z.object({
+  note: z.string().max(1000).optional(),
+  expectedVersion: z.number().int().positive().optional(),
+  idempotencyKey: z.string().min(8).max(200).optional(),
+});
+
+export const bookingCompletionAttendanceStatusSchema = z.enum(['ATTENDED', 'NO_SHOW']);
+
+export const bookingCompletionAttendanceInputSchema = z.object({
+  athleteId: athleteIdSchema,
+  status: bookingCompletionAttendanceStatusSchema,
+  notes: z.string().max(1000).optional(),
+  effortRating: z.number().int().min(1).max(5).optional(),
+});
+
 export const completeBookingRequestSchema = z.object({
   note: z.string().max(1000).optional(),
   completedAt: z.string().datetime().optional(),
+  attendance: z.array(bookingCompletionAttendanceInputSchema).max(50).optional(),
   expectedVersion: z.number().int().positive().optional(),
   idempotencyKey: z.string().min(8).max(200).optional(),
 });
@@ -118,9 +165,18 @@ export const inviteSelectedSlotSchema = z.object({
   location: z.string().max(200).optional(),
 });
 
+export const inviteRecurringWeekResponseSchema = z.object({
+  weekDate: z.string().min(1).max(40),
+  startTime: z.string().min(1).max(20),
+  endTime: z.string().min(1).max(20),
+  location: z.string().max(200).optional(),
+  accepted: z.boolean(),
+});
+
 export const inviteResponseRequestSchema = z.object({
   response: z.enum(['ACCEPTED', 'DECLINED']),
   selectedSlot: inviteSelectedSlotSchema.optional(),
+  recurringWeekResponses: z.array(inviteRecurringWeekResponseSchema).min(1).max(52).optional(),
 });
 
 export const bookingParticipantSchema = z.object({
@@ -133,6 +189,8 @@ export const bookingResponseSchema = z.object({
   id: bookingIdSchema,
   coachUserId: userIdSchema,
   bookedByUserId: userIdSchema.optional(),
+  recurringSeriesId: z.string().nullable().optional(),
+  groupSessionId: z.string().nullable().optional(),
   status: bookingStatusSchema,
   scheduledAt: z.string().datetime(),
   durationMinutes: z.number().int(),
@@ -221,6 +279,7 @@ export const registerGroupSessionRequestSchema = z.object({
   athleteId: athleteIdSchema,
   parentUserId: userIdSchema.optional(),
 });
+export const joinGroupSessionWaitlistRequestSchema = registerGroupSessionRequestSchema;
 
 export const groupSessionRegistrationStatusSchema = z.enum([
   'REGISTERED',
@@ -259,10 +318,9 @@ export const registerGroupSessionResponseSchema = z.object({
 });
 
 export type CreateBookingRequest = z.infer<typeof createBookingRequestSchema>;
+export type UpdateBookingRequest = z.infer<typeof updateBookingRequestSchema>;
 export type BookingSeriesFrequency = z.infer<typeof bookingSeriesFrequencySchema>;
-export type CreateBookingSeriesOccurrence = z.infer<
-  typeof createBookingSeriesOccurrenceSchema
->;
+export type CreateBookingSeriesOccurrence = z.infer<typeof createBookingSeriesOccurrenceSchema>;
 export type CreateBookingSeriesRequest = z.infer<typeof createBookingSeriesRequestSchema>;
 export type CancelBookingRequest = z.infer<typeof cancelBookingRequestSchema>;
 export type CancelBookingSeriesRequest = z.infer<typeof cancelBookingSeriesRequestSchema>;
@@ -270,6 +328,10 @@ export type PauseBookingSeriesRequest = z.infer<typeof pauseBookingSeriesRequest
 export type ResumeBookingSeriesRequest = z.infer<typeof resumeBookingSeriesRequestSchema>;
 export type UpdateBookingSeriesRequest = z.infer<typeof updateBookingSeriesRequestSchema>;
 export type ReopenBookingRequest = z.infer<typeof reopenBookingRequestSchema>;
+export type ConfirmBookingRequest = z.infer<typeof confirmBookingRequestSchema>;
+export type BookingCompletionAttendanceInput = z.infer<
+  typeof bookingCompletionAttendanceInputSchema
+>;
 export type CompleteBookingRequest = z.infer<typeof completeBookingRequestSchema>;
 export type BookingResponse = z.infer<typeof bookingResponseSchema>;
 export type BookingListResponse = z.infer<typeof bookingListResponseSchema>;
@@ -283,6 +345,7 @@ export type UpdateBookingSeriesResponse = z.infer<typeof updateBookingSeriesResp
 export type InviteResponseRequest = z.infer<typeof inviteResponseRequestSchema>;
 export type InviteResponseResult = z.infer<typeof inviteResponseResultSchema>;
 export type RegisterGroupSessionRequest = z.infer<typeof registerGroupSessionRequestSchema>;
+export type JoinGroupSessionWaitlistRequest = z.infer<typeof joinGroupSessionWaitlistRequestSchema>;
 export type GroupSessionRegistrationResponse = z.infer<
   typeof groupSessionRegistrationResponseSchema
 >;

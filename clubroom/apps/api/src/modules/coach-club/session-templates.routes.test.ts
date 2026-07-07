@@ -219,8 +219,116 @@ describe('coach session template routes', () => {
     assert.equal(auditCount(tables, 'coach_session_template.create', 'DENY'), 2);
     assert.equal(auditCount(tables, 'coach_session_template.update', 'SUCCESS'), 1);
     assert.equal(auditCount(tables, 'coach_session_template.update', 'DENY'), 1);
-    assert.equal(auditCount(tables, 'coach_session_template.delete', 'SUCCESS'), 1);
-    assert.equal(auditCount(tables, 'coach_session_template.delete', 'DENY'), 1);
+    assert.equal(auditCount(tables, 'coach_session_template.archive', 'SUCCESS'), 1);
+    assert.equal(auditCount(tables, 'coach_session_template.archive', 'DENY'), 1);
+  });
+
+  it('exposes self offering create and patch through the v1 offerings contract', async () => {
+    const tables = getMarketplaceSeedStore().tables as SeedTables;
+    const { coachUserId, nonCoachUserId } = findActors(tables);
+
+    const deniedCreate = await app.inject({
+      method: 'POST',
+      url: '/v1/coaches/me/offerings',
+      headers: authHeaders(nonCoachUserId),
+      payload: {
+        title: 'Unauthorized direct offering',
+        serviceType: 'assessment',
+        durationMinutes: 45,
+        capacity: 1,
+        priceMinor: 2000,
+        skillsFocus: [],
+      },
+    });
+    assert.equal(deniedCreate.statusCode, 404);
+
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/coaches/me/offerings',
+      headers: authHeaders(coachUserId),
+      payload: {
+        title: 'Direct finishing group',
+        serviceType: 'small-group',
+        durationMinutes: 75,
+        capacity: 4,
+        priceMinor: 3250,
+        description: 'A direct offering route proof.',
+        defaultLocation: 'Pitch 3',
+        skillsFocus: ['Finishing', 'Movement'],
+      },
+    });
+    assert.equal(created.statusCode, 201);
+    const createdOffering = (
+      created.json() as {
+        offering: {
+          id: string;
+          coachUserId: string;
+          title: string;
+          serviceType: string;
+          durationMinutes: number;
+          capacity: number;
+          priceMinor: number;
+          skillsFocus: string[];
+        };
+      }
+    ).offering;
+    assert.equal(createdOffering.coachUserId, coachUserId);
+    assert.equal(createdOffering.title, 'Direct finishing group');
+    assert.equal(createdOffering.serviceType, 'small-group');
+    assert.equal(createdOffering.durationMinutes, 75);
+    assert.equal(createdOffering.capacity, 4);
+    assert.equal(createdOffering.priceMinor, 3250);
+    assert.deepEqual(createdOffering.skillsFocus, ['Finishing', 'Movement']);
+
+    const updated = await app.inject({
+      method: 'PATCH',
+      url: `/v1/coaches/me/offerings/${createdOffering.id}`,
+      headers: authHeaders(coachUserId),
+      payload: {
+        title: 'Direct advanced finishing',
+        priceMinor: 4000,
+        skillsFocus: ['Finishing'],
+      },
+    });
+    assert.equal(updated.statusCode, 200);
+    const updatedOffering = (
+      updated.json() as {
+        offering: { title: string; priceMinor: number; skillsFocus: string[] };
+      }
+    ).offering;
+    assert.equal(updatedOffering.title, 'Direct advanced finishing');
+    assert.equal(updatedOffering.priceMinor, 4000);
+    assert.deepEqual(updatedOffering.skillsFocus, ['Finishing']);
+
+    const stored = asRows(tables.coachingOfferings).find(
+      (row) => asString(row.id) === createdOffering.id,
+    );
+    assert.equal(asString(stored?.title), 'Direct advanced finishing');
+    assert.equal(stored?.priceMinor, 4000);
+    assert.equal(stored?.durationMinutes, 75);
+    assert.deepEqual(stored?.skillsFocus, ['Finishing']);
+
+    const listed = await app.inject({
+      method: 'GET',
+      url: '/v1/coaches/me/offerings',
+      headers: authHeaders(coachUserId),
+    });
+    assert.equal(listed.statusCode, 200);
+    const listedPayload = listed.json() as {
+      offerings: Array<{ id: string; title: string; priceMinor: number }>;
+    };
+    assert.ok(
+      listedPayload.offerings.some(
+        (offering) =>
+          offering.id === createdOffering.id &&
+          offering.title === 'Direct advanced finishing' &&
+          offering.priceMinor === 4000,
+      ),
+    );
+
+    assert.equal(auditCount(tables, 'coach_offering.create', 'SUCCESS'), 1);
+    assert.equal(auditCount(tables, 'coach_offering.create', 'DENY'), 1);
+    assert.equal(auditCount(tables, 'coach_offering.update', 'SUCCESS'), 1);
   });
 
   it('uses the db fixture store for the same self-owned CRUD contract', async () => {
@@ -265,7 +373,7 @@ describe('coach session template routes', () => {
       });
       assert.equal(deleted.statusCode, 204);
       assert.equal(auditCount(tables, 'coach_session_template.create', 'SUCCESS'), 1);
-      assert.equal(auditCount(tables, 'coach_session_template.delete', 'SUCCESS'), 1);
+      assert.equal(auditCount(tables, 'coach_session_template.archive', 'SUCCESS'), 1);
     } finally {
       env.API_DATA_BACKEND = previousBackend;
       resetDbFixtureStoreForTests();

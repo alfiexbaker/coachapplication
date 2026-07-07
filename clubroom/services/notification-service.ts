@@ -360,6 +360,11 @@ class NotificationService {
   // ============================================================================
 
   async seedDemoNotifications(): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      logger.info('Skipped demo notification seed in API mode');
+      return ok(undefined);
+    }
+
     const demoNotifications: ExtendedNotificationItem[] = [
       {
         id: 'demo_n1',

@@ -16,8 +16,8 @@ import type { ThemeColors } from '@/hooks/useTheme';
 import { useClubSchedule, CLUB_SCHEDULE_FILTERS } from '@/hooks/use-club-schedule';
 import type { ClubScheduleDayGroup, ClubScheduleFilter } from '@/utils/club-schedule-display';
 import { Routes } from '@/navigation/routes';
-import { useAuth } from '@/hooks/use-auth';
 import type { ClubActivity } from '@/constants/types';
+import { canCreateClubScheduleItems } from '@/utils/club-ui-permissions';
 
 export interface ClubScheduleScreenProps {
   clubId?: string;
@@ -65,9 +65,8 @@ function getEmptyTitle(filter: ClubScheduleFilter): string {
 
 export function ClubScheduleScreen({ clubId, squadId, scope }: ClubScheduleScreenProps) {
   const { colors } = useTheme();
-  const { currentUser } = useAuth();
   const schedule = useClubSchedule({ clubId, squadId });
-  const canCreateItems = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
+  const canCreateItems = canCreateClubScheduleItems(schedule.membership);
 
   const title = scope === 'club' ? 'Club Schedule' : 'Team Schedule';
   const subtitle = (() => {

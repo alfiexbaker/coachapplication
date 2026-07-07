@@ -5,7 +5,7 @@ const path = require('path');
 
 const ROOT = process.cwd();
 const TODAY = new Date().toISOString().slice(0, 10);
-const AUDIT_DIR = path.join(ROOT, 'docs', 'audits');
+const AUDIT_DIR = path.join(ROOT, 'reviews');
 
 const CODE_DIRS = [
   'app',
@@ -337,9 +337,9 @@ function summarize() {
     },
   };
 
-  const csvPath = path.join(AUDIT_DIR, `component-reachability-${TODAY}.csv`);
-  const jsonPath = path.join(AUDIT_DIR, `architecture-reachability-audit-${TODAY}.json`);
-  const mdPath = path.join(AUDIT_DIR, `architecture-hardening-report-${TODAY}.md`);
+  const csvPath = path.join(AUDIT_DIR, 'component-reachability.csv');
+  const jsonPath = path.join(AUDIT_DIR, 'architecture-reachability-audit.json');
+  const mdPath = path.join(AUDIT_DIR, 'architecture-hardening-report.md');
 
   const csvLines = [
     'file,reachable_from_app,status,importer_count,importer_kinds',

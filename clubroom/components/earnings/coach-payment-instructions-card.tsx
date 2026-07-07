@@ -56,6 +56,7 @@ function CoachPaymentInstructionsCardInner({
   const [draft, setDraft] = useState<CoachPaymentInstructions | null>(null);
 
   const maxLengths = coachPaymentInstructionsService.getMaxLengths();
+  const canSavePaymentInstructions = coachPaymentInstructionsService.canSavePaymentInstructions();
 
   useEffect(() => {
     const loadInstructions = async () => {
@@ -190,7 +191,7 @@ function CoachPaymentInstructionsCardInner({
               <Ionicons name="business-outline" size={18} color={colors.tint} />
               <ThemedText type="defaultSemiBold">Direct Payment Instructions</ThemedText>
             </Row>
-            {editable ? (
+            {editable && canSavePaymentInstructions ? (
               <Clickable onPress={openEdit} accessibilityLabel="Edit payment instructions">
                 <Row align="center" gap="xxs">
                   <Ionicons name="create-outline" size={14} color={colors.tint} />
@@ -282,8 +283,9 @@ function CoachPaymentInstructionsCardInner({
               <Row align="start" gap="xs">
                 <Ionicons name="alert-circle-outline" size={16} color={colors.warning} />
                 <ThemedText style={[Typography.caption, { color: colors.foreground, flex: 1 }]}>
-                  No payment instructions set yet. Add your bank details or transfer instructions so
-                  invoice/reminder messages are ready to send.
+                  {canSavePaymentInstructions
+                    ? 'No payment instructions set yet. Add your bank details or transfer instructions so invoice/reminder messages are ready to send.'
+                    : 'Saved payment instructions need a backend API before they can be edited here. Invoice/reminder messages will ask families to contact the coach for bank details.'}
                 </ThemedText>
               </Row>
             </View>

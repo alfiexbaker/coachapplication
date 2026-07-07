@@ -13,8 +13,18 @@ import { useTravelRadiusSettings } from '@/hooks/use-travel-radius-settings';
 
 export default function TravelRadiusScreen() {
   const { colors: palette } = useTheme();
-  const { settings, postcode, status, error, refreshing, onRefresh, retry, saving, update } =
-    useTravelRadiusSettings();
+  const {
+    settings,
+    postcode,
+    status,
+    error,
+    refreshing,
+    onRefresh,
+    retry,
+    saving,
+    canSave,
+    update,
+  } = useTravelRadiusSettings();
 
   if (!settings) {
     return (
@@ -31,7 +41,12 @@ export default function TravelRadiusScreen() {
   return (
     <SettingsFormScreen
       title="Travel Radius"
-      infoText={error ?? 'Parents searching nearby will see you within this service radius.'}
+      infoText={
+        error ??
+        (canSave
+          ? 'Parents searching nearby will see you within this service radius.'
+          : 'Travel radius editing needs a backend API before changes can be saved.')
+      }
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.accent} />
       }
@@ -50,6 +65,7 @@ export default function TravelRadiusScreen() {
           <Clickable
             onPress={() => update('radiusMiles', Math.max(1, settings.radiusMiles - 1))}
             style={styles.stepper}
+            disabled={!canSave}
           >
             <Ionicons name="remove" size={20} color={palette.text} />
           </Clickable>
@@ -62,6 +78,7 @@ export default function TravelRadiusScreen() {
           <Clickable
             onPress={() => update('radiusMiles', Math.min(50, settings.radiusMiles + 1))}
             style={styles.stepper}
+            disabled={!canSave}
           >
             <Ionicons name="add" size={20} color={palette.text} />
           </Clickable>
@@ -81,6 +98,7 @@ export default function TravelRadiusScreen() {
           </View>
           <Clickable
             onPress={() => update('acceptsTravelSessions', !settings.acceptsTravelSessions)}
+            disabled={!canSave}
           >
             <Ionicons
               name={settings.acceptsTravelSessions ? 'checkmark-circle' : 'ellipse-outline'}
@@ -98,6 +116,7 @@ export default function TravelRadiusScreen() {
           </View>
           <Clickable
             onPress={() => update('acceptsRemoteSessions', !settings.acceptsRemoteSessions)}
+            disabled={!canSave}
           >
             <Ionicons
               name={settings.acceptsRemoteSessions ? 'checkmark-circle' : 'ellipse-outline'}

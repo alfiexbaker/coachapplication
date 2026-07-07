@@ -23,6 +23,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
 import { eventService } from '@/services/event-service';
 import { err, ok, serviceError } from '@/types/result';
+import { DEFAULT_EVENT_CLUB_ID } from '@/hooks/use-create-event';
 
 const logger = createLogger('EventsListScreen');
 
@@ -42,7 +43,7 @@ export default function EventsListScreen() {
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
   const [filter, setFilter] = useState<EventFilter>('upcoming');
 
-  const clubId = 'club_lions';
+  const clubId = DEFAULT_EVENT_CLUB_ID;
 
   const loadEvents = async () => {
     try {

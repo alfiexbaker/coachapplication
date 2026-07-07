@@ -5,9 +5,9 @@
  * Provides methods for fetching and filtering consent data across the roster.
  *
  * API Integration Notes:
- * - GET /api/coaches/:id/consents - Get all athlete consents
- * - GET /api/coaches/:id/consents/:athleteId - Get single athlete consent
- * - GET /api/coaches/:id/consents/filter?type=PHOTO - Filter by consent type
+ * - GET /v1/coaches/:coachId/roster/consents - Get roster consent dashboard
+ * - GET /v1/athletes/:athleteId/consents - Get single athlete consent
+ * - Query params `type`, `status`, and `search` filter roster consent rows.
  */
 
 import type {
@@ -20,10 +20,19 @@ import type {
 import { safetyService } from './safety-service';
 import { rosterService } from './roster-service';
 import { userService } from './user-service';
+import { apiClient, apiFetch } from './api-client';
 import { createLogger } from '@/utils/logger';
-import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  storageError,
+} from '@/types/result';
 
 const logger = createLogger('ConsentService');
+const rosterConsentRoute = (coachId: string) =>
+  `/v1/coaches/${encodeURIComponent(coachId)}/roster/consents`;
 
 async function resolveUserName(userId: string, fallback = ''): Promise<string> {
   const userResult = await userService.getUserById(userId);
@@ -35,6 +44,26 @@ async function resolveUserName(userId: string, fallback = ''): Promise<string> {
 }
 
 const CONSENT_TYPES: ConsentType[] = ['PHOTO', 'VIDEO', 'SOCIAL_MEDIA', 'EMERGENCY_TREATMENT'];
+
+interface RosterConsentsResponse {
+  consents: AthleteConsent[];
+  summary: ConsentSummary;
+}
+
+function rosterConsentQuery(filters?: ConsentFilters): string {
+  const params = new URLSearchParams();
+  if (filters?.type) {
+    params.set('type', filters.type);
+  }
+  if (filters?.status) {
+    params.set('status', filters.status);
+  }
+  if (filters?.search?.trim()) {
+    params.set('search', filters.search.trim());
+  }
+  const query = params.toString();
+  return query ? `?${query}` : '';
+}
 
 /**
  * Labels for consent types
@@ -86,7 +115,7 @@ class ConsentService {
         return err(emergencyInfoResult.error);
       }
       const emergencyInfo = emergencyInfoResult.data;
-      if (coachId) {
+      if (coachId && apiClient.isMockMode) {
         await rosterService.getRoster(coachId);
       }
 
@@ -108,6 +137,16 @@ class ConsentService {
     coachId: string,
     filters?: ConsentFilters,
   ): Promise<Result<AthleteConsent[], ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<RosterConsentsResponse>(
+        `${rosterConsentRoute(coachId)}${rosterConsentQuery(filters)}`,
+      );
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(result.data.consents);
+    }
+
     try {
       // Get all athletes from roster
       const roster = await rosterService.getRoster(coachId);
@@ -189,7 +228,7 @@ class ConsentService {
   ): Promise<Result<boolean, ServiceError>> {
     try {
       // Verify coach-athlete relationship when coachId provided
-      if (coachId) {
+      if (coachId && apiClient.isMockMode) {
         const roster = await rosterService.getRoster(coachId);
         const isOnRoster = roster.some((entry) => entry.athleteId === athleteId);
         if (!isOnRoster) {
@@ -279,6 +318,14 @@ class ConsentService {
    * Get consent summary/statistics for a coach's roster
    */
   async getConsentSummary(coachId: string): Promise<Result<ConsentSummary, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<RosterConsentsResponse>(rosterConsentRoute(coachId));
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(result.data.summary);
+    }
+
     try {
       const allConsentsResult = await this.getRosterConsents(coachId);
       if (!allConsentsResult.success) {

@@ -1,17 +1,27 @@
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { User } from '@/constants/types';
-import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  notFound,
+  storageError,
+  unsupportedError,
+} from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import { accountIdsMatch, normalizeAccountId } from '@/utils/account-id';
 
-import { apiClient } from './api-client';
+import { apiClient, apiFetch } from './api-client';
 import { ServiceEvents, emitTyped } from './event-bus';
 import { blockService } from './block-service';
 import { familyMemberService } from './family/family-member-service';
 
 const logger = createLogger('UserService');
 
-type UserChanges = Partial<Pick<User, 'name' | 'avatar' | 'postcode' | 'dateOfBirth' | 'email' | 'role'>> & {
+type UserChanges = Partial<
+  Pick<User, 'name' | 'avatar' | 'postcode' | 'dateOfBirth' | 'email' | 'role'>
+> & {
   phone?: string;
 };
 
@@ -27,6 +37,22 @@ interface AuthUserRecord {
   dateOfBirth?: unknown;
   role?: unknown;
   accountType?: unknown;
+}
+
+interface ApiUserSearchEntry {
+  id: string;
+  name: string;
+  email?: string;
+  avatar?: string;
+  postcode?: string;
+  dateOfBirth?: string;
+  role: User['role'];
+}
+
+interface ApiUserSearchResponse {
+  users: ApiUserSearchEntry[];
+  total: number;
+  requestId?: string;
 }
 
 function normalizeUserRole(rawRole: unknown, rawAccountType: unknown): User['role'] {
@@ -81,12 +107,27 @@ function mapAuthUserToUser(authUser: AuthUserRecord): User | null {
   };
 }
 
+function mapApiSearchUser(user: ApiUserSearchEntry): User {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email ?? '',
+    avatar: user.avatar,
+    postcode: user.postcode ?? '',
+    dateOfBirth: user.dateOfBirth ?? '',
+    role: normalizeUserRole(user.role, user.role),
+  };
+}
+
 class UserService {
   private async loadUsers(): Promise<User[]> {
-    const [users, authUser] = await Promise.all([
-      apiClient.get<User[]>(STORAGE_KEYS.USERS, []),
-      apiClient.get<AuthUserRecord | null>(STORAGE_KEYS.AUTH_USER, null),
-    ]);
+    const authUser = await apiClient.get<AuthUserRecord | null>(STORAGE_KEYS.AUTH_USER, null);
+    if (!apiClient.isMockMode) {
+      const mappedAuthUser = authUser ? mapAuthUserToUser(authUser) : null;
+      return mappedAuthUser ? [mappedAuthUser] : [];
+    }
+
+    const users = await apiClient.get<User[]>(STORAGE_KEYS.USERS, []);
 
     const usersById = new Map<string, User>();
 
@@ -143,11 +184,22 @@ class UserService {
     }
   }
 
-  async searchUsers(
-    query: string,
-    requestorId?: string,
-  ): Promise<Result<User[], ServiceError>> {
+  async searchUsers(query: string, requestorId?: string): Promise<Result<User[], ServiceError>> {
     try {
+      if (!apiClient.isMockMode) {
+        const trimmedQuery = query.trim();
+        if (trimmedQuery.length < 2) {
+          return ok([]);
+        }
+        const result = await apiFetch<ApiUserSearchResponse>(
+          `/v1/users/search?q=${encodeURIComponent(trimmedQuery)}`,
+        );
+        if (!result.success) {
+          return err(result.error);
+        }
+        return ok(result.data.users.map(mapApiSearchUser));
+      }
+
       const normalizedQuery = query.trim().toLowerCase();
       const users = await this.loadUsers();
 
@@ -245,10 +297,7 @@ class UserService {
     return age < 18;
   }
 
-  private async batchCheckMinorAccess(
-    minorIds: string[],
-    requestorId: string,
-  ): Promise<string[]> {
+  private async batchCheckMinorAccess(minorIds: string[], requestorId: string): Promise<string[]> {
     const accessibleIds: string[] = [];
 
     const familyMembers = await familyMemberService.getFamilyMembers(requestorId);
@@ -298,6 +347,14 @@ class UserService {
     changes: UserChanges,
   ): Promise<Result<User, ServiceError>> {
     try {
+      if (!apiClient.isMockMode) {
+        return err(
+          unsupportedError('User profile updates use /v1/auth/me in API mode.', {
+            route: '/v1/auth/me',
+          }),
+        );
+      }
+
       const users = await this.loadUsers();
       const userIndex = users.findIndex((user) => accountIdsMatch(user.id, userId));
       if (userIndex === -1) {

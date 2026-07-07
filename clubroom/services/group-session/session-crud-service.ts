@@ -16,7 +16,6 @@ import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from '../notification-trigger';
 import { socialFeedService } from '../social-feed-service';
-import { bulkInviteService } from '../invite/bulk-invite-service';
 import { rsvpService } from '../rsvp-service';
 import { emitTyped, ServiceEvents } from '../event-bus';
 import { userService } from '../user-service';
@@ -618,6 +617,7 @@ export const sessionCrudService = {
       schedule,
       maxParticipants: input.maxParticipants,
       currentParticipants: 0,
+      offPlatformParticipants: 0,
       waitlistEnabled: input.waitlistEnabled ?? true,
       waitlistCount: 0,
       pricePerParticipant: input.pricePerParticipant,
@@ -756,6 +756,7 @@ export const sessionCrudService = {
         const firstSchedule = session.schedule[0];
 
         try {
+          const { bulkInviteService } = await import('../invite/bulk-invite-service');
           const inviteResult = await bulkInviteService.inviteSquadToSession({
             sessionId: session.id,
             sessionTitle: session.title,
@@ -820,6 +821,88 @@ export const sessionCrudService = {
     }
 
     const result = await groupSessionAuthorityService.cancelSession(sessionId);
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(result.data);
+  },
+
+  async updateOffPlatformParticipants(
+    sessionId: string,
+    count: number,
+  ): Promise<Result<GroupSession, ServiceError>> {
+    const normalizedCount = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+    if (USE_MOCK) {
+      sessionsCache = await loadSessions();
+      const session = sessionsCache.find((s) => s.id === sessionId);
+      if (!session) return err(notFound('Session', sessionId));
+
+      session.offPlatformParticipants = normalizedCount;
+      const headcount = session.currentParticipants + normalizedCount;
+      if (session.status === 'PUBLISHED' || session.status === 'FULL') {
+        session.status =
+          session.maxParticipants > 0 && headcount >= session.maxParticipants
+            ? 'FULL'
+            : 'PUBLISHED';
+      }
+      await saveSessions(sessionsCache);
+      return ok(session);
+    }
+
+    const result = await groupSessionAuthorityService.updateOffPlatformParticipants(
+      sessionId,
+      normalizedCount,
+    );
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(result.data);
+  },
+
+  async cancelInstance(
+    sessionId: string,
+    date: string,
+  ): Promise<Result<GroupSession, ServiceError>> {
+    if (USE_MOCK) {
+      sessionsCache = await loadSessions();
+      const session = sessionsCache.find((s) => s.id === sessionId);
+      if (!session) return err(notFound('Session', sessionId));
+
+      const cancelled = new Set(session.cancelledInstances ?? []);
+      cancelled.add(date);
+      session.cancelledInstances = Array.from(cancelled).sort();
+      await saveSessions(sessionsCache);
+      return ok(session);
+    }
+
+    const result = await groupSessionAuthorityService.cancelInstance(sessionId, date);
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(result.data);
+  },
+
+  async endSeries(
+    sessionId: string,
+    fromDate: string,
+  ): Promise<Result<GroupSession, ServiceError>> {
+    if (USE_MOCK) {
+      sessionsCache = await loadSessions();
+      const session = sessionsCache.find((s) => s.id === sessionId);
+      if (!session) return err(notFound('Session', sessionId));
+
+      const cancelled = new Set(session.cancelledInstances ?? []);
+      for (const entry of session.schedule) {
+        if (entry.date >= fromDate) {
+          cancelled.add(entry.date);
+        }
+      }
+      session.cancelledInstances = Array.from(cancelled).sort();
+      await saveSessions(sessionsCache);
+      return ok(session);
+    }
+
+    const result = await groupSessionAuthorityService.endSeries(sessionId, fromDate);
     if (!result.success) {
       return err(result.error);
     }

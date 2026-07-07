@@ -42,13 +42,13 @@ function sortActivitiesForFilter(
   if (filter === 'all') {
     const upcoming = activities
       .filter((activity) => isUpcomingActivity(activity, now))
-      .sort((left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime());
+      .toSorted((left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime());
     const completed = activities
       .filter((activity) => isCompletedActivity(activity, now))
-      .sort((left, right) => new Date(right.startsAt).getTime() - new Date(left.startsAt).getTime());
+      .toSorted((left, right) => new Date(right.startsAt).getTime() - new Date(left.startsAt).getTime());
     const cancelled = activities
       .filter((activity) => activity.status === 'cancelled')
-      .sort((left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime());
+      .toSorted((left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime());
     return [...upcoming, ...completed, ...cancelled];
   }
 

@@ -7,6 +7,7 @@
  * API Integration Notes:
  * - GET /v1/clubs/:id/members - Get club members
  * - DELETE /v1/clubs/:id/members/:userId - Remove member
+ * - GET /v1/clubs/:id/members/removals - Get member removal history
  * - PATCH /v1/clubs/:id/members/:userId/role - Change member role
  * - PUT /v1/clubs/:id/squads/:squadId/members/:userId - Add member to squad
  * - DELETE /v1/clubs/:id/squads/:squadId/members/:userId - Remove member from squad
@@ -125,6 +126,10 @@ interface ApiClubMemberResponse {
 
 interface ApiClubMemberRemovalResponse {
   removal: ClubMemberRemovalRecord;
+}
+
+interface ApiClubMemberRemovalsResponse {
+  removals: ClubMemberRemovalRecord[];
 }
 
 interface ApiClubSquadsResponse {
@@ -646,8 +651,14 @@ export const clubService = {
       return removalHistoryCache.filter((r) => r.clubId === clubId);
     }
 
-    logger.warn('Club member removal history is not backend-authoritative yet', { clubId });
-    return [];
+    return unwrapApiResult(
+      await apiFetch<ApiClubMemberRemovalsResponse>(
+        `/v1/clubs/${encodeURIComponent(clubId)}/members/removals`,
+        {
+          method: 'GET',
+        },
+      ),
+    ).removals;
   },
 
   /**

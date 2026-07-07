@@ -39,8 +39,9 @@ export interface CoachEarningsSnapshot {
     thisMonth: number;
     lastMonth: number;
     recentTransactions: CoachEarningTransaction[];
-    pendingWithdrawals: [];
-    payoutMethods: [];
+    pendingWithdrawals: CoachWithdrawalSnapshot[];
+    payoutMethods: CoachPayoutMethodSnapshot[];
+    defaultPayoutMethodId?: string;
     platformFeePercent: 0;
     currency: string;
     updatedAt: string;
@@ -64,6 +65,41 @@ export interface CoachEarningsSnapshot {
   totalTransactions: number;
 }
 
+type PayoutMethodType = 'BANK_ACCOUNT' | 'PAYPAL' | 'STRIPE';
+type WithdrawalStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+
+export interface CoachPayoutMethodSnapshot {
+  id: string;
+  coachId: string;
+  type: PayoutMethodType;
+  isDefault: boolean;
+  isVerified: boolean;
+  bankName?: string;
+  accountLastFour?: string;
+  paypalEmail?: string;
+  stripeAccountId?: string;
+  nickname?: string;
+  createdAt: string;
+  verifiedAt?: string;
+}
+
+export interface CoachWithdrawalSnapshot {
+  id: string;
+  coachId: string;
+  amount: number;
+  currency: string;
+  fee: number;
+  netAmount: number;
+  payoutMethodId: string;
+  payoutMethod: PayoutMethodType;
+  status: WithdrawalStatus;
+  requestedAt: string;
+  processedAt?: string;
+  completedAt?: string;
+  failureReason?: string;
+  reference?: string;
+}
+
 interface CoachEarningsRepository {
   getSnapshot(
     authUserId: string,
@@ -78,6 +114,8 @@ const asString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
 const asNumber = (value: unknown): number | undefined =>
   typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+const asBoolean = (value: unknown): boolean | undefined =>
+  typeof value === 'boolean' ? value : undefined;
 const asIsoString = (value: unknown, fallback = new Date().toISOString()): string =>
   typeof value === 'string'
     ? value
@@ -100,6 +138,26 @@ function activeCoachInvoices(tables: SeedTables, authUserId: string): SeedRow[] 
   return asRows(tables.invoices).filter(
     (row) => asString(row.coachUserId) === authUserId && !asString(row.deletedAt),
   );
+}
+
+function activeCoachPayoutMethods(tables: SeedTables, authUserId: string): SeedRow[] {
+  return asRows(tables.coachPayoutMethods)
+    .filter((row) => asString(row.coachUserId) === authUserId && !asString(row.deletedAt))
+    .sort(
+      (left, right) =>
+        new Date(asIsoString(left.createdAt)).getTime() -
+        new Date(asIsoString(right.createdAt)).getTime(),
+    );
+}
+
+function coachWithdrawals(tables: SeedTables, authUserId: string): SeedRow[] {
+  return asRows(tables.coachWithdrawals)
+    .filter((row) => asString(row.coachUserId) === authUserId)
+    .sort(
+      (left, right) =>
+        new Date(asIsoString(right.requestedAt)).getTime() -
+        new Date(asIsoString(left.requestedAt)).getTime(),
+    );
 }
 
 function transactionDate(row: SeedRow): string {
@@ -134,6 +192,71 @@ function mapPaidTransaction(row: SeedRow, coachId: string): CoachEarningTransact
     ...(sessionDate ? { sessionDate } : {}),
     createdAt: completedAt,
     completedAt,
+  };
+}
+
+function toPayoutMethodType(value: unknown): PayoutMethodType {
+  if (value === 'PAYPAL' || value === 'STRIPE') {
+    return value;
+  }
+  return 'BANK_ACCOUNT';
+}
+
+function toWithdrawalStatus(value: unknown): WithdrawalStatus {
+  if (
+    value === 'PROCESSING' ||
+    value === 'COMPLETED' ||
+    value === 'FAILED' ||
+    value === 'CANCELLED'
+  ) {
+    return value;
+  }
+  return 'PENDING';
+}
+
+function mapPayoutMethod(row: SeedRow): CoachPayoutMethodSnapshot {
+  const bankName = asString(row.bankName);
+  const accountLastFour = asString(row.accountLastFour);
+  const paypalEmail = asString(row.paypalEmail);
+  const stripeAccountId = asString(row.stripeAccountId);
+  const nickname = asString(row.nickname);
+  const verifiedAt = row.verifiedAt ? asIsoString(row.verifiedAt) : undefined;
+  return {
+    id: asString(row.id) ?? '',
+    coachId: asString(row.coachUserId) ?? '',
+    type: toPayoutMethodType(row.type),
+    isDefault: asBoolean(row.isDefault) ?? false,
+    isVerified: asBoolean(row.isVerified) ?? false,
+    ...(bankName ? { bankName } : {}),
+    ...(accountLastFour ? { accountLastFour } : {}),
+    ...(paypalEmail ? { paypalEmail } : {}),
+    ...(stripeAccountId ? { stripeAccountId } : {}),
+    ...(nickname ? { nickname } : {}),
+    createdAt: asIsoString(row.createdAt),
+    ...(verifiedAt ? { verifiedAt } : {}),
+  };
+}
+
+function mapWithdrawal(row: SeedRow): CoachWithdrawalSnapshot {
+  const processedAt = row.processedAt ? asIsoString(row.processedAt) : undefined;
+  const completedAt = row.completedAt ? asIsoString(row.completedAt) : undefined;
+  const failureReason = asString(row.failureReason);
+  const reference = asString(row.reference);
+  return {
+    id: asString(row.id) ?? '',
+    coachId: asString(row.coachUserId) ?? '',
+    amount: moneyFromMinor(row.amountMinor),
+    currency: asString(row.currency) ?? 'GBP',
+    fee: moneyFromMinor(row.feeMinor),
+    netAmount: moneyFromMinor(row.netAmountMinor),
+    payoutMethodId: asString(row.payoutMethodId) ?? '',
+    payoutMethod: toPayoutMethodType(row.payoutMethodType),
+    status: toWithdrawalStatus(row.status),
+    requestedAt: asIsoString(row.requestedAt),
+    ...(processedAt ? { processedAt } : {}),
+    ...(completedAt ? { completedAt } : {}),
+    ...(failureReason ? { failureReason } : {}),
+    ...(reference ? { reference } : {}),
   };
 }
 
@@ -196,6 +319,8 @@ function transactionsFrom(
 
 function buildSnapshot(
   invoices: SeedRow[],
+  withdrawalRows: SeedRow[],
+  payoutMethodRows: SeedRow[],
   authUserId: string,
   period: CoachEarningsPeriod,
   limit?: number,
@@ -223,6 +348,22 @@ function buildSnapshot(
   );
 
   const totalEarned = totalForTransactions(paidTransactions);
+  const withdrawals = withdrawalRows.map(mapWithdrawal);
+  const pendingWithdrawals = withdrawals.filter((withdrawal) =>
+    ['PENDING', 'PROCESSING'].includes(withdrawal.status),
+  );
+  const totalWithdrawn = roundMoney(
+    withdrawals
+      .filter((withdrawal) => withdrawal.status === 'COMPLETED')
+      .reduce((sum, withdrawal) => sum + withdrawal.amount, 0),
+  );
+  const reservedOrWithdrawn = roundMoney(
+    withdrawals
+      .filter((withdrawal) => !['FAILED', 'CANCELLED'].includes(withdrawal.status))
+      .reduce((sum, withdrawal) => sum + withdrawal.amount, 0),
+  );
+  const payoutMethods = payoutMethodRows.map(mapPayoutMethod);
+  const defaultPayoutMethodId = payoutMethods.find((method) => method.isDefault)?.id;
   const totalSessions = paidTransactions.length;
   const averageSessionValue =
     totalSessions > 0 ? roundMoney(totalEarned / totalSessions) : 0;
@@ -257,20 +398,21 @@ function buildSnapshot(
   return {
     earnings: {
       coachId: authUserId,
-      availableBalance: 0,
+      availableBalance: Math.max(0, roundMoney(totalEarned - reservedOrWithdrawn)),
       pendingBalance: roundMoney(
         openInvoices.reduce((sum, invoice) => sum + moneyFromMinor(invoice.totalMinor), 0),
       ),
       totalEarned,
-      totalWithdrawn: 0,
+      totalWithdrawn,
       totalSessions,
       averageSessionValue,
       thisWeek,
       thisMonth,
       lastMonth,
       recentTransactions: paidTransactions.slice(0, 10),
-      pendingWithdrawals: [],
-      payoutMethods: [],
+      pendingWithdrawals,
+      payoutMethods,
+      ...(defaultPayoutMethodId ? { defaultPayoutMethodId } : {}),
       platformFeePercent: 0,
       currency,
       updatedAt,
@@ -308,7 +450,14 @@ class StoreCoachEarningsRepository implements CoachEarningsRepository {
   ): Promise<CoachEarningsSnapshot> {
     const tables = this.getTables();
     requireStoreCoach(tables, authUserId);
-    return buildSnapshot(activeCoachInvoices(tables, authUserId), authUserId, period, limit);
+    return buildSnapshot(
+      activeCoachInvoices(tables, authUserId),
+      coachWithdrawals(tables, authUserId),
+      activeCoachPayoutMethods(tables, authUserId),
+      authUserId,
+      period,
+      limit,
+    );
   }
 }
 
@@ -338,17 +487,38 @@ class DbCoachEarningsRepository implements CoachEarningsRepository {
     if (!coach) {
       throw notFound('Coach profile not found');
     }
-    const invoices = await prisma.invoice.findMany({
-      where: {
-        coachUserId: authUserId,
-        deletedAt: null,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    const [invoices, withdrawals, payoutMethods] = await Promise.all([
+      prisma.invoice.findMany({
+        where: {
+          coachUserId: authUserId,
+          deletedAt: null,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      prisma.coachWithdrawal.findMany({
+        where: {
+          coachUserId: authUserId,
+        },
+        orderBy: {
+          requestedAt: 'desc',
+        },
+      }),
+      prisma.coachPayoutMethod.findMany({
+        where: {
+          coachUserId: authUserId,
+          deletedAt: null,
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      }),
+    ]);
     return buildSnapshot(
       invoices as unknown as SeedRow[],
+      withdrawals as unknown as SeedRow[],
+      payoutMethods as unknown as SeedRow[],
       authUserId,
       period,
       limit,

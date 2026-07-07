@@ -19,6 +19,10 @@ import type { GroupMessage } from '@/constants/types';
 import { styles } from './group-chat-section-styles';
 import { formatDateHeader, formatTime } from './group-chat-section-helpers';
 
+function getSenderLabel(isOwnMessage: boolean): string {
+  return isOwnMessage ? 'You' : 'Member';
+}
+
 // ─── ChatEmptyState ──────────────────────────────────────────────────────────
 
 interface ChatEmptyStateProps {
@@ -69,7 +73,7 @@ const renderMessageBubble = function renderMessageBubble({
       >
         {!isOwnMessage && (
           <ThemedText style={[styles.senderName, { color: palette.tint }]}>
-            {message.senderId || 'Member'}
+            {getSenderLabel(isOwnMessage)}
           </ThemedText>
         )}
         <View

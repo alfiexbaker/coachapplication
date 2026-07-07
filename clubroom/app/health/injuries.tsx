@@ -7,6 +7,7 @@
  */
 
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -47,7 +48,10 @@ export default function InjuryHistoryScreen() {
   const isAllFilter = c.statusFilter === 'ALL';
 
   return (
-    <View style={[styles.container, { backgroundColor: palette.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: palette.background }]}
+      edges={['top', 'bottom']}
+    >
       <Row align="center" justify="space-between" style={styles.header}>
         <Row align="center" gap="md" style={styles.headerLeft}>
           <Clickable
@@ -314,7 +318,7 @@ export default function InjuryHistoryScreen() {
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

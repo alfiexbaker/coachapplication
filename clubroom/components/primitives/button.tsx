@@ -66,6 +66,7 @@ export function Button({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      aria-label={accessibilityLabel}
       style={({ pressed }) => [
         styles.button,
         {

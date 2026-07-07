@@ -27,7 +27,11 @@ import { userService } from '@/services/user-service';
 import { createLogger } from '@/utils/logger';
 import { CelebrationOverlay, CelebrationOverlayRef } from '@/components/celebration-overlay';
 import { hasAccountChildren } from '@/utils/booking-self-capability';
-import { getBookingRelationshipContext } from '@/utils/booking-display';
+import {
+  formatServiceTypeLabel,
+  getBookingRelationshipContext,
+  safeDisplayLabel,
+} from '@/utils/booking-display';
 import type { OrganizationCommercialMode } from '@/constants/types';
 
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
@@ -144,7 +148,7 @@ export default function ConfirmationScreen() {
         setClubLabel(club.name);
         setCommercialMode(club.commercialMode ?? 'COACH_OWNED');
       } else {
-        setClubLabel(draft.clubId ?? null);
+        setClubLabel(safeDisplayLabel(draft.clubId, 'Club session'));
         setCommercialMode('COACH_OWNED');
       }
     });
@@ -164,9 +168,9 @@ export default function ConfirmationScreen() {
     void userService.getUserById(draft.assigneeCoachId).then((result) => {
       if (cancelled) return;
       if (result.success) {
-        setAssigneeLabel(result.data.name?.trim() || draft.assigneeCoachId || null);
+        setAssigneeLabel(result.data.name?.trim() || safeDisplayLabel(draft.assigneeCoachId, 'Coach'));
       } else {
-        setAssigneeLabel(draft.assigneeCoachId ?? null);
+        setAssigneeLabel(safeDisplayLabel(draft.assigneeCoachId, 'Coach'));
       }
     });
     return () => {
@@ -248,7 +252,9 @@ export default function ConfirmationScreen() {
         return;
       }
 
-      const serviceLabel = draft.sessionTypeLabel || draft.sessionType || 'Session';
+      const serviceLabel =
+        draft.sessionTypeLabel ||
+        (draft.sessionType ? formatServiceTypeLabel(draft.sessionType) : 'Session');
       const serviceType = draft.sessionType || '1-to-1';
 
       const result = await bookingService.createBooking({
@@ -389,7 +395,7 @@ export default function ConfirmationScreen() {
                 Organization{' '}
                 {relationshipContext.organizationLabel ||
                   clubLabel ||
-                  draft.clubId ||
+                  safeDisplayLabel(draft.clubId, '') ||
                   'Organization'}
               </ThemedText>
             </Row>

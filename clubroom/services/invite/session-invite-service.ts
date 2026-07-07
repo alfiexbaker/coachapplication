@@ -24,7 +24,7 @@
 
 import { apiClient } from '../api-client';
 import { api } from '@/constants/config';
-import { groupSessionService } from '@/services/group-session';
+import { sessionCrudService } from '@/services/group-session/session-crud-service';
 import type {
   SessionOffering,
   SessionInvite,
@@ -72,6 +72,66 @@ function isServiceError(value: unknown): value is ServiceError {
       }
     ).message === 'string',
   );
+}
+
+function isBlank(value: string | undefined): boolean {
+  return !value || value.trim().length === 0;
+}
+
+function isGeneratedAthleteName(value: string, index: number): boolean {
+  const trimmed = value.trim();
+  return trimmed === `Athlete ${index + 1}` || /^Athlete \d+$/.test(trimmed);
+}
+
+function validateApiCreateInviteInput(input: CreateInviteInput): Result<void, ServiceError> {
+  if (isMockMode()) {
+    return ok(undefined);
+  }
+
+  const issues: string[] = [];
+  if (isBlank(input.coachId)) issues.push('coachId is required');
+  if (isBlank(input.parentId)) issues.push('parentId is required');
+  if (input.athleteIds.length === 0 || input.athleteIds.some(isBlank)) {
+    issues.push('athleteIds must contain resolved athlete ids');
+  }
+  if (isBlank(input.coachName) || input.coachName.trim() === 'Coach') {
+    issues.push('coachName must be resolved before API invite creation');
+  }
+  if (isBlank(input.parentName) || input.parentName.trim() === 'Parent') {
+    issues.push('parentName must be resolved before API invite creation');
+  }
+  if (
+    input.athleteNames.length !== input.athleteIds.length ||
+    input.athleteNames.some((name, index) => isBlank(name) || isGeneratedAthleteName(name, index))
+  ) {
+    issues.push('athleteNames must be resolved before API invite creation');
+  }
+  if (input.proposedSlots.length === 0) {
+    issues.push('at least one proposed slot is required');
+  }
+  if (
+    input.proposedSlots.some(
+      (slot) => isBlank(slot.date) || isBlank(slot.startTime) || isBlank(slot.endTime),
+    )
+  ) {
+    issues.push('proposedSlots must include date, startTime, and endTime');
+  }
+  if (isBlank(input.sessionType)) issues.push('sessionType is required');
+  if (isBlank(input.focus) || input.focus.trim() === 'General') {
+    issues.push('focus must be resolved before API invite creation');
+  }
+
+  if (issues.length > 0) {
+    return err(
+      serviceError(
+        'VALIDATION',
+        'API invite creation requires resolved live invite context before writing /v1/invites.',
+        { issues },
+      ),
+    );
+  }
+
+  return ok(undefined);
 }
 
 // ============================================================================
@@ -320,7 +380,7 @@ async function resolveInviteLineageContext(invite: SessionInvite): Promise<Invit
 
   const linkedSessionId =
     extractGroupSessionIdFromOfferingId(invite.existingSessionId) ?? invite.existingSessionId;
-  const linkedGroupSession = await groupSessionService.getSession(linkedSessionId);
+  const linkedGroupSession = await sessionCrudService.getSession(linkedSessionId);
   if (linkedGroupSession) {
     return {
       sessionSource: 'group',
@@ -382,6 +442,11 @@ export const sessionInviteService = {
       athleteIds,
       athleteNames,
     };
+
+    const apiValidation = validateApiCreateInviteInput(input);
+    if (!apiValidation.success) {
+      return apiValidation;
+    }
 
     // Validate proposed slots are still available before creating
     if (input.proposedSlots.length > 0) {
@@ -1106,13 +1171,10 @@ export const sessionInviteService = {
     inviteId: string,
     weekAcceptances: WeekAcceptance[],
   ): Promise<Result<SessionInvite, ServiceError>> {
+    const acceptedWeeks = weekAcceptances.filter((w) => w.accepted);
+    const declinedWeeks = weekAcceptances.filter((w) => !w.accepted);
     if (!isMockMode()) {
-      return err(
-        serviceError(
-          'CONFLICT',
-          'Recurring invite partial acceptance requires backend invite authority in API mode.',
-        ),
-      );
+      return sessionInviteAuthorityService.respondToRecurringInvite(inviteId, weekAcceptances);
     }
     invitesCache = await loadFromStorage();
     const index = invitesCache.findIndex((inv) => inv.id === inviteId);
@@ -1120,8 +1182,6 @@ export const sessionInviteService = {
       return err(serviceError('NOT_FOUND', `Invite not found: ${inviteId}`));
     }
     const invite = invitesCache[index];
-    const acceptedWeeks = weekAcceptances.filter((w) => w.accepted);
-    const declinedWeeks = weekAcceptances.filter((w) => !w.accepted);
     if (acceptedWeeks.length === 0) {
       // Decline the entire invite
       return this.respondToInvite({

@@ -187,7 +187,7 @@ export const DateFilterModal = function DateFilterModal({
 
         <View style={styles.modalContent}>
           <ThemedText style={[styles.dateHint, { color: palette.muted }]}>
-            Date range filtering coming soon…
+            Choose a preset date range.
           </ThemedText>
 
           {DATE_OPTIONS.map((option) => (

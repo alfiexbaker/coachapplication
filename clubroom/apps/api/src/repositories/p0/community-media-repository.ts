@@ -12,6 +12,8 @@ const asString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
 const asBoolean = (value: unknown): boolean | undefined =>
   typeof value === 'boolean' ? value : undefined;
+const asNumber = (value: unknown): number | undefined =>
+  typeof value === 'number' ? value : undefined;
 const coerceMetadata = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -20,11 +22,21 @@ const normalizeAs = <T>(value: unknown): T => normalizeForJson(value) as unknown
 const nowIso = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 const IDEMPOTENCY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const COMMUNITY_GROUP_CREATE_ENDPOINT_KEY = 'community.group.create';
 const GROUP_MESSAGE_CREATE_ENDPOINT_KEY = 'community.group-message.create';
 const THREAD_MESSAGE_CREATE_ENDPOINT_KEY = 'community.thread-message.create';
 const POST_COMMENT_CREATE_ENDPOINT_KEY = 'community.post-comment.create';
 const POST_CREATE_ENDPOINT_KEY = 'community.post.create';
+const COMMUNITY_GROUP_INVITE_TYPE = 'community_group_invite';
+const COMMUNITY_GROUP_JOIN_REQUEST_TYPE = 'community_group_join_request';
 const STAFF_POST_ROLES = new Set(['ADMIN', 'CLUB_ADMIN', 'COACH', 'HEAD_COACH', 'OWNER', 'STAFF']);
+const GROUP_PRIVILEGED_ROLES = new Set(['OWNER', 'ADMIN']);
+const GROUP_ROLE_WEIGHT: Record<string, number> = {
+  MEMBER: 1,
+  MODERATOR: 2,
+  ADMIN: 3,
+  OWNER: 4,
+};
 interface StoreProvider {
   version: string;
   tables: SeedTables;
@@ -32,6 +44,47 @@ interface StoreProvider {
 export interface CommunityMediaAccessParams {
   authUserId: string;
   isPrivilegedAdmin: boolean;
+}
+export interface CommunityGroupCreateParams extends CommunityMediaAccessParams {
+  name: string;
+  description?: string;
+  type?: 'GENERAL' | 'CLUB' | 'SQUAD';
+  visibility?: 'PUBLIC' | 'PRIVATE';
+  clubId?: string;
+  squadId?: string;
+  memberUserIds?: string[];
+  idempotencyKey?: string;
+}
+export interface CommunityGroupMembershipParams extends CommunityMediaAccessParams {
+  communityGroupId: string;
+}
+export type CommunityGroupAssignableRole = 'ADMIN' | 'MODERATOR' | 'MEMBER';
+export interface CommunityGroupMemberAddParams extends CommunityGroupMembershipParams {
+  memberUserId: string;
+  role?: CommunityGroupAssignableRole;
+}
+export interface CommunityGroupMemberRoleUpdateParams extends CommunityGroupMembershipParams {
+  memberUserId: string;
+  role: CommunityGroupAssignableRole;
+}
+export interface CommunityGroupMemberRemoveParams extends CommunityGroupMembershipParams {
+  memberUserId: string;
+}
+export interface CommunityGroupOwnerTransferParams extends CommunityGroupMembershipParams {
+  memberUserId: string;
+}
+export interface CommunityGroupInviteCreateParams extends CommunityGroupMembershipParams {
+  inviteeUserId: string;
+  message?: string;
+}
+export interface CommunityGroupInviteMutationParams extends CommunityMediaAccessParams {
+  inviteId: string;
+}
+export interface CommunityGroupJoinRequestCreateParams extends CommunityGroupMembershipParams {
+  isCoach?: boolean;
+}
+export interface CommunityGroupJoinRequestMutationParams extends CommunityGroupMembershipParams {
+  requestId: string;
 }
 export interface PostListParams extends CommunityMediaAccessParams {
   clubId?: string;
@@ -82,8 +135,33 @@ export interface MessageDeleteParams extends CommunityMediaAccessParams {
 export interface GroupMessageReadParams extends CommunityMediaAccessParams {
   communityGroupId: string;
 }
+export interface ThreadMessageReadParams extends CommunityMediaAccessParams {
+  messageThreadId: string;
+}
 export interface CommunityGroupListResult {
   groups: SeedRow[];
+  dataVersion: string | null;
+}
+export interface CommunityGroupMutationResult {
+  group: SeedRow;
+  dataVersion: string | null;
+}
+export interface CommunityGroupInviteListResult {
+  invites: SeedRow[];
+  dataVersion: string | null;
+}
+export interface CommunityGroupInviteMutationResult {
+  invite: SeedRow;
+  group?: SeedRow;
+  dataVersion: string | null;
+}
+export interface CommunityGroupJoinRequestListResult {
+  requests: SeedRow[];
+  dataVersion: string | null;
+}
+export interface CommunityGroupJoinRequestMutationResult {
+  request: SeedRow;
+  group?: SeedRow;
   dataVersion: string | null;
 }
 export interface PostListResult {
@@ -176,6 +254,50 @@ export interface GroupMessageReadResult {
 }
 export interface CommunityMediaRepository {
   listCommunityGroups(params: CommunityMediaAccessParams): Promise<CommunityGroupListResult>;
+  createCommunityGroup(
+    params: CommunityGroupCreateParams,
+  ): Promise<CommunityGroupMutationResult>;
+  joinCommunityGroup(params: CommunityGroupMembershipParams): Promise<CommunityGroupMutationResult>;
+  leaveCommunityGroup(params: CommunityGroupMembershipParams): Promise<CommunityGroupMutationResult>;
+  addCommunityGroupMember(
+    params: CommunityGroupMemberAddParams,
+  ): Promise<CommunityGroupMutationResult>;
+  updateCommunityGroupMemberRole(
+    params: CommunityGroupMemberRoleUpdateParams,
+  ): Promise<CommunityGroupMutationResult>;
+  removeCommunityGroupMember(
+    params: CommunityGroupMemberRemoveParams,
+  ): Promise<CommunityGroupMutationResult>;
+  transferCommunityGroupOwner(
+    params: CommunityGroupOwnerTransferParams,
+  ): Promise<CommunityGroupMutationResult>;
+  archiveCommunityGroup(
+    params: CommunityGroupMembershipParams,
+  ): Promise<CommunityGroupMutationResult>;
+  createCommunityGroupInvite(
+    params: CommunityGroupInviteCreateParams,
+  ): Promise<CommunityGroupInviteMutationResult>;
+  listCommunityGroupInvites(
+    params: CommunityMediaAccessParams,
+  ): Promise<CommunityGroupInviteListResult>;
+  acceptCommunityGroupInvite(
+    params: CommunityGroupInviteMutationParams,
+  ): Promise<CommunityGroupInviteMutationResult>;
+  declineCommunityGroupInvite(
+    params: CommunityGroupInviteMutationParams,
+  ): Promise<CommunityGroupInviteMutationResult>;
+  createCommunityGroupJoinRequest(
+    params: CommunityGroupJoinRequestCreateParams,
+  ): Promise<CommunityGroupJoinRequestMutationResult>;
+  listCommunityGroupJoinRequests(
+    params: CommunityGroupMembershipParams,
+  ): Promise<CommunityGroupJoinRequestListResult>;
+  approveCommunityGroupJoinRequest(
+    params: CommunityGroupJoinRequestMutationParams,
+  ): Promise<CommunityGroupJoinRequestMutationResult>;
+  rejectCommunityGroupJoinRequest(
+    params: CommunityGroupJoinRequestMutationParams,
+  ): Promise<CommunityGroupJoinRequestMutationResult>;
   listPosts(params: PostListParams): Promise<PostListResult>;
   createPost(params: PostCreateParams): Promise<PostMutationResult>;
   togglePostReaction(params: PostReactionParams): Promise<PostReactionMutationResult>;
@@ -201,6 +323,7 @@ export interface CommunityMediaRepository {
   createThreadMessage(params: ThreadMessageCreateParams): Promise<MessageMutationResult>;
   deleteMessage(params: MessageDeleteParams): Promise<MessageMutationResult>;
   markGroupMessagesRead(params: GroupMessageReadParams): Promise<GroupMessageReadResult>;
+  markThreadMessagesRead(params: ThreadMessageReadParams): Promise<GroupMessageReadResult>;
 }
 function isActiveMembership(row: SeedRow): boolean {
   return asString(row.deletedAt) == null && asBoolean(row.active) !== false;
@@ -234,6 +357,26 @@ function readableClubIdsForUser(tables: SeedTables, authUserId: string): Set<str
       return mapped ? [mapped] : [];
     }),
   );
+}
+function uniqueStrings(values: string[] | undefined): string[] {
+  return Array.from(new Set((values ?? []).map((value) => value.trim()).filter(Boolean)));
+}
+function hashCommunityGroupCreateRequest(params: CommunityGroupCreateParams): string {
+  const type = params.type ?? (params.squadId ? 'SQUAD' : params.clubId ? 'CLUB' : 'GENERAL');
+  return crypto
+    .createHash('sha256')
+    .update(
+      JSON.stringify({
+        name: params.name.trim(),
+        description: params.description?.trim() ?? null,
+        type,
+        visibility: params.visibility ?? 'PRIVATE',
+        clubId: params.clubId ?? null,
+        squadId: params.squadId ?? null,
+        memberUserIds: uniqueStrings(params.memberUserIds).sort(),
+      }),
+    )
+    .digest('hex');
 }
 function hashGroupMessageCreateRequest(params: GroupMessageCreateParams): string {
   return crypto
@@ -312,6 +455,12 @@ function normalizeRole(value: unknown): string {
     .trim()
     .toUpperCase();
 }
+function groupRoleWeight(value: unknown): number {
+  return GROUP_ROLE_WEIGHT[normalizeRole(value)] ?? 0;
+}
+function isGroupPrivilegedRole(value: unknown): boolean {
+  return GROUP_PRIVILEGED_ROLES.has(normalizeRole(value));
+}
 function canStaffPostWithRole(value: unknown): boolean {
   return STAFF_POST_ROLES.has(normalizeRole(value));
 }
@@ -355,6 +504,169 @@ function visibleStoreClub(tables: SeedTables, clubId: string | undefined): SeedR
   }
   return activeRows(asRows(tables.clubs)).find((row) => asString(row.id) === clubId) ?? null;
 }
+function activeStoreClubMembership(
+  tables: SeedTables,
+  clubId: string,
+  userId: string,
+): SeedRow | undefined {
+  return asRows(tables.clubMemberships).find(
+    (row) =>
+      isActiveMembership(row) &&
+      asString(row.clubId) === clubId &&
+      asString(row.userId) === userId,
+  );
+}
+function activeStoreSquad(tables: SeedTables, squadId: string): SeedRow | undefined {
+  return asRows(tables.squads).find(
+    (row) => asString(row.id) === squadId && !asString(row.deletedAt),
+  );
+}
+function activeStoreSquadMembership(row: SeedRow): boolean {
+  const status = asString(row.status)?.toLowerCase();
+  return !asString(row.deletedAt) && (!status || status === 'active');
+}
+function activeStoreAthlete(tables: SeedTables, athleteId: string): SeedRow | undefined {
+  return asRows(tables.athletes).find(
+    (row) =>
+      asString(row.id) === athleteId &&
+      asString(row.status)?.toLowerCase() !== 'inactive' &&
+      !asString(row.deletedAt),
+  );
+}
+function storeUserAssignedToSquad(tables: SeedTables, squadId: string, userId: string): boolean {
+  const squad = activeStoreSquad(tables, squadId);
+  if (asString(squad?.ownerCoachUserId) === userId) {
+    return true;
+  }
+  const athleteIds = new Set(
+    asRows(tables.squadMemberships)
+      .filter((row) => asString(row.squadId) === squadId && activeStoreSquadMembership(row))
+      .map((row) => asString(row.athleteId))
+      .filter((athleteId): athleteId is string => Boolean(athleteId)),
+  );
+  for (const athleteId of athleteIds) {
+    const athlete = activeStoreAthlete(tables, athleteId);
+    if (asString(athlete?.userId) === userId) {
+      return true;
+    }
+    if (
+      asRows(tables.guardianChildLinks).some(
+        (row) =>
+          asString(row.athleteId) === athleteId &&
+          asString(row.guardianUserId) === userId &&
+          !asString(row.deletedAt),
+      )
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+function assertStoreSquadCommunityGroupUserEligible(
+  tables: SeedTables,
+  group: SeedRow,
+  userId: string,
+  userIdField: string,
+): void {
+  const squadId = asString(group.squadId);
+  if (!squadId || storeUserAssignedToSquad(tables, squadId, userId)) {
+    return;
+  }
+  throw forbidden('Squad community group members must be assigned to the squad', {
+    communityGroupId: asString(group.id),
+    squadId,
+    [userIdField]: userId,
+  });
+}
+function assertCanCreateStoreCommunityGroup(
+  tables: SeedTables,
+  params: CommunityGroupCreateParams,
+): {
+  type: 'GENERAL' | 'CLUB' | 'SQUAD';
+  clubId: string | null;
+  squadId: string | null;
+  memberUserIds: string[];
+  visibility: 'PUBLIC' | 'PRIVATE';
+} {
+  const type = params.type ?? (params.squadId ? 'SQUAD' : params.clubId ? 'CLUB' : 'GENERAL');
+  let clubId = params.clubId?.trim() || null;
+  const squadId = params.squadId?.trim() || null;
+  const visibility = params.visibility ?? 'PRIVATE';
+  const memberUserIds = uniqueStrings(params.memberUserIds).filter(
+    (userId) => userId !== params.authUserId,
+  );
+  if (type !== 'SQUAD' && squadId) {
+    throw badRequest('squadId is only supported for squad community groups');
+  }
+  if (type === 'CLUB' && !clubId) {
+    throw badRequest('clubId is required when creating a club community group');
+  }
+  if (type === 'GENERAL' && clubId) {
+    throw badRequest('General community groups cannot be club-scoped');
+  }
+  if (type === 'SQUAD') {
+    if (!squadId) {
+      throw badRequest('squadId is required when creating a squad community group');
+    }
+    if (visibility === 'PUBLIC') {
+      throw badRequest('Squad community groups cannot be public');
+    }
+    const squad = activeStoreSquad(tables, squadId);
+    if (!squad) {
+      throw notFound('Squad not found', { squadId });
+    }
+    const squadClubId = asString(squad.clubId);
+    if (!squadClubId) {
+      throw badRequest('Squad community groups require a club-linked squad', { squadId });
+    }
+    if (clubId && clubId !== squadClubId) {
+      throw badRequest('clubId must match the squad club', { clubId, squadId });
+    }
+    clubId = squadClubId;
+  }
+  if (!clubId && memberUserIds.length > 0) {
+    throw badRequest('Adding members to general groups requires the invite API');
+  }
+  if (clubId) {
+    if (!visibleStoreClub(tables, clubId)) {
+      throw notFound('Club not found', { clubId });
+    }
+    const creatorMembership = activeStoreClubMembership(tables, clubId, params.authUserId);
+    if (!params.isPrivilegedAdmin && !canStaffPostWithRole(creatorMembership?.role)) {
+      throw forbidden('Only active club staff can create club-scoped community groups', { clubId });
+    }
+    if (type === 'CLUB') {
+      const missingMemberIds = memberUserIds.filter(
+        (userId) => !activeStoreClubMembership(tables, clubId, userId),
+      );
+      if (missingMemberIds.length > 0) {
+        throw forbidden('Group members must already belong to the club', {
+          clubId,
+          userIds: missingMemberIds,
+        });
+      }
+    }
+  }
+  if (type === 'SQUAD' && squadId) {
+    const missingMemberIds = memberUserIds.filter(
+      (userId) => !storeUserAssignedToSquad(tables, squadId, userId),
+    );
+    if (missingMemberIds.length > 0) {
+      throw forbidden('Squad community group members must be assigned to the squad', {
+        clubId,
+        squadId,
+        userIds: missingMemberIds,
+      });
+    }
+  }
+  return {
+    type,
+    clubId,
+    squadId: type === 'SQUAD' ? squadId : null,
+    memberUserIds,
+    visibility,
+  };
+}
 function activeStoreCommunityGroup(
   tables: SeedTables,
   groupId: string | undefined,
@@ -365,6 +677,559 @@ function activeStoreCommunityGroup(
   return (
     activeRows(asRows(tables.communityGroups)).find((row) => asString(row.id) === groupId) ?? null
   );
+}
+function storeCommunityGroupWithMemberships(tables: SeedTables, group: SeedRow): SeedRow {
+  return {
+    ...group,
+    memberships: activeGroupMemberships(tables, asString(group.id) ?? ''),
+  };
+}
+function assertCanJoinStoreCommunityGroup(
+  tables: SeedTables,
+  params: CommunityGroupMembershipParams,
+): SeedRow {
+  const group = activeStoreCommunityGroup(tables, params.communityGroupId);
+  if (!group) {
+    throw notFound('Community group not found', {
+      communityGroupId: params.communityGroupId,
+    });
+  }
+  if (String(group.visibility ?? '').toUpperCase() !== 'PUBLIC') {
+    throw forbidden('Only public community groups can be joined directly', {
+      communityGroupId: params.communityGroupId,
+    });
+  }
+  const clubId = asString(group.clubId);
+  if (
+    clubId &&
+    !params.isPrivilegedAdmin &&
+    !activeStoreClubMembership(tables, clubId, params.authUserId)
+  ) {
+    throw forbidden('Club community groups can only be joined by active club members', {
+      clubId,
+      communityGroupId: params.communityGroupId,
+    });
+  }
+  assertStoreSquadCommunityGroupUserEligible(
+    tables,
+    group,
+    params.authUserId,
+    'userId',
+  );
+  return group;
+}
+function assertCanLeaveStoreCommunityGroup(
+  tables: SeedTables,
+  params: CommunityGroupMembershipParams,
+): { group: SeedRow; membership: SeedRow } {
+  const group = activeStoreCommunityGroup(tables, params.communityGroupId);
+  if (!group) {
+    throw notFound('Community group not found', {
+      communityGroupId: params.communityGroupId,
+    });
+  }
+  const memberships = activeGroupMemberships(tables, params.communityGroupId);
+  const membership = memberships.find((row) => asString(row.userId) === params.authUserId);
+  if (!membership) {
+    throw notFound('Community group membership not found', {
+      communityGroupId: params.communityGroupId,
+    });
+  }
+  const role = normalizeRole(membership.role);
+  const privilegedCount = memberships.filter((row) =>
+    GROUP_PRIVILEGED_ROLES.has(normalizeRole(row.role)),
+  ).length;
+  if (
+    GROUP_PRIVILEGED_ROLES.has(role) &&
+    privilegedCount === 1 &&
+    memberships.length > 1
+  ) {
+    throw badRequest('Cannot leave group as the only owner/admin. Promote another member first.', {
+      communityGroupId: params.communityGroupId,
+    });
+  }
+  return { group, membership };
+}
+function getStoreCommunityGroupMemberManagementScope(
+  tables: SeedTables,
+  params: CommunityGroupMemberRemoveParams,
+): {
+  group: SeedRow;
+  memberships: SeedRow[];
+  actorMembership: SeedRow | null;
+  targetMembership: SeedRow;
+} {
+  const group = activeStoreCommunityGroup(tables, params.communityGroupId);
+  if (!group) {
+    throw notFound('Community group not found', {
+      communityGroupId: params.communityGroupId,
+    });
+  }
+  const memberships = activeGroupMemberships(tables, params.communityGroupId);
+  const targetMembership = memberships.find((row) => asString(row.userId) === params.memberUserId);
+  if (!targetMembership) {
+    throw notFound('Community group membership not found', {
+      communityGroupId: params.communityGroupId,
+      memberUserId: params.memberUserId,
+    });
+  }
+  const actorMembership =
+    memberships.find((row) => asString(row.userId) === params.authUserId) ?? null;
+  if (!params.isPrivilegedAdmin) {
+    if (!actorMembership || !isGroupPrivilegedRole(actorMembership.role)) {
+      throw forbidden('Only community group owners and admins can manage group members', {
+        communityGroupId: params.communityGroupId,
+      });
+    }
+  }
+  return {
+    group,
+    memberships,
+    actorMembership,
+    targetMembership,
+  };
+}
+function getStoreCommunityGroupMemberAddScope(
+  tables: SeedTables,
+  params: CommunityGroupMemberAddParams,
+): {
+  group: SeedRow;
+  memberships: SeedRow[];
+  actorMembership: SeedRow | null;
+  targetUser: SeedRow;
+  existingMembership: SeedRow | null;
+  role: CommunityGroupAssignableRole;
+} {
+  const group = activeStoreCommunityGroup(tables, params.communityGroupId);
+  if (!group) {
+    throw notFound('Community group not found', {
+      communityGroupId: params.communityGroupId,
+    });
+  }
+  const targetUser = activeRows(asRows(tables.users)).find(
+    (row) => asString(row.id) === params.memberUserId,
+  );
+  if (!targetUser) {
+    throw notFound('Member user not found', {
+      memberUserId: params.memberUserId,
+    });
+  }
+  const role = normalizeRole(params.role ?? 'MEMBER');
+  if (!['ADMIN', 'MODERATOR', 'MEMBER'].includes(role)) {
+    throw badRequest('Community group role must be ADMIN, MODERATOR, or MEMBER', {
+      communityGroupId: params.communityGroupId,
+      role: params.role,
+    });
+  }
+  const memberships = activeGroupMemberships(tables, params.communityGroupId);
+  const actorMembership =
+    memberships.find((row) => asString(row.userId) === params.authUserId) ?? null;
+  if (!params.isPrivilegedAdmin) {
+    if (!actorMembership || !isGroupPrivilegedRole(actorMembership.role)) {
+      throw forbidden('Only community group owners and admins can add group members', {
+        communityGroupId: params.communityGroupId,
+      });
+    }
+    const actorRole = normalizeRole(actorMembership.role);
+    if (actorRole !== 'OWNER' && groupRoleWeight(role) >= groupRoleWeight(actorRole)) {
+      throw forbidden('Cannot add a community group member with a role equal to or higher than your own', {
+        communityGroupId: params.communityGroupId,
+        memberUserId: params.memberUserId,
+      });
+    }
+  }
+  const clubId = asString(group.clubId);
+  if (
+    clubId &&
+    !params.isPrivilegedAdmin &&
+    !activeStoreClubMembership(tables, clubId, params.memberUserId)
+  ) {
+    throw forbidden('Club community group members must already belong to the club', {
+      clubId,
+      communityGroupId: params.communityGroupId,
+      memberUserId: params.memberUserId,
+    });
+  }
+  assertStoreSquadCommunityGroupUserEligible(
+    tables,
+    group,
+    params.memberUserId,
+    'memberUserId',
+  );
+  return {
+    group,
+    memberships,
+    actorMembership,
+    targetUser,
+    existingMembership:
+      asRows(tables.communityGroupMemberships).find(
+        (row) =>
+          asString(row.communityGroupId) === params.communityGroupId &&
+          asString(row.userId) === params.memberUserId,
+      ) ?? null,
+    role: role as CommunityGroupAssignableRole,
+  };
+}
+function assertCanUpdateStoreCommunityGroupMemberRole(
+  params: CommunityGroupMemberRoleUpdateParams,
+  scope: {
+    memberships: SeedRow[];
+    actorMembership: SeedRow | null;
+    targetMembership: SeedRow;
+  },
+): void {
+  if (params.memberUserId === params.authUserId) {
+    throw forbidden('Cannot change your own community group role', {
+      communityGroupId: params.communityGroupId,
+      memberUserId: params.memberUserId,
+    });
+  }
+  const nextRole = normalizeRole(params.role);
+  if (!['ADMIN', 'MODERATOR', 'MEMBER'].includes(nextRole)) {
+    throw badRequest('Community group role must be ADMIN, MODERATOR, or MEMBER', {
+      communityGroupId: params.communityGroupId,
+      role: params.role,
+    });
+  }
+  if (!params.isPrivilegedAdmin) {
+    const actorRole = normalizeRole(scope.actorMembership?.role);
+    const targetRole = normalizeRole(scope.targetMembership.role);
+    if (groupRoleWeight(actorRole) < groupRoleWeight(targetRole)) {
+      throw forbidden('Cannot change the role of a higher-ranked community group member', {
+        communityGroupId: params.communityGroupId,
+        memberUserId: params.memberUserId,
+      });
+    }
+    if (actorRole !== 'OWNER' && groupRoleWeight(nextRole) >= groupRoleWeight(actorRole)) {
+      throw forbidden('Cannot assign a community group role equal to or higher than your own', {
+        communityGroupId: params.communityGroupId,
+        memberUserId: params.memberUserId,
+      });
+    }
+  }
+  const targetRole = normalizeRole(scope.targetMembership.role);
+  const privilegedCount = scope.memberships.filter((row) => isGroupPrivilegedRole(row.role)).length;
+  if (isGroupPrivilegedRole(targetRole) && !isGroupPrivilegedRole(nextRole) && privilegedCount === 1) {
+    throw badRequest('Cannot demote the only community group owner/admin. Promote another member first.', {
+      communityGroupId: params.communityGroupId,
+    });
+  }
+}
+function assertCanRemoveStoreCommunityGroupMember(
+  params: CommunityGroupMemberRemoveParams,
+  scope: {
+    memberships: SeedRow[];
+    actorMembership: SeedRow | null;
+    targetMembership: SeedRow;
+  },
+): void {
+  if (params.memberUserId === params.authUserId) {
+    throw forbidden('Use the leave endpoint to remove your own community group membership', {
+      communityGroupId: params.communityGroupId,
+      memberUserId: params.memberUserId,
+    });
+  }
+  if (!params.isPrivilegedAdmin) {
+    const actorRole = normalizeRole(scope.actorMembership?.role);
+    const targetRole = normalizeRole(scope.targetMembership.role);
+    if (actorRole !== 'OWNER' && groupRoleWeight(actorRole) <= groupRoleWeight(targetRole)) {
+      throw forbidden('Cannot remove a same-ranked or higher-ranked community group member', {
+        communityGroupId: params.communityGroupId,
+        memberUserId: params.memberUserId,
+      });
+    }
+  }
+  const privilegedCount = scope.memberships.filter((row) => isGroupPrivilegedRole(row.role)).length;
+  if (isGroupPrivilegedRole(scope.targetMembership.role) && privilegedCount === 1) {
+    throw badRequest('Cannot remove the only community group owner/admin. Promote another member first.', {
+      communityGroupId: params.communityGroupId,
+    });
+  }
+  if (scope.memberships.length === 1) {
+    throw badRequest('Cannot remove the only community group member. Archive the group instead.', {
+      communityGroupId: params.communityGroupId,
+    });
+  }
+}
+function assertCanTransferStoreCommunityGroupOwner(
+  params: CommunityGroupOwnerTransferParams,
+  scope: {
+    actorMembership: SeedRow | null;
+    targetMembership: SeedRow;
+  },
+): void {
+  if (params.memberUserId === params.authUserId) {
+    throw badRequest('Cannot transfer community group ownership to yourself', {
+      communityGroupId: params.communityGroupId,
+      memberUserId: params.memberUserId,
+    });
+  }
+  if (!params.isPrivilegedAdmin && normalizeRole(scope.actorMembership?.role) !== 'OWNER') {
+    throw forbidden('Only the community group owner can transfer ownership', {
+      communityGroupId: params.communityGroupId,
+    });
+  }
+  if (normalizeRole(scope.targetMembership.role) === 'OWNER') {
+    throw conflict('Target member is already the community group owner', {
+      communityGroupId: params.communityGroupId,
+      memberUserId: params.memberUserId,
+    });
+  }
+}
+function assertCanArchiveStoreCommunityGroup(
+  tables: SeedTables,
+  params: CommunityGroupMembershipParams,
+): { group: SeedRow; memberships: SeedRow[] } {
+  const group = activeStoreCommunityGroup(tables, params.communityGroupId);
+  if (!group) {
+    throw notFound('Community group not found', {
+      communityGroupId: params.communityGroupId,
+    });
+  }
+  const memberships = activeGroupMemberships(tables, params.communityGroupId);
+  const actorMembership = memberships.find((row) => asString(row.userId) === params.authUserId);
+  if (!params.isPrivilegedAdmin && normalizeRole(actorMembership?.role) !== 'OWNER') {
+    throw forbidden('Only community group owners can archive groups', {
+      communityGroupId: params.communityGroupId,
+    });
+  }
+  return {
+    group,
+    memberships,
+  };
+}
+function communityGroupIdForInvite(invite: SeedRow): string | undefined {
+  return asString(invite.communityGroupId) ?? asString(coerceMetadata(invite.metadataJson).communityGroupId);
+}
+function storeUserName(tables: SeedTables, userId: string | undefined): string | undefined {
+  if (!userId) {
+    return undefined;
+  }
+  const user = activeRows(asRows(tables.users)).find((row) => asString(row.id) === userId);
+  return asString(user?.name) ?? asString(user?.fullName) ?? asString(user?.email) ?? userId;
+}
+function communityGroupInviteView(tables: SeedTables, invite: SeedRow, target: SeedRow): SeedRow {
+  const groupId = communityGroupIdForInvite(invite);
+  const group = activeStoreCommunityGroup(tables, groupId);
+  const inviterId = asString(invite.senderUserId);
+  const inviteeId = asString(target.targetUserId);
+  return {
+    id: invite.id,
+    groupId,
+    groupName: asString(group?.name) ?? asString(coerceMetadata(invite.metadataJson).groupName) ?? 'Community group',
+    inviterId,
+    inviterName: storeUserName(tables, inviterId) ?? inviterId,
+    inviteeId,
+    inviteeName: storeUserName(tables, inviteeId) ?? inviteeId,
+    status: normalizeRole(target.status || invite.status || 'PENDING'),
+    createdAt: invite.createdAt,
+    respondedAt: target.respondedAt,
+  };
+}
+function communityGroupJoinRequestView(tables: SeedTables, request: SeedRow): SeedRow {
+  const groupId = communityGroupIdForInvite(request);
+  const group = activeStoreCommunityGroup(tables, groupId);
+  const requesterId = asString(request.senderUserId);
+  const metadata = coerceMetadata(request.metadataJson);
+  const status = normalizeRole(request.status || 'PENDING');
+  return {
+    id: request.id,
+    groupId,
+    groupName:
+      asString(group?.name) ?? asString(metadata.groupName) ?? 'Community group',
+    requesterId,
+    requesterName:
+      storeUserName(tables, requesterId) ?? asString(metadata.requesterName) ?? requesterId,
+    requestedRole: 'MEMBER',
+    isCoach: asBoolean(metadata.isCoach) ?? false,
+    status,
+    createdAt: request.createdAt,
+    respondedAt: status === 'PENDING' ? null : request.updatedAt,
+  };
+}
+function findPendingStoreCommunityGroupInvite(
+  tables: SeedTables,
+  communityGroupId: string,
+  inviteeUserId: string,
+): { invite: SeedRow; target: SeedRow } | null {
+  const targets = asRows(tables.inviteTargets);
+  for (const invite of asRows(tables.invites)) {
+    if (
+      asString(invite.inviteType) !== COMMUNITY_GROUP_INVITE_TYPE ||
+      normalizeRole(invite.status) !== 'PENDING' ||
+      communityGroupIdForInvite(invite) !== communityGroupId
+    ) {
+      continue;
+    }
+    const target = targets.find(
+      (row) =>
+        asString(row.inviteId) === asString(invite.id) &&
+        asString(row.targetUserId) === inviteeUserId &&
+        normalizeRole(row.status) === 'PENDING',
+    );
+    if (target) {
+      return { invite, target };
+    }
+  }
+  return null;
+}
+function findPendingStoreCommunityGroupJoinRequest(
+  tables: SeedTables,
+  communityGroupId: string,
+  requesterUserId: string,
+): SeedRow | null {
+  return (
+    asRows(tables.invites).find(
+      (request) =>
+        asString(request.inviteType) === COMMUNITY_GROUP_JOIN_REQUEST_TYPE &&
+        normalizeRole(request.status) === 'PENDING' &&
+        asString(request.senderUserId) === requesterUserId &&
+        communityGroupIdForInvite(request) === communityGroupId,
+    ) ?? null
+  );
+}
+function findStoreCommunityGroupInviteForUser(
+  tables: SeedTables,
+  inviteId: string,
+  authUserId: string,
+): { invite: SeedRow; target: SeedRow } | null {
+  const invite = asRows(tables.invites).find(
+    (row) =>
+      asString(row.id) === inviteId &&
+      asString(row.inviteType) === COMMUNITY_GROUP_INVITE_TYPE &&
+      normalizeRole(row.status) === 'PENDING',
+  );
+  if (!invite) {
+    return null;
+  }
+  const target = asRows(tables.inviteTargets).find(
+    (row) =>
+      asString(row.inviteId) === inviteId &&
+      asString(row.targetUserId) === authUserId &&
+      normalizeRole(row.status) === 'PENDING',
+  );
+  return target ? { invite, target } : null;
+}
+function assertCanCreateStoreCommunityGroupInvite(
+  tables: SeedTables,
+  params: CommunityGroupInviteCreateParams,
+): { group: SeedRow; invitee: SeedRow } {
+  const group = activeStoreCommunityGroup(tables, params.communityGroupId);
+  if (!group) {
+    throw notFound('Community group not found', {
+      communityGroupId: params.communityGroupId,
+    });
+  }
+  const memberships = activeGroupMemberships(tables, params.communityGroupId);
+  const actorMembership = memberships.find((row) => asString(row.userId) === params.authUserId);
+  if (!params.isPrivilegedAdmin && !isGroupPrivilegedRole(actorMembership?.role)) {
+    throw forbidden('Only community group owners and admins can invite members', {
+      communityGroupId: params.communityGroupId,
+    });
+  }
+  if (memberships.some((row) => asString(row.userId) === params.inviteeUserId)) {
+    throw conflict('Invitee is already a community group member', {
+      communityGroupId: params.communityGroupId,
+      inviteeUserId: params.inviteeUserId,
+    });
+  }
+  const invitee = activeRows(asRows(tables.users)).find((row) => asString(row.id) === params.inviteeUserId);
+  if (!invitee) {
+    throw notFound('Invitee user not found', {
+      inviteeUserId: params.inviteeUserId,
+    });
+  }
+  const clubId = asString(group.clubId);
+  if (
+    clubId &&
+    !params.isPrivilegedAdmin &&
+    !activeStoreClubMembership(tables, clubId, params.inviteeUserId)
+  ) {
+    throw forbidden('Club community group invitees must already belong to the club', {
+      clubId,
+      communityGroupId: params.communityGroupId,
+      inviteeUserId: params.inviteeUserId,
+    });
+  }
+  assertStoreSquadCommunityGroupUserEligible(
+    tables,
+    group,
+    params.inviteeUserId,
+    'inviteeUserId',
+  );
+  if (findPendingStoreCommunityGroupInvite(tables, params.communityGroupId, params.inviteeUserId)) {
+    throw conflict('Community group invite is already pending', {
+      communityGroupId: params.communityGroupId,
+      inviteeUserId: params.inviteeUserId,
+    });
+  }
+  return { group, invitee };
+}
+function assertCanCreateStoreCommunityGroupJoinRequest(
+  tables: SeedTables,
+  params: CommunityGroupJoinRequestCreateParams,
+): { group: SeedRow; requester: SeedRow } {
+  const group = activeStoreCommunityGroup(tables, params.communityGroupId);
+  if (!group) {
+    throw notFound('Community group not found', {
+      communityGroupId: params.communityGroupId,
+    });
+  }
+  const requester = activeRows(asRows(tables.users)).find(
+    (row) => asString(row.id) === params.authUserId,
+  );
+  if (!requester) {
+    throw forbidden('Authenticated user is not a known Clubroom user');
+  }
+  const memberships = activeGroupMemberships(tables, params.communityGroupId);
+  if (memberships.some((row) => asString(row.userId) === params.authUserId)) {
+    throw conflict('Authenticated user is already a community group member', {
+      communityGroupId: params.communityGroupId,
+    });
+  }
+  const clubId = asString(group.clubId);
+  if (
+    clubId &&
+    !params.isPrivilegedAdmin &&
+    !activeStoreClubMembership(tables, clubId, params.authUserId)
+  ) {
+    throw forbidden('Club community group requests require active club membership', {
+      clubId,
+      communityGroupId: params.communityGroupId,
+    });
+  }
+  assertStoreSquadCommunityGroupUserEligible(
+    tables,
+    group,
+    params.authUserId,
+    'userId',
+  );
+  if (findPendingStoreCommunityGroupJoinRequest(tables, params.communityGroupId, params.authUserId)) {
+    throw conflict('Community group join request is already pending', {
+      communityGroupId: params.communityGroupId,
+    });
+  }
+  return { group, requester };
+}
+function assertCanManageStoreCommunityGroupJoinRequests(
+  tables: SeedTables,
+  params: CommunityGroupMembershipParams,
+): SeedRow {
+  const group = activeStoreCommunityGroup(tables, params.communityGroupId);
+  if (!group) {
+    throw notFound('Community group not found', {
+      communityGroupId: params.communityGroupId,
+    });
+  }
+  const actorMembership = activeGroupMemberships(tables, params.communityGroupId).find(
+    (row) => asString(row.userId) === params.authUserId,
+  );
+  if (!params.isPrivilegedAdmin && !isGroupPrivilegedRole(actorMembership?.role)) {
+    throw forbidden('Only community group owners and admins can manage join requests', {
+      communityGroupId: params.communityGroupId,
+    });
+  }
+  return group;
 }
 function assertCanCreateStorePost(
   tables: SeedTables,
@@ -1067,18 +1932,724 @@ function recordSeedPostCommentCreateIdempotency(params: {
 }
 class StoreCommunityMediaRepository implements CommunityMediaRepository {
   constructor(private readonly storeProvider: () => StoreProvider) {}
+  async createCommunityGroup(
+    params: CommunityGroupCreateParams,
+  ): Promise<CommunityGroupMutationResult> {
+    const store = this.storeProvider();
+    const scope = assertCanCreateStoreCommunityGroup(store.tables, params);
+    const requestHash = hashCommunityGroupCreateRequest(params);
+    if (params.idempotencyKey) {
+      const existing = asRows(store.tables.idempotencyKeys).find(
+        (row) =>
+          asString(row.userId) === params.authUserId &&
+          asString(row.endpointKey) === COMMUNITY_GROUP_CREATE_ENDPOINT_KEY &&
+          asString(row.idempotencyKey) === params.idempotencyKey,
+      );
+      if (existing) {
+        assertMatchingIdempotencyRequest(
+          existing,
+          requestHash,
+          'Idempotency key was already used with a different community group payload',
+        );
+        return normalizeAs<CommunityGroupMutationResult>(existing.responseBodyJson);
+      }
+    }
+    if (scope.type === 'SQUAD' && scope.squadId) {
+      const existingGroup = activeRows(asRows(store.tables.communityGroups)).find(
+        (row) => asString(row.squadId) === scope.squadId,
+      );
+      if (existingGroup) {
+        return {
+          group: storeCommunityGroupWithMemberships(store.tables, existingGroup),
+          dataVersion: store.version,
+        };
+      }
+    }
+    const name = params.name.trim();
+    if (!name) {
+      throw badRequest('Community group name cannot be empty');
+    }
+    if (name.length > 120) {
+      throw badRequest('Community group name must be 120 characters or fewer');
+    }
+    const now = nowIso();
+    const groupId = newId('cgrp');
+    const membershipUserIds = [params.authUserId, ...scope.memberUserIds];
+    const memberships = membershipUserIds.map((userId, index): SeedRow => ({
+      id: newId('cgm'),
+      communityGroupId: groupId,
+      userId,
+      role: index === 0 ? 'OWNER' : 'MEMBER',
+      active: true,
+      createdByUserId: params.authUserId,
+      updatedByUserId: params.authUserId,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      joinedAt: now,
+    }));
+    const group: SeedRow = {
+      id: groupId,
+      groupType: scope.type,
+      clubId: scope.clubId,
+      squadId: scope.squadId,
+      ownerUserId: params.authUserId,
+      name,
+      description: params.description?.trim() || null,
+      visibility: scope.visibility,
+      createdByUserId: params.authUserId,
+      updatedByUserId: params.authUserId,
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      deletedByUserId: null,
+      memberships,
+    };
+    ensureRows(store.tables, 'communityGroups').push(group);
+    ensureRows(store.tables, 'communityGroupMemberships').push(...memberships);
+    const response: CommunityGroupMutationResult = {
+      group,
+      dataVersion: store.version,
+    };
+    if (params.idempotencyKey) {
+      ensureRows(store.tables, 'idempotencyKeys').push({
+        id: newId('idk'),
+        userId: params.authUserId,
+        endpointKey: COMMUNITY_GROUP_CREATE_ENDPOINT_KEY,
+        idempotencyKey: params.idempotencyKey,
+        requestHash,
+        responseStatus: 201,
+        responseBodyJson: response,
+        createdAt: now,
+        expiresAt: new Date(Date.parse(now) + IDEMPOTENCY_TTL_MS).toISOString(),
+      });
+    }
+    return response;
+  }
+  async joinCommunityGroup(
+    params: CommunityGroupMembershipParams,
+  ): Promise<CommunityGroupMutationResult> {
+    const store = this.storeProvider();
+    const group = assertCanJoinStoreCommunityGroup(store.tables, params);
+    const memberships = ensureRows(store.tables, 'communityGroupMemberships');
+    const activeMembership = memberships.find(
+      (row) =>
+        isActiveMembership(row) &&
+        asString(row.communityGroupId) === params.communityGroupId &&
+        asString(row.userId) === params.authUserId,
+    );
+    if (activeMembership) {
+      throw conflict('Authenticated user is already a community group member', {
+        communityGroupId: params.communityGroupId,
+      });
+    }
+    const now = nowIso();
+    const existingMembership = memberships.find(
+      (row) =>
+        asString(row.communityGroupId) === params.communityGroupId &&
+        asString(row.userId) === params.authUserId,
+    );
+    if (existingMembership) {
+      existingMembership.role = 'MEMBER';
+      existingMembership.active = true;
+      existingMembership.deletedAt = null;
+      existingMembership.updatedAt = now;
+      existingMembership.updatedByUserId = params.authUserId;
+      existingMembership.version = (asNumber(existingMembership.version) ?? 1) + 1;
+    } else {
+      memberships.push({
+        id: newId('cgm'),
+        communityGroupId: params.communityGroupId,
+        userId: params.authUserId,
+        role: 'MEMBER',
+        active: true,
+        createdByUserId: params.authUserId,
+        updatedByUserId: params.authUserId,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+        joinedAt: now,
+      });
+    }
+    group.updatedAt = now;
+    group.updatedByUserId = params.authUserId;
+    group.version = (asNumber(group.version) ?? 1) + 1;
+    return {
+      group: storeCommunityGroupWithMemberships(store.tables, group),
+      dataVersion: store.version,
+    };
+  }
+  async leaveCommunityGroup(
+    params: CommunityGroupMembershipParams,
+  ): Promise<CommunityGroupMutationResult> {
+    const store = this.storeProvider();
+    const { group, membership } = assertCanLeaveStoreCommunityGroup(store.tables, params);
+    const now = nowIso();
+    membership.active = false;
+    membership.deletedAt = now;
+    membership.updatedAt = now;
+    membership.updatedByUserId = params.authUserId;
+    membership.version = (asNumber(membership.version) ?? 1) + 1;
+    group.updatedAt = now;
+    group.updatedByUserId = params.authUserId;
+    group.version = (asNumber(group.version) ?? 1) + 1;
+    return {
+      group: storeCommunityGroupWithMemberships(store.tables, group),
+      dataVersion: store.version,
+    };
+  }
+  async addCommunityGroupMember(
+    params: CommunityGroupMemberAddParams,
+  ): Promise<CommunityGroupMutationResult> {
+    const store = this.storeProvider();
+    const scope = getStoreCommunityGroupMemberAddScope(store.tables, params);
+    if (
+      scope.existingMembership &&
+      isActiveMembership(scope.existingMembership)
+    ) {
+      return {
+        group: storeCommunityGroupWithMemberships(store.tables, scope.group),
+        dataVersion: store.version,
+      };
+    }
+    const now = nowIso();
+    if (scope.existingMembership) {
+      scope.existingMembership.role = scope.role;
+      scope.existingMembership.active = true;
+      scope.existingMembership.deletedAt = null;
+      scope.existingMembership.updatedAt = now;
+      scope.existingMembership.updatedByUserId = params.authUserId;
+      scope.existingMembership.version = (asNumber(scope.existingMembership.version) ?? 1) + 1;
+    } else {
+      ensureRows(store.tables, 'communityGroupMemberships').push({
+        id: newId('cgm'),
+        communityGroupId: params.communityGroupId,
+        userId: params.memberUserId,
+        role: scope.role,
+        active: true,
+        createdByUserId: params.authUserId,
+        updatedByUserId: params.authUserId,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+        joinedAt: now,
+      });
+    }
+    scope.group.updatedAt = now;
+    scope.group.updatedByUserId = params.authUserId;
+    scope.group.version = (asNumber(scope.group.version) ?? 1) + 1;
+    return {
+      group: storeCommunityGroupWithMemberships(store.tables, scope.group),
+      dataVersion: store.version,
+    };
+  }
+  async updateCommunityGroupMemberRole(
+    params: CommunityGroupMemberRoleUpdateParams,
+  ): Promise<CommunityGroupMutationResult> {
+    const store = this.storeProvider();
+    const scope = getStoreCommunityGroupMemberManagementScope(store.tables, params);
+    assertCanUpdateStoreCommunityGroupMemberRole(params, scope);
+    const now = nowIso();
+    const previousRole = normalizeRole(scope.targetMembership.role);
+    const nextRole = normalizeRole(params.role);
+    if (previousRole !== nextRole) {
+      scope.targetMembership.role = nextRole;
+      scope.targetMembership.updatedAt = now;
+      scope.targetMembership.updatedByUserId = params.authUserId;
+      scope.targetMembership.version = (asNumber(scope.targetMembership.version) ?? 1) + 1;
+      scope.group.updatedAt = now;
+      scope.group.updatedByUserId = params.authUserId;
+      scope.group.version = (asNumber(scope.group.version) ?? 1) + 1;
+    }
+    return {
+      group: storeCommunityGroupWithMemberships(store.tables, scope.group),
+      dataVersion: store.version,
+    };
+  }
+  async removeCommunityGroupMember(
+    params: CommunityGroupMemberRemoveParams,
+  ): Promise<CommunityGroupMutationResult> {
+    const store = this.storeProvider();
+    const scope = getStoreCommunityGroupMemberManagementScope(store.tables, params);
+    assertCanRemoveStoreCommunityGroupMember(params, scope);
+    const now = nowIso();
+    scope.targetMembership.active = false;
+    scope.targetMembership.deletedAt = now;
+    scope.targetMembership.updatedAt = now;
+    scope.targetMembership.updatedByUserId = params.authUserId;
+    scope.targetMembership.version = (asNumber(scope.targetMembership.version) ?? 1) + 1;
+    scope.group.updatedAt = now;
+    scope.group.updatedByUserId = params.authUserId;
+    scope.group.version = (asNumber(scope.group.version) ?? 1) + 1;
+    return {
+      group: storeCommunityGroupWithMemberships(store.tables, scope.group),
+      dataVersion: store.version,
+    };
+  }
+  async transferCommunityGroupOwner(
+    params: CommunityGroupOwnerTransferParams,
+  ): Promise<CommunityGroupMutationResult> {
+    const store = this.storeProvider();
+    const scope = getStoreCommunityGroupMemberManagementScope(store.tables, params);
+    assertCanTransferStoreCommunityGroupOwner(params, scope);
+    const now = nowIso();
+    for (const membership of scope.memberships) {
+      const userId = asString(membership.userId);
+      const currentRole = normalizeRole(membership.role);
+      const nextRole =
+        userId === params.memberUserId ? 'OWNER' : currentRole === 'OWNER' ? 'ADMIN' : currentRole;
+      if (normalizeRole(membership.role) !== nextRole) {
+        membership.role = nextRole;
+        membership.updatedAt = now;
+        membership.updatedByUserId = params.authUserId;
+        membership.version = (asNumber(membership.version) ?? 1) + 1;
+      }
+    }
+    scope.group.ownerUserId = params.memberUserId;
+    scope.group.updatedAt = now;
+    scope.group.updatedByUserId = params.authUserId;
+    scope.group.version = (asNumber(scope.group.version) ?? 1) + 1;
+    return {
+      group: storeCommunityGroupWithMemberships(store.tables, scope.group),
+      dataVersion: store.version,
+    };
+  }
+  async archiveCommunityGroup(
+    params: CommunityGroupMembershipParams,
+  ): Promise<CommunityGroupMutationResult> {
+    const store = this.storeProvider();
+    const scope = assertCanArchiveStoreCommunityGroup(store.tables, params);
+    const now = nowIso();
+    scope.group.deletedAt = now;
+    scope.group.deletedByUserId = params.authUserId;
+    scope.group.updatedAt = now;
+    scope.group.updatedByUserId = params.authUserId;
+    scope.group.version = (asNumber(scope.group.version) ?? 1) + 1;
+    for (const membership of scope.memberships) {
+      membership.active = false;
+      membership.deletedAt = now;
+      membership.updatedAt = now;
+      membership.updatedByUserId = params.authUserId;
+      membership.version = (asNumber(membership.version) ?? 1) + 1;
+    }
+    return {
+      group: storeCommunityGroupWithMemberships(store.tables, scope.group),
+      dataVersion: store.version,
+    };
+  }
+  async createCommunityGroupInvite(
+    params: CommunityGroupInviteCreateParams,
+  ): Promise<CommunityGroupInviteMutationResult> {
+    const store = this.storeProvider();
+    const scope = assertCanCreateStoreCommunityGroupInvite(store.tables, params);
+    const now = nowIso();
+    const invite: SeedRow = {
+      id: newId('cgi'),
+      inviteType: COMMUNITY_GROUP_INVITE_TYPE,
+      senderUserId: params.authUserId,
+      clubId: asString(scope.group.clubId) ?? null,
+      status: 'PENDING',
+      message: params.message?.trim() || null,
+      metadataJson: {
+        communityGroupId: params.communityGroupId,
+        groupName: asString(scope.group.name) ?? 'Community group',
+      },
+      createdAt: now,
+      updatedAt: now,
+      revokedAt: null,
+    };
+    const target: SeedRow = {
+      id: newId('cgit'),
+      inviteId: invite.id,
+      targetUserId: params.inviteeUserId,
+      status: 'PENDING',
+      createdAt: now,
+      updatedAt: now,
+      respondedAt: null,
+    };
+    ensureRows(store.tables, 'invites').push(invite);
+    ensureRows(store.tables, 'inviteTargets').push(target);
+    ensureRows(store.tables, 'notifications').push({
+      id: newId('ntf'),
+      userId: params.inviteeUserId,
+      type: 'COMMUNITY_GROUP_INVITE',
+      title: 'Group invite',
+      body: `${storeUserName(store.tables, params.authUserId) ?? 'A member'} invited you to join ${
+        asString(scope.group.name) ?? 'a community group'
+      }`,
+      status: 'UNREAD',
+      sourceType: 'community_group_invite',
+      sourceId: invite.id,
+      deepLink: `/community/invites/${invite.id}`,
+      metadataJson: {
+        communityGroupId: params.communityGroupId,
+      },
+      createdAt: now,
+      updatedAt: now,
+      readAt: null,
+      dismissedAt: null,
+    });
+    return {
+      invite: communityGroupInviteView(store.tables, invite, target),
+      dataVersion: store.version,
+    };
+  }
+  async listCommunityGroupInvites(
+    params: CommunityMediaAccessParams,
+  ): Promise<CommunityGroupInviteListResult> {
+    const store = this.storeProvider();
+    const invitesById = new Map(
+      asRows(store.tables.invites).map((invite) => [asString(invite.id), invite] as const),
+    );
+    return {
+      invites: asRows(store.tables.inviteTargets).flatMap((target): SeedRow[] => {
+        const invite = invitesById.get(asString(target.inviteId));
+        if (
+          !invite ||
+          asString(target.targetUserId) !== params.authUserId ||
+          asString(invite.inviteType) !== COMMUNITY_GROUP_INVITE_TYPE ||
+          normalizeRole(invite.status) !== 'PENDING' ||
+          normalizeRole(target.status) !== 'PENDING' ||
+          !activeStoreCommunityGroup(store.tables, communityGroupIdForInvite(invite))
+        ) {
+          return [];
+        }
+        return [communityGroupInviteView(store.tables, invite, target)];
+      }),
+      dataVersion: store.version,
+    };
+  }
+  async acceptCommunityGroupInvite(
+    params: CommunityGroupInviteMutationParams,
+  ): Promise<CommunityGroupInviteMutationResult> {
+    const store = this.storeProvider();
+    const scope = findStoreCommunityGroupInviteForUser(store.tables, params.inviteId, params.authUserId);
+    if (!scope) {
+      throw notFound('Community group invite not found', {
+        inviteId: params.inviteId,
+      });
+    }
+    const communityGroupId = communityGroupIdForInvite(scope.invite);
+    const group = activeStoreCommunityGroup(store.tables, communityGroupId);
+    if (!group || !communityGroupId) {
+      throw notFound('Community group not found', {
+        inviteId: params.inviteId,
+      });
+    }
+    if (activeGroupMemberships(store.tables, communityGroupId).some((row) => asString(row.userId) === params.authUserId)) {
+      throw conflict('Invitee is already a community group member', {
+        communityGroupId,
+      });
+    }
+    assertStoreSquadCommunityGroupUserEligible(
+      store.tables,
+      group,
+      params.authUserId,
+      'userId',
+    );
+    const now = nowIso();
+    scope.invite.status = 'ACCEPTED';
+    scope.invite.updatedAt = now;
+    scope.target.status = 'ACCEPTED';
+    scope.target.respondedAt = now;
+    scope.target.updatedAt = now;
+    const memberships = ensureRows(store.tables, 'communityGroupMemberships');
+    const existingMembership = memberships.find(
+      (row) => asString(row.communityGroupId) === communityGroupId && asString(row.userId) === params.authUserId,
+    );
+    if (existingMembership) {
+      existingMembership.role = 'MEMBER';
+      existingMembership.active = true;
+      existingMembership.deletedAt = null;
+      existingMembership.updatedAt = now;
+      existingMembership.updatedByUserId = params.authUserId;
+      existingMembership.version = (asNumber(existingMembership.version) ?? 1) + 1;
+    } else {
+      memberships.push({
+        id: newId('cgm'),
+        communityGroupId,
+        userId: params.authUserId,
+        role: 'MEMBER',
+        active: true,
+        createdByUserId: params.authUserId,
+        updatedByUserId: params.authUserId,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+        joinedAt: now,
+      });
+    }
+    group.updatedAt = now;
+    group.updatedByUserId = params.authUserId;
+    group.version = (asNumber(group.version) ?? 1) + 1;
+    return {
+      invite: communityGroupInviteView(store.tables, scope.invite, scope.target),
+      group: storeCommunityGroupWithMemberships(store.tables, group),
+      dataVersion: store.version,
+    };
+  }
+  async declineCommunityGroupInvite(
+    params: CommunityGroupInviteMutationParams,
+  ): Promise<CommunityGroupInviteMutationResult> {
+    const store = this.storeProvider();
+    const scope = findStoreCommunityGroupInviteForUser(store.tables, params.inviteId, params.authUserId);
+    if (!scope) {
+      throw notFound('Community group invite not found', {
+        inviteId: params.inviteId,
+      });
+    }
+    const now = nowIso();
+    scope.invite.status = 'DECLINED';
+    scope.invite.updatedAt = now;
+    scope.target.status = 'DECLINED';
+    scope.target.respondedAt = now;
+    scope.target.updatedAt = now;
+    return {
+      invite: communityGroupInviteView(store.tables, scope.invite, scope.target),
+      dataVersion: store.version,
+    };
+  }
+  async createCommunityGroupJoinRequest(
+    params: CommunityGroupJoinRequestCreateParams,
+  ): Promise<CommunityGroupJoinRequestMutationResult> {
+    const store = this.storeProvider();
+    const scope = assertCanCreateStoreCommunityGroupJoinRequest(store.tables, params);
+    const now = nowIso();
+    const request: SeedRow = {
+      id: newId('cgjr'),
+      inviteType: COMMUNITY_GROUP_JOIN_REQUEST_TYPE,
+      senderUserId: params.authUserId,
+      clubId: asString(scope.group.clubId) ?? null,
+      status: 'PENDING',
+      message: null,
+      metadataJson: {
+        communityGroupId: params.communityGroupId,
+        groupName: asString(scope.group.name) ?? 'Community group',
+        requesterName: storeUserName(store.tables, params.authUserId) ?? params.authUserId,
+        requestedRole: 'MEMBER',
+        isCoach: params.isCoach ?? false,
+      },
+      createdAt: now,
+      updatedAt: now,
+      revokedAt: null,
+    };
+    ensureRows(store.tables, 'invites').push(request);
+    const managerIds = activeGroupMemberships(store.tables, params.communityGroupId)
+      .filter((membership) => isGroupPrivilegedRole(membership.role))
+      .flatMap((membership): string[] => {
+        const userId = asString(membership.userId);
+        return userId && userId !== params.authUserId ? [userId] : [];
+      });
+    ensureRows(store.tables, 'notifications').push(
+      ...managerIds.map((userId): SeedRow => ({
+        id: newId('ntf'),
+        userId,
+        type: 'COMMUNITY_GROUP_JOIN_REQUEST',
+        title: 'Group join request',
+        body: `${storeUserName(store.tables, params.authUserId) ?? 'A member'} wants to join ${
+          asString(scope.group.name) ?? 'a community group'
+        }`,
+        status: 'UNREAD',
+        sourceType: 'community_group_join_request',
+        sourceId: request.id,
+        deepLink: `/community/groups/${params.communityGroupId}/join-requests`,
+        metadataJson: {
+          communityGroupId: params.communityGroupId,
+        },
+        createdAt: now,
+        updatedAt: now,
+        readAt: null,
+        dismissedAt: null,
+      })),
+    );
+    return {
+      request: communityGroupJoinRequestView(store.tables, request),
+      dataVersion: store.version,
+    };
+  }
+  async listCommunityGroupJoinRequests(
+    params: CommunityGroupMembershipParams,
+  ): Promise<CommunityGroupJoinRequestListResult> {
+    const store = this.storeProvider();
+    assertCanManageStoreCommunityGroupJoinRequests(store.tables, params);
+    return {
+      requests: asRows(store.tables.invites)
+        .filter(
+          (request) =>
+            asString(request.inviteType) === COMMUNITY_GROUP_JOIN_REQUEST_TYPE &&
+            normalizeRole(request.status) === 'PENDING' &&
+            communityGroupIdForInvite(request) === params.communityGroupId,
+        )
+        .map((request) => communityGroupJoinRequestView(store.tables, request)),
+      dataVersion: store.version,
+    };
+  }
+  async approveCommunityGroupJoinRequest(
+    params: CommunityGroupJoinRequestMutationParams,
+  ): Promise<CommunityGroupJoinRequestMutationResult> {
+    const store = this.storeProvider();
+    const group = assertCanManageStoreCommunityGroupJoinRequests(store.tables, params);
+    const request = asRows(store.tables.invites).find(
+      (candidate) =>
+        asString(candidate.id) === params.requestId &&
+        asString(candidate.inviteType) === COMMUNITY_GROUP_JOIN_REQUEST_TYPE &&
+        normalizeRole(candidate.status) === 'PENDING' &&
+        communityGroupIdForInvite(candidate) === params.communityGroupId,
+    );
+    if (!request) {
+      throw notFound('Community group join request not found', {
+        communityGroupId: params.communityGroupId,
+        requestId: params.requestId,
+      });
+    }
+    const requesterUserId = asString(request.senderUserId);
+    if (!requesterUserId) {
+      throw badRequest('Community group join request is missing a requester', {
+        requestId: params.requestId,
+      });
+    }
+    if (
+      activeGroupMemberships(store.tables, params.communityGroupId).some(
+        (membership) => asString(membership.userId) === requesterUserId,
+      )
+    ) {
+      throw conflict('Requester is already a community group member', {
+        communityGroupId: params.communityGroupId,
+        requestId: params.requestId,
+      });
+    }
+    assertStoreSquadCommunityGroupUserEligible(
+      store.tables,
+      group,
+      requesterUserId,
+      'requesterUserId',
+    );
+    const now = nowIso();
+    request.status = 'ACCEPTED';
+    request.updatedAt = now;
+    const memberships = ensureRows(store.tables, 'communityGroupMemberships');
+    const existingMembership = memberships.find(
+      (membership) =>
+        asString(membership.communityGroupId) === params.communityGroupId &&
+        asString(membership.userId) === requesterUserId,
+    );
+    if (existingMembership) {
+      existingMembership.role = 'MEMBER';
+      existingMembership.active = true;
+      existingMembership.deletedAt = null;
+      existingMembership.updatedAt = now;
+      existingMembership.updatedByUserId = params.authUserId;
+      existingMembership.version = (asNumber(existingMembership.version) ?? 1) + 1;
+    } else {
+      memberships.push({
+        id: newId('cgm'),
+        communityGroupId: params.communityGroupId,
+        userId: requesterUserId,
+        role: 'MEMBER',
+        active: true,
+        createdByUserId: params.authUserId,
+        updatedByUserId: params.authUserId,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+        joinedAt: now,
+      });
+    }
+    group.updatedAt = now;
+    group.updatedByUserId = params.authUserId;
+    group.version = (asNumber(group.version) ?? 1) + 1;
+    ensureRows(store.tables, 'notifications').push({
+      id: newId('ntf'),
+      userId: requesterUserId,
+      type: 'COMMUNITY_GROUP_JOIN_REQUEST',
+      title: 'Join request approved',
+      body: `Your request to join ${asString(group.name) ?? 'the community group'} was approved.`,
+      status: 'UNREAD',
+      sourceType: 'community_group_join_request',
+      sourceId: request.id,
+      deepLink: `/community/groups/${params.communityGroupId}`,
+      metadataJson: {
+        communityGroupId: params.communityGroupId,
+      },
+      createdAt: now,
+      updatedAt: now,
+      readAt: null,
+      dismissedAt: null,
+    });
+    return {
+      request: communityGroupJoinRequestView(store.tables, request),
+      group: storeCommunityGroupWithMemberships(store.tables, group),
+      dataVersion: store.version,
+    };
+  }
+  async rejectCommunityGroupJoinRequest(
+    params: CommunityGroupJoinRequestMutationParams,
+  ): Promise<CommunityGroupJoinRequestMutationResult> {
+    const store = this.storeProvider();
+    const group = assertCanManageStoreCommunityGroupJoinRequests(store.tables, params);
+    const request = asRows(store.tables.invites).find(
+      (candidate) =>
+        asString(candidate.id) === params.requestId &&
+        asString(candidate.inviteType) === COMMUNITY_GROUP_JOIN_REQUEST_TYPE &&
+        normalizeRole(candidate.status) === 'PENDING' &&
+        communityGroupIdForInvite(candidate) === params.communityGroupId,
+    );
+    if (!request) {
+      throw notFound('Community group join request not found', {
+        communityGroupId: params.communityGroupId,
+        requestId: params.requestId,
+      });
+    }
+    const requesterUserId = asString(request.senderUserId);
+    if (!requesterUserId) {
+      throw badRequest('Community group join request is missing a requester', {
+        requestId: params.requestId,
+      });
+    }
+    const now = nowIso();
+    request.status = 'DECLINED';
+    request.updatedAt = now;
+    ensureRows(store.tables, 'notifications').push({
+      id: newId('ntf'),
+      userId: requesterUserId,
+      type: 'COMMUNITY_GROUP_JOIN_REQUEST',
+      title: 'Join request declined',
+      body: `Your request to join ${asString(group.name) ?? 'the community group'} was not approved.`,
+      status: 'UNREAD',
+      sourceType: 'community_group_join_request',
+      sourceId: request.id,
+      deepLink: `/community/groups/${params.communityGroupId}`,
+      metadataJson: {
+        communityGroupId: params.communityGroupId,
+      },
+      createdAt: now,
+      updatedAt: now,
+      readAt: null,
+      dismissedAt: null,
+    });
+    return {
+      request: communityGroupJoinRequestView(store.tables, request),
+      dataVersion: store.version,
+    };
+  }
   async listCommunityGroups(params: CommunityMediaAccessParams): Promise<CommunityGroupListResult> {
     const store = this.storeProvider();
     const readableGroupIds = readableCommunityGroupIds(store.tables, params.authUserId);
     const memberships = asRows(store.tables.communityGroupMemberships).filter(isActiveMembership);
     return {
-      groups: activeRows(asRows(store.tables.communityGroups)).flatMap((row) =>
-        readableGroupIds.has(asString(row.id) ?? '')
+      groups: activeRows(asRows(store.tables.communityGroups)).flatMap((group) =>
+        readableGroupIds.has(asString(group.id) ?? '')
           ? [
               {
-                ...row,
+                ...group,
                 memberships: memberships.filter(
-                  (row) => asString(row.communityGroupId) === asString(row.id),
+                  (membership) => asString(membership.communityGroupId) === asString(group.id),
                 ),
               },
             ]
@@ -1853,6 +3424,63 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       dataVersion: store.version,
     };
   }
+  async markThreadMessagesRead(params: ThreadMessageReadParams): Promise<GroupMessageReadResult> {
+    const store = this.storeProvider();
+    const thread = assertCanWriteStoreThreadMessages(
+      store.tables,
+      params.messageThreadId,
+      params.authUserId,
+    );
+    const now = nowIso();
+    const threadId = asString(thread.id) as string;
+    const messages = activeRows(asRows(store.tables.messages)).filter(
+      (row) => asString(row.messageThreadId) === threadId,
+    );
+    const receipts = ensureRows(store.tables, 'messageReceipts');
+    const receiptByMessageId = new Map(
+      receipts.flatMap((row) => {
+        if (asString(row.userId) !== params.authUserId) {
+          return [];
+        }
+        const messageId = asString(row.messageId);
+        return messageId ? [[messageId, row] as const] : [];
+      }),
+    );
+    for (const message of messages) {
+      const messageId = asString(message.id) as string;
+      const existing = receiptByMessageId.get(messageId);
+      if (existing) {
+        existing.deliveredAt = asString(existing.deliveredAt) ?? now;
+        existing.readAt = now;
+        existing.updatedAt = now;
+        continue;
+      }
+      const createdReceipt = {
+        id: newId('mrc'),
+        messageId,
+        userId: params.authUserId,
+        deliveredAt: now,
+        readAt: now,
+        createdAt: now,
+        updatedAt: now,
+      };
+      receipts.push(createdReceipt);
+      receiptByMessageId.set(messageId, createdReceipt);
+    }
+    const participant = asRows(store.tables.messageParticipants).find(
+      (row) =>
+        asString(row.messageThreadId) === threadId &&
+        asString(row.userId) === params.authUserId &&
+        asString(row.leftAt) == null,
+    );
+    if (participant) {
+      participant.lastReadAt = now;
+    }
+    return {
+      thread: hydrateStoreThread(store.tables, thread),
+      dataVersion: store.version,
+    };
+  }
 }
 class PrismaCommunityMediaRepository implements CommunityMediaRepository {
   private readonly fallback = new StoreCommunityMediaRepository(() => getDbFixtureStore());
@@ -1883,6 +3511,935 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       },
     });
     return memberships.map((row) => row.clubId);
+  }
+  private async userAssignedToSquad(squadId: string, userId: string): Promise<boolean> {
+    const prisma = getPrismaClientOrThrow();
+    const squad = await prisma.squad.findFirst({
+      where: {
+        id: squadId,
+        deletedAt: null,
+      },
+      select: {
+        ownerCoachUserId: true,
+      },
+    });
+    if (squad?.ownerCoachUserId === userId) {
+      return true;
+    }
+    const membership = await prisma.squadMembership.findFirst({
+      where: {
+        squadId,
+        deletedAt: null,
+        NOT: {
+          status: {
+            in: ['inactive', 'INACTIVE'],
+          },
+        },
+        athlete: {
+          deletedAt: null,
+          NOT: {
+            status: {
+              in: ['inactive', 'INACTIVE'],
+            },
+          },
+          OR: [
+            {
+              userId,
+            },
+            {
+              guardianLinks: {
+                some: {
+                  guardianUserId: userId,
+                  deletedAt: null,
+                },
+              },
+            },
+          ],
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+    return Boolean(membership);
+  }
+  private async assertSquadCommunityGroupUserEligible(params: {
+    group: SeedRow;
+    userId: string;
+    userIdField: string;
+  }): Promise<void> {
+    const squadId = asString(params.group.squadId);
+    if (!squadId || (await this.userAssignedToSquad(squadId, params.userId))) {
+      return;
+    }
+    throw forbidden('Squad community group members must be assigned to the squad', {
+      communityGroupId: asString(params.group.id),
+      squadId,
+      [params.userIdField]: params.userId,
+    });
+  }
+  private async assertCanCreateCommunityGroup(params: CommunityGroupCreateParams): Promise<{
+    type: 'GENERAL' | 'CLUB' | 'SQUAD';
+    clubId: string | null;
+    squadId: string | null;
+    memberUserIds: string[];
+    visibility: 'PUBLIC' | 'PRIVATE';
+  }> {
+    const prisma = getPrismaClientOrThrow();
+    const type = params.type ?? (params.squadId ? 'SQUAD' : params.clubId ? 'CLUB' : 'GENERAL');
+    let clubId = params.clubId?.trim() || null;
+    const squadId = params.squadId?.trim() || null;
+    const visibility = params.visibility ?? 'PRIVATE';
+    const memberUserIds = uniqueStrings(params.memberUserIds).filter(
+      (userId) => userId !== params.authUserId,
+    );
+    if (type !== 'SQUAD' && squadId) {
+      throw badRequest('squadId is only supported for squad community groups');
+    }
+    if (type === 'CLUB' && !clubId) {
+      throw badRequest('clubId is required when creating a club community group');
+    }
+    if (type === 'GENERAL' && clubId) {
+      throw badRequest('General community groups cannot be club-scoped');
+    }
+    if (type === 'SQUAD') {
+      if (!squadId) {
+        throw badRequest('squadId is required when creating a squad community group');
+      }
+      if (visibility === 'PUBLIC') {
+        throw badRequest('Squad community groups cannot be public');
+      }
+      const squad = await prisma.squad.findFirst({
+        where: {
+          id: squadId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          clubId: true,
+        },
+      });
+      if (!squad) {
+        throw notFound('Squad not found', { squadId });
+      }
+      if (clubId && clubId !== squad.clubId) {
+        throw badRequest('clubId must match the squad club', { clubId, squadId });
+      }
+      clubId = squad.clubId;
+    }
+    if (!clubId && memberUserIds.length > 0) {
+      throw badRequest('Adding members to general groups requires the invite API');
+    }
+    const actor = await prisma.user.findUnique({
+      where: {
+        id: params.authUserId,
+      },
+      select: {
+        id: true,
+      },
+    });
+    if (!actor) {
+      throw forbidden('Authenticated user is not a known Clubroom user');
+    }
+    if (clubId) {
+      const club = await prisma.club.findFirst({
+        where: {
+          id: clubId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+      if (!club) {
+        throw notFound('Club not found', { clubId });
+      }
+      const creatorMembership = await prisma.clubMembership.findFirst({
+        where: {
+          clubId,
+          userId: params.authUserId,
+          active: true,
+          deletedAt: null,
+        },
+        select: {
+          role: true,
+        },
+      });
+      if (!params.isPrivilegedAdmin && !canStaffPostWithRole(creatorMembership?.role)) {
+        throw forbidden('Only active club staff can create club-scoped community groups', {
+          clubId,
+        });
+      }
+      if (type === 'CLUB' && memberUserIds.length > 0) {
+        const activeMemberships = await prisma.clubMembership.findMany({
+          where: {
+            clubId,
+            userId: {
+              in: memberUserIds,
+            },
+            active: true,
+            deletedAt: null,
+          },
+          select: {
+            userId: true,
+          },
+        });
+        const activeUserIds = new Set(activeMemberships.map((membership) => membership.userId));
+        const missingMemberIds = memberUserIds.filter((userId) => !activeUserIds.has(userId));
+        if (missingMemberIds.length > 0) {
+          throw forbidden('Group members must already belong to the club', {
+            clubId,
+            userIds: missingMemberIds,
+          });
+        }
+      }
+    }
+    if (type === 'SQUAD' && squadId) {
+      const eligibility = await Promise.all(
+        memberUserIds.map(async (userId) => ({
+          userId,
+          assigned: await this.userAssignedToSquad(squadId, userId),
+        })),
+      );
+      const missingMemberIds = eligibility.flatMap((entry) =>
+        entry.assigned ? [] : [entry.userId],
+      );
+      if (missingMemberIds.length > 0) {
+        throw forbidden('Squad community group members must be assigned to the squad', {
+          clubId,
+          squadId,
+          userIds: missingMemberIds,
+        });
+      }
+    }
+    return {
+      type,
+      clubId,
+      squadId: type === 'SQUAD' ? squadId : null,
+      memberUserIds,
+      visibility,
+    };
+  }
+  private async assertCanJoinCommunityGroup(
+    params: CommunityGroupMembershipParams,
+  ): Promise<{ id: string; clubId: string | null; squadId: string | null; visibility: string }> {
+    const prisma = getPrismaClientOrThrow();
+    const [actor, group] = await Promise.all([
+      prisma.user.findUnique({
+        where: {
+          id: params.authUserId,
+        },
+        select: {
+          id: true,
+        },
+      }),
+      prisma.communityGroup.findFirst({
+        where: {
+          id: params.communityGroupId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          clubId: true,
+          squadId: true,
+          visibility: true,
+        },
+      }),
+    ]);
+    if (!actor) {
+      throw forbidden('Authenticated user is not a known Clubroom user');
+    }
+    if (!group) {
+      throw notFound('Community group not found', {
+        communityGroupId: params.communityGroupId,
+      });
+    }
+    if (String(group.visibility).toUpperCase() !== 'PUBLIC') {
+      throw forbidden('Only public community groups can be joined directly', {
+        communityGroupId: params.communityGroupId,
+      });
+    }
+    if (group.clubId && !params.isPrivilegedAdmin) {
+      const membership = await prisma.clubMembership.findFirst({
+        where: {
+          clubId: group.clubId,
+          userId: params.authUserId,
+          active: true,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+      if (!membership) {
+        throw forbidden('Club community groups can only be joined by active club members', {
+          clubId: group.clubId,
+          communityGroupId: params.communityGroupId,
+        });
+      }
+    }
+    await this.assertSquadCommunityGroupUserEligible({
+      group: normalizeAs<SeedRow>(group),
+      userId: params.authUserId,
+      userIdField: 'userId',
+    });
+    return group;
+  }
+  private async assertCanLeaveCommunityGroup(
+    params: CommunityGroupMembershipParams,
+  ): Promise<{ groupId: string; membershipId: string }> {
+    const prisma = getPrismaClientOrThrow();
+    const group = await prisma.communityGroup.findFirst({
+      where: {
+        id: params.communityGroupId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+    if (!group) {
+      throw notFound('Community group not found', {
+        communityGroupId: params.communityGroupId,
+      });
+    }
+    const memberships = await prisma.communityGroupMembership.findMany({
+      where: {
+        communityGroupId: params.communityGroupId,
+        active: true,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        userId: true,
+        role: true,
+      },
+    });
+    const membership = memberships.find((row) => row.userId === params.authUserId);
+    if (!membership) {
+      throw notFound('Community group membership not found', {
+        communityGroupId: params.communityGroupId,
+      });
+    }
+    const privilegedCount = memberships.filter((row) =>
+      GROUP_PRIVILEGED_ROLES.has(normalizeRole(row.role)),
+    ).length;
+    if (
+      GROUP_PRIVILEGED_ROLES.has(normalizeRole(membership.role)) &&
+      privilegedCount === 1 &&
+      memberships.length > 1
+    ) {
+      throw badRequest('Cannot leave group as the only owner/admin. Promote another member first.', {
+        communityGroupId: params.communityGroupId,
+      });
+    }
+    return {
+      groupId: group.id,
+      membershipId: membership.id,
+    };
+  }
+  private async getCommunityGroupMemberManagementScope(
+    params: CommunityGroupMemberRemoveParams,
+  ): Promise<{
+    group: SeedRow;
+    memberships: SeedRow[];
+    actorMembership: SeedRow | null;
+    targetMembership: SeedRow;
+  }> {
+    const prisma = getPrismaClientOrThrow();
+    const group = await prisma.communityGroup.findFirst({
+      where: {
+        id: params.communityGroupId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+    if (!group) {
+      throw notFound('Community group not found', {
+        communityGroupId: params.communityGroupId,
+      });
+    }
+    const memberships = normalizeAs<SeedRow[]>(
+      await prisma.communityGroupMembership.findMany({
+        where: {
+          communityGroupId: params.communityGroupId,
+          active: true,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          userId: true,
+          role: true,
+        },
+      }),
+    );
+    const targetMembership =
+      memberships.find((row) => asString(row.userId) === params.memberUserId) ?? null;
+    if (!targetMembership) {
+      throw notFound('Community group membership not found', {
+        communityGroupId: params.communityGroupId,
+        memberUserId: params.memberUserId,
+      });
+    }
+    const actorMembership =
+      memberships.find((row) => asString(row.userId) === params.authUserId) ?? null;
+    if (!params.isPrivilegedAdmin) {
+      if (!actorMembership || !isGroupPrivilegedRole(actorMembership.role)) {
+        throw forbidden('Only community group owners and admins can manage group members', {
+          communityGroupId: params.communityGroupId,
+        });
+      }
+    }
+    return {
+      group: normalizeAs<SeedRow>(group),
+      memberships,
+      actorMembership,
+      targetMembership,
+    };
+  }
+  private async getCommunityGroupMemberAddScope(
+    params: CommunityGroupMemberAddParams,
+  ): Promise<{
+    group: SeedRow;
+    memberships: SeedRow[];
+    actorMembership: SeedRow | null;
+    targetUser: SeedRow;
+    existingMembership: SeedRow | null;
+    role: CommunityGroupAssignableRole;
+  }> {
+    const prisma = getPrismaClientOrThrow();
+    const [group, targetUser] = await Promise.all([
+      prisma.communityGroup.findFirst({
+        where: {
+          id: params.communityGroupId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          clubId: true,
+          squadId: true,
+        },
+      }),
+      prisma.user.findUnique({
+        where: {
+          id: params.memberUserId,
+        },
+        select: {
+          id: true,
+          deletedAt: true,
+        },
+      }),
+    ]);
+    if (!group) {
+      throw notFound('Community group not found', {
+        communityGroupId: params.communityGroupId,
+      });
+    }
+    if (!targetUser || targetUser.deletedAt) {
+      throw notFound('Member user not found', {
+        memberUserId: params.memberUserId,
+      });
+    }
+    const role = normalizeRole(params.role ?? 'MEMBER');
+    if (!['ADMIN', 'MODERATOR', 'MEMBER'].includes(role)) {
+      throw badRequest('Community group role must be ADMIN, MODERATOR, or MEMBER', {
+        communityGroupId: params.communityGroupId,
+        role: params.role,
+      });
+    }
+    const [memberships, existingMembership] = await Promise.all([
+      prisma.communityGroupMembership.findMany({
+        where: {
+          communityGroupId: params.communityGroupId,
+          active: true,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          userId: true,
+          role: true,
+        },
+      }),
+      prisma.communityGroupMembership.findUnique({
+        where: {
+          communityGroupId_userId: {
+            communityGroupId: params.communityGroupId,
+            userId: params.memberUserId,
+          },
+        },
+      }),
+    ]);
+    const normalizedMemberships = normalizeAs<SeedRow[]>(memberships);
+    const actorMembership =
+      normalizedMemberships.find((row) => asString(row.userId) === params.authUserId) ?? null;
+    if (!params.isPrivilegedAdmin) {
+      if (!actorMembership || !isGroupPrivilegedRole(actorMembership.role)) {
+        throw forbidden('Only community group owners and admins can add group members', {
+          communityGroupId: params.communityGroupId,
+        });
+      }
+      const actorRole = normalizeRole(actorMembership.role);
+      if (actorRole !== 'OWNER' && groupRoleWeight(role) >= groupRoleWeight(actorRole)) {
+        throw forbidden('Cannot add a community group member with a role equal to or higher than your own', {
+          communityGroupId: params.communityGroupId,
+          memberUserId: params.memberUserId,
+        });
+      }
+    }
+    if (group.clubId && !params.isPrivilegedAdmin) {
+      const clubMembership = await prisma.clubMembership.findFirst({
+        where: {
+          clubId: group.clubId,
+          userId: params.memberUserId,
+          active: true,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+      if (!clubMembership) {
+        throw forbidden('Club community group members must already belong to the club', {
+          clubId: group.clubId,
+          communityGroupId: params.communityGroupId,
+          memberUserId: params.memberUserId,
+        });
+      }
+    }
+    await this.assertSquadCommunityGroupUserEligible({
+      group: normalizeAs<SeedRow>(group),
+      userId: params.memberUserId,
+      userIdField: 'memberUserId',
+    });
+    return {
+      group: normalizeAs<SeedRow>(group),
+      memberships: normalizedMemberships,
+      actorMembership,
+      targetUser: normalizeAs<SeedRow>(targetUser),
+      existingMembership: existingMembership ? normalizeAs<SeedRow>(existingMembership) : null,
+      role: role as CommunityGroupAssignableRole,
+    };
+  }
+  private async assertCanArchiveCommunityGroup(
+    params: CommunityGroupMembershipParams,
+  ): Promise<{ groupId: string }> {
+    const prisma = getPrismaClientOrThrow();
+    const group = await prisma.communityGroup.findFirst({
+      where: {
+        id: params.communityGroupId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+    if (!group) {
+      throw notFound('Community group not found', {
+        communityGroupId: params.communityGroupId,
+      });
+    }
+    if (!params.isPrivilegedAdmin) {
+      const actorMembership = await prisma.communityGroupMembership.findFirst({
+        where: {
+          communityGroupId: params.communityGroupId,
+          userId: params.authUserId,
+          active: true,
+          deletedAt: null,
+        },
+        select: {
+          role: true,
+        },
+      });
+      if (normalizeRole(actorMembership?.role) !== 'OWNER') {
+        throw forbidden('Only community group owners can archive groups', {
+          communityGroupId: params.communityGroupId,
+        });
+      }
+    }
+    return {
+      groupId: group.id,
+    };
+  }
+  private async hasPendingCommunityGroupInvite(
+    communityGroupId: string,
+    inviteeUserId: string,
+  ): Promise<boolean> {
+    const prisma = getPrismaClientOrThrow();
+    const invites = normalizeAs<SeedRow[]>(
+      await prisma.invite.findMany({
+        where: {
+          inviteType: COMMUNITY_GROUP_INVITE_TYPE,
+          status: 'PENDING',
+          targets: {
+            some: {
+              targetUserId: inviteeUserId,
+              status: 'PENDING',
+            },
+          },
+        },
+        include: {
+          targets: {
+            where: {
+              targetUserId: inviteeUserId,
+              status: 'PENDING',
+            },
+          },
+        },
+      }),
+    );
+    return invites.some((invite) => communityGroupIdForInvite(invite) === communityGroupId);
+  }
+  private async hasPendingCommunityGroupJoinRequest(
+    communityGroupId: string,
+    requesterUserId: string,
+  ): Promise<boolean> {
+    const prisma = getPrismaClientOrThrow();
+    const requests = normalizeAs<SeedRow[]>(
+      await prisma.invite.findMany({
+        where: {
+          inviteType: COMMUNITY_GROUP_JOIN_REQUEST_TYPE,
+          status: 'PENDING',
+          senderUserId: requesterUserId,
+        },
+      }),
+    );
+    return requests.some((request) => communityGroupIdForInvite(request) === communityGroupId);
+  }
+  private async assertCanCreateCommunityGroupJoinRequest(
+    params: CommunityGroupJoinRequestCreateParams,
+  ): Promise<{ group: SeedRow; requester: SeedRow; managerUserIds: string[] }> {
+    const prisma = getPrismaClientOrThrow();
+    const [group, requester] = await Promise.all([
+      prisma.communityGroup.findFirst({
+        where: {
+          id: params.communityGroupId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          clubId: true,
+          squadId: true,
+          name: true,
+        },
+      }),
+      prisma.user.findUnique({
+        where: {
+          id: params.authUserId,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          deletedAt: true,
+        },
+      }),
+    ]);
+    if (!group) {
+      throw notFound('Community group not found', {
+        communityGroupId: params.communityGroupId,
+      });
+    }
+    if (!requester || requester.deletedAt) {
+      throw forbidden('Authenticated user is not a known Clubroom user');
+    }
+    const memberships = await prisma.communityGroupMembership.findMany({
+      where: {
+        communityGroupId: params.communityGroupId,
+        active: true,
+        deletedAt: null,
+      },
+      select: {
+        userId: true,
+        role: true,
+      },
+    });
+    if (memberships.some((membership) => membership.userId === params.authUserId)) {
+      throw conflict('Authenticated user is already a community group member', {
+        communityGroupId: params.communityGroupId,
+      });
+    }
+    if (group.clubId && !params.isPrivilegedAdmin) {
+      const clubMembership = await prisma.clubMembership.findFirst({
+        where: {
+          clubId: group.clubId,
+          userId: params.authUserId,
+          active: true,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+      if (!clubMembership) {
+        throw forbidden('Club community group requests require active club membership', {
+          clubId: group.clubId,
+          communityGroupId: params.communityGroupId,
+        });
+      }
+    }
+    await this.assertSquadCommunityGroupUserEligible({
+      group: normalizeAs<SeedRow>(group),
+      userId: params.authUserId,
+      userIdField: 'userId',
+    });
+    if (await this.hasPendingCommunityGroupJoinRequest(params.communityGroupId, params.authUserId)) {
+      throw conflict('Community group join request is already pending', {
+        communityGroupId: params.communityGroupId,
+      });
+    }
+    return {
+      group: normalizeAs<SeedRow>(group),
+      requester: normalizeAs<SeedRow>(requester),
+      managerUserIds: memberships
+        .filter((membership) => isGroupPrivilegedRole(membership.role))
+        .flatMap((membership): string[] =>
+          membership.userId === params.authUserId ? [] : [membership.userId],
+        ),
+    };
+  }
+  private async assertCanManageCommunityGroupJoinRequests(
+    params: CommunityGroupMembershipParams,
+  ): Promise<{ group: SeedRow }> {
+    const prisma = getPrismaClientOrThrow();
+    const group = await prisma.communityGroup.findFirst({
+      where: {
+        id: params.communityGroupId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        name: true,
+        clubId: true,
+        squadId: true,
+      },
+    });
+    if (!group) {
+      throw notFound('Community group not found', {
+        communityGroupId: params.communityGroupId,
+      });
+    }
+    if (!params.isPrivilegedAdmin) {
+      const actorMembership = await prisma.communityGroupMembership.findFirst({
+        where: {
+          communityGroupId: params.communityGroupId,
+          userId: params.authUserId,
+          active: true,
+          deletedAt: null,
+        },
+        select: {
+          role: true,
+        },
+      });
+      if (!isGroupPrivilegedRole(actorMembership?.role)) {
+        throw forbidden('Only community group owners and admins can manage join requests', {
+          communityGroupId: params.communityGroupId,
+        });
+      }
+    }
+    return {
+      group: normalizeAs<SeedRow>(group),
+    };
+  }
+  private async assertCanCreateCommunityGroupInvite(
+    params: CommunityGroupInviteCreateParams,
+  ): Promise<{ group: SeedRow; inviter: SeedRow | null; invitee: SeedRow }> {
+    const prisma = getPrismaClientOrThrow();
+    const [group, invitee, inviter] = await Promise.all([
+      prisma.communityGroup.findFirst({
+        where: {
+          id: params.communityGroupId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          clubId: true,
+          squadId: true,
+          name: true,
+          deletedAt: true,
+        },
+      }),
+      prisma.user.findUnique({
+        where: {
+          id: params.inviteeUserId,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          deletedAt: true,
+        },
+      }),
+      prisma.user.findUnique({
+        where: {
+          id: params.authUserId,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          deletedAt: true,
+        },
+      }),
+    ]);
+    if (!group) {
+      throw notFound('Community group not found', {
+        communityGroupId: params.communityGroupId,
+      });
+    }
+    if (!invitee || invitee.deletedAt) {
+      throw notFound('Invitee user not found', {
+        inviteeUserId: params.inviteeUserId,
+      });
+    }
+    const memberships = await prisma.communityGroupMembership.findMany({
+      where: {
+        communityGroupId: params.communityGroupId,
+        active: true,
+        deletedAt: null,
+      },
+      select: {
+        userId: true,
+        role: true,
+      },
+    });
+    const actorMembership = memberships.find((row) => row.userId === params.authUserId);
+    if (!params.isPrivilegedAdmin && !isGroupPrivilegedRole(actorMembership?.role)) {
+      throw forbidden('Only community group owners and admins can invite members', {
+        communityGroupId: params.communityGroupId,
+      });
+    }
+    if (memberships.some((row) => row.userId === params.inviteeUserId)) {
+      throw conflict('Invitee is already a community group member', {
+        communityGroupId: params.communityGroupId,
+        inviteeUserId: params.inviteeUserId,
+      });
+    }
+    if (group.clubId && !params.isPrivilegedAdmin) {
+      const clubMembership = await prisma.clubMembership.findFirst({
+        where: {
+          clubId: group.clubId,
+          userId: params.inviteeUserId,
+          active: true,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+      if (!clubMembership) {
+        throw forbidden('Club community group invitees must already belong to the club', {
+          clubId: group.clubId,
+          communityGroupId: params.communityGroupId,
+          inviteeUserId: params.inviteeUserId,
+        });
+      }
+    }
+    await this.assertSquadCommunityGroupUserEligible({
+      group: normalizeAs<SeedRow>(group),
+      userId: params.inviteeUserId,
+      userIdField: 'inviteeUserId',
+    });
+    if (await this.hasPendingCommunityGroupInvite(params.communityGroupId, params.inviteeUserId)) {
+      throw conflict('Community group invite is already pending', {
+        communityGroupId: params.communityGroupId,
+        inviteeUserId: params.inviteeUserId,
+      });
+    }
+    return {
+      group: normalizeAs<SeedRow>(group),
+      inviter: inviter && !inviter.deletedAt ? normalizeAs<SeedRow>(inviter) : null,
+      invitee: normalizeAs<SeedRow>(invitee),
+    };
+  }
+  private async getPendingCommunityGroupInviteForUser(
+    params: CommunityGroupInviteMutationParams,
+  ): Promise<{
+    invite: SeedRow;
+    target: SeedRow;
+    group: SeedRow;
+    inviter: SeedRow | null;
+    invitee: SeedRow | null;
+  }> {
+    const prisma = getPrismaClientOrThrow();
+    const invite = normalizeAs<SeedRow | null>(
+      await prisma.invite.findFirst({
+        where: {
+          id: params.inviteId,
+          inviteType: COMMUNITY_GROUP_INVITE_TYPE,
+          status: 'PENDING',
+        },
+        include: {
+          targets: {
+            where: {
+              targetUserId: params.authUserId,
+              status: 'PENDING',
+            },
+          },
+        },
+      }),
+    );
+    const target = asRows(invite?.targets)[0];
+    if (!invite || !target) {
+      throw notFound('Community group invite not found', {
+        inviteId: params.inviteId,
+      });
+    }
+    const communityGroupId = communityGroupIdForInvite(invite);
+    if (!communityGroupId) {
+      throw notFound('Community group not found', {
+        inviteId: params.inviteId,
+      });
+    }
+    const [group, inviter, invitee] = await Promise.all([
+      prisma.communityGroup.findFirst({
+        where: {
+          id: communityGroupId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          clubId: true,
+          name: true,
+          deletedAt: true,
+        },
+      }),
+      prisma.user.findUnique({
+        where: {
+          id: asString(invite.senderUserId) ?? '',
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          deletedAt: true,
+        },
+      }),
+      prisma.user.findUnique({
+        where: {
+          id: params.authUserId,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          deletedAt: true,
+        },
+      }),
+    ]);
+    if (!group) {
+      throw notFound('Community group not found', {
+        inviteId: params.inviteId,
+      });
+    }
+    return {
+      invite,
+      target,
+      group: normalizeAs<SeedRow>(group),
+      inviter: inviter && !inviter.deletedAt ? normalizeAs<SeedRow>(inviter) : null,
+      invitee: invitee && !invitee.deletedAt ? normalizeAs<SeedRow>(invitee) : null,
+    };
   }
   private async assertReadablePost(
     postId: string,
@@ -2333,6 +4890,1488 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     );
     return {
       groups,
+      dataVersion: null,
+    };
+  }
+  async createCommunityGroup(
+    params: CommunityGroupCreateParams,
+  ): Promise<CommunityGroupMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.createCommunityGroup(params);
+    }
+    const scope = await this.assertCanCreateCommunityGroup(params);
+    const prisma = getPrismaClientOrThrow();
+    const requestHash = hashCommunityGroupCreateRequest(params);
+    if (params.idempotencyKey) {
+      const existing = await prisma.idempotencyKey.findUnique({
+        where: {
+          userId_endpointKey_idempotencyKey: {
+            userId: params.authUserId,
+            endpointKey: COMMUNITY_GROUP_CREATE_ENDPOINT_KEY,
+            idempotencyKey: params.idempotencyKey,
+          },
+        },
+      });
+      if (existing) {
+        assertMatchingIdempotencyRequest(
+          normalizeAs<SeedRow>(existing),
+          requestHash,
+          'Idempotency key was already used with a different community group payload',
+        );
+        return normalizeAs<CommunityGroupMutationResult>(existing.responseBodyJson);
+      }
+    }
+    if (scope.type === 'SQUAD' && scope.squadId) {
+      const existingGroup = await prisma.communityGroup.findFirst({
+        where: {
+          squadId: scope.squadId,
+          deletedAt: null,
+        },
+        include: {
+          memberships: {
+            where: {
+              active: true,
+              deletedAt: null,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+        },
+      });
+      if (existingGroup) {
+        return {
+          group: normalizeAs<SeedRow>(existingGroup),
+          dataVersion: null,
+        };
+      }
+    }
+    const name = params.name.trim();
+    if (!name) {
+      throw badRequest('Community group name cannot be empty');
+    }
+    if (name.length > 120) {
+      throw badRequest('Community group name must be 120 characters or fewer');
+    }
+    const now = new Date();
+    const groupId = newId('cgrp');
+    const membershipUserIds = [params.authUserId, ...scope.memberUserIds];
+    return prisma.$transaction(async (tx): Promise<CommunityGroupMutationResult> => {
+      const group = await tx.communityGroup.create({
+        data: {
+          id: groupId,
+          groupType: scope.type,
+          clubId: scope.clubId,
+          squadId: scope.squadId,
+          ownerUserId: params.authUserId,
+          name,
+          description: params.description?.trim() || null,
+          visibility: scope.visibility,
+          createdByUserId: params.authUserId,
+          updatedByUserId: params.authUserId,
+          version: 1,
+          createdAt: now,
+          updatedAt: now,
+          deletedAt: null,
+          deletedByUserId: null,
+          memberships: {
+            create: membershipUserIds.map((userId, index) => ({
+              id: newId('cgm'),
+              userId,
+              role: index === 0 ? 'OWNER' : 'MEMBER',
+              active: true,
+              createdByUserId: params.authUserId,
+              updatedByUserId: params.authUserId,
+              version: 1,
+              createdAt: now,
+              updatedAt: now,
+              deletedAt: null,
+            })),
+          },
+        },
+        include: {
+          memberships: {
+            where: {
+              active: true,
+              deletedAt: null,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+        },
+      });
+      const groupResponse: CommunityGroupMutationResult = {
+        group: normalizeAs<SeedRow>(group),
+        dataVersion: null,
+      };
+      if (params.idempotencyKey) {
+        await tx.idempotencyKey.create({
+          data: {
+            id: newId('idk'),
+            userId: params.authUserId,
+            endpointKey: COMMUNITY_GROUP_CREATE_ENDPOINT_KEY,
+            idempotencyKey: params.idempotencyKey,
+            requestHash,
+            responseStatus: 201,
+            responseBodyJson: groupResponse as never,
+            expiresAt: new Date(now.getTime() + IDEMPOTENCY_TTL_MS),
+          },
+        });
+      }
+      return groupResponse;
+    });
+  }
+  async joinCommunityGroup(
+    params: CommunityGroupMembershipParams,
+  ): Promise<CommunityGroupMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.joinCommunityGroup(params);
+    }
+    await this.assertCanJoinCommunityGroup(params);
+    const prisma = getPrismaClientOrThrow();
+    const now = new Date();
+    return prisma.$transaction(async (tx): Promise<CommunityGroupMutationResult> => {
+      const existingMembership = await tx.communityGroupMembership.findUnique({
+        where: {
+          communityGroupId_userId: {
+            communityGroupId: params.communityGroupId,
+            userId: params.authUserId,
+          },
+        },
+      });
+      if (existingMembership?.active && !existingMembership.deletedAt) {
+        throw conflict('Authenticated user is already a community group member', {
+          communityGroupId: params.communityGroupId,
+        });
+      }
+      if (existingMembership) {
+        await tx.communityGroupMembership.update({
+          where: {
+            id: existingMembership.id,
+          },
+          data: {
+            role: 'MEMBER',
+            active: true,
+            deletedAt: null,
+            updatedByUserId: params.authUserId,
+            version: {
+              increment: 1,
+            },
+          },
+        });
+      } else {
+        await tx.communityGroupMembership.create({
+          data: {
+            id: newId('cgm'),
+            communityGroupId: params.communityGroupId,
+            userId: params.authUserId,
+            role: 'MEMBER',
+            active: true,
+            createdByUserId: params.authUserId,
+            updatedByUserId: params.authUserId,
+            version: 1,
+            createdAt: now,
+            updatedAt: now,
+            deletedAt: null,
+          },
+        });
+      }
+      const group = await tx.communityGroup.update({
+        where: {
+          id: params.communityGroupId,
+        },
+        data: {
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+        include: {
+          memberships: {
+            where: {
+              active: true,
+              deletedAt: null,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+        },
+      });
+      return {
+        group: normalizeAs<SeedRow>(group),
+        dataVersion: null,
+      };
+    });
+  }
+  async leaveCommunityGroup(
+    params: CommunityGroupMembershipParams,
+  ): Promise<CommunityGroupMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.leaveCommunityGroup(params);
+    }
+    const scope = await this.assertCanLeaveCommunityGroup(params);
+    const prisma = getPrismaClientOrThrow();
+    const now = new Date();
+    return prisma.$transaction(async (tx): Promise<CommunityGroupMutationResult> => {
+      await tx.communityGroupMembership.update({
+        where: {
+          id: scope.membershipId,
+        },
+        data: {
+          active: false,
+          deletedAt: now,
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+      });
+      const group = await tx.communityGroup.update({
+        where: {
+          id: scope.groupId,
+        },
+        data: {
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+        include: {
+          memberships: {
+            where: {
+              active: true,
+              deletedAt: null,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+        },
+      });
+      return {
+        group: normalizeAs<SeedRow>(group),
+        dataVersion: null,
+      };
+    });
+  }
+  async addCommunityGroupMember(
+    params: CommunityGroupMemberAddParams,
+  ): Promise<CommunityGroupMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.addCommunityGroupMember(params);
+    }
+    const scope = await this.getCommunityGroupMemberAddScope(params);
+    const prisma = getPrismaClientOrThrow();
+    const existingMembershipId = asString(scope.existingMembership?.id);
+    if (
+      scope.existingMembership &&
+      asBoolean(scope.existingMembership.active) !== false &&
+      asString(scope.existingMembership.deletedAt) == null
+    ) {
+      const group = await prisma.communityGroup.findUnique({
+        where: {
+          id: params.communityGroupId,
+        },
+        include: {
+          memberships: {
+            where: {
+              active: true,
+              deletedAt: null,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+        },
+      });
+      if (!group) {
+        throw notFound('Community group not found', {
+          communityGroupId: params.communityGroupId,
+        });
+      }
+      return {
+        group: normalizeAs<SeedRow>(group),
+        dataVersion: null,
+      };
+    }
+    const now = new Date();
+    return prisma.$transaction(async (tx): Promise<CommunityGroupMutationResult> => {
+      if (existingMembershipId) {
+        await tx.communityGroupMembership.update({
+          where: {
+            id: existingMembershipId,
+          },
+          data: {
+            role: scope.role,
+            active: true,
+            deletedAt: null,
+            updatedByUserId: params.authUserId,
+            version: {
+              increment: 1,
+            },
+          },
+        });
+      } else {
+        await tx.communityGroupMembership.create({
+          data: {
+            id: newId('cgm'),
+            communityGroupId: params.communityGroupId,
+            userId: params.memberUserId,
+            role: scope.role,
+            active: true,
+            createdByUserId: params.authUserId,
+            updatedByUserId: params.authUserId,
+            version: 1,
+            createdAt: now,
+            updatedAt: now,
+            deletedAt: null,
+          },
+        });
+      }
+      const group = await tx.communityGroup.update({
+        where: {
+          id: params.communityGroupId,
+        },
+        data: {
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+        include: {
+          memberships: {
+            where: {
+              active: true,
+              deletedAt: null,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+        },
+      });
+      return {
+        group: normalizeAs<SeedRow>(group),
+        dataVersion: null,
+      };
+    });
+  }
+  async updateCommunityGroupMemberRole(
+    params: CommunityGroupMemberRoleUpdateParams,
+  ): Promise<CommunityGroupMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.updateCommunityGroupMemberRole(params);
+    }
+    const scope = await this.getCommunityGroupMemberManagementScope(params);
+    assertCanUpdateStoreCommunityGroupMemberRole(params, scope);
+    const prisma = getPrismaClientOrThrow();
+    const previousRole = normalizeRole(scope.targetMembership.role);
+    const nextRole = normalizeRole(params.role);
+    return prisma.$transaction(async (tx): Promise<CommunityGroupMutationResult> => {
+      const targetMembershipId = asString(scope.targetMembership.id);
+      if (!targetMembershipId) {
+        throw notFound('Community group membership not found', {
+          communityGroupId: params.communityGroupId,
+          memberUserId: params.memberUserId,
+        });
+      }
+      if (previousRole === nextRole) {
+        const group = await tx.communityGroup.findUnique({
+          where: {
+            id: params.communityGroupId,
+          },
+          include: {
+            memberships: {
+              where: {
+                active: true,
+                deletedAt: null,
+              },
+              orderBy: {
+                createdAt: 'asc',
+              },
+            },
+          },
+        });
+        if (!group) {
+          throw notFound('Community group not found', {
+            communityGroupId: params.communityGroupId,
+          });
+        }
+        return {
+          group: normalizeAs<SeedRow>(group),
+          dataVersion: null,
+        };
+      }
+      await tx.communityGroupMembership.update({
+        where: {
+          id: targetMembershipId,
+        },
+        data: {
+          role: nextRole,
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+      });
+      const group = await tx.communityGroup.update({
+        where: {
+          id: params.communityGroupId,
+        },
+        data: {
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+        include: {
+          memberships: {
+            where: {
+              active: true,
+              deletedAt: null,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+        },
+      });
+      return {
+        group: normalizeAs<SeedRow>(group),
+        dataVersion: null,
+      };
+    });
+  }
+  async removeCommunityGroupMember(
+    params: CommunityGroupMemberRemoveParams,
+  ): Promise<CommunityGroupMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.removeCommunityGroupMember(params);
+    }
+    const scope = await this.getCommunityGroupMemberManagementScope(params);
+    assertCanRemoveStoreCommunityGroupMember(params, scope);
+    const targetMembershipId = asString(scope.targetMembership.id);
+    if (!targetMembershipId) {
+      throw notFound('Community group membership not found', {
+        communityGroupId: params.communityGroupId,
+        memberUserId: params.memberUserId,
+      });
+    }
+    const prisma = getPrismaClientOrThrow();
+    const now = new Date();
+    return prisma.$transaction(async (tx): Promise<CommunityGroupMutationResult> => {
+      await tx.communityGroupMembership.update({
+        where: {
+          id: targetMembershipId,
+        },
+        data: {
+          active: false,
+          deletedAt: now,
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+      });
+      const group = await tx.communityGroup.update({
+        where: {
+          id: params.communityGroupId,
+        },
+        data: {
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+        include: {
+          memberships: {
+            where: {
+              active: true,
+              deletedAt: null,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+        },
+      });
+      return {
+        group: normalizeAs<SeedRow>(group),
+        dataVersion: null,
+      };
+    });
+  }
+  async transferCommunityGroupOwner(
+    params: CommunityGroupOwnerTransferParams,
+  ): Promise<CommunityGroupMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.transferCommunityGroupOwner(params);
+    }
+    const scope = await this.getCommunityGroupMemberManagementScope(params);
+    assertCanTransferStoreCommunityGroupOwner(params, scope);
+    const targetMembershipId = asString(scope.targetMembership.id);
+    if (!targetMembershipId) {
+      throw notFound('Community group membership not found', {
+        communityGroupId: params.communityGroupId,
+        memberUserId: params.memberUserId,
+      });
+    }
+    const prisma = getPrismaClientOrThrow();
+    return prisma.$transaction(async (tx): Promise<CommunityGroupMutationResult> => {
+      await tx.communityGroupMembership.updateMany({
+        where: {
+          communityGroupId: params.communityGroupId,
+          active: true,
+          deletedAt: null,
+          role: 'OWNER',
+          userId: {
+            not: params.memberUserId,
+          },
+        },
+        data: {
+          role: 'ADMIN',
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+      });
+      await tx.communityGroupMembership.update({
+        where: {
+          id: targetMembershipId,
+        },
+        data: {
+          role: 'OWNER',
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+      });
+      const group = await tx.communityGroup.update({
+        where: {
+          id: params.communityGroupId,
+        },
+        data: {
+          ownerUserId: params.memberUserId,
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+        include: {
+          memberships: {
+            where: {
+              active: true,
+              deletedAt: null,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+        },
+      });
+      return {
+        group: normalizeAs<SeedRow>(group),
+        dataVersion: null,
+      };
+    });
+  }
+  async archiveCommunityGroup(
+    params: CommunityGroupMembershipParams,
+  ): Promise<CommunityGroupMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.archiveCommunityGroup(params);
+    }
+    const scope = await this.assertCanArchiveCommunityGroup(params);
+    const prisma = getPrismaClientOrThrow();
+    const now = new Date();
+    return prisma.$transaction(async (tx): Promise<CommunityGroupMutationResult> => {
+      await tx.communityGroupMembership.updateMany({
+        where: {
+          communityGroupId: scope.groupId,
+          active: true,
+          deletedAt: null,
+        },
+        data: {
+          active: false,
+          deletedAt: now,
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+      });
+      const group = await tx.communityGroup.update({
+        where: {
+          id: scope.groupId,
+        },
+        data: {
+          deletedAt: now,
+          deletedByUserId: params.authUserId,
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+        include: {
+          memberships: {
+            where: {
+              active: true,
+              deletedAt: null,
+            },
+          },
+        },
+      });
+      return {
+        group: normalizeAs<SeedRow>(group),
+        dataVersion: null,
+      };
+    });
+  }
+  async createCommunityGroupInvite(
+    params: CommunityGroupInviteCreateParams,
+  ): Promise<CommunityGroupInviteMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.createCommunityGroupInvite(params);
+    }
+    const prisma = getPrismaClientOrThrow();
+    const [group, invitee] = await Promise.all([
+      prisma.communityGroup.findFirst({
+        where: {
+          id: params.communityGroupId,
+          deletedAt: null,
+        },
+        include: {
+          memberships: {
+            where: {
+              active: true,
+              deletedAt: null,
+            },
+          },
+        },
+      }),
+      prisma.user.findUnique({
+        where: {
+          id: params.inviteeUserId,
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      }),
+    ]);
+    if (!group) {
+      throw notFound('Community group not found', {
+        communityGroupId: params.communityGroupId,
+      });
+    }
+    if (!invitee) {
+      throw notFound('Invitee user not found', {
+        inviteeUserId: params.inviteeUserId,
+      });
+    }
+    const actorMembership = group.memberships.find((row) => row.userId === params.authUserId);
+    if (!params.isPrivilegedAdmin && !isGroupPrivilegedRole(actorMembership?.role)) {
+      throw forbidden('Only community group owners and admins can invite members', {
+        communityGroupId: params.communityGroupId,
+      });
+    }
+    if (group.memberships.some((row) => row.userId === params.inviteeUserId)) {
+      throw conflict('Invitee is already a community group member', {
+        communityGroupId: params.communityGroupId,
+        inviteeUserId: params.inviteeUserId,
+      });
+    }
+    if (group.clubId && !params.isPrivilegedAdmin) {
+      const clubMembership = await prisma.clubMembership.findFirst({
+        where: {
+          clubId: group.clubId,
+          userId: params.inviteeUserId,
+          active: true,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+      if (!clubMembership) {
+        throw forbidden('Club community group invitees must already belong to the club', {
+          clubId: group.clubId,
+          communityGroupId: params.communityGroupId,
+          inviteeUserId: params.inviteeUserId,
+        });
+      }
+    }
+    await this.assertSquadCommunityGroupUserEligible({
+      group: normalizeAs<SeedRow>(group),
+      userId: params.inviteeUserId,
+      userIdField: 'inviteeUserId',
+    });
+    const pendingInvites = await prisma.invite.findMany({
+      where: {
+        inviteType: COMMUNITY_GROUP_INVITE_TYPE,
+        status: 'PENDING',
+      },
+      include: {
+        targets: {
+          where: {
+            targetUserId: params.inviteeUserId,
+            status: 'PENDING',
+          },
+        },
+      },
+    });
+    if (
+      pendingInvites.some(
+        (invite) =>
+          normalizeAs<SeedRow>(invite.metadataJson).communityGroupId === params.communityGroupId &&
+          invite.targets.length > 0,
+      )
+    ) {
+      throw conflict('Community group invite is already pending', {
+        communityGroupId: params.communityGroupId,
+        inviteeUserId: params.inviteeUserId,
+      });
+    }
+    const inviter = await prisma.user.findUnique({
+      where: {
+        id: params.authUserId,
+      },
+      select: {
+        name: true,
+      },
+    });
+    const now = new Date();
+    const inviteId = newId('cgi');
+    const targetId = newId('cgit');
+    await prisma.$transaction(async (tx) => {
+      await tx.invite.create({
+        data: {
+          id: inviteId,
+          inviteType: COMMUNITY_GROUP_INVITE_TYPE,
+          senderUserId: params.authUserId,
+          clubId: group.clubId,
+          status: 'PENDING',
+          message: params.message?.trim() || null,
+          metadataJson: {
+            communityGroupId: params.communityGroupId,
+            groupName: group.name,
+          } as never,
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+      await tx.inviteTarget.create({
+        data: {
+          id: targetId,
+          inviteId,
+          targetUserId: params.inviteeUserId,
+          status: 'PENDING',
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+      await tx.notification.create({
+        data: {
+          id: newId('ntf'),
+          userId: params.inviteeUserId,
+          type: 'COMMUNITY_GROUP_INVITE',
+          title: 'Group invite',
+          body: `${inviter?.name ?? 'A member'} invited you to join ${group.name}`,
+          status: 'UNREAD',
+          sourceType: 'community_group_invite',
+          sourceId: inviteId,
+          deepLink: `/community/invites/${inviteId}`,
+          metadataJson: {
+            communityGroupId: params.communityGroupId,
+          } as never,
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+    });
+    return {
+      invite: {
+        id: inviteId,
+        groupId: params.communityGroupId,
+        groupName: group.name,
+        inviterId: params.authUserId,
+        inviterName: inviter?.name ?? params.authUserId,
+        inviteeId: params.inviteeUserId,
+        inviteeName: invitee.name ?? params.inviteeUserId,
+        status: 'PENDING',
+        createdAt: now.toISOString(),
+      },
+      dataVersion: null,
+    };
+  }
+  async listCommunityGroupInvites(
+    params: CommunityMediaAccessParams,
+  ): Promise<CommunityGroupInviteListResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.listCommunityGroupInvites(params);
+    }
+    const prisma = getPrismaClientOrThrow();
+    const targets = await prisma.inviteTarget.findMany({
+      where: {
+        targetUserId: params.authUserId,
+        status: 'PENDING',
+        invite: {
+          inviteType: COMMUNITY_GROUP_INVITE_TYPE,
+          status: 'PENDING',
+        },
+      },
+      include: {
+        invite: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+    const groupIds = Array.from(
+      new Set(
+        targets
+          .map((target) => asString(normalizeAs<SeedRow>(target.invite.metadataJson).communityGroupId))
+          .filter((groupId): groupId is string => Boolean(groupId)),
+      ),
+    );
+    const groups = groupIds.length
+      ? await prisma.communityGroup.findMany({
+          where: {
+            id: {
+              in: groupIds,
+            },
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            name: true,
+          },
+        })
+      : [];
+    const groupById = new Map(groups.map((group) => [group.id, group] as const));
+    return {
+      invites: targets.flatMap((target): SeedRow[] => {
+        const groupId = asString(normalizeAs<SeedRow>(target.invite.metadataJson).communityGroupId);
+        const group = groupId ? groupById.get(groupId) : undefined;
+        if (!group || !groupId) {
+          return [];
+        }
+        return [
+          {
+            id: target.invite.id,
+            groupId,
+            groupName: group.name,
+            inviterId: target.invite.senderUserId,
+            inviteeId: params.authUserId,
+            status: target.status,
+            createdAt: target.invite.createdAt,
+            respondedAt: target.respondedAt,
+          },
+        ];
+      }),
+      dataVersion: null,
+    };
+  }
+  async acceptCommunityGroupInvite(
+    params: CommunityGroupInviteMutationParams,
+  ): Promise<CommunityGroupInviteMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.acceptCommunityGroupInvite(params);
+    }
+    const prisma = getPrismaClientOrThrow();
+    const target = await prisma.inviteTarget.findFirst({
+      where: {
+        inviteId: params.inviteId,
+        targetUserId: params.authUserId,
+        status: 'PENDING',
+        invite: {
+          inviteType: COMMUNITY_GROUP_INVITE_TYPE,
+          status: 'PENDING',
+        },
+      },
+      include: {
+        invite: true,
+      },
+    });
+    if (!target) {
+      throw notFound('Community group invite not found', {
+        inviteId: params.inviteId,
+      });
+    }
+    const communityGroupId = asString(normalizeAs<SeedRow>(target.invite.metadataJson).communityGroupId);
+    const group = communityGroupId
+      ? await prisma.communityGroup.findFirst({
+          where: {
+            id: communityGroupId,
+            deletedAt: null,
+          },
+          include: {
+            memberships: {
+              where: {
+                active: true,
+                deletedAt: null,
+              },
+            },
+          },
+        })
+      : null;
+    if (!group || !communityGroupId) {
+      throw notFound('Community group not found', {
+        inviteId: params.inviteId,
+      });
+    }
+    if (group.memberships.some((row) => row.userId === params.authUserId)) {
+      throw conflict('Invitee is already a community group member', {
+        communityGroupId,
+      });
+    }
+    await this.assertSquadCommunityGroupUserEligible({
+      group: normalizeAs<SeedRow>(group),
+      userId: params.authUserId,
+      userIdField: 'userId',
+    });
+    const now = new Date();
+    return prisma.$transaction(async (tx): Promise<CommunityGroupInviteMutationResult> => {
+      await tx.invite.update({
+        where: {
+          id: target.invite.id,
+        },
+        data: {
+          status: 'ACCEPTED',
+        },
+      });
+      await tx.inviteTarget.update({
+        where: {
+          id: target.id,
+        },
+        data: {
+          status: 'ACCEPTED',
+          respondedAt: now,
+        },
+      });
+      await tx.communityGroupMembership.upsert({
+        where: {
+          communityGroupId_userId: {
+            communityGroupId,
+            userId: params.authUserId,
+          },
+        },
+        create: {
+          id: newId('cgm'),
+          communityGroupId,
+          userId: params.authUserId,
+          role: 'MEMBER',
+          active: true,
+          createdByUserId: params.authUserId,
+          updatedByUserId: params.authUserId,
+          version: 1,
+          createdAt: now,
+          updatedAt: now,
+          deletedAt: null,
+        },
+        update: {
+          role: 'MEMBER',
+          active: true,
+          deletedAt: null,
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+      });
+      const updatedGroup = await tx.communityGroup.update({
+        where: {
+          id: communityGroupId,
+        },
+        data: {
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+        include: {
+          memberships: {
+            where: {
+              active: true,
+              deletedAt: null,
+            },
+          },
+        },
+      });
+      return {
+        invite: {
+          id: target.invite.id,
+          groupId: communityGroupId,
+          groupName: group.name,
+          inviterId: target.invite.senderUserId,
+          inviteeId: params.authUserId,
+          status: 'ACCEPTED',
+          createdAt: target.invite.createdAt,
+          respondedAt: now.toISOString(),
+        },
+        group: normalizeAs<SeedRow>(updatedGroup),
+        dataVersion: null,
+      };
+    });
+  }
+  async declineCommunityGroupInvite(
+    params: CommunityGroupInviteMutationParams,
+  ): Promise<CommunityGroupInviteMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.declineCommunityGroupInvite(params);
+    }
+    const prisma = getPrismaClientOrThrow();
+    const target = await prisma.inviteTarget.findFirst({
+      where: {
+        inviteId: params.inviteId,
+        targetUserId: params.authUserId,
+        status: 'PENDING',
+        invite: {
+          inviteType: COMMUNITY_GROUP_INVITE_TYPE,
+          status: 'PENDING',
+        },
+      },
+      include: {
+        invite: true,
+      },
+    });
+    if (!target) {
+      throw notFound('Community group invite not found', {
+        inviteId: params.inviteId,
+      });
+    }
+    const communityGroupId = asString(normalizeAs<SeedRow>(target.invite.metadataJson).communityGroupId);
+    const now = new Date();
+    await prisma.$transaction(async (tx) => {
+      await tx.invite.update({
+        where: {
+          id: target.invite.id,
+        },
+        data: {
+          status: 'DECLINED',
+        },
+      });
+      await tx.inviteTarget.update({
+        where: {
+          id: target.id,
+        },
+        data: {
+          status: 'DECLINED',
+          respondedAt: now,
+        },
+      });
+    });
+    return {
+      invite: {
+        id: target.invite.id,
+        groupId: communityGroupId,
+        inviterId: target.invite.senderUserId,
+        inviteeId: params.authUserId,
+        status: 'DECLINED',
+        createdAt: target.invite.createdAt,
+        respondedAt: now.toISOString(),
+      },
+      dataVersion: null,
+    };
+  }
+  async createCommunityGroupJoinRequest(
+    params: CommunityGroupJoinRequestCreateParams,
+  ): Promise<CommunityGroupJoinRequestMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.createCommunityGroupJoinRequest(params);
+    }
+    const scope = await this.assertCanCreateCommunityGroupJoinRequest(params);
+    const prisma = getPrismaClientOrThrow();
+    const now = new Date();
+    const requestId = newId('cgjr');
+    await prisma.$transaction(async (tx) => {
+      await tx.invite.create({
+        data: {
+          id: requestId,
+          inviteType: COMMUNITY_GROUP_JOIN_REQUEST_TYPE,
+          senderUserId: params.authUserId,
+          clubId: asString(scope.group.clubId) ?? null,
+          status: 'PENDING',
+          message: null,
+          metadataJson: {
+            communityGroupId: params.communityGroupId,
+            groupName: asString(scope.group.name) ?? 'Community group',
+            requesterName:
+              asString(scope.requester.name) ?? asString(scope.requester.email) ?? params.authUserId,
+            requestedRole: 'MEMBER',
+            isCoach: params.isCoach ?? false,
+          } as never,
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+      if (scope.managerUserIds.length > 0) {
+        await tx.notification.createMany({
+          data: scope.managerUserIds.map((userId) => ({
+            id: newId('ntf'),
+            userId,
+            type: 'COMMUNITY_GROUP_JOIN_REQUEST',
+            title: 'Group join request',
+            body: `${
+              asString(scope.requester.name) ?? asString(scope.requester.email) ?? 'A member'
+            } wants to join ${asString(scope.group.name) ?? 'a community group'}`,
+            status: 'UNREAD',
+            sourceType: 'community_group_join_request',
+            sourceId: requestId,
+            deepLink: `/community/groups/${params.communityGroupId}/join-requests`,
+            metadataJson: {
+              communityGroupId: params.communityGroupId,
+            } as never,
+            createdAt: now,
+            updatedAt: now,
+          })),
+        });
+      }
+    });
+    return {
+      request: {
+        id: requestId,
+        groupId: params.communityGroupId,
+        groupName: asString(scope.group.name) ?? 'Community group',
+        requesterId: params.authUserId,
+        requesterName:
+          asString(scope.requester.name) ?? asString(scope.requester.email) ?? params.authUserId,
+        requestedRole: 'MEMBER',
+        isCoach: params.isCoach ?? false,
+        status: 'PENDING',
+        createdAt: now.toISOString(),
+        respondedAt: null,
+      },
+      dataVersion: null,
+    };
+  }
+  async listCommunityGroupJoinRequests(
+    params: CommunityGroupMembershipParams,
+  ): Promise<CommunityGroupJoinRequestListResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.listCommunityGroupJoinRequests(params);
+    }
+    const scope = await this.assertCanManageCommunityGroupJoinRequests(params);
+    const prisma = getPrismaClientOrThrow();
+    const requests = normalizeAs<SeedRow[]>(
+      await prisma.invite.findMany({
+        where: {
+          inviteType: COMMUNITY_GROUP_JOIN_REQUEST_TYPE,
+          status: 'PENDING',
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+    ).filter((request) => communityGroupIdForInvite(request) === params.communityGroupId);
+    const requesterIds = Array.from(
+      new Set(
+        requests.flatMap((request): string[] => {
+          const requesterId = asString(request.senderUserId);
+          return requesterId ? [requesterId] : [];
+        }),
+      ),
+    );
+    const requesters = normalizeAs<SeedRow[]>(
+      requesterIds.length > 0
+        ? await prisma.user.findMany({
+            where: {
+              id: {
+                in: requesterIds,
+              },
+            },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          })
+        : [],
+    );
+    const requestersById = new Map(requesters.map((requester) => [asString(requester.id), requester] as const));
+    return {
+      requests: requests.map((request): SeedRow => {
+        const metadata = coerceMetadata(request.metadataJson);
+        const requesterId = asString(request.senderUserId);
+        const requester = requesterId ? requestersById.get(requesterId) : undefined;
+        return {
+          id: request.id,
+          groupId: params.communityGroupId,
+          groupName: asString(scope.group.name) ?? asString(metadata.groupName) ?? 'Community group',
+          requesterId,
+          requesterName:
+            asString(requester?.name) ??
+            asString(requester?.email) ??
+            asString(metadata.requesterName) ??
+            requesterId,
+          requestedRole: 'MEMBER',
+          isCoach: asBoolean(metadata.isCoach) ?? false,
+          status: 'PENDING',
+          createdAt: request.createdAt,
+          respondedAt: null,
+        };
+      }),
+      dataVersion: null,
+    };
+  }
+  async approveCommunityGroupJoinRequest(
+    params: CommunityGroupJoinRequestMutationParams,
+  ): Promise<CommunityGroupJoinRequestMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.approveCommunityGroupJoinRequest(params);
+    }
+    const scope = await this.assertCanManageCommunityGroupJoinRequests(params);
+    const prisma = getPrismaClientOrThrow();
+    const request = normalizeAs<SeedRow | null>(
+      await prisma.invite.findFirst({
+        where: {
+          id: params.requestId,
+          inviteType: COMMUNITY_GROUP_JOIN_REQUEST_TYPE,
+          status: 'PENDING',
+        },
+      }),
+    );
+    if (!request || communityGroupIdForInvite(request) !== params.communityGroupId) {
+      throw notFound('Community group join request not found', {
+        communityGroupId: params.communityGroupId,
+        requestId: params.requestId,
+      });
+    }
+    const requesterUserId = asString(request.senderUserId);
+    if (!requesterUserId) {
+      throw badRequest('Community group join request is missing a requester', {
+        requestId: params.requestId,
+      });
+    }
+    const requester = normalizeAs<SeedRow | null>(
+      await prisma.user.findUnique({
+        where: {
+          id: requesterUserId,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          deletedAt: true,
+        },
+      }),
+    );
+    if (!requester || requester.deletedAt) {
+      throw notFound('Requester user not found', {
+        requesterUserId,
+      });
+    }
+    const existingMembership = await prisma.communityGroupMembership.findUnique({
+      where: {
+        communityGroupId_userId: {
+          communityGroupId: params.communityGroupId,
+          userId: requesterUserId,
+        },
+      },
+    });
+    if (existingMembership?.active && !existingMembership.deletedAt) {
+      throw conflict('Requester is already a community group member', {
+        communityGroupId: params.communityGroupId,
+        requestId: params.requestId,
+      });
+    }
+    await this.assertSquadCommunityGroupUserEligible({
+      group: scope.group,
+      userId: requesterUserId,
+      userIdField: 'requesterUserId',
+    });
+    const now = new Date();
+    return prisma.$transaction(async (tx): Promise<CommunityGroupJoinRequestMutationResult> => {
+      await tx.invite.update({
+        where: {
+          id: params.requestId,
+        },
+        data: {
+          status: 'ACCEPTED',
+        },
+      });
+      await tx.communityGroupMembership.upsert({
+        where: {
+          communityGroupId_userId: {
+            communityGroupId: params.communityGroupId,
+            userId: requesterUserId,
+          },
+        },
+        create: {
+          id: newId('cgm'),
+          communityGroupId: params.communityGroupId,
+          userId: requesterUserId,
+          role: 'MEMBER',
+          active: true,
+          createdByUserId: params.authUserId,
+          updatedByUserId: params.authUserId,
+          version: 1,
+          createdAt: now,
+          updatedAt: now,
+          deletedAt: null,
+        },
+        update: {
+          role: 'MEMBER',
+          active: true,
+          deletedAt: null,
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+      });
+      const group = await tx.communityGroup.update({
+        where: {
+          id: params.communityGroupId,
+        },
+        data: {
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+        include: {
+          memberships: {
+            where: {
+              active: true,
+              deletedAt: null,
+            },
+          },
+        },
+      });
+      await tx.notification.create({
+        data: {
+          id: newId('ntf'),
+          userId: requesterUserId,
+          type: 'COMMUNITY_GROUP_JOIN_REQUEST',
+          title: 'Join request approved',
+          body: `Your request to join ${asString(scope.group.name) ?? 'the community group'} was approved.`,
+          status: 'UNREAD',
+          sourceType: 'community_group_join_request',
+          sourceId: params.requestId,
+          deepLink: `/community/groups/${params.communityGroupId}`,
+          metadataJson: {
+            communityGroupId: params.communityGroupId,
+          } as never,
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+      const metadata = coerceMetadata(request.metadataJson);
+      return {
+        request: {
+          id: params.requestId,
+          groupId: params.communityGroupId,
+          groupName: asString(scope.group.name) ?? asString(metadata.groupName) ?? 'Community group',
+          requesterId: requesterUserId,
+          requesterName:
+            asString(requester.name) ??
+            asString(requester.email) ??
+            asString(metadata.requesterName) ??
+            requesterUserId,
+          requestedRole: 'MEMBER',
+          isCoach: asBoolean(metadata.isCoach) ?? false,
+          status: 'ACCEPTED',
+          createdAt: request.createdAt,
+          respondedAt: now.toISOString(),
+        },
+        group: normalizeAs<SeedRow>(group),
+        dataVersion: null,
+      };
+    });
+  }
+  async rejectCommunityGroupJoinRequest(
+    params: CommunityGroupJoinRequestMutationParams,
+  ): Promise<CommunityGroupJoinRequestMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.rejectCommunityGroupJoinRequest(params);
+    }
+    const scope = await this.assertCanManageCommunityGroupJoinRequests(params);
+    const prisma = getPrismaClientOrThrow();
+    const request = normalizeAs<SeedRow | null>(
+      await prisma.invite.findFirst({
+        where: {
+          id: params.requestId,
+          inviteType: COMMUNITY_GROUP_JOIN_REQUEST_TYPE,
+          status: 'PENDING',
+        },
+      }),
+    );
+    if (!request || communityGroupIdForInvite(request) !== params.communityGroupId) {
+      throw notFound('Community group join request not found', {
+        communityGroupId: params.communityGroupId,
+        requestId: params.requestId,
+      });
+    }
+    const requesterUserId = asString(request.senderUserId);
+    if (!requesterUserId) {
+      throw badRequest('Community group join request is missing a requester', {
+        requestId: params.requestId,
+      });
+    }
+    const requester = normalizeAs<SeedRow | null>(
+      await prisma.user.findUnique({
+        where: {
+          id: requesterUserId,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      }),
+    );
+    const now = new Date();
+    await prisma.$transaction(async (tx) => {
+      await tx.invite.update({
+        where: {
+          id: params.requestId,
+        },
+        data: {
+          status: 'DECLINED',
+        },
+      });
+      await tx.notification.create({
+        data: {
+          id: newId('ntf'),
+          userId: requesterUserId,
+          type: 'COMMUNITY_GROUP_JOIN_REQUEST',
+          title: 'Join request declined',
+          body: `Your request to join ${asString(scope.group.name) ?? 'the community group'} was not approved.`,
+          status: 'UNREAD',
+          sourceType: 'community_group_join_request',
+          sourceId: params.requestId,
+          deepLink: `/community/groups/${params.communityGroupId}`,
+          metadataJson: {
+            communityGroupId: params.communityGroupId,
+          } as never,
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+    });
+    const metadata = coerceMetadata(request.metadataJson);
+    return {
+      request: {
+        id: params.requestId,
+        groupId: params.communityGroupId,
+        groupName: asString(scope.group.name) ?? asString(metadata.groupName) ?? 'Community group',
+        requesterId: requesterUserId,
+        requesterName:
+          asString(requester?.name) ??
+          asString(requester?.email) ??
+          asString(metadata.requesterName) ??
+          requesterUserId,
+        requestedRole: 'MEMBER',
+        isCoach: asBoolean(metadata.isCoach) ?? false,
+        status: 'DECLINED',
+        createdAt: request.createdAt,
+        respondedAt: now.toISOString(),
+      },
       dataVersion: null,
     };
   }
@@ -3811,6 +7850,66 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     });
     return {
       thread: await this.getHydratedThread(thread.id),
+      dataVersion: null,
+    };
+  }
+  async markThreadMessagesRead(params: ThreadMessageReadParams): Promise<GroupMessageReadResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.markThreadMessagesRead(params);
+    }
+    await this.assertCanWriteThreadMessages(params.messageThreadId, params.authUserId);
+    const prisma = getPrismaClientOrThrow();
+    const now = new Date();
+    await prisma.$transaction(async (tx) => {
+      const messages = await tx.message.findMany({
+        where: {
+          messageThreadId: params.messageThreadId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+      await Promise.all([
+        Promise.all(
+          messages.map((message) =>
+            tx.messageReceipt.upsert({
+              where: {
+                messageId_userId: {
+                  messageId: message.id,
+                  userId: params.authUserId,
+                },
+              },
+              create: {
+                id: newId('mrc'),
+                messageId: message.id,
+                userId: params.authUserId,
+                deliveredAt: now,
+                readAt: now,
+                createdAt: now,
+                updatedAt: now,
+              },
+              update: {
+                deliveredAt: now,
+                readAt: now,
+              },
+            }),
+          ),
+        ),
+        tx.messageParticipant.updateMany({
+          where: {
+            messageThreadId: params.messageThreadId,
+            userId: params.authUserId,
+            leftAt: null,
+          },
+          data: {
+            lastReadAt: now,
+          },
+        }),
+      ]);
+    });
+    return {
+      thread: await this.getHydratedThread(params.messageThreadId),
       dataVersion: null,
     };
   }

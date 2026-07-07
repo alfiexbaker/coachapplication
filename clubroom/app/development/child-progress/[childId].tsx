@@ -17,6 +17,7 @@ import {
   FlatList,
   type ListRenderItemInfo,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
@@ -90,11 +91,14 @@ export default function ChildProgressScreen() {
     showSwitcher?: boolean;
     content: ReactNode;
   }) => (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
       {header}
       {showSwitcher ? renderSwitcher() : null}
       {content}
-    </View>
+    </SafeAreaView>
   );
   const progressHeader = (
     <PageHeader title="Progress" showBack centerTitle onBackPress={() => router.back()} />
@@ -149,7 +153,10 @@ export default function ChildProgressScreen() {
   const progressTabItems = getProgressTabItems(activeTab, colors, setActiveTab);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top', 'bottom']}
+    >
       <PageHeader
         title={child.name}
         showBack
@@ -429,7 +436,7 @@ export default function ChildProgressScreen() {
           badgeCount={badges.length}
         />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

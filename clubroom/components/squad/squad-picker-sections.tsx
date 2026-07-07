@@ -14,6 +14,7 @@ import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { squadService } from '@/services/squad-service';
 import type { ClubSquad } from '@/constants/types';
+import { safeDisplayLabel } from '@/utils/booking-display';
 
 export { QuickActionBar } from './squad-picker-quick-action-bar';
 export type { QuickActionBarProps } from './squad-picker-quick-action-bar';
@@ -37,6 +38,7 @@ export const SquadPickerItem = function SquadPickerItem({
 }: SquadPickerItemProps) {
   const { colors: palette } = useTheme();
   const ageGroup = squadService.getAgeGroupLabel(squad);
+  const primaryCoachLabel = safeDisplayLabel(squad.primaryCoach, 'Assigned coach');
 
   const handlePress = () => {
     onToggle(squad.id);
@@ -71,7 +73,7 @@ export const SquadPickerItem = function SquadPickerItem({
           </Row>
           {squad.primaryCoach && (
             <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
-              Coach: {squad.primaryCoach}
+              Coach: {primaryCoachLabel}
             </ThemedText>
           )}
         </View>

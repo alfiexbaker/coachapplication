@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, startTransition } from 'react';
+import { useEffect, useRef, useState, startTransition, type ComponentProps } from 'react';
 import { FlatList, type ListRenderItemInfo, Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -62,6 +62,15 @@ const OVERDUE_RESOLUTION_WINDOW_MS = 48 * 60 * 60 * 1000;
 type CoachListItem = { type: 'lane_selector' } | { type: 'athlete'; row: CoachFollowUpItem };
 
 type ResultsProgramRole = 'coach' | 'parent' | 'athlete';
+type MotionViewProps = ComponentProps<typeof Animated.View>;
+type PlainViewProps = ComponentProps<typeof View>;
+
+function MotionView({ entering, exiting, layout, ...viewProps }: MotionViewProps) {
+  if (Platform.OS === 'web') {
+    return <View {...(viewProps as PlainViewProps)} />;
+  }
+  return <Animated.View entering={entering} exiting={exiting} layout={layout} {...viewProps} />;
+}
 
 function sectionTone(sectionKey: ProgressLoopTaskGroup['key']): 'default' | 'alert' | 'success' {
   if (sectionKey === 'overdue') {
@@ -219,6 +228,9 @@ export default function ResultsProgramScreen() {
       return;
     }
     const fallbackLane: CoachQueueLaneKey = coachQueueLanes.find((lane) => lane.count > 0)?.key ?? 'intervene_now';
+    if (fallbackLane === coachLane) {
+      return;
+    }
     startTransition(() => {
       setCoachLane(fallbackLane);
     });
@@ -230,7 +242,13 @@ export default function ResultsProgramScreen() {
     }
     const athleteIdSet = new Set(coachQueue.map((row) => row.athleteId));
     startTransition(() => {
-      setSelectedCoachAthleteIds((previous) => previous.filter((id) => athleteIdSet.has(id)));
+      setSelectedCoachAthleteIds((previous) => {
+        const next = previous.filter((id) => athleteIdSet.has(id));
+        if (next.length === previous.length && next.every((id, index) => id === previous[index])) {
+          return previous;
+        }
+        return next;
+      });
     });
   }, [coachQueue, isCoachView]);
 
@@ -399,6 +417,11 @@ export default function ResultsProgramScreen() {
     const rows = coachQueue.filter((row) => selectedCoachAthleteIdSet.has(row.athleteId));
     return collectTaskIds(rows);
   })();
+
+  const getLayoutTransition = (durationMs: number) =>
+    Platform.OS === 'web'
+      ? undefined
+      : LinearTransition.duration(motion.reduceMotion ? 0 : durationMs);
 
   const overdueLaneTaskIds = collectTaskIds(selectedLaneRows.filter((row) => row.overdueCount > 0));
   const dueSoonLaneTaskIds = collectTaskIds(selectedLaneRows.filter((row) => row.dueSoonCount > 0));
@@ -1025,7 +1048,7 @@ export default function ResultsProgramScreen() {
             removeClippedSubviews
             ListHeaderComponent={
               <Column gap="sm">
-                <Animated.View entering={motion.getEnter(0, 30)}>
+                <MotionView entering={motion.getEnter(0, 30)}>
                   <ResultsProgramHero
                     title="Coach Command Centre"
                     subtitle="Triage fast. Intervene now on highest-risk athletes."
@@ -1034,7 +1057,7 @@ export default function ResultsProgramScreen() {
                     metrics={coachMetrics}
                     reduceMotion={motion.reduceMotion}
                   />
-                </Animated.View>
+                </MotionView>
 
                 <Row gap="xs" wrap>
                   <View
@@ -1080,14 +1103,16 @@ export default function ResultsProgramScreen() {
             }
           />
 
-          <InterventionPlaybookSheet
-            row={selectedPlaybookRow}
-            isBusy={isCoachActionUpdating()}
-            onClose={handleClosePlaybook}
-            onMessage={handlePlaybookMessage}
-            onSetRecoveryCheckpoint={handlePlaybookRecoveryCheckpoint}
-            onOpenHistory={handlePlaybookHistory}
-          />
+          {selectedPlaybookRow ? (
+            <InterventionPlaybookSheet
+              row={selectedPlaybookRow}
+              isBusy={isCoachActionUpdating()}
+              onClose={handleClosePlaybook}
+              onMessage={handlePlaybookMessage}
+              onSetRecoveryCheckpoint={handlePlaybookRecoveryCheckpoint}
+              onOpenHistory={handlePlaybookHistory}
+            />
+          ) : null}
         </>
       ) : null}
 
@@ -1099,7 +1124,7 @@ export default function ResultsProgramScreen() {
             showsVerticalScrollIndicator={false}
             stickyHeaderIndices={[1]}
           >
-            <Animated.View entering={motion.getEnter(0, 30)}>
+            <MotionView entering={motion.getEnter(0, 30)}>
               <ResultsProgramHero
                 title="Session Execution Board"
                 subtitle={
@@ -1114,17 +1139,17 @@ export default function ResultsProgramScreen() {
                 onSwitchChild={handleSelectNextChild}
                 reduceMotion={motion.reduceMotion}
               />
-            </Animated.View>
+            </MotionView>
 
             <View style={[styles.stickyFilterWrap, { backgroundColor: colors.background }]}>
-              <Animated.View entering={motion.getEnter(0, 80)}>
+              <MotionView entering={motion.getEnter(0, 80)}>
                 <ResultsFilterSegment
                   options={filterOptions}
                   selectedId={filter}
                   onSelect={handleSelectFilter}
                   reduceMotion={motion.reduceMotion}
                 />
-              </Animated.View>
+              </MotionView>
             </View>
 
             <View
@@ -1280,11 +1305,11 @@ export default function ResultsProgramScreen() {
               </View>
             ) : null}
 
-            <Animated.View
+            <MotionView
               key={`result-list-${filter}`}
               entering={motion.getEnter(0, 120)}
               exiting={motion.getExit()}
-              layout={LinearTransition.duration(motion.reduceMotion ? 0 : 180)}
+              layout={getLayoutTransition(180)}
             >
               {filteredTasks.length === 0 ? (
                 <ThemedText style={[styles.emptyFilteredText, { color: colors.muted }]}>No tasks in this filter.</ThemedText>
@@ -1302,10 +1327,10 @@ export default function ResultsProgramScreen() {
                     const collapsed = isCompletedSection && section.collapsible && completedCollapsed;
 
                     return (
-                      <Animated.View
+                      <MotionView
                         key={section.key}
                         entering={motion.getEnter(sectionIndex, 120)}
-                        layout={LinearTransition.duration(motion.reduceMotion ? 0 : 170)}
+                        layout={getLayoutTransition(170)}
                       >
                         <Column gap="xs">
                           <Clickable
@@ -1346,10 +1371,10 @@ export default function ResultsProgramScreen() {
                           {collapsed ? null : (
                             <Column gap="sm">
                               {section.tasks.map((task, taskIndex) => (
-                                <Animated.View
+                                <MotionView
                                   key={task.id}
                                   entering={motion.getEnter(taskIndex, 140)}
-                                  layout={LinearTransition.duration(motion.reduceMotion ? 0 : 160)}
+                                  layout={getLayoutTransition(160)}
                                 >
                                   <TaskCard
                                     task={task}
@@ -1357,17 +1382,17 @@ export default function ResultsProgramScreen() {
                                     isSyncing={isTaskSyncing(task.id)}
                                     onOpenTask={handleOpenTask}
                                   />
-                                </Animated.View>
+                                </MotionView>
                               ))}
                             </Column>
                           )}
                         </Column>
-                      </Animated.View>
+                      </MotionView>
                     );
                   })}
                 </Column>
               )}
-            </Animated.View>
+            </MotionView>
           </ScrollView>
 
           <TaskDetailSheet

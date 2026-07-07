@@ -25,6 +25,8 @@ import { createLogger } from '@/utils/logger';
 const logger = createLogger('SquadInviteService');
 
 const USE_MOCK = api.useMock;
+const API_MODE_SQUAD_INVITE_MESSAGE =
+  'Squad invite local mirrors are mock-only; use /v1/invites or add a dedicated squad invite API in API mode.';
 
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
   const userResult = await userService.getUserById(userId);
@@ -71,6 +73,11 @@ let squadSessionInvitesCache: SquadSessionInvite[] = [];
 let inviteHistoryCache: SquadInviteHistoryEntry[] = [];
 
 export async function loadSquadInvites(): Promise<SquadInvite[]> {
+  if (!USE_MOCK) {
+    logger.warn(API_MODE_SQUAD_INVITE_MESSAGE, { storageKey: STORAGE_KEYS.SQUAD_INVITES });
+    return [];
+  }
+
   try {
     return await apiClient.get<SquadInvite[]>(STORAGE_KEYS.SQUAD_INVITES, []);
   } catch (error) {
@@ -80,6 +87,15 @@ export async function loadSquadInvites(): Promise<SquadInvite[]> {
 }
 
 export async function saveSquadInvites(invites: SquadInvite[]): Promise<void> {
+  if (!USE_MOCK) {
+    logger.warn(API_MODE_SQUAD_INVITE_MESSAGE, {
+      storageKey: STORAGE_KEYS.SQUAD_INVITES,
+      inviteCount: invites.length,
+    });
+    squadInvitesCache = [];
+    return;
+  }
+
   try {
     await apiClient.set(STORAGE_KEYS.SQUAD_INVITES, invites);
     squadInvitesCache = invites;
@@ -89,6 +105,13 @@ export async function saveSquadInvites(invites: SquadInvite[]): Promise<void> {
 }
 
 export async function loadSquadSessionInvites(): Promise<SquadSessionInvite[]> {
+  if (!USE_MOCK) {
+    logger.warn(API_MODE_SQUAD_INVITE_MESSAGE, {
+      storageKey: STORAGE_KEYS.SQUAD_SESSION_INVITES,
+    });
+    return [];
+  }
+
   try {
     return await apiClient.get<SquadSessionInvite[]>(STORAGE_KEYS.SQUAD_SESSION_INVITES, []);
   } catch (error) {
@@ -98,6 +121,15 @@ export async function loadSquadSessionInvites(): Promise<SquadSessionInvite[]> {
 }
 
 export async function saveSquadSessionInvites(invites: SquadSessionInvite[]): Promise<void> {
+  if (!USE_MOCK) {
+    logger.warn(API_MODE_SQUAD_INVITE_MESSAGE, {
+      storageKey: STORAGE_KEYS.SQUAD_SESSION_INVITES,
+      inviteCount: invites.length,
+    });
+    squadSessionInvitesCache = [];
+    return;
+  }
+
   try {
     await apiClient.set(STORAGE_KEYS.SQUAD_SESSION_INVITES, invites);
     squadSessionInvitesCache = invites;
@@ -107,6 +139,13 @@ export async function saveSquadSessionInvites(invites: SquadSessionInvite[]): Pr
 }
 
 export async function loadInviteHistory(): Promise<SquadInviteHistoryEntry[]> {
+  if (!USE_MOCK) {
+    logger.warn(API_MODE_SQUAD_INVITE_MESSAGE, {
+      storageKey: STORAGE_KEYS.SQUAD_INVITE_HISTORY,
+    });
+    return [];
+  }
+
   try {
     return await apiClient.get<SquadInviteHistoryEntry[]>(STORAGE_KEYS.SQUAD_INVITE_HISTORY, []);
   } catch (error) {
@@ -116,6 +155,15 @@ export async function loadInviteHistory(): Promise<SquadInviteHistoryEntry[]> {
 }
 
 export async function saveInviteHistory(history: SquadInviteHistoryEntry[]): Promise<void> {
+  if (!USE_MOCK) {
+    logger.warn(API_MODE_SQUAD_INVITE_MESSAGE, {
+      storageKey: STORAGE_KEYS.SQUAD_INVITE_HISTORY,
+      entryCount: history.length,
+    });
+    inviteHistoryCache = [];
+    return;
+  }
+
   try {
     await apiClient.set(STORAGE_KEYS.SQUAD_INVITE_HISTORY, history);
     inviteHistoryCache = history;
@@ -489,6 +537,11 @@ export const squadInviteService = {
     squadInvitesCache = [];
     squadSessionInvitesCache = [];
     inviteHistoryCache = [];
+    if (!USE_MOCK) {
+      logger.warn(API_MODE_SQUAD_INVITE_MESSAGE, { action: 'clearCache' });
+      return;
+    }
+
     await Promise.all([
       apiClient.remove(STORAGE_KEYS.SQUAD_INVITES),
       apiClient.remove(STORAGE_KEYS.SQUAD_SESSION_INVITES),

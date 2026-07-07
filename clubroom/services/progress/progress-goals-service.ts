@@ -47,6 +47,7 @@ type ApiGoalRow = {
   status?: string | null;
   targetDate?: string | null;
   notes?: string | null;
+  progress?: number | null;
   createdByUserId?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -116,7 +117,7 @@ async function resolveGoalApiHeaders(): Promise<Record<string, string>> {
 }
 
 function unsupportedApiGoalMutation(action: string): never {
-  throw new Error(`${action} requires a dedicated /v1 goal milestone/progress route in API mode.`);
+  throw new Error(`${action} requires a goal-aware /v1 service contract in API mode.`);
 }
 
 function toGoalStatus(value: string | null | undefined): GoalStatus {
@@ -154,11 +155,13 @@ function mapApiGoal(goal: ApiGoalRow, milestones: ApiGoalMilestoneRow[]): Goal {
     }));
   const completedCount = mappedMilestones.filter((milestone) => milestone.isCompleted).length;
   const progress =
-    mappedMilestones.length > 0
-      ? Math.round((completedCount / mappedMilestones.length) * 100)
-      : toGoalStatus(goal.status) === 'COMPLETED'
-        ? 100
-        : 0;
+    typeof goal.progress === 'number'
+      ? goal.progress
+      : mappedMilestones.length > 0
+        ? Math.round((completedCount / mappedMilestones.length) * 100)
+        : toGoalStatus(goal.status) === 'COMPLETED'
+          ? 100
+          : 0;
   return {
     id: goal.id,
     userId: goal.ownerUserId ?? goal.athleteId,
@@ -730,7 +733,17 @@ async function updateGoalProgress(
   completedMilestones?: string[],
 ): Promise<Goal | null> {
   if (isApiMode()) {
-    unsupportedApiGoalMutation('Goal progress update');
+    const response = ensureApiSuccess(
+      await apiFetch<ApiGoalPayload>(`/v1/goals/${encodeURIComponent(goalId)}/progress`, {
+        method: 'PATCH',
+        headers: await resolveGoalApiHeaders(),
+        body: JSON.stringify({
+          progress: Math.min(100, Math.max(0, Math.round(progress))),
+          completedMilestoneIds: completedMilestones,
+        }),
+      }),
+    );
+    return mapApiGoalPayload(response);
   }
 
   const allGoals = await getAllGoals();
@@ -777,7 +790,14 @@ async function updateGoalProgress(
 
 async function addMilestone(goalId: string, title: string): Promise<Goal | null> {
   if (isApiMode()) {
-    unsupportedApiGoalMutation('Goal milestone creation');
+    const response = ensureApiSuccess(
+      await apiFetch<ApiGoalPayload>(`/v1/goals/${encodeURIComponent(goalId)}/milestones`, {
+        method: 'POST',
+        headers: await resolveGoalApiHeaders(),
+        body: JSON.stringify({ title }),
+      }),
+    );
+    return mapApiGoalPayload(response);
   }
 
   const goals = await getAllGoals();
@@ -817,7 +837,14 @@ async function addMilestone(goalId: string, title: string): Promise<Goal | null>
 
 async function completeMilestone(milestoneId: string): Promise<Goal | null> {
   if (isApiMode()) {
-    unsupportedApiGoalMutation('Goal milestone completion');
+    const response = ensureApiSuccess(
+      await apiFetch<ApiGoalPayload>(`/v1/milestones/${encodeURIComponent(milestoneId)}`, {
+        method: 'PATCH',
+        headers: await resolveGoalApiHeaders(),
+        body: JSON.stringify({ status: 'COMPLETED' }),
+      }),
+    );
+    return mapApiGoalPayload(response);
   }
 
   const goals = await getAllGoals();
@@ -865,7 +892,14 @@ async function completeMilestone(milestoneId: string): Promise<Goal | null> {
 
 async function uncompleteMilestone(milestoneId: string): Promise<Goal | null> {
   if (isApiMode()) {
-    unsupportedApiGoalMutation('Goal milestone reopening');
+    const response = ensureApiSuccess(
+      await apiFetch<ApiGoalPayload>(`/v1/milestones/${encodeURIComponent(milestoneId)}`, {
+        method: 'PATCH',
+        headers: await resolveGoalApiHeaders(),
+        body: JSON.stringify({ status: 'PENDING' }),
+      }),
+    );
+    return mapApiGoalPayload(response);
   }
 
   const goals = await getAllGoals();
@@ -909,7 +943,13 @@ async function uncompleteMilestone(milestoneId: string): Promise<Goal | null> {
 
 async function deleteMilestone(milestoneId: string): Promise<Goal | null> {
   if (isApiMode()) {
-    unsupportedApiGoalMutation('Goal milestone deletion');
+    const response = ensureApiSuccess(
+      await apiFetch<ApiGoalPayload>(`/v1/milestones/${encodeURIComponent(milestoneId)}`, {
+        method: 'DELETE',
+        headers: await resolveGoalApiHeaders(),
+      }),
+    );
+    return mapApiGoalPayload(response);
   }
 
   const goals = await getAllGoals();

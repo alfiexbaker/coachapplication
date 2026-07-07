@@ -118,25 +118,52 @@ export function useDiscoverSessions() {
   const [searchQuery, setSearchQuery] = useState("");
   const [skillFilter, setSkillFilter] = useState<FootballObjective | "">("");
   const [typeFilter, setTypeFilter] = useState<"1on1" | "group" | "">("");
+  const contextChildrenSignature = contextChildren
+    .map((child) =>
+      [
+        child.id,
+        child.referenceId,
+        child.profileId ?? "",
+        child.name,
+        child.clubIds.join(","),
+      ].join(":"),
+    )
+    .join("|");
+  const hasParentInviteScope = Boolean(
+    currentUser &&
+      currentUser.role !== "COACH" &&
+      currentUser.role !== "ADMIN" &&
+      (currentUser.role === "PARENT" ||
+        currentUser.hasChildren ||
+        (currentUser.children?.length ?? 0) > 0 ||
+        contextChildren.length > 0),
+  );
   const loadOfferings = async () => {
     try {
       const viewerIds = new Set<string>();
+      const registrationAthleteIds = new Set<string>();
       if (currentUser?.id) {
         viewerIds.add(currentUser.id);
+        if (currentUser.id.startsWith("ath_")) {
+          registrationAthleteIds.add(currentUser.id);
+        }
       }
       for (const child of contextChildren) {
         viewerIds.add(child.id);
         viewerIds.add(child.referenceId);
+        registrationAthleteIds.add(child.id);
+        registrationAthleteIds.add(child.referenceId);
         if (child.profileId) {
           viewerIds.add(child.profileId);
+          registrationAthleteIds.add(child.profileId);
         }
       }
       const [groupSessions, groupRegistrations, allBookings, pendingInvites] =
         await Promise.all([
         groupSessionService.discoverSessions(),
-        sessionRegistrationService.getRegistrationsForAthletes(viewerIds),
+        sessionRegistrationService.getRegistrationsForAthletes(registrationAthleteIds),
         bookingService.list(),
-        currentUser && currentUser.role !== "COACH"
+        hasParentInviteScope && currentUser
           ? inviteService.getPendingInvites(currentUser.id)
           : Promise.resolve([]),
       ]);
@@ -238,7 +265,12 @@ export function useDiscoverSessions() {
   const { data, status, error, refreshing, onRefresh, retry } =
     useScreen<DiscoverSessionsData>({
       load: loadOfferings,
-      deps: [currentUser?.id],
+      deps: [
+        contextChildrenSignature,
+        currentUser?.id,
+        currentUser?.role,
+        hasParentInviteScope,
+      ],
       isEmpty: (value) =>
         value.offerings.length === 0 && value.pendingInvites.length === 0,
       refetchOnFocus: true,

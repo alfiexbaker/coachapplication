@@ -26,8 +26,9 @@ import { useTheme } from '@/hooks/useTheme';
 import { styles } from './surface-card-styles';
 import { buildLinearGradientUri, darkenHex, lightenHex } from './surface-card-utils';
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-const AnimatedView = Animated.createAnimatedComponent(View);
+const AnimatedPressable =
+  Platform.OS === 'web' ? Pressable : Animated.createAnimatedComponent(Pressable);
+const AnimatedView = Platform.OS === 'web' ? View : Animated.createAnimatedComponent(View);
 
 const shimmerPresets = {
   light: ['rgba(255,255,255,0)', 'rgba(255,255,255,0.9)', 'rgba(255,255,255,0)'],
@@ -88,7 +89,13 @@ export function SurfaceCard({
   }, [cardSize.width, loading, shimmerProgress]);
 
   const handleLayout = (event: LayoutChangeEvent) => {
-    setCardSize(event.nativeEvent.layout);
+    const { width, height } = event.nativeEvent.layout;
+    setCardSize((current) => {
+      if (current.width === width && current.height === height) {
+        return current;
+      }
+      return { width, height };
+    });
     onLayout?.(event);
   };
 
@@ -180,20 +187,31 @@ export function SurfaceCard({
       shadowOffset: baseShadow.shadowOffset,
       elevation: baseShadow.elevation,
     },
-    animatedCardStyle,
+    Platform.OS === 'web' ? null : animatedCardStyle,
     style,
   ];
 
   const shimmerOverlay = loading ? (
     <View pointerEvents="none" style={styles.shimmerOverlay}>
-      <Animated.View style={[styles.shimmerBand, shimmerAnimatedStyle]}>
-        <Image
-          pointerEvents="none"
-          source={{ uri: shimmerGradientUri }}
-          style={[styles.shimmerGradient, { height: cardSize.height || '100%' }]}
-          contentFit="cover"
-        />
-      </Animated.View>
+      {Platform.OS === 'web' ? (
+        <View style={styles.shimmerBand}>
+          <Image
+            pointerEvents="none"
+            source={{ uri: shimmerGradientUri }}
+            style={[styles.shimmerGradient, { height: cardSize.height || '100%' }]}
+            contentFit="cover"
+          />
+        </View>
+      ) : (
+        <Animated.View style={[styles.shimmerBand, shimmerAnimatedStyle]}>
+          <Image
+            pointerEvents="none"
+            source={{ uri: shimmerGradientUri }}
+            style={[styles.shimmerGradient, { height: cardSize.height || '100%' }]}
+            contentFit="cover"
+          />
+        </Animated.View>
+      )}
     </View>
   ) : null;
 

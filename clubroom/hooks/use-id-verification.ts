@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
+import * as DocumentPicker from 'expo-document-picker';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
-import { verificationService } from '@/services/verification-service';
+import { verificationService, type VerificationDocumentUploadInput } from '@/services/verification-service';
+import { apiClient } from '@/services/api-client';
 import { createLogger } from '@/utils/logger';
 import type { VerificationStatus } from '@/constants/types';
 import { err, serviceError, type ServiceError } from '@/types/result';
@@ -31,6 +33,7 @@ export interface UseIdVerificationResult {
   uploaded: boolean;
   isVerified: boolean;
   isPending: boolean;
+  canUseMockApproval: boolean;
   setSelectedType: (value: string | null) => void;
   setUploaded: (value: boolean) => void;
   handleUpload: () => Promise<void>;
@@ -43,7 +46,7 @@ export function useIdVerification() {
   const coachId = currentUser?.id ?? null;
   const [submitting, setSubmitting] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [uploaded, setUploaded] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<VerificationDocumentUploadInput | null>(null);
 
   const loadStatus = async () => {
     if (!coachId) {
@@ -74,20 +77,35 @@ export function useIdVerification() {
   });
 
   const loading = screenStatus === 'loading';
+  const uploaded = Boolean(selectedDocument);
+  const canUseMockApproval = __DEV__ && apiClient.isMockMode;
 
   const handleUpload = async () => {
     if (!selectedType) return;
-    setUploaded(true);
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ['application/pdf', 'image/*'],
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
+    setSelectedDocument({
+      uri: asset.uri,
+      fileName: asset.name || `id-document-${selectedType}`,
+      contentType: asset.mimeType,
+      sizeBytes: asset.size,
+      label: ID_TYPES.find((type) => type.id === selectedType)?.label ?? selectedType,
+    });
   };
 
   const handleSubmit = async () => {
-    if (!selectedType || !uploaded || !coachId) return;
+    if (!selectedType || !selectedDocument || !coachId) return;
     setSubmitting(true);
 
     await runAsyncTryCatchFinally(async () => {
       const result = await verificationService.submitIdVerification(
         coachId,
-        `mock://id-document-${selectedType}.jpg`,
+        selectedDocument,
       );
       if (result.success) {
         onRefresh();
@@ -103,7 +121,7 @@ export function useIdVerification() {
   };
 
   const handleMockApprove = async () => {
-    if (!coachId) return;
+    if (!coachId || !canUseMockApproval) return;
     setSubmitting(true);
 
     await runAsyncTryCatchFinally(async () => {
@@ -137,8 +155,14 @@ export function useIdVerification() {
     uploaded,
     isVerified,
     isPending,
-    setSelectedType,
-    setUploaded,
+    canUseMockApproval,
+    setSelectedType: (value: string | null) => {
+      setSelectedType(value);
+      setSelectedDocument(null);
+    },
+    setUploaded: (value: boolean) => {
+      if (!value) setSelectedDocument(null);
+    },
     handleUpload,
     handleSubmit,
     handleMockApprove,

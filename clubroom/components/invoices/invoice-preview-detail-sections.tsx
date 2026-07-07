@@ -9,6 +9,7 @@ import { withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { Invoice } from '@/constants/types';
 import { invoiceService } from '@/services/invoice-service';
+import { formatServiceTypeLabel, safeDisplayLabel } from '@/utils/booking-display';
 
 import { formatDate, formatTime } from './invoice-preview-helpers';
 import { styles } from './invoice-preview-styles';
@@ -34,7 +35,7 @@ export const InvoiceSessionDetails = function InvoiceSessionDetails({
           <View style={styles.detailContent}>
             <ThemedText style={[styles.detailLabel, { color: palette.muted }]}>Type</ThemedText>
             <ThemedText type="defaultSemiBold">
-              {invoice.sessionType || 'Training Session'}
+              {formatServiceTypeLabel(invoice.sessionType || 'Training Session')}
             </ThemedText>
           </View>
         </Row>
@@ -43,7 +44,9 @@ export const InvoiceSessionDetails = function InvoiceSessionDetails({
           <Ionicons name="person-outline" size={18} color={palette.muted} />
           <View style={styles.detailContent}>
             <ThemedText style={[styles.detailLabel, { color: palette.muted }]}>Athlete</ThemedText>
-            <ThemedText type="defaultSemiBold">{invoice.athleteId || 'Athlete'}</ThemedText>
+            <ThemedText type="defaultSemiBold">
+              {safeDisplayLabel(invoice.athleteId, 'Athlete')}
+            </ThemedText>
           </View>
         </Row>
 

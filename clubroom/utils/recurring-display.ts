@@ -1,13 +1,14 @@
 import type { RecurringBooking } from '@/constants/types';
+import { safeDisplayLabel } from '@/utils/booking-display';
 
 export function getRecurringCoachName(recurring: RecurringBooking): string {
-  return recurring.coachName || recurring.coachId || 'Coach';
+  return safeDisplayLabel(recurring.coachName, safeDisplayLabel(recurring.coachId, 'Coach'));
 }
 
 export function getRecurringUserName(recurring: RecurringBooking): string {
-  return recurring.userName || recurring.userId || 'User';
+  return safeDisplayLabel(recurring.userName, safeDisplayLabel(recurring.userId, 'User'));
 }
 
 export function getRecurringAthleteName(recurring: RecurringBooking): string | undefined {
-  return recurring.athleteName || recurring.athleteId;
+  return safeDisplayLabel(recurring.athleteName, safeDisplayLabel(recurring.athleteId, 'Athlete'));
 }

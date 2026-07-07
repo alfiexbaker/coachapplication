@@ -15,7 +15,7 @@
  * so I can track athlete progress and provide feedback."
  */
 
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   StyleSheet,
   ScrollView,
@@ -127,24 +127,28 @@ export default function SessionCompleteScreen() {
     handleBackPress,
     handleComplete,
   } = useSessionCompletion(id);
-  const quickRateAthletes = attendanceStepData.flatMap((item) =>
-    ((athlete) => athlete.status === "present")(item)
-      ? ((athlete) => {
-          const mapped = (() => {
-            const athleteRecord = attendance[athlete.registrationId];
-            if (!athleteRecord?.registration.userId) {
-              return null;
-            }
-            return {
-              athleteId: athleteRecord.registration.userId,
-              athleteName: athlete.userName,
-            };
-          })();
-          return mapped !== null ? [mapped] : [];
-        })(item)
-      : [],
+  const quickRateAthletes = useMemo(
+    () =>
+      attendanceStepData.flatMap((item) =>
+        ((athlete) => athlete.status === "present")(item)
+          ? ((athlete) => {
+              const mapped = (() => {
+                const athleteRecord = attendance[athlete.registrationId];
+                if (!athleteRecord?.registration.userId) {
+                  return null;
+                }
+                return {
+                  athleteId: athleteRecord.registration.userId,
+                  athleteName: athlete.userName,
+                };
+              })();
+              return mapped !== null ? [mapped] : [];
+            })(item)
+          : [],
+      ),
+    [attendance, attendanceStepData],
   );
-  const effortByAthleteId = (() => {
+  const effortByAthleteId = useMemo(() => {
     const next: Record<string, number> = {};
     for (const athlete of Object.values(attendance)) {
       if (athlete.status !== "present") {
@@ -156,8 +160,8 @@ export default function SessionCompleteScreen() {
       next[athlete.registration.userId] = athlete.effort;
     }
     return next;
-  })();
-  const quickRateEnabledAthletes = quickRateAthletes;
+  }, [attendance]);
+  const quickRateEnabledAthletes = isGroupCompletion ? [] : quickRateAthletes;
   const quickRate = useQuickRate({
     athletes: quickRateEnabledAthletes,
     sessionId: session?.id ?? "",
@@ -167,20 +171,24 @@ export default function SessionCompleteScreen() {
   const effectiveQuickRateByAthleteId = quickRate.isSkippedAll
     ? {}
     : quickRate.ratingsByAthleteId;
-  const completionAthletes = presentAthletes.flatMap((athlete) => {
-    const mapped = (() => {
-      const athleteRecord = attendance[athlete.registrationId];
-      if (!athleteRecord?.registration.userId) {
-        return null;
-      }
-      return {
-        registrationId: athlete.registrationId,
-        athleteId: athleteRecord.registration.userId,
-        athleteName: athlete.userName,
-      };
-    })();
-    return mapped !== null ? [mapped] : [];
-  });
+  const completionAthletes = useMemo(
+    () =>
+      presentAthletes.flatMap((athlete) => {
+        const mapped = (() => {
+          const athleteRecord = attendance[athlete.registrationId];
+          if (!athleteRecord?.registration.userId) {
+            return null;
+          }
+          return {
+            registrationId: athlete.registrationId,
+            athleteId: athleteRecord.registration.userId,
+            athleteName: athlete.userName,
+          };
+        })();
+        return mapped !== null ? [mapped] : [];
+      }),
+    [attendance, presentAthletes],
+  );
   const selectedQuickRateAthlete =
     quickRateEnabledAthletes.find(
       (athlete) => athlete.athleteId === quickRateBadgeAthleteId,
@@ -188,6 +196,7 @@ export default function SessionCompleteScreen() {
   const quickRateBadgeCount = Object.values(
     effectiveQuickRateByAthleteId,
   ).filter((rating) => Boolean(rating.badgeId)).length;
+  const canOpenPersonalFeedback = apiClient.isMockMode;
   const handleExit = () => {
     if (router.canGoBack()) {
       router.back();
@@ -196,15 +205,23 @@ export default function SessionCompleteScreen() {
     router.replace(Routes.SCHEDULE);
   };
   const handleSendGroupMessage = async () => {
-    const sent = await sendGroupBroadcast(groupMessage);
-    if (!sent) {
-      uiFeedback.showToast("Write a group update before sending.");
+    const result = await sendGroupBroadcast(groupMessage);
+    if (!result.ok) {
+      uiFeedback.showToast(result.reason, "error");
       return;
     }
     setGroupMessage("");
     uiFeedback.showToast("Update pushed to the group thread.", "success");
   };
   const handlePersonalFeedback = async (registrationId: string) => {
+    if (!canOpenPersonalFeedback) {
+      uiFeedback.showToast(
+        "Detailed per-athlete feedback needs a backend session-feedback route before it can open in API mode.",
+        "error",
+      );
+      return;
+    }
+
     const athleteStep = attendanceStepData.find(
       (a) => a.registrationId === registrationId,
     );
@@ -397,6 +414,7 @@ export default function SessionCompleteScreen() {
                 onOpenAthlete={(athlete) => {
                   void handlePersonalFeedback(athlete.registrationId);
                 }}
+                canOpenAthleteFeedback={canOpenPersonalFeedback}
                 onRaiseConcern={(athlete) => {
                   handleRaiseConcernByAthlete(athlete.athleteId);
                 }}
@@ -416,6 +434,7 @@ export default function SessionCompleteScreen() {
                   onSelectAll={() => setAllAttendanceStatus("present")}
                   onSendGroupMessage={handleSendGroupMessage}
                   onPersonalFeedback={handlePersonalFeedback}
+                  canOpenPersonalFeedback={canOpenPersonalFeedback}
                   onMessage={handleSendMessage}
                   onRaiseConcern={handleRaiseConcernByRegistration}
                   onAddVideo={addVideo}

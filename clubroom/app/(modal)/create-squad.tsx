@@ -7,6 +7,7 @@
 
 import { useRef } from 'react';
 import { View, StyleSheet, TextInput, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -36,17 +37,19 @@ export default function CreateSquadScreen() {
         accessibilityRole="none"
         style={[styles.container, { backgroundColor: palette.background }]}
       >
-        <PageHeader
-          title="Create Squad"
-          showBack
-          backIcon="close"
-          onBackPress={() => router.back()}
-          centerTitle
-          containerStyle={[styles.header, { borderBottomColor: palette.border }]}
-        />
-        <View style={styles.errorContent}>
-          <ThemedText style={{ color: palette.error }}>Club not found</ThemedText>
-        </View>
+        <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+          <PageHeader
+            title="Create Squad"
+            showBack
+            backIcon="close"
+            onBackPress={() => router.back()}
+            centerTitle
+            containerStyle={[styles.header, { borderBottomColor: palette.border }]}
+          />
+          <View style={styles.errorContent}>
+            <ThemedText style={{ color: palette.error }}>Club not found</ThemedText>
+          </View>
+        </SafeAreaView>
       </View>
     );
   }
@@ -59,242 +62,246 @@ export default function CreateSquadScreen() {
       accessibilityRole="none"
       style={[styles.container, { backgroundColor: palette.background }]}
     >
-      <PageHeader
-        title="Create Squad"
-        subtitle={c.club.name}
-        showBack
-        backIcon="close"
-        onBackPress={() => router.back()}
-        centerTitle
-        containerStyle={[styles.header, { borderBottomColor: palette.border }]}
-        right={
-          <Clickable
-            onPress={c.handleCreate}
-            disabled={c.isSubmitting || !c.isValid}
-            style={[
-              styles.createButton,
-              { backgroundColor: c.isValid ? palette.tint : palette.border },
-            ]}
-          >
-            <ThemedText
-              style={{
-                color: c.isValid ? palette.onPrimary : palette.muted,
-                ...Typography.bodySmallSemiBold,
-              }}
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <PageHeader
+          title="Create Squad"
+          subtitle={c.club.name}
+          showBack
+          backIcon="close"
+          onBackPress={() => router.back()}
+          centerTitle
+          containerStyle={[styles.header, { borderBottomColor: palette.border }]}
+          right={
+            <Clickable
+              onPress={c.handleCreate}
+              disabled={c.isSubmitting || !c.isValid}
+              style={[
+                styles.createButton,
+                { backgroundColor: c.isValid ? palette.tint : palette.border },
+              ]}
             >
-              {c.isSubmitting ? 'Creating...' : 'Create'}
-            </ThemedText>
-          </Clickable>
-        }
-      />
-
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-            Squad Name
-          </ThemedText>
-          <TextInput
-            value={c.squadName}
-            onChangeText={c.setSquadName}
-            placeholder="e.g., U14 Development Squad"
-            placeholderTextColor={palette.muted}
-            style={[
-              styles.textInput,
-              {
-                backgroundColor: palette.surface,
-                borderColor: palette.border,
-                color: palette.text,
-              },
-            ]}
-            maxLength={50}
-          />
-        </View>
-
-        <View style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-            Age Group
-          </ThemedText>
-          <Row wrap gap="sm" style={styles.optionsGrid}>
-            {AGE_GROUPS.map((age) => (
-              <Clickable
-                key={age.label}
-                onPress={() => c.setSelectedAgeGroup(age)}
-                style={[
-                  styles.optionPill,
-                  {
-                    backgroundColor:
-                      c.selectedAgeGroup?.label === age.label ? palette.tint : palette.surface,
-                    borderColor:
-                      c.selectedAgeGroup?.label === age.label ? palette.tint : palette.border,
-                  },
-                ]}
+              <ThemedText
+                style={{
+                  color: c.isValid ? palette.onPrimary : palette.muted,
+                  ...Typography.bodySmallSemiBold,
+                }}
               >
-                <ThemedText
-                  style={{
-                    color:
-                      c.selectedAgeGroup?.label === age.label ? palette.onPrimary : palette.text,
-                    ...Typography.bodySmallSemiBold,
-                  }}
-                >
-                  {age.label}
-                </ThemedText>
-              </Clickable>
-            ))}
-          </Row>
-        </View>
+                {c.isSubmitting ? 'Creating...' : 'Create'}
+              </ThemedText>
+            </Clickable>
+          }
+        />
 
-        <View style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-            Level
-          </ThemedText>
-          <Row wrap gap="sm" style={styles.optionsGrid}>
-            {SQUAD_LEVELS.map((level) => (
-              <Clickable
-                key={level}
-                onPress={() => c.setSelectedLevel(level)}
-                style={[
-                  styles.optionPill,
-                  {
-                    backgroundColor: c.selectedLevel === level ? palette.tint : palette.surface,
-                    borderColor: c.selectedLevel === level ? palette.tint : palette.border,
-                  },
-                ]}
-              >
-                <ThemedText
-                  style={{
-                    color: c.selectedLevel === level ? palette.onPrimary : palette.text,
-                    ...Typography.smallSemiBold,
-                  }}
-                >
-                  {level}
-                </ThemedText>
-              </Clickable>
-            ))}
-          </Row>
-        </View>
-
-        <View style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-            Meeting Location
-          </ThemedText>
-          <TextInput
-            value={c.meetLocation}
-            onChangeText={c.setMeetLocation}
-            placeholder="e.g., Main Pitch, Sports Hall"
-            placeholderTextColor={palette.muted}
-            style={[
-              styles.textInput,
-              {
-                backgroundColor: palette.surface,
-                borderColor: palette.border,
-                color: palette.text,
-              },
-            ]}
-            maxLength={100}
-          />
-        </View>
-
-        <View style={styles.section}>
-          <Row justify="between" align="center" style={styles.sectionHeader}>
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.section}>
             <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-              Focus Areas
+              Squad Name
             </ThemedText>
-            <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
-              Select up to 3
+            <TextInput
+              value={c.squadName}
+              onChangeText={c.setSquadName}
+              placeholder="e.g., U14 Development Squad"
+              placeholderTextColor={palette.muted}
+              style={[
+                styles.textInput,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: palette.border,
+                  color: palette.text,
+                },
+              ]}
+              maxLength={50}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+              Age Group
             </ThemedText>
-          </Row>
-          <Row wrap gap="sm" style={styles.tagsGrid}>
-            {SKILL_TAGS.map((tag) => {
-              const isSelected = c.selectedTags.includes(tag);
-              return (
+            <Row wrap gap="sm" style={styles.optionsGrid}>
+              {AGE_GROUPS.map((age) => (
                 <Clickable
-                  key={tag}
-                  onPress={() => c.toggleTag(tag)}
+                  key={age.label}
+                  onPress={() => c.setSelectedAgeGroup(age)}
                   style={[
-                    styles.tagPill,
+                    styles.optionPill,
                     {
-                      backgroundColor: isSelected
-                        ? withAlpha(palette.success, 0.09)
-                        : palette.surface,
-                      borderColor: isSelected ? palette.success : palette.border,
+                      backgroundColor:
+                        c.selectedAgeGroup?.label === age.label ? palette.tint : palette.surface,
+                      borderColor:
+                        c.selectedAgeGroup?.label === age.label ? palette.tint : palette.border,
                     },
                   ]}
                 >
-                  <Row align="center" gap="xs">
-                    {isSelected && (
-                      <Ionicons name="checkmark-circle" size={16} color={palette.success} />
-                    )}
-                    <ThemedText
-                      style={{
-                        color: isSelected ? palette.success : palette.text,
-                        ...Typography.smallSemiBold,
-                      }}
-                    >
-                      {tag}
-                    </ThemedText>
-                  </Row>
+                  <ThemedText
+                    style={{
+                      color:
+                        c.selectedAgeGroup?.label === age.label ? palette.onPrimary : palette.text,
+                      ...Typography.bodySmallSemiBold,
+                    }}
+                  >
+                    {age.label}
+                  </ThemedText>
                 </Clickable>
-              );
-            })}
-          </Row>
-        </View>
+              ))}
+            </Row>
+          </View>
 
-        {c.squadName && c.selectedAgeGroup && c.selectedLevel && (
           <View style={styles.section}>
             <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-              Preview
+              Level
             </ThemedText>
-            <SurfaceCard style={styles.previewCard}>
-              <Row align="center" gap="md" style={styles.previewHeader}>
-                <View style={[styles.previewBadge, { backgroundColor: palette.tint }]}>
-                  <ThemedText style={{ color: palette.onPrimary, ...Typography.bodySmallSemiBold }}>
-                    {c.squadName.slice(0, 2).toUpperCase()}
+            <Row wrap gap="sm" style={styles.optionsGrid}>
+              {SQUAD_LEVELS.map((level) => (
+                <Clickable
+                  key={level}
+                  onPress={() => c.setSelectedLevel(level)}
+                  style={[
+                    styles.optionPill,
+                    {
+                      backgroundColor: c.selectedLevel === level ? palette.tint : palette.surface,
+                      borderColor: c.selectedLevel === level ? palette.tint : palette.border,
+                    },
+                  ]}
+                >
+                  <ThemedText
+                    style={{
+                      color: c.selectedLevel === level ? palette.onPrimary : palette.text,
+                      ...Typography.smallSemiBold,
+                    }}
+                  >
+                    {level}
                   </ThemedText>
-                </View>
-                <Column flex>
-                  <ThemedText type="defaultSemiBold" style={{ ...Typography.subheading }}>
-                    {c.squadName}
-                  </ThemedText>
-                  <ThemedText style={{ color: palette.muted, ...Typography.small }}>
-                    {c.selectedAgeGroup.label} · {c.selectedLevel}
-                  </ThemedText>
-                </Column>
-              </Row>
-              {c.meetLocation ? (
-                <Row align="center" gap="xs" style={styles.previewMeta}>
-                  <Ionicons name="location-outline" size={14} color={palette.muted} />
-                  <ThemedText style={{ color: palette.muted, ...Typography.small }}>
-                    {c.meetLocation}
-                  </ThemedText>
-                </Row>
-              ) : null}
-              {c.selectedTags.length > 0 && (
-                <Row wrap gap="xs" style={styles.previewTags}>
-                  {c.selectedTags.map((tag) => (
-                    <View
-                      key={tag}
-                      style={[
-                        styles.previewTag,
-                        { backgroundColor: withAlpha(palette.tint, 0.09) },
-                      ]}
-                    >
-                      <ThemedText style={{ color: palette.tint, ...Typography.caption }}>
+                </Clickable>
+              ))}
+            </Row>
+          </View>
+
+          <View style={styles.section}>
+            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+              Meeting Location
+            </ThemedText>
+            <TextInput
+              value={c.meetLocation}
+              onChangeText={c.setMeetLocation}
+              placeholder="e.g., Main Pitch, Sports Hall"
+              placeholderTextColor={palette.muted}
+              style={[
+                styles.textInput,
+                {
+                  backgroundColor: palette.surface,
+                  borderColor: palette.border,
+                  color: palette.text,
+                },
+              ]}
+              maxLength={100}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <Row justify="between" align="center" style={styles.sectionHeader}>
+              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                Focus Areas
+              </ThemedText>
+              <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
+                Select up to 3
+              </ThemedText>
+            </Row>
+            <Row wrap gap="sm" style={styles.tagsGrid}>
+              {SKILL_TAGS.map((tag) => {
+                const isSelected = c.selectedTags.includes(tag);
+                return (
+                  <Clickable
+                    key={tag}
+                    onPress={() => c.toggleTag(tag)}
+                    style={[
+                      styles.tagPill,
+                      {
+                        backgroundColor: isSelected
+                          ? withAlpha(palette.success, 0.09)
+                          : palette.surface,
+                        borderColor: isSelected ? palette.success : palette.border,
+                      },
+                    ]}
+                  >
+                    <Row align="center" gap="xs">
+                      {isSelected && (
+                        <Ionicons name="checkmark-circle" size={16} color={palette.success} />
+                      )}
+                      <ThemedText
+                        style={{
+                          color: isSelected ? palette.success : palette.text,
+                          ...Typography.smallSemiBold,
+                        }}
+                      >
                         {tag}
                       </ThemedText>
-                    </View>
-                  ))}
-                </Row>
-              )}
-            </SurfaceCard>
+                    </Row>
+                  </Clickable>
+                );
+              })}
+            </Row>
           </View>
-        )}
 
-        <View style={{ height: 40 }} />
-      </ScrollView>
+          {c.squadName && c.selectedAgeGroup && c.selectedLevel && (
+            <View style={styles.section}>
+              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                Preview
+              </ThemedText>
+              <SurfaceCard style={styles.previewCard}>
+                <Row align="center" gap="md" style={styles.previewHeader}>
+                  <View style={[styles.previewBadge, { backgroundColor: palette.tint }]}>
+                    <ThemedText
+                      style={{ color: palette.onPrimary, ...Typography.bodySmallSemiBold }}
+                    >
+                      {c.squadName.slice(0, 2).toUpperCase()}
+                    </ThemedText>
+                  </View>
+                  <Column flex>
+                    <ThemedText type="defaultSemiBold" style={{ ...Typography.subheading }}>
+                      {c.squadName}
+                    </ThemedText>
+                    <ThemedText style={{ color: palette.muted, ...Typography.small }}>
+                      {c.selectedAgeGroup.label} · {c.selectedLevel}
+                    </ThemedText>
+                  </Column>
+                </Row>
+                {c.meetLocation ? (
+                  <Row align="center" gap="xs" style={styles.previewMeta}>
+                    <Ionicons name="location-outline" size={14} color={palette.muted} />
+                    <ThemedText style={{ color: palette.muted, ...Typography.small }}>
+                      {c.meetLocation}
+                    </ThemedText>
+                  </Row>
+                ) : null}
+                {c.selectedTags.length > 0 && (
+                  <Row wrap gap="xs" style={styles.previewTags}>
+                    {c.selectedTags.map((tag) => (
+                      <View
+                        key={tag}
+                        style={[
+                          styles.previewTag,
+                          { backgroundColor: withAlpha(palette.tint, 0.09) },
+                        ]}
+                      >
+                        <ThemedText style={{ color: palette.tint, ...Typography.caption }}>
+                          {tag}
+                        </ThemedText>
+                      </View>
+                    ))}
+                  </Row>
+                )}
+              </SurfaceCard>
+            </View>
+          )}
+
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      </SafeAreaView>
     </View>
   );
 }

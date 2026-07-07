@@ -2,8 +2,15 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as Sharing from 'expo-sharing';
 import * as VideoThumbnails from 'expo-video-thumbnails';
+import { Platform } from 'react-native';
 
-import { apiClient } from '@/services/api-client';
+import { apiClient, apiFetch } from '@/services/api-client';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+  toApiAthleteId,
+} from '@/services/api-auth-context';
 import { consentService } from '@/services/consent-service';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { err, ok, unsupportedError, type Result, type ServiceError } from '@/types/result';
@@ -14,9 +21,40 @@ const logger = createLogger('MediaService');
 
 let sessionMediaCache: SessionMedia[] = [];
 
+type ApiUploadInitResponse = {
+  uploadSessionId: string;
+  mediaObjectId: string;
+  uploadUrl: string;
+  uploadHeaders?: Record<string, string>;
+};
+
+type ApiUploadCompleteResponse = {
+  mediaObjectId: string;
+  mediaStatus: 'AVAILABLE';
+};
+
+type ApiSessionMediaResponse = {
+  media: SessionMedia | null;
+};
+
+type ApiSessionMediaListResponse = {
+  media: SessionMedia[];
+};
+
+type ApiSessionMediaAssetInput = {
+  id?: string;
+  kind: 'photo' | 'video';
+  mediaObjectId: string;
+  thumbnailMediaObjectId?: string;
+  width?: number;
+  height?: number;
+  duration?: number;
+  capturedAt: string;
+};
+
 function sessionMediaApiUnsupported(): ServiceError {
   return unsupportedError(
-    'Session media requires a backend session-media upload API in API mode.',
+    'Session media retention cleanup requires a backend retention job in API mode.',
   );
 }
 
@@ -51,6 +89,209 @@ function replaceAllSessionMedia(media: SessionMedia[]): void {
   sessionMediaCache = media.map(cloneSessionMedia);
 }
 
+function requireApiData<T>(result: Result<T, ServiceError>, fallbackMessage: string): T {
+  if (!result.success) {
+    throw new Error(result.error.message || fallbackMessage);
+  }
+  return result.data;
+}
+
+async function resolveMediaApiAccess(
+  athleteId: string,
+): Promise<{ apiAthleteId: string; headers: Record<string, string> }> {
+  const currentUserResult = await resolveSignedInApiUser('Sign in to view session media.');
+  if (!currentUserResult.success) {
+    throw new Error(currentUserResult.error.message);
+  }
+
+  const currentUser = currentUserResult.data;
+  const apiAthleteId = toApiAthleteId(athleteId);
+  const actingRole = deriveApiActingRole(currentUser);
+  return {
+    apiAthleteId,
+    headers: buildApiAuthHeaders({
+      actingRole,
+      coachAthleteIds: actingRole === 'coach' ? [apiAthleteId] : undefined,
+      guardianAthleteIds: actingRole === 'parent' ? [apiAthleteId] : undefined,
+      coachVerified: actingRole === 'coach' && currentUser.isVerified,
+    }),
+  };
+}
+
+function inferContentType(uri: string, kind: 'photo' | 'video'): string {
+  const normalized = uri.toLowerCase().split('?')[0] ?? uri.toLowerCase();
+  if (kind === 'photo') {
+    if (normalized.endsWith('.png')) return 'image/png';
+    if (normalized.endsWith('.webp')) return 'image/webp';
+    return 'image/jpeg';
+  }
+  if (normalized.endsWith('.mov')) return 'video/quicktime';
+  if (normalized.endsWith('.m4v')) return 'video/x-m4v';
+  return 'video/mp4';
+}
+
+function uploadFileName(uri: string, kind: 'photo' | 'video'): string {
+  const candidate = uri.split('?')[0]?.split('/').pop()?.trim();
+  if (candidate) {
+    return candidate;
+  }
+  return kind === 'photo' ? 'session-photo.jpg' : 'session-video.mp4';
+}
+
+async function fileSizeBytes(uri: string): Promise<number> {
+  const info = await FileSystem.getInfoAsync(uri);
+  return info.exists && typeof info.size === 'number' ? Math.max(1, info.size) : 1;
+}
+
+async function uploadFileToSignedUrl(
+  fileUri: string,
+  uploadUrl: string,
+  uploadHeaders: Record<string, string> | undefined,
+): Promise<void> {
+  if (Platform.OS === 'web') {
+    const source = await fetch(fileUri);
+    const blob = await source.blob();
+    const response = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: uploadHeaders,
+      body: blob,
+    });
+    if (!response.ok) {
+      throw new Error(`Upload failed with status ${response.status}`);
+    }
+    return;
+  }
+
+  const response = await FileSystem.uploadAsync(uploadUrl, fileUri, {
+    httpMethod: 'PUT',
+    headers: uploadHeaders,
+    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+  });
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(`Upload failed with status ${response.status}`);
+  }
+}
+
+async function uploadSessionMediaObject(params: {
+  uri: string;
+  kind: 'photo' | 'video';
+  sessionId: string;
+  athleteId: string;
+  coachId: string;
+  role: 'media' | 'thumbnail';
+}): Promise<string> {
+  const contentKind = params.kind === 'photo' || params.role === 'thumbnail' ? 'IMAGE' : 'VIDEO';
+  const uploadInit = requireApiData(
+    await apiFetch<ApiUploadInitResponse>('/v1/uploads/init', {
+      method: 'POST',
+      body: JSON.stringify({
+        kind: contentKind,
+        contentType: inferContentType(params.uri, contentKind === 'IMAGE' ? 'photo' : 'video'),
+        fileName: uploadFileName(params.uri, contentKind === 'IMAGE' ? 'photo' : 'video'),
+        sizeBytes: await fileSizeBytes(params.uri),
+        metadata: {
+          source: 'session-media',
+          role: params.role,
+          sessionId: params.sessionId,
+          athleteId: params.athleteId,
+          coachId: params.coachId,
+        },
+      }),
+    }),
+    'Failed to initialize media upload',
+  );
+
+  await uploadFileToSignedUrl(params.uri, uploadInit.uploadUrl, uploadInit.uploadHeaders);
+
+  requireApiData(
+    await apiFetch<ApiUploadCompleteResponse>(
+      `/v1/uploads/${uploadInit.uploadSessionId}/complete`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          mediaObjectId: uploadInit.mediaObjectId,
+        }),
+      },
+    ),
+    'Failed to finalize media upload',
+  );
+
+  return uploadInit.mediaObjectId;
+}
+
+async function photoToApiAsset(
+  photo: PhotoAsset,
+  media: SessionMedia,
+): Promise<ApiSessionMediaAssetInput> {
+  const mediaObjectId =
+    photo.mediaObjectId ??
+    (await uploadSessionMediaObject({
+      uri: photo.uri,
+      kind: 'photo',
+      role: 'media',
+      sessionId: media.sessionId,
+      athleteId: media.athleteId,
+      coachId: media.coachId,
+    }));
+  const shouldUploadThumbnail =
+    photo.thumbnailUri && photo.thumbnailUri !== photo.uri && !photo.thumbnailMediaObjectId;
+  const thumbnailMediaObjectId = shouldUploadThumbnail
+    ? await uploadSessionMediaObject({
+        uri: photo.thumbnailUri,
+        kind: 'photo',
+        role: 'thumbnail',
+        sessionId: media.sessionId,
+        athleteId: media.athleteId,
+        coachId: media.coachId,
+      })
+    : photo.thumbnailMediaObjectId;
+  return {
+    id: photo.id,
+    kind: 'photo',
+    mediaObjectId,
+    thumbnailMediaObjectId,
+    width: photo.width,
+    height: photo.height,
+    capturedAt: photo.capturedAt,
+  };
+}
+
+async function videoToApiAsset(
+  video: VideoAsset,
+  media: SessionMedia,
+): Promise<ApiSessionMediaAssetInput> {
+  const mediaObjectId =
+    video.mediaObjectId ??
+    (await uploadSessionMediaObject({
+      uri: video.uri,
+      kind: 'video',
+      role: 'media',
+      sessionId: media.sessionId,
+      athleteId: media.athleteId,
+      coachId: media.coachId,
+    }));
+  const shouldUploadThumbnail =
+    video.thumbnailUri && video.thumbnailUri !== video.uri && !video.thumbnailMediaObjectId;
+  const thumbnailMediaObjectId = shouldUploadThumbnail
+    ? await uploadSessionMediaObject({
+        uri: video.thumbnailUri,
+        kind: 'photo',
+        role: 'thumbnail',
+        sessionId: media.sessionId,
+        athleteId: media.athleteId,
+        coachId: media.coachId,
+      })
+    : video.thumbnailMediaObjectId;
+  return {
+    id: video.id,
+    kind: 'video',
+    mediaObjectId,
+    thumbnailMediaObjectId,
+    duration: video.duration,
+    capturedAt: video.capturedAt,
+  };
+}
+
 async function safeDelete(uri: string | undefined): Promise<void> {
   if (!uri) {
     return;
@@ -63,11 +304,6 @@ async function saveSessionMedia(
   coachId?: string,
 ): Promise<Result<SessionMedia, ServiceError>> {
   try {
-    const mockGuard = requireMockSessionMedia();
-    if (!mockGuard.success) {
-      return err(mockGuard.error);
-    }
-
     // SAFEGUARDING: Check photo/video consent when coachId provided
     if (coachId && media.athleteId) {
       const photoConsentResult = await consentService.checkConsent(
@@ -95,6 +331,42 @@ async function saveSessionMedia(
           message: "Photo/video consent required from athlete's parent before uploading media",
         });
       }
+    }
+
+    if (!apiClient.isMockMode) {
+      const photos = await Promise.all(media.photos.map((photo) => photoToApiAsset(photo, media)));
+      const video = media.video ? await videoToApiAsset(media.video, media) : null;
+      const result = await apiFetch<ApiSessionMediaResponse>('/v1/session-media', {
+        method: 'PUT',
+        body: JSON.stringify({
+          sessionId: media.sessionId,
+          athleteId: media.athleteId,
+          coachId: media.coachId,
+          photos,
+          video,
+        }),
+      });
+      if (!result.success) {
+        return err(result.error);
+      }
+      if (!result.data.media) {
+        return err({
+          code: 'UNKNOWN',
+          message: 'Session media save did not return media',
+        });
+      }
+      emitTyped(ServiceEvents.SESSION_MEDIA_CAPTURED, {
+        sessionId: result.data.media.sessionId,
+        athleteId: result.data.media.athleteId,
+        photoCount: result.data.media.photos.length,
+        hasVideo: result.data.media.video !== null,
+      });
+      return ok(cloneSessionMedia(result.data.media));
+    }
+
+    const mockGuard = requireMockSessionMedia();
+    if (!mockGuard.success) {
+      return err(mockGuard.error);
     }
 
     const allMedia = getAllSessionMedia();
@@ -133,6 +405,17 @@ async function getSessionMedia(
   athleteId: string,
 ): Promise<Result<SessionMedia | null, ServiceError>> {
   try {
+    if (!apiClient.isMockMode) {
+      const query = new URLSearchParams({ sessionId, athleteId });
+      const result = await apiFetch<ApiSessionMediaResponse>(
+        `/v1/session-media?${query.toString()}`,
+      );
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(result.data.media ? cloneSessionMedia(result.data.media) : null);
+    }
+
     const mockGuard = requireMockSessionMedia();
     if (!mockGuard.success) {
       return err(mockGuard.error);
@@ -157,6 +440,16 @@ async function listMediaForSession(
   sessionId: string,
 ): Promise<Result<SessionMedia[], ServiceError>> {
   try {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<ApiSessionMediaListResponse>(
+        `/v1/sessions/${encodeURIComponent(sessionId)}/media`,
+      );
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(result.data.media.map(cloneSessionMedia));
+    }
+
     const mockGuard = requireMockSessionMedia();
     if (!mockGuard.success) {
       return err(mockGuard.error);
@@ -178,6 +471,18 @@ async function listMediaForAthlete(
   athleteId: string,
 ): Promise<Result<SessionMedia[], ServiceError>> {
   try {
+    if (!apiClient.isMockMode) {
+      const access = await resolveMediaApiAccess(athleteId);
+      const result = await apiFetch<ApiSessionMediaListResponse>(
+        `/v1/athletes/${encodeURIComponent(access.apiAthleteId)}/session-media`,
+        { headers: access.headers },
+      );
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(result.data.media.map(cloneSessionMedia));
+    }
+
     const mockGuard = requireMockSessionMedia();
     if (!mockGuard.success) {
       return err(mockGuard.error);
@@ -198,9 +503,56 @@ async function listMediaForAthlete(
 async function removeSessionMediaAsset(
   sessionId: string,
   athleteId: string,
-  uri: string,
+  assetKey: string,
 ): Promise<Result<SessionMedia | null, ServiceError>> {
   try {
+    if (!apiClient.isMockMode) {
+      const normalizedAssetKey = assetKey.trim();
+      if (!normalizedAssetKey) {
+        return err({
+          code: 'VALIDATION',
+          message: 'Session media asset id is required for removal',
+        });
+      }
+      const current = await getSessionMedia(sessionId, athleteId);
+      if (!current.success) {
+        return err(current.error);
+      }
+      const asset =
+        current.data?.photos.find(
+          (photo) =>
+            photo.id === normalizedAssetKey ||
+            photo.mediaObjectId === normalizedAssetKey ||
+            photo.thumbnailMediaObjectId === normalizedAssetKey ||
+            photo.uri === normalizedAssetKey ||
+            photo.thumbnailUri === normalizedAssetKey,
+        ) ??
+        (current.data?.video &&
+        (current.data.video.id === normalizedAssetKey ||
+          current.data.video.mediaObjectId === normalizedAssetKey ||
+          current.data.video.thumbnailMediaObjectId === normalizedAssetKey ||
+          current.data.video.uri === normalizedAssetKey ||
+          current.data.video.thumbnailUri === normalizedAssetKey)
+          ? current.data.video
+          : null);
+      if (!asset?.id) {
+        return err({
+          code: 'VALIDATION',
+          message: 'Session media asset was not found for removal',
+        });
+      }
+      const result = await apiFetch<ApiSessionMediaResponse>(
+        `/v1/session-media/assets/${encodeURIComponent(asset.id)}`,
+        {
+          method: 'DELETE',
+        },
+      );
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(result.data.media ? cloneSessionMedia(result.data.media) : null);
+    }
+
     const mockGuard = requireMockSessionMedia();
     if (!mockGuard.success) {
       return err(mockGuard.error);
@@ -215,9 +567,9 @@ async function removeSessionMediaAsset(
     }
 
     const existing = allMedia[targetIndex];
-    const nextPhotos = existing.photos.filter((photo) => photo.uri !== uri);
-    const removedPhoto = existing.photos.find((photo) => photo.uri === uri);
-    const removedVideo = existing.video?.uri === uri ? existing.video : null;
+    const nextPhotos = existing.photos.filter((photo) => photo.uri !== assetKey);
+    const removedPhoto = existing.photos.find((photo) => photo.uri === assetKey);
+    const removedVideo = existing.video?.uri === assetKey ? existing.video : null;
     const nextVideo = removedVideo ? null : existing.video;
 
     if (removedPhoto?.uri) {

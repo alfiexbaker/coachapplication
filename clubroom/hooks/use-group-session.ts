@@ -299,11 +299,18 @@ export function useGroupSession() {
     setRegistering(true);
     return await runAsyncTryCatchFinally(
       async () => {
-        const result = await groupSessionService.register(
-          session.id,
-          athleteId,
-          currentUser.id,
-        );
+        const result =
+          isFull && session.waitlistEnabled
+            ? await groupSessionService.joinWaitlist(
+                session.id,
+                athleteId,
+                currentUser.id,
+              )
+            : await groupSessionService.register(
+                session.id,
+                athleteId,
+                currentUser.id,
+              );
         if (!result.success) {
           uiFeedback.showToast(
             result.error.message || "Failed to register. Please try again.",

@@ -559,7 +559,7 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
           (row) => asString(row.athleteId) === athleteId,
         ),
         consents: this.activeRows('childConsents').filter(
-          (row) => asString(row.athleteId) === athleteId,
+          (row) => asString(row.athleteId) === athleteId && !asString(row.supersededById),
         ),
       },
       this.parentIdForAthlete(athleteId, familyId),
@@ -714,7 +714,15 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
     athlete.version = Number(athlete.version ?? 1) + 1;
     if (input.specialNeeds !== undefined) {
       const childSenTags = ensureStoreTable(this.tables(), 'childSenTags');
-      removeRowsWhere(childSenTags, (row) => asString(row.athleteId) === athleteId);
+      for (const row of childSenTags.filter(
+        (item) => asString(item.athleteId) === athleteId && !asString(item.deletedAt),
+      )) {
+        row.deletedAt = athlete.updatedAt;
+        row.deletedByUserId = authUserId;
+        row.updatedAt = athlete.updatedAt;
+        row.updatedByUserId = authUserId;
+        row.version = Number(row.version ?? 1) + 1;
+      }
       for (const need of specialNeeds) {
         childSenTags.push({
           id: newId('sen'),
@@ -1064,7 +1072,9 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
     const rows = this.activeRows('childConsents')
       .filter(
         (row) =>
-          asString(row.athleteId) === athleteId && consentTypeIsExposed(asString(row.consentType)),
+          asString(row.athleteId) === athleteId &&
+          consentTypeIsExposed(asString(row.consentType)) &&
+          !asString(row.supersededById),
       )
       .sort((left, right) =>
         String(left.createdAt ?? '').localeCompare(String(right.createdAt ?? '')),
@@ -1113,16 +1123,11 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
     userId: string,
   ): Promise<ConsentsResponse> {
     const consents = ensureStoreTable(this.tables(), 'childConsents');
-    removeRowsWhere(
-      consents,
-      (row) =>
-        asString(row.athleteId) === athleteId && consentTypeIsExposed(asString(row.consentType)),
-    );
     const now = isoNow();
     const providedByType = new Map(input.consents.map((consent) => [consent.type, consent]));
-    for (const type of EXPOSED_CONSENT_TYPES) {
+    const newRows = EXPOSED_CONSENT_TYPES.map((type) => {
       const consent = providedByType.get(type);
-      consents.push({
+      return {
         id: newId('ccn'),
         athleteId,
         consentType: type,
@@ -1137,8 +1142,18 @@ class StoreFamilyAthleteRepository implements FamilyAthleteRepository {
         },
         createdAt: now,
         updatedAt: now,
-      });
+      };
+    });
+    const newIdByType = new Map(newRows.map((row) => [row.consentType, row.id] as const));
+    for (const row of consents.filter(
+      (item) =>
+        asString(item.athleteId) === athleteId &&
+        consentTypeIsExposed(asString(item.consentType)) &&
+        !asString(item.supersededById),
+    )) {
+      row.supersededById = newIdByType.get(asString(row.consentType) as ContractConsentType) ?? null;
     }
+    consents.push(...newRows);
     return this.getConsents(athleteId, userId);
   }
 }
@@ -1228,6 +1243,7 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
       prisma.childConsent.findMany({
         where: {
           athleteId,
+          supersededById: null,
         },
       }),
       this.resolveAthleteFamilyId(athleteId),
@@ -1437,9 +1453,18 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
         },
       });
       if (input.specialNeeds !== undefined) {
-        await tx.childSenTag.deleteMany({
+        await tx.childSenTag.updateMany({
           where: {
             athleteId,
+            deletedAt: null,
+          },
+          data: {
+            deletedAt: new Date(),
+            deletedByUserId: authUserId,
+            updatedByUserId: authUserId,
+            version: {
+              increment: 1,
+            },
           },
         });
         if (specialNeeds.length > 0) {
@@ -1936,6 +1961,7 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
         consentType: {
           in: EXPOSED_CONSENT_TYPES,
         },
+        supersededById: null,
       },
       orderBy: {
         createdAt: 'asc',
@@ -1995,33 +2021,41 @@ class PrismaFamilyAthleteRepository implements FamilyAthleteRepository {
     }
     const prisma = getPrismaClientOrThrow();
     const providedByType = new Map(input.consents.map((consent) => [consent.type, consent]));
-    await prisma.$transaction(async (tx) => {
-      await tx.childConsent.deleteMany({
-        where: {
-          athleteId,
-          consentType: {
-            in: EXPOSED_CONSENT_TYPES,
-          },
+    const now = new Date();
+    const newRows = EXPOSED_CONSENT_TYPES.map((type) => {
+      const consent = providedByType.get(type);
+      return {
+        id: newId('ccn'),
+        athleteId,
+        consentType: type,
+        granted: consent?.granted ?? false,
+        grantedByUserId: userId,
+        grantedAt: consent?.granted ? new Date(consent.grantedAt ?? now) : null,
+        expiresAt: consent?.expiryAt ? new Date(consent.expiryAt) : null,
+        revokedAt: consent?.granted === false ? now : null,
+        supersededById: null,
+        metadataJson: {
+          grantedByLabel: consent?.grantedBy ?? '',
         },
-      });
-      await tx.childConsent.createMany({
-        data: EXPOSED_CONSENT_TYPES.map((type) => {
-          const consent = providedByType.get(type);
-          return {
-            id: newId('ccn'),
-            athleteId,
-            consentType: type,
-            granted: consent?.granted ?? false,
-            grantedByUserId: userId,
-            grantedAt: consent?.granted ? new Date(consent.grantedAt ?? isoNow()) : null,
-            expiresAt: consent?.expiryAt ? new Date(consent.expiryAt) : null,
-            revokedAt: consent?.granted === false ? new Date() : null,
-            supersededById: null,
-            metadataJson: {
-              grantedByLabel: consent?.grantedBy ?? '',
+      };
+    });
+    await prisma.$transaction(async (tx) => {
+      await Promise.all(
+        newRows.map((row) =>
+          tx.childConsent.updateMany({
+            where: {
+              athleteId,
+              consentType: row.consentType,
+              supersededById: null,
             },
-          };
-        }),
+            data: {
+              supersededById: row.id,
+            },
+          }),
+        ),
+      );
+      await tx.childConsent.createMany({
+        data: newRows,
       });
     });
     return this.getConsents(athleteId, userId);

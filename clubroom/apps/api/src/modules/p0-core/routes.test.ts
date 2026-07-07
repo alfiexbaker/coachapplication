@@ -42,17 +42,15 @@ function canCreateClubSessionFromMembership(row: SeedRow | null | undefined): bo
   const role = parseOrganizationRole(asString(row?.role));
   return Boolean(
     isActiveClubMembership(row) &&
-      role &&
-      canUseClubCapability(role, 'create_org_sessions', { hasGrant: role === 'COACH' }),
+    role &&
+    canUseClubCapability(role, 'create_org_sessions', { hasGrant: role === 'COACH' }),
   );
 }
 
 function canAssignClubSessionFromMembership(row: SeedRow | null | undefined): boolean {
   const role = parseOrganizationRole(asString(row?.role));
   return Boolean(
-    isActiveClubMembership(row) &&
-      role &&
-      canUseClubCapability(role, 'assign_session_coach'),
+    isActiveClubMembership(row) && role && canUseClubCapability(role, 'assign_session_coach'),
   );
 }
 
@@ -119,6 +117,66 @@ function authHeaders(
     'x-auth-roles': roles.join(',') || fallbackRole,
     'x-acting-role': roles[0] ?? fallbackRole,
   };
+}
+
+function isVerifiedCoachInTables(tables: SeedTables, userId: string): boolean {
+  const user = asRows(tables.users).find((row) => asString(row.id) === userId);
+  if (user?.isVerified === true) {
+    return true;
+  }
+  const profile = asRows(tables.coachProfiles).find((row) => asString(row.userId) === userId);
+  if (profile?.dbsChecked === true) {
+    return true;
+  }
+  return asRows(tables.coachVerifications).some((row) => {
+    if (asString(row.coachUserId) !== userId) return false;
+    if (asString(row.verificationType) !== 'DBS' || asString(row.status) !== 'APPROVED') {
+      return false;
+    }
+    const expiresAt = asString(row.expiresAt);
+    return !expiresAt || Date.parse(expiresAt) > Date.now();
+  });
+}
+
+function coachAthleteIdsFromTables(tables: SeedTables, coachUserId: string): Set<string> {
+  const bookingIds = new Set(
+    asRows(tables.bookings)
+      .filter((row) => asString(row.coachUserId) === coachUserId && !asString(row.deletedAt))
+      .map((row) => asString(row.id))
+      .filter((bookingId): bookingId is string => Boolean(bookingId)),
+  );
+  const groupSessionIds = new Set(
+    asRows(tables.groupSessions)
+      .filter((row) => asString(row.coachUserId) === coachUserId && !asString(row.deletedAt))
+      .map((row) => asString(row.id))
+      .filter((sessionId): sessionId is string => Boolean(sessionId)),
+  );
+  const squadIds = new Set(
+    asRows(tables.squads)
+      .filter((row) => asString(row.ownerCoachUserId) === coachUserId && !asString(row.deletedAt))
+      .map((row) => asString(row.id))
+      .filter((squadId): squadId is string => Boolean(squadId)),
+  );
+  const athleteIds = new Set<string>();
+  for (const participant of asRows(tables.bookingParticipants)) {
+    const athleteId = asString(participant.athleteId);
+    if (athleteId && bookingIds.has(asString(participant.bookingId) ?? '')) {
+      athleteIds.add(athleteId);
+    }
+  }
+  for (const registration of asRows(tables.groupSessionRegistrations)) {
+    const athleteId = asString(registration.athleteId);
+    if (athleteId && groupSessionIds.has(asString(registration.groupSessionId) ?? '')) {
+      athleteIds.add(athleteId);
+    }
+  }
+  for (const membership of asRows(tables.squadMemberships)) {
+    const athleteId = asString(membership.athleteId);
+    if (athleteId && squadIds.has(asString(membership.squadId) ?? '')) {
+      athleteIds.add(athleteId);
+    }
+  }
+  return athleteIds;
 }
 
 function passwordForRoles(roles: string[]): string {
@@ -354,6 +412,14 @@ describe('p0 core routes', () => {
     const olderSession = listPayload.sessions.find((session) => !session.current);
     assert.ok(olderSession, 'expected non-current session in list');
     assert.equal(typeof olderSession?.issuedAt, 'string');
+    const listAudits = auditEventsFor(getMarketplaceSeedStore().tables, {
+      action: 'auth_session.list',
+      result: 'SUCCESS',
+    });
+    assert.equal(listAudits.length, 1);
+    assert.equal(asString(listAudits[0]?.subjectUserId), userId);
+    assert.equal(listAudits[0]?.sensitiveRead, true);
+    assert.equal(asNumber(asRecord(listAudits[0]?.metadataJson)?.sessionCount), 2);
 
     const revokeSingle = await app.inject({
       method: 'POST',
@@ -371,6 +437,31 @@ describe('p0 core routes', () => {
     assert.equal(revokeSinglePayload.session.id, olderSession!.id);
     assert.equal(typeof revokeSinglePayload.session.revokedAt, 'string');
     assert.equal(revokeSinglePayload.currentSessionRevoked, false);
+    const revokeSingleAudits = auditEventsFor(getMarketplaceSeedStore().tables, {
+      action: 'auth_session.revoke',
+      resourceId: olderSession!.id,
+      result: 'SUCCESS',
+    });
+    assert.equal(revokeSingleAudits.length, 1);
+    assert.equal(asString(revokeSingleAudits[0]?.subjectUserId), userId);
+
+    const missingSessionId = 'ses_missing_revoke_test';
+    const deniedRevoke = await app.inject({
+      method: 'POST',
+      url: `/v1/me/sessions/${missingSessionId}/revoke`,
+      headers: {
+        authorization: `Bearer ${secondLoginPayload.tokens.accessToken}`,
+        'x-acting-role': roles[0] ?? 'parent',
+      },
+    });
+    assert.equal(deniedRevoke.statusCode, 401);
+    const deniedRevokeAudits = auditEventsFor(getMarketplaceSeedStore().tables, {
+      action: 'auth_session.revoke',
+      resourceId: missingSessionId,
+      result: 'DENY',
+    });
+    assert.equal(deniedRevokeAudits.length, 1);
+    assert.equal(asString(deniedRevokeAudits[0]?.subjectUserId), userId);
 
     const thirdLogin = await app.inject({
       method: 'POST',
@@ -416,6 +507,16 @@ describe('p0 core routes', () => {
     };
     assert.equal(revokeAllPayload.revokedCount >= 1, true);
     assert.equal(revokeAllPayload.retainedSessionId, currentRuntimeSession!.id);
+    const revokeAllAudits = auditEventsFor(getMarketplaceSeedStore().tables, {
+      action: 'auth_session.revoke_all',
+      result: 'SUCCESS',
+    });
+    assert.equal(revokeAllAudits.length, 1);
+    assert.equal(asString(revokeAllAudits[0]?.subjectUserId), userId);
+    assert.equal(
+      asNumber(asRecord(revokeAllAudits[0]?.metadataJson)?.revokedCount),
+      revokeAllPayload.revokedCount,
+    );
   });
 
   it('exposes runtime backend mode in /v1/meta/version', async () => {
@@ -473,10 +574,15 @@ describe('p0 core routes', () => {
   });
 
   it('serves coach profile, offerings, verification docs, and club list', async () => {
-    const tables = loadTables();
+    const tables = getMarketplaceSeedStore().tables as SeedTables;
     const coachProfile = asRows(tables.coachProfiles)[0];
     assert.ok(coachProfile, 'expected seeded coach profile');
     const coachUserId = asString(coachProfile.userId) as string;
+    const otherCoachProfile = asRows(tables.coachProfiles).find(
+      (row) => asString(row.userId) && asString(row.userId) !== coachUserId,
+    );
+    assert.ok(otherCoachProfile, 'expected a second seeded coach profile');
+    const otherCoachUserId = asString(otherCoachProfile.userId) as string;
 
     const profile = await app.inject({
       method: 'GET',
@@ -512,6 +618,144 @@ describe('p0 core routes', () => {
       },
     });
     assert.equal(verification.statusCode, 200);
+
+    const mediaObjectId = 'med_verification_dbs_test';
+    ensureRows(tables, 'mediaObjects').push({
+      id: mediaObjectId,
+      ownerUserId: coachUserId,
+      kind: 'DOCUMENT',
+      status: 'AVAILABLE',
+      storageKey: 'test/verification/dbs-certificate.pdf',
+      bucketName: 'clubroom-private',
+      contentType: 'application/pdf',
+      sizeBytes: 4096,
+      visibilityScope: 'private',
+      consentRequired: false,
+      createdByUserId: coachUserId,
+      updatedByUserId: coachUserId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+      deletedByUserId: null,
+    });
+    const submittedVerification = await app.inject({
+      method: 'POST',
+      url: '/v1/coaches/me/verifications/dbs/documents',
+      headers: authHeaders(tables, coachUserId, 'coach'),
+      payload: {
+        mediaObjectId,
+        fileLabel: 'DBS certificate',
+      },
+    });
+    assert.equal(submittedVerification.statusCode, 201);
+    const submittedPayload = submittedVerification.json() as {
+      type: string;
+      verification: {
+        id?: string;
+        coachUserId?: string;
+        verificationType?: string;
+        status?: string;
+      };
+      document: { mediaObjectId?: string; fileLabel?: string | null };
+      total: number;
+    };
+    assert.equal(submittedPayload.type, 'dbs');
+    assert.equal(submittedPayload.verification.coachUserId, coachUserId);
+    assert.equal(submittedPayload.verification.verificationType, 'DBS');
+    assert.equal(submittedPayload.verification.status, 'PENDING');
+    assert.equal(submittedPayload.document.mediaObjectId, mediaObjectId);
+    assert.equal(submittedPayload.document.fileLabel, 'DBS certificate');
+    assert.equal(submittedPayload.total >= 1, true);
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'coach_verification_documents.submit',
+        resourceId: `${coachUserId}:dbs`,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+
+    const deniedSubmit = await app.inject({
+      method: 'POST',
+      url: '/v1/coaches/me/verifications/dbs/documents',
+      headers: authHeaders(tables, otherCoachUserId, 'coach'),
+      payload: {
+        mediaObjectId,
+        fileLabel: 'Not my DBS certificate',
+      },
+    });
+    assert.equal(deniedSubmit.statusCode, 403);
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'coach_verification_documents.submit',
+        resourceId: `${otherCoachUserId}:dbs`,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+
+    const publicMediaObjectId = 'med_verification_public_dbs_test';
+    ensureRows(tables, 'mediaObjects').push({
+      id: publicMediaObjectId,
+      ownerUserId: coachUserId,
+      kind: 'DOCUMENT',
+      status: 'AVAILABLE',
+      storageKey: 'test/verification/public-dbs-certificate.pdf',
+      bucketName: 'clubroom-public',
+      contentType: 'application/pdf',
+      sizeBytes: 4096,
+      visibilityScope: 'public',
+      consentRequired: false,
+      createdByUserId: coachUserId,
+      updatedByUserId: coachUserId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+      deletedByUserId: null,
+    });
+    const publicMediaSubmit = await app.inject({
+      method: 'POST',
+      url: '/v1/coaches/me/verifications/dbs/documents',
+      headers: authHeaders(tables, coachUserId, 'coach'),
+      payload: {
+        mediaObjectId: publicMediaObjectId,
+        fileLabel: 'Public DBS certificate',
+      },
+    });
+    assert.equal(publicMediaSubmit.statusCode, 400);
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'coach_verification_documents.submit',
+        resourceId: `${coachUserId}:dbs`,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+
+    const verificationStatus = await app.inject({
+      method: 'GET',
+      url: `/v1/coaches/${coachUserId}/verification-status`,
+      headers: {
+        'x-auth-user-id': coachUserId,
+        'x-auth-roles': rolesForUser(tables, coachUserId).join(',') || 'coach',
+        'x-acting-role': 'coach',
+      },
+    });
+    assert.equal(verificationStatus.statusCode, 200);
+    const verificationStatusPayload = verificationStatus.json() as { status?: SeedRow };
+    const status = asRecord(verificationStatusPayload.status);
+    assert.equal(asString(status?.coachId), coachUserId);
+    const backgroundCheck = asRecord(status?.backgroundCheck);
+    assert.ok(backgroundCheck, 'expected background check verification status');
+    assert.equal(asString(backgroundCheck.status), 'VERIFIED');
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'coach_verification_status.read',
+        resourceId: coachUserId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
 
     const clubs = await app.inject({
       method: 'GET',
@@ -1426,11 +1670,22 @@ describe('p0 core routes', () => {
       assert.equal(createdRes.statusCode, 201);
       const created = createdRes.json() as {
         series: { id: string; bookingIds: string[]; totalPriceMinor: number; version: number };
-        bookings: { id: string }[];
+        bookings: {
+          id: string;
+          recurringSeriesId?: string | null;
+          groupSessionId?: string | null;
+        }[];
       };
       assert.match(created.series.id, /^rec_/);
       assert.equal(created.series.bookingIds.length, 2);
       assert.equal(created.bookings.length, 2);
+      assert.equal(
+        created.bookings.every(
+          (booking) =>
+            booking.recurringSeriesId === created.series.id && booking.groupSessionId === null,
+        ),
+        true,
+      );
       assert.equal(created.series.totalPriceMinor, 8000);
       assert.equal(created.series.version, 1);
 
@@ -1451,12 +1706,13 @@ describe('p0 core routes', () => {
         headers: authHeaders(tables, coachUserId, 'coach'),
       });
       assert.equal(coachList.statusCode, 200);
-      const coachListPayload = coachList.json() as { bookings: { id: string }[] };
+      const coachListPayload = coachList.json() as {
+        bookings: { id: string; recurringSeriesId?: string | null }[];
+      };
       for (const bookingId of created.series.bookingIds) {
-        assert.equal(
-          coachListPayload.bookings.some((booking) => booking.id === bookingId),
-          true,
-        );
+        const listedBooking = coachListPayload.bookings.find((booking) => booking.id === bookingId);
+        assert.ok(listedBooking);
+        assert.equal(listedBooking.recurringSeriesId, created.series.id);
       }
 
       const parentSeriesDetail = await app.inject({
@@ -1512,6 +1768,54 @@ describe('p0 core routes', () => {
         headers: authHeaders(tables, unrelatedAthleteUserId, 'athlete'),
       });
       assert.equal(deniedAthleteDetail.statusCode, 403);
+
+      const coachSeriesDetail = await app.inject({
+        method: 'GET',
+        url: `/v1/booking-series/${created.series.id}`,
+        headers: authHeaders(tables, coachUserId, 'coach'),
+      });
+      assert.equal(coachSeriesDetail.statusCode, 200);
+      const deniedCoachUpdate = await app.inject({
+        method: 'PATCH',
+        url: `/v1/booking-series/${created.series.id}`,
+        headers: authHeaders(tables, coachUserId, 'coach'),
+        payload: {
+          location: 'Coach should not mutate full family series',
+          expectedVersion: created.series.version,
+          idempotencyKey: 'booking-series-denied-coach-update-test',
+        },
+      });
+      assert.equal(deniedCoachUpdate.statusCode, 403);
+
+      const athleteUserId = asString(
+        asRows(tables.athletes).find((row) => asString(row.id) === athleteId)?.userId,
+      );
+      assert.ok(athleteUserId, 'expected athlete user for linked series athlete');
+      const athleteSeriesDetail = await app.inject({
+        method: 'GET',
+        url: `/v1/booking-series/${created.series.id}`,
+        headers: authHeaders(tables, athleteUserId, 'athlete'),
+      });
+      assert.equal(athleteSeriesDetail.statusCode, 200);
+      const deniedAthleteCancel = await app.inject({
+        method: 'POST',
+        url: `/v1/booking-series/${created.series.id}/cancel`,
+        headers: authHeaders(tables, athleteUserId, 'athlete'),
+        payload: {
+          reason: 'Athlete should not mutate full family series',
+          expectedVersion: created.series.version,
+          idempotencyKey: 'booking-series-denied-athlete-cancel-test',
+        },
+      });
+      assert.equal(deniedAthleteCancel.statusCode, 403);
+      assert.equal(
+        asRows(fixtureStore.tables.bookings).some(
+          (row) =>
+            asString(row.recurringSeriesId) === created.series.id &&
+            asString(row.status) === 'CANCELLED',
+        ),
+        false,
+      );
 
       const replayRes = await app.inject({
         method: 'POST',
@@ -1760,10 +2064,38 @@ describe('p0 core routes', () => {
       });
       assert.equal(deniedPause.statusCode, 403);
 
+      const linkedGuardianUserId = asString(
+        asRows(tables.guardianChildLinks).find((row) => {
+          const guardianUserId = asString(row.guardianUserId);
+          return (
+            guardianUserId &&
+            guardianUserId !== bookedByUserId &&
+            guardianUserId !== unrelatedParentId
+          );
+        })?.guardianUserId,
+      );
+      assert.ok(linkedGuardianUserId, 'expected a second seeded parent for linked guardian proof');
+      fixtureStore.tables.guardianChildLinks = [
+        ...(fixtureStore.tables.guardianChildLinks ?? []),
+        {
+          id: 'gcl_booking_series_linked_guardian',
+          guardianUserId: linkedGuardianUserId,
+          athleteId,
+          relationship: 'guardian',
+          status: 'ACTIVE',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ];
+      const linkedGuardianHeaders = authHeaders(
+        fixtureStore.tables,
+        linkedGuardianUserId,
+        'parent',
+      );
       const pausedRes = await app.inject({
         method: 'POST',
         url: `/v1/booking-series/${created.series.id}/pause`,
-        headers,
+        headers: linkedGuardianHeaders,
         payload: {
           reason: 'Family holiday',
           expectedVersion: updated.series.version,
@@ -1798,7 +2130,7 @@ describe('p0 core routes', () => {
       const pauseReplay = await app.inject({
         method: 'POST',
         url: `/v1/booking-series/${created.series.id}/pause`,
-        headers,
+        headers: linkedGuardianHeaders,
         payload: {
           reason: 'Family holiday',
           expectedVersion: updated.series.version,
@@ -1903,6 +2235,30 @@ describe('p0 core routes', () => {
         false,
       );
 
+      const invalidAttendanceCompletion = await app.inject({
+        method: 'POST',
+        url: `/v1/bookings/${asString(bookingToComplete.id)}/complete`,
+        headers: authHeaders(tables, coachUserId, 'coach'),
+        payload: {
+          note: 'Invalid athlete should not create attendance proof',
+          completedAt,
+          expectedVersion: completeExpectedVersion,
+          attendance: [
+            {
+              athleteId: 'ath_invalid-completion-test',
+              status: 'ATTENDED',
+            },
+          ],
+          idempotencyKey: 'booking-complete-invalid-athlete-test',
+        },
+      });
+      assert.equal(invalidAttendanceCompletion.statusCode, 400);
+      assert.match(invalidAttendanceCompletion.body, /not a booking participant/i);
+      assert.equal(
+        asRows(fixtureStore.tables.attendanceRecords).length,
+        attendanceCountBeforeCompletion,
+      );
+
       const completedRes = await app.inject({
         method: 'POST',
         url: `/v1/bookings/${asString(bookingToComplete.id)}/complete`,
@@ -1911,6 +2267,14 @@ describe('p0 core routes', () => {
           note: 'Delivered and ready for proof follow-up',
           completedAt,
           expectedVersion: completeExpectedVersion,
+          attendance: [
+            {
+              athleteId,
+              status: 'ATTENDED',
+              notes: 'Sharp delivery and focus',
+              effortRating: 5,
+            },
+          ],
           idempotencyKey: 'booking-complete-series-test',
         },
       });
@@ -1926,8 +2290,9 @@ describe('p0 core routes', () => {
       assert.equal(asString(completedAttendanceRecords[0]?.recordedByUserId), coachUserId);
       assert.equal(
         asString(completedAttendanceRecords[0]?.notes),
-        'Delivered and ready for proof follow-up',
+        'Sharp delivery and focus',
       );
+      assert.equal(asNumber(completedAttendanceRecords[0]?.effortRating), 5);
       const completedSessionNotes = asRows(fixtureStore.tables.sessionNotes).filter(
         (row) => asString(row.bookingId) === asString(bookingToComplete.id),
       );
@@ -2000,6 +2365,14 @@ describe('p0 core routes', () => {
           note: 'Delivered and ready for proof follow-up',
           completedAt,
           expectedVersion: completeExpectedVersion,
+          attendance: [
+            {
+              athleteId,
+              status: 'ATTENDED',
+              notes: 'Sharp delivery and focus',
+              effortRating: 5,
+            },
+          ],
           idempotencyKey: 'booking-complete-series-test',
         },
       });
@@ -2063,6 +2436,91 @@ describe('p0 core routes', () => {
       });
       assert.equal(deniedFutureReview.statusCode, 400);
       assert.match(deniedFutureReview.body, /only completed bookings/i);
+
+      const noShowBookingId = 'bok_no-show-completion-test';
+      const noShowScheduledAt = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      const sourceParticipant = asRows(fixtureStore.tables.bookingParticipants).find(
+        (row) => asString(row.bookingId) === asString(futureBooking.id),
+      );
+      assert.ok(sourceParticipant, 'expected source participant for no-show completion fixture');
+      ensureRows(fixtureStore.tables, 'bookings').push({
+        ...futureBooking,
+        id: noShowBookingId,
+        recurringSeriesId: null,
+        seriesIndex: null,
+        status: 'CONFIRMED',
+        scheduledAt: noShowScheduledAt,
+        updatedAt: noShowScheduledAt,
+        version: 1,
+      });
+      ensureRows(fixtureStore.tables, 'bookingParticipants').push({
+        ...sourceParticipant,
+        id: 'bpa_no-show-completion-test',
+        bookingId: noShowBookingId,
+      });
+
+      const noShowCompletion = await app.inject({
+        method: 'POST',
+        url: `/v1/bookings/${noShowBookingId}/complete`,
+        headers: authHeaders(tables, coachUserId, 'coach'),
+        payload: {
+          note: 'No show follow-up required',
+          completedAt,
+          expectedVersion: 1,
+          attendance: [
+            {
+              athleteId,
+              status: 'NO_SHOW',
+              notes: 'Athlete did not arrive',
+              effortRating: 1,
+            },
+          ],
+          idempotencyKey: 'booking-complete-no-show-test',
+        },
+      });
+      assert.equal(noShowCompletion.statusCode, 200);
+      const noShowAttendanceRecords = asRows(fixtureStore.tables.attendanceRecords).filter(
+        (row) => asString(row.bookingId) === noShowBookingId,
+      );
+      assert.equal(noShowAttendanceRecords.length, 1);
+      assert.equal(asString(noShowAttendanceRecords[0]?.status), 'NO_SHOW');
+      assert.equal(asString(noShowAttendanceRecords[0]?.notes), 'Athlete did not arrive');
+      assert.equal(asNumber(noShowAttendanceRecords[0]?.effortRating), 1);
+      assert.equal(
+        asRows(fixtureStore.tables.sessionNotes).filter(
+          (row) => asString(row.bookingId) === noShowBookingId,
+        ).length,
+        0,
+      );
+      const noShowStatusEvent = asRows(fixtureStore.tables.bookingStatusEvents)
+        .filter(
+          (row) =>
+            asString(row.bookingId) === noShowBookingId &&
+            asString(row.toStatus) === 'COMPLETED',
+        )
+        .at(-1);
+      const noShowMetadata = noShowStatusEvent?.metadataJson as
+        | {
+            attendanceSummary?: { attended?: number; noShow?: number };
+          }
+        | undefined;
+      assert.equal(noShowMetadata?.attendanceSummary?.attended, 0);
+      assert.equal(noShowMetadata?.attendanceSummary?.noShow, 1);
+      const noShowAuditEvent = asRows(fixtureStore.tables.auditEvents)
+        .filter(
+          (row) =>
+            asString(row.action) === 'booking.complete' &&
+            asString(row.resourceId) === noShowBookingId &&
+            asString(row.result) === 'SUCCESS',
+        )
+        .at(-1);
+      const noShowAuditMetadata = noShowAuditEvent?.metadataJson as
+        | {
+            attendanceSummary?: { attended?: number | null; noShow?: number | null };
+          }
+        | undefined;
+      assert.equal(noShowAuditMetadata?.attendanceSummary?.attended, 0);
+      assert.equal(noShowAuditMetadata?.attendanceSummary?.noShow, 1);
 
       const deniedCoachReview = await app.inject({
         method: 'POST',
@@ -2673,6 +3131,158 @@ describe('p0 core routes', () => {
     assert.equal(create.statusCode, 403);
   });
 
+  it('manages coach observations only for assigned coaches', async () => {
+    const store = getMarketplaceSeedStore();
+    const tables = store.tables as SeedTables;
+    let selection:
+      | {
+          coachUserId: string;
+          athleteId: string;
+        }
+      | undefined;
+
+    for (const profile of asRows(tables.coachProfiles)) {
+      const coachUserId = asString(profile.userId);
+      if (!coachUserId || !rolesForUser(tables, coachUserId).includes('coach')) {
+        continue;
+      }
+      if (!isVerifiedCoachInTables(tables, coachUserId)) {
+        continue;
+      }
+      const athleteId = [...coachAthleteIdsFromTables(tables, coachUserId)][0];
+      if (athleteId) {
+        selection = { coachUserId, athleteId };
+        break;
+      }
+    }
+
+    assert.ok(selection, 'expected assigned verified coach and athlete pair');
+    const outsiderCoachUserId = asRows(tables.coachProfiles)
+      .map((row) => asString(row.userId))
+      .filter((userId): userId is string => Boolean(userId && userId !== selection?.coachUserId))
+      .find((userId) => !coachAthleteIdsFromTables(tables, userId).has(selection?.athleteId ?? ''));
+    assert.ok(outsiderCoachUserId, 'expected coach outside athlete scope');
+
+    const initialList = await app.inject({
+      method: 'GET',
+      url: `/v1/athletes/${selection?.athleteId}/coach-observations`,
+      headers: authHeaders(tables, selection?.coachUserId ?? '', 'coach'),
+    });
+    assert.equal(initialList.statusCode, 200);
+
+    const create = await app.inject({
+      method: 'POST',
+      url: `/v1/athletes/${selection?.athleteId}/coach-observations`,
+      headers: authHeaders(tables, selection?.coachUserId ?? '', 'coach'),
+      payload: {
+        text: 'Needs a shorter instruction before the first drill.',
+        category: 'COMMUNICATION',
+        isPrivate: true,
+      },
+    });
+    assert.equal(create.statusCode, 201);
+    const createPayload = create.json() as {
+      observation: {
+        id: string;
+        athleteId: string;
+        coachId: string;
+        category: string;
+        text: string;
+        isPrivate: boolean;
+      };
+    };
+    const observationId = createPayload.observation.id;
+    assert.match(observationId, /^snt_/);
+    assert.equal(createPayload.observation.athleteId, selection?.athleteId);
+    assert.equal(createPayload.observation.coachId, selection?.coachUserId);
+    assert.equal(createPayload.observation.category, 'COMMUNICATION');
+    assert.equal(createPayload.observation.isPrivate, true);
+
+    const storedObservation = asRows(tables.sessionNotes).find(
+      (row) => asString(row.id) === observationId,
+    );
+    assert.equal(asString(storedObservation?.visibility), 'PRIVATE');
+
+    const listAfterCreate = await app.inject({
+      method: 'GET',
+      url: `/v1/athletes/${selection?.athleteId}/coach-observations`,
+      headers: authHeaders(tables, selection?.coachUserId ?? '', 'coach'),
+    });
+    assert.equal(listAfterCreate.statusCode, 200);
+    const listPayload = listAfterCreate.json() as {
+      observations: Array<{ id: string; text: string }>;
+    };
+    assert.equal(
+      listPayload.observations.some((observation) => observation.id === observationId),
+      true,
+    );
+
+    const deniedUpdate = await app.inject({
+      method: 'PATCH',
+      url: `/v1/coach-observations/${observationId}`,
+      headers: authHeaders(tables, outsiderCoachUserId, 'coach'),
+      payload: {
+        text: 'Should not be allowed',
+      },
+    });
+    assert.equal(deniedUpdate.statusCode, 403);
+
+    const update = await app.inject({
+      method: 'PATCH',
+      url: `/v1/coach-observations/${observationId}`,
+      headers: authHeaders(tables, selection?.coachUserId ?? '', 'coach'),
+      payload: {
+        text: 'Use one cue, then ask the athlete to repeat it back.',
+        category: 'PROGRESS',
+        isPrivate: false,
+      },
+    });
+    assert.equal(update.statusCode, 200);
+    const updatePayload = update.json() as {
+      observation: { text: string; category: string; isPrivate: boolean };
+    };
+    assert.equal(
+      updatePayload.observation.text,
+      'Use one cue, then ask the athlete to repeat it back.',
+    );
+    assert.equal(updatePayload.observation.category, 'PROGRESS');
+    assert.equal(updatePayload.observation.isPrivate, false);
+    assert.equal(asString(storedObservation?.visibility), 'PUBLIC');
+
+    const remove = await app.inject({
+      method: 'DELETE',
+      url: `/v1/coach-observations/${observationId}`,
+      headers: authHeaders(tables, selection?.coachUserId ?? '', 'coach'),
+    });
+    assert.equal(remove.statusCode, 200);
+    assert.equal((remove.json() as { removed?: boolean }).removed, true);
+    assert.equal(Boolean(asString(storedObservation?.deletedAt)), true);
+
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'coach_observation.create',
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'coach_observation.update',
+        resourceId: observationId,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'coach_observation.remove',
+        resourceId: observationId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+  });
+
   it('lists and reads visible session invites for coach and parent users', async () => {
     const tables = loadTables();
     const pendingTarget =
@@ -2754,6 +3364,144 @@ describe('p0 core routes', () => {
       },
     });
     assert.equal(forbiddenDetail.statusCode, 403);
+  });
+
+  it('persists invite RSVP state through /v1 invite authority', async () => {
+    const tables = loadTables();
+    const store = getMarketplaceSeedStore();
+    const pendingTarget =
+      asRows(store.tables.inviteTargets).find((row) => asString(row.status) === 'PENDING') ??
+      asRows(store.tables.inviteTargets)[0];
+    assert.ok(pendingTarget, 'expected seeded invite target');
+    const inviteId = asString(pendingTarget.inviteId) as string;
+    const parentUserId = asString(pendingTarget.targetUserId) as string;
+    const athleteId = asString(pendingTarget.targetAthleteId) as string;
+    const invite = asRows(store.tables.invites).find((row) => asString(row.id) === inviteId);
+    assert.ok(invite, 'expected seeded invite');
+    const coachUserId = asString(invite.senderUserId) as string;
+
+    const createRsvp = await app.inject({
+      method: 'POST',
+      url: `/v1/invites/${inviteId}/rsvps`,
+      headers: authHeaders(tables, parentUserId, 'parent'),
+      payload: {
+        status: 'going',
+        childId: athleteId,
+        childName: 'API Test Athlete',
+      },
+    });
+    assert.equal(createRsvp.statusCode, 200);
+    const createPayload = createRsvp.json() as {
+      response: {
+        id: string;
+        inviteId: string;
+        userId: string;
+        childId?: string;
+        status: string;
+      };
+      counts: { going: number; maybe: number; cantGo: number };
+    };
+    assert.match(createPayload.response.id, /^irsvp:/);
+    assert.equal(createPayload.response.inviteId, inviteId);
+    assert.equal(createPayload.response.userId, parentUserId);
+    assert.equal(createPayload.response.childId, athleteId);
+    assert.equal(createPayload.response.status, 'going');
+    assert.equal(createPayload.counts.going, 1);
+    assert.equal(createPayload.counts.maybe, 0);
+
+    const ownerRead = await app.inject({
+      method: 'GET',
+      url: `/v1/invites/${inviteId}/rsvps`,
+      headers: authHeaders(tables, coachUserId, 'coach'),
+    });
+    assert.equal(ownerRead.statusCode, 200);
+    const ownerReadPayload = ownerRead.json() as {
+      responses: Array<{ id: string; status: string }>;
+      counts: { going: number; maybe: number; cantGo: number };
+    };
+    assert.equal(ownerReadPayload.responses.length, 1);
+    assert.equal(ownerReadPayload.counts.going, 1);
+
+    const ownerDetail = await app.inject({
+      method: 'GET',
+      url: `/v1/invites/${inviteId}`,
+      headers: authHeaders(tables, coachUserId, 'coach'),
+    });
+    assert.equal(ownerDetail.statusCode, 200);
+    const ownerDetailPayload = ownerDetail.json() as {
+      invite: {
+        rsvpResponses: Array<{ id: string; status: string }>;
+        rsvpCounts: { going: number; maybe: number; cantGo: number };
+      };
+    };
+    assert.equal(ownerDetailPayload.invite.rsvpResponses.length, 1);
+    assert.equal(ownerDetailPayload.invite.rsvpCounts.going, 1);
+
+    const deniedOwnerRsvp = await app.inject({
+      method: 'POST',
+      url: `/v1/invites/${inviteId}/rsvps`,
+      headers: authHeaders(tables, coachUserId, 'coach'),
+      payload: {
+        status: 'maybe',
+      },
+    });
+    assert.equal(deniedOwnerRsvp.statusCode, 403);
+
+    const updateRsvp = await app.inject({
+      method: 'PATCH',
+      url: `/v1/invite-rsvps/${encodeURIComponent(createPayload.response.id)}`,
+      headers: authHeaders(tables, parentUserId, 'parent'),
+      payload: {
+        status: 'maybe',
+      },
+    });
+    assert.equal(updateRsvp.statusCode, 200);
+    const updatePayload = updateRsvp.json() as {
+      response: { id: string; status: string };
+      counts: { going: number; maybe: number; cantGo: number };
+    };
+    assert.equal(updatePayload.response.id, createPayload.response.id);
+    assert.equal(updatePayload.response.status, 'maybe');
+    assert.equal(updatePayload.counts.going, 0);
+    assert.equal(updatePayload.counts.maybe, 1);
+
+    const maybeResponses = await app.inject({
+      method: 'GET',
+      url: `/v1/invites/${inviteId}/rsvps?status=maybe`,
+      headers: authHeaders(tables, parentUserId, 'parent'),
+    });
+    assert.equal(maybeResponses.statusCode, 200);
+    const maybePayload = maybeResponses.json() as {
+      responses: Array<{ id: string; status: string }>;
+      counts: { going: number; maybe: number; cantGo: number };
+    };
+    assert.equal(maybePayload.responses.length, 1);
+    assert.equal(maybePayload.responses[0].id, createPayload.response.id);
+    assert.equal(maybePayload.counts.maybe, 1);
+    assert.equal(
+      auditEventsFor(store.tables, {
+        action: 'invite.rsvp.respond',
+        resourceId: inviteId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(store.tables, {
+        action: 'invite.rsvp.respond',
+        resourceId: inviteId,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(store.tables, {
+        action: 'invite.rsvp.update',
+        resourceId: inviteId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
   });
 
   it('serves session invites through the db fixture repository seam in db mode', async () => {
@@ -2951,6 +3699,130 @@ describe('p0 core routes', () => {
     assert.equal(
       groupListPayload.invites.some((invite) => invite.id === pendingPayload.invite.id),
       true,
+    );
+
+    const squadMembership = asRows(tables.squadMemberships).find((row) => {
+      const squad = asRows(tables.squads).find(
+        (candidate) =>
+          asString(candidate.id) === asString(row.squadId) &&
+          asString(candidate.ownerCoachUserId) &&
+          !asString(candidate.deletedAt),
+      );
+      const guardian = asRows(tables.guardianChildLinks).find(
+        (link) =>
+          asString(link.athleteId) === asString(row.athleteId) &&
+          asString(link.guardianUserId) &&
+          !asString(link.deletedAt),
+      );
+      return Boolean(squad && guardian && !asString(row.deletedAt));
+    });
+    assert.ok(squadMembership, 'expected a squad membership with guardian linkage');
+    const squadId = asString(squadMembership?.squadId) as string;
+    const squadAthleteId = asString(squadMembership?.athleteId) as string;
+    const squad = asRows(tables.squads).find((row) => asString(row.id) === squadId);
+    const squadCoachUserId = asString(squad?.ownerCoachUserId) as string;
+    const squadGuardianLink = asRows(tables.guardianChildLinks).find(
+      (row) => asString(row.athleteId) === squadAthleteId && asString(row.guardianUserId),
+    );
+    const squadParentUserId = asString(squadGuardianLink?.guardianUserId) as string;
+    const outsiderGuardianLink = asRows(tables.guardianChildLinks).find(
+      (row) =>
+        asString(row.guardianUserId) &&
+        asString(row.guardianUserId) !== squadParentUserId &&
+        !asRows(tables.squadMemberships).some(
+          (membership) =>
+            asString(membership.squadId) === squadId &&
+            asString(membership.athleteId) === asString(row.athleteId) &&
+            !asString(membership.deletedAt),
+        ),
+    );
+    assert.ok(outsiderGuardianLink, 'expected unrelated guardian for squad visibility denial');
+    const outsiderParentUserId = asString(outsiderGuardianLink?.guardianUserId) as string;
+    const squadSlot = await getFirstAvailableSlot({
+      app,
+      tables,
+      authUserId: squadCoachUserId,
+      coachUserId: squadCoachUserId,
+      excludePendingInvites: true,
+    });
+
+    const invalidSquadMetadataCreate = await app.inject({
+      method: 'POST',
+      url: '/v1/invites',
+      headers: authHeaders(tables, squadCoachUserId, 'coach'),
+      payload: {
+        coachUserId: squadCoachUserId,
+        athleteIds: [squadAthleteId],
+        parentUserId: squadParentUserId,
+        proposedSlots: [squadSlot],
+        sessionType: 'Squad Training',
+        focus: 'Squad metadata invalid',
+        inviteType: 'CLOSED',
+        squadIds: [squadId],
+        priceMinor: 3500,
+        durationMinutes: 60,
+      },
+    });
+    assert.equal(invalidSquadMetadataCreate.statusCode, 400);
+
+    const squadCreate = await app.inject({
+      method: 'POST',
+      url: '/v1/invites',
+      headers: authHeaders(tables, squadCoachUserId, 'coach'),
+      payload: {
+        coachUserId: squadCoachUserId,
+        athleteIds: [squadAthleteId],
+        parentUserId: squadParentUserId,
+        proposedSlots: [squadSlot],
+        sessionType: 'Squad Training',
+        focus: 'Squad metadata projection',
+        inviteType: 'SQUAD_ONLY',
+        squadIds: [squadId],
+        groupId: 'grp_squad_metadata_test',
+        priceMinor: 3500,
+        durationMinutes: 60,
+      },
+    });
+    assert.equal(squadCreate.statusCode, 201);
+    const squadCreatePayload = squadCreate.json() as {
+      invite: { id: string; inviteType?: string; squadIds?: string[]; groupId?: string };
+    };
+    assert.equal(squadCreatePayload.invite.inviteType, 'SQUAD_ONLY');
+    assert.deepEqual(squadCreatePayload.invite.squadIds, [squadId]);
+    assert.equal(squadCreatePayload.invite.groupId, 'grp_squad_metadata_test');
+
+    const squadCoachList = await app.inject({
+      method: 'GET',
+      url: `/v1/invites?coachUserId=${encodeURIComponent(
+        squadCoachUserId,
+      )}&inviteType=SQUAD_ONLY&squadIds=${encodeURIComponent(squadId)}`,
+      headers: authHeaders(tables, squadCoachUserId, 'coach'),
+    });
+    assert.equal(squadCoachList.statusCode, 200);
+    const squadCoachListPayload = squadCoachList.json() as {
+      invites: Array<{ id: string; squadIds?: string[] }>;
+    };
+    assert.equal(
+      squadCoachListPayload.invites.some(
+        (invite) =>
+          invite.id === squadCreatePayload.invite.id && invite.squadIds?.includes(squadId),
+      ),
+      true,
+    );
+
+    const outsiderSquadList = await app.inject({
+      method: 'GET',
+      url: `/v1/invites?parentUserId=${encodeURIComponent(
+        outsiderParentUserId,
+      )}&inviteType=SQUAD_ONLY&squadIds=${encodeURIComponent(squadId)}`,
+      headers: authHeaders(tables, outsiderParentUserId, 'parent'),
+    });
+    assert.equal(outsiderSquadList.statusCode, 200);
+    assert.equal(
+      (outsiderSquadList.json() as { invites: Array<{ id: string }> }).invites.some(
+        (invite) => invite.id === squadCreatePayload.invite.id,
+      ),
+      false,
     );
 
     const deniedRemind = await app.inject({
@@ -3281,6 +4153,132 @@ describe('p0 core routes', () => {
     assert.equal(cancelledDetailPayload.invite.status, 'EXPIRED');
   });
 
+  it('accepts selected recurring invite weeks through /v1/invites respond', async () => {
+    const tables = loadTables();
+    const coachProfile = asRows(tables.coachProfiles)[0];
+    assert.ok(coachProfile, 'expected seeded coach profile');
+    const coachUserId = asString(coachProfile.userId) as string;
+    const guardianLink = asRows(tables.guardianChildLinks).find(
+      (row) => asString(row.guardianUserId) && asString(row.guardianUserId) !== coachUserId,
+    );
+    assert.ok(guardianLink, 'expected guardian-child link');
+    const parentUserId = asString(guardianLink?.guardianUserId) as string;
+    const athleteId = asString(guardianLink?.athleteId) as string;
+    const slots = await getAvailableSlots({
+      app,
+      tables,
+      authUserId: coachUserId,
+      coachUserId,
+      minCount: 3,
+    });
+    const recurringSlots = slots.slice(0, 3);
+    const store = getMarketplaceSeedStore();
+
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/invites',
+      headers: authHeaders(tables, coachUserId, 'coach'),
+      payload: {
+        coachUserId,
+        athleteIds: [athleteId],
+        parentUserId,
+        proposedSlots: recurringSlots,
+        sessionType: '1:1 Coaching',
+        focus: 'Recurring finishing block',
+        notes: 'Recurring invite authority test',
+        inviteType: 'CLOSED',
+        priceMinor: 3500,
+        durationMinutes: 60,
+        isRecurring: true,
+        recurrenceWeeks: 3,
+      },
+    });
+    assert.equal(created.statusCode, 201, created.body);
+    const createdPayload = created.json() as {
+      invite: {
+        id: string;
+        weekSlots?: Array<{
+          weekDate: string;
+          startTime: string;
+          endTime: string;
+          location?: string;
+          accepted: boolean;
+        }>;
+      };
+    };
+    assert.equal(createdPayload.invite.weekSlots?.length, 3);
+
+    const weekResponses = (createdPayload.invite.weekSlots ?? []).map((week, index) => ({
+      ...week,
+      accepted: index < 2,
+    }));
+    const accepted = await app.inject({
+      method: 'POST',
+      url: `/v1/invites/${createdPayload.invite.id}/respond`,
+      headers: authHeaders(tables, parentUserId, 'parent'),
+      payload: {
+        response: 'ACCEPTED',
+        recurringWeekResponses: weekResponses,
+      },
+    });
+    assert.equal(accepted.statusCode, 200, accepted.body);
+    const acceptedPayload = accepted.json() as {
+      invite: {
+        id: string;
+        status: string;
+        acceptedWeeks?: string[];
+        declinedWeeks?: string[];
+        weekSlots?: Array<{ weekDate: string; accepted: boolean }>;
+      };
+      bookingSeriesId?: string | null;
+      bookingIds?: string[];
+      bookingId?: string | null;
+      booking?: { id: string } | null;
+    };
+    assert.equal(acceptedPayload.invite.id, createdPayload.invite.id);
+    assert.equal(acceptedPayload.invite.status, 'ACCEPTED');
+    assert.match(acceptedPayload.bookingSeriesId ?? '', /^rec_/);
+    assert.equal(acceptedPayload.bookingIds?.length, 2);
+    assert.equal(
+      acceptedPayload.bookingId,
+      acceptedPayload.booking?.id ?? acceptedPayload.bookingId,
+    );
+    assert.deepEqual(
+      acceptedPayload.invite.acceptedWeeks,
+      weekResponses.filter((week) => week.accepted).map((week) => week.weekDate),
+    );
+    assert.deepEqual(
+      acceptedPayload.invite.declinedWeeks,
+      weekResponses.filter((week) => !week.accepted).map((week) => week.weekDate),
+    );
+    assert.deepEqual(
+      acceptedPayload.invite.weekSlots?.map((week) => week.accepted),
+      [true, true, false],
+    );
+    assert.equal(
+      asRows(store.tables.recurringSeries).some(
+        (row) => asString(row.id) === acceptedPayload.bookingSeriesId,
+      ),
+      true,
+    );
+    assert.equal(
+      asRows(store.tables.bookings).filter(
+        (row) => asString(row.recurringSeriesId) === acceptedPayload.bookingSeriesId,
+      ).length,
+      2,
+    );
+    const respondAudit = auditEventsFor(store.tables, {
+      action: 'invite.respond',
+      resourceId: createdPayload.invite.id,
+      result: 'SUCCESS',
+    }).at(-1);
+    assert.equal(
+      asString(asRecord(respondAudit?.metadataJson)?.bookingSeriesId),
+      acceptedPayload.bookingSeriesId,
+    );
+    assert.deepEqual(asRecord(respondAudit?.metadataJson)?.bookingIds, acceptedPayload.bookingIds);
+  });
+
   it('accepts direct session invites through db booking authority in API mode', async () => {
     const previousBackend = env.API_DATA_BACKEND;
 
@@ -3499,10 +4497,19 @@ describe('p0 core routes', () => {
       events: Array<{ id: string; clubId: string; status: string }>;
       total: number;
     };
-    assert.equal(listPayload.events.some((event) => event.id === eventId), true);
-    assert.equal(listPayload.events.every((event) => event.clubId === clubId), true);
+    assert.equal(
+      listPayload.events.some((event) => event.id === eventId),
+      true,
+    );
+    assert.equal(
+      listPayload.events.every((event) => event.clubId === clubId),
+      true,
+    );
     if (!isActiveClubStaffMembership(memberClubMembership)) {
-      assert.equal(listPayload.events.some((event) => event.status === 'DRAFT'), false);
+      assert.equal(
+        listPayload.events.some((event) => event.status === 'DRAFT'),
+        false,
+      );
     }
     assert.equal(listPayload.total, listPayload.events.length);
 
@@ -3716,6 +4723,223 @@ describe('p0 core routes', () => {
       expectedRecipients,
     );
 
+    const squad = asRows(tables.squads).find(
+      (row) => asString(row.clubId) === clubId && !asString(row.deletedAt),
+    );
+    assert.ok(squad, 'expected seeded squad for event club');
+    const squadId = asString(squad.id) as string;
+    const otherClubSquad = asRows(tables.squads).find(
+      (row) => asString(row.clubId) !== clubId && !asString(row.deletedAt),
+    );
+    assert.ok(otherClubSquad, 'expected seeded squad outside event club');
+    const otherClubSquadId = asString(otherClubSquad.id) as string;
+    const squadAthleteIds = new Set(
+      asRows(tables.squadMemberships)
+        .filter(
+          (membership) =>
+            asString(membership.squadId) === squadId &&
+            asString(membership.status) === 'active' &&
+            !asString(membership.deletedAt),
+        )
+        .map((membership) => asString(membership.athleteId))
+        .filter((athleteId): athleteId is string => Boolean(athleteId)),
+    );
+    const expectedSquadRecipients = new Set<string>();
+    for (const athleteId of squadAthleteIds) {
+      const guardian = asRows(tables.guardianChildLinks)
+        .filter((row) => asString(row.athleteId) === athleteId && !asString(row.deletedAt))
+        .sort((a, b) => {
+          if (a.isPrimary === true && b.isPrimary !== true) return -1;
+          if (b.isPrimary === true && a.isPrimary !== true) return 1;
+          return Date.parse(asString(a.createdAt) ?? '') - Date.parse(asString(b.createdAt) ?? '');
+        })[0];
+      const guardianUserId = asString(guardian?.guardianUserId);
+      if (guardianUserId) {
+        expectedSquadRecipients.add(guardianUserId);
+      }
+    }
+
+    const deniedSquadInvite = await app.inject({
+      method: 'POST',
+      url: `/v1/events/${eventId}/invites/squads`,
+      headers: authHeaders(tables, outsiderUserId, 'parent'),
+      payload: { squadIds: [squadId] },
+    });
+    assert.equal(deniedSquadInvite.statusCode, 403);
+
+    const invalidSquadInvite = await app.inject({
+      method: 'POST',
+      url: `/v1/events/${eventId}/invites/squads`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+      payload: { squadIds: [otherClubSquadId] },
+    });
+    assert.equal(invalidSquadInvite.statusCode, 400);
+
+    const squadInvited = await app.inject({
+      method: 'POST',
+      url: `/v1/events/${eventId}/invites/squads`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+      payload: { squadIds: [squadId] },
+    });
+    assert.equal(squadInvited.statusCode, 200);
+    const squadInvitePayload = squadInvited.json() as {
+      inviteCount: number;
+      targetAthleteCount: number;
+      squadIds: string[];
+    };
+    assert.deepEqual(squadInvitePayload.squadIds, [squadId]);
+    assert.equal(squadInvitePayload.inviteCount, expectedSquadRecipients.size);
+    assert.equal(squadInvitePayload.targetAthleteCount, squadAthleteIds.size);
+    assert.equal(
+      asRows(getMarketplaceSeedStore().tables.notifications).filter((row) => {
+        const metadata = asRecord(row.metadataJson);
+        const metadataSquadIds = metadata?.squadIds;
+        return (
+          asString(row.sourceId) === eventId &&
+          asString(row.type) === 'CLUB_EVENT_INVITE' &&
+          Array.isArray(metadataSquadIds) &&
+          metadataSquadIds.includes(squadId)
+        );
+      }).length,
+      expectedSquadRecipients.size,
+    );
+
+    const athleteId = [...squadAthleteIds][0];
+    assert.ok(athleteId, 'expected seeded athlete in event club squad');
+    const athlete = asRows(tables.athletes).find((row) => asString(row.id) === athleteId);
+    assert.ok(athlete, 'expected seeded target athlete');
+    const expectedAthleteRecipients = new Set<string>();
+    const athleteUserId = asString(athlete.userId);
+    if (athleteUserId && athleteUserId !== staffUserId) {
+      expectedAthleteRecipients.add(athleteUserId);
+    }
+    for (const link of asRows(tables.guardianChildLinks)) {
+      if (asString(link.athleteId) === athleteId && !asString(link.deletedAt)) {
+        const guardianUserId = asString(link.guardianUserId);
+        if (guardianUserId && guardianUserId !== staffUserId) {
+          expectedAthleteRecipients.add(guardianUserId);
+        }
+      }
+    }
+    assert.ok(expectedAthleteRecipients.size > 0, 'expected linked athlete invite recipients');
+    const nonTargetMemberUserId = asRows(tables.clubMemberships)
+      .filter(
+        (membership) =>
+          asString(membership.clubId) === clubId &&
+          isActiveClubMembership(membership) &&
+          !isActiveClubStaffMembership(membership),
+      )
+      .map((membership) => asString(membership.userId))
+      .find((userId): userId is string => {
+        if (!userId) return false;
+        return !expectedAthleteRecipients.has(userId) && userId !== staffUserId;
+      });
+    assert.ok(nonTargetMemberUserId, 'expected active non-target club member');
+    const otherClubAthleteId = asString(
+      asRows(tables.squadMemberships).find(
+        (membership) =>
+          asString(membership.squadId) === otherClubSquadId &&
+          asString(membership.status) === 'active' &&
+          !asString(membership.deletedAt),
+      )?.athleteId,
+    );
+    assert.ok(otherClubAthleteId, 'expected seeded athlete outside event club');
+
+    const athleteCreated = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/events`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+      payload: {
+        ...createPayload,
+        title: 'Targeted Athlete Event',
+        targetAudience: 'ATHLETES',
+        athleteIds: [athleteId],
+      },
+    });
+    assert.equal(athleteCreated.statusCode, 201);
+    const athleteEventPayload = athleteCreated.json() as {
+      event: { id: string; athleteIds: string[] };
+    };
+    const athleteEventId = athleteEventPayload.event.id;
+    assert.deepEqual(athleteEventPayload.event.athleteIds, [athleteId]);
+    const athletePublished = await app.inject({
+      method: 'PATCH',
+      url: `/v1/events/${athleteEventId}`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+      payload: { status: 'PUBLISHED' },
+    });
+    assert.equal(athletePublished.statusCode, 200);
+
+    const deniedAthleteInvite = await app.inject({
+      method: 'POST',
+      url: `/v1/events/${athleteEventId}/invites/athletes`,
+      headers: authHeaders(tables, outsiderUserId, 'parent'),
+      payload: { athleteIds: [athleteId] },
+    });
+    assert.equal(deniedAthleteInvite.statusCode, 403);
+
+    const invalidAthleteInvite = await app.inject({
+      method: 'POST',
+      url: `/v1/events/${athleteEventId}/invites/athletes`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+      payload: { athleteIds: [otherClubAthleteId] },
+    });
+    assert.equal(invalidAthleteInvite.statusCode, 400);
+
+    const athleteInvited = await app.inject({
+      method: 'POST',
+      url: `/v1/events/${athleteEventId}/invites/athletes`,
+      headers: authHeaders(tables, staffUserId, 'coach'),
+      payload: { athleteIds: [athleteId, athleteId] },
+    });
+    assert.equal(athleteInvited.statusCode, 200);
+    const athleteInvitePayload = athleteInvited.json() as {
+      athleteIds: string[];
+      inviteCount: number;
+      targetAthleteCount: number;
+    };
+    assert.deepEqual(athleteInvitePayload.athleteIds, [athleteId]);
+    assert.equal(athleteInvitePayload.inviteCount, expectedAthleteRecipients.size);
+    assert.equal(athleteInvitePayload.targetAthleteCount, 1);
+    assert.equal(
+      asRows(getMarketplaceSeedStore().tables.notifications).filter((row) => {
+        const metadata = asRecord(row.metadataJson);
+        const metadataAthleteIds = metadata?.athleteIds;
+        return (
+          asString(row.sourceId) === athleteEventId &&
+          asString(row.type) === 'CLUB_EVENT_INVITE' &&
+          Array.isArray(metadataAthleteIds) &&
+          metadataAthleteIds.includes(athleteId)
+        );
+      }).length,
+      expectedAthleteRecipients.size,
+    );
+
+    const linkedRecipientDetail = await app.inject({
+      method: 'GET',
+      url: `/v1/events/${athleteEventId}`,
+      headers: authHeaders(tables, [...expectedAthleteRecipients][0], 'parent'),
+    });
+    assert.equal(linkedRecipientDetail.statusCode, 200);
+    const nonTargetDetail = await app.inject({
+      method: 'GET',
+      url: `/v1/events/${athleteEventId}`,
+      headers: authHeaders(tables, nonTargetMemberUserId, 'parent'),
+    });
+    assert.equal(nonTargetDetail.statusCode, 403);
+    const nonTargetList = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/events`,
+      headers: authHeaders(tables, nonTargetMemberUserId, 'parent'),
+    });
+    assert.equal(nonTargetList.statusCode, 200);
+    assert.equal(
+      (nonTargetList.json() as { events: Array<{ id: string }> }).events.some(
+        (event) => event.id === athleteEventId,
+      ),
+      false,
+    );
+
     const cancelled = await app.inject({
       method: 'PATCH',
       url: `/v1/events/${eventId}`,
@@ -3748,6 +4972,22 @@ describe('p0 core routes', () => {
       }).length,
       1,
     );
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_event.invite_squads',
+        resourceId: eventId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_event.invite_athletes',
+        resourceId: athleteEventId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
 
     const previousBackend = env.API_DATA_BACKEND;
     env.API_DATA_BACKEND = 'db';
@@ -3775,6 +5015,58 @@ describe('p0 core routes', () => {
         (fixturePublished.json() as { event: { status: string } }).event.status,
         'PUBLISHED',
       );
+      const fixtureSquad = asRows(fixtureTables.squads).find(
+        (row) => asString(row.clubId) === clubId && !asString(row.deletedAt),
+      );
+      assert.ok(fixtureSquad, 'expected db-fixture squad for event club');
+      const fixtureSquadInvite = await app.inject({
+        method: 'POST',
+        url: `/v1/events/${fixtureEventId}/invites/squads`,
+        headers: authHeaders(fixtureTables, staffUserId, 'coach'),
+        payload: {
+          squadIds: [asString(fixtureSquad.id)],
+        },
+      });
+      assert.equal(fixtureSquadInvite.statusCode, 200);
+      assert.equal(
+        (fixtureSquadInvite.json() as { squadIds: string[] }).squadIds[0],
+        asString(fixtureSquad.id),
+      );
+      const fixtureAthleteId = asString(
+        asRows(fixtureTables.squadMemberships).find(
+          (membership) =>
+            asString(membership.squadId) === asString(fixtureSquad.id) &&
+            asString(membership.status) === 'active' &&
+            !asString(membership.deletedAt),
+        )?.athleteId,
+      );
+      assert.ok(fixtureAthleteId, 'expected db-fixture athlete for event club');
+      const fixtureAthleteEvent = await app.inject({
+        method: 'POST',
+        url: `/v1/clubs/${clubId}/events`,
+        headers: authHeaders(fixtureTables, staffUserId, 'coach'),
+        payload: {
+          ...createPayload,
+          title: 'DB Fixture Targeted Athlete Event',
+          targetAudience: 'ATHLETES',
+          athleteIds: [fixtureAthleteId],
+        },
+      });
+      assert.equal(fixtureAthleteEvent.statusCode, 201);
+      const fixtureAthleteEventId = (fixtureAthleteEvent.json() as { event: { id: string } }).event
+        .id;
+      const fixtureAthleteInvite = await app.inject({
+        method: 'POST',
+        url: `/v1/events/${fixtureAthleteEventId}/invites/athletes`,
+        headers: authHeaders(fixtureTables, staffUserId, 'coach'),
+        payload: {
+          athleteIds: [fixtureAthleteId],
+        },
+      });
+      assert.equal(fixtureAthleteInvite.statusCode, 200);
+      assert.deepEqual((fixtureAthleteInvite.json() as { athleteIds: string[] }).athleteIds, [
+        fixtureAthleteId,
+      ]);
     } finally {
       env.API_DATA_BACKEND = previousBackend;
     }
@@ -4044,9 +5336,7 @@ describe('p0 core routes', () => {
       assert.equal(
         listPayload.rsvps.some(
           (item) =>
-            item.eventId === eventId &&
-            item.userId === memberUserId &&
-            item.status === 'NOT_GOING',
+            item.eventId === eventId && item.userId === memberUserId && item.status === 'NOT_GOING',
         ),
         true,
       );
@@ -4293,12 +5583,11 @@ describe('p0 core routes', () => {
       headers: authHeaders(tables, staffUserId, 'coach'),
     });
     assert.equal(removed.statusCode, 204);
-    assert.equal(
-      asRows(getMarketplaceSeedStore().tables.eventAttendances).some(
-        (row) => asString(row.clubEventId) === eventId && asString(row.userId) === memberUserId,
-      ),
-      false,
+    const removedAttendance = asRows(getMarketplaceSeedStore().tables.eventAttendances).find(
+      (row) => asString(row.clubEventId) === eventId && asString(row.userId) === memberUserId,
     );
+    assert.equal(Boolean(asString(removedAttendance?.deletedAt)), true);
+    assert.equal(asString(removedAttendance?.deletedByUserId), staffUserId);
 
     const previousBackend = env.API_DATA_BACKEND;
     env.API_DATA_BACKEND = 'db';
@@ -4411,7 +5700,9 @@ describe('p0 core routes', () => {
       },
     });
     assert.equal(allowed.statusCode, 201);
-    const allowedPayload = allowed.json() as { groupSession: { clubId?: string; squadId?: string } };
+    const allowedPayload = allowed.json() as {
+      groupSession: { clubId?: string; squadId?: string };
+    };
     assert.equal(allowedPayload.groupSession.clubId, clubId);
     assert.equal(allowedPayload.groupSession.squadId, squadId);
 
@@ -4552,7 +5843,7 @@ describe('p0 core routes', () => {
         parentUserId: string;
         status: string;
       };
-      booking?: { id: string; status: string } | null;
+      booking?: { id: string; status: string; groupSessionId?: string | null } | null;
       sessionStatus: string;
     };
 
@@ -4562,5 +5853,74 @@ describe('p0 core routes', () => {
     assert.ok(['PUBLISHED', 'FULL'].includes(payload.sessionStatus));
     assert.match(payload.booking?.id ?? '', /^bok_/);
     assert.equal(payload.booking?.status, 'CONFIRMED');
+    assert.equal(payload.booking?.groupSessionId, selection?.sessionId);
+  });
+
+  it('blocks registration for unassigned club sessions before creating registration or booking rows', async () => {
+    const store = getMarketplaceSeedStore();
+    const tables = store.tables as SeedTables;
+    const guardianLink = asRows(tables.guardianChildLinks).find(
+      (row) => asString(row.guardianUserId) && asString(row.athleteId),
+    );
+    const clubMembership = asRows(tables.clubMemberships).find((row) =>
+      isActiveClubMembership(row),
+    );
+    const parentUserId = asString(guardianLink?.guardianUserId);
+    const athleteId = asString(guardianLink?.athleteId);
+    const clubId = asString(clubMembership?.clubId);
+    const creatorUserId = asString(clubMembership?.userId);
+    assert.ok(parentUserId, 'expected guardian user id');
+    assert.ok(athleteId, 'expected athlete id');
+    assert.ok(clubId, 'expected club id');
+    assert.ok(creatorUserId, 'expected club creator user id');
+
+    const startsAt = new Date(Date.now() + 9 * 24 * 60 * 60 * 1000).toISOString();
+    const endsAt = new Date(Date.parse(startsAt) + 60 * 60 * 1000).toISOString();
+    const sessionId = 'gse_p0_unassigned_register_denied';
+    ensureRows(tables, 'groupSessions').push({
+      id: sessionId,
+      coachUserId: null,
+      clubId,
+      squadId: null,
+      recurringSeriesId: null,
+      title: 'Unassigned Registration Guard',
+      description: 'Should not register before staffing assignment',
+      sessionType: 'TEAM_TRAINING',
+      maxParticipants: 8,
+      currentParticipants: 0,
+      waitlistEnabled: true,
+      waitlistCount: 0,
+      pricePerParticipantMinor: 2500,
+      currency: 'GBP',
+      location: 'Authority Pitch',
+      isVirtual: false,
+      status: 'PUBLISHED',
+      scheduleJson: [{ startsAt, endsAt }],
+      focusJson: ['Passing'],
+      equipmentJson: [],
+      createdByUserId: creatorUserId,
+      updatedByUserId: creatorUserId,
+      version: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+      deletedByUserId: null,
+    });
+
+    const registrationCount = ensureRows(tables, 'groupSessionRegistrations').length;
+    const bookingCount = ensureRows(tables, 'bookings').length;
+    const response = await app.inject({
+      method: 'POST',
+      url: `/v1/group-sessions/${sessionId}/register`,
+      headers: authHeaders(tables, parentUserId, 'parent'),
+      payload: {
+        athleteId,
+        parentUserId,
+      },
+    });
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(ensureRows(tables, 'groupSessionRegistrations').length, registrationCount);
+    assert.equal(ensureRows(tables, 'bookings').length, bookingCount);
   });
 });

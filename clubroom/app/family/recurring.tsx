@@ -30,10 +30,26 @@ export default function FamilyRecurringScreen() {
     handlePause,
     handleResume,
     handleCancel,
+    handleSkipNext,
     handleCreatePlan,
   } = useFamilyRecurring();
 
   const recurringBookings = plans.map((plan) => plan.recurring);
+  const skipTargets = Object.fromEntries(
+    plans.flatMap((plan) =>
+      plan.nextBookingId
+        ? [
+            [
+              plan.recurring.id,
+              {
+                bookingId: plan.nextBookingId,
+                scheduledAt: plan.nextScheduledAt,
+              },
+            ],
+          ]
+        : [],
+    ),
+  );
   const highlightNextLabel = highlightedPlan?.nextScheduledAt
     ? new Date(highlightedPlan.nextScheduledAt).toLocaleString('en-GB', {
         weekday: 'short',
@@ -151,6 +167,8 @@ export default function FamilyRecurringScreen() {
           onPause={handlePause}
           onResume={handleResume}
           onCancel={handleCancel}
+          onSkipNext={handleSkipNext}
+          skipTargets={skipTargets}
           onCreatePress={handleCreatePlan}
           emptyTitle="No recurring plans"
           emptyMessage="Start a recurring plan when you want the same session on the calendar every week."

@@ -16,6 +16,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Typography, withAlpha } from '@/constants/theme';
 import type { ThemeColors } from '@/hooks/useTheme';
 import type { SquadMemberWithSelection } from '@/services/invite';
+import { safeDisplayLabel } from '@/utils/booking-display';
 import { styles } from './squad-member-select-styles';
 
 // ─── SelectAllHeader ────────────────────────────────────────────────────────
@@ -122,6 +123,8 @@ export const MemberCard = function MemberCard({
   palette,
 }: MemberCardProps) {
   const isDisabled = disabled || member.hasPendingInvite;
+  const athleteLabel = safeDisplayLabel(member.athleteId, 'Athlete');
+  const parentLabel = safeDisplayLabel(member.parentId, 'Parent');
 
   return (
     <Clickable
@@ -139,12 +142,12 @@ export const MemberCard = function MemberCard({
       <Row align="center" gap="md">
         <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-            {(member.athleteId || 'A').charAt(0)}
+            {athleteLabel.charAt(0)}
           </ThemedText>
         </View>
 
         <View style={styles.memberInfo}>
-          <ThemedText type="defaultSemiBold">{member.athleteId}</ThemedText>
+          <ThemedText type="defaultSemiBold">{athleteLabel}</ThemedText>
           <Row align="center">
             {member.position && (
               <>
@@ -170,7 +173,7 @@ export const MemberCard = function MemberCard({
             )}
           </Row>
           <ThemedText style={[styles.parentText, { color: palette.muted }]}>
-            Parent: {member.parentId}
+            Parent: {parentLabel}
           </ThemedText>
         </View>
 

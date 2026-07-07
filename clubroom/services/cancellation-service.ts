@@ -12,18 +12,27 @@
  * my refund amount before I confirm."
  */
 
-import { apiClient } from './api-client';
+import { apiClient, apiFetch } from './api-client';
 import { generateId } from '@/utils/generate-id';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import { bookingService } from '@/services/booking-service';
 import type { CancellationPolicy, RefundCalculation, RefundTier } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
-import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  storageError,
+  unsupportedError,
+} from '@/types/result';
 import { emitTyped, ServiceEvents } from './event-bus';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('CancellationService');
+const CANCELLATION_RECORDS_ROUTE = '/v1/cancellation-records';
+const NO_SHOW_COUNTS_ROUTE = '/v1/families/:familyId/no-shows';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -51,7 +60,83 @@ export interface CancellationTier {
   label: string;
 }
 
+interface CancellationRecordsResponse {
+  records: CancellationRecord[];
+  total: number;
+  requestId?: string;
+}
+
+interface CancellationRecordLookupResponse {
+  record: CancellationRecord | null;
+  requestId?: string;
+}
+
+interface NoShowCountResponse {
+  familyId: string;
+  count: number;
+  attendanceRecordCount?: number;
+  groupRegistrationCount?: number;
+  requestId?: string;
+}
+
+export interface NoShowProofInput {
+  athleteId: string;
+  bookingId?: string;
+  groupSessionRegistrationId?: string;
+  groupSessionId?: string;
+  date?: string;
+  notes?: string;
+}
+
+interface NoShowMutationResponse extends NoShowCountResponse {
+  action: 'record' | 'clear';
+  proof?: {
+    kind: 'booking' | 'group_registration';
+    athleteId: string;
+    bookingId?: string | null;
+    groupSessionId?: string | null;
+    registrationId?: string | null;
+    date: string;
+    replayed: boolean;
+    clearedRecords?: number;
+  };
+}
+
 export { CancellationPolicy };
+
+function unsupportedApiMode<T>(message: string, route: string): Result<T, ServiceError> {
+  return err(unsupportedError(message, { route }));
+}
+
+function cancellationRecordsRoute(coachId?: string): string {
+  if (!coachId) return CANCELLATION_RECORDS_ROUTE;
+  return `${CANCELLATION_RECORDS_ROUTE}?coachId=${encodeURIComponent(coachId)}`;
+}
+
+function noShowRoute(familyId: string): string {
+  return `/v1/families/${encodeURIComponent(familyId)}/no-shows`;
+}
+
+async function patchNoShow(
+  familyId: string,
+  action: 'record' | 'clear',
+  proof?: NoShowProofInput,
+): Promise<Result<NoShowMutationResponse, ServiceError>> {
+  if (!proof) {
+    return unsupportedApiMode(
+      'No-show counter updates require booking or group-registration proof in API mode.',
+      NO_SHOW_COUNTS_ROUTE,
+    );
+  }
+  const result = await apiFetch<NoShowMutationResponse>(noShowRoute(familyId), {
+    method: 'PATCH',
+    body: JSON.stringify({
+      action,
+      ...proof,
+    }),
+  });
+  return result.success ? ok(result.data) : err(result.error);
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -145,6 +230,31 @@ export const cancellationService = {
       familyId?: string;
     },
   ): Promise<Result<CancellationRecord, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const cancelResult = await bookingService.cancelBookingViaApi(bookingId, {
+        reason: details.reason,
+        ...(details.note ? { note: details.note } : {}),
+      });
+      if (!cancelResult.success) {
+        return err(cancelResult.error);
+      }
+      const recordResult = await this.getCancellationByBooking(bookingId);
+      if (!recordResult.success) {
+        return recordResult;
+      }
+      if (!recordResult.data) {
+        return err(storageError('Booking was cancelled but no cancellation record was returned'));
+      }
+      emitTyped(ServiceEvents.CANCELLATION_RECORDED, {
+        cancellationId: recordResult.data.id,
+        bookingId: recordResult.data.bookingId,
+        cancelledBy: recordResult.data.cancelledBy,
+        coachId: recordResult.data.coachId,
+        familyId: recordResult.data.familyId,
+      });
+      return ok(recordResult.data);
+    }
+
     try {
       const records = await loadRecords();
       const existing = records.find((r) => r.bookingId === bookingId);
@@ -161,11 +271,17 @@ export const cancellationService = {
         cancelledBy,
       });
       if (!bookingUpdateResult.success) {
-        logger.error('Failed to update booking status during cancellation', {
+        const missingMockBooking =
+          apiClient.isMockMode && bookingUpdateResult.error.code === 'NOT_FOUND';
+        const logContext = {
           bookingId,
           error: bookingUpdateResult.error,
-        });
-        return err(bookingUpdateResult.error);
+        };
+        if (!missingMockBooking) {
+          logger.error('Failed to update booking status during cancellation', logContext);
+          return err(bookingUpdateResult.error);
+        }
+        logger.warn('Cancellation record created without mock booking mirror', logContext);
       }
 
       const record: CancellationRecord = {
@@ -213,6 +329,14 @@ export const cancellationService = {
   async getCancellationRecords(
     coachId?: string,
   ): Promise<Result<CancellationRecord[], ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<CancellationRecordsResponse>(cancellationRecordsRoute(coachId));
+      if (!result.success) {
+        return err(result.error);
+      }
+      return ok(result.data.records);
+    }
+
     try {
       const records = await loadRecords();
       if (!coachId) return ok(records);
@@ -229,6 +353,19 @@ export const cancellationService = {
   async getCancellationByBooking(
     bookingId: string,
   ): Promise<Result<CancellationRecord | null, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<CancellationRecordLookupResponse>(
+        `${CANCELLATION_RECORDS_ROUTE}/${encodeURIComponent(bookingId)}`,
+      );
+      if (!result.success) {
+        if (result.error.code === 'NOT_FOUND') {
+          return ok(null);
+        }
+        return err(result.error);
+      }
+      return ok(result.data.record);
+    }
+
     try {
       const records = await loadRecords();
       return ok(records.find((r) => r.bookingId === bookingId) ?? null);
@@ -242,6 +379,11 @@ export const cancellationService = {
    * Get the no-show count for a family.
    */
   async getNoShowCount(familyId: string): Promise<Result<number, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const result = await apiFetch<NoShowCountResponse>(noShowRoute(familyId));
+      return result.success ? ok(result.data.count) : err(result.error);
+    }
+
     try {
       const counts = await loadNoShowCounts();
       return ok(counts[familyId] ?? 0);
@@ -254,7 +396,15 @@ export const cancellationService = {
   /**
    * Increment the no-show counter for a family.
    */
-  async incrementNoShow(familyId: string): Promise<Result<void, ServiceError>> {
+  async incrementNoShow(
+    familyId: string,
+    proof?: NoShowProofInput,
+  ): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const result = await patchNoShow(familyId, 'record', proof);
+      return result.success ? ok(undefined) : err(result.error);
+    }
+
     try {
       const counts = await loadNoShowCounts();
       counts[familyId] = (counts[familyId] ?? 0) + 1;
@@ -270,7 +420,15 @@ export const cancellationService = {
   /**
    * Reset no-show count for a family (e.g. after a grace period).
    */
-  async resetNoShowCount(familyId: string): Promise<Result<void, ServiceError>> {
+  async resetNoShowCount(
+    familyId: string,
+    proof?: NoShowProofInput,
+  ): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const result = await patchNoShow(familyId, 'clear', proof);
+      return result.success ? ok(undefined) : err(result.error);
+    }
+
     try {
       const counts = await loadNoShowCounts();
       delete counts[familyId];
@@ -365,6 +523,36 @@ export const cancellationService = {
       ServiceError
     >
   > {
+    if (!apiClient.isMockMode) {
+      const recordResult = await this.getCancellationRecords(coachId);
+      if (!recordResult.success) {
+        return err(recordResult.error);
+      }
+      const coachRecords = recordResult.data;
+      const byCoach = coachRecords.filter((r) => r.cancelledBy === 'coach').length;
+      const byParent = coachRecords.filter((r) => r.cancelledBy === 'parent').length;
+      const reasonCounts: Record<string, number> = {};
+      for (const record of coachRecords) {
+        reasonCounts[record.reasonCategory] = (reasonCounts[record.reasonCategory] ?? 0) + 1;
+      }
+      const topReasons = Object.entries(reasonCounts)
+        .map(([reason, count]) => ({ reason, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+      const avgHours =
+        coachRecords.length > 0
+          ? coachRecords.reduce((sum, record) => sum + record.hoursBeforeSession, 0) /
+            coachRecords.length
+          : 0;
+      return ok({
+        totalCancellations: coachRecords.length,
+        byCoach,
+        byParent,
+        topReasons,
+        avgHoursBeforeSession: Math.round(avgHours * 10) / 10,
+      });
+    }
+
     try {
       const records = await loadRecords();
       const coachRecords = records.filter((r) => r.coachId === coachId);

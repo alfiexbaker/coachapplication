@@ -3,6 +3,7 @@ import { beforeEach, describe, it } from 'node:test';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { apiClient } from '@/services/api-client';
+import { bookingService } from '@/services/booking';
 import { progressFeedbackService } from '@/services/progress/progress-feedback-service';
 import { progressSkillsService } from '@/services/progress/progress-skills-service';
 import { progressReportService } from '@/services/progress/progress-report-service';
@@ -78,7 +79,10 @@ describe('progressReportService', () => {
         serviceType: 'COACHING',
       },
     ];
-    await apiClient.set(STORAGE_KEYS.BOOKINGS, bookings);
+    for (const booking of bookings) {
+      const saveResult = await bookingService.saveBookingDirect(booking);
+      assert.equal(saveResult.success, true);
+    }
 
     const progress = await progressReportService.getAthleteProgress(athleteId, 'parent');
     assert.equal(progress.totalSessions, 2);

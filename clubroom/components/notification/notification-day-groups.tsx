@@ -125,7 +125,7 @@ export const NotificationDayGroups = function NotificationDayGroups({
               onDelete={() => onDelete(item.id)}
               onShare={item.type === "badge" ? () => onShare(item) : undefined}
               onAddToFeed={
-                item.type === "badge" && !item.handled
+                item.type === "badge" && !item.read && !item.handled
                   ? () => onAddToFeed(item)
                   : undefined
               }

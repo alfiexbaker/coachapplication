@@ -9,6 +9,7 @@ import { useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus, type UseScreenResult } from '@/hooks/use-screen';
+import { api } from '@/constants/config';
 import { commentService } from '@/services/comment-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { createLogger } from '@/utils/logger';
@@ -31,6 +32,7 @@ export interface NormalizedPost {
   reactionCount: number;
   imageUrl?: string;
   videoUrl?: string;
+  likedByCurrentUser?: boolean;
 }
 
 function normalizePost(post: Post | ClubFeedPost): NormalizedPost {
@@ -45,6 +47,7 @@ function normalizePost(post: Post | ClubFeedPost): NormalizedPost {
       reactionCount: 'reactionCount' in post ? (post.reactionCount ?? 0) : 0,
       imageUrl: post.imageUrl,
       videoUrl: post.videoUrl,
+      likedByCurrentUser: post.likedByCurrentUser,
     };
   }
   return {
@@ -111,7 +114,14 @@ export function usePostDetail() {
 
   useEffect(() => {
     if (!normalized) return;
-    if (normalized.likes.length > 0) {
+    if (typeof normalized.likedByCurrentUser === 'boolean') {
+      startTransition(() => {
+        setLiked(normalized.likedByCurrentUser === true);
+      });
+      startTransition(() => {
+        setLikeCount(normalized.reactionCount);
+      });
+    } else if (normalized.likes.length > 0) {
       startTransition(() => {
         setLiked(normalized.likes.includes(currentUser?.id ?? ''));
       });
@@ -174,13 +184,33 @@ export function usePostDetail() {
     return count;
   })();
 
-  const handleLikePost = () => {
+  const handleLikePost = async () => {
+    if (!postId || !currentUser) return;
     logger.press('LikePost', { postId });
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setLiked((previousLiked) => {
-      setLikeCount((previousCount) => (previousLiked ? previousCount - 1 : previousCount + 1));
-      return !previousLiked;
-    });
+    const previousLiked = liked;
+    const previousLikeCount = likeCount;
+    const nextLiked = !previousLiked;
+    setLiked(nextLiked);
+    setLikeCount(Math.max(0, previousLikeCount + (nextLiked ? 1 : -1)));
+
+    if (api.useMock) {
+      socialFeedService.toggleReaction(postId, currentUser.id);
+      return;
+    }
+
+    const result = await socialFeedService.toggleReactionAuthority(postId);
+    if (result.success) {
+      setActionError(null);
+      setLiked(result.data.likedByCurrentUser === true);
+      setLikeCount(result.data.reactionCount ?? result.data.likes?.length ?? 0);
+      return;
+    }
+
+    setLiked(previousLiked);
+    setLikeCount(previousLikeCount);
+    setActionError(result.error.message);
+    uiFeedback.showToast(result.error.message || 'Failed to update reaction.', 'error');
   };
 
   const handleLikeComment = async (commentId: string) => {
@@ -321,7 +351,7 @@ export function usePostDetail() {
     totalCommentCount: number;
     loadComments: () => void;
     handleRefresh: () => void;
-    handleLikePost: () => void;
+    handleLikePost: () => Promise<void>;
     handleLikeComment: (commentId: string) => Promise<void>;
     handleReply: (commentId: string, authorName: string) => void;
     handleCancelReply: () => void;

@@ -150,7 +150,7 @@ export function useFamilySharing() {
 
   const handleRemoveGuardian = (guardian: FamilyGuardian) => {
     if (!family || !currentUser) return;
-    const guardianLabel = guardian.userId || 'Guardian';
+    const guardianLabel = guardian.email || guardian.relationship || 'Guardian';
     uiFeedback.alert(
       'Remove Guardian',
       `Are you sure you want to remove ${guardianLabel} from your family account? They will no longer be able to access your children's information.`,

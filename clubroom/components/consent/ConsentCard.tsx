@@ -10,6 +10,7 @@ import { useTheme } from '@/hooks/useTheme';
 import type { AthleteConsent } from '@/constants/types';
 import { consentService } from '@/services/consent-service';
 import { userService } from '@/services/user-service';
+import { safeDisplayLabel } from '@/utils/booking-display';
 import { Row } from '@/components/primitives';
 
 interface ConsentCardProps {
@@ -35,7 +36,7 @@ export function ConsentCard({ athleteConsent, onPress, showDetails = false }: Co
     return () => { cancelled = true; };
   }, [athleteConsent.athleteId]);
 
-  const athleteName = resolvedName || athleteConsent.athleteId || 'Athlete';
+  const athleteName = resolvedName || safeDisplayLabel(athleteConsent.athleteId, 'Athlete');
 
   const { granted, total } = consentService.getConsentCount(athleteConsent);
   const percentage = consentService.getConsentPercentage(athleteConsent);

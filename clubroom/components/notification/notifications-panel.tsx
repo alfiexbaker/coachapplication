@@ -140,7 +140,9 @@ export function NotificationsPanel({
               onDelete={() => handleNotificationDismiss(item.id)}
               onShare={item.type === 'badge' ? () => handleShare(item) : undefined}
               onAddToFeed={
-                item.type === 'badge' && !item.handled ? () => handleAddToFeed(item) : undefined
+                item.type === 'badge' && !item.read && !item.handled
+                  ? () => handleAddToFeed(item)
+                  : undefined
               }
               showTypeIndicator={false}
             />

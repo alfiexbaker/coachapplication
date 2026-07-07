@@ -20,7 +20,7 @@ import type { BookingSummary, Booking, RecurringBooking } from '@/constants/type
 import { createLogger } from '@/utils/logger';
 import type { ServiceError } from '@/types/result';
 import { err, ok, serviceError } from '@/types/result';
-import { getBookingAthleteName } from '@/utils/booking-display';
+import { getBookingAthleteName, getBookingServiceLabel, safeDisplayLabel } from '@/utils/booking-display';
 import { uiFeedback } from '@/services/ui-feedback';
 import type { SessionFeedback } from '@/services/progress-service';
 import { progressService } from '@/services/progress-service';
@@ -83,8 +83,8 @@ const toBookingSummary = (
   const recurringSource = options?.recurringSource;
   const userNameById = options?.userNameById;
   const resolveUserLabel = (userId?: string, fallback?: string) => {
-    if (!userId) return fallback;
-    return userNameById?.get(userId) || fallback || userId;
+    const explicitLabel = userId ? userNameById?.get(userId) : undefined;
+    return safeDisplayLabel(explicitLabel || fallback || userId, 'User');
   };
 
   const ownerCoachId = booking.ownerCoachId ?? recurringSource?.ownerCoachId;
@@ -98,7 +98,7 @@ const toBookingSummary = (
 
   return {
     id: booking.id,
-    service: booking.service ?? 'Session',
+    service: getBookingServiceLabel(booking),
     price: booking.price,
     recurringBookingId: booking.recurringBookingId,
     sessionSource: booking.sessionSource,

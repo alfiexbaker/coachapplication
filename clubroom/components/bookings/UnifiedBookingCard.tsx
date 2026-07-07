@@ -36,6 +36,7 @@ import {
 import { Row } from '@/components/primitives';
 import {
   getBookingStatusLabel,
+  getBookingServiceLabel,
   getBookingSummaryClientName,
   getBookingSummaryCoachName,
 } from '@/utils/booking-display';
@@ -71,6 +72,7 @@ export function UnifiedBookingCard({
     `https://i.pravatar.cc/100?u=${booking.coachId || 'default'}`;
   const coachName = getBookingSummaryCoachName(booking);
   const childName = getBookingSummaryClientName(booking);
+  const serviceLabel = getBookingServiceLabel(booking);
 
   const handlePress = () => {
     if (onPress) {
@@ -135,7 +137,7 @@ export function UnifiedBookingCard({
 
           <View style={styles.standardContent}>
             <ThemedText style={styles.standardTitle} numberOfLines={1}>
-              {booking.service}
+              {serviceLabel}
             </ThemedText>
             <ThemedText
               style={[styles.standardSubtitle, { color: palette.muted }]}

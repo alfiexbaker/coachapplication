@@ -13,6 +13,7 @@ import { createLogger } from '@/utils/logger';
 import { generateId, generateMockToken } from '@/utils/generate-id';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { emitTyped, onTyped, ServiceEvents } from '@/services/event-bus';
+import { clearAuthTokens, getAuthTokens, setAuthTokens } from '@/services/auth-token-storage';
 import { api as apiConfig } from '@/constants/config';
 import {
   type Result,
@@ -245,6 +246,10 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<Result<
       return err(networkError(errorMessage));
     }
 
+    if (response.status === 204) {
+      return ok(undefined as T);
+    }
+
     const data = (await response.json()) as T;
     return ok(data);
   } catch (error: unknown) {
@@ -327,8 +332,7 @@ export const authService = {
 
   async storeTokens(tokens: AuthTokens): Promise<void> {
     try {
-      await apiClient.set(STORAGE_KEYS.AUTH_TOKENS, tokens);
-      await apiClient.set(STORAGE_KEYS.AUTH_TOKEN, tokens.accessToken);
+      await setAuthTokens(tokens);
     } catch (error) {
       logger.error('Failed to store tokens', error);
     }
@@ -336,8 +340,7 @@ export const authService = {
 
   async getTokens(): Promise<AuthTokens | null> {
     try {
-      const stored = await apiClient.get<AuthTokens | null>(STORAGE_KEYS.AUTH_TOKENS, null);
-      return stored;
+      return await getAuthTokens();
     } catch (error) {
       logger.error('Failed to get tokens', error);
     }
@@ -383,6 +386,7 @@ export const authService = {
           await apiFetch(AUTH_ENDPOINTS.logout, {
             method: 'POST',
             headers: { Authorization: `Bearer ${tokens.accessToken}` },
+            body: JSON.stringify({}),
           });
         }
       } catch (error) {
@@ -390,11 +394,7 @@ export const authService = {
       }
     }
 
-    await Promise.all([
-      apiClient.remove(STORAGE_KEYS.AUTH_USER),
-      apiClient.remove(STORAGE_KEYS.AUTH_TOKEN),
-      apiClient.remove(STORAGE_KEYS.AUTH_TOKENS),
-    ]);
+    await Promise.all([apiClient.remove(STORAGE_KEYS.AUTH_USER), clearAuthTokens()]);
     currentUser = null;
   },
 

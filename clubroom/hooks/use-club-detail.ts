@@ -31,6 +31,7 @@ import { squadService } from '@/services/squad-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { buildClubActivities } from '@/utils/club-activity-projections';
+import { canCreateClubPost } from '@/utils/club-ui-permissions';
 import { uiFeedback } from '@/services/ui-feedback';
 
 import { runAsyncFinally, runAsyncTryCatchFinally } from '@/utils/async-control';
@@ -113,9 +114,8 @@ export function useClubDetail(clubId: string | undefined) {
   const [showMemberRemovalModal, setShowMemberRemovalModal] = useState(false);
   const [isRemovingMember, setIsRemovingMember] = useState(false);
 
-  const canManagePosts =
-    membership && ['OWNER', 'HEAD_COACH', 'ADMIN', 'COACH'].includes(membership.role);
-  const canCreatePosts = !!membership;
+  const canManagePosts = canCreateClubPost(membership);
+  const canCreatePosts = canCreateClubPost(membership);
   const canRemoveMembers = membership && clubService.canRemoveMembers(membership.role);
   const clubActivities = USE_MOCK
     ? buildClubActivities({

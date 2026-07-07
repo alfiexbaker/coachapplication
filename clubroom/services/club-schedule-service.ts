@@ -2,7 +2,7 @@ import { api } from '@/constants/config';
 import type { ClubActivity, ClubEvent, GroupSession, Match } from '@/constants/types';
 import { apiFetch } from '@/services/api-client';
 import { buildApiAuthHeaders, deriveApiActingRole, resolveSignedInApiUser } from '@/services/api-auth-context';
-import { eventService } from '@/services/event-service';
+import { eventCrudService } from '@/services/event/event-crud-service';
 import { matchService } from '@/services/match-service';
 import { squadService } from '@/services/squad-service';
 import { loadSessions } from '@/services/group-session/session-crud-service';
@@ -58,7 +58,7 @@ async function loadMockClubScheduleData(
   clubId: string,
 ): Promise<{ events: ClubEvent[]; sessions: GroupSession[]; matches: Match[] }> {
   const [eventsResult, sessionsResult, matchesResult] = await Promise.allSettled([
-    eventService.getAllClubEvents(clubId),
+    eventCrudService.getAllClubEvents(clubId),
     loadSessions(),
     matchService.getClubMatches(clubId),
   ]);

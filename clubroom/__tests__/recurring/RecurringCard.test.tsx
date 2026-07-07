@@ -244,6 +244,30 @@ test('RecurringCard - cancel button hidden for CANCELLED and EXPIRED', () => {
   });
 });
 
+test('RecurringCard - skip next button requires active status and a next generated booking', () => {
+  const cases: Array<{
+    status: RecurringBookingStatus;
+    nextBookingId?: string;
+    expected: boolean;
+  }> = [
+    { status: 'ACTIVE', nextBookingId: 'booking_next_1', expected: true },
+    { status: 'ACTIVE', expected: false },
+    { status: 'PAUSED', nextBookingId: 'booking_next_1', expected: false },
+    { status: 'CANCELLED', nextBookingId: 'booking_next_1', expected: false },
+    { status: 'EXPIRED', nextBookingId: 'booking_next_1', expected: false },
+  ];
+
+  cases.forEach(({ status, nextBookingId, expected }) => {
+    const recurring = createMockRecurring({ status });
+    const shouldShowSkipNext = recurring.status === 'ACTIVE' && Boolean(nextBookingId);
+    assert.strictEqual(
+      shouldShowSkipNext,
+      expected,
+      `Skip next button visibility wrong for ${status} with ${nextBookingId ?? 'no booking'}`,
+    );
+  });
+});
+
 // ============================================================================
 // Pause Reason Display Tests
 // ============================================================================

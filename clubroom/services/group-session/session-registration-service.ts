@@ -6,6 +6,7 @@
  *
  * API Integration Notes:
  * - POST /v1/group-sessions/:id/register - Register athlete in non-mock mode
+ * - POST /v1/group-sessions/:id/waitlist - Join waitlist in non-mock mode
  * - DELETE /v1/group-session-registrations/:id - Cancel registration
  * - GET /v1/group-sessions/:id/roster - Get participants
  * - PATCH /v1/group-session-registrations/:id/attendance - Mark attendance
@@ -32,8 +33,11 @@ import { userService } from "../user-service";
 import type { GroupSession, GroupRegistration } from "@/constants/types";
 import { loadSessions, saveSessions } from "./session-crud-service";
 import { groupSessionAuthorityService } from "./group-session-authority-service";
-const USE_MOCK = api.useMock;
 const logger = createLogger("SessionRegistrationService");
+
+function isMockMode(): boolean {
+  return api.useMock;
+}
 
 // ============================================================================
 // MOCK REGISTRATION DATA
@@ -571,7 +575,7 @@ export const sessionRegistrationService = {
     athleteId: string,
     parentId: string,
   ): Promise<Result<GroupRegistration, ServiceError>> {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       // Single-device, in-process mutex to serialize AsyncStorage read-check-write.
       return withRegistrationLock(async () => {
         let sessionsCache = await loadSessions();
@@ -694,11 +698,11 @@ export const sessionRegistrationService = {
       return err(result.error);
     }
     const authoritative = result.data;
-    const mirroredRegistration: GroupRegistration = {
+    const registration: GroupRegistration = {
       id: authoritative.id,
-      sessionId,
-      athleteId,
-      parentId,
+      sessionId: authoritative.sessionId,
+      athleteId: authoritative.athleteId,
+      parentId: authoritative.parentUserId,
       status: authoritative.status,
       registeredAt: authoritative.registeredAt,
       ...(authoritative.paidAt
@@ -713,38 +717,108 @@ export const sessionRegistrationService = {
           }
         : {}),
     };
-    const registrations = await loadRegistrations();
-    const existingIndex = registrations.findIndex(
-      (entry) => entry.id === mirroredRegistration.id,
-    );
-    if (existingIndex >= 0) {
-      registrations[existingIndex] = mirroredRegistration;
-    } else {
-      registrations.push(mirroredRegistration);
+    return ok(registration);
+  },
+  /**
+   * Join the waitlist for a full session.
+   */
+  async joinWaitlist(
+    sessionId: string,
+    athleteId: string,
+    parentId: string,
+  ): Promise<Result<GroupRegistration, ServiceError>> {
+    if (isMockMode()) {
+      return withRegistrationLock(async () => {
+        const sessionsCache = await loadSessions();
+        registrationsCache = await loadRegistrations();
+        const session = sessionsCache.find((s) => s.id === sessionId);
+        if (!session) return err(notFound("Session", sessionId));
+
+        const existing = registrationsCache.find(
+          (r) =>
+            r.sessionId === sessionId &&
+            r.athleteId === athleteId &&
+            r.status !== "CANCELLED",
+        );
+        if (existing) {
+          if (existing.status === "WAITLISTED") {
+            return ok(existing);
+          }
+          return err(
+            serviceError(
+              "CONFLICT",
+              "This athlete is already registered for this session.",
+            ),
+          );
+        }
+
+        const isFull = session.currentParticipants >= session.maxParticipants;
+        if (!isFull) {
+          return err(
+            serviceError(
+              "CONFLICT",
+              "This session still has spaces available. Register instead.",
+            ),
+          );
+        }
+        if (!session.waitlistEnabled) {
+          return err(
+            serviceError("VALIDATION", "This session does not have a waitlist."),
+          );
+        }
+
+        const registration: GroupRegistration = {
+          id: `reg_${Date.now()}`,
+          sessionId,
+          athleteId,
+          parentId,
+          status: "WAITLISTED",
+          registeredAt: new Date().toISOString(),
+          attendedDates: [],
+        };
+        registrationsCache.push(registration);
+        session.waitlistCount += 1;
+        session.status = "FULL";
+        await saveRegistrations(registrationsCache);
+        await saveSessions(sessionsCache);
+        return ok(registration);
+      });
     }
-    await saveRegistrations(registrations);
-    const sessions = await loadSessions();
-    const sessionIndex = sessions.findIndex((entry) => entry.id === sessionId);
-    if (sessionIndex >= 0) {
-      const existingSession = sessions[sessionIndex];
-      const nextParticipants = registrations.filter(
-        (entry) =>
-          entry.sessionId === sessionId &&
-          (entry.status === "REGISTERED" || entry.status === "ATTENDED"),
-      ).length;
-      const nextWaitlist = registrations.filter(
-        (entry) =>
-          entry.sessionId === sessionId && entry.status === "WAITLISTED",
-      ).length;
-      sessions[sessionIndex] = {
-        ...existingSession,
-        currentParticipants: nextParticipants,
-        waitlistCount: nextWaitlist,
-        status: result.data.sessionStatus as GroupSession["status"],
-      };
-      await saveSessions(sessions);
+
+    const result = await groupSessionAuthorityService.joinWaitlist({
+      sessionId,
+      athleteId,
+      parentUserId: parentId,
+    });
+    if (!result.success) {
+      logger.error("Failed to join group session waitlist via API", {
+        sessionId,
+        athleteId,
+        parentId,
+        error: result.error.message,
+      });
+      return err(result.error);
     }
-    return ok(mirroredRegistration);
+    const authoritative = result.data;
+    return ok({
+      id: authoritative.id,
+      sessionId: authoritative.sessionId,
+      athleteId: authoritative.athleteId,
+      parentId: authoritative.parentUserId,
+      status: authoritative.status,
+      registeredAt: authoritative.registeredAt,
+      ...(authoritative.paidAt
+        ? {
+            paidAt: authoritative.paidAt,
+          }
+        : {}),
+      attendedDates: [],
+      ...(authoritative.notes
+        ? {
+            notes: authoritative.notes,
+          }
+        : {}),
+    });
   },
   /**
    * Cancel a registration
@@ -752,7 +826,7 @@ export const sessionRegistrationService = {
   async cancelRegistration(
     registrationId: string,
   ): Promise<Result<void, ServiceError>> {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       registrationsCache = await loadRegistrations();
       let sessionsCache = await loadSessions();
       const registration = registrationsCache.find(
@@ -818,7 +892,7 @@ export const sessionRegistrationService = {
    * Get roster for a session
    */
   async getSessionRoster(sessionId: string): Promise<GroupRegistration[]> {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       registrationsCache = await loadRegistrations();
       return registrationsCache
         .filter((r) => r.sessionId === sessionId && r.status !== "CANCELLED")
@@ -846,7 +920,7 @@ export const sessionRegistrationService = {
     date: string,
     attended: boolean,
   ): Promise<Result<GroupRegistration, ServiceError>> {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       registrationsCache = await loadRegistrations();
       const registration = registrationsCache.find(
         (r) => r.id === registrationId,
@@ -886,7 +960,7 @@ export const sessionRegistrationService = {
       session: GroupSession;
     })[]
   > {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       registrationsCache = await loadRegistrations();
       const sessionsCache = await loadSessions();
       return registrationsCache
@@ -942,7 +1016,7 @@ export const sessionRegistrationService = {
   async getRegistrationsForAthletes(
     athleteIds: ReadonlySet<string>,
   ): Promise<GroupRegistration[]> {
-    if (USE_MOCK) {
+    if (isMockMode()) {
       registrationsCache = await loadRegistrations();
       return registrationsCache.filter(
         (r) => athleteIds.has(r.athleteId) && r.status !== "CANCELLED",
@@ -953,6 +1027,9 @@ export const sessionRegistrationService = {
         athleteIds,
       );
     if (!result.success) {
+      if (result.error.code === "NOT_FOUND") {
+        return [];
+      }
       throw new Error(result.error.message);
     }
     return result.data;

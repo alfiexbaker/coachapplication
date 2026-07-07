@@ -6,6 +6,12 @@
  */
 
 import { api } from '@/constants/config';
+import { apiFetch } from '@/services/api-client';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+} from '@/services/api-auth-context';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
 import type { InviteRsvpResponse } from '@/constants/types';
@@ -20,6 +26,22 @@ interface RsvpCounts {
   going: number;
   maybe: number;
   cantGo: number;
+}
+
+interface ApiInviteRsvpResponse {
+  inviteId: string;
+  response: InviteRsvpResponse;
+  responses: InviteRsvpResponse[];
+  counts: RsvpCounts;
+  requestId: string;
+}
+
+interface ApiInviteRsvpListResponse {
+  inviteId: string;
+  responses: InviteRsvpResponse[];
+  counts: RsvpCounts;
+  total: number;
+  requestId: string;
 }
 
 const MOCK_INVITE_RSVPS: InviteRsvpResponse[] = [
@@ -59,10 +81,44 @@ function isMockMode(): boolean {
   return api.useMock;
 }
 
-function apiModeUnsupported(): ServiceError {
-  return serviceError(
-    'CONFLICT',
-    'Invite RSVP state requires backend authority in API mode.',
+async function resolveInviteRsvpHeaders(): Promise<Result<Record<string, string>, ServiceError>> {
+  const currentUserResult = await resolveSignedInApiUser('Sign in to manage invite RSVPs.');
+  if (!currentUserResult.success) {
+    return currentUserResult;
+  }
+  return ok(
+    buildApiAuthHeaders({
+      actingRole: deriveApiActingRole(currentUserResult.data, 'parent'),
+    }),
+  );
+}
+
+function emitRsvpResponded(response: InviteRsvpResponse): void {
+  emitTyped(ServiceEvents.INVITE_RSVP_RESPONDED, {
+    inviteId: response.inviteId,
+    responseId: response.id,
+    userId: response.userId,
+    userName: response.userName,
+    status: response.status,
+    childName: response.childName,
+  });
+}
+
+async function getApiRsvpState(
+  inviteId: string,
+  status?: RsvpStatus,
+): Promise<Result<ApiInviteRsvpListResponse, ServiceError>> {
+  const headersResult = await resolveInviteRsvpHeaders();
+  if (!headersResult.success) {
+    return headersResult;
+  }
+  const query = status ? `?status=${encodeURIComponent(status)}` : '';
+  return apiFetch<ApiInviteRsvpListResponse>(
+    `/v1/invites/${encodeURIComponent(inviteId)}/rsvps${query}`,
+    {
+      method: 'GET',
+      headers: headersResult.data,
+    },
   );
 }
 
@@ -95,7 +151,35 @@ export const inviteRsvpService = {
     userPhotoUrl?: string,
   ): Promise<Result<InviteRsvpResponse, ServiceError>> {
     if (!isMockMode()) {
-      return err(apiModeUnsupported());
+      const headersResult = await resolveInviteRsvpHeaders();
+      if (!headersResult.success) {
+        return headersResult;
+      }
+      const result = await apiFetch<ApiInviteRsvpResponse>(
+        `/v1/invites/${encodeURIComponent(inviteId)}/rsvps`,
+        {
+          method: 'POST',
+          headers: headersResult.data,
+          body: JSON.stringify({
+            status,
+            userName,
+            ...(childId ? { childId } : {}),
+            ...(childName ? { childName } : {}),
+            ...(userPhotoUrl ? { userPhotoUrl } : {}),
+          }),
+        },
+      );
+      if (!result.success) {
+        logger.error('Failed to record RSVP response via API', {
+          inviteId,
+          status,
+          error: result.error,
+        });
+        return err(result.error);
+      }
+      emitRsvpResponded(result.data.response);
+      logger.info('RSVP response recorded via API', { inviteId, status });
+      return ok(result.data.response);
     }
 
     try {
@@ -126,15 +210,7 @@ export const inviteRsvpService = {
 
       await saveResponses(allResponses);
 
-      // Emit event
-      emitTyped(ServiceEvents.INVITE_RSVP_RESPONDED, {
-        inviteId,
-        responseId: response.id,
-        userId,
-        userName,
-        status,
-        childName,
-      });
+      emitRsvpResponded(response);
 
       logger.info('RSVP response recorded', { inviteId, userId, status });
 
@@ -150,7 +226,8 @@ export const inviteRsvpService = {
    */
   async getResponses(inviteId: string): Promise<Result<InviteRsvpResponse[], ServiceError>> {
     if (!isMockMode()) {
-      return err(apiModeUnsupported());
+      const result = await getApiRsvpState(inviteId);
+      return result.success ? ok(result.data.responses) : err(result.error);
     }
 
     try {
@@ -168,7 +245,8 @@ export const inviteRsvpService = {
    */
   async getCounts(inviteId: string): Promise<Result<RsvpCounts, ServiceError>> {
     if (!isMockMode()) {
-      return err(apiModeUnsupported());
+      const result = await getApiRsvpState(inviteId);
+      return result.success ? ok(result.data.counts) : err(result.error);
     }
 
     try {
@@ -196,7 +274,8 @@ export const inviteRsvpService = {
     status: RsvpStatus,
   ): Promise<Result<InviteRsvpResponse[], ServiceError>> {
     if (!isMockMode()) {
-      return err(apiModeUnsupported());
+      const result = await getApiRsvpState(inviteId, status);
+      return result.success ? ok(result.data.responses) : err(result.error);
     }
 
     try {
@@ -217,7 +296,31 @@ export const inviteRsvpService = {
     newStatus: RsvpStatus,
   ): Promise<Result<InviteRsvpResponse, ServiceError>> {
     if (!isMockMode()) {
-      return err(apiModeUnsupported());
+      const headersResult = await resolveInviteRsvpHeaders();
+      if (!headersResult.success) {
+        return headersResult;
+      }
+      const result = await apiFetch<ApiInviteRsvpResponse>(
+        `/v1/invite-rsvps/${encodeURIComponent(responseId)}`,
+        {
+          method: 'PATCH',
+          headers: headersResult.data,
+          body: JSON.stringify({
+            status: newStatus,
+          }),
+        },
+      );
+      if (!result.success) {
+        logger.error('Failed to update RSVP response via API', {
+          responseId,
+          newStatus,
+          error: result.error,
+        });
+        return err(result.error);
+      }
+      emitRsvpResponded(result.data.response);
+      logger.info('RSVP response updated via API', { responseId, newStatus });
+      return ok(result.data.response);
     }
 
     try {
@@ -236,14 +339,7 @@ export const inviteRsvpService = {
 
       await saveResponses(allResponses);
 
-      emitTyped(ServiceEvents.INVITE_RSVP_RESPONDED, {
-        inviteId: allResponses[index].inviteId,
-        responseId,
-        userId: allResponses[index].userId,
-        userName: allResponses[index].userName,
-        status: newStatus,
-        childName: allResponses[index].childName,
-      });
+      emitRsvpResponded(allResponses[index]);
 
       logger.info('RSVP response updated', { responseId, newStatus });
 

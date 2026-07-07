@@ -27,6 +27,8 @@ interface RecurringListProps {
   onPause?: (id: string, reason?: string) => Promise<void>;
   onResume?: (id: string) => Promise<void>;
   onCancel?: (id: string, reason?: string) => Promise<void>;
+  onSkipNext?: (id: string, bookingId: string, reason?: string) => Promise<void>;
+  skipTargets?: Record<string, { bookingId: string; scheduledAt?: string }>;
   onCreatePress?: () => void;
   emptyTitle?: string;
   emptyMessage?: string;
@@ -41,6 +43,8 @@ export function RecurringList({
   onPause,
   onResume,
   onCancel,
+  onSkipNext,
+  skipTargets,
   onCreatePress,
   emptyTitle = 'No Recurring Bookings',
   emptyMessage = "You don't have any recurring bookings yet. Subscribe to a weekly or monthly session slot to get started.",
@@ -76,15 +80,21 @@ export function RecurringList({
     });
   })();
 
-  const renderItem = ({ item }: { item: RecurringBooking }) => (
-    <RecurringCard
-      recurring={item}
-      onPause={onPause}
-      onResume={onResume}
-      onCancel={onCancel}
-      loading={loading}
-    />
-  );
+  const renderItem = ({ item }: { item: RecurringBooking }) => {
+    const skipTarget = skipTargets?.[item.id];
+    return (
+      <RecurringCard
+        recurring={item}
+        nextBookingId={skipTarget?.bookingId}
+        nextScheduledAt={skipTarget?.scheduledAt}
+        onPause={onPause}
+        onResume={onResume}
+        onCancel={onCancel}
+        onSkipNext={onSkipNext}
+        loading={loading}
+      />
+    );
+  };
 
   const renderEmpty = () => {
     if (loading) return null;

@@ -6,10 +6,17 @@
  *
  * API Integration Notes:
  * - Mock feedback and notes are memory-only compatibility state.
- * - API-mode writes fail closed until dedicated progress feedback/session-note routes exist.
+ * - API-mode session notes use /v1 booking-scoped session-note authority.
+ * - API-mode feedback reads/writes use /v1 session-feedback authority.
  */
 
-import { apiClient } from "../api-client";
+import { apiClient, apiFetch } from "../api-client";
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+  toApiAthleteId,
+} from "@/services/api-auth-context";
 import { createLogger } from "@/utils/logger";
 import { progressSkillsService } from "./progress-skills-service";
 import { computeFourCorners } from "@/constants/position-skills";
@@ -81,6 +88,41 @@ export type SessionNoteFields = {
 export type SessionNoteRecord = SessionNoteFields & {
   updatedAt: string;
 };
+type ApiSessionNoteResponse = {
+  note: (SessionNoteRecord & {
+    id?: string;
+    bookingId?: string;
+    athleteId?: string;
+  }) | null;
+};
+type ApiSessionFeedbackListResponse = {
+  feedback: SessionFeedback[];
+};
+type ApiSessionFeedbackResponse = {
+  feedback: SessionFeedback | null;
+};
+
+async function resolveFeedbackApiAccess(
+  athleteId: string,
+): Promise<{ apiAthleteId: string; headers: Record<string, string> }> {
+  const currentUserResult = await resolveSignedInApiUser("Sign in to view session feedback.");
+  if (!currentUserResult.success) {
+    throw new Error(currentUserResult.error.message);
+  }
+
+  const currentUser = currentUserResult.data;
+  const apiAthleteId = toApiAthleteId(athleteId);
+  const actingRole = deriveApiActingRole(currentUser);
+  return {
+    apiAthleteId,
+    headers: buildApiAuthHeaders({
+      actingRole,
+      coachAthleteIds: actingRole === "coach" ? [apiAthleteId] : undefined,
+      guardianAthleteIds: actingRole === "parent" ? [apiAthleteId] : undefined,
+      coachVerified: actingRole === "coach" && currentUser.isVerified,
+    }),
+  };
+}
 
 // ============================================================================
 // SESSION FEEDBACK MANAGEMENT
@@ -127,7 +169,30 @@ async function addSessionFeedback(
   },
 ): Promise<SessionFeedback> {
   if (!apiClient.isMockMode) {
-    throw new Error("Session feedback writes require backend progress feedback authority.");
+    const result = await apiFetch<ApiSessionFeedbackResponse>("/v1/session-feedback", {
+      method: "POST",
+      body: JSON.stringify(feedback),
+    });
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    if (!result.data.feedback) {
+      throw new Error("Session feedback save did not return feedback.");
+    }
+    const shouldUpdateSkills =
+      !options?.skipSkillUpdate && feedback.skillRatings.length > 0;
+    if (shouldUpdateSkills) {
+      await progressSkillsService.updateMultipleSkillLevels(
+        feedback.athleteId,
+        feedback.skillRatings.map((r) => ({
+          skill: r.skill,
+          level: Math.max(1, Math.min(10, r.rating * 2)),
+        })),
+        feedback.coachId,
+        feedback.sessionId,
+      );
+    }
+    return result.data.feedback;
   }
   const allFeedback = await getAllSessionFeedback();
 
@@ -176,6 +241,7 @@ async function addSessionFeedback(
         level: Math.max(1, Math.min(10, r.rating * 2)),
       })),
       feedback.coachId,
+      feedback.sessionId,
     );
   }
   if (existingIndex >= 0) {
@@ -199,6 +265,15 @@ async function getSessionFeedback(
   sessionId: string,
   viewerRole: "coach" | "parent" | "athlete" = "coach",
 ): Promise<SessionFeedback | null> {
+  if (!apiClient.isMockMode) {
+    const result = await apiFetch<ApiSessionFeedbackResponse>(
+      `/v1/session-feedback?sessionId=${encodeURIComponent(sessionId)}&viewerRole=${viewerRole}`,
+    );
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return result.data.feedback;
+  }
   const allFeedback = await getAllSessionFeedback();
   const feedback = allFeedback.find((f) => f.sessionId === sessionId) ?? null;
   if (!feedback) return null;
@@ -218,6 +293,21 @@ async function getFeedbackForAthlete(
   viewerRole: "coach" | "parent" | "athlete",
   limit?: number,
 ): Promise<SessionFeedback[]> {
+  if (!apiClient.isMockMode) {
+    const access = await resolveFeedbackApiAccess(athleteId);
+    const query = new URLSearchParams({ viewerRole });
+    if (limit) {
+      query.set("limit", String(limit));
+    }
+    const result = await apiFetch<ApiSessionFeedbackListResponse>(
+      `/v1/athletes/${encodeURIComponent(access.apiAthleteId)}/session-feedback?${query.toString()}`,
+      { headers: access.headers },
+    );
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return result.data.feedback;
+  }
   const allFeedback = await getAllSessionFeedback();
   let filtered = allFeedback.filter((f) => f.athleteId === athleteId);
 
@@ -410,8 +500,8 @@ async function createFeedbackFromQuickRate(
       },
     );
 
-    // Position recording handled by caller (use-session-completion.ts step 3b)
-    // to avoid duplicate POSITION_HISTORY entries.
+    // Mock-mode position history is handled by caller (use-session-completion.ts step 3b).
+    // API mode derives position history from this session-feedback payload.
 
     logger.info("quick_rate_feedback_saved", {
       feedbackId: feedback.id,
@@ -445,6 +535,15 @@ async function getAllSessionNotes(): Promise<
 async function getSessionNote(
   bookingId: string,
 ): Promise<SessionNoteRecord | null> {
+  if (!apiClient.isMockMode) {
+    const result = await apiFetch<ApiSessionNoteResponse>(
+      `/v1/bookings/${encodeURIComponent(bookingId)}/session-note`,
+    );
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return result.data.note;
+  }
   const notes = await getAllSessionNotes();
   return notes[bookingId] ?? null;
 }
@@ -453,7 +552,20 @@ async function saveSessionNote(
   payload: SessionNoteFields,
 ): Promise<SessionNoteRecord> {
   if (!apiClient.isMockMode) {
-    throw new Error("Session note writes require backend progress/session-note authority.");
+    const result = await apiFetch<ApiSessionNoteResponse>(
+      `/v1/bookings/${encodeURIComponent(bookingId)}/session-note`,
+      {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      },
+    );
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    if (!result.data.note) {
+      throw new Error("Session note save did not return a note.");
+    }
+    return result.data.note;
   }
   const existing = await getAllSessionNotes();
   const record: SessionNoteRecord = {

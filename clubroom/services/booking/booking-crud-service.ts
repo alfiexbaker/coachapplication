@@ -26,9 +26,10 @@ import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { blockService, getBlockActionMessage } from '@/services/block-service';
 import { progressAttendanceService } from '@/services/progress/progress-attendance-service';
 import { authService } from '@/services/auth-service';
-import { getBookingAthleteName } from '@/utils/booking-display';
+import { formatServiceTypeLabel, getBookingAthleteName } from '@/utils/booking-display';
 import {
   bookingAuthorityService,
+  type CompleteApiBookingInput,
   type ApiRebookContextResponse,
 } from './booking-authority-service';
 import {
@@ -41,6 +42,7 @@ import {
   serviceError,
   validationError,
   storageError,
+  unsupportedError,
 } from '@/types/result';
 
 const logger = createLogger('BookingCrudService');
@@ -144,6 +146,11 @@ class BookingCrudService {
     return this._cache;
   }
 
+  private setCache(bookings: Booking[]): void {
+    this._cache = new Map(bookings.map((item) => [item.id, item]));
+    this._cacheTimestamp = Date.now();
+  }
+
   /** Invalidate the in-memory cache. Called after every write operation. */
   private invalidateCache(): void {
     this._cache = null;
@@ -167,6 +174,8 @@ class BookingCrudService {
       id: string;
       coachUserId: string;
       bookedByUserId?: string;
+      recurringSeriesId?: string | null;
+      groupSessionId?: string | null;
       status: Booking['status'];
       scheduledAt: string;
       durationMinutes: number;
@@ -191,6 +200,8 @@ class BookingCrudService {
     const athleteIds = apiBooking.participants.map((participant) => participant.athleteId);
     const athleteId = localBooking?.athleteId ?? athleteIds[0];
     const bookedById = localBooking?.bookedById ?? apiBooking.bookedByUserId;
+    const recurringBookingId = apiBooking.recurringSeriesId ?? localBooking?.recurringBookingId;
+    const groupSessionId = apiBooking.groupSessionId ?? localBooking?.groupSessionId;
 
     return {
       ...localBooking,
@@ -223,8 +234,13 @@ class BookingCrudService {
       cancelledBy: apiBooking.cancelledAt ? localBooking?.cancelledBy : undefined,
       statusBeforeCancellation:
         apiBooking.status === 'CANCELLED' ? localBooking?.statusBeforeCancellation : undefined,
-      service: localBooking?.service ?? apiBooking.serviceType ?? 'Session',
+      service: localBooking?.service ?? formatServiceTypeLabel(apiBooking.serviceType),
       isSharedSession: athleteIds.length > 1 || localBooking?.isSharedSession,
+      recurringBookingId: recurringBookingId ?? undefined,
+      isRecurringGenerated: Boolean(recurringBookingId) || localBooking?.isRecurringGenerated,
+      groupSessionId: groupSessionId ?? undefined,
+      sessionSource: groupSessionId ? 'group' : localBooking?.sessionSource,
+      sessionSourceEntityId: groupSessionId ?? localBooking?.sessionSourceEntityId,
     };
   }
 
@@ -266,7 +282,9 @@ class BookingCrudService {
       duration: context.durationMinutes,
       locationText: context.location,
       sessionType: context.serviceType ?? undefined,
-      sessionTypeLabel: context.serviceType ?? undefined,
+      sessionTypeLabel: context.serviceType
+        ? formatServiceTypeLabel(context.serviceType)
+        : undefined,
       sessionTemplateId: context.sessionTemplateId ?? undefined,
       sessionSource: 'direct',
       sessionSourceEntityId: context.sourceBookingId,
@@ -281,6 +299,8 @@ class BookingCrudService {
       id: string;
       coachUserId: string;
       bookedByUserId?: string;
+      recurringSeriesId?: string | null;
+      groupSessionId?: string | null;
       status: Booking['status'];
       scheduledAt: string;
       durationMinutes: number;
@@ -352,13 +372,20 @@ class BookingCrudService {
   async list(): Promise<Booking[]> {
     try {
       if (!apiClient.isMockMode) {
+        if (this._cache !== null && Date.now() - this._cacheTimestamp <= CACHE_MAX_AGE) {
+          return Array.from(this._cache.values());
+        }
+
         const apiResult = await bookingAuthorityService.listBookings();
         if (apiResult.success) {
-          return this.syncAuthoritativeBookings(apiResult.data);
+          const bookings = await this.syncAuthoritativeBookings(apiResult.data);
+          this.setCache(bookings);
+          return bookings;
         }
-        logger.warn('Falling back to local booking list after API read failure', {
+        logger.warn('Booking list unavailable from API; not using runtime mirror as fallback', {
           error: apiResult.error.message,
         });
+        return [];
       }
 
       const cache = await this.getCache();
@@ -392,11 +419,12 @@ class BookingCrudService {
           return merged;
         }
         if (apiResult.error.code !== 'NOT_FOUND') {
-          logger.warn('Falling back to local booking detail after API read failure', {
+          logger.warn('Booking detail unavailable from API; not using runtime mirror as fallback', {
             bookingId: id,
             error: apiResult.error.message,
           });
         }
+        return null;
       }
 
       const cache = await this.getCache();
@@ -441,12 +469,189 @@ class BookingCrudService {
   // ---------------------------------------------------------------------------
 
   /**
+   * Complete a booking through the /v1 lifecycle contract.
+   */
+  async completeBooking(
+    id: string,
+    input: CompleteApiBookingInput = {},
+  ): Promise<Result<Booking, ServiceError>> {
+    if (apiClient.isMockMode) {
+      return this.updateBooking(id, { status: 'COMPLETED' });
+    }
+
+    const existingBooking = await this.getBooking(id);
+    if (!existingBooking) return err(notFound('Booking', id));
+
+    const authorityResult = await bookingAuthorityService.completeBooking(id, {
+      completedAt: input.completedAt ?? new Date().toISOString(),
+      ...input,
+      ...(input.expectedVersion !== undefined
+        ? {}
+        : typeof existingBooking.version === 'number'
+          ? { expectedVersion: existingBooking.version }
+          : {}),
+    });
+    if (!authorityResult.success) {
+      return err(authorityResult.error);
+    }
+
+    const completedBooking = this.mergeAuthoritativeBooking(authorityResult.data, existingBooking);
+    const bookings = await this.loadFromStorage();
+    const nextBookings = bookings.some((booking) => booking.id === id)
+      ? bookings.map((booking) => (booking.id === id ? completedBooking : booking))
+      : [...bookings, completedBooking];
+    const saveResult = await this.saveToStorage(nextBookings);
+    if (!saveResult.success) {
+      logger.warn('Authoritative booking completion updated, but runtime cache update failed', {
+        bookingId: id,
+        error: saveResult.error.message,
+      });
+    }
+
+    return ok(completedBooking);
+  }
+
+  /**
    * Update a booking with partial fields
    */
   async updateBooking(
     id: string,
     updates: Partial<Booking>,
   ): Promise<Result<Booking, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      const existingBooking = await this.getBooking(id);
+      if (!existingBooking) return err(notFound('Booking', id));
+
+      const requestedFields = Object.keys(updates);
+      const requestedStatus = updates.status;
+      if (requestedStatus !== undefined) {
+        if (
+          requestedFields.length !== 1 ||
+          requestedFields[0] !== 'status' ||
+          (requestedStatus !== 'CONFIRMED' && requestedStatus !== 'COMPLETED')
+        ) {
+          return err(
+            unsupportedError(
+              'Booking status updates require an explicit /v1 lifecycle contract in API mode.',
+              { bookingId: id, requestedFields },
+            ),
+          );
+        }
+        if (requestedStatus === 'COMPLETED') {
+          return this.completeBooking(id, {
+            completedAt: new Date().toISOString(),
+            ...(typeof existingBooking.version === 'number'
+              ? { expectedVersion: existingBooking.version }
+              : {}),
+          });
+        }
+        const authorityResult =
+          await bookingAuthorityService.confirmBooking(id, {
+            ...(typeof existingBooking.version === 'number'
+              ? { expectedVersion: existingBooking.version }
+              : {}),
+          });
+        if (!authorityResult.success) {
+          return err(authorityResult.error);
+        }
+        const completedBooking = this.mergeAuthoritativeBooking(
+          authorityResult.data,
+          existingBooking,
+        );
+        const bookings = await this.loadFromStorage();
+        const nextBookings = bookings.some((booking) => booking.id === id)
+          ? bookings.map((booking) => (booking.id === id ? completedBooking : booking))
+          : [...bookings, completedBooking];
+        const saveResult = await this.saveToStorage(nextBookings);
+        if (!saveResult.success) {
+          logger.warn('Authoritative booking status updated, but runtime cache update failed', {
+            bookingId: id,
+            status: requestedStatus,
+            error: saveResult.error.message,
+          });
+        }
+
+        return ok(completedBooking);
+      }
+
+      const supportedDetailFields = new Set([
+        'scheduledAt',
+        'duration',
+        'location',
+        'serviceType',
+        'objectives',
+        'notes',
+        'price',
+      ]);
+      const unsupportedFields = requestedFields.filter(
+        (field) => !supportedDetailFields.has(field),
+      );
+      if (unsupportedFields.length > 0) {
+        return err(
+          unsupportedError(
+            'Booking updates include fields that are not owned by the /v1 booking contract.',
+            { bookingId: id, unsupportedFields },
+          ),
+        );
+      }
+
+      const apiUpdate: {
+        scheduledAt?: string;
+        durationMinutes?: number;
+        location?: string;
+        serviceType?: string;
+        objectives?: string[];
+        notes?: string;
+        priceMinor?: number;
+        currency?: 'GBP';
+        expectedVersion?: number;
+      } = {};
+      if (updates.scheduledAt !== undefined) apiUpdate.scheduledAt = updates.scheduledAt;
+      if (typeof updates.duration === 'number') apiUpdate.durationMinutes = updates.duration;
+      if (updates.location !== undefined) apiUpdate.location = updates.location;
+      if (updates.serviceType !== undefined) apiUpdate.serviceType = updates.serviceType;
+      if (updates.objectives !== undefined) apiUpdate.objectives = updates.objectives;
+      if (updates.notes !== undefined) apiUpdate.notes = updates.notes;
+      if (typeof updates.price === 'number') {
+        apiUpdate.priceMinor = Math.max(0, Math.round(updates.price * 100));
+        apiUpdate.currency = 'GBP';
+      }
+      if (typeof existingBooking.version === 'number') {
+        apiUpdate.expectedVersion = existingBooking.version;
+      }
+      const detailFieldCount = Object.keys(apiUpdate).filter(
+        (field) => field !== 'expectedVersion',
+      ).length;
+      if (detailFieldCount === 0) {
+        return err(
+          unsupportedError(
+            'Booking updates require at least one /v1-owned detail field in API mode.',
+            { bookingId: id, requestedFields },
+          ),
+        );
+      }
+
+      const authorityResult = await bookingAuthorityService.updateBooking(id, apiUpdate);
+      if (!authorityResult.success) {
+        return err(authorityResult.error);
+      }
+
+      const updatedBooking = this.mergeAuthoritativeBooking(authorityResult.data, existingBooking);
+      const bookings = await this.loadFromStorage();
+      const nextBookings = bookings.some((booking) => booking.id === id)
+        ? bookings.map((booking) => (booking.id === id ? updatedBooking : booking))
+        : [...bookings, updatedBooking];
+      const saveResult = await this.saveToStorage(nextBookings);
+      if (!saveResult.success) {
+        logger.warn('Authoritative booking updated, but runtime cache update failed', {
+          bookingId: id,
+          error: saveResult.error.message,
+        });
+      }
+
+      return ok(updatedBooking);
+    }
+
     const bookings = await this.loadFromStorage();
     const index = bookings.findIndex((b) => b.id === id);
     if (index === -1) return err(notFound('Booking', id));
@@ -474,6 +679,19 @@ class BookingCrudService {
   }
 
   async updateStatus(id: string, status: Booking['status']) {
+    if (!apiClient.isMockMode) {
+      const result = await this.updateBooking(id, { status });
+      if (!result.success) {
+        logger.error('Failed to update booking status through API authority', {
+          bookingId: id,
+          status,
+          error: result.error.message,
+        });
+        return undefined;
+      }
+      return result.data;
+    }
+
     const bookings = await this.loadFromStorage();
     const index = bookings.findIndex((booking) => booking.id === id);
     if (index === -1) {
@@ -514,7 +732,7 @@ class BookingCrudService {
     options?: { allowPastBooking?: boolean; note?: string },
   ) {
     const booking = apiClient.isMockMode
-      ? (await this.loadFromStorage()).find((b) => b.id === id) ?? null
+      ? ((await this.loadFromStorage()).find((b) => b.id === id) ?? null)
       : await this.getBooking(id);
     if (!booking) {
       logger.warn('Booking not found for cancellation', { bookingId: id, cancelledBy });
@@ -667,7 +885,7 @@ class BookingCrudService {
     options?: { allowPastBooking?: boolean; note?: string },
   ) {
     const booking = apiClient.isMockMode
-      ? (await this.loadFromStorage()).find((entry) => entry.id === id) ?? null
+      ? ((await this.loadFromStorage()).find((entry) => entry.id === id) ?? null)
       : await this.getBooking(id);
     if (!booking) {
       logger.warn('Booking not found for reopen', { bookingId: id, reopenedBy });
@@ -1143,38 +1361,20 @@ class BookingCrudService {
         });
       }
 
-      // Create notifications for coach and parent
-      try {
+      if (apiClient.isMockMode) {
+        // Create notifications for coach and parent
         await this.createBookingNotifications(
           newBooking as Booking,
           bookedByName,
           athleteNames.join(', '),
         );
-      } catch (notificationError) {
-        if (!authoritativeCreate) {
-          throw notificationError;
-        }
-        logger.warn('Authoritative booking created, but local notification mirror failed', {
-          bookingId: newBooking.id,
-          error: String(notificationError),
-        });
-      }
 
-      // Trigger notification for coach
-      const formattedDateTime = new Date(scheduledAt).toLocaleDateString('en-GB', {
-        month: 'short',
-        day: 'numeric',
-      });
-      try {
-        await notificationTriggers.bookingConfirmed(coachName, formattedDateTime, coachId);
-      } catch (triggerError) {
-        if (!authoritativeCreate) {
-          throw triggerError;
-        }
-        logger.warn('Authoritative booking created, but notification trigger failed', {
-          bookingId: newBooking.id,
-          error: String(triggerError),
+        // Trigger notification for coach
+        const formattedDateTime = new Date(scheduledAt).toLocaleDateString('en-GB', {
+          month: 'short',
+          day: 'numeric',
         });
+        await notificationTriggers.bookingConfirmed(coachName, formattedDateTime, coachId);
       }
 
       // Emit typed event for cross-service reactions

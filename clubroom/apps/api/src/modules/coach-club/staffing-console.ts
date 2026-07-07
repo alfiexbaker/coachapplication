@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import {
@@ -158,12 +159,19 @@ const workAssignmentBodySchema = z
   .strict();
 
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
+function getMutableRows(tables: SeedTables, key: string): SeedRow[] {
+  if (!Array.isArray(tables[key])) {
+    tables[key] = [];
+  }
+  return tables[key];
+}
 const asString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
 const asNumber = (value: unknown): number | undefined =>
   typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 const asBoolean = (value: unknown): boolean | undefined =>
   typeof value === 'boolean' ? value : undefined;
+const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 
 function requireAuthUserId(authUserId: string | undefined): string {
   if (!authUserId) {
@@ -217,6 +225,11 @@ function canPostAsClub(role: ClubRole | null): boolean {
 }
 
 function isActiveSession(status: string | undefined | null): boolean {
+  const normalized = status?.toUpperCase();
+  return normalized !== 'CANCELLED' && normalized !== 'COMPLETED';
+}
+
+function isMutableAssignmentLinkedBooking(status: string | undefined | null): boolean {
   const normalized = status?.toUpperCase();
   return normalized !== 'CANCELLED' && normalized !== 'COMPLETED';
 }
@@ -649,6 +662,7 @@ function mutateSeedWorkAssignment(params: {
   assigneeCoachId: string;
   authUserId: string;
   isPrivilegedAdmin: boolean;
+  requestId: string;
 }): AssignmentMutationResult {
   const club = asRows(params.tables.clubs).find(
     (row) => asString(row.id) === params.clubId && !asString(row.deletedAt),
@@ -691,6 +705,7 @@ function mutateSeedWorkAssignment(params: {
   const now = new Date().toISOString();
   const targetLabel = getSeedUserName(params.tables, params.assigneeCoachId);
   const updatedBookingIds: string[] = [];
+  const bookingStatusEvents = getMutableRows(params.tables, 'bookingStatusEvents');
   if (currentCoachUserId !== params.assigneeCoachId) {
     session.coachUserId = params.assigneeCoachId;
     session.updatedAt = now;
@@ -700,7 +715,7 @@ function mutateSeedWorkAssignment(params: {
   for (const booking of asRows(params.tables.bookings)) {
     if (
       asString(booking.deletedAt) ||
-      asString(booking.status)?.toUpperCase() === 'CANCELLED'
+      !isMutableAssignmentLinkedBooking(asString(booking.status))
     ) {
       continue;
     }
@@ -711,6 +726,8 @@ function mutateSeedWorkAssignment(params: {
     if (asString(booking.coachUserId) === params.assigneeCoachId) {
       continue;
     }
+    const previousCoachUserId = asString(booking.coachUserId) ?? null;
+    const currentStatus = asString(booking.status)?.toUpperCase() ?? 'CONFIRMED';
     booking.coachUserId = params.assigneeCoachId;
     if (asString(booking.coachName)) {
       booking.coachName = targetLabel;
@@ -721,7 +738,38 @@ function mutateSeedWorkAssignment(params: {
     const bookingId = asString(booking.id);
     if (bookingId) {
       updatedBookingIds.push(bookingId);
+      bookingStatusEvents.push({
+        id: newId('bse'),
+        bookingId,
+        fromStatus: currentStatus,
+        toStatus: currentStatus,
+        actorUserId: params.authUserId,
+        reason: 'Group session delivery coach reassigned.',
+        metadataJson: {
+          source: 'club-work-assignment',
+          clubId: params.clubId,
+          groupSessionId: params.assignmentId,
+          previousCoachUserId,
+          assigneeCoachId: params.assigneeCoachId,
+        },
+        requestId: params.requestId,
+        occurredAt: now,
+      });
     }
+  }
+  const updatedBookingIdSet = new Set(updatedBookingIds);
+  for (const invoice of asRows(params.tables.invoices)) {
+    if (asString(invoice.deletedAt) || asString(invoice.coachUserId) === params.assigneeCoachId) {
+      continue;
+    }
+    const bookingId = asString(invoice.bookingId);
+    if (!bookingId || !updatedBookingIdSet.has(bookingId)) {
+      continue;
+    }
+    invoice.coachUserId = params.assigneeCoachId;
+    invoice.updatedAt = now;
+    invoice.updatedByUserId = params.authUserId;
+    invoice.version = (asNumber(invoice.version) ?? 1) + 1;
   }
 
   return {
@@ -918,6 +966,7 @@ async function mutateDbWorkAssignment(params: {
   assigneeCoachId: string;
   authUserId: string;
   isPrivilegedAdmin: boolean;
+  requestId: string;
 }): Promise<AssignmentMutationResult> {
   const prisma = getPrismaClientOrThrow();
   return await prisma.$transaction(async (tx) => {
@@ -1013,22 +1062,27 @@ async function mutateDbWorkAssignment(params: {
       }
     }
 
+    const now = new Date();
     const linkedBookings = await tx.booking.findMany({
       where: {
         groupSessionId: params.assignmentId,
         deletedAt: null,
         NOT: {
-          status: 'CANCELLED',
+          status: {
+            in: ['CANCELLED', 'COMPLETED'],
+          },
         },
       },
       select: {
         id: true,
         coachUserId: true,
+        status: true,
       },
     });
-    const updatedBookingIds = linkedBookings.flatMap((booking) =>
-      booking.coachUserId === params.assigneeCoachId ? [] : [booking.id],
+    const changedLinkedBookings = linkedBookings.filter(
+      (booking) => booking.coachUserId !== params.assigneeCoachId,
     );
+    const updatedBookingIds = changedLinkedBookings.map((booking) => booking.id);
     if (session.coachUserId !== params.assigneeCoachId) {
       await tx.groupSession.update({
         where: {
@@ -1048,6 +1102,45 @@ async function mutateDbWorkAssignment(params: {
         where: {
           id: {
             in: updatedBookingIds,
+          },
+        },
+        data: {
+          coachUserId: params.assigneeCoachId,
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+      });
+      await tx.bookingStatusEvent.createMany({
+        data: changedLinkedBookings.map((booking) => ({
+          id: newId('bse'),
+          bookingId: booking.id,
+          fromStatus: booking.status,
+          toStatus: booking.status,
+          actorUserId: params.authUserId,
+          reason: 'Group session delivery coach reassigned.',
+          metadataJson: {
+            source: 'club-work-assignment',
+            clubId: params.clubId,
+            groupSessionId: params.assignmentId,
+            previousCoachUserId: booking.coachUserId,
+            assigneeCoachId: params.assigneeCoachId,
+          },
+          requestId: params.requestId,
+          occurredAt: now,
+        })),
+      });
+    }
+    if (updatedBookingIds.length > 0) {
+      await tx.invoice.updateMany({
+        where: {
+          bookingId: {
+            in: updatedBookingIds,
+          },
+          deletedAt: null,
+          NOT: {
+            coachUserId: params.assigneeCoachId,
           },
         },
         data: {
@@ -1096,6 +1189,7 @@ async function mutateWorkAssignment(params: {
   assigneeCoachId: string;
   authUserId: string;
   isPrivilegedAdmin: boolean;
+  requestId: string;
 }): Promise<AssignmentMutationResult> {
   if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
     return mutateDbWorkAssignment(params);
@@ -1151,6 +1245,7 @@ export function registerClubStaffingRoutes(app: FastifyInstance): void {
         assigneeCoachId: body.assigneeCoachId,
         authUserId,
         isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        requestId: request.requestId,
       });
       await recordAssignmentAudit({
         request,

@@ -13,6 +13,20 @@ import type { GroupMember } from '@/constants/types';
 import { MemberRowItem } from './group-members-modal-sections';
 import { Row } from '@/components/primitives';
 
+type RoleBreakdown = ReturnType<typeof communityGroupService.getRoleBreakdown>;
+
+function formatRoleBreakdown(roleBreakdown: RoleBreakdown): string {
+  const parts: string[] = [];
+  if (roleBreakdown.OWNER > 0) parts.push(`${roleBreakdown.OWNER} Owner`);
+  if (roleBreakdown.ADMIN > 0)
+    parts.push(`${roleBreakdown.ADMIN} Admin${roleBreakdown.ADMIN > 1 ? 's' : ''}`);
+  if (roleBreakdown.MODERATOR > 0)
+    parts.push(`${roleBreakdown.MODERATOR} Mod${roleBreakdown.MODERATOR > 1 ? 's' : ''}`);
+  if (roleBreakdown.MEMBER > 0)
+    parts.push(`${roleBreakdown.MEMBER} Member${roleBreakdown.MEMBER > 1 ? 's' : ''}`);
+  return parts.join(' / ');
+}
+
 interface GroupMembersModalProps {
   visible: boolean;
   onClose: () => void;
@@ -20,7 +34,7 @@ interface GroupMembersModalProps {
   parentId: string;
   currentRole: 'OWNER' | 'ADMIN' | 'MODERATOR' | 'MEMBER';
   isAdmin: boolean;
-  onMemberManage: (member: GroupMember) => void;
+  onMemberManage?: (member: GroupMember) => void;
 }
 
 function GroupMembersModalInner({
@@ -35,18 +49,7 @@ function GroupMembersModalInner({
   const { colors: palette } = useTheme();
 
   const roleBreakdown = communityGroupService.getRoleBreakdown(members);
-
-  const renderRoleBreakdown = () => {
-    const parts: string[] = [];
-    if (roleBreakdown.OWNER > 0) parts.push(`${roleBreakdown.OWNER} Owner`);
-    if (roleBreakdown.ADMIN > 0)
-      parts.push(`${roleBreakdown.ADMIN} Admin${roleBreakdown.ADMIN > 1 ? 's' : ''}`);
-    if (roleBreakdown.MODERATOR > 0)
-      parts.push(`${roleBreakdown.MODERATOR} Mod${roleBreakdown.MODERATOR > 1 ? 's' : ''}`);
-    if (roleBreakdown.MEMBER > 0)
-      parts.push(`${roleBreakdown.MEMBER} Member${roleBreakdown.MEMBER > 1 ? 's' : ''}`);
-    return parts.join(' / ');
-  };
+  const roleBreakdownText = formatRoleBreakdown(roleBreakdown);
 
   const sortedMembers = Array.from(members).toSorted(
     (a, b) =>
@@ -56,6 +59,7 @@ function GroupMembersModalInner({
   const renderMemberItem = ({ item }: { item: GroupMember }) => {
     const isSelf = item.parentId === parentId;
     const canManage =
+      Boolean(onMemberManage) &&
       isAdmin &&
       !isSelf &&
       (currentRole === 'OWNER' ||
@@ -97,7 +101,7 @@ function GroupMembersModalInner({
           ]}
         >
           <ThemedText style={[styles.roleBreakdownText, { color: palette.muted }]}>
-            {renderRoleBreakdown()}
+            {roleBreakdownText}
           </ThemedText>
         </View>
 

@@ -106,15 +106,15 @@ export function useCoachObservations(athleteId: string) {
   };
 
   const deleteObservation = async (observationId: string) => {
-    uiFeedback.alert('Delete Observation', 'Are you sure you want to delete this observation?', [
+    uiFeedback.alert('Remove Observation', 'Remove this observation from the athlete profile?', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Delete',
+        text: 'Remove',
         style: 'destructive',
         onPress: async () => {
           const result = await coachObservationService.deleteObservation(observationId);
           if (!result.success) {
-            uiFeedback.showToast('Failed to delete observation. Please try again.', 'error');
+            uiFeedback.showToast('Failed to remove observation. Please try again.', 'error');
           }
         },
       },

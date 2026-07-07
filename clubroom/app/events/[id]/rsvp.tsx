@@ -243,9 +243,8 @@ export default function EventRSVPScreen() {
                 disabled={reminderSending}
                 variant="secondary"
                 style={styles.reminderButton}
-              >
-                {reminderSending ? 'Sending...' : 'Send Reminder'}
-              </Button>
+                label={reminderSending ? 'Sending...' : 'Send Reminder'}
+              />
             </View>
           )}
 
@@ -415,11 +414,17 @@ export default function EventRSVPScreen() {
               {submitting ? (
                 <ActivityIndicator size="small" color={palette.onPrimary} />
               ) : isSubmitClosed ? (
-                'RSVP Closed'
+                <ThemedText style={[styles.submitButtonText, { color: palette.muted }]}>
+                  RSVP Closed
+                </ThemedText>
               ) : currentRSVP ? (
-                'Update Response'
+                <ThemedText style={[styles.submitButtonText, { color: palette.onPrimary }]}>
+                  Update Response
+                </ThemedText>
               ) : (
-                'Submit RSVP'
+                <ThemedText style={[styles.submitButtonText, { color: palette.onPrimary }]}>
+                  Submit RSVP
+                </ThemedText>
               )}
             </Button>
             {isPastDeadline ? (
@@ -503,6 +508,10 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   submitButton: { paddingVertical: 14 },
+  submitButtonText: {
+    ...Typography.subheading,
+    fontSize: scaleFont(Typography.subheading.fontSize),
+  },
   footerHint: {
     marginTop: Spacing.xs,
     textAlign: 'center',

@@ -10,7 +10,10 @@ import * as ExpoLinking from 'expo-linking';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
-import { invoiceService } from '@/services/invoice-service';
+import {
+  invoiceService,
+  type ManualReceiptMethod,
+} from '@/services/invoice-service';
 import { createLogger } from '@/utils/logger';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import type { Invoice } from '@/constants/types';
@@ -19,6 +22,16 @@ import { uiFeedback } from '@/services/ui-feedback';
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('InvoiceDetailScreen');
+
+const MANUAL_PAYMENT_OPTIONS: Array<{ id: ManualReceiptMethod; label: string }> = [
+  { id: 'bank_transfer', label: 'Bank transfer' },
+  { id: 'cash', label: 'Cash' },
+  { id: 'other', label: 'Other' },
+];
+
+function toMinorUnits(amount: number): number {
+  return Math.round(amount * 100);
+}
 
 export function useInvoiceDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -81,24 +94,38 @@ export function useInvoiceDetail() {
 
   const handleMarkPaid = async () => {
     if (!invoice) return;
-    uiFeedback.alert('Mark as Paid', 'Are you sure you want to mark this invoice as paid?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Mark Paid',
-        onPress: async () => {
-          setActionLoading(true);
+    const confirmed = await uiFeedback.confirm({
+      title: 'Record payment received',
+      message: 'Confirm this invoice has been paid?',
+      confirmText: 'Choose method',
+    });
+    if (!confirmed) return;
 
-          await runAsyncTryCatchFinally(async () => {
-            await invoiceService.markAsPaid(invoice.id);
-            onRefresh();
-          }, async error => {
-            uiFeedback.showToast('Failed to update invoice', 'error');
-          }, () => {
-            setActionLoading(false);
-          });
+    const method = await uiFeedback.choose({
+      title: 'Record payment received',
+      message: `How did the \u00A3${invoice.total.toFixed(2)} payment arrive?`,
+      options: MANUAL_PAYMENT_OPTIONS,
+      cancelText: 'Cancel',
+    });
+    if (!method) return;
+
+    setActionLoading(true);
+
+    await runAsyncTryCatchFinally(async () => {
+      await invoiceService.markAsPaid(invoice.id, {
+        manualReceipt: {
+          method: method as ManualReceiptMethod,
+          amountMinor: toMinorUnits(invoice.total),
+          receivedAt: new Date().toISOString(),
+          note: `Recorded from invoice detail for invoice ${invoice.id}`,
         },
-      },
-    ]);
+      });
+      onRefresh();
+    }, async error => {
+      uiFeedback.showToast('Failed to update invoice', 'error');
+    }, () => {
+      setActionLoading(false);
+    });
   };
 
   const handleVoidInvoice = async () => {

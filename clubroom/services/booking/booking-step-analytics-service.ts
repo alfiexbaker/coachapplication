@@ -51,10 +51,7 @@ export interface TrackBookingStepParams {
   draft?: Partial<BookingDraftAnalyticsContext>;
 }
 
-function normalizeSource(
-  source?: string,
-  sessionSource?: BookingDraft['sessionSource'],
-): string {
+function normalizeSource(source?: string, sessionSource?: BookingDraft['sessionSource']): string {
   const normalized = source?.trim().toLowerCase();
   if (normalized) {
     if (normalized.includes('map')) return 'map';

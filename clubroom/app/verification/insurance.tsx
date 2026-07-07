@@ -24,7 +24,12 @@ export default function InsuranceVerificationScreen() {
     submitting,
     isVerified,
     isPending,
+    uploaded,
+    canUseMockApproval,
     handleUpload,
+    handleSubmit,
+    handleMockApprove,
+    setUploaded,
   } = useInsuranceVerification();
 
   const header = (
@@ -111,14 +116,49 @@ export default function InsuranceVerificationScreen() {
           </View>
         </SurfaceCard>
 
-        {!isVerified && __DEV__ && (
-          <Button
-            onPress={handleUpload}
-            disabled={submitting}
-            variant="primary"
-          >
-            {submitting ? 'Verifying...' : isPending ? 'Approve (DEV ONLY)' : 'Upload & Verify (DEV ONLY)'}
-          </Button>
+        {!isVerified && (
+          <View style={styles.actions}>
+            {uploaded ? (
+              <SurfaceCard style={styles.uploadedCard}>
+                <Row gap="sm" align="center">
+                  <Ionicons name="document-text" size={24} color={palette.success} />
+                  <View style={styles.uploadedText}>
+                    <ThemedText type="defaultSemiBold">Certificate selected</ThemedText>
+                    <ThemedText style={{ color: palette.muted, ...Typography.small }}>
+                      Ready to submit for review
+                    </ThemedText>
+                  </View>
+                  <Button
+                    onPress={() => setUploaded(false)}
+                    disabled={submitting}
+                    variant="outline"
+                    label="Remove"
+                  />
+                </Row>
+              </SurfaceCard>
+            ) : null}
+
+            <Button
+              onPress={handleUpload}
+              disabled={submitting}
+              variant={uploaded ? 'secondary' : 'primary'}
+              label={uploaded ? 'Choose different document' : 'Upload certificate'}
+            />
+            <Button
+              onPress={handleSubmit}
+              disabled={!uploaded || submitting}
+              variant="primary"
+              label={submitting ? 'Submitting...' : 'Submit for review'}
+            />
+            {canUseMockApproval ? (
+              <Button
+                onPress={handleMockApprove}
+                disabled={submitting}
+                variant="outline"
+                label={isPending ? 'Approve (DEV ONLY)' : 'Verify instantly (DEV ONLY)'}
+              />
+            ) : null}
+          </View>
         )}
 
         <SurfaceCard style={styles.card}>
@@ -138,6 +178,9 @@ export default function InsuranceVerificationScreen() {
 const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.lg },
   card: { gap: Spacing.sm },
+  actions: { gap: Spacing.sm },
+  uploadedCard: { gap: Spacing.sm },
+  uploadedText: { flex: 1, gap: Spacing.micro },
   statusBadge: {
     width: 52,
     height: 52,

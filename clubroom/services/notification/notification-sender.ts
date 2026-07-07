@@ -8,8 +8,16 @@
 import { notificationStore, type ExtendedNotificationItem } from './notification-store';
 import { notificationPreferencesService } from './notification-preferences';
 import { pushNotificationService } from '../push-notification-service';
+import { apiClient } from '../api-client';
 import { createLogger } from '@/utils/logger';
-import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  storageError,
+  unsupportedError,
+} from '@/types/result';
 
 const logger = createLogger('NotificationSender');
 
@@ -18,6 +26,19 @@ class NotificationSenderService {
    * Send a notification, respecting user preferences.
    */
   private async send(notification: ExtendedNotificationItem): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode) {
+      logger.warn('Rejected local notification send in API mode', {
+        id: notification.id,
+        type: notification.type,
+      });
+      return err(
+        unsupportedError(
+          'Client-side notification send helpers are mock-only. In API mode, the backend route that owns the product action must create the durable notification row.',
+          { notificationId: notification.id, notificationType: notification.notificationType },
+        ),
+      );
+    }
+
     // Check if user wants this notification
     if (notification.recipientId && notification.notificationType) {
       const shouldSendResult = await notificationPreferencesService.shouldSendNotification(
@@ -362,7 +383,7 @@ class NotificationSenderService {
       actionLabel: 'Share to profile',
       recipientId: params.parentId,
       recipientRole: 'parent',
-      deepLink: `/development/badges`,
+      deepLink: `/development/my-progress`,
       data: {
         badgeAwardId: params.badgeAwardId,
         childName: params.childName,

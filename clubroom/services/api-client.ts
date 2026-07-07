@@ -65,22 +65,19 @@ const API_TIMEOUT = api.timeout;
  */
 const CLIENT_LOCAL_STORAGE_KEYS = new Set<string>([
   STORAGE_KEYS.ACTIVE_CHILD_ID,
-  STORAGE_KEYS.ADD_CHILD_DRAFT,
   STORAGE_KEYS.ALLOW_BOOK_SELF,
-  STORAGE_KEYS.AUTH_TOKEN,
-  STORAGE_KEYS.AUTH_TOKENS,
   STORAGE_KEYS.AUTH_USER,
   STORAGE_KEYS.AVAILABILITY_TUTORIAL_COMPLETED,
   STORAGE_KEYS.CALENDAR_SYNC_SETTINGS,
-  STORAGE_KEYS.CLUB_INVITE_CODES,
-  STORAGE_KEYS.CLUB_MEMBERSHIPS,
-  STORAGE_KEYS.CLUBS,
+  STORAGE_KEYS.COACH_VENUES,
   STORAGE_KEYS.DISCOVER_RECENT_SEARCHES,
   STORAGE_KEYS.NOTIFICATION_ROUTE_ALIAS_MIGRATION_V1,
   STORAGE_KEYS.OFFLINE_QUEUE,
   STORAGE_KEYS.ONBOARDING_COMPLETE,
+  STORAGE_KEYS.ONBOARDING_PROGRESS,
   STORAGE_KEYS.SESSION_ATTENDANCE,
   STORAGE_KEYS.SESSION_SHARING,
+  STORAGE_KEYS.SEEN_STATUSES,
   // Mock/demo review read-model compatibility; API-mode booking reviews do not mirror here.
   STORAGE_KEYS.COACH_PUBLIC_REVIEWS,
   STORAGE_KEYS.RATE_COACH_REVIEWS,
@@ -164,6 +161,40 @@ function getAuthService(): ApiAuthService | null {
   return getRegisteredApiAuthService();
 }
 
+function normalizeHeaders(headers?: RequestInit['headers']): Record<string, string> {
+  if (!headers) {
+    return {};
+  }
+  if (headers instanceof Headers) {
+    const normalized: Record<string, string> = {};
+    headers.forEach((value, key) => {
+      normalized[key] = value;
+    });
+    return normalized;
+  }
+  if (Array.isArray(headers)) {
+    return Object.fromEntries(headers);
+  }
+  return { ...headers };
+}
+
+function buildApiHeaders(
+  authHeaders: Record<string, string>,
+  options?: RequestInit,
+): Record<string, string> {
+  const headers = {
+    ...authHeaders,
+    ...normalizeHeaders(options?.headers),
+  };
+  const hasContentType = Object.keys(headers).some(
+    (key) => key.toLowerCase() === 'content-type',
+  );
+  if (options?.body !== undefined && !hasContentType) {
+    headers['Content-Type'] = 'application/json';
+  }
+  return headers;
+}
+
 /**
  * Internal fetch that throws errors (for backward compat).
  * Use apiFetch() instead which returns Result<T, ServiceError>.
@@ -213,11 +244,7 @@ async function _apiFetchUnsafe<T>(path: string, options?: RequestInit): Promise<
 
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeaders,
-        ...options?.headers,
-      },
+      headers: buildApiHeaders(authHeaders, options),
       signal: controller.signal,
     });
 
@@ -225,7 +252,7 @@ async function _apiFetchUnsafe<T>(path: string, options?: RequestInit): Promise<
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Network request failed';
     const isTimeout = error instanceof Error && error.name === 'AbortError';
-    logger.error(isTimeout ? 'Request timeout' : 'Network request failed', error);
+    logger.warn(isTimeout ? 'Request timeout' : 'Network request failed', error);
     throw new NetworkError(isTimeout ? `Request timeout after ${API_TIMEOUT}ms` : errorMessage);
   }
 
@@ -257,11 +284,7 @@ async function _apiFetchUnsafe<T>(path: string, options?: RequestInit): Promise<
 
       const retryResponse = await fetch(`${API_BASE_URL}${path}`, {
         ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...retryHeaders,
-          ...(options?.headers as Record<string, string>),
-        },
+        headers: buildApiHeaders(retryHeaders, options),
       });
 
       if (retryResponse.ok) {
@@ -448,7 +471,8 @@ export const apiClient = {
       key,
       reason: explicitV1RequiredMessage(key),
     });
-    return fallback;
+    void fallback;
+    throw new ApiError(501, 'EXPLICIT_V1_REQUIRED', explicitV1RequiredMessage(key));
   },
 
   /**
@@ -488,6 +512,13 @@ export const apiClient = {
       reason: explicitV1RequiredMessage(key),
     });
     throw new ApiError(501, 'EXPLICIT_V1_REQUIRED', explicitV1RequiredMessage(key));
+  },
+
+  /**
+   * Remove a legacy device-local key without making it server-authoritative.
+   */
+  async removeLocal(key: string): Promise<void> {
+    return mockRemove(key);
   },
 
   /**
