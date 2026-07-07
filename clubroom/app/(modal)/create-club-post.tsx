@@ -143,8 +143,6 @@ export default function CreateClubPostScreen() {
               feedType={p.feedType}
               canTargetClub={Boolean(p.club)}
               onSelect={p.setFeedType}
-              clubMemberCount={p.club?.memberCount ?? 0}
-              followerCountEstimate={p.personalAudienceEstimate}
             />
           )}
 
