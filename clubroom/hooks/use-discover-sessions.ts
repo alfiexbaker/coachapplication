@@ -32,6 +32,7 @@ import {
 import { buildBookingDraftPatchFromOffering } from "@/utils/booking-draft-prefill";
 import { err, ok, serviceError, type ServiceError } from "@/types/result";
 import { uiFeedback } from "@/services/ui-feedback";
+import { isBrowserFetchFailure } from "@/utils/network-errors";
 const logger = createLogger("DiscoverSessions");
 export const SKILL_FILTERS: {
   value: FootballObjective | "";
@@ -252,7 +253,11 @@ export function useDiscoverSessions() {
         pendingInvites,
       });
     } catch (loadError) {
-      logger.error("Failed to load offerings", loadError);
+      if (isBrowserFetchFailure(loadError)) {
+        logger.warn("Discover sessions fetch was interrupted", loadError);
+      } else {
+        logger.error("Failed to load offerings", loadError);
+      }
       return err(
         serviceError(
           "UNKNOWN",

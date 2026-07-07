@@ -43,11 +43,12 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { buildFeedbackPrefillFromQuickRate } from '@/utils/feedback-prefill';
 import type { Session, BadgeAward } from '@/constants/types';
 import type { QuickRateInput } from '@/types/progress-types';
-import { err, ok, serviceError, unsupportedError, type ServiceError } from '@/types/result';
+import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
 const logger = createLogger('SessionDetailScreen');
 type SessionRecord = Session & {
+  athleteName?: string;
   imageUrls?: string[];
   effortRating?: number;
   sourceSessionId?: string;
@@ -112,11 +113,17 @@ interface UseDevSessionParams {
 }
 interface DevSessionFormDefaults {
   publicNotes: string;
+  privateNotes: string;
   rating: number;
   effortRating: number;
   selectedSkills: string[];
+  skillRatings: SkillRating[];
+  subSkillRatings: SubSkillRating[];
+  improvements: string;
+  homework: string;
   videoUrls: string[];
   imageUrls: string[];
+  visibility: FeedbackVisibility;
 }
 interface DevSessionData {
   session: SessionRecord | null;
@@ -137,11 +144,17 @@ function emptyDevSessionData(): DevSessionData {
     sessionBadges: [],
     formDefaults: {
       publicNotes: '',
+      privateNotes: '',
       rating: 3,
       effortRating: 3,
       selectedSkills: [],
+      skillRatings: [],
+      subSkillRatings: [],
+      improvements: '',
+      homework: '',
       videoUrls: [],
       imageUrls: [],
+      visibility: 'parent',
     },
   };
 }
@@ -198,14 +211,110 @@ export function useDevSession({
       return ok<DevSessionData>(emptyDevSessionData());
     }
     if (!apiClient.isMockMode) {
-      return err(
-        unsupportedError(
-          'Detailed per-athlete feedback needs a backend-loaded session-feedback context before this local editor can open in API mode.',
-          {
-            route: '/v1/session-feedback',
+      if (!athleteId) {
+        return err(
+          serviceError(
+            'VALIDATION',
+            'Athlete context is required to load backend session feedback.',
+            {
+              route: '/v1/session-feedback',
+            },
+          ),
+        );
+      }
+      try {
+        const latestFeedback = await progressFeedbackService.getLatestForAthlete(
+          athleteId,
+          sessionId,
+        );
+        let resolvedPosition: PositionRole = 'MID';
+        if (latestFeedback?.positionsPlayed && latestFeedback.positionsPlayed.length > 0) {
+          resolvedPosition = latestFeedback.positionsPlayed[0];
+        } else if (latestFeedback?.positionPlayed) {
+          resolvedPosition = latestFeedback.positionPlayed;
+        } else {
+          const mostPlayedResult = await progressPositionService.getMostPlayedPosition(athleteId);
+          if (mostPlayedResult.success && mostPlayedResult.data) {
+            resolvedPosition = mostPlayedResult.data;
+          } else {
+            const childProfile = await childService.getChild(athleteId);
+            if (childProfile?.primaryPosition) {
+              resolvedPosition = childProfile.primaryPosition;
+            }
+          }
+        }
+        const resolvedPositions =
+          latestFeedback?.positionsPlayed && latestFeedback.positionsPlayed.length > 0
+            ? latestFeedback.positionsPlayed
+            : [resolvedPosition];
+        const resolvedPreviousRatings: Record<string, number> = {};
+        const athleteSkills = await progressSkillsService.getAthleteSkillLevels(athleteId);
+        if (athleteSkills) {
+          for (const [skillName, skillData] of Object.entries(athleteSkills.skills)) {
+            resolvedPreviousRatings[skillName] = Math.max(
+              1,
+              Math.min(5, Math.ceil(skillData.level / 2)),
+            );
+          }
+        }
+        const athleteResult = await userService.getUserById(athleteId);
+        const athleteName =
+          (athleteResult.success ? athleteResult.data.name : undefined) ??
+          latestFeedback?.athleteName ??
+          athleteId;
+        const foundSession: SessionRecord = {
+          id: sessionId,
+          bookingId: latestFeedback?.bookingId ?? sessionId,
+          sourceSessionId: sessionId,
+          athleteId,
+          athleteName,
+          coachId: latestFeedback?.coachId ?? currentUser?.id ?? '',
+          coachName: latestFeedback?.coachName ?? currentUser?.name ?? 'Coach',
+          completedAt: latestFeedback?.createdAt ?? new Date().toISOString(),
+          attendance: 'ATTENDED',
+          performanceRating: latestFeedback?.overallPerformance ?? 3,
+          effortRating: latestFeedback?.effortRating ?? 3,
+          skillsWorkedOn: latestFeedback?.skillsWorkedOn ?? [],
+          nextFocusAreas: [],
+          notes: latestFeedback?.publicSummary ?? '',
+          videoUrls: latestFeedback?.videoClipUrls ?? [],
+          imageUrls: latestFeedback?.photoUrls ?? [],
+          prefillSkillRatings: latestFeedback?.skillRatings ?? [],
+        };
+        const resolvedAthlete = athleteResult.success
+          ? {
+              id: athleteResult.data.id,
+              name: athleteResult.data.name,
+              avatar: athleteResult.data.avatar,
+            }
+          : fallbackAthleteFromSession(foundSession);
+        const badges = await badgeService.listAwardsForSession(sessionId);
+        return ok<DevSessionData>({
+          session: foundSession,
+          athlete: resolvedAthlete,
+          positionsPlayed: resolvedPositions,
+          positionLoaded: true,
+          previousRatings: resolvedPreviousRatings,
+          sessionBadges: badges,
+          formDefaults: {
+            publicNotes: latestFeedback?.publicSummary ?? '',
+            privateNotes: latestFeedback?.privateNotes ?? '',
+            rating: latestFeedback?.overallPerformance ?? 3,
+            effortRating: latestFeedback?.effortRating ?? 3,
+            selectedSkills: latestFeedback?.skillsWorkedOn ?? [],
+            skillRatings: latestFeedback?.skillRatings ?? [],
+            subSkillRatings: latestFeedback?.subSkillRatings ?? [],
+            improvements: latestFeedback?.improvements ?? '',
+            homework: latestFeedback?.homework ?? '',
+            videoUrls: latestFeedback?.videoClipUrls ?? [],
+            imageUrls: latestFeedback?.photoUrls ?? [],
+            visibility: latestFeedback?.visibility ?? 'parent',
           },
-        ),
-      );
+        });
+      } catch (error) {
+        logger.error('Failed to load API session feedback', error);
+        return err(serviceError('UNKNOWN', 'Failed to load session feedback.', error));
+      }
     }
     try {
       const sessions = await apiClient.get<SessionRecord[]>(STORAGE_KEYS.COACH_SESSIONS, []);
@@ -225,11 +334,17 @@ export function useDevSession({
       let resolvedPreviousRatings: Record<string, number> = {};
       const formDefaults: DevSessionFormDefaults = {
         publicNotes: foundSession.notes || '',
+        privateNotes: '',
         rating: foundSession.performanceRating || 3,
         effortRating: foundSession.effortRating || 3,
         selectedSkills: foundSession.skillsWorkedOn || [],
+        skillRatings: [],
+        subSkillRatings: [],
+        improvements: '',
+        homework: '',
         videoUrls: foundSession.videoUrls || [],
         imageUrls: foundSession.imageUrls || [],
+        visibility: 'parent',
       };
       if (targetAthleteId) {
         latestFeedback = await progressFeedbackService.getLatestForAthlete(targetAthleteId);
@@ -388,22 +503,22 @@ export function useDevSession({
       setImageUrls(data.formDefaults.imageUrls);
     });
     startTransition(() => {
-      setSkillRatings([]);
+      setSkillRatings(data.formDefaults.skillRatings);
     });
     startTransition(() => {
-      setSubSkillRatings([]);
+      setSubSkillRatings(data.formDefaults.subSkillRatings);
     });
     startTransition(() => {
-      setImprovements('');
+      setImprovements(data.formDefaults.improvements);
     });
     startTransition(() => {
-      setHomework('');
+      setHomework(data.formDefaults.homework);
     });
     startTransition(() => {
-      setPrivateNotes('');
+      setPrivateNotes(data.formDefaults.privateNotes);
     });
     startTransition(() => {
-      setVisibility('parent');
+      setVisibility(data.formDefaults.visibility);
     });
   }, [athleteId, data, prefillFromQuickRate]);
 
@@ -462,16 +577,97 @@ export function useDevSession({
   // ─── Save ─────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (!session || !athlete || !currentUser || !sessionId) return;
-    if (!apiClient.isMockMode) {
-      uiFeedback.showToast(
-        'Detailed per-athlete feedback needs a backend-loaded session-feedback context before it can save in API mode.',
-        'error',
+    const persistFeedback = async (bookingId?: string) => {
+      // Record positions played (for position history tracking)
+      await Promise.all(
+        positionsPlayed.map((pos) =>
+          progressPositionService.recordPosition(sessionId, athlete.id, pos),
+        ),
       );
-      return;
-    }
+
+      // Build SessionSkillRating array for updateFromPositionRate
+      const sessionSkillRatings: SessionSkillRating[] = skillRatings.map((r) => ({
+        skill: r.skill as FootballSkill,
+        rating: Math.max(1, Math.min(5, Math.round(r.rating))) as 1 | 2 | 3 | 4 | 5,
+        label: 'Very Good' as const,
+        // label is display-only, service recalculates
+        trend: 'consistent' as const,
+        previousRating: r.previousRating,
+      }));
+
+      // Update skill levels and compute four corners (same path as Quick Rate)
+      // Prefer sub-skill ratings when available
+      let fourCorners = {
+        technical: 0,
+        physical: 0,
+        psychological: 0,
+        social: 0,
+      };
+      const hasSubSkillRatings = subSkillRatings.length > 0;
+      if (hasSubSkillRatings || sessionSkillRatings.length > 0) {
+        const skillResult = await progressSkillsService.updateFromPositionRate(
+          athlete.id,
+          sessionId,
+          currentUser.id,
+          positionPlayed,
+          sessionSkillRatings,
+          hasSubSkillRatings ? subSkillRatings : undefined,
+        );
+        if (skillResult.success) {
+          fourCorners = skillResult.data.fourCorners;
+        }
+      }
+
+      // Save session feedback with position data and four corners.
+      await progressService.addSessionFeedback(
+        {
+          sessionId,
+          bookingId,
+          coachId: currentUser.id,
+          coachName: currentUser.name || 'Coach',
+          athleteId: athlete.id,
+          athleteName: athlete.name,
+          publicSummary: publicNotes,
+          privateNotes,
+          skillsWorkedOn: selectedSkills,
+          skillRatings,
+          improvements,
+          homework,
+          effortRating,
+          overallPerformance: rating,
+          videoClipUrls: videoUrls,
+          photoUrls: imageUrls,
+          visibility,
+          badgeAwarded: sessionBadges.length > 0 ? sessionBadges[0].badgeLabel : undefined,
+          positionPlayed,
+          positionsPlayed,
+          subSkillRatings: hasSubSkillRatings ? subSkillRatings : undefined,
+          fourCorners,
+        },
+        {
+          skipSkillUpdate: true,
+        }, // Skills already written by updateFromPositionRate
+      );
+      logger.info('Session feedback saved', {
+        sessionId,
+        rating,
+        positionsPlayed,
+        subSkillCount: subSkillRatings.length,
+        skillCount: skillRatings.length,
+        fourCorners,
+        apiMode: !apiClient.isMockMode,
+      });
+    };
     setSaving(true);
     await runAsyncTryCatchFinally(
       async () => {
+        if (!apiClient.isMockMode) {
+          await persistFeedback(session.bookingId || session.id);
+          uiFeedback.showToast('Session notes saved. Parents can now see the feedback.', 'success');
+          router.back();
+          return;
+        }
+
         const sessions = await apiClient.get<SessionRecord[]>(STORAGE_KEYS.COACH_SESSIONS, []);
         const idx = sessions.findIndex((candidate) => candidate.id === sessionId);
         const updatedSession: SessionRecord = {
@@ -493,83 +689,7 @@ export function useDevSession({
         }
         await apiClient.set(STORAGE_KEYS.COACH_SESSIONS, sessions);
 
-        // Record positions played (for position history tracking)
-        await Promise.all(
-          positionsPlayed.map((pos) =>
-            progressPositionService.recordPosition(sessionId, athlete.id, pos),
-          ),
-        );
-
-        // Build SessionSkillRating array for updateFromPositionRate
-        const sessionSkillRatings: SessionSkillRating[] = skillRatings.map((r) => ({
-          skill: r.skill as FootballSkill,
-          rating: Math.max(1, Math.min(5, Math.round(r.rating))) as 1 | 2 | 3 | 4 | 5,
-          label: 'Very Good' as const,
-          // label is display-only, service recalculates
-          trend: 'consistent' as const,
-          previousRating: r.previousRating,
-        }));
-
-        // Update skill levels and compute four corners (same path as Quick Rate)
-        // Prefer sub-skill ratings when available
-        let fourCorners = {
-          technical: 0,
-          physical: 0,
-          psychological: 0,
-          social: 0,
-        };
-        const hasSubSkillRatings = subSkillRatings.length > 0;
-        if (hasSubSkillRatings || sessionSkillRatings.length > 0) {
-          const skillResult = await progressSkillsService.updateFromPositionRate(
-            athlete.id,
-            sessionId,
-            currentUser.id,
-            positionPlayed,
-            sessionSkillRatings,
-            hasSubSkillRatings ? subSkillRatings : undefined,
-          );
-          if (skillResult.success) {
-            fourCorners = skillResult.data.fourCorners;
-          }
-        }
-
-        // Save session feedback with position data and four corners
-        await progressService.addSessionFeedback(
-          {
-            sessionId,
-            bookingId: session.bookingId,
-            coachId: currentUser.id,
-            coachName: currentUser.name || 'Coach',
-            athleteId: athlete.id,
-            athleteName: athlete.name,
-            publicSummary: publicNotes,
-            privateNotes,
-            skillsWorkedOn: selectedSkills,
-            skillRatings,
-            improvements,
-            homework,
-            effortRating,
-            overallPerformance: rating,
-            videoClipUrls: videoUrls,
-            visibility,
-            badgeAwarded: sessionBadges.length > 0 ? sessionBadges[0].badgeLabel : undefined,
-            positionPlayed,
-            positionsPlayed,
-            subSkillRatings: hasSubSkillRatings ? subSkillRatings : undefined,
-            fourCorners,
-          },
-          {
-            skipSkillUpdate: true,
-          }, // Skills already written by updateFromPositionRate
-        );
-        logger.info('Session feedback saved', {
-          sessionId,
-          rating,
-          positionsPlayed,
-          subSkillCount: subSkillRatings.length,
-          skillCount: skillRatings.length,
-          fourCorners,
-        });
+        await persistFeedback(session.bookingId);
         uiFeedback.showToast('Session notes saved. Parents can now see the feedback.', 'success');
         router.back();
       },

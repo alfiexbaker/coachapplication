@@ -40,6 +40,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Routes } from "@/navigation/routes";
 import { createLogger } from "@/utils/logger";
 import { STORAGE_KEYS } from "@/constants/storage-keys";
+import { progressFeedbackService } from "@/services/progress/progress-feedback-service";
 import { buildFeedbackPrefillFromQuickRate } from "@/utils/feedback-prefill";
 import { BadgeAwardModal } from "@/components/badges/badge-award-modal";
 import type { BadgeAward } from "@/constants/types";
@@ -101,6 +102,7 @@ export default function SessionCompleteScreen() {
     setShareAttendance,
     currentStep,
     currentStepIndex,
+    sourceType,
     isGroupCompletion,
     attendance,
     attendanceStepData,
@@ -196,7 +198,8 @@ export default function SessionCompleteScreen() {
   const quickRateBadgeCount = Object.values(
     effectiveQuickRateByAthleteId,
   ).filter((rating) => Boolean(rating.badgeId)).length;
-  const canOpenPersonalFeedback = apiClient.isMockMode;
+  const canOpenPersonalFeedback =
+    apiClient.isMockMode || (!isGroupCompletion && sourceType === "booking");
   const handleExit = () => {
     if (router.canGoBack()) {
       router.back();
@@ -216,7 +219,7 @@ export default function SessionCompleteScreen() {
   const handlePersonalFeedback = async (registrationId: string) => {
     if (!canOpenPersonalFeedback) {
       uiFeedback.showToast(
-        "Detailed per-athlete feedback needs a backend session-feedback route before it can open in API mode.",
+        "Detailed per-athlete feedback is available for individual booking completion.",
         "error",
       );
       return;
@@ -228,10 +231,80 @@ export default function SessionCompleteScreen() {
     const athleteRecord = attendance[registrationId];
     if (!athleteStep || !athleteRecord || !session || !currentUser) return;
     const athleteUserId = athleteRecord.registration.userId;
+    if (!athleteUserId) {
+      uiFeedback.showToast(
+        "Athlete details are missing for this feedback.",
+        "error",
+      );
+      return;
+    }
     const quickRateInput = effectiveQuickRateByAthleteId[athleteUserId];
     const prefill = quickRateInput
       ? buildFeedbackPrefillFromQuickRate(quickRateInput)
       : null;
+    const hasCornerRatings = [
+      quickRateInput?.technical,
+      quickRateInput?.physical,
+      quickRateInput?.psychological,
+      quickRateInput?.social,
+    ].some((value) => typeof value === "number");
+    if (!apiClient.isMockMode) {
+      try {
+        await progressFeedbackService.addSessionFeedback({
+          sessionId: session.id,
+          bookingId: session.id,
+          sessionTitle: session.title,
+          coachId: currentUser.id,
+          coachName: currentUser.fullName || currentUser.name || "Coach",
+          athleteId: athleteUserId,
+          athleteName: athleteStep.userName,
+          publicSummary: prefill?.sessionSummary ?? sessionSummary,
+          skillsWorkedOn: prefill?.skillsWorkedOn ?? skillsFocused,
+          skillRatings: quickRateInput?.positionSkillRatings ?? [],
+          improvements,
+          homework,
+          effortRating: prefill?.effortRating ?? athleteRecord.effort,
+          overallPerformance: prefill?.performanceRating ?? overallEffort,
+          visibility: shareNotesWithParents ? "parent" : "coach_only",
+          videoClipUrls: videoUrls,
+          photoUrls: imageUrls,
+          badgeAwarded: quickRateInput?.badgeId,
+          fourCorners:
+            quickRateInput && hasCornerRatings
+              ? {
+                  technical: quickRateInput.technical ?? 3,
+                  physical: quickRateInput.physical ?? 3,
+                  psychological: quickRateInput.psychological ?? 3,
+                  social: quickRateInput.social ?? 3,
+                }
+              : undefined,
+          positionPlayed: quickRateInput?.positionPlayed,
+          positionsPlayed: quickRateInput?.positionsPlayed,
+          subSkillRatings: quickRateInput?.subSkillRatings,
+        });
+        logger.info("Personal feedback session opened from API draft", {
+          sessionId: session.id,
+          athlete: athleteStep.userName,
+        });
+        router.push(
+          Routes.developmentSession(session.id, {
+            prefillFromQuickRate: quickRateInput ? "true" : "false",
+            athleteId: athleteUserId,
+          }),
+        );
+      } catch (error) {
+        logger.error("Failed to open personal feedback from API draft", {
+          sessionId: session.id,
+          athleteId: athleteUserId,
+          error,
+        });
+        uiFeedback.showToast(
+          "Could not open detailed feedback. Please try again.",
+          "error",
+        );
+      }
+      return;
+    }
     const sessionId = `session-${Date.now()}`;
     const sessionRecord = {
       id: sessionId,

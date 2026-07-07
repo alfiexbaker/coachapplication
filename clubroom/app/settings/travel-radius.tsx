@@ -45,7 +45,7 @@ export default function TravelRadiusScreen() {
         error ??
         (canSave
           ? 'Parents searching nearby will see you within this service radius.'
-          : 'Travel radius editing needs a backend API before changes can be saved.')
+          : 'Travel radius editing is unavailable for this account.')
       }
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.accent} />

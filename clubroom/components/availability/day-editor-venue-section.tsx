@@ -73,6 +73,11 @@ function DayEditorVenueSectionInner({
 
   useEffect(() => {
     const loadSavedLocations = async () => {
+      if (!apiClient.isMockMode) {
+        setSavedLocations([]);
+        return;
+      }
+
       try {
         const stored = await apiClient.get<unknown>(STORAGE_KEYS.SAVED_LOCATIONS, null);
         setSavedLocations(parseStoredLocationPresets(stored));
@@ -94,6 +99,10 @@ function DayEditorVenueSectionInner({
 
     setSavedLocations((previous) => {
       const updated = dedupeLocationPresets([preset, ...previous]).slice(0, 8);
+      if (!apiClient.isMockMode) {
+        return updated;
+      }
+
       void apiClient.set(STORAGE_KEYS.SAVED_LOCATIONS, updated).catch((error) => {
         logger.error('Failed to save location preset', error);
       });

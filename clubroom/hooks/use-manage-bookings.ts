@@ -18,6 +18,7 @@ import { ServiceEvents } from '@/services/event-bus';
 import { formatOrganizationRoleLabel } from '@/contracts/club-governance';
 import { err, ok, serviceError, type Result, type ServiceError } from '@/types/result';
 import { runAsyncFinally } from '@/utils/async-control';
+import { isBrowserFetchFailure } from '@/utils/network-errors';
 const logger = createLogger('useManageBookings');
 type PostingAs = 'self' | 'club';
 interface ClubOption {
@@ -181,7 +182,11 @@ export function useManageBookings() {
         unassignedCount: staffingResult.data.summary.unassignedCount,
       });
     } catch (error) {
-      logger.error('Failed to load manage booking console', error);
+      if (isBrowserFetchFailure(error)) {
+        logger.warn('Manage booking console fetch was interrupted', error);
+      } else {
+        logger.error('Failed to load manage booking console', error);
+      }
       return err(serviceError('UNKNOWN', 'Failed to load staffing console.', error));
     }
   };

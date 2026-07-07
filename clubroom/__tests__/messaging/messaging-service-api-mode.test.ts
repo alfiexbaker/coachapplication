@@ -12,6 +12,11 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+async function seedLocalStorageValue(key: string, value: unknown): Promise<void> {
+  const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+  await AsyncStorage.setItem(key, JSON.stringify(value));
+}
+
 async function setupApiModeUser() {
   const [{ authService }, { registerApiAuthService }, { ok }] = await Promise.all([
     import('@/services/auth-service'),
@@ -56,14 +61,13 @@ afterEach(async () => {
 describe('MessagingService API mode', () => {
   it('does not merge local message overlays or deleted masks into API-mode reads', async () => {
     const restoreUser = await setupApiModeUser();
-    const [{ STORAGE_KEYS }, { setLocalOverlayValue }, { messagingService }] = await Promise.all([
+    const [{ STORAGE_KEYS }, { messagingService }] = await Promise.all([
       import('@/constants/storage-keys'),
-      import('@/services/local-overlay-store'),
       import('@/services/messaging-service'),
     ]);
     const fetchCalls: string[] = [];
 
-    await setLocalOverlayValue(STORAGE_KEYS.MESSAGES, {
+    await seedLocalStorageValue(STORAGE_KEYS.MESSAGES, {
       thread_api_direct: [
         {
           id: 'msg_api_keep',
@@ -83,7 +87,7 @@ describe('MessagingService API mode', () => {
         },
       ],
     });
-    await setLocalOverlayValue(STORAGE_KEYS.MESSAGE_DELETED_IDS, {
+    await seedLocalStorageValue(STORAGE_KEYS.MESSAGE_DELETED_IDS, {
       thread_api_direct: ['msg_api_deleted'],
     });
     globalThis.fetch = (async (input) => {
@@ -145,14 +149,13 @@ describe('MessagingService API mode', () => {
 
   it('does not merge local thread overlays into API-mode thread summaries', async () => {
     const restoreUser = await setupApiModeUser();
-    const [{ STORAGE_KEYS }, { setLocalOverlayValue }, { messagingService }] = await Promise.all([
+    const [{ STORAGE_KEYS }, { messagingService }] = await Promise.all([
       import('@/constants/storage-keys'),
-      import('@/services/local-overlay-store'),
       import('@/services/messaging-service'),
     ]);
     const fetchCalls: string[] = [];
 
-    await setLocalOverlayValue(STORAGE_KEYS.MESSAGE_THREADS, [
+    await seedLocalStorageValue(STORAGE_KEYS.MESSAGE_THREADS, [
       {
         id: 'thread_api_direct',
         kind: 'direct',

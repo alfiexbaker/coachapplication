@@ -3572,6 +3572,47 @@ describe('coach-club routes', () => {
       ),
       true,
     );
+
+    const parentMatches = await app.inject({
+      method: 'GET',
+      url: '/v1/me/matches',
+      headers: authHeaders(tables, memberUserId, 'parent'),
+    });
+    assert.equal(parentMatches.statusCode, 200);
+    const parentMatchesPayload = parentMatches.json() as {
+      matches: Array<{
+        id: string;
+        selectedPlayers: Array<{
+          athleteId: string;
+          parentId: string;
+          status: string;
+          position?: string;
+          jerseyNumber?: number;
+        }>;
+      }>;
+      total: number;
+    };
+    assert.equal(parentMatchesPayload.total >= 1, true);
+    const parentMatch = parentMatchesPayload.matches.find((match) => match.id === matchId);
+    assert.ok(parentMatch, 'expected invited guardian match in /v1/me/matches');
+    assert.equal(parentMatch.selectedPlayers.length, 1);
+    assert.equal(parentMatch.selectedPlayers[0]?.athleteId, athleteId);
+    assert.equal(parentMatch.selectedPlayers[0]?.parentId, memberUserId);
+    assert.equal(parentMatch.selectedPlayers[0]?.status, 'SELECTED');
+    assert.equal(parentMatch.selectedPlayers[0]?.position, 'ST');
+    assert.equal(parentMatch.selectedPlayers[0]?.jerseyNumber, 9);
+
+    const outsiderMatches = await app.inject({
+      method: 'GET',
+      url: '/v1/me/matches',
+      headers: authHeaders(tables, outsiderUserId),
+    });
+    assert.equal(outsiderMatches.statusCode, 200);
+    const outsiderMatchesPayload = outsiderMatches.json() as {
+      matches: Array<{ id: string }>;
+    };
+    assert.equal(outsiderMatchesPayload.matches.some((match) => match.id === matchId), false);
+
     assert.equal(
       auditEventsFor(tables, {
         action: 'club_match.players.invite',
@@ -3617,6 +3658,22 @@ describe('coach-club routes', () => {
         action: 'club_match.lineup.set',
         resourceId: matchId,
         result: 'DENY',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'club_match.me.read',
+        resourceId: memberUserId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'club_match.me.read',
+        resourceId: outsiderUserId,
+        result: 'SUCCESS',
       }).length,
       1,
     );

@@ -98,6 +98,10 @@ describe('injuryService API mode', () => {
         });
       }
 
+      if (url.pathname === '/v1/injuries/injury_api_1' && method === 'GET') {
+        return jsonResponse(apiInjury());
+      }
+
       if (url.pathname === '/v1/athletes/ath_athlete_api_1/injuries' && method === 'POST') {
         return jsonResponse(apiInjury({ id: 'injury_api_created' }), 201);
       }
@@ -127,6 +131,10 @@ describe('injuryService API mode', () => {
 
     await assert.doesNotReject(() => injuryService.resetToMockData());
 
+    const detail = await injuryService.getInjuryByIdForActor('injury_api_1', 'coach_api_1');
+    assert.equal(detail?.id, 'injury_api_1');
+    assert.equal(detail?.userId, 'athlete_api_1');
+
     const listed = await injuryService.getUserInjuries('athlete_api_1');
     assert.equal(listed.length, 1);
     assert.equal(listed[0]?.id, 'injury_api_1');
@@ -150,15 +158,19 @@ describe('injuryService API mode', () => {
     assert.deepEqual(
       calls.map((call) => `${call.method} ${call.path}`),
       [
+        'GET /v1/injuries/injury_api_1',
         'GET /v1/athletes/ath_athlete_api_1/injuries',
         'POST /v1/athletes/ath_athlete_api_1/injuries',
         'PATCH /v1/injuries/injury_api_created',
       ],
     );
     assert.equal(calls[0]?.headers.get('x-acting-role'), 'coach');
-    assert.equal(calls[0]?.headers.get('x-coach-athlete-ids'), 'ath_athlete_api_1');
+    assert.equal(calls[0]?.headers.get('x-coach-athlete-ids'), null);
     assert.equal(calls[0]?.headers.get('x-coach-verified'), '1');
-    assert.deepEqual(calls[1]?.body, {
+    assert.equal(calls[1]?.headers.get('x-acting-role'), 'coach');
+    assert.equal(calls[1]?.headers.get('x-coach-athlete-ids'), 'ath_athlete_api_1');
+    assert.equal(calls[1]?.headers.get('x-coach-verified'), '1');
+    assert.deepEqual(calls[2]?.body, {
       title: 'Injury - Left Ankle',
       type: 'LEFT_ANKLE',
       severity: 'medium',
@@ -166,7 +178,7 @@ describe('injuryService API mode', () => {
       expectedRecoveryDate: '2026-07-20T00:00:00.000Z',
       notes: 'Rolled ankle in training.',
     });
-    assert.deepEqual(calls[2]?.body, {
+    assert.deepEqual(calls[3]?.body, {
       status: 'resolved',
     });
     assert.equal((updated as Injury | null)?.sharedWithCoach, true);

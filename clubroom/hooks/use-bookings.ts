@@ -24,6 +24,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useChildContext } from "@/hooks/use-child-context";
 import { useScreen } from "@/hooks/use-screen";
 import { createLogger } from "@/utils/logger";
+import { isBrowserFetchFailure } from "@/utils/network-errors";
 import { getSessionInviteCoachName } from "@/utils/session-invite-display";
 import {
   getBookingAthleteName,
@@ -235,10 +236,9 @@ export function useBookings(): UseBookingsResult {
           viewerNameById.set(child.profileId, childLabel);
         }
       }
-      const recurringBookings = await apiClient.get<RecurringBooking[]>(
-        STORAGE_KEYS.RECURRING_BOOKINGS,
-        [],
-      );
+      const recurringBookings = apiClient.isMockMode
+        ? await apiClient.get<RecurringBooking[]>(STORAGE_KEYS.RECURRING_BOOKINGS, [])
+        : [];
       const recurringById = new Map(
         recurringBookings.map((recurring) => [recurring.id, recurring]),
       );
@@ -455,10 +455,12 @@ export function useBookings(): UseBookingsResult {
             inviteIds: invites.slice(0, 8).map((invite) => invite.id),
           });
         } catch (inviteErr) {
-          logger.error("Failed to load pending invites", {
-            loadId,
-            error: inviteErr,
-          });
+          const details = { loadId, error: inviteErr };
+          if (isBrowserFetchFailure(inviteErr)) {
+            logger.warn("Pending invites fetch was interrupted", details);
+          } else {
+            logger.error("Failed to load pending invites", details);
+          }
         }
       }
       logger.debug("Load cycle complete", {

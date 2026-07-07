@@ -546,9 +546,11 @@ function collectRouteContext(routeContent) {
     authorityContent.includes('/v1/athletes/${apiAthleteId}/emergency-contacts') &&
     authorityContent.includes('/v1/athletes/${apiAthleteId}/consents') &&
     /assertCan(Read|Write)AthleteMedical/.test(authorityContent) &&
-    /action: "medical\.read"[\s\S]*sensitiveRead: true/.test(authorityContent) &&
-    /action: "emergency_contacts\.read"[\s\S]*sensitiveRead: true/.test(authorityContent) &&
-    /action: "consents\.read"[\s\S]*sensitiveRead: true/.test(authorityContent)
+    /action:\s*['"]medical\.read['"][\s\S]*sensitiveRead: true/.test(authorityContent) &&
+    /action:\s*['"]emergency_contacts\.read['"][\s\S]*sensitiveRead: true/.test(
+      authorityContent,
+    ) &&
+    /action:\s*['"]consents\.read['"][\s\S]*sensitiveRead: true/.test(authorityContent)
   ) {
     authorityEvidence.push('athlete-medical-api-authority');
   }
@@ -561,7 +563,7 @@ function collectRouteContext(routeContent) {
     authorityContent.includes('/v1/families/${contextResult.data.familyId}') &&
     authorityContent.includes('/v1/athletes/${childId}') &&
     authorityContent.includes('ensureCanReadAthleteProfile') &&
-    /action: "athlete\.read"[\s\S]*sensitiveRead: true/.test(authorityContent)
+    /action:\s*['"]athlete\.read['"][\s\S]*sensitiveRead: true/.test(authorityContent)
   ) {
     authorityEvidence.push('child-profile-api-authority');
   }
@@ -579,9 +581,11 @@ function collectRouteContext(routeContent) {
     authorityContent.includes('/v1/athletes/${apiAthleteId}/emergency-contacts') &&
     authorityContent.includes('/v1/athletes/${apiAthleteId}/consents') &&
     /assertCan(Read|Write)AthleteMedical/.test(authorityContent) &&
-    /action: "medical\.read"[\s\S]*sensitiveRead: true/.test(authorityContent) &&
-    /action: "emergency_contacts\.read"[\s\S]*sensitiveRead: true/.test(authorityContent) &&
-    /action: "consents\.read"[\s\S]*sensitiveRead: true/.test(authorityContent)
+    /action:\s*['"]medical\.read['"][\s\S]*sensitiveRead: true/.test(authorityContent) &&
+    /action:\s*['"]emergency_contacts\.read['"][\s\S]*sensitiveRead: true/.test(
+      authorityContent,
+    ) &&
+    /action:\s*['"]consents\.read['"][\s\S]*sensitiveRead: true/.test(authorityContent)
   ) {
     authorityEvidence.push('child-trust-sensitive-api-authority');
   }
@@ -610,7 +614,7 @@ function collectRouteContext(routeContent) {
     authorityContent.includes('/v1/athletes/${athleteId}/injuries') &&
     authorityContent.includes('/v1/injuries/${id}') &&
     /assertCan(Read|Write)AthleteHealth/.test(authorityContent) &&
-    /action: "athlete_injury\.read"[\s\S]*sensitiveRead: true/.test(authorityContent)
+    /action:\s*['"]athlete_injury\.read['"][\s\S]*sensitiveRead: true/.test(authorityContent)
   ) {
     authorityEvidence.push('athlete-injury-api-authority');
   }

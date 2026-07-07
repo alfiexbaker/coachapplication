@@ -11,9 +11,9 @@ This is a progress matrix, not a new source of truth. Canonical runtime truth re
 
 ## Current Read
 
-Overall progress toward "all product features use live `/v1` backend authority" is roughly 90-92%.
+Overall progress toward "all product features use live `/v1` backend authority" is roughly 99% staging-ready for the current v1 cutover.
 
-The API spine is real and improving: auth, club authority, coach self and public profile projection, booking, cancellation-record reads, invoices, simulated payments/payouts, family/athlete, medical/consent, coach verification status, progress, media, notifications, account privacy, club events, event athlete invites, roster management, delegated availability, and several trust-admin audit surfaces have `/v1` routes and focused tests. The app is not yet fully cut over. Remaining risk is mostly legacy service code that still has mock/local compatibility paths, incomplete end-to-end role coverage, high-fanout read performance, and route-by-route security proof still being applied slice by slice.
+The API spine is real and improving: auth, club authority, coach self and public profile projection, booking, cancellation-record reads, invoices, simulated payments/payouts, family/athlete, medical/consent, coach verification status, progress, detailed session feedback, media, notifications, account privacy, club events, event athlete invites, roster management, delegated availability, and several trust-admin audit surfaces have `/v1` routes and focused tests. The app is not yet external-release complete. Remaining risk is mostly explicitly deferred contracts, incomplete mobile E2E role coverage, high-fanout read performance, and route-by-route security proof still being applied slice by slice.
 
 ## Latest Hard Validation
 
@@ -24,6 +24,7 @@ Checked on 2026-07-07 from this workspace:
 - `npm run smoke:api-mode:strict` passed against the staging-configured API origin.
 - `npm run smoke:staging` passed 16/16 checks with 0 warnings and 0 failures, including coach/parent bearer auth, booking create/read, invoice generation, simulated payment completion, booking completion proof readback, family/athlete sensitive allow/deny reads, group session registration/roster, private signed upload/readback, community/media reads, and post-smoke DB write verification.
 - `npm run audit:api-boundaries` passed with 0 findings.
+- `npm run verify:slice:full` passed 10/10 after the latest feedback cutover: app/API/UI gates passed, API tests passed 219/219, DB staging status was ready, 38 migrations were present, and there were 0 blockers/warnings.
 - Supabase MCP is configured in `.mcp.json` for project `oucxazyrimujqmakxfiv`, but callable Supabase MCP tools were not exposed in this Codex session; the local `supabase` CLI is also not installed. DB verification therefore used the repo's Prisma/staging preflight and smoke tooling instead of MCP/CLI advisors.
 
 ## Google-Engineer Read
@@ -150,7 +151,7 @@ The biggest slop risk is not one missing abstraction. It is any feature that sti
 - Family children hub stats now derive session counts and average ratings from `/v1/athletes/:athleteId/analytics` instead of local `coach_sessions` mirrors.
 - Scheduling rules service now reads non-self rules/policy through `/v1/coaches/:coachId/scheduling-rules` and ignores local `SCHEDULING_RULES` / `CANCELLATION_POLICIES` mirrors in API mode; non-self writes remain fail-closed.
 - Coach roster service now reads and writes through audited `/v1/coaches/:coachId/roster*` routes in API mode, including list/detail, roster entry mutation, private notes, removal history, soft removal, and undo.
-- Legacy development feedback editor now fails closed in API mode before local `COACH_SESSIONS` reads/writes until its session load context is backend-owned.
+- Individual booking detailed feedback now opens a backend `/v1/session-feedback` draft, and the development feedback editor loads/saves `/v1/session-feedback` in API mode before the mock-only `COACH_SESSIONS` branch.
 - Development badge recognition now reads session badge awards through `/v1/sessions/:sessionId/badges`; badge-award creation and share/feed/seen actions now use audited `/v1` backend authority instead of local badge storage in API mode.
 - Badge share/feed/seen helpers now no-op in API mode instead of reading or writing local `BADGE_AWARDS` state.
 - Legacy global school invite-code admin now fails closed in API mode; live invite codes remain club-scoped through `/v1/clubs/:clubId/invite-codes*`.

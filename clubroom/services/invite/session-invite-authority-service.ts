@@ -9,6 +9,7 @@ import {
 } from '@/services/api-auth-context';
 import { authService } from '@/services/auth-service';
 import { createLogger } from '@/utils/logger';
+import { isBrowserFetchFailure } from '@/utils/network-errors';
 import { err, ok, serviceError, type Result, type ServiceError } from '@/types/result';
 
 const logger = createLogger('SessionInviteAuthorityService');
@@ -172,10 +173,12 @@ class SessionInviteAuthorityService {
       headers: headersResult.data,
     });
     if (!result.success) {
-      logger.error('Failed to list session invites via API', {
-        params,
-        error: result.error,
-      });
+      const details = { params, error: result.error };
+      if (isBrowserFetchFailure(result.error)) {
+        logger.warn('Failed to list session invites via API', details);
+      } else {
+        logger.error('Failed to list session invites via API', details);
+      }
       return err(result.error);
     }
 

@@ -356,7 +356,6 @@ export function useCreateClubPost(clubId: string | undefined) {
     club,
     canPostAsClub,
     isCoach,
-    personalAudienceEstimate,
     title,
     setTitle,
     body,

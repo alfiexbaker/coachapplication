@@ -63,6 +63,10 @@ export function useCornerPercentiles({
         setTopPercentByCorner(EMPTY_TOP_PERCENT);
         return;
       }
+      if (!apiClient.isMockMode) {
+        setTopPercentByCorner(EMPTY_TOP_PERCENT);
+        return;
+      }
       try {
         const allSkillLevels = await apiClient.get<
           Record<string, AthleteSkillLevelsLike>

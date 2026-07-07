@@ -12,6 +12,7 @@
  * 4. PARENT: Gets "selected for match" notification
  *
  * API Integration Notes:
+ * - GET /v1/me/matches - List current parent/player match invites
  * - GET/POST /v1/clubs/:clubId/matches - List/create club fixtures
  * - GET /v1/matches/:matchId - Get match details
  * - POST /v1/matches/:matchId/players/invite - Invite linked athletes
@@ -59,6 +60,12 @@ const USE_MOCK = api.useMock;
 
 interface ApiClubMatchesResponse {
   clubId: string;
+  matches: Match[];
+  total: number;
+  requestId: string;
+}
+
+interface ApiCurrentUserMatchesResponse {
   matches: Match[];
   total: number;
   requestId: string;
@@ -329,8 +336,21 @@ export const matchService = {
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }
 
-    logger.warn('Parent match list is not backend-authoritative yet', { parentId });
-    return [];
+    const headersResult = await resolveMatchHeaders('Sign in to view match invites.', 'parent');
+    if (!headersResult.success) {
+      throwServiceError(headersResult.error);
+    }
+    const response = await apiFetch<ApiCurrentUserMatchesResponse>('/v1/me/matches', {
+      method: 'GET',
+      headers: headersResult.data,
+    });
+    if (!response.success) {
+      logger.error('Failed to load parent matches via API', { parentId, error: response.error });
+      throwServiceError(response.error);
+    }
+    return response.data.matches
+      .filter((m) => m.selectedPlayers.some((p) => p.parentId === parentId))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   },
 
   /**

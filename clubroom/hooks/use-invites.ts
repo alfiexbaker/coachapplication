@@ -13,6 +13,7 @@ import { createLogger } from '@/utils/logger';
 import { getSessionInviteCoachName } from '@/utils/session-invite-display';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
+import { isBrowserFetchFailure } from '@/utils/network-errors';
 
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
@@ -51,7 +52,11 @@ export function useInvites() {
       logger.debug('Loaded invites', { count: parentInvites.length });
       return ok<InvitesLoadData>({ invites: parentInvites });
     } catch (loadError) {
-      logger.error('Failed to load invites', loadError);
+      if (isBrowserFetchFailure(loadError)) {
+        logger.warn('Invites fetch was interrupted', loadError);
+      } else {
+        logger.error('Failed to load invites', loadError);
+      }
       return err(serviceError('UNKNOWN', 'Failed to load invites. Please try again.', loadError));
     }
   };

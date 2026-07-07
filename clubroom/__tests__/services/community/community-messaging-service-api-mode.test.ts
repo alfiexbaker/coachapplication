@@ -12,6 +12,11 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+async function seedLocalStorageValue(key: string, value: unknown): Promise<void> {
+  const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+  await AsyncStorage.setItem(key, JSON.stringify(value));
+}
+
 afterEach(async () => {
   globalThis.fetch = originalFetch;
   const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
@@ -25,14 +30,12 @@ describe('CommunityMessagingService API mode', () => {
       { registerApiAuthService },
       { ok },
       { STORAGE_KEYS },
-      { setLocalOverlayValue },
       { communityMessagingService },
     ] = await Promise.all([
       import('@/services/auth-service'),
       import('@/services/auth-service-registry'),
       import('@/types/result'),
       import('@/constants/storage-keys'),
-      import('@/services/local-overlay-store'),
       import('@/services/community/community-messaging-service'),
     ]);
     const originalGetCurrentUser = authService.getCurrentUser;
@@ -59,7 +62,7 @@ describe('CommunityMessagingService API mode', () => {
       refreshToken: async () => ok(undefined),
       logout: async () => {},
     });
-    await setLocalOverlayValue(STORAGE_KEYS.GROUP_MESSAGES, {
+    await seedLocalStorageValue(STORAGE_KEYS.GROUP_MESSAGES, {
       cgrp_api_real: [
         {
           id: 'gmsg_api_real',

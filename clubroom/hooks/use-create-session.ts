@@ -459,6 +459,11 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
 
   useEffect(() => {
     const loadSavedLocations = async () => {
+      if (!apiClient.isMockMode) {
+        setSavedLocations([]);
+        return;
+      }
+
       try {
         const locations = await apiClient.get<unknown>(STORAGE_KEYS.SAVED_LOCATIONS, null);
         setSavedLocations(parseStoredLocationPresets(locations));
@@ -750,6 +755,8 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     if (!preset) return;
     const updated = dedupeLocationPresets([preset, ...savedLocations]).slice(0, 8);
     setSavedLocations(updated);
+    if (!apiClient.isMockMode) return;
+
     try {
       await apiClient.set(STORAGE_KEYS.SAVED_LOCATIONS, updated);
     } catch (error) {

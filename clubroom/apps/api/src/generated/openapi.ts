@@ -16659,6 +16659,57 @@ export const openApiDocument: Record<string, unknown> = {
       }
     },
     "/v1/injuries/{injuryId}": {
+      "get": {
+        "tags": [
+          "Athlete Health"
+        ],
+        "summary": "Get Injury",
+        "description": "**Status:** implemented\n\n**Contract(s):** InjuryRecord\n\n**AuthZ:** athlete self / guardian / scoped coach\n\n**UI anchors:** app/health/[id].tsx\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "operationId": "getInjury",
+        "parameters": [
+          {
+            "name": "injuryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Path parameter: injuryId."
+          },
+          {
+            "$ref": "#/components/parameters/ActingRoleHeader"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response. See the route contract and implementation for payload shape.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-clubroom-effect": "get",
+        "x-clubroom-status": "implemented"
+      },
       "patch": {
         "tags": [
           "Athlete Health"
@@ -18822,6 +18873,50 @@ export const openApiDocument: Record<string, unknown> = {
         "summary": "List Guardian Invite",
         "description": "**Status:** implemented\n\n**Contract(s):** GuardianInviteListResponse\n\n**AuthZ:** authenticated invitee email\n\n**UI anchors:** guardian invite inbox via services/family/family-relationship-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "listGuardianInvite",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActingRoleHeader"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response. See the route contract and implementation for payload shape.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-clubroom-effect": "list",
+        "x-clubroom-status": "implemented"
+      }
+    },
+    "/v1/me/matches": {
+      "get": {
+        "tags": [
+          "Matches"
+        ],
+        "summary": "List Match",
+        "description": "**Status:** implemented\n\n**Contract(s):** current actor match list payload\n\n**AuthZ:** authenticated guardian/athlete; returns only matches where the actor is the invited guardian or linked athlete, narrows selected players to that actor, and audits the read\n\n**UI anchors:** parent/player match list through services/match-service.ts#getMatchesForParent\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "operationId": "listMatch",
         "parameters": [
           {
             "$ref": "#/components/parameters/ActingRoleHeader"

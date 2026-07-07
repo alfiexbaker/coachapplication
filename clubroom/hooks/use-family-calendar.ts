@@ -12,6 +12,7 @@ import {
 } from '@/services/family';
 import { eventService } from '@/services/event-service';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { isBrowserFetchFailure } from '@/utils/network-errors';
 
 const logger = createLogger('FamilyCalendarScreen');
 
@@ -74,7 +75,11 @@ export function useFamilyCalendar() {
         events: allEvents,
       });
     } catch (error) {
-      logger.error('Failed to load calendar data:', error);
+      if (isBrowserFetchFailure(error)) {
+        logger.warn('Family calendar fetch was interrupted', error);
+      } else {
+        logger.error('Failed to load calendar data:', error);
+      }
       return err(serviceError('UNKNOWN', 'Failed to load family calendar.', error));
     }
   };

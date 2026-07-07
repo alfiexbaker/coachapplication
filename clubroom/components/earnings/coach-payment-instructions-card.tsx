@@ -285,7 +285,7 @@ function CoachPaymentInstructionsCardInner({
                 <ThemedText style={[Typography.caption, { color: colors.foreground, flex: 1 }]}>
                   {canSavePaymentInstructions
                     ? 'No payment instructions set yet. Add your bank details or transfer instructions so invoice/reminder messages are ready to send.'
-                    : 'Saved payment instructions need a backend API before they can be edited here. Invoice/reminder messages will ask families to contact the coach for bank details.'}
+                    : 'Saved payment instructions are unavailable for this account. Invoice/reminder messages will ask families to contact the coach for bank details.'}
                 </ThemedText>
               </Row>
             </View>

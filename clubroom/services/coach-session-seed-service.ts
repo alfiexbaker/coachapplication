@@ -12,6 +12,10 @@ const ENABLE_COACH_SESSION_DEMO_SEED =
   process.env.NODE_ENV === 'test';
 
 export async function ensureCoachSessionsSeeded(): Promise<Session[]> {
+  if (!apiClient.isMockMode) {
+    return [];
+  }
+
   try {
     const existing = await apiClient.get<Session[]>(STORAGE_KEYS.COACH_SESSIONS, []);
     if (existing.length > 0) return existing;

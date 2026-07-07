@@ -24,6 +24,7 @@ import { childService, type ChildSquadMembership } from '@/services/child-servic
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import type { ChildReference } from '@/constants/user-types';
 import { createLogger } from '@/utils/logger';
+import { isBrowserFetchFailure } from '@/utils/network-errors';
 import type { ChildInfo, ChildContextValue } from '@/types/child-context';
 
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
@@ -128,7 +129,11 @@ async function loadChildrenIntoState({
       }
     },
     async (error) => {
-      logger.error('Failed to load children', error);
+      if (isBrowserFetchFailure(error)) {
+        logger.warn('Children fetch was interrupted', error);
+      } else {
+        logger.error('Failed to load children', error);
+      }
       if (!mountedRef.current) return;
 
       // Degraded mode: build from refs only

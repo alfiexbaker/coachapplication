@@ -1251,6 +1251,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
     // Step navigation
     currentStep,
     currentStepIndex,
+    sourceType,
     isGroupCompletion,
     // Derived
     attendanceStepData,

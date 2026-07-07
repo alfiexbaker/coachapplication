@@ -8,6 +8,7 @@
  * API Integration Notes:
  * - POST /v1/athletes/:athleteId/injuries - Log injury
  * - GET /v1/athletes/:athleteId/injuries - Get athlete injuries
+ * - GET /v1/injuries/:injuryId - Get injury detail
  * - PATCH /v1/injuries/:injuryId - Update injury, recovery note, or healed state
  */
 
@@ -128,6 +129,19 @@ async function buildApiActorHeaders(targetUserId: string): Promise<Record<string
     actingRole,
     coachAthleteIds: actingRole === 'coach' ? [targetAthleteId] : undefined,
     guardianAthleteIds: actingRole === 'parent' ? [targetAthleteId] : undefined,
+    coachVerified: actingRole === 'coach' && currentUser.isVerified,
+  });
+}
+
+async function buildApiCurrentActorHeaders(): Promise<Record<string, string>> {
+  const currentUser = await authService.getCurrentUser().catch(() => null);
+  if (!currentUser?.id) {
+    return {};
+  }
+
+  const actingRole = deriveApiActingRole(currentUser);
+  return buildApiAuthHeaders({
+    actingRole,
     coachVerified: actingRole === 'coach' && currentUser.isVerified,
   });
 }
@@ -696,7 +710,28 @@ async function getUserInjuriesForActor(
 
 async function getInjuryByIdForActor(id: string, actorUserId: string): Promise<Injury | null> {
   if (!apiClient.isMockMode) {
-    return getInjuryById(id);
+    try {
+      const headers = await buildApiCurrentActorHeaders();
+      const result = await apiFetch<ApiInjuryRecord>(`/v1/injuries/${id}`, {
+        method: 'GET',
+        headers,
+      });
+
+      if (result.success) {
+        const mapped = toUiInjury(result.data);
+        latestApiInjuriesById.set(mapped.id, mapped);
+        return mapped;
+      }
+
+      if (result.error.code === 'NOT_FOUND') {
+        return null;
+      }
+
+      throwApiInjuryError('API injury detail read failed', result.error);
+    } catch (error) {
+      logger.error('API injury detail read threw', { actorUserId, injuryId: id, error });
+      throw error;
+    }
   }
 
   const injury = await getInjuryById(id);

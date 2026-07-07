@@ -11,6 +11,7 @@ import {
   familyIdSchema,
   guardianInviteListResponseSchema,
   guardianInviteResponseSchema,
+  injuryRecordSchema,
   injuryIdSchema,
   injuriesResponseSchema,
   medicalRecordResponseSchema,
@@ -1582,6 +1583,52 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
       },
     });
     return reply.status(201).send(injury);
+  });
+  app.get('/injuries/:injuryId', async (request, reply) => {
+    const injuryId = injuryIdSchema.parse(
+      (
+        request.params as {
+          injuryId: string;
+        }
+      ).injuryId,
+    );
+    const repository = resolveFamilyAthleteRepository();
+    let injury: Awaited<ReturnType<typeof repository.getInjury>> = null;
+    try {
+      injury = await repository.getInjury(injuryId);
+      if (!injury) {
+        throw notFound('Injury record not found', {
+          injuryId,
+        });
+      }
+      await assertCanReadAthleteHealth(request, injury.athleteId);
+      await recordAuditEvent({
+        request,
+        action: 'athlete_injury.read',
+        resourceType: 'athlete_injury',
+        resourceId: injuryId,
+        result: 'SUCCESS',
+        sensitiveRead: true,
+        metadata: {
+          athleteId: injury.athleteId,
+        },
+      });
+      return reply.send(injuryRecordSchema.parse(injury));
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'athlete_injury.read',
+        resourceType: 'athlete_injury',
+        resourceId: injuryId,
+        result: auditResultForError(error),
+        sensitiveRead: true,
+        metadata: {
+          athleteId: injury?.athleteId,
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+        },
+      });
+      throw error;
+    }
   });
   app.patch('/injuries/:injuryId', async (request, reply) => {
     const injuryId = injuryIdSchema.parse(

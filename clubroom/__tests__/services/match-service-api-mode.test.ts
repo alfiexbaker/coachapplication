@@ -114,6 +114,14 @@ describe('matchService API mode', () => {
         });
       }
 
+      if (url.pathname === '/v1/me/matches' && method === 'GET') {
+        return jsonResponse({
+          matches: [makeMatch()],
+          total: 1,
+          requestId: 'req_parent_matches',
+        });
+      }
+
       if (url.pathname === '/v1/clubs/club_api_1/matches' && method === 'POST') {
         return jsonResponse(
           {
@@ -274,7 +282,20 @@ describe('matchService API mode', () => {
       true,
     );
     assert.equal((await matchService.cancelMatch('match_api_1')).success, true);
-    assert.deepEqual(await matchService.getMatchesForParent('parent_api_1'), []);
+    auth.getCurrentUser = async () => ({
+      id: 'parent_api_1',
+      email: 'parent@example.test',
+      accountType: 'PARENT',
+      firstName: 'API',
+      lastName: 'Parent',
+      isVerified: true,
+      onboardingComplete: true,
+      createdAt: '2026-07-01T00:00:00.000Z',
+      updatedAt: '2026-07-01T00:00:00.000Z',
+    });
+    const parentMatches = await matchService.getMatchesForParent('parent_api_1');
+    assert.equal(parentMatches.length, 1);
+    assert.equal(parentMatches[0]?.id, 'match_api_1');
 
     assert.deepEqual(
       calls.map((call) => `${call.method} ${call.path}`),
@@ -287,6 +308,7 @@ describe('matchService API mode', () => {
         'PATCH /v1/matches/match_api_1/lineup',
         'PATCH /v1/matches/match_api_1/result',
         'PATCH /v1/matches/match_api_1/status',
+        'GET /v1/me/matches',
       ],
     );
     assert.deepEqual(calls[2]?.body, {

@@ -1338,6 +1338,28 @@ describe('family-athlete routes', () => {
     assert.equal(listed.injuries.length >= 1, true);
     assert.equal(listed.injuries[0]?.id, created.id);
 
+    const detail = await app.inject({
+      method: 'GET',
+      url: `/v1/injuries/${created.id}`,
+      headers: athleteHeaders,
+    });
+    assert.equal(detail.statusCode, 200);
+    const detailPayload = detail.json() as { id: string; athleteId: string; notes: string | null };
+    assert.equal(detailPayload.id, created.id);
+    assert.equal(detailPayload.athleteId, athleteId);
+    assert.equal(detailPayload.notes, 'Pulled during sprint drill');
+
+    const deniedDetail = await app.inject({
+      method: 'GET',
+      url: `/v1/injuries/${created.id}`,
+      headers: {
+        'x-auth-user-id': 'usr_user2',
+        'x-auth-roles': 'athlete',
+        'x-acting-role': 'athlete',
+      },
+    });
+    assert.equal(deniedDetail.statusCode, 403);
+
     const patch = await app.inject({
       method: 'PATCH',
       url: `/v1/injuries/${created.id}`,
@@ -1356,6 +1378,24 @@ describe('family-athlete routes', () => {
     assert.equal(updated.status, 'resolved');
     assert.equal(typeof updated.resolvedAt, 'string');
     assert.equal(updated.notes, 'Cleared to play');
+
+    const auditTables = getMarketplaceSeedStore().tables as SeedTables;
+    assert.equal(
+      auditEventsFor(auditTables, {
+        action: 'athlete_injury.read',
+        resourceId: created.id,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(auditTables, {
+        action: 'athlete_injury.read',
+        resourceId: created.id,
+        result: 'DENY',
+      }).length,
+      1,
+    );
   });
 
   it('upserts and reads medical, emergency contacts, and consents', async () => {

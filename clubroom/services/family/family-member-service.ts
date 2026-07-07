@@ -677,8 +677,8 @@ class FamilyMemberService {
 
       return sortedBookings;
     } catch (error) {
-      logger.error('get_family_calendar_failed', { parentId, error });
       rethrowApiReadFailure(error);
+      logger.error('get_family_calendar_failed', { parentId, error });
       return [];
     }
   }

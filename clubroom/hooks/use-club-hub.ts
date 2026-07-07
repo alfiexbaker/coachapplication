@@ -40,6 +40,7 @@ import { socialFeedService } from '@/services/social-feed-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { inviteService as sessionInviteService } from '@/services/invite';
 import { createLogger } from '@/utils/logger';
+import { isBrowserFetchFailure } from '@/utils/network-errors';
 import { buildClubActivities } from '@/utils/club-activity-projections';
 import { canCreateClubPost, canManageClubUi } from '@/utils/club-ui-permissions';
 import { uiFeedback } from '@/services/ui-feedback';
@@ -293,7 +294,11 @@ export function useClubHub(): ClubHubState {
       });
       setPendingSessionInvites(upcoming);
     } catch (error) {
-      logger.error('Failed to load pending session invites:', error);
+      if (isBrowserFetchFailure(error)) {
+        logger.warn('Pending session invites fetch was interrupted', error);
+      } else {
+        logger.error('Failed to load pending session invites:', error);
+      }
     }
   };
 

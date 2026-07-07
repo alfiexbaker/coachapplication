@@ -431,6 +431,28 @@ function sortMatches(rows: SeedRow[]): SeedRow[] {
   });
 }
 
+function isMatchPlayerVisibleToUser(params: {
+  tables: SeedTables;
+  player: SeedRow;
+  authUserId: string;
+}): boolean {
+  const parentUserId = asString(params.player.parentUserId) ?? asString(params.player.parentId);
+  if (parentUserId === params.authUserId) {
+    return true;
+  }
+
+  const athleteId = asString(params.player.athleteId);
+  if (!athleteId) {
+    return false;
+  }
+  return asRows(params.tables.athletes).some(
+    (row) =>
+      asString(row.id) === athleteId &&
+      asString(row.userId) === params.authUserId &&
+      !asString(row.deletedAt),
+  );
+}
+
 async function recordClubMatchAudit(params: {
   request: FastifyRequest;
   action: string;
@@ -977,6 +999,93 @@ async function listClubMatches(params: {
   return rows.slice(0, params.limit).map(mapClubMatch);
 }
 
+async function listCurrentUserMatches(params: {
+  authUserId: string;
+  status?: z.infer<typeof matchStatusSchema>;
+  limit?: number;
+}) {
+  if (getApiDataBackend() === 'db' && !shouldUseDbFixtureFallback()) {
+    const prisma = getPrismaClientOrThrow();
+    const rows = await prisma.clubMatch.findMany({
+      where: {
+        deletedAt: null,
+        status: params.status,
+        players: {
+          some: {
+            deletedAt: null,
+            OR: [
+              {
+                parentUserId: params.authUserId,
+              },
+              {
+                athlete: {
+                  userId: params.authUserId,
+                  deletedAt: null,
+                },
+              },
+            ],
+          },
+        },
+      },
+      include: {
+        players: {
+          where: {
+            deletedAt: null,
+            OR: [
+              {
+                parentUserId: params.authUserId,
+              },
+              {
+                athlete: {
+                  userId: params.authUserId,
+                  deletedAt: null,
+                },
+              },
+            ],
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
+      },
+      orderBy: {
+        startsAt: 'desc',
+      },
+      take: params.limit,
+    });
+    return normalizeForJson(rows).map((row) => mapClubMatch(row as SeedRow));
+  }
+
+  const store = resolveStore();
+  const rows = sortMatches(
+    asRows(store.tables.matches).filter((row) => {
+      if (asString(row.deletedAt) || (params.status && asString(row.status) !== params.status)) {
+        return false;
+      }
+      return asRows(row.players).some((player) =>
+        isMatchPlayerVisibleToUser({
+          tables: store.tables as SeedTables,
+          player,
+          authUserId: params.authUserId,
+        }),
+      );
+    }),
+  ).slice(0, params.limit);
+
+  return rows.map((row) =>
+    mapClubMatch({
+      ...row,
+      players: asRows(row.players).filter((player) =>
+        isMatchPlayerVisibleToUser({
+          tables: store.tables as SeedTables,
+          player,
+          authUserId: params.authUserId,
+        }),
+      ),
+    }),
+  );
+}
+
 async function getClubMatch(params: {
   matchId: string;
   authUserId: string;
@@ -1183,6 +1292,31 @@ async function updateClubMatchStatus(params: {
 }
 
 export function registerClubMatchRoutes(app: FastifyInstance): void {
+  app.get('/me/matches', async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const query = listClubMatchesQuerySchema.parse(request.query ?? {});
+    const matches = await listCurrentUserMatches({
+      authUserId,
+      status: query.status,
+      limit: query.limit,
+    });
+    await recordClubMatchAudit({
+      request,
+      action: 'club_match.me.read',
+      resourceId: authUserId,
+      result: 'SUCCESS',
+      metadata: {
+        count: matches.length,
+        status: query.status ?? null,
+      },
+    });
+    return reply.send({
+      matches,
+      total: matches.length,
+      requestId: request.requestId,
+    });
+  });
+
   app.get('/clubs/:clubId/matches', async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const params = clubMatchParamsSchema.parse(request.params ?? {});

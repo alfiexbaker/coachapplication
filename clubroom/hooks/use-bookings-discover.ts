@@ -25,6 +25,7 @@ import { createLogger } from "@/utils/logger";
 import { getSessionInviteCoachName } from "@/utils/session-invite-display";
 import { getSessionOfferingHeadcount } from "@/utils/session-offering-capacity";
 import { buildBookingDraftPatchFromOffering } from "@/utils/booking-draft-prefill";
+import { isBrowserFetchFailure } from "@/utils/network-errors";
 import {
   canViewerSeeEvent,
   extractGroupSessionIdFromOfferingId,
@@ -115,7 +116,11 @@ export function useBookingsDiscover(): UseBookingsDiscoverResult {
         try {
           pendingInvites = await sessionInviteService.getPendingInvites(userId);
         } catch (e) {
-          logger.error("Failed to load pending invites", e);
+          if (isBrowserFetchFailure(e)) {
+            logger.warn("Pending invites fetch was interrupted", e);
+          } else {
+            logger.error("Failed to load pending invites", e);
+          }
         }
       }
 

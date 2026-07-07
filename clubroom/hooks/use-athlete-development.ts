@@ -13,6 +13,7 @@ import { userService } from '@/services/user-service';
 import type { Session, BadgeAward, BadgeCategory, User } from '@/constants/types';
 import type { ProgressionLevel } from '@/constants/progression';
 import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { isBrowserFetchFailure } from '@/utils/network-errors';
 
 const logger = createLogger('AthleteDetailScreen');
 
@@ -133,7 +134,12 @@ export function useAthleteDevelopment(athleteId: string) {
         progressionSummary: progression,
       });
     } catch (error) {
-      logger.error('Failed to load athlete development', { athleteId, error });
+      const details = { athleteId, error };
+      if (isBrowserFetchFailure(error)) {
+        logger.warn('Athlete development fetch was interrupted', details);
+      } else {
+        logger.error('Failed to load athlete development', details);
+      }
       return err(serviceError('UNKNOWN', 'Failed to load athlete progress.', error));
     }
   };

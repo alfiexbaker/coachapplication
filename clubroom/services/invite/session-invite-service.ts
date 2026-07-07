@@ -921,11 +921,7 @@ export const sessionInviteService = {
     }
     const result = await sessionInviteAuthorityService.getCoachInvites(coachId);
     if (!result.success) {
-      logger.error('Failed to load coach invites via API', {
-        coachId,
-        error: result.error,
-      });
-      return [];
+      throw result.error;
     }
     return result.data;
   },
@@ -942,11 +938,7 @@ export const sessionInviteService = {
     }
     const result = await sessionInviteAuthorityService.getParentInvites(parentId);
     if (!result.success) {
-      logger.error('Failed to load parent invites via API', {
-        parentId,
-        error: result.error,
-      });
-      return [];
+      throw result.error;
     }
     return result.data;
   },
