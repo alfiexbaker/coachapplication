@@ -69,13 +69,23 @@ export function useVideoUpload() {
       uiFeedback.showToast('You must be logged in to upload videos.', 'error');
       return;
     }
+    const coachName = (
+      currentUser.name ||
+      currentUser.fullName ||
+      currentUser.username ||
+      ''
+    ).trim();
+    if (!coachName) {
+      uiFeedback.showToast('Complete your account name before uploading coaching videos.', 'error');
+      return;
+    }
 
     setUploadStage('initializing-upload');
     try {
       const newVideo = await videoService.createVideo(
         {
           coachId: currentUser.id,
-          coachName: currentUser.name || currentUser.fullName || 'Coach',
+          coachName,
           athleteIds: [],
           athleteNames: [],
           title: title.trim(),

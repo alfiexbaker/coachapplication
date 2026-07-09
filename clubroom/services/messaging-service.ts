@@ -243,7 +243,12 @@ export class MessagingService {
   ): Promise<Result<boolean, ServiceError>> {
     try {
       const threadResult = await this.getThread(threadId);
-      if (!threadResult.success) return ok(false);
+      if (!threadResult.success) {
+        if (!USE_MOCK && threadResult.error.code !== 'NOT_FOUND') {
+          return err(threadResult.error);
+        }
+        return ok(false);
+      }
 
       // Check if the thread's subtitle (child name) matches any linked child
       // In production, this would check the thread's associated childId
@@ -326,14 +331,11 @@ export class MessagingService {
       }
 
       if (!USE_MOCK) {
-        if (attachments.length > 0) {
-          return err({
-            code: 'VALIDATION' as const,
-            message: 'Message attachments require backend media proof before send',
-          });
-        }
-
-        const sentResult = await communityMediaAuthorityService.sendThreadMessage(threadId, body);
+        const sentResult = await communityMediaAuthorityService.sendThreadMessage(
+          threadId,
+          body,
+          attachments,
+        );
         if (!sentResult.success) {
           return sentResult;
         }
@@ -343,7 +345,7 @@ export class MessagingService {
           messageId: sentResult.data.id,
           sender: sentResult.data.sender,
           senderName,
-          attachmentsCount: 0,
+          attachmentsCount: sentResult.data.attachments?.length ?? 0,
           createdAt: sentResult.data.createdAt,
         });
         return sentResult;
@@ -548,8 +550,8 @@ export class MessagingService {
       }
       return ok(undefined);
     } catch (error) {
-      logger.error('Failed to delete message', { threadId, messageId, error });
-      return err(storageError('Failed to delete message'));
+      logger.error('Failed to remove message', { threadId, messageId, error });
+      return err(storageError('Failed to remove message'));
     }
   }
 

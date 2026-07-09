@@ -710,7 +710,7 @@ const MOCK_CHILDREN: ChildProfile[] = normalizeLegacyMockDates([
   },
 ]);
 
-let childrenCache: ChildProfile[] = cloneChildProfiles(MOCK_CHILDREN);
+let childrenCache: ChildProfile[] = USE_MOCK ? cloneChildProfiles(MOCK_CHILDREN) : [];
 
 // ============================================================================
 // STORAGE HELPERS
@@ -1448,6 +1448,6 @@ export const childService = {
   },
 
   __resetMockChildren(): void {
-    childrenCache = cloneChildProfiles(MOCK_CHILDREN);
+    childrenCache = USE_MOCK ? cloneChildProfiles(MOCK_CHILDREN) : [];
   },
 };

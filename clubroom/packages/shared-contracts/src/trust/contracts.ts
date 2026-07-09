@@ -18,6 +18,21 @@ export const safeguardingCategorySchema = z.enum([
 export const safeguardingSeveritySchema = z.enum(['low', 'medium', 'high', 'critical']);
 export const safeguardingIncidentStatusSchema = z.enum(['open', 'in_review', 'closed']);
 
+const statusListQuerySchema = z.preprocess((value) => {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+  const values = Array.isArray(value) ? value : [value];
+  return values.flatMap((item) =>
+    String(item)
+      .split(',')
+      .flatMap((part) => {
+        const trimmed = part.trim();
+        return trimmed ? [trimmed] : [];
+      }),
+  );
+}, z.array(safeguardingIncidentStatusSchema).min(1).max(3).optional());
+
 export const createSafeguardingIncidentRequestSchema = z.object({
   athleteId: athleteIdSchema.optional(),
   bookingId: bookingIdSchema.optional(),
@@ -65,7 +80,22 @@ export const safeguardingIncidentResponseSchema = z.object({
   actions: z.array(safeguardingActionResponseSchema),
 });
 
+export const listSafeguardingIncidentsQuerySchema = z.object({
+  athleteId: athleteIdSchema.optional(),
+  status: statusListQuerySchema,
+  reportedBy: z.enum(['me', 'any']).default('me'),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+
+export const safeguardingIncidentListResponseSchema = z.object({
+  incidents: z.array(safeguardingIncidentResponseSchema),
+  total: z.number().int().nonnegative(),
+  requestId: z.string().optional(),
+});
+
 export type CreateSafeguardingIncidentRequest = z.infer<typeof createSafeguardingIncidentRequestSchema>;
 export type CreateSafeguardingActionRequest = z.infer<typeof createSafeguardingActionRequestSchema>;
 export type SafeguardingActionResponse = z.infer<typeof safeguardingActionResponseSchema>;
 export type SafeguardingIncidentResponse = z.infer<typeof safeguardingIncidentResponseSchema>;
+export type ListSafeguardingIncidentsQuery = z.infer<typeof listSafeguardingIncidentsQuerySchema>;
+export type SafeguardingIncidentListResponse = z.infer<typeof safeguardingIncidentListResponseSchema>;

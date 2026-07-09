@@ -26,3 +26,22 @@ test('seen statuses remain local walkthrough state in API mode', () => {
     'service ownership docs should explain why seen statuses stay local',
   );
 });
+
+test('UI seen state does not create ad hoc API-mode storage keys', () => {
+  const dailyChallengeSource = readSource('components/progress/daily-challenge-banner.tsx');
+  const onboardingChecklistSource = readSource('components/coach/onboarding-checklist.tsx');
+  const availabilityTutorialSource = readSource('components/coach/availability-tutorial.tsx');
+
+  assert.ok(dailyChallengeSource.includes("from '@/services/seen-service'"));
+  assert.equal(dailyChallengeSource.includes('CHALLENGE_ANIMATION_SEEN_'), false);
+  assert.doesNotMatch(dailyChallengeSource, /apiClient\.(get|set|remove)\(/);
+
+  assert.ok(onboardingChecklistSource.includes("from '@/services/seen-service'"));
+  assert.equal(onboardingChecklistSource.includes('clubroom.coach_onboarding_dismissed_'), false);
+  assert.doesNotMatch(onboardingChecklistSource, /apiClient\.(get|set|remove)\(/);
+
+  assert.ok(availabilityTutorialSource.includes("from '@/services/seen-service'"));
+  assert.equal(availabilityTutorialSource.includes('AVAILABILITY_TUTORIAL_COMPLETED'), false);
+  assert.equal(availabilityTutorialSource.includes('clubroom.availability_tutorial_completed'), false);
+  assert.doesNotMatch(availabilityTutorialSource, /apiClient\.(get|set|remove)\(/);
+});

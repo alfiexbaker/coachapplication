@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it } from 'node:test';
 
 import type { Match } from '@/constants/types';
@@ -45,6 +47,13 @@ function makeMatch(overrides: Partial<Match> = {}): Match {
 }
 
 describe('matchService API mode', () => {
+  it('does not initialize match fixtures as API-mode cache', () => {
+    const source = fs.readFileSync(path.join(process.cwd(), 'services/match-service.ts'), 'utf8');
+
+    assert.doesNotMatch(source, /let matchesCache:[^=]+=\s*\[\.\.\.MOCK_MATCHES\];/);
+    assert.ok(source.includes('USE_MOCK ? [...MOCK_MATCHES] : []'));
+  });
+
   it('uses /v1 match routes instead of local MATCHES storage', async (t) => {
     const [{ matchService }, { apiClient }, { authService }] = await Promise.all([
       import('@/services/match-service'),
@@ -325,5 +334,63 @@ describe('matchService API mode', () => {
     });
     assert.deepEqual(calls[6]?.body, { result: { home: 2, away: 1 } });
     assert.deepEqual(calls[7]?.body, { status: 'CANCELLED' });
+  });
+
+  it('preserves match-detail not found but fails closed on API errors', async (t) => {
+    const [{ matchService }, { authService }] = await Promise.all([
+      import('@/services/match-service'),
+      import('@/services/auth-service'),
+    ]);
+
+    const auth = authService as unknown as {
+      getCurrentUser: typeof authService.getCurrentUser;
+      getTokens: typeof authService.getTokens;
+    };
+    const original = {
+      fetch: globalThis.fetch,
+      getCurrentUser: auth.getCurrentUser,
+      getTokens: auth.getTokens,
+    };
+    const calls: string[] = [];
+
+    auth.getCurrentUser = async () => ({
+      id: 'coach_api_1',
+      email: 'coach@example.test',
+      accountType: 'COACH',
+      firstName: 'API',
+      lastName: 'Coach',
+      isVerified: true,
+      onboardingComplete: true,
+      createdAt: '2026-07-01T00:00:00.000Z',
+      updatedAt: '2026-07-01T00:00:00.000Z',
+    });
+    auth.getTokens = async () => null;
+    globalThis.fetch = (async (input, init) => {
+      const url = new URL(String(input));
+      calls.push(`${init?.method ?? 'GET'} ${url.pathname}`);
+
+      if (url.pathname === '/v1/matches/missing_match') {
+        return jsonResponse({ code: 'NOT_FOUND', message: 'Match not found.' }, 404);
+      }
+
+      if (url.pathname === '/v1/matches/api_down') {
+        return jsonResponse({ code: 'API_ERROR', message: 'Match API unavailable.' }, 500);
+      }
+
+      return jsonResponse({ message: `Unhandled ${url.pathname}` }, 500);
+    }) as typeof fetch;
+
+    t.after(() => {
+      globalThis.fetch = original.fetch;
+      auth.getCurrentUser = original.getCurrentUser;
+      auth.getTokens = original.getTokens;
+    });
+
+    assert.equal(await matchService.getMatch('missing_match'), null);
+    await assert.rejects(() => matchService.getMatch('api_down'), /Match API unavailable/);
+
+    auth.getCurrentUser = async () => null;
+    await assert.rejects(() => matchService.getMatch('missing_auth'), /Sign in to view match details/);
+    assert.deepEqual(calls, ['GET /v1/matches/missing_match', 'GET /v1/matches/api_down']);
   });
 });

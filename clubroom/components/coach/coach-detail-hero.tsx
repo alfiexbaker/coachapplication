@@ -56,17 +56,8 @@ export const CoachDetailHero = function CoachDetailHero({
     offeringSummary.nextOffering?.scheduledAt ?? coach.nextAvailable,
   );
   const accessLabel =
-    offeringSummary.clubOfferingsCount > 0 || offeringSummary.eventOfferingsCount > 0
-      ? [
-          offeringSummary.clubOfferingsCount > 0
-            ? `${offeringSummary.clubOfferingsCount} club`
-            : null,
-          offeringSummary.eventOfferingsCount > 0
-            ? `${offeringSummary.eventOfferingsCount} event`
-            : null,
-        ]
-          .filter(Boolean)
-          .join(' · ')
+    offeringSummary.clubOfferingsCount > 0
+      ? `${offeringSummary.clubOfferingsCount} club`
       : `${Math.max(offeringSummary.directOfferingsCount, 1)} direct options`;
 
   return (

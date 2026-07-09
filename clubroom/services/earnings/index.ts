@@ -23,9 +23,16 @@ import { payoutService } from './payout-service';
 import { earningsReportService, type TransactionFilter } from './earnings-report-service';
 import { type Result, type ServiceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
+import { apiClient } from '@/services/api-client';
 
 const logger = createLogger('EarningsFacade');
 void logger;
+
+function throwApiModeError(error: ServiceError): void {
+  if (!apiClient.isMockMode) {
+    throw new Error(error.message);
+  }
+}
 
 // Re-export types
 export type { TransactionFilter } from './earnings-report-service';
@@ -58,7 +65,11 @@ export const earningsService = {
    */
   async getEarnings(coachId: string) {
     const result = await earningsReportService.getEarnings(coachId);
-    return result.success ? result.data : null;
+    if (!result.success) {
+      throwApiModeError(result.error);
+      return null;
+    }
+    return result.data;
   },
 
   /**
@@ -67,6 +78,7 @@ export const earningsService = {
   async calculateEarningsFromBookings(coachId: string) {
     const result = await earningsCalculatorService.calculateEarningsFromBookings(coachId);
     if (!result.success) {
+      throwApiModeError(result.error);
       return {
         totalEarned: 0,
         totalSessions: 0,
@@ -90,6 +102,7 @@ export const earningsService = {
       transactions,
     );
     if (!result.success) {
+      throwApiModeError(result.error);
       return {
         period,
         totalEarned: 0,
@@ -145,6 +158,7 @@ export const earningsService = {
   async getPayoutMethods(coachId: string) {
     const result = await payoutService.getPayoutMethods(coachId);
     if (!result.success) {
+      throwApiModeError(result.error);
       return [];
     }
     return result.data;
@@ -205,6 +219,7 @@ export const earningsService = {
   async getWithdrawalHistory(coachId: string) {
     const result = await payoutService.getWithdrawalHistory(coachId);
     if (!result.success) {
+      throwApiModeError(result.error);
       return [];
     }
     return result.data;
@@ -216,6 +231,7 @@ export const earningsService = {
   async getPendingWithdrawals(coachId: string) {
     const result = await payoutService.getPendingWithdrawals(coachId);
     if (!result.success) {
+      throwApiModeError(result.error);
       return [];
     }
     return result.data;
@@ -251,6 +267,7 @@ export const earningsService = {
   async getTransactionHistory(coachId: string, limit?: number) {
     const result = await earningsReportService.getTransactionHistory(coachId, limit);
     if (!result.success) {
+      throwApiModeError(result.error);
       return [];
     }
     return result.data;

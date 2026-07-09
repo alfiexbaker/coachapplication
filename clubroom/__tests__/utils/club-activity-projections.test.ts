@@ -89,6 +89,16 @@ describe('club activity projections', () => {
     assert.equal(activity.participationLabel, 'RSVP');
   });
 
+  test('keeps training-named events separate from coach sessions', () => {
+    const activity = mapEventToClubActivity(makeEvent({ eventType: 'TRAINING_CAMP' }));
+
+    assert.equal(activity.source, 'club_event');
+    assert.equal(activity.kind, 'informational');
+    assert.equal(activity.typeLabel, 'Training Camp');
+    assert.equal(activity.participationMode, 'rsvp');
+    assert.equal(activity.allowsExternalRegistration, false);
+  });
+
   test('maps club-linked open training into mixed-access activity', () => {
     const activity = mapGroupSessionToClubActivity(
       makeSession({

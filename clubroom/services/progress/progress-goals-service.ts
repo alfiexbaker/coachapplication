@@ -716,14 +716,14 @@ async function deleteGoal(id: string): Promise<boolean> {
   const goalIndex = goals.findIndex((g) => g.id === id);
 
   if (goalIndex === -1) {
-    logger.warn('goal_not_found_for_delete', { goalId: id });
+    logger.warn('goal_not_found_for_archive', { goalId: id });
     return false;
   }
 
   goals.splice(goalIndex, 1);
   await saveGoals(goals);
 
-  logger.info('goal_deleted', { goalId: id });
+  logger.info('goal_archived', { goalId: id });
   return true;
 }
 
@@ -957,7 +957,7 @@ async function deleteMilestone(milestoneId: string): Promise<Goal | null> {
   const goalIndex = goals.findIndex((g) => g.milestones.some((m) => m.id === milestoneId));
 
   if (goalIndex === -1) {
-    logger.warn('milestone_not_found_for_delete', { milestoneId });
+    logger.warn('milestone_not_found_for_archive', { milestoneId });
     return null;
   }
 
@@ -976,7 +976,7 @@ async function deleteMilestone(milestoneId: string): Promise<Goal | null> {
   goals[goalIndex] = goal;
   await saveGoals(goals);
 
-  logger.info('milestone_deleted', {
+  logger.info('milestone_archived', {
     milestoneId,
     goalId: goal.id,
   });
@@ -1114,6 +1114,10 @@ function isOverdue(goal: Goal): boolean {
 }
 
 async function resetToMockData(): Promise<void> {
+  if (!api.useMock || process.env.NODE_ENV !== 'test') {
+    throw new Error('Goal mock reset is only available in test mock mode');
+  }
+
   await saveGoals([...MOCK_GOALS]);
   logger.info('goals_reset_to_mock');
 }

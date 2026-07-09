@@ -17,6 +17,7 @@ const asStringArray = (value: unknown): string[] =>
 const isoNow = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
 type GuardianInviteRole = 'GUARDIAN' | 'VIEWER';
+type GuardianRole = 'PRIMARY' | 'GUARDIAN' | 'VIEWER';
 type GuardianInviteStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'CANCELLED';
 type GuardianPermission =
   | 'VIEW_SCHEDULE'
@@ -51,6 +52,25 @@ export interface CreateGuardianInviteInput {
   childAccess: string[];
   message?: string;
 }
+export interface UpdateFamilyGuardianAccessInput {
+  familyId: string;
+  guardianId: string;
+  actorUserId: string;
+  permissions?: GuardianPermission[];
+  childAccess?: string[];
+}
+export interface FamilyGuardianRecord {
+  id: string;
+  familyId: string;
+  userId: string;
+  role: GuardianRole;
+  permissions: GuardianPermission[];
+  relationship: string;
+  childAccess: string[];
+  isPrimary: boolean;
+  addedAt: string;
+  updatedAt?: string;
+}
 export interface GuardianInviteCreateResult {
   invite: GuardianInviteRecord;
   replayed: boolean;
@@ -80,6 +100,7 @@ export interface FamilyRepository {
     authUserId: string,
     response: 'ACCEPTED' | 'DECLINED',
   ): Promise<GuardianInviteRespondResult>;
+  updateGuardianAccess(input: UpdateFamilyGuardianAccessInput): Promise<FamilyGuardianRecord | null>;
   cancelGuardianInvite(familyId: string, inviteId: string, authUserId: string): Promise<boolean>;
   removeGuardian(familyId: string, guardianId: string, authUserId: string): Promise<boolean>;
 }
@@ -100,6 +121,78 @@ function membershipPermissionsForRole(role: GuardianInviteRole): string[] {
     return ['messages'];
   }
   return ['book', 'messages'];
+}
+function membershipPermissionsFromGuardianPermissions(permissions: GuardianPermission[]): string[] {
+  const requested = new Set(permissions);
+  const mapped: string[] = [];
+  if (requested.has('VIEW_SCHEDULE')) mapped.push('schedule');
+  if (requested.has('VIEW_PROGRESS')) mapped.push('progress');
+  if (requested.has('BOOK_SESSIONS')) mapped.push('book');
+  if (requested.has('MANAGE_PAYMENTS')) mapped.push('payments');
+  if (requested.has('MANAGE_PROFILE')) mapped.push('medical');
+  if (requested.has('ADMIN')) mapped.push('admin');
+  return [...new Set(mapped)];
+}
+function guardianRoleFromMembership(family: SeedRow, membership: SeedRow): GuardianRole {
+  const role = asString(membership.role)?.toLowerCase();
+  if (asString(family.primaryGuardianUserId) === asString(membership.userId) || role === 'owner') {
+    return 'PRIMARY';
+  }
+  if (role === 'viewer') {
+    return 'VIEWER';
+  }
+  return 'GUARDIAN';
+}
+function guardianPermissionsFromMembership(
+  role: GuardianRole,
+  permissions: unknown,
+): GuardianPermission[] {
+  if (role === 'PRIMARY') {
+    return [
+      'VIEW_SCHEDULE',
+      'VIEW_PROGRESS',
+      'BOOK_SESSIONS',
+      'MANAGE_PAYMENTS',
+      'MANAGE_PROFILE',
+      'ADMIN',
+    ];
+  }
+  const normalized = new Set(asStringArray(permissions).map((permission) => permission.toLowerCase()));
+  const mapped: GuardianPermission[] = [];
+  if (normalized.has('schedule') || normalized.has('messages') || normalized.has('book')) {
+    mapped.push('VIEW_SCHEDULE');
+  }
+  if (normalized.has('progress') || normalized.has('messages')) {
+    mapped.push('VIEW_PROGRESS');
+  }
+  if (normalized.has('book')) {
+    mapped.push('BOOK_SESSIONS');
+  }
+  if (normalized.has('payments')) {
+    mapped.push('MANAGE_PAYMENTS');
+  }
+  if (normalized.has('medical') || normalized.has('profile')) {
+    mapped.push('MANAGE_PROFILE');
+  }
+  if (normalized.has('admin')) {
+    mapped.push('ADMIN');
+  }
+  return mapped;
+}
+function familyGuardianRecordFromRows(family: SeedRow, membership: SeedRow): FamilyGuardianRecord {
+  const role = guardianRoleFromMembership(family, membership);
+  return {
+    id: asString(membership.id) ?? '',
+    familyId: asString(membership.familyId) ?? '',
+    userId: asString(membership.userId) ?? '',
+    role,
+    permissions: guardianPermissionsFromMembership(role, membership.permissions),
+    relationship: asString(membership.relationshipLabel) ?? (role === 'PRIMARY' ? 'Primary guardian' : 'Guardian'),
+    childAccess: asStringArray(membership.childAccessAthleteIds),
+    isPrimary: role === 'PRIMARY',
+    addedAt: asString(membership.createdAt) ?? isoNow(),
+    updatedAt: asString(membership.updatedAt),
+  };
 }
 function normalizeEmail(value: string): string {
   return value.trim().toLowerCase();
@@ -554,6 +647,103 @@ function removeGuardianFromTables(
   }
   return true;
 }
+function updateGuardianAccessFromTables(
+  tables: SeedTables,
+  input: UpdateFamilyGuardianAccessInput,
+): FamilyGuardianRecord | null {
+  const now = isoNow();
+  const family = asRows(tables.families).find(
+    (row) => asString(row.id) === input.familyId && !asString(row.deletedAt),
+  );
+  if (!family) {
+    throw notFound('Family not found', {
+      familyId: input.familyId,
+    });
+  }
+  const memberships = asRows(tables.familyMemberships).filter(
+    (row) => asString(row.familyId) === input.familyId && !asString(row.deletedAt),
+  );
+  if (!isFamilyAdminFromRows(family, memberships, input.actorUserId)) {
+    throw forbidden('Only a family admin guardian can update guardian access');
+  }
+  const membership = memberships.find((row) => asString(row.id) === input.guardianId);
+  if (!membership) {
+    return null;
+  }
+  const guardianUserId = asString(membership.userId);
+  if (!guardianUserId) {
+    return null;
+  }
+  if (
+    asString(family.primaryGuardianUserId) === guardianUserId ||
+    asString(membership.role) === 'owner'
+  ) {
+    throw conflict('Cannot modify primary guardian access', {
+      guardianId: input.guardianId,
+    });
+  }
+  if (input.permissions !== undefined) {
+    membership.permissions = membershipPermissionsFromGuardianPermissions(input.permissions);
+  }
+  if (input.childAccess !== undefined) {
+    assertChildAccessIsInsideFamily(tables, input.familyId, input.childAccess);
+    const athleteIds = familyInviteAthleteIds(tables, input.familyId, input.childAccess);
+    const athleteIdSet = new Set(athleteIds);
+    const links = ensureStoreTable(tables, 'guardianChildLinks');
+    const guardianLinks = links.filter(
+      (row) =>
+        asString(row.familyId) === input.familyId && asString(row.guardianUserId) === guardianUserId,
+    );
+    if (guardianLinks.some((row) => asBoolean(row.isPrimary) && !asString(row.deletedAt))) {
+      throw conflict('Cannot modify child access for a primary guardian link', {
+        guardianId: input.guardianId,
+      });
+    }
+    for (const link of guardianLinks) {
+      const athleteId = asString(link.athleteId);
+      if (athleteId && !athleteIdSet.has(athleteId) && !asString(link.deletedAt)) {
+        link.deletedAt = now;
+        link.deletedByUserId = input.actorUserId;
+        link.updatedAt = now;
+        link.updatedByUserId = input.actorUserId;
+      }
+    }
+    for (const athleteId of athleteIds) {
+      const existing = guardianLinks.find((row) => asString(row.athleteId) === athleteId);
+      if (existing) {
+        existing.familyId = input.familyId;
+        existing.relationshipType = (
+          asString(membership.relationshipLabel) ?? 'guardian'
+        ).toLowerCase();
+        existing.isPrimary = false;
+        existing.deletedAt = null;
+        existing.deletedByUserId = null;
+        existing.updatedAt = now;
+        existing.updatedByUserId = input.actorUserId;
+        continue;
+      }
+      links.push({
+        id: newId('gcl'),
+        familyId: input.familyId,
+        guardianUserId,
+        athleteId,
+        relationshipType: (asString(membership.relationshipLabel) ?? 'guardian').toLowerCase(),
+        isPrimary: false,
+        createdByUserId: input.actorUserId,
+        updatedByUserId: input.actorUserId,
+        createdAt: now,
+        updatedAt: now,
+        version: 1,
+        deletedAt: null,
+        deletedByUserId: null,
+      });
+    }
+    membership.childAccessAthleteIds = athleteIds;
+  }
+  membership.updatedAt = now;
+  membership.updatedByUserId = input.actorUserId;
+  return familyGuardianRecordFromRows(family, membership);
+}
 function fromTables(
   tables: SeedTables,
   familyId: string,
@@ -662,6 +852,12 @@ class SeedFamilyRepository implements FamilyRepository {
   ): Promise<boolean> {
     const store = getMarketplaceSeedStore();
     return cancelGuardianInviteFromTables(store.tables, familyId, inviteId, authUserId);
+  }
+  async updateGuardianAccess(
+    input: UpdateFamilyGuardianAccessInput,
+  ): Promise<FamilyGuardianRecord | null> {
+    const store = getMarketplaceSeedStore();
+    return updateGuardianAccessFromTables(store.tables, input);
   }
   async removeGuardian(familyId: string, guardianId: string, authUserId: string): Promise<boolean> {
     const store = getMarketplaceSeedStore();
@@ -1122,6 +1318,167 @@ class DbFamilyRepository implements FamilyRepository {
       familyId: accepted.familyId,
       replayed: false,
     };
+  }
+  async updateGuardianAccess(
+    input: UpdateFamilyGuardianAccessInput,
+  ): Promise<FamilyGuardianRecord | null> {
+    if (shouldUseDbFixtureFallback()) {
+      const store = getDbFixtureStore();
+      return updateGuardianAccessFromTables(store.tables, input);
+    }
+    const prisma = getPrismaClientOrThrow();
+    const family = await prisma.family.findFirst({
+      where: {
+        id: input.familyId,
+        deletedAt: null,
+      },
+    });
+    if (!family) {
+      throw notFound('Family not found', {
+        familyId: input.familyId,
+      });
+    }
+    const memberships = await prisma.familyMembership.findMany({
+      where: {
+        familyId: input.familyId,
+        deletedAt: null,
+      },
+    });
+    if (
+      !isFamilyAdminFromRows(
+        normalizeForJson(family) as SeedRow,
+        normalizeForJson(memberships) as SeedRow[],
+        input.actorUserId,
+      )
+    ) {
+      throw forbidden('Only a family admin guardian can update guardian access');
+    }
+    const membership = memberships.find((row) => row.id === input.guardianId);
+    if (!membership) {
+      return null;
+    }
+    if (family.primaryGuardianUserId === membership.userId || membership.role === 'owner') {
+      throw conflict('Cannot modify primary guardian access', {
+        guardianId: input.guardianId,
+      });
+    }
+    const now = new Date();
+    const membershipData: {
+      permissions?: string[];
+      childAccessAthleteIds?: string[];
+      updatedByUserId: string;
+      updatedAt: Date;
+    } = {
+      updatedByUserId: input.actorUserId,
+      updatedAt: now,
+    };
+    if (input.permissions !== undefined) {
+      membershipData.permissions = membershipPermissionsFromGuardianPermissions(input.permissions);
+    }
+    let targetAthleteIds: string[] | null = null;
+    if (input.childAccess !== undefined) {
+      const familyLinks = await prisma.guardianChildLink.findMany({
+        where: {
+          familyId: input.familyId,
+        },
+      });
+      const activeFamilyAthleteIds = [
+        ...new Set(
+          familyLinks.flatMap((row) => (row.deletedAt === null ? [row.athleteId] : [])),
+        ),
+      ];
+      targetAthleteIds =
+        input.childAccess.length > 0 ? [...new Set(input.childAccess)] : activeFamilyAthleteIds;
+      const outsideFamily = targetAthleteIds.find(
+        (athleteId) => !activeFamilyAthleteIds.includes(athleteId),
+      );
+      if (outsideFamily) {
+        throw badRequest('Guardian child access must belong to this family', {
+          athleteId: outsideFamily,
+        });
+      }
+      const guardianLinks = familyLinks.filter((row) => row.guardianUserId === membership.userId);
+      if (guardianLinks.some((row) => row.isPrimary && row.deletedAt === null)) {
+        throw conflict('Cannot modify child access for a primary guardian link', {
+          guardianId: input.guardianId,
+        });
+      }
+      membershipData.childAccessAthleteIds = targetAthleteIds;
+    }
+
+    const updatedMembership = await prisma.$transaction(async (tx) => {
+      const updated = await tx.familyMembership.update({
+        where: {
+          id: input.guardianId,
+        },
+        data: membershipData,
+      });
+      if (targetAthleteIds !== null) {
+        await tx.guardianChildLink.updateMany({
+          where: {
+            familyId: input.familyId,
+            guardianUserId: membership.userId,
+            isPrimary: false,
+            athleteId: {
+              notIn: targetAthleteIds,
+            },
+            deletedAt: null,
+          },
+          data: {
+            deletedAt: now,
+            deletedByUserId: input.actorUserId,
+            updatedByUserId: input.actorUserId,
+            updatedAt: now,
+          },
+        });
+        await Promise.all(
+          targetAthleteIds.map(async (athleteId) => {
+            const existing = await tx.guardianChildLink.findFirst({
+              where: {
+                familyId: input.familyId,
+                guardianUserId: membership.userId,
+                athleteId,
+              },
+            });
+            if (existing) {
+              await tx.guardianChildLink.update({
+                where: {
+                  id: existing.id,
+                },
+                data: {
+                  relationshipType: (membership.relationshipLabel ?? 'guardian').toLowerCase(),
+                  isPrimary: false,
+                  deletedAt: null,
+                  deletedByUserId: null,
+                  updatedByUserId: input.actorUserId,
+                  updatedAt: now,
+                },
+              });
+              return;
+            }
+            await tx.guardianChildLink.create({
+              data: {
+                id: newId('gcl'),
+                familyId: input.familyId,
+                guardianUserId: membership.userId,
+                athleteId,
+                relationshipType: (membership.relationshipLabel ?? 'guardian').toLowerCase(),
+                isPrimary: false,
+                createdByUserId: input.actorUserId,
+                updatedByUserId: input.actorUserId,
+                createdAt: now,
+                updatedAt: now,
+              },
+            });
+          }),
+        );
+      }
+      return updated;
+    });
+    return familyGuardianRecordFromRows(
+      normalizeForJson(family) as SeedRow,
+      normalizeForJson(updatedMembership) as SeedRow,
+    );
   }
   async cancelGuardianInvite(
     familyId: string,

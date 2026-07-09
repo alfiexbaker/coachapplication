@@ -8,7 +8,19 @@
 import { api } from '@/constants/config';
 import { createLogger } from '@/utils/logger';
 import { notificationTriggers } from '../notification-trigger';
+import { apiFetch } from '../api-client';
+import {
+  buildApiAuthHeaders,
+  deriveApiActingRole,
+  resolveSignedInApiUser,
+} from '@/services/api-auth-context';
 import { loadMockFamilyAccounts, saveMockFamilyAccounts } from './family-mock-store';
+import {
+  mapApiFamilyAthleteToChildProfile,
+  mapChildProfileToFamilyMember,
+  type ApiFamilyAthlete,
+} from './family-api-support';
+import { CHILD_COLORS } from './family-member-service';
 import {
   type Result,
   type ServiceError,
@@ -17,7 +29,6 @@ import {
   notFound,
   storageError,
   unauthorized,
-  validationError,
 } from '@/types/result';
 import {
   type FamilyAccount,
@@ -28,6 +39,44 @@ import {
 
 const logger = createLogger('FamilyPermissionService');
 const USE_MOCK = api.useMock;
+
+interface ApiFamilyMembership {
+  id: string;
+  familyId: string;
+  userId: string;
+  role?: string | null;
+  permissions?: string[] | null;
+  relationshipLabel?: string | null;
+  childAccessAthleteIds?: string[] | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  user?: {
+    email?: string | null;
+    avatarUrl?: string | null;
+  } | null;
+}
+
+interface ApiFamilyResponse {
+  family: {
+    id: string;
+    primaryGuardianUserId?: string | null;
+  };
+  memberships: ApiFamilyMembership[];
+  athletes: ApiFamilyAthlete[];
+}
+
+interface ApiFamilyGuardianResponse {
+  id: string;
+  familyId: string;
+  userId: string;
+  role: 'PRIMARY' | 'GUARDIAN' | 'VIEWER';
+  permissions: GuardianPermission[];
+  relationship: string;
+  childAccess: string[];
+  isPrimary: boolean;
+  addedAt: string;
+  updatedAt?: string;
+}
 
 // ============================================================================
 // CONSTANTS
@@ -75,6 +124,103 @@ class FamilyPermissionService {
     saveMockFamilyAccounts(accounts);
   }
 
+  private async loadApiFamily(familyId: string): Promise<ApiFamilyResponse> {
+    const currentUserResult = await resolveSignedInApiUser('Sign in to view family permissions.');
+    if (!currentUserResult.success) {
+      throw new Error(currentUserResult.error.message);
+    }
+
+    const result = await apiFetch<ApiFamilyResponse>(`/v1/families/${familyId}`, {
+      method: 'GET',
+      headers: buildApiAuthHeaders({
+        actingRole: deriveApiActingRole(currentUserResult.data, 'parent'),
+      }),
+    });
+    if (!result.success) {
+      throw new Error(result.error.message);
+    }
+    return result.data;
+  }
+
+  private mapApiGuardianResponse(guardian: ApiFamilyGuardianResponse): FamilyGuardian {
+    return {
+      id: guardian.id,
+      userId: guardian.userId,
+      email: '',
+      role: guardian.role,
+      permissions: guardian.permissions,
+      relationship: guardian.relationship,
+      isPrimary: guardian.isPrimary,
+      childAccess: guardian.childAccess,
+      addedAt: guardian.addedAt,
+      lastActiveAt: guardian.updatedAt,
+    };
+  }
+
+  private async updateApiGuardianAccess(
+    familyId: string,
+    guardianId: string,
+    body: {
+      permissions?: GuardianPermission[];
+      childAccess?: string[];
+    },
+  ): Promise<Result<FamilyGuardian, ServiceError>> {
+    const currentUserResult = await resolveSignedInApiUser('Sign in to update guardian access.');
+    if (!currentUserResult.success) {
+      return err(currentUserResult.error);
+    }
+
+    const result = await apiFetch<ApiFamilyGuardianResponse>(
+      `/v1/families/${familyId}/guardians/${guardianId}`,
+      {
+        method: 'PATCH',
+        headers: buildApiAuthHeaders({
+          actingRole: deriveApiActingRole(currentUserResult.data, 'parent'),
+        }),
+        body: JSON.stringify(body),
+      },
+    );
+    if (!result.success) {
+      return err(result.error);
+    }
+    return ok(this.mapApiGuardianResponse(result.data));
+  }
+
+  private mapBackendPermissions(
+    role: 'PRIMARY' | 'GUARDIAN' | 'VIEWER',
+    permissions: string[] | null | undefined,
+  ): GuardianPermission[] {
+    if (role === 'PRIMARY') {
+      return this.getDefaultPermissions('PRIMARY');
+    }
+
+    const normalized = new Set((permissions ?? []).map((permission) => permission.toLowerCase()));
+    const mapped: GuardianPermission[] = [];
+    if (normalized.has('schedule') || normalized.has('messages') || normalized.has('book')) {
+      mapped.push('VIEW_SCHEDULE');
+    }
+    if (normalized.has('progress') || normalized.has('messages')) {
+      mapped.push('VIEW_PROGRESS');
+    }
+    if (normalized.has('book')) {
+      mapped.push('BOOK_SESSIONS');
+    }
+    if (normalized.has('payments')) {
+      mapped.push('MANAGE_PAYMENTS');
+    }
+    if (normalized.has('medical') || normalized.has('profile')) {
+      mapped.push('MANAGE_PROFILE');
+    }
+    if (normalized.has('admin')) {
+      mapped.push('ADMIN');
+    }
+    return mapped;
+  }
+
+  private normalizeRole(role: string | null | undefined): 'PRIMARY' | 'GUARDIAN' | 'VIEWER' {
+    return role === 'PRIMARY' || role === 'GUARDIAN' || role === 'VIEWER' ? role : 'GUARDIAN';
+  }
+
   // ==========================================================================
   // PERMISSION QUERIES
   // ==========================================================================
@@ -83,6 +229,18 @@ class FamilyPermissionService {
    * Get guardian's permissions for a specific family.
    */
   async getPermissions(userId: string, familyId: string): Promise<GuardianPermission[]> {
+    if (!USE_MOCK) {
+      const family = await this.loadApiFamily(familyId);
+      const membership = family.memberships.find((candidate) => candidate.userId === userId);
+      if (!membership) {
+        return [];
+      }
+      return this.mapBackendPermissions(
+        this.normalizeRole(membership.role),
+        membership.permissions,
+      );
+    }
+
     const accounts = await this.loadAccounts();
     const account = accounts.find((a) => a.id === familyId);
     const guardian = account?.guardians.find((g) => g.userId === userId);
@@ -167,11 +325,9 @@ class FamilyPermissionService {
     newPermissions: GuardianPermission[],
   ): Promise<Result<FamilyGuardian, ServiceError>> {
     if (!USE_MOCK) {
-      return err(
-        validationError(
-          'Guardian permission updates require backend family permission authority in API mode.',
-        ),
-      );
+      return this.updateApiGuardianAccess(familyId, guardianId, {
+        permissions: newPermissions,
+      });
     }
 
     // Check if requester has admin permission
@@ -235,11 +391,9 @@ class FamilyPermissionService {
     childIds: string[],
   ): Promise<Result<FamilyGuardian, ServiceError>> {
     if (!USE_MOCK) {
-      return err(
-        validationError(
-          'Guardian child-access updates require backend family permission authority in API mode.',
-        ),
-      );
+      return this.updateApiGuardianAccess(familyId, guardianId, {
+        childAccess: childIds,
+      });
     }
 
     const hasAdmin = await this.isAdmin(requesterId, familyId);
@@ -285,6 +439,26 @@ class FamilyPermissionService {
    * Empty childAccess means access to all children.
    */
   async getAccessibleChildren(userId: string, familyId: string): Promise<FamilyMember[]> {
+    if (!USE_MOCK) {
+      const family = await this.loadApiFamily(familyId);
+      const membership = family.memberships.find((candidate) => candidate.userId === userId);
+      if (!membership) {
+        return [];
+      }
+      const role = this.normalizeRole(membership.role);
+      const childAccess = membership.childAccessAthleteIds ?? [];
+      const accessibleAthletes =
+        role === 'PRIMARY' || childAccess.length === 0
+          ? family.athletes
+          : family.athletes.filter((athlete) => childAccess.includes(athlete.id));
+      return accessibleAthletes.map((athlete, index) =>
+        mapChildProfileToFamilyMember(
+          mapApiFamilyAthleteToChildProfile(athlete, family.family.primaryGuardianUserId ?? userId),
+          CHILD_COLORS[index % CHILD_COLORS.length],
+        ),
+      );
+    }
+
     const accounts = await this.loadAccounts();
     const account = accounts.find((a) => a.id === familyId);
 

@@ -19,10 +19,7 @@ import { blockService } from '@/services/block-service';
 import { uiFeedback } from '@/services/ui-feedback';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { SessionOffering } from '@/constants/types';
-import {
-  getCoachProfileOfferings,
-  summarizeCoachOfferings,
-} from '@/utils/coach-profile-offerings';
+import { getCoachProfileOfferings, summarizeCoachOfferings } from '@/utils/coach-profile-offerings';
 import type { ScreenPendingState } from '@/hooks/use-screen-core';
 
 const logger = createLogger('PublicProfileScreen');
@@ -216,7 +213,7 @@ export function usePublicProfile(coachId: string) {
     router.push(
       Routes.bookCoach(coachId, {
         offeringId: offering.id,
-        source: offering.source === 'event' ? 'event_profile' : 'coach_profile',
+        source: 'coach_profile',
       }),
     );
   };

@@ -35,10 +35,21 @@ export interface NormalizedPost {
   likedByCurrentUser?: boolean;
 }
 
+function isInternalDisplayId(value: string): boolean {
+  return /^(usr|ath|clb|fam|bok|inv|gse|gsr|drl|dra|med|safe|payatt|invc|pm|wd)[_-]/i.test(
+    value,
+  );
+}
+
+function displayAuthorName(value: string | undefined, fallback: string): string {
+  const trimmed = value?.trim();
+  return trimmed && !isInternalDisplayId(trimmed) ? trimmed : fallback;
+}
+
 function normalizePost(post: Post | ClubFeedPost): NormalizedPost {
   if ('body' in post) {
     return {
-      authorName: post.authorId ?? 'Unknown',
+      authorName: displayAuthorName(post.authorName, 'Club update'),
       authorAvatar: undefined,
       content: post.body,
       title: post.title,
@@ -51,7 +62,7 @@ function normalizePost(post: Post | ClubFeedPost): NormalizedPost {
     };
   }
   return {
-    authorName: post.authorId || 'Unknown',
+    authorName: displayAuthorName(post.authorId, 'Post author'),
     authorAvatar: undefined,
     content: post.content,
     title: undefined,
@@ -81,7 +92,8 @@ export function usePostDetail() {
   const { currentUser } = useAuth();
   const { postId } = useLocalSearchParams<{ postId: string }>();
 
-  const post = (() => {
+  const localPost = (() => {
+    if (!api.useMock) return null;
     if (!postId) return null;
     if (currentUser?.id) {
       const aggregatedPosts = socialFeedService.getAggregatedFeed(currentUser.id);
@@ -102,6 +114,9 @@ export function usePostDetail() {
     return null;
   })();
 
+  const [authorityPost, setAuthorityPost] = useState<ClubFeedPost | null>(null);
+  const [postLoading, setPostLoading] = useState(!api.useMock);
+  const [postError, setPostError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<{ commentId: string; authorName: string } | null>(
@@ -110,7 +125,46 @@ export function usePostDetail() {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
 
-  const normalized = (post ? normalizePost(post) : null);
+  useEffect(() => {
+    let active = true;
+
+    const loadPost = async () => {
+      if (api.useMock) {
+        setAuthorityPost(null);
+        setPostError(null);
+        setPostLoading(false);
+        return;
+      }
+      if (!postId) {
+        setAuthorityPost(null);
+        setPostError('Post not found');
+        setPostLoading(false);
+        return;
+      }
+
+      setPostLoading(true);
+      setPostError(null);
+      const result = await socialFeedService.getPostAuthority(postId);
+      if (!active) return;
+      if (!result.success) {
+        setAuthorityPost(null);
+        setPostError(result.error.message);
+        setPostLoading(false);
+        return;
+      }
+      setAuthorityPost(result.data);
+      setPostLoading(false);
+    };
+
+    void loadPost();
+
+    return () => {
+      active = false;
+    };
+  }, [postId, currentUser?.id]);
+
+  const post = api.useMock ? localPost : authorityPost;
+  const normalized = post ? normalizePost(post) : null;
 
   useEffect(() => {
     if (!normalized) return;
@@ -305,6 +359,8 @@ export function usePostDetail() {
     showSectionSkeleton,
     isPending,
     error,
+    postLoading,
+    postError,
     refreshing,
     onRefresh,
     retry,
@@ -340,6 +396,8 @@ export function usePostDetail() {
     showSectionSkeleton: boolean;
     isPending: boolean;
     error: string | null;
+    postLoading: boolean;
+    postError: string | null;
     refreshing: boolean;
     onRefresh: () => void;
     retry: () => void;

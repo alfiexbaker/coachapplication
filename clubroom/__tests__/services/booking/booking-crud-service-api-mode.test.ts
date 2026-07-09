@@ -29,7 +29,7 @@ const apiBooking = {
 };
 
 describe('BookingCrudService API mode', () => {
-  it('does not use runtime booking mirrors as fallback when API reads fail', async () => {
+  it('surfaces API read failures instead of empty booking state', async () => {
     const [{ bookingCrudService }, { bookingAuthorityService }] = await Promise.all([
       import('@/services/booking/booking-crud-service'),
       import('@/services/booking/booking-authority-service'),
@@ -64,11 +64,52 @@ describe('BookingCrudService API mode', () => {
           error: networkError('booking api unavailable'),
         }) as Awaited<ReturnType<typeof bookingAuthorityService.getBooking>>;
 
-      assert.deepEqual(await bookingCrudService.list(), []);
-      assert.equal(await bookingCrudService.getBooking(apiBooking.id), null);
+      await assert.rejects(() => bookingCrudService.list(), /bookings api unavailable/i);
+      await assert.rejects(
+        () => bookingCrudService.getBooking(apiBooking.id),
+        /booking api unavailable/i,
+      );
     } finally {
       bookingAuthorityService.listBookings = originalListBookings;
       bookingAuthorityService.getBooking = originalGetBooking;
+    }
+  });
+
+  it('does not serve cached booking lists in API mode', async () => {
+    const [{ bookingCrudService }, { bookingAuthorityService }] = await Promise.all([
+      import('@/services/booking/booking-crud-service'),
+      import('@/services/booking/booking-authority-service'),
+    ]);
+
+    const originalListBookings = bookingAuthorityService.listBookings;
+    let listCalls = 0;
+
+    try {
+      bookingAuthorityService.listBookings = async () => {
+        listCalls += 1;
+        if (listCalls === 1) {
+          return {
+            success: true,
+            data: [apiBooking],
+          } as Awaited<ReturnType<typeof bookingAuthorityService.listBookings>>;
+        }
+        return {
+          success: false,
+          error: networkError('bookings api unavailable after cache seed'),
+        } as Awaited<ReturnType<typeof bookingAuthorityService.listBookings>>;
+      };
+
+      assert.deepEqual(
+        (await bookingCrudService.list()).map((booking) => booking.id),
+        [apiBooking.id],
+      );
+      await assert.rejects(
+        () => bookingCrudService.list(),
+        /bookings api unavailable after cache seed/i,
+      );
+      assert.equal(listCalls, 2);
+    } finally {
+      bookingAuthorityService.listBookings = originalListBookings;
     }
   });
 
@@ -145,6 +186,109 @@ describe('BookingCrudService API mode', () => {
     }
   });
 
+  it('surfaces API status update rejections instead of returning undefined', async () => {
+    const [{ bookingCrudService }, { bookingAuthorityService }] = await Promise.all([
+      import('@/services/booking/booking-crud-service'),
+      import('@/services/booking/booking-authority-service'),
+    ]);
+
+    const originalGetBooking = bookingAuthorityService.getBooking;
+    const originalUpdateBooking = bookingAuthorityService.updateBooking;
+
+    try {
+      bookingAuthorityService.getBooking = async () =>
+        ({
+          success: true,
+          data: apiBooking,
+        }) as Awaited<ReturnType<typeof bookingAuthorityService.getBooking>>;
+      bookingAuthorityService.updateBooking = async () =>
+        ({
+          success: false,
+          error: networkError('status update api unavailable'),
+        }) as Awaited<ReturnType<typeof bookingAuthorityService.updateBooking>>;
+
+      await assert.rejects(
+        () => bookingCrudService.updateStatus(apiBooking.id, 'CANCELLED'),
+        /explicit \/v1 lifecycle contract/,
+      );
+    } finally {
+      bookingAuthorityService.getBooking = originalGetBooking;
+      bookingAuthorityService.updateBooking = originalUpdateBooking;
+    }
+  });
+
+  it('surfaces API cancel rejections instead of returning undefined', async () => {
+    const [{ bookingCrudService }, { bookingAuthorityService }] = await Promise.all([
+      import('@/services/booking/booking-crud-service'),
+      import('@/services/booking/booking-authority-service'),
+    ]);
+
+    const originalGetBooking = bookingAuthorityService.getBooking;
+    const originalCancelBooking = bookingAuthorityService.cancelBooking;
+    const futureBooking = {
+      ...apiBooking,
+      scheduledAt: '2030-07-06T10:00:00.000Z',
+    };
+
+    try {
+      bookingAuthorityService.getBooking = async () =>
+        ({
+          success: true,
+          data: futureBooking,
+        }) as Awaited<ReturnType<typeof bookingAuthorityService.getBooking>>;
+      bookingAuthorityService.cancelBooking = async () =>
+        ({
+          success: false,
+          error: networkError('cancel api unavailable'),
+        }) as Awaited<ReturnType<typeof bookingAuthorityService.cancelBooking>>;
+
+      await assert.rejects(
+        () => bookingCrudService.cancel(apiBooking.id, 'weather', 'coach'),
+        /cancel api unavailable/i,
+      );
+    } finally {
+      bookingAuthorityService.getBooking = originalGetBooking;
+      bookingAuthorityService.cancelBooking = originalCancelBooking;
+    }
+  });
+
+  it('surfaces API reopen rejections instead of returning undefined', async () => {
+    const [{ bookingCrudService }, { bookingAuthorityService }] = await Promise.all([
+      import('@/services/booking/booking-crud-service'),
+      import('@/services/booking/booking-authority-service'),
+    ]);
+
+    const originalGetBooking = bookingAuthorityService.getBooking;
+    const originalReopenBooking = bookingAuthorityService.reopenBooking;
+    const cancelledBooking = {
+      ...apiBooking,
+      status: 'CANCELLED' as const,
+      scheduledAt: '2030-07-06T10:00:00.000Z',
+      cancelledAt: '2026-07-01T11:00:00.000Z',
+    };
+
+    try {
+      bookingAuthorityService.getBooking = async () =>
+        ({
+          success: true,
+          data: cancelledBooking,
+        }) as Awaited<ReturnType<typeof bookingAuthorityService.getBooking>>;
+      bookingAuthorityService.reopenBooking = async () =>
+        ({
+          success: false,
+          error: networkError('reopen api unavailable'),
+        }) as Awaited<ReturnType<typeof bookingAuthorityService.reopenBooking>>;
+
+      await assert.rejects(
+        () => bookingCrudService.reopen(apiBooking.id, 'coach'),
+        /reopen api unavailable/i,
+      );
+    } finally {
+      bookingAuthorityService.getBooking = originalGetBooking;
+      bookingAuthorityService.reopenBooking = originalReopenBooking;
+    }
+  });
+
   it('fails closed for local-only booking fields in API mode', async () => {
     const [{ bookingCrudService }, { bookingAuthorityService }] = await Promise.all([
       import('@/services/booking/booking-crud-service'),
@@ -178,6 +322,128 @@ describe('BookingCrudService API mode', () => {
     } finally {
       bookingAuthorityService.getBooking = originalGetBooking;
       bookingAuthorityService.updateBooking = originalUpdateBooking;
+    }
+  });
+
+  it('fails closed for incomplete drafts instead of defaulting API create payloads', async () => {
+    const [{ bookingCrudService }, { bookingAuthorityService }] = await Promise.all([
+      import('@/services/booking/booking-crud-service'),
+      import('@/services/booking/booking-authority-service'),
+    ]);
+
+    const originalCreateBooking = bookingAuthorityService.createBooking;
+    let createCalled = false;
+
+    try {
+      bookingCrudService.resetDraft();
+      bookingCrudService.updateDraft({
+        coachId: 'usr_coach_api',
+        coachName: 'API Coach',
+        childId: 'ath_api_child',
+        athleteName: 'API Athlete',
+      });
+      bookingAuthorityService.createBooking = async (...args) => {
+        createCalled = true;
+        return originalCreateBooking.apply(bookingAuthorityService, args);
+      };
+
+      const result = await bookingCrudService.createFromDraft();
+
+      assert.equal(result.success, false);
+      assert.equal(createCalled, false);
+      if (!result.success) {
+        assert.equal(result.error.code, 'VALIDATION');
+        assert.match(result.error.message, /missing scheduled date or time/i);
+      }
+    } finally {
+      bookingCrudService.resetDraft();
+      bookingAuthorityService.createBooking = originalCreateBooking;
+    }
+  });
+
+  it('fails closed for generic draft athlete names before API create', async () => {
+    const [{ bookingCrudService }, { bookingAuthorityService }] = await Promise.all([
+      import('@/services/booking/booking-crud-service'),
+      import('@/services/booking/booking-authority-service'),
+    ]);
+
+    const originalCreateBooking = bookingAuthorityService.createBooking;
+    let createCalled = false;
+
+    try {
+      bookingCrudService.resetDraft();
+      bookingCrudService.updateDraft({
+        coachId: 'usr_coach_api',
+        coachName: 'Amelia Shaw',
+        athleteId: 'ath_api_child',
+        athleteName: 'Athlete',
+        createdByUserId: 'usr_parent_api',
+        date: '2030-01-10',
+        slot: '10:00',
+        duration: 60,
+        locationText: 'Pitch 1',
+        sessionType: 'COACHING',
+        sessionTypeLabel: '1-to-1 coaching',
+        price: 25,
+      });
+      bookingAuthorityService.createBooking = async (...args) => {
+        createCalled = true;
+        return originalCreateBooking.apply(bookingAuthorityService, args);
+      };
+
+      const result = await bookingCrudService.createFromDraft();
+
+      assert.equal(result.success, false);
+      assert.equal(createCalled, false);
+      if (!result.success) {
+        assert.equal(result.error.code, 'VALIDATION');
+        assert.match(result.error.message, /missing athlete information/i);
+      }
+    } finally {
+      bookingCrudService.resetDraft();
+      bookingAuthorityService.createBooking = originalCreateBooking;
+    }
+  });
+
+  it('rejects generic booking metadata before API create', async () => {
+    const [{ bookingCrudService }, { bookingAuthorityService }] = await Promise.all([
+      import('@/services/booking/booking-crud-service'),
+      import('@/services/booking/booking-authority-service'),
+    ]);
+
+    const originalCreateBooking = bookingAuthorityService.createBooking;
+    let createCalled = false;
+
+    try {
+      bookingAuthorityService.createBooking = async (...args) => {
+        createCalled = true;
+        return originalCreateBooking.apply(bookingAuthorityService, args);
+      };
+
+      const result = await bookingCrudService.createBooking({
+        coachId: 'usr_coach_api',
+        coachName: 'Coach',
+        athleteIds: ['ath_api_child'],
+        athleteNames: ['Alex Barton'],
+        bookedById: 'usr_parent_api',
+        bookedByName: 'Olivia Barton',
+        scheduledAt: '2030-01-10T10:00:00.000Z',
+        duration: 60,
+        location: 'Pitch 1',
+        service: '1-to-1 coaching',
+        serviceType: 'COACHING',
+        price: 25,
+        skipAvailabilityValidation: true,
+      });
+
+      assert.equal(result.success, false);
+      assert.equal(createCalled, false);
+      if (!result.success) {
+        assert.equal(result.error.code, 'VALIDATION');
+        assert.match(result.error.message, /missing coach information/i);
+      }
+    } finally {
+      bookingAuthorityService.createBooking = originalCreateBooking;
     }
   });
 });

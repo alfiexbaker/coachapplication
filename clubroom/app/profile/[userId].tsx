@@ -16,6 +16,7 @@ import {
   LoadingState,
   SubmitProgressState,
 } from '@/components/ui/screen-states';
+import { api } from '@/constants/config';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { userService } from '@/services/user-service';
@@ -120,6 +121,14 @@ export default function ProfileScreen() {
         return ok([]);
       }
 
+      if (!api.useMock) {
+        const result = await socialFeedService.getUpdatesFeedAuthority('all');
+        if (!result.success) {
+          return err(result.error);
+        }
+        return ok(result.data.filter((post) => post.authorId === data.id));
+      }
+
       return ok(socialFeedService.getFollowingFeed([data.id], 'all'));
     },
     deps: [userId, data?.id],
@@ -211,8 +220,17 @@ export default function ProfileScreen() {
     onRefreshPosts();
   };
 
-  const handleLikePost = (postId: string) => {
+  const handleLikePost = async (postId: string) => {
     if (!currentUser?.id) return;
+    if (!api.useMock) {
+      const result = await socialFeedService.toggleReactionAuthority(postId);
+      if (!result.success) {
+        uiFeedback.showToast(result.error.message, 'error');
+        return;
+      }
+      onRefreshPosts();
+      return;
+    }
     socialFeedService.toggleReaction(postId, currentUser.id);
     onRefreshPosts();
   };

@@ -31,7 +31,6 @@ import { appLifecycleService } from '@/services/app-lifecycle-service';
 import { authService } from '@/services/auth-service';
 import { useTokenExpiryAlert } from '@/hooks/use-token-expiry-alert';
 import { notificationStore } from '@/services/notification';
-import { preApiLiveModeService } from '@/services/pre-api-live-mode-service';
 import { BookingFlowProvider } from '@/context/booking-flow-context';
 import {
   markSentryAppLoaded,
@@ -94,23 +93,6 @@ export function RootNavigation() {
       appLifecycleService.cleanup();
     };
   }, []);
-
-  useEffect(() => {
-    if (!isAuthenticated || !currentUserId || !currentUserRole || !currentUserDisplayName) {
-      preApiLiveModeService.stop();
-      return;
-    }
-
-    void preApiLiveModeService.start({
-      userId: currentUserId,
-      role: currentUserRole,
-      displayName: currentUserDisplayName,
-    });
-
-    return () => {
-      preApiLiveModeService.stop();
-    };
-  }, [isAuthenticated, currentUserDisplayName, currentUserId, currentUserRole]);
 
   useEffect(() => {
     if (isLoading) {

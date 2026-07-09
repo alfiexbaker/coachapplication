@@ -222,8 +222,7 @@ export function useClubDetail(clubId: string | undefined) {
   };
 
   const loadMembers = async () => {
-    if (!clubId) return;
-    if (!USE_MOCK) {
+    if (!clubId) {
       setMembers([]);
       return;
     }
@@ -232,6 +231,7 @@ export function useClubDetail(clubId: string | undefined) {
       setMembers(memberList);
     } catch (error) {
       logger.error('Failed to load members', error);
+      setMembers([]);
     }
   };
 
@@ -332,10 +332,16 @@ export function useClubDetail(clubId: string | undefined) {
     );
   };
 
-  const handlePinToggle = (postId: string) => {
+  const handlePinToggle = async (postId: string) => {
     if (!currentUser) return;
     if (!USE_MOCK) {
-      showToast('Pinning posts needs backend support first.', 'default');
+      const post = feed.find((candidate) => candidate.id === postId);
+      if (!post) return;
+      const result = await socialFeedService.setPostPinAuthority(postId, !post.isPinned);
+      if (!result.success) {
+        showToast(result.error.message || 'Failed to update pinned post.', 'error');
+      }
+      await loadFeed();
       return;
     }
     socialFeedService.togglePin(postId, currentUser.id);
@@ -381,6 +387,16 @@ export function useClubDetail(clubId: string | undefined) {
 
   const handleConfirmMemberRemoval = async (reason: MemberRemovalReason, customReason?: string) => {
     if (!selectedMemberForRemoval || !clubId || !currentUser) return;
+    const actorName = (
+      currentUser.fullName ||
+      currentUser.name ||
+      currentUser.username ||
+      ''
+    ).trim();
+    if (!actorName) {
+      showToast('Complete your account name before removing club members.', 'error');
+      return;
+    }
     setIsRemovingMember(true);
 
     return await runAsyncTryCatchFinally(
@@ -389,7 +405,7 @@ export function useClubDetail(clubId: string | undefined) {
           clubId,
           selectedMemberForRemoval.userId,
           reason,
-          { id: currentUser.id, name: currentUser.fullName || currentUser.username || 'Coach' },
+          { id: currentUser.id, name: actorName },
           { customReason },
         );
         if (!result.success) {
@@ -434,11 +450,27 @@ export function useClubDetail(clubId: string | undefined) {
         text: 'Leave',
         style: 'destructive',
         onPress: () => {
-          if (currentUser?.id && clubId) {
-            socialFeedService.leaveClub(currentUser.id, clubId);
-          }
-          setMembership(undefined);
-          router.back();
+          void runAsyncTryCatchFinally(
+            async () => {
+              if (!currentUser?.id || !clubId) return;
+              if (USE_MOCK) {
+                socialFeedService.leaveClub(currentUser.id, clubId);
+              } else {
+                const result = await clubService.leaveClub(clubId, currentUser.id);
+                if (!result.success) {
+                  showToast(result.error.message || 'Failed to leave club.', 'error');
+                  return;
+                }
+              }
+              setMembership(undefined);
+              router.back();
+            },
+            async (error) => {
+              logger.error('Failed to leave club', error);
+              showToast('Failed to leave club.', 'error');
+            },
+            () => {},
+          );
         },
       },
     ]);
@@ -487,7 +519,7 @@ export function useClubDetail(clubId: string | undefined) {
     showMemberRemovalModal,
     isRemovingMember,
     canManagePosts: !!canManagePosts,
-    canPinPosts: USE_MOCK && !!canManagePosts,
+    canPinPosts: !!canManagePosts,
     canCreatePosts,
     canRemoveMembers: !!canRemoveMembers,
     filterCounts,

@@ -4,7 +4,6 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { verificationService, type VerificationDocumentUploadInput } from '@/services/verification-service';
-import { apiClient } from '@/services/api-client';
 import { uiFeedback } from '@/services/ui-feedback';
 import { createLogger } from '@/utils/logger';
 import type { VerificationStatus } from '@/constants/types';
@@ -26,10 +25,8 @@ export interface UseInsuranceVerificationResult {
   isVerified: boolean;
   isPending: boolean;
   uploaded: boolean;
-  canUseMockApproval: boolean;
   handleUpload: () => Promise<void>;
   handleSubmit: () => Promise<void>;
-  handleMockApprove: () => Promise<void>;
   setUploaded: (value: boolean) => void;
 }
 
@@ -69,7 +66,6 @@ export function useInsuranceVerification() {
 
   const loading = screenStatus === 'loading';
   const uploaded = Boolean(selectedDocument);
-  const canUseMockApproval = __DEV__ && apiClient.isMockMode;
 
   const handleUpload = async () => {
     const result = await DocumentPicker.getDocumentAsync({
@@ -113,27 +109,6 @@ export function useInsuranceVerification() {
     });
   };
 
-  const handleMockApprove = async () => {
-    if (!coachId || !canUseMockApproval) return;
-
-    setSubmitting(true);
-
-    await runAsyncTryCatchFinally(async () => {
-      const result = await verificationService.mockApproveVerification(coachId, 'insurance');
-      if (result.success) {
-        onRefresh();
-        uiFeedback.showToast('Insurance verification approved.', 'success');
-      } else {
-        uiFeedback.showToast(result.error.message, 'error');
-      }
-    }, async error => {
-      logger.error('Failed to verify insurance:', error);
-      uiFeedback.showToast('Failed to verify insurance.', 'error');
-    }, () => {
-      setSubmitting(false);
-    });
-  };
-
   const isVerified = status?.insurance.status === 'VERIFIED';
   const isPending = status?.insurance.status === 'PENDING';
 
@@ -149,10 +124,8 @@ export function useInsuranceVerification() {
     isVerified,
     isPending,
     uploaded,
-    canUseMockApproval,
     handleUpload,
     handleSubmit,
-    handleMockApprove,
     setUploaded: (value: boolean) => {
       if (!value) setSelectedDocument(null);
     },

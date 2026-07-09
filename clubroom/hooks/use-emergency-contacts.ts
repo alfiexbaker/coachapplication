@@ -84,12 +84,12 @@ export function useEmergencyContacts() {
     try {
       const result = await safetyService.removeContact(id, contactId);
       if (!result.success) {
-        logger.error('Failed to delete contact', result.error);
+        logger.error('Failed to remove contact', result.error);
         return;
       }
       onRefresh();
     } catch (error) {
-      logger.error('Failed to delete contact:', error);
+      logger.error('Failed to remove contact:', error);
     }
   };
 

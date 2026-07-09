@@ -11,8 +11,6 @@ import { clubAuthorityService } from '@/services/club-authority-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { progressService } from '@/services/progress-service';
 import { bookingService } from '@/services/booking-service';
-import { ensureProgressDemoSeeded } from '@/services/progress/progress-demo-seed-lazy-service';
-import { ensureRelationalDemoSeeded } from '@/services/relational-demo-seed-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { useScreen } from '@/hooks/use-screen';
 import { err, ok, serviceError } from '@/types/result';
@@ -31,11 +29,6 @@ function currentTimestamp(): number {
 }
 
 export const formatDate = formatShortDateWithYear;
-
-interface HomeSeedTarget {
-  athleteId: string;
-  athleteName: string;
-}
 
 export interface HomeResult extends MatchResult {
   clubId: string;
@@ -82,44 +75,6 @@ interface HomeFrameData {
   upcomingBookings: Booking[];
   stats: HomeStats;
   streakInfo: HomeStreakInfo | null;
-}
-
-interface BuildHomeSeedTargetsInput {
-  hasChildProfiles: boolean;
-  selectedChildId: string | null;
-  fallbackChildId: string | null;
-  contextChildren: ChildInfo[];
-  currentUserId?: string;
-  currentUserName?: string;
-}
-
-export function buildHomeSeedTargets(input: BuildHomeSeedTargetsInput): HomeSeedTarget[] {
-  const targets = new Map<string, string>();
-  const childById = new Map(input.contextChildren.map((child) => [child.id, child]));
-
-  const setTarget = (athleteId: string | null | undefined, fallbackName: string) => {
-    if (!athleteId) return;
-    const childName = childById.get(athleteId)?.name?.trim();
-    const resolvedName = childName || fallbackName;
-    if (!targets.has(athleteId)) {
-      targets.set(athleteId, resolvedName);
-    }
-  };
-
-  if (input.hasChildProfiles) {
-    const preferredChildId = input.selectedChildId ?? input.fallbackChildId;
-    setTarget(preferredChildId, 'Child');
-    for (const child of input.contextChildren) {
-      setTarget(child.id, child.name || 'Child');
-    }
-  } else {
-    setTarget(input.currentUserId, input.currentUserName || 'Athlete');
-  }
-
-  return Array.from(targets.entries()).map(([athleteId, athleteName]) => ({
-    athleteId,
-    athleteName,
-  }));
 }
 
 /**
@@ -214,8 +169,8 @@ export function useHomeScreen() {
   const hasChildProfiles = contextChildren.length > 0;
   const isParentAccount = Boolean(
     currentUser?.role === 'PARENT' ||
-      currentUser?.hasChildren ||
-      (currentUser?.children?.length ?? 0) > 0,
+    currentUser?.hasChildren ||
+    (currentUser?.children?.length ?? 0) > 0,
   );
 
   // Local selectedChildId for immediate UI response — initialized from context
@@ -390,45 +345,12 @@ export function useHomeScreen() {
     selectedChildId: requestedProfileChildId ?? null,
     selectedChild: requestedSelectedChild ? { ...requestedSelectedChild } : null,
   };
-  const homeSeedTargets = buildHomeSeedTargets({
-    hasChildProfiles,
-    selectedChildId,
-    fallbackChildId,
-    contextChildren,
-    currentUserId: currentUser?.id,
-    currentUserName: currentUserName,
-  });
   const loadHomeFrame = async () => {
     if (!athleteId) {
       return ok(createEmptyHomeFrame(requestedProfileFrame));
     }
 
     try {
-      if (currentUser?.role !== 'COACH') {
-        try {
-          await ensureRelationalDemoSeeded();
-
-          const seedResults = await Promise.all(
-            homeSeedTargets.map(async (target) => ({
-              target,
-              result: await ensureProgressDemoSeeded(target.athleteId, target.athleteName),
-            })),
-          );
-          seedResults.forEach(({ target, result }) => {
-            if (!result.success) {
-              logger.warn('home_progress_seed_failed', {
-                athleteId: target.athleteId,
-              });
-            }
-          });
-        } catch (seedError) {
-          logger.warn('home_demo_seed_bootstrap_failed', {
-            athleteId,
-            error: seedError,
-          });
-        }
-      }
-
       const badges = await badgeService.listAwardsForAthlete(athleteId);
       const nextRecentBadges = badges.slice(0, 3);
       let userClubs: Club[] = [];

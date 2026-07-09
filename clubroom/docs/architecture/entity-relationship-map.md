@@ -13,6 +13,7 @@ Purpose: give a fast, human-readable overview of the core entities and how they 
 - `User`
   - canonical human identity
   - may carry multiple roles
+  - owns at most one `UserBookingPreference` row for self-booking choices such as `allowBookSelf`
 - `UserRoleMembership`
   - binds one user to one or more operating roles
 - `CoachProfile`
@@ -131,7 +132,7 @@ These objects should attach back to a booking, athlete, coach, or session contex
 `Goal.progress` is a nullable manual percentage override; when it is null, progress is derived from milestone completion or completed status.
 `PracticeLog` records self-reported athlete practice minutes by athlete, author, and day. It is separate from private journaling and uses athlete health read/write gates in the API.
 `SelfAssessmentPrompt` and `SelfAssessmentEntry` record athlete/guardian self-assessment prompts and submissions against completed booking proof. Prompts attach to athlete, coach, and booking context; entries derive coach ownership from the booking and use athlete health gates plus audit events in the API.
-`DrillAssignment` attaches coach-assigned practice work to one athlete and one coach; `AssignmentSubmission` records athlete completion proof against that assignment. API-mode practice-task reads derive from these rows. Completion writes set assignment status and create or retract submission proof; due-date update, snooze, and recovery checkpoints write `DrillAssignment.dueDate`. Review and follow-up action state is intentionally lightweight and derives from `AuditEvent` rows for the assignment. Feedback-homework synthesis still needs dedicated DB shape.
+`DrillAssignment` attaches coach-assigned practice work to one athlete and one coach; `AssignmentSubmission` records athlete completion proof against that assignment. API-mode practice-task reads derive from these rows. Completion writes set assignment status and create or retract submission proof; due-date update, snooze, and recovery checkpoints write `DrillAssignment.dueDate`. Review and follow-up action state is intentionally lightweight and derives from `AuditEvent` rows for the assignment. Feedback-homework synthesis is represented by deterministic `Drill` and `DrillAssignment` rows keyed from the `SessionFeedback` id; add a dedicated homework table only if future homework needs fields that do not fit those entities.
 
 ## Trust and Ops Spine
 
@@ -144,6 +145,7 @@ These objects should attach back to a booking, athlete, coach, or session contex
 - `RetentionRun`
 
 These are not optional side tables. They define whether Clubroom is safe to operate.
+API-mode coach/athlete concerns are a compatibility view over `SafeguardingIncident` plus append-only `SafeguardingIncidentAction` rows, not a separate live concern table.
 
 ## Practical Build Rule
 
@@ -158,6 +160,8 @@ Extra rule for club-facing schedule work:
 
 - start from `ClubActivity` for read surfaces
 - treat RSVP, registration, and booking as participation behaviors on that activity, not as separate top-level club products
+- do not project `ClubEvent` into `SessionOffering` or booking flows; if an activity needs registration/payment authority, model the bookable part as `GroupSession` and expose it through `ClubActivity`
+- group-session API read models carry resolved coach/club display labels for UI copy; IDs remain authority, labels are presentation metadata only
 
 ## Validation Notes
 

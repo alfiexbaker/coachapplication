@@ -223,7 +223,8 @@ function mapApiFamilyAccount(payload: ApiFamilyResponse, fallbackUserId: string)
         avatar: membership.user?.avatarUrl ?? undefined,
         role,
         permissions: mapBackendPermissions(role, membership.permissions),
-        relationship: membership.relationshipLabel ?? (role === 'PRIMARY' ? 'Primary guardian' : 'Guardian'),
+        relationship:
+          membership.relationshipLabel ?? (role === 'PRIMARY' ? 'Primary guardian' : 'Guardian'),
         isPrimary: role === 'PRIMARY',
         childAccess: membership.childAccessAthleteIds ?? [],
         addedAt: membership.createdAt ?? new Date().toISOString(),
@@ -611,10 +612,11 @@ class FamilyRelationshipService {
    */
   async getPendingInvitesForUser(email: string): Promise<GuardianInvite[]> {
     if (!USE_MOCK) {
-      const currentUserResult = await resolveSignedInApiUser('Sign in to view guardian invitations.');
+      const currentUserResult = await resolveSignedInApiUser(
+        'Sign in to view guardian invitations.',
+      );
       if (!currentUserResult.success) {
-        logger.warn('guardian_invite_inbox_unavailable', { email, error: currentUserResult.error.message });
-        return [];
+        throw new Error(currentUserResult.error.message);
       }
       const result = await apiFetch<{ invites: GuardianInvite[] }>('/v1/me/guardian-invites', {
         method: 'GET',
@@ -623,8 +625,7 @@ class FamilyRelationshipService {
         }),
       });
       if (!result.success) {
-        logger.warn('guardian_invite_inbox_failed', { email, error: result.error.message });
-        return [];
+        throw new Error(result.error.message);
       }
       return result.data.invites;
     }
@@ -650,7 +651,9 @@ class FamilyRelationshipService {
     userEmail: string,
   ): Promise<Result<FamilyAccount, ServiceError>> {
     if (!USE_MOCK) {
-      const currentUserResult = await resolveSignedInApiUser('Sign in to accept guardian invitations.');
+      const currentUserResult = await resolveSignedInApiUser(
+        'Sign in to accept guardian invitations.',
+      );
       if (!currentUserResult.success) {
         return err(currentUserResult.error);
       }
@@ -752,7 +755,9 @@ class FamilyRelationshipService {
    */
   async declineInvite(inviteId: string): Promise<Result<void, ServiceError>> {
     if (!USE_MOCK) {
-      const currentUserResult = await resolveSignedInApiUser('Sign in to decline guardian invitations.');
+      const currentUserResult = await resolveSignedInApiUser(
+        'Sign in to decline guardian invitations.',
+      );
       if (!currentUserResult.success) {
         return err(currentUserResult.error);
       }
@@ -801,19 +806,18 @@ class FamilyRelationshipService {
     inviteId: string,
   ): Promise<Result<void, ServiceError>> {
     if (!USE_MOCK) {
-      const currentUserResult = await resolveSignedInApiUser('Sign in to cancel guardian invitations.');
+      const currentUserResult = await resolveSignedInApiUser(
+        'Sign in to cancel guardian invitations.',
+      );
       if (!currentUserResult.success) {
         return err(currentUserResult.error);
       }
-      const result = await apiFetch<void>(
-        `/v1/families/${familyId}/guardian-invites/${inviteId}`,
-        {
-          method: 'DELETE',
-          headers: buildApiAuthHeaders({
-            actingRole: deriveApiActingRole(currentUserResult.data, 'parent'),
-          }),
-        },
-      );
+      const result = await apiFetch<void>(`/v1/families/${familyId}/guardian-invites/${inviteId}`, {
+        method: 'DELETE',
+        headers: buildApiAuthHeaders({
+          actingRole: deriveApiActingRole(currentUserResult.data, 'parent'),
+        }),
+      });
       if (!result.success) {
         return err(result.error);
       }

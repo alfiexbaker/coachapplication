@@ -18,8 +18,11 @@ const path = require('path');
 // Define __DEV__ for test environment (matches React Native runtime global)
 global.__DEV__ = true;
 
-// Keep USE_MOCK=true so apiClient uses AsyncStorage (not real HTTP).
-// Individual BaseService subclasses' useMock flag is handled separately in tests.
+// Test-only compatibility: let service tests exercise retained mock branches
+// without allowing normal app runtimes to boot in mock mode.
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'test';
+}
 if (!process.env.EXPO_PUBLIC_USE_MOCK) {
   process.env.EXPO_PUBLIC_USE_MOCK = 'true';
 }

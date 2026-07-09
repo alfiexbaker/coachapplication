@@ -22,7 +22,7 @@ import { runAsyncFinally, runAsyncTryCatchFinally } from '@/utils/async-control'
 export interface FeedPostProps {
   post: ClubFeedPost;
   canPin?: boolean;
-  onPinToggle?: (postId: string) => void;
+  onPinToggle?: (postId: string) => void | Promise<void>;
   onLike?: (postId: string) => void | Promise<void>;
   onComment?: (postId: string) => void | Promise<void>;
   onShare?: (postId: string) => void | Promise<void>;
@@ -150,7 +150,7 @@ export function FeedPost({ post, canPin, onPinToggle, onLike, onComment, onShare
           </ThemedText>
         </Column>
         {canPin && (
-          <Clickable onPress={() => onPinToggle?.(post.id)} hitSlop={10}>
+          <Clickable onPress={() => void onPinToggle?.(post.id)} hitSlop={10}>
             <Ionicons
               name={post.isPinned ? 'pin' : 'pin-outline'}
               size={18}

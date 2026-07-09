@@ -29,6 +29,8 @@ test('useDevSession loads and saves backend feedback before local COACH_SESSIONS
   const saveStart = source.indexOf('const handleSave = async () => {');
   const saveGuard = source.indexOf('if (!apiClient.isMockMode)', saveStart);
   const saveApiWrite = source.indexOf('await persistFeedback(session.bookingId || session.id)', saveStart);
+  const positionRecord = source.indexOf('progressPositionService.recordPosition', saveStart);
+  const positionMockGuard = source.lastIndexOf('if (apiClient.isMockMode)', positionRecord);
   const saveRead = source.indexOf(
     'apiClient.get<SessionRecord[]>(STORAGE_KEYS.COACH_SESSIONS',
     saveStart,
@@ -39,8 +41,22 @@ test('useDevSession loads and saves backend feedback before local COACH_SESSIONS
   assert.ok(saveRead >= 0, 'test should find the local session read in save path');
   assert.ok(saveGuard < saveRead, 'save path must branch API mode before local session reads');
   assert.ok(saveApiWrite < saveRead, 'API feedback save must happen before local session reads');
+  assert.ok(positionRecord >= 0, 'test should find direct position-history write');
+  assert.ok(
+    positionMockGuard >= saveStart && positionMockGuard < positionRecord,
+    'direct position-history writes must remain mock-only; API mode persists positions through session feedback',
+  );
   assert.ok(
     source.includes('photoUrls: imageUrls'),
     'API feedback save should preserve attached photos',
+  );
+  assert.doesNotMatch(
+    source,
+    /coachName:\s*currentUser\.name\s*\|\|\s*'Coach'/,
+    'API feedback save must not write a generic coach name',
+  );
+  assert.ok(
+    source.includes('Complete your account name before saving session feedback.'),
+    'save path should fail closed when the persisted actor name is missing',
   );
 });

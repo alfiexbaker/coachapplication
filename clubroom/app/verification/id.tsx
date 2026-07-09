@@ -28,12 +28,10 @@ export default function IdUploadScreen() {
     uploaded,
     isVerified,
     isPending,
-    canUseMockApproval,
     setSelectedType,
     setUploaded,
     handleUpload,
     handleSubmit,
-    handleMockApprove,
   } = useIdVerification();
   const header = <PageHeader title="ID Verification" showBack onBackPress={() => router.back()} />;
 
@@ -73,13 +71,6 @@ export default function IdUploadScreen() {
             <ThemedText style={[styles.statusText, { color: colors.muted }]}>
               Your ID document is being reviewed. This usually takes 1-2 business days.
             </ThemedText>
-            {canUseMockApproval && (
-              <Clickable onPress={handleMockApprove} style={[styles.mockButton, { borderColor: colors.success }]}>
-                <ThemedText style={{ color: colors.success, fontWeight: '600' }}>
-                  Approve Now (DEV ONLY)
-                </ThemedText>
-              </Clickable>
-            )}
           </SurfaceCard>
         ) : (
           <>
@@ -219,13 +210,6 @@ const styles = StyleSheet.create({
   },
   statusTitle: { ...Typography.heading },
   statusText: { textAlign: 'center', ...Typography.bodySmall },
-  mockButton: {
-    marginTop: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: Radii.button,
-    borderWidth: 1.5,
-  },
   section: { gap: Spacing.sm },
   typeCard: {
     flex: 1,

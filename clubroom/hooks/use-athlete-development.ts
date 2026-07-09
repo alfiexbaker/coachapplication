@@ -7,8 +7,13 @@ import { ensureCoachSessionsSeeded } from '@/services/coach-session-seed-service
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { createLogger } from '@/utils/logger';
+import { apiClient } from '@/services/api-client';
 import { badgeService } from '@/services/badge-service';
 import { childService, type ChildProfile } from '@/services/child-service';
+import {
+  progressFeedbackService,
+  type SessionFeedback,
+} from '@/services/progress/progress-feedback-service';
 import { userService } from '@/services/user-service';
 import type { Session, BadgeAward, BadgeCategory, User } from '@/constants/types';
 import type { ProgressionLevel } from '@/constants/progression';
@@ -75,6 +80,54 @@ function formatDate(date: Date | string): string {
   });
 }
 
+function clampRating(value: number | undefined): number {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  return Math.max(1, Math.min(5, Math.round(value ?? 0)));
+}
+
+function mapFeedbackToDevelopmentSession(feedback: SessionFeedback): Session {
+  const sessionId = feedback.sessionId || feedback.bookingId || feedback.id;
+  const skillsWorkedOn =
+    feedback.skillsWorkedOn.length > 0
+      ? feedback.skillsWorkedOn
+      : feedback.skillRatings.map((rating) => rating.skill);
+  const nextFocusAreas = [feedback.improvements, feedback.homework]
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+
+  return {
+    id: sessionId,
+    bookingId: feedback.bookingId ?? sessionId,
+    coachId: feedback.coachId,
+    athleteId: feedback.athleteId,
+    completedAt: feedback.createdAt,
+    attendance: 'ATTENDED',
+    notes: feedback.publicSummary || feedback.improvements || feedback.privateNotes || '',
+    skillsWorkedOn,
+    performanceRating: clampRating(feedback.overallPerformance || feedback.effortRating),
+    nextFocusAreas,
+    videoUrls: feedback.videoClipUrls,
+    coachName: feedback.coachName,
+  };
+}
+
+async function loadAthleteDevelopmentSessions(
+  athleteId: string,
+  coachUserId: string,
+): Promise<Session[]> {
+  if (apiClient.isMockMode) {
+    const allSessions = await ensureCoachSessionsSeeded();
+    return allSessions.filter(
+      (session) => session.athleteId === athleteId && session.coachId === coachUserId,
+    );
+  }
+
+  const feedback = await progressFeedbackService.getFeedbackForAthlete(athleteId, 'coach');
+  return feedback.map(mapFeedbackToDevelopmentSession);
+}
+
 export function useAthleteDevelopment(athleteId: string) {
   const { currentUser } = useAuth();
 
@@ -109,15 +162,11 @@ export function useAthleteDevelopment(athleteId: string) {
         return err(athleteResult.error);
       }
 
-      const [allSessions, awardsData, progression] = await Promise.all([
-        ensureCoachSessionsSeeded(),
+      const [athleteSessions, awardsData, progression] = await Promise.all([
+        loadAthleteDevelopmentSessions(athleteId, currentUser.id),
         badgeService.listAwardsForAthlete(athleteId),
         badgeService.getProgressionSummary(athleteId),
       ]);
-
-      const athleteSessions = allSessions.filter(
-        (session) => session.athleteId === athleteId && session.coachId === currentUser.id,
-      );
 
       logger.debug('Development data loaded', {
         athleteId,

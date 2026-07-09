@@ -312,7 +312,7 @@ export function useCoachDetail(coachId: string | undefined) {
     router.push(
       Routes.bookCoach(coachId!, {
         offeringId: offering.id,
-        source: offering.source === 'event' ? 'event_profile' : 'coach_profile',
+        source: 'coach_profile',
       }),
     );
   };

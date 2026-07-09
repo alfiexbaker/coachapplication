@@ -314,7 +314,7 @@ const MOCK_SQUAD_MEMBERS: SquadMember[] = normalizeLegacyMockDates([
   },
 ]);
 
-let membersCache: SquadMember[] = [...MOCK_SQUAD_MEMBERS];
+let membersCache: SquadMember[] = USE_MOCK ? [...MOCK_SQUAD_MEMBERS] : [];
 
 async function loadMembers(): Promise<SquadMember[]> {
   try {
@@ -323,7 +323,7 @@ async function loadMembers(): Promise<SquadMember[]> {
   } catch (error) {
     logger.error('Failed to load members', error);
   }
-  return [...MOCK_SQUAD_MEMBERS];
+  return USE_MOCK ? [...MOCK_SQUAD_MEMBERS] : [];
 }
 
 export const squadService = {
@@ -343,7 +343,7 @@ export const squadService = {
     );
     if (!response.success) {
       logger.error('Failed to load club squads', response.error);
-      return [];
+      throw new Error(response.error.message);
     }
     return response.data.squads;
   },
@@ -367,7 +367,10 @@ export const squadService = {
     );
     if (!response.success) {
       logger.error('Failed to load squad', response.error);
-      return null;
+      if (response.error.code === 'NOT_FOUND') {
+        return null;
+      }
+      throw new Error(response.error.message);
     }
     return response.data.squad;
   },
@@ -513,7 +516,7 @@ export const squadService = {
       },
     );
     if (!response.success) {
-      logger.error('Failed to delete squad', response.error);
+      logger.error('Failed to remove squad', response.error);
       throw new Error(response.error.message);
     }
     emitTyped(ServiceEvents.SQUAD_DELETED, {

@@ -19,10 +19,12 @@ import {
   EmptyState,
   SubmitProgressState,
 } from '@/components/ui/screen-states';
+import { api } from '@/constants/config';
 import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
 import { socialFeedService, type AggregatedFeedPost } from '@/services/social-feed-service';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import { followService } from '@/services/follow-service';
 import { ServiceEvents } from '@/services/event-bus';
 import { ok, err, type Result, type ServiceError } from '@/types/result';
@@ -66,6 +68,26 @@ export default function FeedScreen() {
           if (!currentUser?.id) {
             return ok({ feed: [], clubs: [] });
           }
+          if (!api.useMock) {
+            const clubsResult = await clubAuthorityService.listClubs();
+            if (!clubsResult.success) {
+              return err(clubsResult.error);
+            }
+            const [feedResult, followingFeedResult] = await Promise.all([
+              socialFeedService.getUpdatesFeedAuthority(feedFilter),
+              socialFeedService.getFollowingFeedAuthority(feedFilter),
+            ]);
+            if (!feedResult.success) {
+              return err(feedResult.error);
+            }
+            if (!followingFeedResult.success) {
+              return err(followingFeedResult.error);
+            }
+            return ok({
+              feed: mergeUpdatesFeed(feedResult.data, followingFeedResult.data),
+              clubs: clubsResult.data.clubs,
+            });
+          }
           const baseFeed = isCoach
             ? socialFeedService.getAggregatedFeed(currentUser.id, feedFilter)
             : socialFeedService.getCombinedFeedForParent(currentUser.id, feedFilter);
@@ -100,8 +122,17 @@ export default function FeedScreen() {
     feedByIdRef.current = new Map(feed.map((post) => [post.id, post]));
   }, [feed]);
 
-  const handleLikePost = (postId: string) => {
+  const handleLikePost = async (postId: string) => {
     if (!currentUser?.id) return;
+    if (!api.useMock) {
+      const result = await socialFeedService.toggleReactionAuthority(postId);
+      if (!result.success) {
+        uiFeedback.showToast(result.error.message, 'error');
+        return;
+      }
+      void onRefresh();
+      return;
+    }
     socialFeedService.toggleReaction(postId, currentUser.id);
     void onRefresh();
   };

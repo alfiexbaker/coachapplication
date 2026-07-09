@@ -15,6 +15,7 @@ import { emitTyped, ServiceEvents } from './event-bus';
 import { notificationService } from './notification-service';
 import { reportService } from './report-service';
 import { safeguardingService } from '@/services/trust';
+import type { SafeguardingIncident } from '@/services/trust/safeguarding-service';
 import { createLogger } from '@/utils/logger';
 import {
   type Result,
@@ -22,7 +23,7 @@ import {
   ok,
   err,
   validationError,
-  unsupportedError,
+  serviceError,
 } from '@/types/result';
 
 const logger = createLogger('ConcernService');
@@ -57,16 +58,20 @@ const CONCERN_STATUS_FROM_API_STATUS: Record<ApiSafeguardingStatus, ConcernStatu
   closed: 'RESOLVED',
 };
 
-function concernApiUnsupportedError(action: string): ServiceError {
-  return unsupportedError(
-    `${action} needs a dedicated /v1 safeguarding concern list/update contract before it can run in API mode.`,
-    {
-      missingAuthority: 'safeguarding_concern_list_update',
-      existingAuthority:
-        '/v1/safeguarding/incidents supports create/detail/action, but not concern list/update by coach/athlete.',
-    },
-  );
-}
+const CONCERN_TYPE_FROM_API_CATEGORY: Record<ApiSafeguardingCategory, ConcernType> = {
+  session_conduct: 'BEHAVIORAL',
+  injury_followup: 'MEDICAL',
+  medical_concern: 'MEDICAL',
+  booking_issue_safety: 'SAFEGUARDING',
+  other: 'SAFEGUARDING',
+};
+
+const CONCERN_SEVERITY_FROM_API_SEVERITY: Record<ApiSafeguardingSeverity, ConcernSeverity> = {
+  low: 'LOW',
+  medium: 'MEDIUM',
+  high: 'HIGH',
+  critical: 'URGENT',
+};
 
 // ============================================================================
 // TYPES
@@ -134,6 +139,66 @@ export const CONCERN_STATUS_LABELS: Record<ConcernStatus, string> = {
   RESOLVED: 'Resolved',
   ESCALATED: 'Escalated',
 };
+
+type ApiSafeguardingAction = SafeguardingIncident['actions'][number];
+
+function latestApiAction(
+  incident: SafeguardingIncident,
+  actionType: ApiSafeguardingAction['actionType'],
+): ApiSafeguardingAction | undefined {
+  return incident.actions
+    .filter((action) => action.actionType === actionType)
+    .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))[0];
+}
+
+function mapApiIncidentToConcern(incident: SafeguardingIncident): AthleteConcern | null {
+  if (!incident.athleteId) {
+    return null;
+  }
+
+  const closedAction = latestApiAction(incident, 'close_case');
+  const escalatedAction = latestApiAction(incident, 'escalated');
+  const status =
+    incident.status === 'closed'
+      ? 'RESOLVED'
+      : escalatedAction
+        ? 'ESCALATED'
+        : CONCERN_STATUS_FROM_API_STATUS[incident.status];
+
+  return {
+    id: incident.id,
+    coachId: incident.reportedByUserId,
+    athleteId: incident.athleteId,
+    athleteName: incident.athleteId,
+    type: CONCERN_TYPE_FROM_API_CATEGORY[incident.category],
+    severity: CONCERN_SEVERITY_FROM_API_SEVERITY[incident.severity],
+    title: incident.summary,
+    description: incident.details ?? incident.summary,
+    status,
+    createdAt: incident.createdAt,
+    updatedAt: incident.updatedAt,
+    resolvedAt: closedAction?.createdAt,
+    resolution: closedAction?.notes,
+    escalatedAt: escalatedAction?.createdAt,
+    escalationReason: escalatedAction?.notes,
+  };
+}
+
+function actionTypeForConcernStatus(
+  status: ConcernStatus,
+): ApiSafeguardingAction['actionType'] {
+  switch (status) {
+    case 'RESOLVED':
+      return 'close_case';
+    case 'IN_PROGRESS':
+      return 'reopen_case';
+    case 'ESCALATED':
+      return 'escalated';
+    case 'OPEN':
+    default:
+      return 'note_added';
+  }
+}
 
 // ============================================================================
 // SERVICE
@@ -255,11 +320,12 @@ class ConcernServiceImpl extends BaseService<AthleteConcern> {
         );
 
         if (!escalationAction.success) {
-          logger.warn('Failed to append escalation action to safeguarding incident', {
+          logger.error('Failed to append required escalation action to safeguarding incident', {
             incidentId: incident.id,
             athleteId: input.athleteId,
             error: escalationAction.error.message,
           });
+          return err(escalationAction.error);
         } else {
           updatedAt = escalationAction.data.createdAt;
           escalatedAt = escalationAction.data.createdAt;
@@ -333,8 +399,18 @@ class ConcernServiceImpl extends BaseService<AthleteConcern> {
   ): Promise<Result<AthleteConcern[], ServiceError>> {
     if (!apiClient.isMockMode) {
       void coachId;
-      void athleteId;
-      return err(concernApiUnsupportedError('Reading athlete concerns'));
+      const result = await safeguardingService.listIncidents({
+        athleteId,
+        reportedBy: 'me',
+        limit: 100,
+      });
+      if (!result.success) {
+        return result;
+      }
+      return ok(result.data.incidents.flatMap((incident) => {
+        const concern = mapApiIncidentToConcern(incident);
+        return concern ? [concern] : [];
+      }));
     }
 
     return this.getAll({
@@ -350,7 +426,20 @@ class ConcernServiceImpl extends BaseService<AthleteConcern> {
   async getOpenConcerns(coachId: string): Promise<Result<AthleteConcern[], ServiceError>> {
     if (!apiClient.isMockMode) {
       void coachId;
-      return err(concernApiUnsupportedError('Reading open coach concerns'));
+      const result = await safeguardingService.listIncidents({
+        status: ['open', 'in_review'],
+        reportedBy: 'me',
+        limit: 100,
+      });
+      if (!result.success) {
+        return result;
+      }
+      return ok(
+        result.data.incidents.flatMap((incident) => {
+          const concern = mapApiIncidentToConcern(incident);
+          return concern ? [concern] : [];
+        }),
+      );
     }
 
     const result = await this.getAll({
@@ -369,9 +458,33 @@ class ConcernServiceImpl extends BaseService<AthleteConcern> {
     resolution: string,
   ): Promise<Result<AthleteConcern, ServiceError>> {
     if (!apiClient.isMockMode) {
-      void id;
-      void resolution;
-      return err(concernApiUnsupportedError('Resolving concerns'));
+      const trimmedResolution = resolution.trim();
+      if (!trimmedResolution) {
+        return err(validationError('Resolution is required'));
+      }
+
+      const actionResult = await safeguardingService.addAction(id, {
+        actionType: 'close_case',
+        notes: trimmedResolution,
+      });
+      if (!actionResult.success) {
+        return actionResult;
+      }
+
+      const incidentResult = await safeguardingService.getIncident(id);
+      if (!incidentResult.success) {
+        return incidentResult;
+      }
+      const concern = mapApiIncidentToConcern(incidentResult.data);
+      if (!concern) {
+        return err(serviceError('NOT_FOUND', 'Concern is not linked to an athlete.'));
+      }
+
+      emitTyped(ServiceEvents.CONCERN_RESOLVED, {
+        concernId: id,
+        resolution: trimmedResolution,
+      });
+      return ok(concern);
     }
 
     const result = await this.update(id, {
@@ -398,9 +511,29 @@ class ConcernServiceImpl extends BaseService<AthleteConcern> {
     status: ConcernStatus,
   ): Promise<Result<AthleteConcern, ServiceError>> {
     if (!apiClient.isMockMode) {
-      void id;
-      void status;
-      return err(concernApiUnsupportedError('Updating concern status'));
+      const actionResult = await safeguardingService.addAction(id, {
+        actionType: actionTypeForConcernStatus(status),
+        notes: `Concern status updated to ${CONCERN_STATUS_LABELS[status]}.`,
+      });
+      if (!actionResult.success) {
+        return actionResult;
+      }
+
+      const incidentResult = await safeguardingService.getIncident(id);
+      if (!incidentResult.success) {
+        return incidentResult;
+      }
+      const concern = mapApiIncidentToConcern(incidentResult.data);
+      if (!concern) {
+        return err(serviceError('NOT_FOUND', 'Concern is not linked to an athlete.'));
+      }
+
+      emitTyped(ServiceEvents.CONCERN_UPDATED, {
+        concernId: id,
+        status: concern.status,
+        changes: { status: concern.status },
+      });
+      return ok(concern);
     }
 
     const result = await this.update(id, {

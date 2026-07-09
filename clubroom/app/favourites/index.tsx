@@ -39,16 +39,27 @@ export default function FavouritesScreen() {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [showDemoBanner, setShowDemoBanner] = useState(false);
 
-  const userId = currentUser?.id ?? 'parent1';
+  const userId = currentUser?.id ?? null;
 
   const loadFavourites = useCallback(async () => {
     setError(null);
+    if (!userId) {
+      setFavourites([]);
+      setShowDemoBanner(false);
+      setError('Sign in to view favourite coaches.');
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
     try {
       const result = await favouriteService.getFavourites(userId);
       if (result.success) {
         setFavourites(result.data);
-        const usingDemoSeed = await favouriteService.isUsingDemoSeed(userId);
-        setShowDemoBanner(usingDemoSeed && result.data.length > 0);
+        const demoSeedResult = await favouriteService.isUsingDemoSeed(userId);
+        setShowDemoBanner(
+          demoSeedResult.success && demoSeedResult.data && result.data.length > 0,
+        );
       } else {
         logger.error('Failed to load favourites:', result.error);
         setError('Failed to load favourites.');
@@ -88,6 +99,11 @@ export default function FavouritesScreen() {
   };
 
   const handleToggleFavourite = async (favourite: FavouriteCoach) => {
+    if (!userId) {
+      setError('Sign in to manage favourite coaches.');
+      return;
+    }
+
     setTogglingId(favourite.id);
     setFavourites((prev) => prev.filter((f) => f.id !== favourite.id));
 

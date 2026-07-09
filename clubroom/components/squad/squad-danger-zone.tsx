@@ -40,7 +40,7 @@ export const SquadDangerZone = function SquadDangerZone({
           >
             <Ionicons name="warning-outline" size={18} color={colors.error} />
             <ThemedText style={[Typography.bodySmall, { color: colors.error, flex: 1 }]}>
-              Delete {squadName}? This cannot be undone.
+              Archive {squadName}? Active memberships and future sessions must be clear first.
             </ThemedText>
           </Row>
           <Clickable
@@ -51,7 +51,7 @@ export const SquadDangerZone = function SquadDangerZone({
             <Row align="center" justify="center" gap="sm">
               <Ionicons name="trash-outline" size={18} color={colors.onPrimary} />
               <ThemedText style={[Typography.bodySemiBold, { color: colors.onPrimary }]}>
-                {deleting ? 'Deleting...' : 'Yes, Delete Squad'}
+                {deleting ? 'Archiving...' : 'Yes, Archive Squad'}
               </ThemedText>
             </Row>
           </Clickable>
@@ -64,7 +64,7 @@ export const SquadDangerZone = function SquadDangerZone({
           <Row align="center" justify="center" gap="sm">
             <Ionicons name="trash-outline" size={18} color={colors.error} />
             <ThemedText style={[Typography.bodySemiBold, { color: colors.error }]}>
-              Delete Squad
+              Archive Squad
             </ThemedText>
           </Row>
         </Clickable>

@@ -78,6 +78,7 @@ const resourceLabelOverrides = new Map([
   ['/v1/follows', 'follow relationship'],
   ['/v1/coaches/me/offerings', 'coach self offering'],
   ['/v1/coaches/offerings', 'coach offering catalog'],
+  ['/v1/coaches/search', 'coach search'],
   ['/v1/users/search', 'user search'],
 ]);
 
@@ -571,7 +572,232 @@ const optionalAthleteIdQueryParameter = {
   required: false,
 };
 
+const clubIdQueryParameter = {
+  name: 'clubId',
+  in: 'query',
+  required: false,
+  schema: {
+    type: 'string',
+    minLength: 1,
+  },
+  description: 'Club identifier. Mutually exclusive with communityGroupId.',
+};
+
+const communityGroupIdQueryParameter = {
+  name: 'communityGroupId',
+  in: 'query',
+  required: false,
+  schema: {
+    type: 'string',
+    minLength: 1,
+  },
+  description: 'Community group identifier. Mutually exclusive with clubId.',
+};
+
+const followingOnlyQueryParameter = {
+  name: 'followingOnly',
+  in: 'query',
+  required: false,
+  schema: {
+    type: 'boolean',
+    default: false,
+  },
+  description:
+    'When true, returns readable personal/BOTH posts authored by active followed users. This filter does not grant additional visibility.',
+};
+
+const coachSearchQueryParameter = {
+  name: 'query',
+  in: 'query',
+  required: false,
+  schema: {
+    type: 'string',
+    maxLength: 100,
+  },
+  description: 'Text search across public coach profile fields and active offerings.',
+};
+
+const coachSearchPriceMinParameter = {
+  name: 'priceMin',
+  in: 'query',
+  required: false,
+  schema: {
+    type: 'number',
+    minimum: 0,
+    maximum: 10000,
+  },
+  description: 'Minimum GBP price per session.',
+};
+
+const coachSearchPriceMaxParameter = {
+  name: 'priceMax',
+  in: 'query',
+  required: false,
+  schema: {
+    type: 'number',
+    minimum: 0,
+    maximum: 10000,
+  },
+  description: 'Maximum GBP price per session.',
+};
+
+const coachSearchRatingParameter = {
+  name: 'rating',
+  in: 'query',
+  required: false,
+  schema: {
+    type: 'number',
+    minimum: 0,
+    maximum: 5,
+  },
+  description: 'Minimum completed public-review rating aggregate.',
+};
+
+const coachSearchLatParameter = {
+  name: 'lat',
+  in: 'query',
+  required: false,
+  schema: {
+    type: 'number',
+    minimum: -90,
+    maximum: 90,
+  },
+  description: 'Search origin latitude. Required with lng for distance filtering or distance sort.',
+};
+
+const coachSearchLngParameter = {
+  name: 'lng',
+  in: 'query',
+  required: false,
+  schema: {
+    type: 'number',
+    minimum: -180,
+    maximum: 180,
+  },
+  description: 'Search origin longitude. Required with lat for distance filtering or distance sort.',
+};
+
+const coachSearchRadiusKmParameter = {
+  name: 'radiusKm',
+  in: 'query',
+  required: false,
+  schema: {
+    type: 'number',
+    minimum: 0,
+    maximum: 500,
+  },
+  description:
+    'Maximum distance from the lat/lng origin in kilometres. Uses public coach location coordinates only and never exposes raw addresses.',
+};
+
+function stringArrayQueryParameter(name, description) {
+  return {
+    name,
+    in: 'query',
+    required: false,
+    schema: {
+      type: 'array',
+      items: {
+        type: 'string',
+        minLength: 1,
+        maxLength: 80,
+      },
+      maxItems: 20,
+    },
+    style: 'form',
+    explode: true,
+    description,
+  };
+}
+
+const coachSearchSortByParameter = {
+  name: 'sortBy',
+  in: 'query',
+  required: false,
+  schema: {
+    type: 'string',
+    enum: ['relevance', 'distance', 'rating', 'price_low', 'price_high', 'reviews'],
+    default: 'relevance',
+  },
+  description: 'Sort order for backend public coach search results.',
+};
+
+const pageQueryParameter = {
+  name: 'page',
+  in: 'query',
+  required: false,
+  schema: {
+    type: 'integer',
+    minimum: 1,
+    maximum: 1000,
+    default: 1,
+  },
+  description: 'Page number.',
+};
+
+const pageSizeQueryParameter = {
+  name: 'pageSize',
+  in: 'query',
+  required: false,
+  schema: {
+    type: 'integer',
+    minimum: 1,
+    maximum: 100,
+    default: 20,
+  },
+  description: 'Page size.',
+};
+
 const operationOverrides = new Map([
+  [
+    'GET /v1/coaches/search',
+    {
+      tag: 'Coaches',
+      summary: 'Search Coaches',
+      operationId: 'searchCoaches',
+      effect: 'search',
+      parameters: [
+        coachSearchQueryParameter,
+        coachSearchPriceMinParameter,
+        coachSearchPriceMaxParameter,
+        coachSearchRatingParameter,
+        stringArrayQueryParameter('sports', 'Sports to include. Clubroom is football-only today.'),
+        stringArrayQueryParameter('focuses', 'Football focus labels to include.'),
+        stringArrayQueryParameter('formats', 'Session formats to include.'),
+        stringArrayQueryParameter('languages', 'Coach language names to include.'),
+        coachSearchLatParameter,
+        coachSearchLngParameter,
+        coachSearchRadiusKmParameter,
+        coachSearchSortByParameter,
+        pageQueryParameter,
+        pageSizeQueryParameter,
+      ],
+    },
+  ],
+  [
+    'GET /v1/posts',
+    {
+      tag: 'Community',
+      summary: 'List Posts',
+      operationId: 'listPosts',
+      effect: 'list',
+      parameters: [
+        clubIdQueryParameter,
+        communityGroupIdQueryParameter,
+        followingOnlyQueryParameter,
+      ],
+    },
+  ],
+  [
+    'PATCH /v1/coaches/{coachId}/verifications/{type}/review',
+    {
+      tag: 'Trust Ops',
+      summary: 'Review Coach Verification',
+      operationId: 'reviewCoachVerification',
+      effect: 'review',
+      requestSchema: 'CoachVerificationReviewInput',
+    },
+  ],
   [
     'DELETE /v1/coaches/me/availability/overrides/{overrideId}',
     {
@@ -946,6 +1172,27 @@ function buildDocument(markdown) {
         JsonObject: {
           type: 'object',
           additionalProperties: true,
+        },
+        CoachVerificationReviewInput: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['status'],
+          properties: {
+            status: {
+              type: 'string',
+              enum: ['APPROVED', 'REJECTED', 'EXPIRED'],
+            },
+            expiresAt: {
+              anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }],
+            },
+            notes: {
+              anyOf: [{ type: 'string', maxLength: 1000 }, { type: 'null' }],
+            },
+            verificationId: {
+              type: 'string',
+              minLength: 1,
+            },
+          },
         },
         ViewerRole: {
           type: 'string',

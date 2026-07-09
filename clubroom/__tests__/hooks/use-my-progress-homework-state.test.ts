@@ -3,8 +3,10 @@ import { describe, it } from 'node:test';
 
 import {
   buildHomeworkStateFromPracticeTasks,
+  loadCoachDirectoryForProgress,
   resolveHomeworkFeedbackIdsForPracticeTask,
 } from '@/hooks/use-my-progress';
+import { apiClient } from '@/services/api-client';
 import type { PracticeTask } from '@/services/progress/progress-practice-task-service';
 
 function makeTask(overrides: Partial<PracticeTask> = {}): PracticeTask {
@@ -60,5 +62,29 @@ describe('useMyProgress homework state mapping', () => {
       taskId: 'practice_task_drill_dra_feedback_feedback_1',
       completionNote: 'Photo proof submitted from My Progress.',
     });
+  });
+
+  it('does not read the mock coach directory in API mode', async (t) => {
+    const originalGet = apiClient.get;
+    const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+
+    Object.defineProperty(apiClient, 'isMockMode', {
+      configurable: true,
+      get: () => false,
+    });
+    apiClient.get = async () => {
+      throw new Error('coach directory local storage should not be read in API mode');
+    };
+
+    t.after(() => {
+      apiClient.get = originalGet;
+      if (originalIsMockMode) {
+        Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+      } else {
+        delete (apiClient as unknown as { isMockMode?: boolean }).isMockMode;
+      }
+    });
+
+    assert.deepEqual(await loadCoachDirectoryForProgress(), []);
   });
 });

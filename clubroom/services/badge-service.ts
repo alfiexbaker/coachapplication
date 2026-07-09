@@ -614,30 +614,22 @@ class BadgeService {
 
   async markShared(awardId: string): Promise<BadgeAward | undefined> {
     if (!apiClient.isMockMode) {
-      try {
-        const headers = await resolveBadgeActionHeaders('Sign in to share badge awards.');
-        const result = await apiFetch<ApiBadgeAwardResponse>(
-          `/v1/badge-awards/${encodeURIComponent(awardId)}/share`,
-          { method: 'POST', headers },
-        );
-        if (!result.success) {
-          this.logger.warn('badge_share_api_route_failed', {
-            awardId,
-            error: result.error.message,
-          });
-          return undefined;
-        }
-        const definitionsById = new Map([
-          [stringValue(result.data.badgeDefinition, 'id'), result.data.badgeDefinition],
-        ]);
-        return mapApiBadgeAward(result.data.badge, definitionsById, result.data.athleteId);
-      } catch (error) {
+      const headers = await resolveBadgeActionHeaders('Sign in to share badge awards.');
+      const result = await apiFetch<ApiBadgeAwardResponse>(
+        `/v1/badge-awards/${encodeURIComponent(awardId)}/share`,
+        { method: 'POST', headers },
+      );
+      if (!result.success) {
         this.logger.warn('badge_share_api_route_failed', {
           awardId,
-          error: error instanceof Error ? error.message : String(error),
+          error: result.error.message,
         });
-        return undefined;
+        throw new Error(result.error.message);
       }
+      const definitionsById = new Map([
+        [stringValue(result.data.badgeDefinition, 'id'), result.data.badgeDefinition],
+      ]);
+      return mapApiBadgeAward(result.data.badge, definitionsById, result.data.athleteId);
     }
 
     const stored = await this.getStoredAwards();
@@ -686,23 +678,17 @@ class BadgeService {
    */
   async postBadgeToFeed(awardId: string): Promise<void> {
     if (!apiClient.isMockMode) {
-      try {
-        const headers = await resolveBadgeActionHeaders('Sign in to post badge awards.');
-        const result = await apiFetch<ApiBadgeAwardResponse>(
-          `/v1/badge-awards/${encodeURIComponent(awardId)}/feed-post`,
-          { method: 'POST', headers },
-        );
-        if (!result.success) {
-          this.logger.warn('badge_feed_post_api_route_failed', {
-            awardId,
-            error: result.error.message,
-          });
-        }
-      } catch (error) {
+      const headers = await resolveBadgeActionHeaders('Sign in to post badge awards.');
+      const result = await apiFetch<ApiBadgeAwardResponse>(
+        `/v1/badge-awards/${encodeURIComponent(awardId)}/feed-post`,
+        { method: 'POST', headers },
+      );
+      if (!result.success) {
         this.logger.warn('badge_feed_post_api_route_failed', {
           awardId,
-          error: error instanceof Error ? error.message : String(error),
+          error: result.error.message,
         });
+        throw new Error(result.error.message);
       }
       return;
     }
@@ -742,30 +728,22 @@ class BadgeService {
    */
   async markSeenByParent(awardId: string): Promise<BadgeAward | undefined> {
     if (!apiClient.isMockMode) {
-      try {
-        const headers = await resolveBadgeActionHeaders('Sign in to update badge read state.');
-        const result = await apiFetch<ApiBadgeAwardResponse>(
-          `/v1/badge-awards/${encodeURIComponent(awardId)}/seen`,
-          { method: 'POST', headers },
-        );
-        if (!result.success) {
-          this.logger.warn('badge_seen_api_route_failed', {
-            awardId,
-            error: result.error.message,
-          });
-          return undefined;
-        }
-        const definitionsById = new Map([
-          [stringValue(result.data.badgeDefinition, 'id'), result.data.badgeDefinition],
-        ]);
-        return mapApiBadgeAward(result.data.badge, definitionsById, result.data.athleteId);
-      } catch (error) {
+      const headers = await resolveBadgeActionHeaders('Sign in to update badge read state.');
+      const result = await apiFetch<ApiBadgeAwardResponse>(
+        `/v1/badge-awards/${encodeURIComponent(awardId)}/seen`,
+        { method: 'POST', headers },
+      );
+      if (!result.success) {
         this.logger.warn('badge_seen_api_route_failed', {
           awardId,
-          error: error instanceof Error ? error.message : String(error),
+          error: result.error.message,
         });
-        return undefined;
+        throw new Error(result.error.message);
       }
+      const definitionsById = new Map([
+        [stringValue(result.data.badgeDefinition, 'id'), result.data.badgeDefinition],
+      ]);
+      return mapApiBadgeAward(result.data.badge, definitionsById, result.data.athleteId);
     }
 
     const stored = await this.getStoredAwards();
@@ -789,23 +767,17 @@ class BadgeService {
    */
   async markAllSeenByParent(athleteId: string): Promise<void> {
     if (!apiClient.isMockMode) {
-      try {
-        const access = await resolveBadgeApiAccess(athleteId);
-        const result = await apiFetch<ApiBadgesResponse & { seenCount?: number }>(
-          `/v1/athletes/${encodeURIComponent(access.apiAthleteId)}/badge-awards/seen`,
-          { method: 'POST', headers: access.headers },
-        );
-        if (!result.success) {
-          this.logger.warn('badge_seen_all_api_route_failed', {
-            athleteId,
-            error: result.error.message,
-          });
-        }
-      } catch (error) {
+      const access = await resolveBadgeApiAccess(athleteId);
+      const result = await apiFetch<ApiBadgesResponse & { seenCount?: number }>(
+        `/v1/athletes/${encodeURIComponent(access.apiAthleteId)}/badge-awards/seen`,
+        { method: 'POST', headers: access.headers },
+      );
+      if (!result.success) {
         this.logger.warn('badge_seen_all_api_route_failed', {
           athleteId,
-          error: error instanceof Error ? error.message : String(error),
+          error: result.error.message,
         });
+        throw new Error(result.error.message);
       }
       return;
     }

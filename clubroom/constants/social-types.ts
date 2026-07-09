@@ -110,6 +110,8 @@ export interface ChatThreadSummary {
   kind?: 'direct' | 'group';
   counterpartyUserId?: string;
   groupType?: 'club' | 'squad' | 'class' | 'announcement';
+  communityGroupId?: string;
+  groupSessionId?: string;
   bookingId: string;
   serviceName: string;
   location: string;

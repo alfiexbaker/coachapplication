@@ -5,10 +5,12 @@ import {
   getFixedScheduleFromOffering,
   getOfferingDuration,
 } from '@/utils/session-offering-booking';
+import { normalizeSessionOfferingSource } from '@/utils/session-offering-projections';
+import { resolveNonGenericPersonName } from '@/utils/person-name';
 
 export interface BookingPrefillChild {
   id: string;
-  name: string;
+  name?: string;
 }
 
 export function mapOfferingToDraftType(
@@ -28,37 +30,46 @@ export function buildBookingDraftPatchFromOffering({
   child?: BookingPrefillChild | null;
   entrySource?: string;
 }): Partial<BookingDraft> {
+  const normalizedOffering = normalizeSessionOfferingSource(offering);
   const patch: Partial<BookingDraft> = {
     entrySource,
     targetLocked: Boolean(child),
     coachId,
-    sessionOfferingId: offering.id,
-    sessionSource: offering.source ?? 'direct',
-    sessionSourceEntityId: offering.sourceEntityId ?? offering.id,
+    sessionOfferingId: normalizedOffering.id,
+    sessionSource: normalizedOffering.source ?? 'direct',
+    sessionSourceEntityId: normalizedOffering.sourceEntityId ?? normalizedOffering.id,
     sessionTemplateId: undefined,
-    sessionType: mapOfferingToDraftType(offering.sessionType),
-    sessionTypeLabel: offering.title,
-    duration: getOfferingDuration(offering),
-    price: offering.price ?? 0,
-    participants: offering.sessionType === 'group' ? offering.maxParticipants : undefined,
+    sessionType: mapOfferingToDraftType(normalizedOffering.sessionType),
+    sessionTypeLabel: normalizedOffering.title,
+    duration: getOfferingDuration(normalizedOffering),
+    price:
+      typeof normalizedOffering.price === 'number' && Number.isFinite(normalizedOffering.price)
+        ? normalizedOffering.price
+        : undefined,
+    totalPrice: undefined,
+    participants:
+      normalizedOffering.sessionType === 'group' ? normalizedOffering.maxParticipants : undefined,
     locationOption: BOOKING_LOCATION_OPTIONS.COACH_PRESET,
-    locationText: offering.location,
-    clubId: offering.clubId,
-    actingAs: offering.actingAs,
-    commercialMode: offering.commercialMode,
-    ownerCoachId: offering.ownerCoachId,
-    assigneeCoachId: offering.assigneeCoachId,
-    createdByUserId: offering.createdByUserId,
-    createdByRole: offering.createdByRole,
+    locationText: normalizedOffering.location,
+    clubId: normalizedOffering.clubId,
+    actingAs: normalizedOffering.actingAs,
+    commercialMode: normalizedOffering.commercialMode,
+    ownerCoachId: normalizedOffering.ownerCoachId,
+    assigneeCoachId: normalizedOffering.assigneeCoachId,
+    createdByUserId: normalizedOffering.createdByUserId,
+    createdByRole: normalizedOffering.createdByRole,
   };
 
-  const fixedSchedule = getFixedScheduleFromOffering(offering);
+  const fixedSchedule = getFixedScheduleFromOffering(normalizedOffering);
   patch.date = fixedSchedule?.date;
   patch.slot = fixedSchedule?.slot;
 
   if (child) {
     patch.childId = child.id;
-    patch.athleteName = child.name;
+    const childName = resolveNonGenericPersonName(child.name);
+    if (childName) {
+      patch.athleteName = childName;
+    }
   }
 
   return patch;

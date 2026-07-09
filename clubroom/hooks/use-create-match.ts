@@ -3,24 +3,22 @@
  */
 import { useState, useEffect } from 'react';
 
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { api } from '@/constants/config';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
-import type { MatchType, ClubSquad } from '@/constants/types';
+import type { Club, ClubMembership, MatchType, ClubSquad } from '@/constants/types';
 import { clubAuthorityService } from '@/services/club-authority-service';
 import { matchService } from '@/services/match-service';
 import { squadService } from '@/services/squad-service';
-import { inviteService as bulkInviteService } from '@/services/invite';
+import { matchInviteService } from '@/services/invite';
 import { uiFeedback } from '@/services/ui-feedback';
 
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('CreateMatchScreen');
-const DEFAULT_CLUB_ID = 'club_lions';
-const DEFAULT_CLUB_NAME = 'Lions FC Academy';
-const USE_MOCK = api.useMock;
+const NO_CLUB_CONTEXT_MESSAGE = 'Create a match from a club you manage.';
 
 export type CreateMatchStep = 'details' | 'schedule' | 'squad' | 'review';
 
@@ -33,13 +31,69 @@ export const MATCH_TYPES: { type: MatchType; label: string; icon: string }[] = [
 
 const STEPS: CreateMatchStep[] = ['details', 'schedule', 'squad', 'review'];
 
+type MatchCreateParams = {
+  clubId?: string | string[];
+  clubName?: string | string[];
+  squadId?: string | string[];
+};
+
+function getRouteParam(value: string | string[] | undefined): string | undefined {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const trimmed = raw?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function isMembershipForUser(membership: ClubMembership, userId: string | undefined): boolean {
+  if (!userId) {
+    return false;
+  }
+  const normalizedUserId = userId.replace(/^usr_/, '');
+  return membership.userId === userId || membership.userId === normalizedUserId;
+}
+
+function resolveMatchClub(
+  clubs: Club[],
+  memberships: ClubMembership[],
+  userId: string | undefined,
+  requestedClubId: string | undefined,
+  requestedClubName: string | undefined,
+  allowRouteOnlyClub: boolean,
+): { id: string; name: string } | null {
+  if (requestedClubId) {
+    const club = clubs.find((candidate) => candidate.id === requestedClubId);
+    if (club) {
+      return { id: club.id, name: requestedClubName ?? club.name };
+    }
+    return allowRouteOnlyClub && requestedClubName
+      ? { id: requestedClubId, name: requestedClubName }
+      : null;
+  }
+
+  const membershipClubIds = new Set(
+    memberships
+      .filter(
+        (membership) => membership.status === 'active' && isMembershipForUser(membership, userId),
+      )
+      .map((membership) => membership.clubId),
+  );
+  const club = clubs.find((candidate) => membershipClubIds.has(candidate.id)) ?? clubs[0] ?? null;
+  return club ? { id: club.id, name: club.name } : null;
+}
+
 export function useCreateMatch() {
   const { currentUser } = useAuth();
+  const routeParams = useLocalSearchParams<MatchCreateParams>();
+  const requestedClubId = getRouteParam(routeParams.clubId);
+  const requestedClubName = getRouteParam(routeParams.clubName);
+  const routeSquadId = getRouteParam(routeParams.squadId);
 
   const [step, setStep] = useState<CreateMatchStep>('details');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeClubId, setActiveClubId] = useState(USE_MOCK ? DEFAULT_CLUB_ID : '');
-  const [activeClubName, setActiveClubName] = useState(USE_MOCK ? DEFAULT_CLUB_NAME : '');
+  const [activeClubId, setActiveClubId] = useState('');
+  const [activeClubName, setActiveClubName] = useState('');
+  const [clubContextLoading, setClubContextLoading] = useState(true);
+  const [clubContextError, setClubContextError] = useState<string | null>(null);
+  const [clubContextVersion, setClubContextVersion] = useState(0);
 
   // Form state
   const [matchType, setMatchType] = useState<MatchType>('LEAGUE');
@@ -57,8 +111,8 @@ export function useCreateMatch() {
   const [squadMemberCount, setSquadMemberCount] = useState(0);
   const [autoInvite, setAutoInvite] = useState(true);
   const selectedSquad = squads?.find((squad) => squad.id === selectedSquadId) ?? null;
-  const canCreateWithoutSquad = !USE_MOCK;
-  const canCreateSquad = USE_MOCK;
+  const canCreateWithoutSquad = !api.useMock;
+  const canCreateSquad = Boolean(activeClubId);
 
   const updateSelectedSquadId = (squadId: string | null) => {
     setSelectedSquadId(squadId);
@@ -68,40 +122,98 @@ export function useCreateMatch() {
   };
 
   useEffect(() => {
-    const loadSquads = async () => {
+    let active = true;
+
+    const loadMatchContext = async () => {
+      setClubContextLoading(true);
+      setClubContextError(null);
+
       try {
-        if (!USE_MOCK) {
-          const clubsResult = await clubAuthorityService.listClubs();
-          if (!clubsResult.success) {
-            logger.error('Failed to resolve clubs for match creation:', clubsResult.error);
-            setSquads([]);
-            setAutoInvite(false);
-            return;
-          }
-          const primaryClub = clubsResult.data.clubs[0];
-          if (!primaryClub) {
-            logger.warn('No club membership available for match creation');
-            setSquads([]);
-            setAutoInvite(false);
-            return;
-          }
-          setActiveClubId(primaryClub.id);
-          setActiveClubName(primaryClub.name);
+        if (!currentUser?.id && !api.useMock) {
+          setActiveClubId('');
+          setActiveClubName('');
           setSquads([]);
           setAutoInvite(false);
+          setClubContextError('Sign in as a coach before creating a match.');
           return;
         }
 
-        const data = await squadService.getSquads(DEFAULT_CLUB_ID);
-        setSquads(data.filter((s) => !s.name.toLowerCase().includes('staff')));
+        const clubsResult = await clubAuthorityService.listClubs();
+        if (!active) return;
+
+        if (!clubsResult.success) {
+          logger.error('Failed to resolve clubs for match creation:', clubsResult.error);
+          setActiveClubId('');
+          setActiveClubName('');
+          setSquads([]);
+          setAutoInvite(false);
+          setClubContextError(clubsResult.error.message);
+          return;
+        }
+
+        const club = resolveMatchClub(
+          clubsResult.data.clubs,
+          clubsResult.data.memberships,
+          currentUser?.id,
+          requestedClubId,
+          requestedClubName,
+          api.useMock,
+        );
+
+        if (!club) {
+          logger.warn('No club membership available for match creation');
+          setActiveClubId('');
+          setActiveClubName('');
+          setSquads([]);
+          setAutoInvite(false);
+          setClubContextError(NO_CLUB_CONTEXT_MESSAGE);
+          return;
+        }
+
+        setActiveClubId(club.id);
+        setActiveClubName(club.name);
+
+        const liveSquads = (await squadService.getSquads(club.id)).filter(
+          (squad) => !squad.name.toLowerCase().includes('staff'),
+        );
+        if (active) {
+          setSquads(liveSquads);
+          const routeSquad = routeSquadId
+            ? liveSquads.find((squad) => squad.id === routeSquadId)
+            : null;
+          if (routeSquadId) {
+            updateSelectedSquadId(routeSquad?.id ?? null);
+            if (!routeSquad) {
+              logger.warn('Route squad is not available for match club context', {
+                clubId: club.id,
+                routeSquadId,
+              });
+            }
+          }
+          setAutoInvite(routeSquadId ? Boolean(routeSquad) : liveSquads.length > 0);
+        }
       } catch (error) {
         logger.error('Failed to load squads:', error);
-        setSquads([]);
+        if (active) {
+          setActiveClubId('');
+          setActiveClubName('');
+          setSquads([]);
+          setAutoInvite(false);
+          setClubContextError('Failed to load club context for match creation.');
+        }
+      } finally {
+        if (active) {
+          setClubContextLoading(false);
+        }
       }
     };
     // react-doctor-disable-next-line react-doctor/no-initialize-state -- squad options are loaded from the service after mount.
-    loadSquads();
-  }, []);
+    void loadMatchContext();
+
+    return () => {
+      active = false;
+    };
+  }, [clubContextVersion, currentUser?.id, requestedClubId, requestedClubName, routeSquadId]);
 
   useEffect(() => {
     if (!selectedSquadId) return;
@@ -120,6 +232,11 @@ export function useCreateMatch() {
   const currentStepIndex = STEPS.indexOf(step);
 
   const validateStep = (): boolean => {
+    if (!activeClubId) {
+      uiFeedback.showToast(NO_CLUB_CONTEXT_MESSAGE, 'error');
+      return false;
+    }
+
     switch (step) {
       case 'details':
         if (!opponent.trim()) {
@@ -142,6 +259,10 @@ export function useCreateMatch() {
         }
         return true;
       case 'squad':
+        if (selectedSquadId && !selectedSquad) {
+          uiFeedback.showToast('Select a squad from this club.', 'error');
+          return false;
+        }
         if (canCreateWithoutSquad && (squads?.length ?? 0) === 0) {
           return true;
         }
@@ -168,8 +289,24 @@ export function useCreateMatch() {
   };
 
   const handleSubmit = async () => {
+    const coachId = currentUser?.id;
+    if (!coachId) {
+      uiFeedback.showToast('Sign in as a coach before creating a match.', 'error');
+      return;
+    }
+
     if (!activeClubId) {
       uiFeedback.showToast('Join or create a club before creating a match.', 'error');
+      return;
+    }
+    const coachName = (
+      currentUser.name ||
+      currentUser.fullName ||
+      currentUser.username ||
+      ''
+    ).trim();
+    if (!coachName) {
+      uiFeedback.showToast('Complete your account name before creating a match.', 'error');
       return;
     }
 
@@ -178,10 +315,10 @@ export function useCreateMatch() {
     await runAsyncTryCatchFinally(
       async () => {
         const title = `${selectedSquad?.name || 'Team'} vs ${opponent}`;
-        if (USE_MOCK && autoInvite && selectedSquadId) {
-          const result = await bulkInviteService.inviteSquadToMatch({
+        if (autoInvite && selectedSquadId && selectedSquad) {
+          const result = await matchInviteService.inviteSquadToMatch({
             squadId: selectedSquadId,
-            squadName: selectedSquad?.name || 'Team',
+            squadName: selectedSquad.name,
             matchTitle: title,
             opponent,
             isHome,
@@ -190,8 +327,8 @@ export function useCreateMatch() {
             venue,
             clubId: activeClubId,
             clubName: activeClubName,
-            coachId: currentUser?.id || 'coach_1',
-            coachName: currentUser?.fullName || currentUser?.username || 'Coach',
+            coachId,
+            coachName,
             matchType,
             notes: notes || undefined,
           });
@@ -206,8 +343,8 @@ export function useCreateMatch() {
             clubName: activeClubName,
             squadId: selectedSquadId || undefined,
             squadName: selectedSquad?.name,
-            coachId: currentUser?.id || 'coach_1',
-            coachName: currentUser?.fullName || currentUser?.username || 'Coach',
+            coachId,
+            coachName,
             title,
             matchType,
             opponent,
@@ -262,10 +399,14 @@ export function useCreateMatch() {
     selectedSquadId,
     setSelectedSquadId: updateSelectedSquadId,
     selectedSquad,
+    activeClubId,
     squads: squads ?? [],
     squadMemberCount,
     autoInvite,
     setAutoInvite,
+    clubContextLoading,
+    clubContextError,
+    retryClubContext: () => setClubContextVersion((version) => version + 1),
     canCreateWithoutSquad,
     canCreateSquad,
     handleNext,

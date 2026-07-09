@@ -18,7 +18,6 @@ export { NotificationsPanel } from '@/components/notification/notifications-pane
 export default function NotificationsScreen() {
   const { colors: palette } = useTheme();
   const [refreshToken, setRefreshToken] = useState(0);
-  const [seedOnMount, setSeedOnMount] = useState(true);
   const [markingAllRead, setMarkingAllRead] = useState(false);
   const [clearingAllLoading, setClearingAllLoading] = useState(false);
   const { unreadCount, markAllAsRead, clearAll } = useNotifications();
@@ -26,15 +25,17 @@ export default function NotificationsScreen() {
 
   const handleClearAll = async () => {
     setClearingAllLoading(true);
-    setSeedOnMount(false);
 
-    await runAsyncFinally(async () => {
-      await clearAll();
-      setRefreshToken((token) => token + 1);
-      showToast('Notifications cleared', 'success');
-    }, () => {
-      setClearingAllLoading(false);
-    });
+    await runAsyncFinally(
+      async () => {
+        await clearAll();
+        setRefreshToken((token) => token + 1);
+        showToast('Notifications cleared', 'success');
+      },
+      () => {
+        setClearingAllLoading(false);
+      },
+    );
   };
 
   const handleMarkAllRead = async () => {
@@ -43,16 +44,19 @@ export default function NotificationsScreen() {
     const performMarkAllRead = async () => {
       setMarkingAllRead(true);
 
-      await runAsyncFinally(async () => {
-        await markAllAsRead();
-        setRefreshToken((token) => token + 1);
-        showToast(
-          `${unreadCount} notification${unreadCount === 1 ? '' : 's'} marked as read`,
-          'success',
-        );
-      }, () => {
-        setMarkingAllRead(false);
-      });
+      await runAsyncFinally(
+        async () => {
+          await markAllAsRead();
+          setRefreshToken((token) => token + 1);
+          showToast(
+            `${unreadCount} notification${unreadCount === 1 ? '' : 's'} marked as read`,
+            'success',
+          );
+        },
+        () => {
+          setMarkingAllRead(false);
+        },
+      );
     };
 
     await performMarkAllRead();
@@ -71,7 +75,7 @@ export default function NotificationsScreen() {
         markingAllRead={markingAllRead}
         clearingAll={clearingAllLoading}
       />
-      <NotificationsPanel seedOnMount={seedOnMount} refreshToken={refreshToken} />
+      <NotificationsPanel refreshToken={refreshToken} />
     </SafeAreaView>
   );
 }

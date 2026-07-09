@@ -57,7 +57,13 @@ export interface ChildRelationship {
 }
 
 // Bookings & Sessions
-export type BookingStatus = 'PENDING' | 'AWAITING_CONFIRMATION' | 'CONFIRMED' | 'AWAITING_COMPLETION' | 'COMPLETED' | 'CANCELLED';
+export type BookingStatus =
+  | 'PENDING'
+  | 'AWAITING_CONFIRMATION'
+  | 'CONFIRMED'
+  | 'AWAITING_COMPLETION'
+  | 'COMPLETED'
+  | 'CANCELLED';
 
 export interface Booking {
   id: string;
@@ -95,7 +101,7 @@ export interface Booking {
   start?: string;
   price?: number;
   serviceType?: string;
-  sessionSource?: 'direct' | 'event' | 'group';
+  sessionSource?: 'direct' | 'group';
   sessionSourceEntityId?: string;
   sessionTemplateId?: string;
   sessionTemplateName?: string;
@@ -110,19 +116,19 @@ export interface Booking {
   // Session invite link (bidirectional)
   sessionInviteId?: string;
   // Bilateral confirmation fields
-  confirmationMode?: 'auto' | 'manual';  // coach preference
-  confirmedAt?: string;                    // when coach confirmed (manual mode)
-  declinedReason?: string;                 // if coach declines booking request
-  cancelledBy?: string;                    // userId who cancelled
-  cancelledAt?: string;                    // when cancelled
-  cancelReason?: string;                   // reason for cancellation
+  confirmationMode?: 'auto' | 'manual'; // coach preference
+  confirmedAt?: string; // when coach confirmed (manual mode)
+  declinedReason?: string; // if coach declines booking request
+  cancelledBy?: string; // userId who cancelled
+  cancelledAt?: string; // when cancelled
+  cancelReason?: string; // reason for cancellation
   statusBeforeCancellation?: BookingStatus; // active status to restore if reopened
-  cancellationFee?: number;                // amount owed for late cancellation
+  cancellationFee?: number; // amount owed for late cancellation
   // Multi-week series fields
-  seriesId?: string;                       // ID of the BookingSeries this booking belongs to
-  seriesIndex?: number;                    // 0-based index within the series
+  seriesId?: string; // ID of the BookingSeries this booking belongs to
+  seriesIndex?: number; // 0-based index within the series
   // Calendar sync
-  calendarEventId?: string;               // Native calendar event ID for sync
+  calendarEventId?: string; // Native calendar event ID for sync
 }
 
 export type AttendanceStatus = 'ATTENDED' | 'NO_SHOW';
@@ -213,7 +219,6 @@ export interface CoachAnalytics {
   peakHour: number;
   revenueTotal: number; // GBP
 }
-
 
 // ===== SESSION MANAGEMENT TYPES =====
 

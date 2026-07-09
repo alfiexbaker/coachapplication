@@ -12,6 +12,7 @@ import { apiClient } from '../api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type {
+  SessionInvite,
   SquadMember,
   SquadInvite,
   SquadSessionInvite,
@@ -21,12 +22,13 @@ import type {
 import { squadService } from '../squad-service';
 import { userService } from '../user-service';
 import { createLogger } from '@/utils/logger';
+import { sessionInviteAuthorityService } from './session-invite-authority-service';
 
 const logger = createLogger('SquadInviteService');
 
 const USE_MOCK = api.useMock;
 const API_MODE_SQUAD_INVITE_MESSAGE =
-  'Squad invite local mirrors are mock-only; use /v1/invites or add a dedicated squad invite API in API mode.';
+  'Squad invite local mirrors are mock-only; API mode uses /v1/invites for squad invite authority.';
 
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
   const userResult = await userService.getUserById(userId);
@@ -38,6 +40,197 @@ async function resolveUserEmail(userId: string): Promise<string | undefined> {
   const userResult = await userService.getUserById(userId);
   if (!userResult.success) return undefined;
   return userResult.data.email || undefined;
+}
+
+type SessionInviteListResult = Awaited<
+  ReturnType<typeof sessionInviteAuthorityService.getInviteHistory>
+>;
+
+function unwrapSessionInviteList(
+  result: SessionInviteListResult,
+  context: string,
+): SessionInvite[] {
+  if (!result.success) {
+    logger.error('Failed to load squad invite data from API', {
+      context,
+      error: result.error,
+    });
+    throw result.error;
+  }
+
+  return result.data;
+}
+
+function getInviteSquadIds(invite: SessionInvite, squadId?: string): string[] {
+  if (invite.inviteType !== 'SQUAD_ONLY') {
+    return [];
+  }
+
+  const squadIds = invite.squadIds ?? [];
+  return squadId ? squadIds.filter((id) => id === squadId) : squadIds;
+}
+
+function getInviteSentAt(invite: SessionInvite): string {
+  return invite.createdAt || invite.respondedAt || invite.expiresAt;
+}
+
+function getInviteSessionId(invite: SessionInvite): string {
+  return invite.existingSessionId || invite.groupId || invite.id;
+}
+
+function getInviteGroupKey(invite: SessionInvite): string {
+  return invite.groupId || invite.existingSessionId || invite.id;
+}
+
+function inviteMatchesSession(invite: SessionInvite, sessionId: string): boolean {
+  return (
+    invite.id === sessionId ||
+    invite.groupId === sessionId ||
+    invite.existingSessionId === sessionId
+  );
+}
+
+function getInviteMemberCount(invite: SessionInvite): number {
+  return Math.max(invite.athleteIds.length, 1);
+}
+
+function isInviteExpired(invite: SessionInvite): boolean {
+  if (invite.status === 'EXPIRED') return true;
+  const expiresAt = Date.parse(invite.expiresAt);
+  return Number.isFinite(expiresAt) && expiresAt < Date.now();
+}
+
+function getInviteResponseCounts(invite: SessionInvite): {
+  inviteCount: number;
+  acceptedCount: number;
+  declinedCount: number;
+  pendingCount: number;
+} {
+  const inviteCount = getInviteMemberCount(invite);
+  if (invite.status === 'ACCEPTED') {
+    return { inviteCount, acceptedCount: inviteCount, declinedCount: 0, pendingCount: 0 };
+  }
+
+  if (invite.status === 'DECLINED') {
+    return { inviteCount, acceptedCount: 0, declinedCount: inviteCount, pendingCount: 0 };
+  }
+
+  if (isInviteExpired(invite)) {
+    return { inviteCount, acceptedCount: 0, declinedCount: 0, pendingCount: 0 };
+  }
+
+  return { inviteCount, acceptedCount: 0, declinedCount: 0, pendingCount: inviteCount };
+}
+
+function deriveHistoryStatus(entry: SquadInviteHistoryEntry): SquadInviteHistoryEntry['status'] {
+  if (entry.pendingCount > 0) return 'ACTIVE';
+  if (entry.acceptedCount > 0 || entry.declinedCount > 0) return 'COMPLETED';
+  return 'EXPIRED';
+}
+
+function mapSessionInvitesToSquadHistory(
+  invites: SessionInvite[],
+  squadId?: string,
+): SquadInviteHistoryEntry[] {
+  const entries = new Map<string, SquadInviteHistoryEntry>();
+
+  for (const invite of invites) {
+    for (const currentSquadId of getInviteSquadIds(invite, squadId)) {
+      const groupKey = getInviteGroupKey(invite);
+      const key = `${currentSquadId}:${groupKey}`;
+      const counts = getInviteResponseCounts(invite);
+      const sentAt = getInviteSentAt(invite);
+      const existing = entries.get(key);
+
+      if (!existing) {
+        entries.set(key, {
+          id: `squad_history_${groupKey}_${currentSquadId}`,
+          squadId: currentSquadId,
+          sessionId: getInviteSessionId(invite),
+          sessionType: invite.sessionType,
+          focus: invite.focus,
+          sentAt,
+          sentBy: invite.coachId,
+          inviteCount: counts.inviteCount,
+          acceptedCount: counts.acceptedCount,
+          declinedCount: counts.declinedCount,
+          pendingCount: counts.pendingCount,
+          status: 'ACTIVE',
+        });
+        continue;
+      }
+
+      existing.inviteCount += counts.inviteCount;
+      existing.acceptedCount += counts.acceptedCount;
+      existing.declinedCount += counts.declinedCount;
+      existing.pendingCount += counts.pendingCount;
+      if (new Date(sentAt).getTime() < new Date(existing.sentAt).getTime()) {
+        existing.sentAt = sentAt;
+      }
+    }
+  }
+
+  return Array.from(entries.values())
+    .map((entry) => ({ ...entry, status: deriveHistoryStatus(entry) }))
+    .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime());
+}
+
+function mapSessionInvitesToSquadSessionInvites(
+  invites: SessionInvite[],
+  squadId?: string,
+): SquadSessionInvite[] {
+  const entries = new Map<string, SquadSessionInvite>();
+
+  for (const invite of invites) {
+    for (const currentSquadId of getInviteSquadIds(invite, squadId)) {
+      const groupKey = getInviteGroupKey(invite);
+      const key = `${currentSquadId}:${groupKey}`;
+      const sentAt = getInviteSentAt(invite);
+      const existing =
+        entries.get(key) ??
+        ({
+          id: groupKey,
+          squadId: currentSquadId,
+          sessionId: getInviteSessionId(invite),
+          invitedMembers: [],
+          sentAt,
+          sentBy: invite.coachId,
+          status: 'SENT',
+          result: {
+            sent: 0,
+            successful: 0,
+            failed: 0,
+            skipped: 0,
+            totalAttempted: 0,
+            errors: [],
+            ...(invite.groupId ? { groupId: invite.groupId } : {}),
+          },
+        } satisfies SquadSessionInvite);
+
+      for (const athleteId of invite.athleteIds) {
+        existing.invitedMembers.push({
+          memberId: athleteId,
+          athleteId,
+          parentId: invite.parentId,
+          inviteId: invite.id,
+          status: 'SENT',
+        });
+      }
+
+      const memberCount = getInviteMemberCount(invite);
+      existing.result.sent += memberCount;
+      existing.result.successful += memberCount;
+      existing.result.totalAttempted += memberCount;
+      if (new Date(sentAt).getTime() < new Date(existing.sentAt).getTime()) {
+        existing.sentAt = sentAt;
+      }
+      entries.set(key, existing);
+    }
+  }
+
+  return Array.from(entries.values()).sort(
+    (a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime(),
+  );
 }
 
 // ============================================================================
@@ -319,10 +512,20 @@ export const squadInviteService = {
     let existingInviteMap = new Map<string, { pending: boolean; lastInvited: string }>();
 
     if (sessionId) {
-      squadSessionInvitesCache = await loadSquadSessionInvites();
-      const relatedInvites = squadSessionInvitesCache.filter(
-        (inv) => inv.squadId === squadId && inv.sessionId === sessionId,
-      );
+      const relatedInvites = !USE_MOCK
+        ? mapSessionInvitesToSquadSessionInvites(
+            unwrapSessionInviteList(
+              await sessionInviteAuthorityService.getInviteHistory(),
+              'getSquadMembersWithMetadata',
+            ).filter((invite) => inviteMatchesSession(invite, sessionId)),
+            squadId,
+          )
+        : await loadSquadSessionInvites().then((invites) => {
+            squadSessionInvitesCache = invites;
+            return squadSessionInvitesCache.filter(
+              (inv) => inv.squadId === squadId && inv.sessionId === sessionId,
+            );
+          });
 
       relatedInvites.forEach((inv) => {
         inv.invitedMembers.forEach((m) => {
@@ -399,6 +602,16 @@ export const squadInviteService = {
    * Get invite history for a squad
    */
   async getSquadInviteHistory(squadId: string): Promise<SquadInviteHistoryEntry[]> {
+    if (!USE_MOCK) {
+      return mapSessionInvitesToSquadHistory(
+        unwrapSessionInviteList(
+          await sessionInviteAuthorityService.getInviteHistory(),
+          'getSquadInviteHistory',
+        ),
+        squadId,
+      );
+    }
+
     inviteHistoryCache = await loadInviteHistory();
     return inviteHistoryCache
       .filter((entry) => entry.squadId === squadId)
@@ -409,6 +622,15 @@ export const squadInviteService = {
    * Get all invite history for a coach
    */
   async getCoachInviteHistory(coachId: string): Promise<SquadInviteHistoryEntry[]> {
+    if (!USE_MOCK) {
+      return mapSessionInvitesToSquadHistory(
+        unwrapSessionInviteList(
+          await sessionInviteAuthorityService.getCoachInvites(coachId),
+          'getCoachInviteHistory',
+        ),
+      );
+    }
+
     inviteHistoryCache = await loadInviteHistory();
     return inviteHistoryCache
       .filter((entry) => entry.sentBy === coachId)
@@ -445,6 +667,14 @@ export const squadInviteService = {
    * Get squad session invite by ID
    */
   async getSquadSessionInvite(inviteId: string): Promise<SquadSessionInvite | null> {
+    if (!USE_MOCK) {
+      const invites = unwrapSessionInviteList(
+        await sessionInviteAuthorityService.getInviteHistory(),
+        'getSquadSessionInvite',
+      ).filter((invite) => inviteMatchesSession(invite, inviteId));
+      return mapSessionInvitesToSquadSessionInvites(invites)[0] ?? null;
+    }
+
     squadSessionInvitesCache = await loadSquadSessionInvites();
     return squadSessionInvitesCache.find((inv) => inv.id === inviteId) || null;
   },
@@ -453,6 +683,15 @@ export const squadInviteService = {
    * Get all squad session invites for a session
    */
   async getInvitesForSession(sessionId: string): Promise<SquadSessionInvite[]> {
+    if (!USE_MOCK) {
+      return mapSessionInvitesToSquadSessionInvites(
+        unwrapSessionInviteList(
+          await sessionInviteAuthorityService.getInviteHistory(),
+          'getInvitesForSession',
+        ).filter((invite) => inviteMatchesSession(invite, sessionId)),
+      );
+    }
+
     squadSessionInvitesCache = await loadSquadSessionInvites();
     return squadSessionInvitesCache.filter((inv) => inv.sessionId === sessionId);
   },
@@ -461,6 +700,15 @@ export const squadInviteService = {
    * Get squad session invites by coach
    */
   async getInvitesByCoach(coachId: string): Promise<SquadSessionInvite[]> {
+    if (!USE_MOCK) {
+      return mapSessionInvitesToSquadSessionInvites(
+        unwrapSessionInviteList(
+          await sessionInviteAuthorityService.getCoachInvites(coachId),
+          'getInvitesByCoach',
+        ),
+      );
+    }
+
     squadSessionInvitesCache = await loadSquadSessionInvites();
     return squadSessionInvitesCache
       .filter((inv) => inv.sentBy === coachId)
@@ -512,6 +760,17 @@ export const squadInviteService = {
    * Check if member has already been invited to a session
    */
   async hasMemberBeenInvited(memberId: string, sessionId: string): Promise<boolean> {
+    if (!USE_MOCK) {
+      const sessionInvites = await this.getInvitesForSession(sessionId);
+      return sessionInvites.some((inv) =>
+        inv.invitedMembers.some(
+          (member) =>
+            member.status === 'SENT' &&
+            (member.memberId === memberId || member.athleteId === memberId),
+        ),
+      );
+    }
+
     squadSessionInvitesCache = await loadSquadSessionInvites();
     return squadSessionInvitesCache.some(
       (inv) =>

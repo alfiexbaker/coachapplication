@@ -14,6 +14,44 @@ export interface ClubScheduleDayGroup {
   items: ClubActivity[];
 }
 
+function formatActivityPrice(price?: number, currency: string = 'GBP'): string {
+  if (price == null || price <= 0) {
+    return 'Free';
+  }
+
+  try {
+    return price.toLocaleString('en-GB', {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: price % 1 === 0 ? 0 : 2,
+    });
+  } catch {
+    return `${currency} ${price}`;
+  }
+}
+
+export function getClubActivityPrimaryLabel(activity: ClubActivity): string {
+  switch (activity.source) {
+    case 'club_event':
+      return activity.participationLabel;
+    case 'group_session':
+      return formatActivityPrice(activity.price, activity.currency);
+    case 'match':
+      return activity.homeAwayLabel ?? activity.typeLabel;
+  }
+}
+
+export function getClubActivitySourceLabel(activity: ClubActivity): string {
+  switch (activity.source) {
+    case 'club_event':
+      return 'Event';
+    case 'group_session':
+      return 'Training session';
+    case 'match':
+      return 'Match';
+  }
+}
+
 function isUpcomingActivity(activity: ClubActivity, now: Date): boolean {
   if (activity.status === 'completed' || activity.status === 'cancelled') {
     return false;
@@ -42,13 +80,19 @@ function sortActivitiesForFilter(
   if (filter === 'all') {
     const upcoming = activities
       .filter((activity) => isUpcomingActivity(activity, now))
-      .toSorted((left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime());
+      .toSorted(
+        (left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime(),
+      );
     const completed = activities
       .filter((activity) => isCompletedActivity(activity, now))
-      .toSorted((left, right) => new Date(right.startsAt).getTime() - new Date(left.startsAt).getTime());
+      .toSorted(
+        (left, right) => new Date(right.startsAt).getTime() - new Date(left.startsAt).getTime(),
+      );
     const cancelled = activities
       .filter((activity) => activity.status === 'cancelled')
-      .toSorted((left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime());
+      .toSorted(
+        (left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime(),
+      );
     return [...upcoming, ...completed, ...cancelled];
   }
 

@@ -20,6 +20,7 @@ import { mediaService } from '@/services/media-service';
 import { badgeService } from '@/services/badge-service';
 import { bookingService } from '@/services/booking-service';
 import { groupSessionService } from '@/services/group-session-service';
+import { messagingService } from '@/services/messaging-service';
 import { sessionTemplateService } from '@/services/session-template-service';
 import { userService } from '@/services/user-service';
 import { earningsService } from '@/services/earnings';
@@ -29,13 +30,14 @@ import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
 import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
+import { getSessionOfferingGroupSessionId } from '@/utils/session-offering-projections';
 import type {
   SessionOffering,
   AttendanceRecord,
   SessionAttendance,
   SessionRegistration,
 } from '@/constants/session-types';
-import type { ChatMessage, RosterEntry } from '@/constants/types';
+import type { ChatMessage, ChatThreadSummary, RosterEntry } from '@/constants/types';
 import type { BadgeDefinitionWithStats } from '@/services/badge-service';
 import type { AttendanceStatus as StepAttendanceStatus } from '@/components/session/attendance-step';
 import type { QuickRateInput } from '@/types/progress-types';
@@ -44,6 +46,15 @@ import { runAsyncTryCatchFinally } from '@/utils/async-control';
 const logger = createLogger('SessionComplete');
 const API_COMPLETION_MESSAGE_UNSUPPORTED_REASON =
   'Session completion messages need backend thread mapping before they can send in API mode.';
+const API_COMPLETION_MESSAGE_NO_THREAD_REASON =
+  'No backend message thread exists for this session completion yet.';
+
+type CompletionMessageThreadTarget = {
+  kind: 'direct' | 'group';
+  bookingId?: string;
+  groupSessionId?: string;
+  counterpartyUserId?: string;
+};
 
 function clearReviewPromptTimer(ref: { current: ReturnType<typeof setTimeout> | null }) {
   if (ref.current) {
@@ -110,6 +121,33 @@ function normalizeSkills(skills: string[] | undefined): string[] {
       }),
     ),
   );
+}
+function normalizeThreadTargetId(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+function findCompletionMessageThread(
+  threads: ChatThreadSummary[],
+  target: CompletionMessageThreadTarget,
+): ChatThreadSummary | undefined {
+  const bookingId = normalizeThreadTargetId(target.bookingId);
+  const groupSessionId = normalizeThreadTargetId(target.groupSessionId);
+  const counterpartyUserId = normalizeThreadTargetId(target.counterpartyUserId);
+
+  return threads.find((thread) => {
+    if (target.kind === 'group') {
+      if (thread.kind !== 'group') return false;
+      return (
+        (groupSessionId && thread.groupSessionId === groupSessionId) ||
+        (bookingId && thread.bookingId === bookingId)
+      );
+    }
+
+    if (thread.kind === 'group') return false;
+    if (bookingId && thread.bookingId === bookingId) return true;
+    if (!groupSessionId || thread.groupSessionId !== groupSessionId) return false;
+    return !counterpartyUserId || thread.counterpartyUserId === counterpartyUserId;
+  });
 }
 function resolveAttendanceDate(scheduledAt: string | undefined): string {
   const scheduled = scheduledAt ? new Date(scheduledAt) : null;
@@ -194,6 +232,13 @@ export function useSessionCompletion(sessionId: string | undefined) {
   const activeSteps = isGroupCompletion
     ? COMPLETION_STEPS.filter((step) => step !== 'quickRate')
     : COMPLETION_STEPS;
+  const activeGroupSessionId = useMemo(() => {
+    if (!session || sourceType !== 'offering') return undefined;
+    return (
+      getSessionOfferingGroupSessionId(session) ??
+      (session.sessionType === 'group' ? session.id : undefined)
+    );
+  }, [session, sourceType]);
   const loadParticipantContext = async (registrations: SessionRegistration[], coachId: string) => {
     const athleteIds = registrations.flatMap((registration) =>
       registration.userId ? [registration.userId] : [],
@@ -287,9 +332,11 @@ export function useSessionCompletion(sessionId: string | undefined) {
         }
 
         // 2. Try group sessions
-        const groupSession = await groupSessionService.getSession(sessionId);
+        const groupSessionLookupId =
+          getSessionOfferingGroupSessionId({ id: sessionId }) ?? sessionId;
+        const groupSession = await groupSessionService.getSession(groupSessionLookupId);
         if (groupSession) {
-          const roster = await groupSessionService.getSessionRoster(sessionId);
+          const roster = await groupSessionService.getSessionRoster(groupSessionLookupId);
           const registrations: SessionRegistration[] = roster.map((entry) => ({
             id: entry.id,
             userId: entry.athleteId,
@@ -315,6 +362,8 @@ export function useSessionCompletion(sessionId: string | undefined) {
             ageMax: groupSession.ageMax,
             squadId: groupSession.squadId,
             inviteType: groupSession.inviteType,
+            source: 'group',
+            sourceEntityId: groupSession.id,
           };
           setSession(syntheticOffering);
           setSourceType('offering');
@@ -482,6 +531,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
   const appendThreadMessage = async (
     threadId: string,
     body: string,
+    target?: CompletionMessageThreadTarget,
   ): Promise<{ ok: true } | { ok: false; reason: string }> => {
     if (!session || !currentUser) {
       return {
@@ -490,15 +540,66 @@ export function useSessionCompletion(sessionId: string | undefined) {
       };
     }
     if (!apiClient.isMockMode) {
-      logger.warn('Blocked local session-completion message write in API mode', {
-        sessionId: session.id,
-        threadId,
-        route: '/v1/message-threads/:threadId/messages',
-      });
-      return {
-        ok: false,
-        reason: API_COMPLETION_MESSAGE_UNSUPPORTED_REASON,
-      };
+      if (!target) {
+        logger.warn('Blocked session-completion message without backend thread target', {
+          sessionId: session.id,
+          threadId,
+          route: '/v1/message-threads/:threadId/messages',
+        });
+        return {
+          ok: false,
+          reason: API_COMPLETION_MESSAGE_UNSUPPORTED_REASON,
+        };
+      }
+
+      const threadResult = await messagingService.listThreads();
+      if (!threadResult.success) {
+        return {
+          ok: false,
+          reason: threadResult.error.message,
+        };
+      }
+
+      const backendThread = findCompletionMessageThread(threadResult.data, target);
+      if (!backendThread) {
+        logger.warn('No backend session-completion message thread found', {
+          sessionId: session.id,
+          threadId,
+          target,
+          route: '/v1/message-threads/:threadId/messages',
+        });
+        return {
+          ok: false,
+          reason: API_COMPLETION_MESSAGE_NO_THREAD_REASON,
+        };
+      }
+
+      const senderName = (
+        currentUser.fullName ||
+        currentUser.name ||
+        currentUser.username ||
+        ''
+      ).trim();
+      if (!senderName) {
+        return {
+          ok: false,
+          reason: 'Complete your account name before sending session updates.',
+        };
+      }
+
+      const sendResult = await messagingService.sendMessage(
+        backendThread.id,
+        body,
+        'coach',
+        senderName,
+      );
+      if (!sendResult.success) {
+        return {
+          ok: false,
+          reason: sendResult.error.message,
+        };
+      }
+      return { ok: true };
     }
     const messagesByThread = await apiClient.get<Record<string, ChatMessage[]>>(
       STORAGE_KEYS.MESSAGES,
@@ -527,7 +628,11 @@ export function useSessionCompletion(sessionId: string | undefined) {
         reason: 'Write a group update before sending.',
       };
     }
-    return appendThreadMessage(`thread_group_${session.id}`, trimmed);
+    const groupSessionId = activeGroupSessionId ?? session.id;
+    return appendThreadMessage(`thread_group_${groupSessionId}`, trimmed, {
+      kind: 'group',
+      groupSessionId,
+    });
   };
   const sendPersonalUpdate = async (registrationId: string) => {
     const athleteAttendance = attendance[registrationId];
@@ -545,7 +650,12 @@ export function useSessionCompletion(sessionId: string | undefined) {
     const body = note
       ? `Personal update for ${athleteName}: ${note}`
       : `Personal update for ${athleteName}: marked ${statusLabel} in ${session.title}.`;
-    const result = await appendThreadMessage(`thread_athlete_${athleteId}_${session.id}`, body);
+    const result = await appendThreadMessage(`thread_athlete_${athleteId}_${session.id}`, body, {
+      kind: 'direct',
+      bookingId: sourceType === 'booking' ? session.id : undefined,
+      groupSessionId: sourceType === 'offering' ? activeGroupSessionId : undefined,
+      counterpartyUserId: athleteId,
+    });
     if (!result.ok) {
       return {
         ok: false,
@@ -577,7 +687,12 @@ export function useSessionCompletion(sessionId: string | undefined) {
     const body = parentLink
       ? `${athleteName} update from ${session.title}: attendance marked ${athleteAttendance.status}. Reply if you want a full personal recap.`
       : `Session update for ${athleteName}: attendance marked ${athleteAttendance.status}.`;
-    const result = await appendThreadMessage(threadId, body);
+    const result = await appendThreadMessage(threadId, body, {
+      kind: 'direct',
+      bookingId: sourceType === 'booking' ? session.id : undefined,
+      groupSessionId: sourceType === 'offering' ? activeGroupSessionId : undefined,
+      counterpartyUserId: parentLink?.parentId ?? athleteId,
+    });
     if (!result.ok) {
       return {
         ok: false,
@@ -694,6 +809,16 @@ export function useSessionCompletion(sessionId: string | undefined) {
     quickRateByAthleteId: Record<string, QuickRateInput> = {},
   ): Promise<CompletionSummaryData | null> => {
     if (!session || !currentUser) return null;
+    const coachName = (
+      currentUser.fullName ||
+      currentUser.name ||
+      currentUser.username ||
+      ''
+    ).trim();
+    if (!coachName) {
+      uiFeedback.showToast('Complete your account name before completing sessions.', 'error');
+      return null;
+    }
     setSubmitting(true);
     return await runAsyncTryCatchFinally(
       async () => {
@@ -702,7 +827,6 @@ export function useSessionCompletion(sessionId: string | undefined) {
         const absent = attendanceValues.filter((a) => a.status === 'absent').length;
         const normalizedFocusSkills = normalizeSkills(skillsFocused);
 
-        const coachName = currentUser.fullName || currentUser.name || 'Coach';
         const availableBadgeById = new Map(availableBadges.map((badge) => [badge.id, badge]));
 
         // 1-3. Save notes, badge awards, and base feedback.
@@ -744,7 +868,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
                   athleteName: getRegistrationName(athleteData.registration),
                   badgeId: badge.id,
                   coachId: currentUser.id,
-                  coachName: currentUser.fullName || 'Coach',
+                  coachName,
                   sessionId: session.id,
                   reason: badge.label,
                   note: athleteData.note || undefined,
@@ -840,11 +964,13 @@ export function useSessionCompletion(sessionId: string | undefined) {
               quickRatePayload.positionSkillRatings.length > 0
             ) {
               const [positionResult, skillResult] = await Promise.all([
-                progressPositionService.recordPosition(
-                  quickRatePayload.sessionId,
-                  quickRatePayload.athleteId,
-                  quickRatePayload.positionPlayed,
-                ),
+                apiClient.isMockMode
+                  ? progressPositionService.recordPosition(
+                      quickRatePayload.sessionId,
+                      quickRatePayload.athleteId,
+                      quickRatePayload.positionPlayed,
+                    )
+                  : Promise.resolve(null),
                 progressSkillsService.updateFromPositionRate(
                   quickRatePayload.athleteId,
                   quickRatePayload.sessionId,
@@ -853,7 +979,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
                   quickRatePayload.positionSkillRatings,
                 ),
               ]);
-              if (!positionResult.success) {
+              if (positionResult && !positionResult.success) {
                 logger.error('Failed to save quick rate position context', {
                   athleteId,
                   error: positionResult.error,
@@ -1008,11 +1134,13 @@ export function useSessionCompletion(sessionId: string | undefined) {
 
           // Complete linked group bookings so coach completion queue clears properly.
           const coachBookings = await bookingService.getBookingsForUser(session.coachId, 'coach');
-          const linkedBookings = coachBookings.filter(
-            (booking) =>
-              booking.groupSessionId === session.id &&
-              (booking.status === 'AWAITING_COMPLETION' || booking.status === 'CONFIRMED'),
-          );
+          const linkedBookings = activeGroupSessionId
+            ? coachBookings.filter(
+                (booking) =>
+                  booking.groupSessionId === activeGroupSessionId &&
+                  (booking.status === 'AWAITING_COMPLETION' || booking.status === 'CONFIRMED'),
+              )
+            : [];
           completedBookingId = linkedBookings[0]?.id;
           const bookingUpdates = await Promise.all(
             linkedBookings.map(async (booking) => ({
@@ -1026,7 +1154,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
             if (!bookingUpdate.success) {
               logger.error('Failed to complete linked group booking', {
                 bookingId: booking.id,
-                groupSessionId: session.id,
+                groupSessionId: activeGroupSessionId,
                 error: bookingUpdate.error.message,
               });
             }
@@ -1042,7 +1170,7 @@ export function useSessionCompletion(sessionId: string | undefined) {
         );
 
         // 6b. Record earnings for the coach
-        if (completedBookingId && session.price) {
+        if (apiClient.isMockMode && completedBookingId && session.price) {
           try {
             const earningsResult = await earningsService.recordSessionPayment(
               session.coachId,

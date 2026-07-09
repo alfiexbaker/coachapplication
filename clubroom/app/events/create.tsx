@@ -14,7 +14,7 @@ import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-sta
 import { Spacing, Radii } from '@/constants/theme';
 import { useScreen } from '@/hooks/use-screen';
 import { ok } from '@/types/result';
-import { DEFAULT_EVENT_CLUB_ID, useCreateEvent, STEPS } from '@/hooks/use-create-event';
+import { useCreateEvent, STEPS } from '@/hooks/use-create-event';
 
 type CreateEventState = ReturnType<typeof useCreateEvent>;
 
@@ -22,11 +22,13 @@ function CreateEventStep({
   step,
   form,
   squads,
+  clubId,
   setField,
 }: {
   step: CreateEventState['step'];
   form: CreateEventState['form'];
   squads: CreateEventState['squads'];
+  clubId: CreateEventState['clubId'];
   setField: CreateEventState['setField'];
 }) {
   switch (step) {
@@ -62,7 +64,7 @@ function CreateEventStep({
     case 'audience':
       return (
         <CreateEventAudienceStep
-          clubId={DEFAULT_EVENT_CLUB_ID}
+          clubId={clubId}
           targetAudience={form.targetAudience}
           selectedSquadIds={form.selectedSquadIds}
           selectedAthleteIds={form.selectedAthleteIds}
@@ -109,6 +111,10 @@ export default function CreateEventScreen() {
     step,
     loading,
     squads,
+    clubId,
+    clubContextLoading,
+    clubContextError,
+    retryClubContext,
     currentStepIndex,
     setField,
     canProceed,
@@ -150,61 +156,75 @@ export default function CreateEventScreen() {
     );
   }
 
+  if (clubContextLoading) {
+    return renderShell(<LoadingState variant="form" />);
+  }
+
+  if (clubContextError) {
+    return renderShell(<ErrorState message={clubContextError} onRetry={retryClubContext} />);
+  }
+
   return renderShell(
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.keyboardView}
     >
-        <PageHeader
-          title="Create Event"
-          showBack
-          backIcon="arrow-back"
-          onBackPress={goBack}
-          centerTitle
-          containerStyle={styles.header}
+      <PageHeader
+        title="Create Event"
+        showBack
+        backIcon="arrow-back"
+        onBackPress={goBack}
+        centerTitle
+        containerStyle={styles.header}
+      />
+
+      <Row justify="center" gap="xs" style={styles.progressContainer}>
+        {STEPS.map((s, i) => (
+          <View
+            key={s}
+            style={[
+              styles.progressDot,
+              { backgroundColor: i <= currentStepIndex ? palette.tint : palette.border },
+            ]}
+          />
+        ))}
+      </Row>
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <CreateEventStep
+          step={step}
+          form={form}
+          squads={squads}
+          clubId={clubId}
+          setField={setField}
         />
+      </ScrollView>
 
-        <Row justify="center" gap="xs" style={styles.progressContainer}>
-          {STEPS.map((s, i) => (
-            <View
-              key={s}
-              style={[
-                styles.progressDot,
-                { backgroundColor: i <= currentStepIndex ? palette.tint : palette.border },
-              ]}
+      <View style={[styles.footer, { borderTopColor: palette.border }]}>
+        {step === 'review' ? (
+          <Row gap="sm" style={styles.reviewButtons}>
+            <Button
+              variant="outline"
+              onPress={() => handleCreate(false)}
+              disabled={loading}
+              style={styles.reviewButton}
+              label="Save Draft"
             />
-          ))}
-        </Row>
-
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <CreateEventStep step={step} form={form} squads={squads} setField={setField} />
-        </ScrollView>
-
-        <View style={[styles.footer, { borderTopColor: palette.border }]}>
-          {step === 'review' ? (
-            <Row gap="sm" style={styles.reviewButtons}>
-              <Button
-                variant="outline"
-                onPress={() => handleCreate(false)}
-                disabled={loading}
-                style={styles.reviewButton}
-                label="Save Draft"
-              />
-              <Button
-                onPress={() => handleCreate(true)}
-                disabled={loading}
-                style={styles.reviewButton}
-                label={loading ? 'Creating...' : 'Publish'}
-              />
-            </Row>
-          ) : (
-            <Button onPress={goNext} disabled={!canProceed()} label="Continue" />
-          )}
-        </View>
+            <Button
+              onPress={() => handleCreate(true)}
+              disabled={loading}
+              style={styles.reviewButton}
+              label={loading ? 'Creating...' : 'Publish'}
+            />
+          </Row>
+        ) : (
+          <Button onPress={goNext} disabled={!canProceed()} label="Continue" />
+        )}
+      </View>
     </KeyboardAvoidingView>,
   );
 }

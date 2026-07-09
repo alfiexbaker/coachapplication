@@ -8,6 +8,13 @@ type SeedRow = Record<string, unknown>;
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
+const uniqueSuffix = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+function auditRows(tables: Record<string, SeedRow[]>, action: string, result: string): SeedRow[] {
+  return asRows(tables.auditEvents).filter(
+    (row) => asString(row.action) === action && asString(row.result) === result,
+  );
+}
 
 describe('trust-ops safeguarding routes', () => {
   const app = buildApp();
@@ -56,6 +63,89 @@ describe('trust-ops safeguarding routes', () => {
     assert.equal(fetched.status, 'open');
   });
 
+  it('lists safeguarding incidents with filters and audits sensitive reads', async () => {
+    const suffix = uniqueSuffix();
+    const athleteId = `ath_list${suffix}`;
+    const otherAthleteId = `ath_other${suffix}`;
+    const coachHeaders = {
+      'x-auth-user-id': 'usr_coach1',
+      'x-auth-roles': 'coach',
+      'x-acting-role': 'coach',
+      'x-coach-athlete-ids': `${athleteId},${otherAthleteId}`,
+      'x-coach-verified': '1',
+    };
+
+    const targetCreate = await app.inject({
+      method: 'POST',
+      url: '/v1/safeguarding/incidents',
+      headers: coachHeaders,
+      payload: {
+        athleteId,
+        category: 'session_conduct',
+        severity: 'medium',
+        summary: 'Filtered list target concern',
+      },
+    });
+    assert.equal(targetCreate.statusCode, 201);
+    const targetIncident = targetCreate.json() as { id: string };
+
+    const otherCreate = await app.inject({
+      method: 'POST',
+      url: '/v1/safeguarding/incidents',
+      headers: coachHeaders,
+      payload: {
+        athleteId: otherAthleteId,
+        category: 'session_conduct',
+        severity: 'medium',
+        summary: 'Filtered list unrelated concern',
+      },
+    });
+    assert.equal(otherCreate.statusCode, 201);
+    const otherIncident = otherCreate.json() as { id: string };
+
+    const list = await app.inject({
+      method: 'GET',
+      url: `/v1/safeguarding/incidents?athleteId=${athleteId}&status=open&reportedBy=me`,
+      headers: coachHeaders,
+    });
+    assert.equal(list.statusCode, 200);
+    const payload = list.json() as { incidents: Array<{ id: string; athleteId: string }> };
+    assert.equal(payload.incidents.some((incident) => incident.id === targetIncident.id), true);
+    assert.equal(payload.incidents.some((incident) => incident.id === otherIncident.id), false);
+    assert.equal(
+      payload.incidents.every((incident) => incident.athleteId === athleteId),
+      true,
+    );
+
+    const deniedAthleteId = `ath_denied${suffix}`;
+    const denied = await app.inject({
+      method: 'GET',
+      url: `/v1/safeguarding/incidents?athleteId=${deniedAthleteId}&reportedBy=any`,
+      headers: coachHeaders,
+    });
+    assert.equal(denied.statusCode, 403);
+
+    const tables = getMarketplaceSeedStore().tables as Record<string, SeedRow[]>;
+    assert.equal(
+      auditRows(tables, 'safeguarding_incident.list', 'SUCCESS').some(
+        (row) =>
+          asString(row.actorUserId) === 'usr_coach1' &&
+          asString(row.resourceId) === athleteId &&
+          row.sensitiveRead === true,
+      ),
+      true,
+    );
+    assert.equal(
+      auditRows(tables, 'safeguarding_incident.list', 'DENY').some(
+        (row) =>
+          asString(row.actorUserId) === 'usr_coach1' &&
+          asString(row.resourceId) === deniedAthleteId &&
+          row.sensitiveRead === true,
+      ),
+      true,
+    );
+  });
+
   it('appends actions and updates status for close/reopen transitions', async () => {
     const coachHeaders = {
       'x-auth-user-id': 'usr_coach1',
@@ -88,7 +178,11 @@ describe('trust-ops safeguarding routes', () => {
       },
     });
     assert.equal(closeAction.statusCode, 201);
-    const closePayload = closeAction.json() as { id: string; incidentId: string; actionType: string };
+    const closePayload = closeAction.json() as {
+      id: string;
+      incidentId: string;
+      actionType: string;
+    };
     assert.match(closePayload.id, /^sact_/);
     assert.equal(closePayload.incidentId, incident.id);
     assert.equal(closePayload.actionType, 'close_case');
@@ -99,7 +193,10 @@ describe('trust-ops safeguarding routes', () => {
       headers: coachHeaders,
     });
     assert.equal(closedIncident.statusCode, 200);
-    const closed = closedIncident.json() as { status: string; actions: Array<{ actionType: string }> };
+    const closed = closedIncident.json() as {
+      status: string;
+      actions: Array<{ actionType: string }>;
+    };
     assert.equal(closed.status, 'closed');
     assert.equal(closed.actions[0]?.actionType, 'close_case');
 
@@ -120,7 +217,10 @@ describe('trust-ops safeguarding routes', () => {
       headers: coachHeaders,
     });
     assert.equal(reopenedIncident.statusCode, 200);
-    const reopened = reopenedIncident.json() as { status: string; actions: Array<{ actionType: string }> };
+    const reopened = reopenedIncident.json() as {
+      status: string;
+      actions: Array<{ actionType: string }>;
+    };
     assert.equal(reopened.status, 'in_review');
     assert.equal(reopened.actions[0]?.actionType, 'reopen_case');
   });
@@ -171,6 +271,45 @@ describe('trust-ops safeguarding routes', () => {
       },
     });
     assert.equal(deniedRead.statusCode, 403);
+
+    const deniedAction = await app.inject({
+      method: 'POST',
+      url: `/v1/safeguarding/incidents/${incident.id}/actions`,
+      headers: {
+        'x-auth-user-id': 'usr_athlete99',
+        'x-auth-roles': 'athlete',
+        'x-acting-role': 'athlete',
+      },
+      payload: {
+        actionType: 'note_added',
+        notes: 'Should fail due to missing athlete relationship',
+      },
+    });
+    assert.equal(deniedAction.statusCode, 403);
+
+    const tables = getMarketplaceSeedStore().tables as Record<string, SeedRow[]>;
+    assert.equal(
+      auditRows(tables, 'safeguarding_incident.create', 'DENY').some(
+        (row) => asString(row.actorUserId) === 'usr_parent1',
+      ),
+      true,
+    );
+    assert.equal(
+      auditRows(tables, 'safeguarding_incident.read', 'DENY').some(
+        (row) =>
+          asString(row.actorUserId) === 'usr_athlete99' &&
+          asString(row.resourceId) === incident.id &&
+          row.sensitiveRead === true,
+      ),
+      true,
+    );
+    assert.equal(
+      auditRows(tables, 'safeguarding_incident.action', 'DENY').some(
+        (row) =>
+          asString(row.actorUserId) === 'usr_athlete99' && asString(row.resourceId) === incident.id,
+      ),
+      true,
+    );
   });
 
   it('booking report-problem safety path enforces guardian relationship', async () => {

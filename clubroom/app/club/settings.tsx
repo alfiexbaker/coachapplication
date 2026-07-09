@@ -17,6 +17,7 @@ import { SettingsSquadsSection } from '@/components/club/settings-squads-section
 import { SettingsMembersSection } from '@/components/club/settings-members-section';
 import { SettingsBrandingSection } from '@/components/club/settings-branding-section';
 import { SettingsCommercialSection } from '@/components/club/settings-commercial-section';
+import { api } from '@/constants/config';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useClubSettings, SETTINGS_SECTIONS } from '@/hooks/use-club-settings';
@@ -68,6 +69,7 @@ export default function ClubSettingsScreen() {
     : SETTINGS_SECTIONS.filter(
         (section) => section.key === 'details' || section.key === 'branding',
       );
+  const membershipActionLabel = api.useMock ? 'Club Hub' : 'My Clubs';
   const renderShell = (content: ReactNode) => (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -160,17 +162,25 @@ export default function ClubSettingsScreen() {
             </ThemedText>
             <ThemedText style={[Typography.small, { color: colors.muted }]}>
               {membership
-                ? `Your role: ${formatOrganizationRoleLabel(membership.role)}. Use Club Hub for membership actions.`
-                : 'You are not a manager in this club. Use Club Hub to join, leave, or switch clubs.'}
+                ? `Your role: ${formatOrganizationRoleLabel(
+                    membership.role,
+                  )}. Use ${membershipActionLabel} for membership actions.`
+                : `You are not a manager in this club. Use ${membershipActionLabel} to join, leave, or switch clubs.`}
             </ThemedText>
             <Clickable
               style={[styles.readOnlyCta, { borderColor: colors.border }]}
-              onPress={() => router.push(Routes.clubHub(clubId ? { clubId } : undefined))}
+              onPress={() =>
+                router.push(
+                  api.useMock
+                    ? Routes.clubHub(clubId ? { clubId } : undefined)
+                    : Routes.MY_CLUBS,
+                )
+              }
             >
               <Row align="center" justify="center" gap="xs">
                 <Ionicons name="people-outline" size={16} color={colors.tint} />
                 <ThemedText style={[Typography.smallSemiBold, { color: colors.tint }]}>
-                  Open Club Hub
+                  Open {membershipActionLabel}
                 </ThemedText>
               </Row>
             </Clickable>

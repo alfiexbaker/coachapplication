@@ -159,11 +159,7 @@ function mapClubMemberToAcademyMembership(clubId: string, member: ClubMember): A
     role: member.role,
     permissions: rolePermissions(member.role),
     status:
-      member.status === 'active'
-        ? 'ACTIVE'
-        : member.status === 'pending'
-          ? 'PENDING'
-          : 'SUSPENDED',
+      member.status === 'active' ? 'ACTIVE' : member.status === 'pending' ? 'PENDING' : 'SUSPENDED',
     joinedAt: member.joinedAt,
   };
 }
@@ -330,9 +326,9 @@ const MOCK_INVITES: AcademyInvite[] = [
     currentUses: 1,
   },
 ];
-let academiesCache: Academy[] = [...MOCK_ACADEMIES];
-let membershipsCache: AcademyMembership[] = [...MOCK_MEMBERSHIPS];
-let invitesCache: AcademyInvite[] = [...MOCK_INVITES];
+let academiesCache: Academy[] = USE_MOCK ? [...MOCK_ACADEMIES] : [];
+let membershipsCache: AcademyMembership[] = USE_MOCK ? [...MOCK_MEMBERSHIPS] : [];
+let invitesCache: AcademyInvite[] = USE_MOCK ? [...MOCK_INVITES] : [];
 async function loadAcademies(): Promise<Academy[]> {
   try {
     const stored = await apiClient.get<Academy[] | null>(STORAGE_KEYS.ACADEMIES, null);
@@ -340,7 +336,7 @@ async function loadAcademies(): Promise<Academy[]> {
   } catch (error) {
     logger.error('Failed to load academies', error);
   }
-  return [...MOCK_ACADEMIES];
+  return USE_MOCK ? [...MOCK_ACADEMIES] : [];
 }
 async function saveAcademies(academies: Academy[]): Promise<void> {
   try {
@@ -359,7 +355,7 @@ async function loadMemberships(): Promise<AcademyMembership[]> {
   } catch (error) {
     logger.error('Failed to load memberships', error);
   }
-  return [...MOCK_MEMBERSHIPS];
+  return USE_MOCK ? [...MOCK_MEMBERSHIPS] : [];
 }
 async function saveMemberships(memberships: AcademyMembership[]): Promise<void> {
   try {
@@ -375,7 +371,7 @@ async function loadInvites(): Promise<AcademyInvite[]> {
   } catch (error) {
     logger.error('Failed to load invites', error);
   }
-  return [...MOCK_INVITES];
+  return USE_MOCK ? [...MOCK_INVITES] : [];
 }
 async function saveInvites(invites: AcademyInvite[]): Promise<void> {
   try {
@@ -823,7 +819,9 @@ export const academyService = {
     void permissions;
     const parsed = parseAcademyMembershipId(membershipId);
     if (!parsed) {
-      return err(validationError('Academy member role updates require a clubId:userId membership id'));
+      return err(
+        validationError('Academy member role updates require a clubId:userId membership id'),
+      );
     }
     const result = await clubService.changeMemberRole(parsed.academyId, parsed.userId, role, {
       id: 'api',
@@ -851,12 +849,18 @@ export const academyService = {
     if (!parsed) {
       return err(validationError('Academy member removals require a clubId:userId membership id'));
     }
-    const result = await clubService.removeMember(parsed.academyId, parsed.userId, 'OTHER', {
-      id: 'api',
-      name: 'API actor',
-    }, {
-      customReason: 'Removed through academy compatibility alias',
-    });
+    const result = await clubService.removeMember(
+      parsed.academyId,
+      parsed.userId,
+      'OTHER',
+      {
+        id: 'api',
+        name: 'API actor',
+      },
+      {
+        customReason: 'Removed through academy compatibility alias',
+      },
+    );
     if (!result.success) return err(result.error);
     return ok(undefined);
   },

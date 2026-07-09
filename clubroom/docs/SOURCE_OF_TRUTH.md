@@ -28,7 +28,7 @@ Do not grow Clubroom into a generic football social app. Feeds, profiles, commen
 - Route ownership goes through `navigation/routes.ts`.
 - Storage keys come from `constants/storage-keys.ts`.
 - Club governance executable truth lives in `contracts/club-governance.ts` and `packages/shared-contracts/src/club/`.
-- The app still supports mock compatibility, but real API mode is the default direction.
+- Normal app runtime is API-first. Retained mock compatibility is test-only scaffolding while remaining `/v1` cutover work is completed.
 - Pre-API live mode is compatibility wiring only, not live product truth.
 - Runtime `/v1` auth uses bearer JWT/session handling. Header identity override is test-harness only.
 - Non-test API data backend defaults toward `db`; API tests explicitly use seed/fixture paths.

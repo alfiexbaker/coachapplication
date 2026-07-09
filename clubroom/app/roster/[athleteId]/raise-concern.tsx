@@ -41,12 +41,16 @@ export default function RaiseConcernScreen() {
   const [actionTaken, setActionTaken] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const coachId = currentUser?.id || 'coach_1';
+  const coachId = currentUser?.id ?? null;
   const { data, status, error, retry } = useScreen<{
     athleteName: string | null;
     parentId: string | null;
   }>({
     load: async () => {
+      if (!coachId) {
+        return err(serviceError('UNAUTHORIZED', 'Sign in as a coach to raise a concern.'));
+      }
+
       try {
         if (!athleteId) {
           return ok<{ athleteName: string | null; parentId: string | null }>({
@@ -66,6 +70,7 @@ export default function RaiseConcernScreen() {
     deps: [coachId, athleteId],
     isEmpty: (value) => !value.athleteName,
     refetchOnFocus: true,
+    dataKey: `raise-concern:${coachId ?? 'missing'}:${athleteId ?? 'missing'}`,
   });
 
   const athleteName = data?.athleteName || '';
@@ -79,51 +84,68 @@ export default function RaiseConcernScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
       edges={['top', 'bottom']}
     >
-      <RaiseConcernHeader colors={colors} athleteName={headerAthleteName} onBack={() => router.back()} />
+      <RaiseConcernHeader
+        colors={colors}
+        athleteName={headerAthleteName}
+        onBack={() => router.back()}
+      />
       {content}
     </SafeAreaView>
   );
 
   const handleSubmit = async () => {
     if (!canSubmit || !type) return;
+    if (!coachId || !athleteId) {
+      uiFeedback.showToast('Sign in as a coach before submitting a concern.', 'error');
+      return;
+    }
     if (isEscalationRisk && actionTaken.trim().length < 8) {
-      uiFeedback.showToast('For high-risk concerns, include immediate action taken before submitting.', 'error');
+      uiFeedback.showToast(
+        'For high-risk concerns, include immediate action taken before submitting.',
+        'error',
+      );
       return;
     }
 
     setSubmitting(true);
 
-    await runAsyncTryCatchFinally(async () => {
-      const result = await concernService.raiseConcern({
-        coachId,
-        athleteId,
-        parentId,
-        athleteName,
-        type,
-        severity,
-        title: title.trim(),
-        description: description.trim(),
-        actionTaken: actionTaken.trim() || undefined,
-      });
+    await runAsyncTryCatchFinally(
+      async () => {
+        const result = await concernService.raiseConcern({
+          coachId,
+          athleteId,
+          parentId,
+          athleteName,
+          type,
+          severity,
+          title: title.trim(),
+          description: description.trim(),
+          actionTaken: actionTaken.trim() || undefined,
+        });
 
-      if (result.success) {
-        if (Platform.OS !== 'web') {
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        if (result.success) {
+          if (Platform.OS !== 'web') {
+            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          }
+          const escalated = result.data.status === 'ESCALATED';
+          uiFeedback.showToast(
+            escalated
+              ? `Your concern about ${athleteName} has been escalated for urgent follow-up.`
+              : `Your concern about ${athleteName} has been recorded.`,
+          );
+          router.back();
+        } else {
+          uiFeedback.showToast(result.error.message, 'error');
         }
-        const escalated = result.data.status === 'ESCALATED';
-        uiFeedback.showToast(escalated
-            ? `Your concern about ${athleteName} has been escalated for urgent follow-up.`
-            : `Your concern about ${athleteName} has been recorded.`);
-router.back();
-      } else {
-        uiFeedback.showToast(result.error.message, 'error');
-      }
-    }, async submitError => {
-      logger.error('Failed to submit concern', submitError);
-      uiFeedback.showToast('Failed to submit concern. Please try again.', 'error');
-    }, () => {
-      setSubmitting(false);
-    });
+      },
+      async (submitError) => {
+        logger.error('Failed to submit concern', submitError);
+        uiFeedback.showToast('Failed to submit concern. Please try again.', 'error');
+      },
+      () => {
+        setSubmitting(false);
+      },
+    );
   };
 
   if (status === 'loading') {
@@ -138,7 +160,10 @@ router.back();
   }
 
   if (status === 'empty') {
-    return renderShell('', <ErrorState message="Athlete not found in your roster." onRetry={retry} />);
+    return renderShell(
+      '',
+      <ErrorState message="Athlete not found in your roster." onRetry={retry} />,
+    );
   }
 
   return renderShell(

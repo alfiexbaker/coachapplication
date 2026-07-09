@@ -143,10 +143,10 @@ export function useEditTemplate(id: string | undefined) {
 
   const handleDelete = () => {
     if (!template) return;
-    uiFeedback.alert('Delete Template', 'Are you sure you want to delete this availability slot?', [
+    uiFeedback.alert('Remove Template', 'This removes the availability slot from active scheduling.', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Delete',
+        text: 'Remove',
         style: 'destructive',
         onPress: async () => {
           try {
@@ -154,7 +154,7 @@ export function useEditTemplate(id: string | undefined) {
             uiFeedback.showToast('Template removed', 'success');
             router.back();
           } catch {
-            uiFeedback.showToast('Failed to delete template', 'error');
+            uiFeedback.showToast('Failed to remove template', 'error');
           }
         },
       },

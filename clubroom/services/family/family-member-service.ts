@@ -20,7 +20,11 @@ import {
 } from '@/constants/types';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 import { childService, type ChildProfile } from '@/services/child-service';
-import { bookingService } from '@/services/booking';
+import {
+  bookingAuthorityService,
+  bookingService,
+  mapApiBookingToBooking,
+} from '@/services/booking';
 import type { Booking } from '@/constants/app-types';
 import { mapChildProfileToFamilyMember } from './family-api-support';
 import { analyticsQueryService } from '@/services/analytics/analytics-query-service';
@@ -29,6 +33,7 @@ import {
   getBookingServiceLabel,
   safeDisplayLabel,
 } from '@/utils/booking-display';
+import { isBrowserFetchFailure } from '@/utils/network-errors';
 
 const logger = createLogger('FamilyMemberService');
 const USE_MOCK = api.useMock;
@@ -229,8 +234,8 @@ const MOCK_FAMILY_BOOKINGS: FamilyCalendarEvent[] = normalizeLegacyMockDates([
   },
 ]);
 
-let mockFamilyMembers = MOCK_FAMILY_MEMBERS.map((member) => ({ ...member }));
-let mockFamilyBookings = MOCK_FAMILY_BOOKINGS.map((booking) => ({ ...booking }));
+let mockFamilyMembers = USE_MOCK ? MOCK_FAMILY_MEMBERS.map((member) => ({ ...member })) : [];
+let mockFamilyBookings = USE_MOCK ? MOCK_FAMILY_BOOKINGS.map((booking) => ({ ...booking })) : [];
 
 function mapBookingStatusToFamilyStatus(status: Booking['status']): FamilyCalendarEvent['status'] {
   if (status === 'COMPLETED') return 'COMPLETED';
@@ -300,6 +305,26 @@ function getBookingParticipantIds(booking: Booking): string[] {
   return booking.athleteId ? [booking.athleteId] : [];
 }
 
+async function loadOptionalAuthoritativeFamilyBookings(
+  children: ChildProfile[],
+): Promise<FamilyCalendarEvent[]> {
+  const bookingResult = await bookingAuthorityService.listBookings();
+  if (!bookingResult.success) {
+    logger.warn('family_calendar_bookings_unavailable', {
+      error: bookingResult.error.message,
+    });
+    return [];
+  }
+
+  const childIds = new Set(children.map((child) => child.id));
+  return buildFamilyCalendarEvents(
+    bookingResult.data
+      .map((booking) => mapApiBookingToBooking(booking))
+      .filter((booking) => getBookingParticipantIds(booking).some((id) => childIds.has(id))),
+    children,
+  );
+}
+
 function rethrowApiReadFailure(error: unknown): void {
   if (!USE_MOCK) {
     throw error;
@@ -320,13 +345,7 @@ class FamilyMemberService {
     const members = children.map((child, index) =>
       mapChildProfileToFamilyMember(child, CHILD_COLORS[index % CHILD_COLORS.length]),
     );
-    const childIds = new Set(children.map((child) => child.id));
-    const bookings = buildFamilyCalendarEvents(
-      (await bookingService.list()).filter((booking) =>
-        getBookingParticipantIds(booking).some((id) => childIds.has(id)),
-      ),
-      children,
-    );
+    const bookings = await loadOptionalAuthoritativeFamilyBookings(children);
 
     return { children, members, bookings };
   }
@@ -373,7 +392,11 @@ class FamilyMemberService {
       logger.info('family_members_retrieved', { parentId, count: members.length });
       return members;
     } catch (error) {
-      logger.error('get_family_members_failed', { parentId, error });
+      if (isBrowserFetchFailure(error)) {
+        logger.warn('get_family_members_failed', { parentId, error });
+      } else {
+        logger.error('get_family_members_failed', { parentId, error });
+      }
       rethrowApiReadFailure(error);
       return [];
     }
@@ -507,7 +530,7 @@ class FamilyMemberService {
         photoUrl: updates.avatar ?? current.photoUrl,
       });
       if (!result.success) {
-        return null;
+        throw new Error(result.error.message);
       }
       return mapChildProfileToFamilyMember(result.data, CHILD_COLORS[0]);
     }
@@ -754,11 +777,11 @@ class FamilyMemberService {
       if (!USE_MOCK) {
         const analyticsResult = await analyticsQueryService.getAthleteAnalytics(childId, 'ALL');
         if (!analyticsResult.success || !analyticsResult.data) {
-          logger.warn('child_progress_api_analytics_unavailable', {
-            childId,
-            error: analyticsResult.success ? undefined : analyticsResult.error.message,
-          });
-          return null;
+          throw new Error(
+            analyticsResult.success
+              ? 'Child progress analytics unavailable.'
+              : analyticsResult.error.message,
+          );
         }
 
         const analytics = analyticsResult.data;
@@ -912,6 +935,11 @@ class FamilyMemberService {
    * Seed demo data for testing.
    */
   async seedDemoData(): Promise<void> {
+    if (!USE_MOCK) {
+      logger.warn('Skipped family demo seed outside mock mode');
+      return;
+    }
+
     await this.saveMembers(MOCK_FAMILY_MEMBERS);
     await this.saveBookings(MOCK_FAMILY_BOOKINGS);
     logger.info('family_demo_data_seeded');
@@ -921,6 +949,11 @@ class FamilyMemberService {
    * Clear all family data.
    */
   async clearAllData(): Promise<void> {
+    if (!USE_MOCK) {
+      logger.warn('Skipped family demo clear outside mock mode');
+      return;
+    }
+
     await this.saveMembers([]);
     await this.saveBookings([]);
     logger.info('family_data_cleared');

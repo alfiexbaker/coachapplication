@@ -22,7 +22,7 @@ import { useToast } from '@/components/ui/toast';
 import { createLogger } from '@/utils/logger';
 import { openLocationInMaps } from '@/utils/map-links';
 import { coachService } from '@/services/coach-service';
-import { socialFeedService } from '@/services/social-feed-service';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import { uiFeedback } from '@/services/ui-feedback';
 import {
   loadBookingWeather,
@@ -408,7 +408,7 @@ interface CoachCardProps {
   coachId?: string;
   bookingId?: string;
   coachName: string;
-  coachPhotoUrl: string;
+  coachPhotoUrl?: string;
 }
 
 export const BookingCoachCard = function BookingCoachCard({
@@ -477,11 +477,23 @@ export const BookingCoachCard = function BookingCoachCard({
     <Clickable onPress={handlePress} accessibilityLabel={`View ${coachName} profile`}>
       <SurfaceCard style={styles.card}>
         <Row gap="md" align="center">
-          <Image
-            source={{ uri: coachPhotoUrl }}
-            style={styles.avatar}
-            accessibilityLabel={`${coachName} photo`}
-          />
+          {coachPhotoUrl ? (
+            <Image
+              source={{ uri: coachPhotoUrl }}
+              style={styles.avatar}
+              accessibilityLabel={`${coachName} photo`}
+            />
+          ) : (
+            <View
+              style={[
+                styles.avatar,
+                styles.avatarFallback,
+                { backgroundColor: withAlpha(palette.tint, 0.1) },
+              ]}
+            >
+              <Ionicons name="person-outline" size={22} color={palette.tint} />
+            </View>
+          )}
           <Column gap="xxs" style={styles.flex1}>
             <ThemedText style={styles.cardTitle}>Your Coach</ThemedText>
             <ThemedText type="subtitle" style={styles.cardValue}>
@@ -512,7 +524,7 @@ export const BookingCoachCard = function BookingCoachCard({
 interface AthleteCardProps {
   childName: string;
   clientId: string;
-  clientPhotoUrl: string;
+  clientPhotoUrl?: string;
 }
 
 export const BookingAthleteCard = function BookingAthleteCard({
@@ -530,11 +542,23 @@ export const BookingAthleteCard = function BookingAthleteCard({
     <Clickable onPress={handlePress} accessibilityLabel={`View ${childName} profile`}>
       <SurfaceCard style={styles.card}>
         <Row gap="md" align="center">
-          <Image
-            source={{ uri: clientPhotoUrl }}
-            style={styles.avatar}
-            accessibilityLabel={`${childName} photo`}
-          />
+          {clientPhotoUrl ? (
+            <Image
+              source={{ uri: clientPhotoUrl }}
+              style={styles.avatar}
+              accessibilityLabel={`${childName} photo`}
+            />
+          ) : (
+            <View
+              style={[
+                styles.avatar,
+                styles.avatarFallback,
+                { backgroundColor: withAlpha(palette.tint, 0.1) },
+              ]}
+            >
+              <Ionicons name="person-outline" size={22} color={palette.tint} />
+            </View>
+          )}
           <Column gap="xxs" style={styles.flex1}>
             <ThemedText style={styles.cardTitle}>Athlete</ThemedText>
             <ThemedText type="subtitle" style={styles.cardValue}>
@@ -638,8 +662,9 @@ export const BookingOwnershipCard = function BookingOwnershipCard({
     }
 
     let cancelled = false;
-    void socialFeedService.getClub(booking.clubId).then((club) => {
+    void clubAuthorityService.getClubById(booking.clubId).then((result) => {
       if (cancelled) return;
+      const club = result.success ? result.data : null;
       setOrganizationLabel(club?.name || safeDisplayLabel(booking.clubId, 'Club session'));
     });
 
@@ -780,6 +805,7 @@ const styles = StyleSheet.create({
   },
   mapText: { ...Typography.caption },
   avatar: { width: 48, height: 48, borderRadius: Radii.xl },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center' },
   ratingText: { ...Typography.caption, opacity: 0.6 },
   relationshipContainer: {
     borderWidth: 1,

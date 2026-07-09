@@ -63,7 +63,6 @@ function normalizeSource(source?: string, sessionSource?: BookingDraft['sessionS
     return normalized;
   }
 
-  if (sessionSource === 'event') return 'invite_detail';
   if (sessionSource === 'group') return 'discover_sessions';
   return 'direct';
 }
@@ -117,6 +116,14 @@ function buildEvent(params: TrackBookingStepParams): BookingStepAnalyticsEvent {
 
 export const bookingStepAnalyticsService = {
   async track(params: TrackBookingStepParams): Promise<void> {
+    if (!apiClient.isMockMode) {
+      logger.debug('Skipped local booking step analytics outside mock mode', {
+        step: params.step,
+        status: params.status,
+      });
+      return;
+    }
+
     try {
       const event = buildEvent(params);
       const events = await apiClient.get<BookingStepAnalyticsEvent[]>(

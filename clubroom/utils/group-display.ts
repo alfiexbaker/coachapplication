@@ -2,7 +2,7 @@ import type { GroupRegistration, GroupSession } from '@/constants/types';
 import { safeDisplayLabel } from '@/utils/booking-display';
 
 export function getGroupSessionClubLabel(session: GroupSession): string | undefined {
-  return session.clubId ? safeDisplayLabel(session.clubId, 'Club session') : undefined;
+  return session.clubId ? safeDisplayLabel(session.clubName, 'Club session') : undefined;
 }
 
 export function getGroupSessionSquadLabel(session: GroupSession): string | undefined {
@@ -10,7 +10,7 @@ export function getGroupSessionSquadLabel(session: GroupSession): string | undef
 }
 
 export function getGroupSessionCoachName(session: GroupSession): string {
-  return safeDisplayLabel(session.coachId, 'Coach');
+  return safeDisplayLabel(session.coachName, 'Coach');
 }
 
 export function getGroupRegistrationAthleteName(registration: GroupRegistration): string {

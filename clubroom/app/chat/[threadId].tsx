@@ -24,7 +24,7 @@ import { onTyped, emitTyped, ServiceEvents } from '@/services/event-bus';
 import { messagingService } from '@/services/messaging-service';
 import { apiClient } from '@/services/api-client';
 import { ChatMessage, ChatThreadSummary } from '@/constants/types';
-import { combineResults, err, ok, validationError } from '@/types/result';
+import { combineResults, err, ok, serviceError, validationError } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
 import {
   getMessageThreadPreview,
@@ -39,7 +39,7 @@ type ChatScreenData = {
 export default function ChatScreen() {
   const { currentUser } = useAuth();
   const currentUserId = currentUser?.id;
-  const currentActorId = currentUserId || 'current_user';
+  const currentActorId = currentUserId ?? null;
   const { blockUser } = useBlockUserAction();
   const { threadId, prefill } = useLocalSearchParams<{ threadId: string; prefill?: string }>();
   const [showSafetyBanner, setShowSafetyBanner] = useState(true);
@@ -51,6 +51,9 @@ export default function ChatScreen() {
   const loadChat = async () => {
     if (!threadId) {
       return err(validationError('Thread not specified'));
+    }
+    if (!currentUserId) {
+      return err(serviceError('UNAUTHORIZED', 'Sign in to view this conversation.'));
     }
 
     const [threadsResult, messagesResult] = await Promise.all([
@@ -77,7 +80,7 @@ export default function ChatScreen() {
     isPending,
   } = useScreen<ChatScreenData>({
     load: loadChat,
-    deps: [threadId],
+    deps: [threadId, currentUserId],
     events: [
       ServiceEvents.MESSAGE_SENT,
       ServiceEvents.MESSAGE_DELETED,
@@ -86,7 +89,7 @@ export default function ChatScreen() {
     isEmpty: (chatData) => chatData.thread === null,
     refetchOnFocus: true,
     loadingStrategy: 'warm-first',
-    dataKey: threadId ?? null,
+    dataKey: threadId ? `chat:${currentUserId ?? 'missing'}:${threadId}` : null,
   });
 
   const thread = data?.thread ?? null;
@@ -117,6 +120,10 @@ export default function ChatScreen() {
 
   const handleSend = async (body: string) => {
     if (!threadId) return;
+    if (!currentUserId) {
+      uiFeedback.showToast('Sign in to send messages.', 'error');
+      return;
+    }
     const senderLabel = postingAs ? `You (${postingAs})` : 'You';
     const sendResult = await messagingService.sendMessage(threadId, body, 'parent', senderLabel);
     if (!sendResult.success) {
@@ -144,7 +151,7 @@ export default function ChatScreen() {
   };
 
   useEffect(() => {
-    if (!threadId) return;
+    if (!threadId || !currentActorId) return;
 
     emitTyped(ServiceEvents.THREAD_OPENED, {
       threadId,

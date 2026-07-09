@@ -71,36 +71,35 @@ Social fails when it becomes:
 
 ## Feature Verdicts
 
-| Feature family           | Score | Keep       | Fix or cut                                                                                                        |
-| ------------------------ | ----: | ---------- | ----------------------------------------------------------------------------------------------------------------- |
-| Booking                  |    72 | Yes        | Tighten confirmation, refund, capacity, payment, and verification truth.                                          |
-| Session delivery         |    70 | Yes        | Make attendance, no-show, notes, media, and parent updates one clean workflow.                                    |
-| Coach schedule           |    49 | Yes        | `services/availability-service.ts` has `getCoachBookings()` returning `[]`; fix before treating schedule as real. |
-| Progress                 |    69 | Yes        | Keep evidence and practice. Cut scoreboard-first language.                                                        |
-| Achievements/recognition |    62 | Yes        | Rename user-facing "badges". Tie every award to criteria, context, and coach evidence.                            |
-| Family hub               |    73 | Yes        | Keep. Make every child-specific permission and medical/consent visibility obvious.                                |
-| Health/medical/SEN       |    75 | Yes        | Keep. No mock-first or casual sharing here.                                                                       |
-| Clubs/squads             |    72 | Yes        | Keep. Avoid duplicate club/social/admin surfaces.                                                                 |
-| Leadership dashboards    |    65 | Yes        | Keep only live data. Good pattern already exists in `services/org-owner-dashboard-service.ts`.                    |
-| Standards                |    57 | Yes, later | Must be evidence/review/action history, not badges-for-staff.                                                     |
-| Social feed              |    68 | Yes        | Keep as club operating feed. Cut fake member/popularity/activity filler.                                          |
-| Groups/messages          |    74 | Yes        | Keep. This is real coordination, not fluff.                                                                       |
-| Events/matches           |    63 | Yes        | Keep if tied to attendance, availability, logistics, results, and follow-up.                                      |
-| Video/media              |    61 | Yes        | Keep only when attached to coaching evidence, consent, or learning.                                               |
-| Notifications            |    59 | Yes        | Keep useful triggers. Cut demo notifications and noisy badges.                                                    |
-| Discovery/search/map     |    60 | Yes        | Keep. No synthetic counts, fake popularity, or placeholder profiles.                                              |
-| Favourites/follows       |    54 | Maybe      | Useful for rebooking. Useless as social vanity.                                                                   |
-| Reviews/testimonials     |    55 | Maybe      | Useful for trust. Dangerous if not verified against real bookings.                                                |
-| Invoices/earnings        |    58 | Yes        | Keep. Do not overstate until payment provider truth is live.                                                      |
-| Verification             |    60 | Yes        | Keep. Remove dev-only approval from anything close to production builds.                                          |
-| Settings/legal/help      |    66 | Yes        | Keep, but keep boring. No feature tour bloat.                                                                     |
-| Analytics                |    50 | Maybe      | Useful when derived from real sessions/money/progress. Cut mock chart decoration.                                 |
+| Feature family           | Score | Keep       | Fix or cut                                                                                                                  |
+| ------------------------ | ----: | ---------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Booking                  |    72 | Yes        | Tighten confirmation, refund, capacity, payment, and verification truth.                                                    |
+| Session delivery         |    70 | Yes        | Make attendance, no-show, notes, media, and parent updates one clean workflow.                                              |
+| Coach schedule           |    64 | Yes        | `getCoachBookings()` now reads booking authority data and filters by coach/date; next risk is edge-state/native validation. |
+| Progress                 |    69 | Yes        | Keep evidence and practice. Cut scoreboard-first language.                                                                  |
+| Achievements/recognition |    62 | Yes        | Rename user-facing "badges". Tie every award to criteria, context, and coach evidence.                                      |
+| Family hub               |    73 | Yes        | Keep. Make every child-specific permission and medical/consent visibility obvious.                                          |
+| Health/medical/SEN       |    75 | Yes        | Keep. No mock-first or casual sharing here.                                                                                 |
+| Clubs/squads             |    72 | Yes        | Keep. Avoid duplicate club/social/admin surfaces.                                                                           |
+| Leadership dashboards    |    65 | Yes        | Keep only live data. Good pattern already exists in `services/org-owner-dashboard-service.ts`.                              |
+| Standards                |    57 | Yes, later | Must be evidence/review/action history, not badges-for-staff.                                                               |
+| Social feed              |    68 | Yes        | Keep as club operating feed. Cut fake member/popularity/activity filler.                                                    |
+| Groups/messages          |    74 | Yes        | Keep. This is real coordination, not fluff.                                                                                 |
+| Events/matches           |    63 | Yes        | Keep if tied to attendance, availability, logistics, results, and follow-up.                                                |
+| Video/media              |    61 | Yes        | Keep only when attached to coaching evidence, consent, or learning.                                                         |
+| Notifications            |    59 | Yes        | Keep useful triggers. Cut demo notifications and noisy badges.                                                              |
+| Discovery/search/map     |    60 | Yes        | Keep. No synthetic counts, fake popularity, or placeholder profiles.                                                        |
+| Favourites/follows       |    54 | Maybe      | Useful for rebooking. Useless as social vanity.                                                                             |
+| Reviews/testimonials     |    55 | Maybe      | Useful for trust. Dangerous if not verified against real bookings.                                                          |
+| Invoices/earnings        |    58 | Yes        | Keep. Do not overstate until payment provider truth is live.                                                                |
+| Verification             |    60 | Yes        | Keep. Remove dev-only approval from anything close to production builds.                                                    |
+| Settings/legal/help      |    66 | Yes        | Keep, but keep boring. No feature tour bloat.                                                                               |
+| Analytics                |    50 | Maybe      | Useful when derived from real sessions/money/progress. Cut mock chart decoration.                                           |
 
 ## Worst Offenders
 
 These are not all bugs. They are the highest-signal "this may feel like filler" spots.
 
-- `services/availability-service.ts`: `getCoachBookings()` returns `[]`. A schedule that cannot show bookings is not a schedule.
 - `apps/api/src/lib/ops-runtime.ts`: Stripe is explicitly not implemented and simulated payment remains the safe setting. Parent-facing money copy must be careful.
 - `constants/financial-types.ts`: finance model still allows `placeholder` and `simulated`.
 - `app/verification/id.tsx` and `app/verification/background.tsx`: dev-only approval exists. Fine for development, toxic if it leaks.
@@ -162,8 +161,8 @@ Cut means remove, hide behind API truth, or collapse into an existing screen.
 
 ## Next Three Fixes
 
-1. Fix coach schedule truth: make `getCoachBookings()` return real API/mock bookings or hide booking-dependent schedule UI.
-2. Strip production-facing fake life: demo notifications, mock social members, synthetic analytics, fake counts.
-3. Rename visible badge copy to achievements/recognition without touching the internal domain model yet.
+1. Strip production-facing fake life: demo notifications, mock social members, synthetic analytics, fake counts.
+2. Rename visible badge copy to achievements/recognition without touching the internal domain model yet.
+3. Make owner dashboard default to real operations, not walkthrough/demo content.
 
 That is the shortest useful path. Do not redesign the whole app. Remove fake certainty first.

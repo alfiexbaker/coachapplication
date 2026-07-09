@@ -31,6 +31,7 @@ import type { Result, ServiceError } from '@/types/result';
 import { ok, err, storageError } from '@/types/result';
 import { emitTyped, ServiceEvents } from './event-bus';
 import { isSignedInCoachSelf } from './coach-self-api-support';
+import { accountIdsMatch } from '@/utils/account-id';
 const logger = createLogger('AvailabilityService');
 const USE_MOCK = api.useMock;
 
@@ -169,8 +170,8 @@ const MOCK_OVERRIDES: AvailabilityOverride[] = [
     reason: 'Personal appointment',
   },
 ];
-let templatesCache: AvailabilityTemplate[] = [...MOCK_TEMPLATES];
-let overridesCache: AvailabilityOverride[] = [...MOCK_OVERRIDES];
+let templatesCache: AvailabilityTemplate[] = USE_MOCK ? [...MOCK_TEMPLATES] : [];
+let overridesCache: AvailabilityOverride[] = USE_MOCK ? [...MOCK_OVERRIDES] : [];
 interface ApiAvailabilityTemplatesResponse {
   templates: AvailabilityTemplate[];
 }
@@ -224,7 +225,7 @@ async function loadTemplates(): Promise<AvailabilityTemplate[]> {
   } catch (error) {
     logger.error('Failed to load templates', error);
   }
-  return [...MOCK_TEMPLATES];
+  return USE_MOCK ? [...MOCK_TEMPLATES] : [];
 }
 async function saveTemplates(
   templates: AvailabilityTemplate[],
@@ -247,7 +248,7 @@ async function loadOverrides(): Promise<AvailabilityOverride[]> {
   } catch (error) {
     logger.error('Failed to load overrides', error);
   }
-  return [...MOCK_OVERRIDES];
+  return USE_MOCK ? [...MOCK_OVERRIDES] : [];
 }
 async function saveOverrides(
   overrides: AvailabilityOverride[],
@@ -286,7 +287,7 @@ export const availabilityService = {
         coachId,
         error: result.error.message,
       });
-      return [];
+      throw new Error(result.error.message);
     }
     const result = await apiFetch<ApiAvailabilityTemplatesResponse>(
       `/v1/coaches/${encodeURIComponent(coachId)}/availability/templates`,
@@ -301,7 +302,7 @@ export const availabilityService = {
       coachId,
       error: result.error.message,
     });
-    return [];
+    throw new Error(result.error.message);
   },
   /**
    * Create or update a template
@@ -423,7 +424,7 @@ export const availabilityService = {
         coachId,
         error: result.error.message,
       });
-      return [];
+      throw new Error(result.error.message);
     }
     const params = new URLSearchParams();
     if (startDate) params.append('start', startDate);
@@ -441,7 +442,7 @@ export const availabilityService = {
       coachId,
       error: result.error.message,
     });
-    return [];
+    throw new Error(result.error.message);
   },
   /**
    * Create or update an override
@@ -765,10 +766,24 @@ export const availabilityService = {
    * Get bookings for a coach within a date range
    */
   async getCoachBookings(coachId: string, startDate: string, endDate: string) {
-    void coachId;
-    void startDate;
-    void endDate;
-    return [];
+    const { bookingService } = await import('@/services/booking');
+    const bookings = await bookingService.list();
+    const start = new Date(`${startDate}T00:00:00.000Z`).getTime();
+    const end = new Date(`${endDate}T23:59:59.999Z`).getTime();
+    if (!Number.isFinite(start) || !Number.isFinite(end)) {
+      return [];
+    }
+
+    return bookings.filter((booking) => {
+      const scheduledAt = new Date(booking.scheduledAt).getTime();
+      if (!Number.isFinite(scheduledAt) || scheduledAt < start || scheduledAt > end) {
+        return false;
+      }
+      return (
+        accountIdsMatch(booking.coachId, coachId) ||
+        accountIdsMatch(booking.assigneeCoachId ?? '', coachId)
+      );
+    });
   },
   /**
    * Get slots that a coach can invite someone to.

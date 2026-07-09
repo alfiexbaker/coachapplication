@@ -1,19 +1,19 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test, { describe } from 'node:test';
 
-import type {
-  GroupRegistration,
-  GroupSession,
-  SessionOffering,
-} from '@/constants/types';
+import type { GroupRegistration, GroupSession, SessionOffering } from '@/constants/types';
 import {
   GROUP_SESSION_OFFERING_PREFIX,
   buildGroupSessionOfferingId,
   extractGroupSessionIdFromOfferingId,
+  getSessionOfferingGroupSessionId,
   isGroupSessionRelevantToViewer,
   isOfferingVisibleToCoachUser,
   mapGroupSessionToOffering,
   normalizeSessionOfferingSource,
+  resolveSessionOfferingSourceIds,
 } from '@/utils/session-offering-projections';
 
 function makeGroupSession(overrides: Partial<GroupSession> = {}): GroupSession {
@@ -51,6 +51,10 @@ function makeRegistration(overrides: Partial<GroupRegistration> = {}): GroupRegi
   };
 }
 
+function readProjectFile(relativePath: string): string {
+  return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
+}
+
 describe('session offering projections', () => {
   test('coach visibility matrix includes coach, assignee, owner, and club creator', () => {
     const coachId = 'coach_a';
@@ -74,10 +78,7 @@ describe('session offering projections', () => {
       isOfferingVisibleToCoachUser({ ...base, assigneeCoachId: coachId }, coachId),
       true,
     );
-    assert.equal(
-      isOfferingVisibleToCoachUser({ ...base, ownerCoachId: coachId }, coachId),
-      true,
-    );
+    assert.equal(isOfferingVisibleToCoachUser({ ...base, ownerCoachId: coachId }, coachId), true);
     assert.equal(
       isOfferingVisibleToCoachUser(
         { ...base, actingAs: 'club', createdByUserId: coachId },
@@ -143,6 +144,39 @@ describe('session offering projections', () => {
       }),
       false,
     );
+
+    const publicOpenSession = makeGroupSession({
+      id: 'gs_public_open',
+      clubId: undefined,
+      inviteType: 'OPEN',
+    });
+
+    assert.equal(
+      isGroupSessionRelevantToViewer({
+        session: publicOpenSession,
+        sessionRegistrations: [],
+        viewerIds: new Set(['parent_3']),
+        childClubIds: new Set(),
+        currentUserId: 'parent_3',
+        isCoachUser: false,
+      }),
+      false,
+      'My Sessions should not show unregistered public sessions',
+    );
+
+    assert.equal(
+      isGroupSessionRelevantToViewer({
+        session: publicOpenSession,
+        sessionRegistrations: [],
+        viewerIds: new Set(['parent_3']),
+        childClubIds: new Set(),
+        currentUserId: 'parent_3',
+        isCoachUser: false,
+        includeOpenDiscoverSessions: true,
+      }),
+      true,
+      'Discover should show open public sessions',
+    );
   });
 
   test('normalization infers source tags and group ids correctly', () => {
@@ -183,6 +217,41 @@ describe('session offering projections', () => {
     assert.equal(directOffering.sourceEntityId, 'offering_direct_1');
   });
 
+  test('source id resolver keeps group sessions out of direct booking ids', () => {
+    const explicitGroupOffering = {
+      id: buildGroupSessionOfferingId('gs_77'),
+      source: 'group' as const,
+      sourceEntityId: 'gs_77',
+    };
+    assert.equal(getSessionOfferingGroupSessionId(explicitGroupOffering), 'gs_77');
+    assert.deepEqual(
+      resolveSessionOfferingSourceIds(explicitGroupOffering),
+      { directEntityIds: [], groupSessionIds: ['gs_77'] },
+    );
+
+    const wrappedGroupOffering = {
+      id: buildGroupSessionOfferingId('gs_wrapped'),
+      source: 'group' as const,
+      sourceEntityId: buildGroupSessionOfferingId('gs_wrapped'),
+    };
+    assert.equal(getSessionOfferingGroupSessionId(wrappedGroupOffering), 'gs_wrapped');
+    assert.deepEqual(
+      resolveSessionOfferingSourceIds(wrappedGroupOffering),
+      { directEntityIds: [], groupSessionIds: ['gs_wrapped'] },
+    );
+
+    const directOffering = {
+      id: 'offering_direct_1',
+      source: 'direct' as const,
+      sourceEntityId: 'session_record_1',
+    };
+    assert.equal(getSessionOfferingGroupSessionId(directOffering), null);
+    assert.deepEqual(
+      resolveSessionOfferingSourceIds(directOffering),
+      { directEntityIds: ['offering_direct_1', 'session_record_1'], groupSessionIds: [] },
+    );
+  });
+
   test('group session projection is source-tagged and route-safe', () => {
     const session = makeGroupSession({ id: 'gs_proj', assigneeCoachId: 'coach_assignee' });
     const projected = mapGroupSessionToOffering(
@@ -195,5 +264,117 @@ describe('session offering projections', () => {
     assert.equal(projected?.source, 'group');
     assert.equal(projected?.sourceEntityId, 'gs_proj');
     assert.equal(projected?.id, `${GROUP_SESSION_OFFERING_PREFIX}gs_proj`);
+  });
+
+  test('booking surfaces do not project club events into bookable offerings', () => {
+    const sources = [
+      readProjectFile('utils/session-offering-projections.ts'),
+      readProjectFile('hooks/use-bookings.ts'),
+      readProjectFile('hooks/use-bookings-discover.ts'),
+    ];
+
+    for (const source of sources) {
+      assert.equal(source.includes('buildEventOfferingId'), false);
+      assert.equal(source.includes('mapEventToOffering'), false);
+      assert.equal(source.includes('canViewerSeeEvent'), false);
+      assert.equal(source.includes('event_offering'), false);
+      assert.equal(source.includes('eventService.getAllClubEvents'), false);
+    }
+
+    const projectionSource = readProjectFile('utils/session-offering-projections.ts');
+    assert.equal(projectionSource.includes('mapGroupSessionToOffering'), true);
+    assert.equal(projectionSource.includes("source: 'group'"), true);
+
+    const activityRouteSource = readProjectFile('app/club/[id]/activity/[activityId].tsx');
+    assert.equal(activityRouteSource.includes("activity.source === 'group_session'"), true);
+    assert.equal(
+      activityRouteSource.includes('Routes.groupSession(activity.sourceEntityId)'),
+      true,
+    );
+    assert.equal(activityRouteSource.includes("activity.source === 'match'"), true);
+    assert.equal(activityRouteSource.includes('Routes.match(activity.sourceEntityId)'), true);
+    assert.equal(activityRouteSource.includes('Routes.event(activity.sourceEntityId)'), true);
+
+    const displaySource = readProjectFile('utils/club-schedule-display.ts');
+    const activityCardSource = readProjectFile('components/club/ClubScheduleActivityCard.tsx');
+    assert.equal(displaySource.includes('getClubActivitySourceLabel'), true);
+    assert.equal(activityCardSource.includes('getClubActivitySourceLabel(activity)'), true);
+    assert.equal(activityCardSource.includes('Training session'), false);
+
+    const discoverSource = readProjectFile('hooks/use-bookings-discover.ts');
+    const discoverSessionsSource = readProjectFile('hooks/use-discover-sessions.ts');
+    const bookingsSource = readProjectFile('hooks/use-bookings.ts');
+    assert.equal(
+      discoverSource.includes('getSessionOfferingGroupSessionId(normalizedOffering)'),
+      true,
+    );
+    assert.equal(
+      discoverSessionsSource.includes('getSessionOfferingGroupSessionId(normalizedOffering)'),
+      true,
+    );
+    assert.equal(
+      bookingsSource.includes('getSessionOfferingGroupSessionId(normalizedOffering)'),
+      true,
+    );
+    assert.equal(
+      discoverSource.includes('extractGroupSessionIdFromOfferingId(normalizedOffering.id)'),
+      false,
+    );
+    assert.equal(
+      discoverSessionsSource.includes('extractGroupSessionIdFromOfferingId(normalizedOffering.id)'),
+      false,
+    );
+    assert.equal(
+      bookingsSource.includes('extractGroupSessionIdFromOfferingId(normalizedOffering.id)'),
+      false,
+    );
+    assert.equal(discoverSource.includes('buildDiscoverSessionSections'), true);
+    assert.equal(discoverSource.includes('includeOpenDiscoverSessions: true'), true);
+    assert.equal(bookingsSource.includes('includeOpenDiscoverSessions: true'), false);
+    assert.equal(discoverSource.includes('thisWeekOfferings = allOfferings.filter'), false);
+    assert.equal(discoverSource.includes('ensureRelationalDemoSeeded'), false);
+    assert.equal(bookingsSource.includes('ensureRelationalDemoSeeded'), false);
+    assert.equal(
+      discoverSource.includes("currentUser.name || currentUser.fullName || 'Athlete'"),
+      false,
+    );
+    assert.equal(discoverSessionsSource.includes('resolveDefaultBookingTarget({'), true);
+    assert.equal(
+      discoverSessionsSource.includes('currentUser.name || currentUser.fullName || "Athlete"'),
+      false,
+    );
+
+    const sessionDetailModalSource = readProjectFile(
+      'components/sessions/session-detail-modal.tsx',
+    );
+    const sessionDetailHookSource = readProjectFile('hooks/use-session-detail-modal.ts');
+    assert.equal(
+      sessionDetailModalSource.includes('getSessionOfferingGroupSessionId(offering)'),
+      true,
+    );
+    assert.equal(sessionDetailModalSource.includes('isGroupOffering={isGroupOffering}'), true);
+    assert.equal(sessionDetailModalSource.includes('Register family member'), true);
+    assert.equal(sessionDetailModalSource.includes('Routes.sessionComplete(offering.id)'), false);
+    assert.equal(
+      sessionDetailHookSource.includes('getSessionOfferingGroupSessionId(offering)'),
+      true,
+    );
+    assert.equal(
+      sessionDetailHookSource.includes(
+        'resolveSessionOfferingSourceIds(offering).groupSessionIds[0]',
+      ),
+      false,
+    );
+    assert.equal(sessionDetailHookSource.includes('groupSessionService.register('), true);
+    assert.equal(
+      sessionDetailHookSource.includes("currentUser.name || currentUser.fullName || 'Athlete'"),
+      false,
+    );
+    assert.equal(sessionDetailHookSource.includes('Routes.bookCoach(offering.coachId'), true);
+    assert.ok(
+      sessionDetailHookSource.indexOf('groupSessionService.register(') <
+        sessionDetailHookSource.indexOf('Routes.bookCoach(offering.coachId'),
+      'group session registration branch should run before direct booking navigation',
+    );
   });
 });

@@ -166,8 +166,30 @@ describe('BulkInviteService', () => {
   });
 
   describe('inviteSelectedMembers', () => {
+    it('should require clubId instead of falling back to a default club', async () => {
+      const input = {
+        memberIds: ['member-1'],
+        sessionId: 'test-session-' + Math.random().toString(36).slice(2),
+        sessionTitle: 'Test Session',
+        coachId: 'test-coach-' + Math.random().toString(36).slice(2),
+        coachName: 'Test Coach',
+        proposedSlots: [{ date: '2026-03-15', startTime: '14:00', endTime: '15:00' }],
+        sessionType: '1-on-1',
+        focus: 'Passing',
+      };
+
+      const result = await bulkInviteService.inviteSelectedMembers(
+        input as Parameters<typeof bulkInviteService.inviteSelectedMembers>[0],
+      );
+
+      assert.ok(!result.success);
+      assert.equal(result.error.code, 'VALIDATION');
+      assert.match(result.error.message, /Club id is required/);
+    });
+
     it('should return err() for empty memberIds array', async () => {
       const input = {
+        clubId: 'club_lions',
         memberIds: [],
         sessionId: 'test-session-' + Math.random().toString(36).slice(2),
         sessionTitle: 'Test Session',
@@ -186,6 +208,7 @@ describe('BulkInviteService', () => {
 
     it('should return err() for invalid member IDs', async () => {
       const input = {
+        clubId: 'club_lions',
         memberIds: ['invalid-member-1', 'invalid-member-2'],
         sessionId: 'test-session-' + Math.random().toString(36).slice(2),
         sessionTitle: 'Test Session',

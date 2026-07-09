@@ -50,6 +50,7 @@ export default function SettingsHubScreen() {
     contextChildCount: childCount,
     accountChildRefCount: currentUser?.children?.length ?? 0,
   });
+  const canConfigureBookSelf = bookingSelfSettingService.isSupported() && accountHasChildren;
 
   useEffect(() => {
     if (!currentUser?.id || !accountHasChildren) {
@@ -59,11 +60,20 @@ export default function SettingsHubScreen() {
       return;
     }
     let cancelled = false;
-    void bookingSelfSettingService.isEnabled(currentUser.id).then((enabled) => {
-      if (!cancelled) {
-        setAllowBookSelf(enabled);
-      }
-    });
+    void bookingSelfSettingService
+      .isEnabled(currentUser.id)
+      .then((enabled) => {
+        if (!cancelled) {
+          setAllowBookSelf(enabled);
+        }
+      })
+      .catch((error) => {
+        logger.warn('Failed to load self-booking setting', { error });
+        if (!cancelled) {
+          setAllowBookSelf(false);
+          uiFeedback.showToast('Could not load self-booking setting.');
+        }
+      });
     return () => {
       cancelled = true;
     };
@@ -74,11 +84,16 @@ export default function SettingsHubScreen() {
     const previousValue = allowBookSelf;
     setAllowBookSelf(nextValue);
 
-    const success = await bookingSelfSettingService.setEnabled(currentUser.id, nextValue);
-    if (!success) {
-      setAllowBookSelf(previousValue);
-      uiFeedback.showToast('Please try again.');
+    try {
+      const success = await bookingSelfSettingService.setEnabled(currentUser.id, nextValue);
+      if (success) {
+        return;
+      }
+    } catch (error) {
+      logger.warn('Failed to save self-booking setting', { error });
     }
+    setAllowBookSelf(previousValue);
+    uiFeedback.showToast('Could not save self-booking setting.');
   };
 
   return (
@@ -191,7 +206,7 @@ export default function SettingsHubScreen() {
             router.push(Routes.SETTINGS_CALENDAR_SYNC);
           }}
         />
-        {accountHasChildren && (
+        {canConfigureBookSelf && (
           <SettingsToggleRow
             icon="person"
             title="Allow Booking for Self"

@@ -4,9 +4,8 @@
  * Handles basic CRUD operations for bookings: create, read, update, cancel.
  * Manages draft state and direct booking creation with validation.
  *
- * Uses an in-memory Map<string, Booking> cache with 30s TTL (same pattern as
- * BaseService) to avoid redundant reads. API mode is authoritative through
- * bookingAuthorityService; the local mirror is runtime-only.
+ * Uses an in-memory Map<string, Booking> cache with 30s TTL in mock mode.
+ * API mode is authoritative through bookingAuthorityService; the local mirror is runtime-only.
  *
  * API Integration Notes:
  * - Bookings are persisted through /v1 booking authority in API mode
@@ -21,15 +20,18 @@ import { notificationService } from '../notification-service';
 import { apiClient } from '../api-client';
 import { notificationTriggers } from '../notification-trigger';
 import { createLogger } from '@/utils/logger';
-import { toDateStr } from '@/utils/format';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { blockService, getBlockActionMessage } from '@/services/block-service';
 import { progressAttendanceService } from '@/services/progress/progress-attendance-service';
 import { authService } from '@/services/auth-service';
 import { formatServiceTypeLabel, getBookingAthleteName } from '@/utils/booking-display';
+import { isGenericPersonPlaceholder } from '@/utils/person-name';
+import { extractGroupSessionIdFromOfferingId } from '@/utils/session-offering-projections';
 import {
   bookingAuthorityService,
+  mapApiBookingToBooking,
   type CompleteApiBookingInput,
+  type ApiBookingResponse,
   type ApiRebookContextResponse,
 } from './booking-authority-service';
 import {
@@ -55,13 +57,32 @@ const ENFORCE_DBS_SAFEGUARDING_GATE =
 /** Maximum age (ms) before cache is considered stale. */
 const CACHE_MAX_AGE = 30_000;
 
+function isGroupSessionBookingAttempt(params: {
+  sessionSource?: CreateBookingParams['sessionSource'];
+  sessionSourceEntityId?: string;
+  sessionOfferingId?: string;
+  serviceType?: string;
+}): boolean {
+  return (
+    params.sessionSource === 'group' ||
+    params.serviceType === 'GROUP_SESSION' ||
+    Boolean(
+      params.sessionSourceEntityId &&
+      extractGroupSessionIdFromOfferingId(params.sessionSourceEntityId),
+    ) ||
+    Boolean(
+      params.sessionOfferingId && extractGroupSessionIdFromOfferingId(params.sessionOfferingId),
+    )
+  );
+}
+
 export type BookingDraft = {
   entrySource?: string;
   targetLocked?: boolean;
   sessionType?: string;
   sessionTypeLabel?: string;
   sessionOfferingId?: string;
-  sessionSource?: 'direct' | 'event' | 'group';
+  sessionSource?: 'direct' | 'group';
   sessionSourceEntityId?: string;
   sessionTemplateId?: string;
   participants?: number;
@@ -104,7 +125,7 @@ export interface CreateBookingParams {
   sessionOfferingId?: string;
   sessionTemplateId?: string;
   sessionTemplateName?: string;
-  sessionSource?: 'direct' | 'event' | 'group';
+  sessionSource?: 'direct' | 'group';
   sessionSourceEntityId?: string;
   clubId?: string;
   actingAs?: 'self' | 'club';
@@ -170,78 +191,10 @@ class BookingCrudService {
   }
 
   private mergeAuthoritativeBooking(
-    apiBooking: {
-      id: string;
-      coachUserId: string;
-      bookedByUserId?: string;
-      recurringSeriesId?: string | null;
-      groupSessionId?: string | null;
-      status: Booking['status'];
-      scheduledAt: string;
-      durationMinutes: number;
-      location: string;
-      serviceType?: string;
-      sessionTemplateId?: string | null;
-      objectives: string[];
-      notes?: string | null;
-      priceMinor?: number | null;
-      createdAt: string;
-      updatedAt: string;
-      cancelledAt?: string | null;
-      version: number;
-      participants: {
-        athleteId: string;
-        guardianUserId?: string;
-        status: 'confirmed' | 'pending' | 'cancelled';
-      }[];
-    },
+    apiBooking: ApiBookingResponse,
     localBooking?: Booking,
   ): Booking {
-    const athleteIds = apiBooking.participants.map((participant) => participant.athleteId);
-    const athleteId = localBooking?.athleteId ?? athleteIds[0];
-    const bookedById = localBooking?.bookedById ?? apiBooking.bookedByUserId;
-    const recurringBookingId = apiBooking.recurringSeriesId ?? localBooking?.recurringBookingId;
-    const groupSessionId = apiBooking.groupSessionId ?? localBooking?.groupSessionId;
-
-    return {
-      ...localBooking,
-      id: apiBooking.id,
-      coachId: localBooking?.coachId ?? apiBooking.coachUserId,
-      athleteIds: localBooking?.athleteIds?.length ? localBooking.athleteIds : athleteIds,
-      athleteId,
-      bookedById,
-      status: apiBooking.status,
-      scheduledAt: apiBooking.scheduledAt,
-      duration: apiBooking.durationMinutes,
-      location: apiBooking.location,
-      serviceType: apiBooking.serviceType ?? localBooking?.serviceType,
-      ...(apiBooking.sessionTemplateId ? { sessionTemplateId: apiBooking.sessionTemplateId } : {}),
-      objectives: apiBooking.objectives,
-      notes: apiBooking.notes ?? localBooking?.notes ?? '',
-      price:
-        typeof apiBooking.priceMinor === 'number'
-          ? apiBooking.priceMinor / 100
-          : localBooking?.price,
-      participants: apiBooking.participants.map((participant) => ({
-        id: participant.athleteId,
-        status: participant.status,
-      })),
-      createdAt: apiBooking.createdAt,
-      version: apiBooking.version,
-      cancelledAt: apiBooking.cancelledAt ?? undefined,
-      cancelReason: apiBooking.cancelledAt ? localBooking?.cancelReason : undefined,
-      cancellationReason: apiBooking.cancelledAt ? localBooking?.cancellationReason : undefined,
-      cancelledBy: apiBooking.cancelledAt ? localBooking?.cancelledBy : undefined,
-      statusBeforeCancellation:
-        apiBooking.status === 'CANCELLED' ? localBooking?.statusBeforeCancellation : undefined,
-      service: localBooking?.service ?? formatServiceTypeLabel(apiBooking.serviceType),
-      isSharedSession: athleteIds.length > 1 || localBooking?.isSharedSession,
-      recurringBookingId: recurringBookingId ?? undefined,
-      isRecurringGenerated: Boolean(recurringBookingId) || localBooking?.isRecurringGenerated,
-      groupSessionId: groupSessionId ?? undefined,
-      sessionSource: groupSessionId ? 'group' : localBooking?.sessionSource,
-      sessionSourceEntityId: groupSessionId ?? localBooking?.sessionSourceEntityId,
-    };
+    return mapApiBookingToBooking(apiBooking, localBooking);
   }
 
   private mapBookingToRebookDraft(booking: Booking): BookingDraft {
@@ -295,31 +248,7 @@ class BookingCrudService {
   }
 
   private async syncAuthoritativeBookings(
-    apiBookings: {
-      id: string;
-      coachUserId: string;
-      bookedByUserId?: string;
-      recurringSeriesId?: string | null;
-      groupSessionId?: string | null;
-      status: Booking['status'];
-      scheduledAt: string;
-      durationMinutes: number;
-      location: string;
-      serviceType?: string;
-      sessionTemplateId?: string | null;
-      objectives: string[];
-      notes?: string | null;
-      priceMinor?: number | null;
-      createdAt: string;
-      updatedAt: string;
-      cancelledAt?: string | null;
-      version: number;
-      participants: {
-        athleteId: string;
-        guardianUserId?: string;
-        status: 'confirmed' | 'pending' | 'cancelled';
-      }[];
-    }[],
+    apiBookings: ApiBookingResponse[],
   ): Promise<Booking[]> {
     const localBookings = await this.loadFromStorage();
     const localById = new Map(localBookings.map((booking) => [booking.id, booking]));
@@ -372,10 +301,6 @@ class BookingCrudService {
   async list(): Promise<Booking[]> {
     try {
       if (!apiClient.isMockMode) {
-        if (this._cache !== null && Date.now() - this._cacheTimestamp <= CACHE_MAX_AGE) {
-          return Array.from(this._cache.values());
-        }
-
         const apiResult = await bookingAuthorityService.listBookings();
         if (apiResult.success) {
           const bookings = await this.syncAuthoritativeBookings(apiResult.data);
@@ -385,13 +310,16 @@ class BookingCrudService {
         logger.warn('Booking list unavailable from API; not using runtime mirror as fallback', {
           error: apiResult.error.message,
         });
-        return [];
+        throw new Error(apiResult.error.message);
       }
 
       const cache = await this.getCache();
       return Array.from(cache.values());
     } catch (error) {
       logger.error('Failed to list bookings', error);
+      if (!apiClient.isMockMode) {
+        throw error;
+      }
       return [];
     }
   }
@@ -423,6 +351,7 @@ class BookingCrudService {
             bookingId: id,
             error: apiResult.error.message,
           });
+          throw new Error(apiResult.error.message);
         }
         return null;
       }
@@ -431,6 +360,9 @@ class BookingCrudService {
       return cache.get(id) ?? null;
     } catch (error) {
       logger.error('Failed to get booking', error);
+      if (!apiClient.isMockMode) {
+        throw error;
+      }
       return null;
     }
   }
@@ -444,6 +376,9 @@ class BookingCrudService {
       return (await this.getBooking(id)) ?? undefined;
     } catch (error) {
       logger.error('Failed to get booking by id', error);
+      if (!apiClient.isMockMode) {
+        throw error;
+      }
       return undefined;
     }
   }
@@ -545,12 +480,11 @@ class BookingCrudService {
               : {}),
           });
         }
-        const authorityResult =
-          await bookingAuthorityService.confirmBooking(id, {
-            ...(typeof existingBooking.version === 'number'
-              ? { expectedVersion: existingBooking.version }
-              : {}),
-          });
+        const authorityResult = await bookingAuthorityService.confirmBooking(id, {
+          ...(typeof existingBooking.version === 'number'
+            ? { expectedVersion: existingBooking.version }
+            : {}),
+        });
         if (!authorityResult.success) {
           return err(authorityResult.error);
         }
@@ -687,7 +621,7 @@ class BookingCrudService {
           status,
           error: result.error.message,
         });
-        return undefined;
+        throw new Error(result.error.message);
       }
       return result.data;
     }
@@ -771,7 +705,7 @@ class BookingCrudService {
           cancelledBy,
           error: cancelResult.error.message,
         });
-        return undefined;
+        throw new Error(cancelResult.error.message);
       }
       authoritativeBooking = {
         ...this.mergeAuthoritativeBooking(cancelResult.data, booking),
@@ -923,7 +857,7 @@ class BookingCrudService {
           reopenedBy,
           error: reopenResult.error.message,
         });
-        return undefined;
+        throw new Error(reopenResult.error.message);
       }
       restoredStatus = reopenResult.data.status;
       authoritativeBooking = {
@@ -1144,6 +1078,38 @@ class BookingCrudService {
     const scheduledTime = new Date(scheduledAt).getTime();
     if (!Number.isFinite(scheduledTime)) {
       return err(validationError('Scheduled date/time is invalid'));
+    }
+
+    if (!apiClient.isMockMode) {
+      if (!coachName.trim() || isGenericPersonPlaceholder(coachName)) {
+        return err(validationError('Cannot create booking: missing coach information'));
+      }
+      if (!bookedByName.trim() || isGenericPersonPlaceholder(bookedByName)) {
+        return err(validationError('Cannot create booking: missing booker information'));
+      }
+      if (
+        athleteIds.length === 0 ||
+        athleteNames.length !== athleteIds.length ||
+        athleteNames.some((name) => !name.trim() || isGenericPersonPlaceholder(name))
+      ) {
+        return err(validationError('Cannot create booking: missing athlete information'));
+      }
+    }
+
+    if (
+      !apiClient.isMockMode &&
+      isGroupSessionBookingAttempt({
+        sessionSource,
+        sessionSourceEntityId,
+        sessionOfferingId,
+        serviceType,
+      })
+    ) {
+      return err(
+        validationError(
+          'Group sessions must be registered through the group session registration flow.',
+        ),
+      );
     }
 
     // Check if coach/booker have blocked each other
@@ -1455,20 +1421,46 @@ class BookingCrudService {
    */
   async createFromDraft(): Promise<Result<Booking, ServiceError>> {
     const draft = this.draft;
+    const coachName = draft.coachName?.trim();
+    const athleteName = draft.athleteName?.trim();
+    const athleteIds = (
+      draft.childIds?.length ? draft.childIds : [draft.childId ?? draft.athleteId]
+    ).filter((value): value is string => Boolean(value?.trim()));
+    const date = draft.date?.trim();
+    const slot = draft.slot?.trim();
+    const duration =
+      typeof draft.duration === 'number' && Number.isFinite(draft.duration) ? draft.duration : null;
+    const location = draft.locationText?.trim();
+    const serviceType = draft.sessionType?.trim();
+    const service =
+      draft.sessionTypeLabel?.trim() || (serviceType ? formatServiceTypeLabel(serviceType) : '');
+    const hasResolvedPrice = typeof draft.price === 'number' && Number.isFinite(draft.price);
 
     // Validate required draft fields
-    if (!draft.coachId || !draft.coachName) {
+    if (!draft.coachId || !coachName) {
       return err(validationError('Cannot create booking: missing coach information'));
     }
-    if (!draft.athleteId || !draft.athleteName) {
+    if (athleteIds.length !== 1 || !athleteName || isGenericPersonPlaceholder(athleteName)) {
       return err(validationError('Cannot create booking: missing athlete information'));
     }
+    if (!date || !slot) {
+      return err(validationError('Cannot create booking: missing scheduled date or time'));
+    }
+    if (!duration || duration <= 0) {
+      return err(validationError('Cannot create booking: missing session duration'));
+    }
+    if (!location) {
+      return err(validationError('Cannot create booking: missing session location'));
+    }
+    if (!serviceType || !service) {
+      return err(validationError('Cannot create booking: missing session type'));
+    }
+    if (!hasResolvedPrice) {
+      return err(validationError('Cannot create booking: missing session price'));
+    }
 
-    const scheduledAt = `${draft.date || toDateStr(new Date())}T${draft.slot || '10:00'}:00`;
-    const athleteIds = draft.childIds || [draft.athleteId];
-    const athleteNames = draft.athleteName
-      ? athleteIds.map(() => draft.athleteName as string)
-      : ['Athlete'];
+    const scheduledAt = `${date}T${slot}:00`;
+    const athleteNames = [athleteName];
     const bookedById = draft.createdByUserId || draft.athleteId;
 
     if (!bookedById) {
@@ -1477,16 +1469,16 @@ class BookingCrudService {
 
     const result = await this.createBooking({
       coachId: draft.coachId,
-      coachName: draft.coachName,
-      athleteIds: athleteIds.filter((value): value is string => Boolean(value)),
+      coachName,
+      athleteIds,
       athleteNames,
       bookedById,
-      bookedByName: draft.athleteName || 'User',
+      bookedByName: athleteName,
       scheduledAt,
-      duration: draft.duration || 60,
-      location: draft.locationText || 'Coach preferred venue',
-      service: draft.sessionTypeLabel || draft.sessionType || 'Session',
-      serviceType: draft.sessionType || '1-to-1',
+      duration,
+      location,
+      service,
+      serviceType,
       sessionTemplateId: draft.sessionTemplateId,
       sessionSource: draft.sessionSource,
       sessionSourceEntityId: draft.sessionSourceEntityId,
@@ -1498,7 +1490,7 @@ class BookingCrudService {
       createdByUserId: draft.createdByUserId,
       createdByRole: draft.createdByRole,
       objectives: draft.objectives || [],
-      price: draft.price || 0,
+      price: draft.price,
       notes: draft.notes || '',
       skipAvailabilityValidation: true,
     });

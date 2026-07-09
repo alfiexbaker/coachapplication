@@ -77,7 +77,7 @@ export interface CreateSeriesParams {
   location: string;
   patternLabel: string;
   sessionInviteId?: string;
-  sessionSource?: 'direct' | 'event' | 'group';
+  sessionSource?: 'direct' | 'group';
   sessionSourceEntityId?: string;
   clubId?: string;
   actingAs?: 'self' | 'club';

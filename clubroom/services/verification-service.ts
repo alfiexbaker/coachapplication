@@ -15,6 +15,12 @@ interface ApiCoachVerificationStatusResponse {
   status: VerificationStatus;
 }
 
+interface ApiCoachVerificationReviewResponse {
+  type: string;
+  verification: unknown;
+  status: VerificationStatus;
+}
+
 interface ApiUploadInitResponse {
   uploadSessionId: string;
   mediaObjectId: string;
@@ -44,6 +50,7 @@ export interface VerificationDocumentUploadInput {
 }
 
 type ApiVerificationType = 'identity' | 'credential' | 'insurance' | 'dbs';
+type ApiVerificationReviewStatus = 'APPROVED' | 'REJECTED' | 'EXPIRED';
 
 function requireApiData<T>(result: Result<T, ServiceError>, fallbackMessage: string): T {
   if (!result.success) {
@@ -64,6 +71,35 @@ function verificationContentType(input: VerificationDocumentUploadInput): string
 
 function verificationUploadKind(contentType: string): 'IMAGE' | 'DOCUMENT' {
   return contentType.toLowerCase().startsWith('image/') ? 'IMAGE' : 'DOCUMENT';
+}
+
+function apiReviewTypeForField(
+  field: 'email' | 'phone' | 'identity' | 'backgroundCheck' | 'insurance',
+): ApiVerificationType | null {
+  switch (field) {
+    case 'identity':
+      return 'identity';
+    case 'backgroundCheck':
+      return 'dbs';
+    case 'insurance':
+      return 'insurance';
+    case 'email':
+    case 'phone':
+      return null;
+  }
+}
+
+function apiReviewStatusFromUpdate(update: Partial<VerificationItem>): ApiVerificationReviewStatus | null {
+  switch (update.status) {
+    case 'VERIFIED':
+      return 'APPROVED';
+    case 'FAILED':
+      return 'REJECTED';
+    case 'EXPIRED':
+      return 'EXPIRED';
+    default:
+      return null;
+  }
 }
 
 async function verificationFileSize(input: VerificationDocumentUploadInput): Promise<number> {
@@ -285,12 +321,38 @@ class VerificationService {
   ): Promise<Result<VerificationStatus, ServiceError>> {
     try {
       if (!apiClient.isMockMode) {
-        return err(
-          serviceError(
-            'UNSUPPORTED',
-            'Verification updates require a dedicated /v1 verification write API.',
-          ),
+        const type = apiReviewTypeForField(field);
+        const status = apiReviewStatusFromUpdate(update);
+        if (!type || !status) {
+          return err(
+            serviceError(
+              'UNSUPPORTED',
+              'Only reviewer approval, rejection, or expiry decisions can update verification in API mode.',
+            ),
+          );
+        }
+        const result = await apiFetch<ApiCoachVerificationReviewResponse>(
+          `/v1/coaches/${encodeURIComponent(coachId)}/verifications/${type}/review`,
+          {
+            method: 'PATCH',
+            body: JSON.stringify({
+              status,
+              expiresAt: update.expiresAt,
+              notes: update.notes,
+            }),
+          },
         );
+        if (!result.success) {
+          return err(result.error);
+        }
+        emitTyped(ServiceEvents.VERIFICATION_UPDATED, {
+          coachId,
+          field,
+          status: result.data.status[field].status,
+          overallLevel: result.data.status.overallLevel,
+          lastUpdated: result.data.status.lastUpdated,
+        });
+        return ok(result.data.status);
       }
 
       const allStatuses = await apiClient.get<Record<string, VerificationStatus>>(
@@ -395,16 +457,6 @@ class VerificationService {
   }
 
   /**
-   * Start background check process (mock - immediately sets to PENDING)
-   */
-  async startBackgroundCheck(coachId: string): Promise<Result<VerificationStatus, ServiceError>> {
-    return this.updateVerificationItem(coachId, 'backgroundCheck', {
-      status: 'PENDING',
-      notes: 'Background check initiated',
-    });
-  }
-
-  /**
    * Submit a credential for verification
    */
   async submitCredential(
@@ -478,23 +530,6 @@ class VerificationService {
         ),
       );
     }
-  }
-
-  /**
-   * Mock: Approve a pending verification (for demo/testing)
-   */
-  async mockApproveVerification(
-    coachId: string,
-    field: 'identity' | 'backgroundCheck' | 'insurance',
-  ): Promise<Result<VerificationStatus, ServiceError>> {
-    const expiresAt = new Date();
-    expiresAt.setFullYear(expiresAt.getFullYear() + 3);
-
-    return this.updateVerificationItem(coachId, field, {
-      status: 'VERIFIED',
-      verifiedAt: new Date().toISOString(),
-      expiresAt: expiresAt.toISOString(),
-    });
   }
 
   /**

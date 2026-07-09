@@ -15,7 +15,7 @@ Do not read the whole `docs/` tree unless the task is explicitly research-heavy.
 ## Fast Reality Check
 
 - This is an Expo app with a real Fastify API under `apps/api`.
-- The app still supports mock and pre-API runtime paths.
+- Normal app runtime is API-first; retained mock branches are test-only compatibility paths.
 - Club permissions and delegation now have executable truth in `contracts/club-governance.ts`.
 - The main unfinished seams are remaining API/db cutover, broader grant coverage, provider-backed money movement, and route/test drift.
 - Old audit dumps, dated product-reality packs, sprint stacks, and completed handoff reports were intentionally removed.

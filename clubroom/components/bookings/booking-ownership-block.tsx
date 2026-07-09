@@ -8,7 +8,7 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { BookingSummary } from '@/constants/types';
-import { socialFeedService } from '@/services/social-feed-service';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import { getCoachWorkContextDisplay } from '@/utils/coach-business-context';
 import {
   getBookingRelationshipContext,
@@ -36,8 +36,9 @@ function BookingOwnershipBlockInner({ booking, compact = false }: BookingOwnersh
     }
 
     let cancelled = false;
-    void socialFeedService.getClub(booking.clubId).then((club) => {
+    void clubAuthorityService.getClubById(booking.clubId).then((result) => {
       if (cancelled) return;
+      const club = result.success ? result.data : null;
       if (club?.name) {
         setOrganizationLabel(club.name);
       } else {

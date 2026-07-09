@@ -6,12 +6,13 @@ import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { api } from '@/constants/config';
 import { clubAuthorityService } from '@/services/club-authority-service';
 import { matchService } from '@/services/match-service';
-import { err, ok, serviceError, type ServiceError } from '@/types/result';
+import { err, ok, serviceError, type Result, type ServiceError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
-import type { Match } from '@/constants/types';
+import type { Club, Match } from '@/constants/types';
 
 const logger = createLogger('MatchesScreen');
 const MOCK_CLUB_ID = 'club_1';
+const MOCK_CLUB_NAME = 'Club fixtures';
 
 export type MatchFilter = 'upcoming' | 'past' | 'all';
 
@@ -23,6 +24,8 @@ export const MATCH_FILTERS: { key: MatchFilter; label: string; icon: string }[] 
 
 interface MatchesData {
   matches: Match[];
+  clubId?: string;
+  clubName?: string;
 }
 
 export interface UseMatchesScreenResult {
@@ -36,6 +39,7 @@ export interface UseMatchesScreenResult {
   onRefresh: () => void;
   retry: () => void;
   isCoach: boolean;
+  canCreateMatch: boolean;
   stats: { total: number; wins: number; draws: number; losses: number };
   groupedMatches: [string, Match[]][];
   handleCreateMatch: () => void;
@@ -50,27 +54,27 @@ export function useMatchesScreen() {
 
   const loadMatches = async () => {
     try {
-      const clubIdResult = await resolveMatchesClubId();
-      if (!clubIdResult.success) {
-        return err(clubIdResult.error);
+      const clubResult = await resolveMatchesClub();
+      if (!clubResult.success) {
+        return err(clubResult.error);
       }
 
-      const clubId = clubIdResult.data;
-      if (!clubId) {
+      const club = clubResult.data;
+      if (!club) {
         return ok<MatchesData>({ matches: [] });
       }
 
       let data: Match[];
 
       if (filter === 'upcoming') {
-        data = await matchService.getUpcomingMatches(clubId);
+        data = await matchService.getUpcomingMatches(club.id);
       } else if (filter === 'past') {
-        data = await matchService.getPastMatches(clubId);
+        data = await matchService.getPastMatches(club.id);
       } else {
-        data = await matchService.getClubMatches(clubId);
+        data = await matchService.getClubMatches(club.id);
       }
 
-      return ok<MatchesData>({ matches: data });
+      return ok<MatchesData>({ matches: data, clubId: club.id, clubName: club.name });
     } catch (loadError) {
       logger.error('Failed to load matches:', loadError);
       return err(
@@ -81,7 +85,7 @@ export function useMatchesScreen() {
 
   const { data, status, error, refreshing, onRefresh, retry } = useScreen<MatchesData>({
     load: loadMatches,
-    deps: [filter],
+    deps: [filter, currentUser?.id],
     isEmpty: (value) => value.matches.length === 0,
     refetchOnFocus: true,
     loadingStrategy: 'warm-first',
@@ -89,10 +93,17 @@ export function useMatchesScreen() {
   });
 
   const matches = data?.matches ?? [];
+  const activeClubId = data?.clubId;
+  const activeClubName = data?.clubName;
   const loading = status === 'loading';
+  const canCreateMatch = isCoach && Boolean(activeClubId);
 
   const handleCreateMatch = () => {
-    router.push(Routes.MATCHES_CREATE);
+    if (!activeClubId) {
+      router.push(Routes.MATCHES_CREATE);
+      return;
+    }
+    router.push(Routes.matchCreate({ clubId: activeClubId, clubName: activeClubName }));
   };
 
   const stats = (() => {
@@ -145,15 +156,18 @@ export function useMatchesScreen() {
     onRefresh,
     retry,
     isCoach,
+    canCreateMatch,
     stats,
     groupedMatches,
     handleCreateMatch,
   } satisfies UseMatchesScreenResult;
 }
 
-async function resolveMatchesClubId() {
+async function resolveMatchesClub(): Promise<
+  Result<Pick<Club, 'id' | 'name'> | null, ServiceError>
+> {
   if (api.useMock) {
-    return ok(MOCK_CLUB_ID);
+    return ok({ id: MOCK_CLUB_ID, name: MOCK_CLUB_NAME });
   }
 
   const clubsResult = await clubAuthorityService.listClubs();
@@ -162,5 +176,5 @@ async function resolveMatchesClubId() {
     return err(clubsResult.error);
   }
 
-  return ok(clubsResult.data.clubs[0]?.id ?? '');
+  return ok(clubsResult.data.clubs[0] ?? null);
 }

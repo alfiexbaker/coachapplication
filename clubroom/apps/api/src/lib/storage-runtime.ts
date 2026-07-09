@@ -8,6 +8,9 @@ import { badRequest, forbidden, notFound, serviceUnavailable } from './http-erro
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from './prisma-runtime.js';
 
 type SeedRow = Record<string, unknown>;
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+type JsonObject = { [key: string]: JsonValue };
+
 export interface UploadInitInput {
   requesterUserId: string;
   kind: 'VIDEO' | 'IMAGE' | 'DOCUMENT';
@@ -43,6 +46,26 @@ export interface UploadCompleteResult {
   scanner: string;
   scannedAt: string;
   dataVersion: string | null;
+}
+
+export type UploadScanVerdict = 'PENDING' | 'CLEAN' | 'INFECTED' | 'ERROR';
+
+export interface UploadScanResultInput {
+  uploadSessionId: string;
+  mediaObjectId: string;
+  verdict: UploadScanVerdict;
+  scanner: string;
+  scannedAt?: string | Date | null;
+  details?: JsonObject;
+}
+
+export interface UploadScanResultRecord {
+  id: string;
+  uploadSessionId: string;
+  mediaObjectId: string;
+  verdict: UploadScanVerdict;
+  scanner: string;
+  scannedAt: string | null;
 }
 
 export interface SignedReadUrlInput {
@@ -238,6 +261,36 @@ function createPresignedReadUrl(params: {
   };
 }
 
+function scanDetailsJson(input: {
+  uploadSessionId: string;
+  source: string;
+  details?: JsonObject;
+}): JsonObject {
+  return {
+    ...(input.details ?? {}),
+    uploadSessionId: input.uploadSessionId,
+    source: input.source,
+  };
+}
+
+function normalizeScanDate(value: string | Date | null | undefined, verdict: UploadScanVerdict): Date | null {
+  if (value === null) return null;
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) {
+      throw badRequest('Invalid malware scan timestamp');
+    }
+    return value;
+  }
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      throw badRequest('Invalid malware scan timestamp');
+    }
+    return parsed;
+  }
+  return verdict === 'PENDING' ? null : new Date();
+}
+
 async function persistDbUploadInit(
   input: UploadInitInput,
   uploadSessionId: string,
@@ -290,6 +343,19 @@ async function persistDbUploadInit(
       createdAt: nowIso(),
       updatedAt: nowIso(),
     });
+    asRows(store.tables.malwareScanResults).push({
+      id: newId('msr'),
+      uploadSessionId,
+      mediaObjectId,
+      verdict: 'PENDING',
+      status: 'PENDING',
+      scanner: 'upload-init',
+      engine: 'upload-init',
+      detailsJson: scanDetailsJson({ uploadSessionId, source: 'upload-init' }),
+      scannedAt: null,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    });
     return;
   }
 
@@ -333,7 +399,121 @@ async function persistDbUploadInit(
         metadataJson,
       },
     });
+
+    await tx.malwareScanResult.create({
+      data: {
+        id: newId('msr'),
+        mediaObjectId,
+        verdict: 'PENDING',
+        scanner: 'upload-init',
+        detailsJson: scanDetailsJson({ uploadSessionId, source: 'upload-init' }),
+        scannedAt: null,
+      },
+    });
   });
+}
+
+export async function recordUploadMalwareScanResult(
+  input: UploadScanResultInput,
+): Promise<UploadScanResultRecord> {
+  if (getApiDataBackend() !== 'db') {
+    throw serviceUnavailable('Db-backed upload runtime is disabled', {
+      apiDataBackend: getApiDataBackend(),
+      action: 'Set API_DATA_BACKEND=db before recording upload scan results.',
+    });
+  }
+
+  const scannedAt = normalizeScanDate(input.scannedAt, input.verdict);
+  const scannedAtIso = scannedAt?.toISOString() ?? null;
+  const scanId = newId('msr');
+  const detailsJson = scanDetailsJson({
+    uploadSessionId: input.uploadSessionId,
+    source: 'scan-result',
+    details: input.details,
+  });
+
+  if (shouldUseDbFixtureFallback()) {
+    const store = getDbFixtureStore();
+    const uploadSession = asRows(store.tables.uploadSessions).find(
+      (row) =>
+        asString(row.id) === input.uploadSessionId &&
+        asString(row.mediaObjectId) === input.mediaObjectId,
+    );
+    if (!uploadSession) {
+      throw notFound('Upload session not found', {
+        uploadSessionId: input.uploadSessionId,
+        mediaObjectId: input.mediaObjectId,
+      });
+    }
+
+    asRows(store.tables.malwareScanResults).push({
+      id: scanId,
+      uploadSessionId: input.uploadSessionId,
+      mediaObjectId: input.mediaObjectId,
+      verdict: input.verdict,
+      status: input.verdict,
+      scanner: input.scanner,
+      engine: input.scanner,
+      detailsJson,
+      scannedAt: scannedAtIso,
+      createdAt: scannedAtIso ?? nowIso(),
+      updatedAt: nowIso(),
+    });
+
+    return {
+      id: scanId,
+      uploadSessionId: input.uploadSessionId,
+      mediaObjectId: input.mediaObjectId,
+      verdict: input.verdict,
+      scanner: input.scanner,
+      scannedAt: scannedAtIso,
+    };
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  await prisma.$transaction(async (tx) => {
+    const uploadSession = await tx.uploadSession.findFirst({
+      where: {
+        id: input.uploadSessionId,
+        mediaObjectId: input.mediaObjectId,
+      },
+      select: {
+        id: true,
+        mediaObject: {
+          select: {
+            id: true,
+            deletedAt: true,
+          },
+        },
+      },
+    });
+    if (!uploadSession || !uploadSession.mediaObject || uploadSession.mediaObject.deletedAt) {
+      throw notFound('Upload session not found', {
+        uploadSessionId: input.uploadSessionId,
+        mediaObjectId: input.mediaObjectId,
+      });
+    }
+
+    await tx.malwareScanResult.create({
+      data: {
+        id: scanId,
+        mediaObjectId: input.mediaObjectId,
+        verdict: input.verdict,
+        scanner: input.scanner,
+        detailsJson,
+        scannedAt,
+      },
+    });
+  });
+
+  return {
+    id: scanId,
+    uploadSessionId: input.uploadSessionId,
+    mediaObjectId: input.mediaObjectId,
+    verdict: input.verdict,
+    scanner: input.scanner,
+    scannedAt: scannedAtIso,
+  };
 }
 
 export async function createUploadInit(input: UploadInitInput): Promise<UploadInitResult> {

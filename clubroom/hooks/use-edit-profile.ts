@@ -48,20 +48,6 @@ const PROFICIENCY_OPTIONS: CoachLanguage['proficiency'][] = [
   'Basic',
 ];
 
-type EditableChildInput = {
-  childId?: string;
-  childName?: string;
-  name?: string;
-  age?: number;
-};
-
-type DirectoryUser = {
-  id: string;
-  fullName?: string;
-  name?: string;
-  dateOfBirth?: string;
-};
-
 type EditableUserProfile = {
   id: string;
   fullName: string;
@@ -69,7 +55,6 @@ type EditableUserProfile = {
   phone?: string;
   bio?: string;
   profilePhotoUrl?: string;
-  children: { name: string; age: number }[];
 };
 
 type AuthLikeUser = {
@@ -84,7 +69,6 @@ type AuthLikeUser = {
   avatar?: string;
   phone?: string;
   bio?: string;
-  children?: EditableChildInput[];
 };
 
 const createBlankExperience = (): CoachExperience => ({
@@ -129,54 +113,7 @@ function formatQualification(certification: CoachCertification): string | null {
   return issuer ? `${name} - ${issuer}` : name;
 }
 
-function stableJson(value: unknown): string {
-  return JSON.stringify(value ?? null);
-}
-
-const calculateAge = (dateOfBirth?: string): number => {
-  if (!dateOfBirth) return 0;
-
-  const birthDate = new Date(dateOfBirth);
-  if (Number.isNaN(birthDate.getTime())) return 0;
-
-  const today = new Date();
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-    age--;
-  }
-
-  return Math.max(0, age);
-};
-
-function buildEditableChildren(
-  children: EditableChildInput[] | undefined,
-  directory: DirectoryUser[],
-): { name: string; age: number }[] {
-  if (!children || children.length === 0) return [];
-
-  const usersById = new Map(directory.map((user) => [user.id, user]));
-
-  return children.map((child) => {
-    const directoryUser = child.childId ? usersById.get(child.childId) : undefined;
-    const resolvedName =
-      child.childName || child.name || directoryUser?.fullName || directoryUser?.name || 'Child';
-
-    const resolvedAge =
-      typeof child.age === 'number' ? child.age : calculateAge(directoryUser?.dateOfBirth);
-
-    return {
-      name: resolvedName,
-      age: Math.max(0, resolvedAge),
-    };
-  });
-}
-
-function createEditableUserProfile(
-  currentUser: AuthLikeUser,
-  directory: DirectoryUser[],
-): EditableUserProfile {
+function createEditableUserProfile(currentUser: AuthLikeUser): EditableUserProfile {
   return {
     id: currentUser.id,
     fullName: currentUser.fullName || currentUser.name || currentUser.username || 'User',
@@ -184,7 +121,6 @@ function createEditableUserProfile(
     phone: currentUser.phone || '',
     bio: currentUser.bio || '',
     profilePhotoUrl: currentUser.avatar,
-    children: buildEditableChildren(currentUser.children, directory),
   };
 }
 
@@ -266,8 +202,6 @@ export interface EditProfileState {
   bio: string;
   email: string;
   phone: string;
-  // Parent
-  children: { name: string; age: number }[];
   // Coach
   website: string;
   priceMin: string;
@@ -289,7 +223,7 @@ export interface EditProfileModals {
 }
 
 export function useEditProfile() {
-  const { currentUser, availableUsers } = useAuth();
+  const { currentUser } = useAuth();
   const userIsCoach = currentUser?.role === 'COACH';
   const userIsAthlete = (currentUser?.role as string) === 'ATHLETE';
   const [initializing, setInitializing] = useState(true);
@@ -304,9 +238,6 @@ export function useEditProfile() {
   const [bio, setBio] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-
-  // ── Parent fields ──────────────────────────────────────────────
-  const [children, setChildren] = useState<{ name: string; age: number }[]>([]);
 
   // ── Athlete fields ────────────────────────────────────────────
   const [primaryPosition, setPrimaryPosition] = useState<PositionRole | null>(null);
@@ -414,7 +345,6 @@ export function useEditProfile() {
           setBio('');
           setEmail('');
           setPhone('');
-          setChildren([]);
           setWebsite('');
           setPriceMin('50');
           setPriceMax('80');
@@ -427,8 +357,6 @@ export function useEditProfile() {
         }
 
         const typedCurrentUser = currentUser as AuthLikeUser;
-        const typedDirectory = availableUsers as DirectoryUser[];
-
         if (typedCurrentUser.role === 'COACH') {
           const resolvedCoach = await resolveCoachProfile(typedCurrentUser);
           if (!active) return;
@@ -439,7 +367,6 @@ export function useEditProfile() {
           setBio(resolvedCoach.bio || resolvedCoach.shortBio || '');
           setEmail(resolvedCoach.email || typedCurrentUser.email || '');
           setPhone(resolvedCoach.phone || typedCurrentUser.phone || '');
-          setChildren([]);
           setWebsite(resolvedCoach.website || '');
           setPriceMin(resolvedCoach.priceRange.min.toString());
           setPriceMax(resolvedCoach.priceRange.max.toString());
@@ -451,7 +378,7 @@ export function useEditProfile() {
           return;
         }
 
-        const resolvedUser = createEditableUserProfile(typedCurrentUser, typedDirectory);
+        const resolvedUser = createEditableUserProfile(typedCurrentUser);
         if (!active) return;
 
         setUser(resolvedUser);
@@ -460,7 +387,6 @@ export function useEditProfile() {
         setBio(resolvedUser.bio || '');
         setEmail(resolvedUser.email);
         setPhone(resolvedUser.phone || '');
-        setChildren(resolvedUser.children);
         setWebsite('');
         setPriceMin('50');
         setPriceMax('80');
@@ -493,7 +419,7 @@ export function useEditProfile() {
     return () => {
       active = false;
     };
-  }, [currentUser, availableUsers, reloadKey]);
+  }, [currentUser, reloadKey]);
 
   // ── Focus toggles ──────────────────────────────────────────────
   const toggleFocus = (focus: FootballObjective) => {
@@ -593,23 +519,6 @@ export function useEditProfile() {
     setCertifications((prev) => prev.filter((cert) => cert.id !== id));
   };
 
-  // ── Children handlers ──────────────────────────────────────────
-  const addChild = () => {
-    setChildren((prev) => [...prev, { name: '', age: 0 }]);
-  };
-
-  const updateChild = (index: number, field: 'name' | 'age', value: string | number) => {
-    setChildren((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
-  };
-
-  const removeChild = (index: number) => {
-    setChildren((prev) => prev.filter((_, i) => i !== index));
-  };
-
   // ── Save handler ───────────────────────────────────────────────
   const handleSave = async () => {
     if (isSavingRef.current) return;
@@ -628,6 +537,12 @@ export function useEditProfile() {
       const identityUpdates: Partial<AuthUserProfile> = {};
       if (fullName.trim() && fullName.trim() !== currentDisplayName.trim()) {
         Object.assign(identityUpdates, splitFullNameForAuth(fullName));
+      }
+      if (
+        email.trim() &&
+        email.trim().toLowerCase() !== (typedCurrentUser?.email ?? '').trim().toLowerCase()
+      ) {
+        identityUpdates.email = email.trim();
       }
       if (phone.trim() !== (typedCurrentUser?.phone ?? '').trim()) {
         identityUpdates.phone = phone.trim();
@@ -668,17 +583,6 @@ export function useEditProfile() {
           return;
         }
 
-        const unsupportedChanges = [
-          email.trim() !== (typedCurrentUser?.email ?? '').trim() ? 'email changes' : null,
-        ].filter((value): value is string => Boolean(value));
-
-        if (unsupportedChanges.length > 0) {
-          setFormMessage(
-            `Saved supported profile fields. Still needs backend support for: ${unsupportedChanges.join(', ')}.`,
-          );
-          uiFeedback.showToast('Profile saved with follow-up needed', 'default');
-          return;
-        }
       } else {
         if (!user) {
           setFormMessage('User profile is still loading. Please try again.');
@@ -704,18 +608,6 @@ export function useEditProfile() {
             setFormMessage(childResult.error.message);
             return;
           }
-        }
-
-        const unsupportedChanges = [
-          email.trim() !== (typedCurrentUser?.email ?? '').trim() ? 'email changes' : null,
-          stableJson(children) !== stableJson(user.children) ? 'family child list edits' : null,
-        ].filter((value): value is string => Boolean(value));
-        if (unsupportedChanges.length > 0) {
-          setFormMessage(
-            `Saved supported profile fields. Still needs backend support for: ${unsupportedChanges.join(', ')}.`,
-          );
-          uiFeedback.showToast('Profile saved with follow-up needed', 'default');
-          return;
         }
       }
 
@@ -752,11 +644,6 @@ export function useEditProfile() {
     setEmail,
     phone,
     setPhone,
-    // Parent
-    children,
-    addChild,
-    updateChild,
-    removeChild,
     // Athlete
     primaryPosition,
     setPrimaryPosition,

@@ -7,6 +7,7 @@
  * API Integration Notes:
  * - GET /v1/clubs/:id/members - Get club members
  * - DELETE /v1/clubs/:id/members/:userId - Remove member
+ * - POST /v1/clubs/:id/members/me/leave - Leave club membership
  * - GET /v1/clubs/:id/members/removals - Get member removal history
  * - PATCH /v1/clubs/:id/members/:userId/role - Change member role
  * - PUT /v1/clubs/:id/squads/:squadId/members/:userId - Add member to squad
@@ -475,6 +476,10 @@ function cloneRemovalHistory(history: ClubMemberRemovalRecord[]): ClubMemberRemo
 }
 
 async function loadMembers(clubId: string): Promise<ClubMember[]> {
+  if (!USE_MOCK) {
+    return [];
+  }
+
   const cached = membersCache.get(clubId);
   if (cached) {
     return cloneMembers(cached);
@@ -588,6 +593,43 @@ export const clubService = {
       ...response.data.removal,
       removedByName: response.data.removal.removedByName || removedBy.name,
     });
+  },
+
+  /**
+   * Leave the current user's club membership.
+   */
+  async leaveClub(
+    clubId: string,
+    userId: string,
+    options?: {
+      customReason?: string;
+    },
+  ): Promise<Result<ClubMemberRemovalRecord, ServiceError>> {
+    if (USE_MOCK) {
+      return this.removeMember(
+        clubId,
+        userId,
+        'LEFT_CLUB',
+        { id: userId, name: 'You' },
+        options,
+      );
+    }
+
+    const response = await apiFetch<ApiClubMemberRemovalResponse>(
+      `/v1/clubs/${encodeURIComponent(clubId)}/members/me/leave`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          reason: 'LEFT_CLUB',
+          customReason: options?.customReason,
+        }),
+      },
+    );
+    if (!response.success) {
+      return err(response.error);
+    }
+    emitTyped(ServiceEvents.CLUB_MEMBER_LEFT, { clubId, userId });
+    return ok(response.data.removal);
   },
 
   /**
@@ -1170,20 +1212,19 @@ export const clubService = {
       }
       return Array.from(seen.entries()).map(([id, name]) => ({ id, name }));
     }
-    const response = await apiFetch<ApiClubSquadsResponse>(
-      `/v1/clubs/${encodeURIComponent(clubId)}/squads`,
+    const response = unwrapApiResult(
+      await apiFetch<ApiClubSquadsResponse>(`/v1/clubs/${encodeURIComponent(clubId)}/squads`),
     );
-    if (!response.success) {
-      logger.error('Failed to load calendar squads', response.error);
-      return [];
-    }
-    return response.data.squads.map((squad) => ({
+    return response.squads.map((squad) => ({
       id: squad.id,
       name: squad.name,
     }));
   },
 
   __seedMockMembers(clubId: string, members: ClubMember[]): void {
+    if (!USE_MOCK) {
+      return;
+    }
     membersCache.set(clubId, cloneMembers(members));
   },
 

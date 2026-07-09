@@ -6,6 +6,8 @@ import {
   toApiAthleteId,
   toApiUserId,
 } from '@/services/api-auth-context';
+import type { Booking } from '@/constants/app-types';
+import { formatServiceTypeLabel } from '@/utils/booking-display';
 import { createLogger } from '@/utils/logger';
 import { err, ok, type Result, type ServiceError } from '@/types/result';
 
@@ -20,7 +22,7 @@ type ApiBookingStatus =
   | 'COMPLETED'
   | 'CANCELLED';
 
-interface ApiBookingResponse {
+export interface ApiBookingResponse {
   id: string;
   coachUserId: string;
   bookedByUserId?: string;
@@ -45,6 +47,57 @@ interface ApiBookingResponse {
   createdAt: string;
   updatedAt: string;
   cancelledAt?: string | null;
+}
+
+export function mapApiBookingToBooking(
+  apiBooking: ApiBookingResponse,
+  localBooking?: Booking,
+): Booking {
+  const athleteIds = apiBooking.participants.map((participant) => participant.athleteId);
+  const athleteId = localBooking?.athleteId ?? athleteIds[0];
+  const bookedById = localBooking?.bookedById ?? apiBooking.bookedByUserId;
+  const recurringBookingId = apiBooking.recurringSeriesId ?? localBooking?.recurringBookingId;
+  const groupSessionId = apiBooking.groupSessionId ?? localBooking?.groupSessionId;
+
+  return {
+    ...localBooking,
+    id: apiBooking.id,
+    coachId: localBooking?.coachId ?? apiBooking.coachUserId,
+    athleteIds: localBooking?.athleteIds?.length ? localBooking.athleteIds : athleteIds,
+    athleteId,
+    bookedById,
+    status: apiBooking.status,
+    scheduledAt: apiBooking.scheduledAt,
+    duration: apiBooking.durationMinutes,
+    location: apiBooking.location,
+    serviceType: apiBooking.serviceType ?? localBooking?.serviceType,
+    ...(apiBooking.sessionTemplateId ? { sessionTemplateId: apiBooking.sessionTemplateId } : {}),
+    objectives: apiBooking.objectives,
+    notes: apiBooking.notes ?? localBooking?.notes ?? '',
+    price:
+      typeof apiBooking.priceMinor === 'number'
+        ? apiBooking.priceMinor / 100
+        : localBooking?.price,
+    participants: apiBooking.participants.map((participant) => ({
+      id: participant.athleteId,
+      status: participant.status,
+    })),
+    createdAt: apiBooking.createdAt,
+    version: apiBooking.version,
+    cancelledAt: apiBooking.cancelledAt ?? undefined,
+    cancelReason: apiBooking.cancelledAt ? localBooking?.cancelReason : undefined,
+    cancellationReason: apiBooking.cancelledAt ? localBooking?.cancellationReason : undefined,
+    cancelledBy: apiBooking.cancelledAt ? localBooking?.cancelledBy : undefined,
+    statusBeforeCancellation:
+      apiBooking.status === 'CANCELLED' ? localBooking?.statusBeforeCancellation : undefined,
+    service: localBooking?.service ?? formatServiceTypeLabel(apiBooking.serviceType),
+    isSharedSession: athleteIds.length > 1 || localBooking?.isSharedSession,
+    recurringBookingId: recurringBookingId ?? undefined,
+    isRecurringGenerated: Boolean(recurringBookingId) || localBooking?.isRecurringGenerated,
+    groupSessionId: groupSessionId ?? undefined,
+    sessionSource: groupSessionId ? 'group' : localBooking?.sessionSource,
+    sessionSourceEntityId: groupSessionId ?? localBooking?.sessionSourceEntityId,
+  };
 }
 
 interface ApiBookingListResponse {

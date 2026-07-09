@@ -4,6 +4,7 @@ import { getApiDataBackend } from './data-backend.js';
 import { getDbFixtureStore } from './db-fixture-store.js';
 import {
   badRequest,
+  conflict,
   forbidden,
   notFound,
   serviceUnavailable,
@@ -2067,6 +2068,7 @@ export async function updateAuthUserProfile(
   userId: string,
   updates: ApiUserProfileUpdate,
 ): Promise<ApiUserProfile> {
+  const normalizedEmail = updates.email?.trim().toLowerCase();
   const tables = getActiveTables();
   if (tables) {
     const users = asRows(tables.users);
@@ -2075,6 +2077,12 @@ export async function updateAuthUserProfile(
     const user = users.find((row) => asString(row.id) === userId);
     if (!user) {
       throw forbidden(`Authenticated user ${userId} does not exist`);
+    }
+    if (normalizedEmail) {
+      const existing = findUserByEmail(tables, normalizedEmail);
+      if (existing && asString(existing.id) !== userId) {
+        throw conflict('An account with this email already exists');
+      }
     }
     let profile = userProfiles.find((row) => asString(row.userId) === userId);
     if (!profile) {
@@ -2089,7 +2097,7 @@ export async function updateAuthUserProfile(
     if (fullName) {
       user.name = fullName;
     }
-    if (updates.email) user.email = updates.email.toLowerCase();
+    if (normalizedEmail) user.email = normalizedEmail;
     if (updates.photoUrl !== undefined) user.avatarUrl = updates.photoUrl ?? null;
     if (updates.isVerified !== undefined) user.isVerified = updates.isVerified;
     if (updates.isLive !== undefined) user.isLive = updates.isLive;
@@ -2144,6 +2152,22 @@ export async function updateAuthUserProfile(
   if (!user) {
     throw forbidden(`Authenticated user ${userId} does not exist`);
   }
+  if (normalizedEmail) {
+    const existing = await prisma.user.findFirst({
+      where: {
+        email: normalizedEmail,
+        NOT: {
+          id: userId,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+    if (existing) {
+      throw conflict('An account with this email already exists');
+    }
+  }
   const fullName = [updates.firstName, updates.lastName].filter(Boolean).join(' ').trim();
   const [, , identity] = await Promise.all([
     prisma.user.update({
@@ -2156,9 +2180,9 @@ export async function updateAuthUserProfile(
               name: fullName,
             }
           : {}),
-        ...(updates.email
+        ...(normalizedEmail
           ? {
-              email: updates.email.toLowerCase(),
+              email: normalizedEmail,
             }
           : {}),
         ...(updates.photoUrl !== undefined

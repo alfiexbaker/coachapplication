@@ -1,7 +1,6 @@
 import { NOTIFICATION_TYPE_CATEGORIES } from "@/constants/analytics-types";
 import { api } from "@/constants/config";
 import type {
-  Booking,
   ChatMessage,
   ChatThreadSummary,
   EnhancedNotificationPreferences,
@@ -113,6 +112,7 @@ interface ApiMessage {
   messageThreadId?: string;
   senderUserId?: string | null;
   content?: string | null;
+  attachmentsJson?: unknown;
   createdAt?: string;
   receipts?: ApiMessageReceipt[];
 }
@@ -206,6 +206,17 @@ interface AuthorityContext {
   currentUserId: string;
   currentUserAccountType?: string;
   headers: Record<string, string>;
+}
+interface ThreadBookingContext {
+  id: string;
+  service?: string;
+  serviceType?: string;
+  location?: string;
+  locationLabel?: string;
+  scheduledAt?: string;
+  coachName?: string;
+  bookedByName?: string;
+  athleteNames?: string[];
 }
 interface NotificationState {
   notifications: AuthorityNotificationItem[];
@@ -450,6 +461,58 @@ function determineChatSender(
   }
   return currentUserIsCoach ? "parent" : "coach";
 }
+function mapMessageAttachments(value: unknown): NonNullable<ChatMessage["attachments"]> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.flatMap((entry): NonNullable<ChatMessage["attachments"]> => {
+    if (!entry || typeof entry !== "object") {
+      return [];
+    }
+    const row = entry as Record<string, unknown>;
+    const id = typeof row.mediaObjectId === "string"
+      ? row.mediaObjectId
+      : typeof row.id === "string"
+        ? row.id
+        : undefined;
+    const type = row.type === "photo" || row.type === "video" || row.type === "pdf"
+      ? row.type
+      : undefined;
+    if (!id || !type) {
+      return [];
+    }
+    return [
+      {
+        id,
+        type,
+        title: typeof row.title === "string" && row.title.trim() ? row.title : "Attachment",
+        ...(typeof row.subtitle === "string" && row.subtitle.trim()
+          ? { subtitle: row.subtitle }
+          : {}),
+        ...(typeof row.thumbnailUrl === "string" && row.thumbnailUrl.trim()
+          ? { thumbnailUrl: row.thumbnailUrl }
+          : {}),
+      },
+    ];
+  });
+}
+function toAttachmentProofs(
+  attachments?: NonNullable<ChatMessage["attachments"]>,
+): Array<{ mediaObjectId: string; title?: string }> | undefined {
+  const proofs = (attachments ?? []).flatMap((attachment) => {
+    const mediaObjectId = attachment.id?.trim();
+    if (!mediaObjectId) {
+      return [];
+    }
+    return [
+      {
+        mediaObjectId,
+        ...(attachment.title?.trim() ? { title: attachment.title.trim() } : {}),
+      },
+    ];
+  });
+  return proofs.length > 0 ? proofs : undefined;
+}
 function mapChatMessages(
   messages: ApiMessage[],
   currentUserId: string,
@@ -478,7 +541,7 @@ function mapChatMessages(
         body: message.content?.trim() || "",
         createdAt: coerceIso(message.createdAt, new Date().toISOString()),
         status,
-        attachments: [],
+        attachments: mapMessageAttachments(message.attachmentsJson),
         readReceipts: (message.receipts ?? []).flatMap((receipt) =>
           Boolean(receipt.userId && receipt.readAt)
             ? [
@@ -517,7 +580,7 @@ function mapGroupMessages(messages: ApiMessage[]): GroupMessage[] {
             ? [receipt.userId as string]
             : [],
         ),
-        attachments: [],
+        attachments: mapMessageAttachments(message.attachmentsJson),
       };
     })
     .sort(
@@ -541,13 +604,30 @@ function mapGroupMessage(message: ApiMessage, groupId: string): GroupMessage {
         ? [receipt.userId as string]
         : [],
     ),
-    attachments: [],
+    attachments: mapMessageAttachments(message.attachmentsJson),
   };
 }
-async function loadBookingsById(): Promise<Map<string, Booking>> {
-  const { bookingService } = await import("@/services/booking-service");
-  const bookings = await bookingService.list();
-  return new Map(bookings.map((booking) => [booking.id, booking] as const));
+async function loadBookingsById(): Promise<Map<string, ThreadBookingContext>> {
+  const { bookingAuthorityService } = await import("@/services/booking");
+  const result = await bookingAuthorityService.listBookings();
+  if (!result.success) {
+    logger.warn("Skipping optional booking labels for message threads", {
+      error: result.error.message,
+    });
+    return new Map();
+  }
+  return new Map(
+    result.data.map((booking) => [
+      booking.id,
+      {
+        id: booking.id,
+        serviceType: booking.serviceType,
+        service: humanizeServiceType(booking.serviceType),
+        location: booking.location,
+        scheduledAt: booking.scheduledAt,
+      },
+    ] as const),
+  );
 }
 async function loadUserNames(userIds: string[]): Promise<Map<string, string>> {
   if (userIds.length === 0) {
@@ -582,7 +662,7 @@ function buildThreadSummary(params: {
   thread: ApiMessageThread;
   currentUserId: string;
   currentUserAccountType?: string;
-  bookingsById: Map<string, Booking>;
+  bookingsById: Map<string, ThreadBookingContext>;
   groupsById: Map<string, ParentGroup>;
   userNamesById: Map<string, string>;
 }): ChatThreadSummary {
@@ -611,6 +691,8 @@ function buildThreadSummary(params: {
       id: thread.id,
       kind: "group",
       bookingId: thread.bookingId ?? "",
+      communityGroupId: thread.communityGroupId ?? undefined,
+      groupSessionId: thread.groupSessionId ?? undefined,
       groupType: group?.type === "CLUB" ? "club" : group?.type === "SQUAD" ? "squad" : "class",
       serviceName: group?.name || "Community group",
       location: "",
@@ -659,6 +741,8 @@ function buildThreadSummary(params: {
     id: thread.id,
     kind: "direct",
     counterpartyUserId,
+    communityGroupId: thread.communityGroupId ?? undefined,
+    groupSessionId: thread.groupSessionId ?? undefined,
     bookingId: thread.bookingId ?? "",
     serviceName: booking?.service || humanizeServiceType(booking?.serviceType),
     location: booking?.location || booking?.locationLabel || "",
@@ -1617,6 +1701,7 @@ class CommunityMediaAuthorityService {
   async sendGroupMessage(
     groupId: string,
     body: string,
+    attachments?: NonNullable<GroupMessage["attachments"]>,
   ): Promise<Result<GroupMessage, ServiceError>> {
     if (USE_MOCK) {
       return ok({
@@ -1643,6 +1728,7 @@ class CommunityMediaAuthorityService {
         headers: contextResult.data.headers,
         body: JSON.stringify({
           body,
+          attachments: toAttachmentProofs(attachments),
           idempotencyKey: generateId("gmsg-send"),
         }),
       },
@@ -1659,6 +1745,7 @@ class CommunityMediaAuthorityService {
   async sendThreadMessage(
     threadId: string,
     body: string,
+    attachments?: NonNullable<ChatMessage["attachments"]>,
   ): Promise<Result<ChatMessage, ServiceError>> {
     if (USE_MOCK) {
       return ok({
@@ -1682,6 +1769,7 @@ class CommunityMediaAuthorityService {
         headers: contextResult.data.headers,
         body: JSON.stringify({
           body,
+          attachments: toAttachmentProofs(attachments),
           idempotencyKey: generateId("msg-send"),
         }),
       },
@@ -1718,7 +1806,7 @@ class CommunityMediaAuthorityService {
       },
     );
     if (!result.success) {
-      logger.error("Failed to delete message via API", {
+      logger.error("Failed to remove message via API", {
         messageId,
         error: result.error,
       });

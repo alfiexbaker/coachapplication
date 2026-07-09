@@ -117,7 +117,7 @@ async function listReadableUserEventsFromApi(): Promise<ClubEvent[]> {
     logger.warn('Failed to resolve user clubs for event calendar via API', {
       error: clubsResult.error,
     });
-    return [];
+    throw new Error(clubsResult.error.message);
   }
 
   // ponytail: fan-out over readable clubs; add /v1/me/events if this becomes hot.
@@ -165,7 +165,7 @@ const MOCK_RSVPS: EventRSVP[] = [
     respondedAt: '2026-01-08T11:00:00Z',
   },
 ];
-let rsvpsCache: EventRSVP[] = [...MOCK_RSVPS];
+let rsvpsCache: EventRSVP[] = USE_MOCK ? [...MOCK_RSVPS] : [];
 
 // ============================================================================
 // SHARED PERSISTENCE HELPERS
@@ -178,7 +178,7 @@ export async function loadRSVPs(): Promise<EventRSVP[]> {
   } catch (error) {
     logger.error('Failed to load RSVPs', error);
   }
-  return [...MOCK_RSVPS];
+  return USE_MOCK ? [...MOCK_RSVPS] : [];
 }
 export async function saveRSVPs(rsvps: EventRSVP[]): Promise<void> {
   try {
@@ -276,7 +276,7 @@ export const eventRsvpService = {
     );
     if (!result.success) {
       logger.error('Failed to load event attendees via API', { eventId, error: result.error });
-      return [];
+      throw new Error(result.error.message);
     }
     return result.data.rsvps.map((rsvp) => mapApiRsvpToAttendee(rsvp, 'PARENT'));
   },
@@ -506,7 +506,7 @@ export const eventRsvpService = {
     );
     if (!result.success) {
       logger.error('Failed to load event RSVPs via API', { eventId, error: result.error });
-      return [];
+      throw new Error(result.error.message);
     }
     return result.data.rsvps.map((rsvp) => mapApiRsvpToEventRsvp(rsvp, eventId));
   },
@@ -538,14 +538,15 @@ export const eventRsvpService = {
         method: 'GET',
       },
     );
-    if (!result.success || !result.data.rsvp) {
-      if (!result.success) {
-        logger.error('Failed to load user event RSVP via API', {
-          eventId,
-          userId,
-          error: result.error,
-        });
-      }
+    if (!result.success) {
+      logger.error('Failed to load user event RSVP via API', {
+        eventId,
+        userId,
+        error: result.error,
+      });
+      throw new Error(result.error.message);
+    }
+    if (!result.data.rsvp) {
       return null;
     }
     return mapApiRsvpToEventRsvp(result.data.rsvp, eventId);

@@ -8,7 +8,13 @@
 
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { resolveInviteChildLabel } from '@/utils/session-invite-display';
+import {
+  getSessionInviteAthleteNames,
+  getSessionInviteCoachName,
+  getSessionInviteParentName,
+  getSessionInviteServiceLabel,
+  resolveInviteChildLabel,
+} from '@/utils/session-invite-display';
 
 // ============================================================================
 // MOCK CHILDREN
@@ -97,5 +103,47 @@ describe('resolveInviteChildLabel', () => {
       true,
     );
     assert.strictEqual(result, 'Tom + Lucy');
+  });
+});
+
+describe('getSessionInviteServiceLabel', () => {
+  it('formats backend service type tokens for display', () => {
+    assert.strictEqual(
+      getSessionInviteServiceLabel({ sessionType: 'one_to_one' } as never),
+      '1-on-1 session',
+    );
+    assert.strictEqual(
+      getSessionInviteServiceLabel({ sessionType: 'small_group' } as never),
+      'Small-group session',
+    );
+  });
+});
+
+describe('session invite display labels', () => {
+  it('uses resolved invite labels instead of internal ids', () => {
+    const invite = {
+      coachId: 'usr_1234567',
+      coachName: 'Sam Taylor',
+      athleteIds: ['ath_1234567'],
+      athleteNames: ['Ava Singh'],
+      parentId: 'usr_7654321',
+      parentName: 'Priya Singh',
+    } as never;
+
+    assert.strictEqual(getSessionInviteCoachName(invite), 'Sam Taylor');
+    assert.deepStrictEqual(getSessionInviteAthleteNames(invite), ['Ava Singh']);
+    assert.strictEqual(getSessionInviteParentName(invite), 'Priya Singh');
+  });
+
+  it('hides internal ids when resolved labels are absent', () => {
+    const invite = {
+      coachId: 'usr_1234567',
+      athleteIds: ['ath_1234567'],
+      parentId: 'usr_7654321',
+    } as never;
+
+    assert.strictEqual(getSessionInviteCoachName(invite), 'Coach');
+    assert.deepStrictEqual(getSessionInviteAthleteNames(invite), ['Athlete']);
+    assert.strictEqual(getSessionInviteParentName(invite), 'Parent');
   });
 });

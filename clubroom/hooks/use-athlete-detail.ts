@@ -15,7 +15,14 @@ import { rosterService } from '@/services/roster-service';
 import { safetyService, type AthleteEmergencyQuickView } from '@/services/safety-service';
 import { childService, type ChildProfile } from '@/services/child-service';
 import { ServiceEvents } from '@/services/event-bus';
-import { ok, err, storageError, type Result, type ServiceError } from '@/types/result';
+import {
+  ok,
+  err,
+  serviceError,
+  storageError,
+  type Result,
+  type ServiceError,
+} from '@/types/result';
 import type { RosterEntry, FootballObjective } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { getRosterAthleteName } from '@/utils/roster-display';
@@ -35,7 +42,7 @@ export interface AthleteProfileData {
 export function useAthleteDetail(athleteId: string) {
   const { currentUser } = useAuth();
   const { blockUser } = useBlockUserAction();
-  const coachId = currentUser?.id || 'coach_1';
+  const coachId = currentUser?.id ?? null;
 
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [showStatusModal, setShowStatusModal] = useState(false);
@@ -56,6 +63,10 @@ export function useAthleteDetail(athleteId: string) {
     hasRequestedTruthfulFrame,
   } = useScreen<AthleteProfileData>({
     load: async (): Promise<Result<AthleteProfileData, ServiceError>> => {
+      if (!coachId) {
+        return err(serviceError('UNAUTHORIZED', 'Sign in as a coach to view athlete details.'));
+      }
+
       try {
         const entry = await rosterService.getRosterEntry(coachId, athleteId);
         if (!entry) {
@@ -83,12 +94,23 @@ export function useAthleteDetail(athleteId: string) {
     events: [ServiceEvents.BOOKING_CREATED, ServiceEvents.CONCERN_RAISED],
     isEmpty: (d) => !d.entry,
     loadingStrategy: 'section-skeleton',
-    dataKey: athleteId ?? null,
+    dataKey: `athlete-detail:${coachId ?? 'missing'}:${athleteId ?? 'missing'}`,
   });
 
+  const requireCoachId = () => {
+    if (coachId) return coachId;
+    uiFeedback.showToast('Sign in as a coach to manage this athlete.', 'error');
+    return null;
+  };
+
   const handleUpdateStatus = async (newStatus: RosterEntry['status']) => {
-    if (!data?.entry) return;
-    const result = await rosterService.updateStatus(coachId, data.entry.athleteId, newStatus);
+    const signedInCoachId = requireCoachId();
+    if (!data?.entry || !signedInCoachId) return;
+    const result = await rosterService.updateStatus(
+      signedInCoachId,
+      data.entry.athleteId,
+      newStatus,
+    );
     if (!result.success) {
       uiFeedback.showToast(result.error.message, 'error');
       return;
@@ -98,8 +120,13 @@ export function useAthleteDetail(athleteId: string) {
   };
 
   const handleUpdateFocus = async (focus: FootballObjective) => {
-    if (!data?.entry) return;
-    const result = await rosterService.updatePrimaryFocus(coachId, data.entry.athleteId, focus);
+    const signedInCoachId = requireCoachId();
+    if (!data?.entry || !signedInCoachId) return;
+    const result = await rosterService.updatePrimaryFocus(
+      signedInCoachId,
+      data.entry.athleteId,
+      focus,
+    );
     if (!result.success) {
       uiFeedback.showToast(result.error.message, 'error');
       return;
@@ -108,8 +135,9 @@ export function useAthleteDetail(athleteId: string) {
   };
 
   const handleAddNote = async (content: string) => {
-    if (!data?.entry) return;
-    const result = await rosterService.addNote(coachId, data.entry.athleteId, content);
+    const signedInCoachId = requireCoachId();
+    if (!data?.entry || !signedInCoachId) return;
+    const result = await rosterService.addNote(signedInCoachId, data.entry.athleteId, content);
     if (!result.success) {
       uiFeedback.showToast(result.error.message, 'error');
       return;
@@ -118,14 +146,19 @@ export function useAthleteDetail(athleteId: string) {
   };
 
   const handleDeleteNote = async (noteId: string) => {
-    if (!data?.entry) return;
-    uiFeedback.alert('Delete Note', 'Are you sure?', [
+    const signedInCoachId = requireCoachId();
+    if (!data?.entry || !signedInCoachId) return;
+    uiFeedback.alert('Remove Note', 'This hides the note from the active roster view.', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Delete',
+        text: 'Remove',
         style: 'destructive',
         onPress: async () => {
-          const result = await rosterService.deleteNote(coachId, data.entry.athleteId, noteId);
+          const result = await rosterService.deleteNote(
+            signedInCoachId,
+            data.entry.athleteId,
+            noteId,
+          );
           if (!result.success) {
             uiFeedback.showToast(result.error.message, 'error');
             return;
@@ -137,9 +170,10 @@ export function useAthleteDetail(athleteId: string) {
   };
 
   const handleTagRemove = async (tag: string) => {
-    if (!data?.entry) return;
+    const signedInCoachId = requireCoachId();
+    if (!data?.entry || !signedInCoachId) return;
     const tags = data.entry.tags.filter((t) => t !== tag);
-    const result = await rosterService.updateTags(coachId, data.entry.athleteId, tags);
+    const result = await rosterService.updateTags(signedInCoachId, data.entry.athleteId, tags);
     if (!result.success) {
       uiFeedback.showToast(result.error.message, 'error');
       return;
@@ -150,9 +184,10 @@ export function useAthleteDetail(athleteId: string) {
   const handleTagAdd = () => setShowTagsModal(true);
 
   const handleAddTagSubmit = async () => {
-    if (!data?.entry || !newTag.trim()) return;
+    const signedInCoachId = requireCoachId();
+    if (!data?.entry || !newTag.trim() || !signedInCoachId) return;
     const tags = [...data.entry.tags, newTag.trim().toLowerCase()];
-    const result = await rosterService.updateTags(coachId, data.entry.athleteId, tags);
+    const result = await rosterService.updateTags(signedInCoachId, data.entry.athleteId, tags);
     if (!result.success) {
       uiFeedback.showToast(result.error.message, 'error');
       return;
@@ -179,12 +214,14 @@ export function useAthleteDetail(athleteId: string) {
       return;
     }
 
-    const familyLabel = data.entry.parentName?.trim() || `${getRosterAthleteName(data.entry)}'s family`;
+    const familyLabel =
+      data.entry.parentName?.trim() || `${getRosterAthleteName(data.entry)}'s family`;
     await blockUser(data.entry.parentId, familyLabel);
   };
 
   const handleRemove = () => {
-    if (!data?.entry) return;
+    const signedInCoachId = requireCoachId();
+    if (!data?.entry || !signedInCoachId) return;
     const athleteName = getRosterAthleteName(data.entry);
     uiFeedback.alert(
       'Remove Athlete',
@@ -195,7 +232,11 @@ export function useAthleteDetail(athleteId: string) {
           text: 'Remove',
           style: 'destructive',
           onPress: async () => {
-            const result = await rosterService.removeAthlete(coachId, data.entry.athleteId, 'OTHER');
+            const result = await rosterService.removeAthlete(
+              signedInCoachId,
+              data.entry.athleteId,
+              'OTHER',
+            );
             if (!result.success) {
               uiFeedback.showToast(result.error.message, 'error');
               return;
@@ -215,7 +256,7 @@ export function useAthleteDetail(athleteId: string) {
   };
 
   return {
-    coachId,
+    coachId: coachId ?? '',
     activeTab,
     setActiveTab,
     showStatusModal,

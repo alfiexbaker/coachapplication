@@ -8,7 +8,6 @@ import type { UserRole, SimplifiedUserType } from '@/constants/user-types';
 import type { OnboardingData, AccountType, UserProfile } from '@/services/auth-service';
 import { authService } from '@/services/auth-service';
 import { apiClient } from '@/services/api-client';
-import { ensureCoachSessionsSeeded } from '@/services/coach-session-seed-service';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { generateId } from '@/utils/generate-id';
 import { createLogger } from '@/utils/logger';
@@ -24,7 +23,7 @@ export type { UserRole, SimplifiedUserType };
 type DemoUser = Omit<User, 'role'> & {
   role: UserRole;
   username: string;
-  password: string;
+  password?: string;
   fullName?: string;
   bio?: string;
   addressLine?: string;
@@ -635,7 +634,6 @@ const API_DEV_USERS: DemoUser[] = [
   {
     id: 'usr_65972cc3-8f9b-7199-b867-7df5b7faf34b',
     username: 'coach1',
-    password: 'coach',
     role: 'COACH',
     type: 'COACH',
     fullName: 'Amelia Shaw',
@@ -648,7 +646,6 @@ const API_DEV_USERS: DemoUser[] = [
   {
     id: 'usr_197727c3-a2c5-7868-8c57-72b09c97a1d6',
     username: 'parent1',
-    password: 'user',
     role: 'USER',
     type: 'USER',
     fullName: 'Olivia Barton',
@@ -661,7 +658,6 @@ const API_DEV_USERS: DemoUser[] = [
   {
     id: 'usr_b5998f06-1720-7001-bb01-8d3c253de429',
     username: 'athlete1',
-    password: 'user',
     role: 'USER',
     type: 'USER',
     fullName: 'Alex Barton',
@@ -673,7 +669,6 @@ const API_DEV_USERS: DemoUser[] = [
   {
     id: 'usr_ef3f51b6-47e4-7036-bfdd-d80b40324559',
     username: 'admin1',
-    password: 'admin',
     role: 'ADMIN',
     type: 'USER',
     fullName: 'Clara Finch',
@@ -694,20 +689,15 @@ function resolveApiLoginEmail(identifier: string): string {
   return match?.email?.toLowerCase() ?? normalized;
 }
 
-function mapAuthProfileToDemoUser(user: UserProfile, password = ''): DemoUser {
+function mapAuthProfileToDemoUser(user: UserProfile): DemoUser {
   const fullName = `${user.firstName} ${user.lastName}`.trim();
   const normalizedRoles = user.roles ?? [];
   const derivedRole: UserRole =
-    user.appRole === 'ADMIN'
-      ? 'ADMIN'
-      : user.appRole === 'COACH'
-        ? 'COACH'
-        : 'USER';
+    user.appRole === 'ADMIN' ? 'ADMIN' : user.appRole === 'COACH' ? 'COACH' : 'USER';
 
   return {
     id: user.id,
     username: user.email.split('@')[0]?.toLowerCase() || user.id,
-    password,
     role: derivedRole,
     type: derivedRole === 'COACH' ? 'COACH' : 'USER',
     fullName,
@@ -726,7 +716,8 @@ function mapAuthProfileToDemoUser(user: UserProfile, password = ''): DemoUser {
     organizationName: user.organizationName,
     isLive: user.isLive,
     bio: user.bio,
-    isSystemAdmin: normalizedRoles.includes('club_admin') || normalizedRoles.includes('security_admin'),
+    isSystemAdmin:
+      normalizedRoles.includes('club_admin') || normalizedRoles.includes('security_admin'),
   };
 }
 
@@ -757,6 +748,11 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const MOCK_API_MODE = apiConfig.useMock;
+
+async function forgotPassword(email: string) {
+  logger.info('Forgot password requested', { email });
+  await authService.forgotPassword(email);
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<DemoUser | null>(null);
@@ -804,25 +800,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true;
 
     const checkPersistedAuth = async () => {
-      await runAsyncTryCatchFinally(async () => {
-        const authState = await authService.checkAuth();
-        if (mounted && authState.isAuthenticated && authState.user) {
-          const restoredUser = MOCK_API_MODE
-            ? registeredUsers.find((u) => u.email?.toLowerCase() === authState.user!.email.toLowerCase())
-            : mapAuthProfileToDemoUser(authState.user);
-          if (restoredUser) {
-            await ensureCoachSessionsSeeded();
-            setCurrentUser(restoredUser);
-            logger.success('Session restored from storage', { userId: restoredUser.id });
+      await runAsyncTryCatchFinally(
+        async () => {
+          const authState = await authService.checkAuth();
+          if (mounted && authState.isAuthenticated && authState.user) {
+            const restoredUser = MOCK_API_MODE
+              ? registeredUsers.find(
+                  (u) => u.email?.toLowerCase() === authState.user!.email.toLowerCase(),
+                )
+              : mapAuthProfileToDemoUser(authState.user);
+            if (restoredUser) {
+              setCurrentUser(restoredUser);
+              logger.success('Session restored from storage', { userId: restoredUser.id });
+            }
           }
-        }
-      }, async err => {
-        logger.error('Failed to restore auth state', err);
-      }, () => {
-        if (mounted) {
-          setIsLoading(false);
-        }
-      });
+        },
+        async (err) => {
+          logger.error('Failed to restore auth state', err);
+        },
+        () => {
+          if (mounted) {
+            setIsLoading(false);
+          }
+        },
+      );
     };
 
     checkPersistedAuth();
@@ -851,78 +852,80 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isAuthenticatingRef.current) return false;
     isAuthenticatingRef.current = true;
 
-    return await runAsyncFinally(async () => {
-      const normalizedUsername = username.trim().toLowerCase();
-      logger.info('Login attempt', { username: normalizedUsername, mode: MOCK_API_MODE ? 'mock' : 'api' });
+    return await runAsyncFinally(
+      async () => {
+        const normalizedUsername = username.trim().toLowerCase();
+        logger.info('Login attempt', {
+          username: normalizedUsername,
+          mode: MOCK_API_MODE ? 'mock' : 'api',
+        });
 
-      if (!MOCK_API_MODE) {
-        const email = resolveApiLoginEmail(normalizedUsername);
-        const result = await authService.login(email, password.trim());
-        if (!result.success) {
-          logger.warn('API login failed', { email, error: result.error.message });
-          setError(result.error.message);
-          return false;
+        if (!MOCK_API_MODE) {
+          const email = resolveApiLoginEmail(normalizedUsername);
+          const result = await authService.login(email, password.trim());
+          if (!result.success) {
+            logger.warn('API login failed', { email, error: result.error.message });
+            setError(result.error.message);
+            return false;
+          }
+
+          const mappedUser = mapAuthProfileToDemoUser(result.data.user);
+          setCurrentUser(mappedUser);
+          setError(null);
+          logger.success('API login successful', {
+            email,
+            role: mappedUser.role,
+            userId: mappedUser.id,
+          });
+          return true;
         }
 
-        const mappedUser = mapAuthProfileToDemoUser(result.data.user, password.trim());
-        setCurrentUser(mappedUser);
-        setError(null);
-        await ensureCoachSessionsSeeded();
-        logger.success('API login successful', {
-          email,
-          role: mappedUser.role,
-          userId: mappedUser.id,
-        });
-        return true;
-      }
+        const match = registeredUsers.find(
+          (user) =>
+            user.username.toLowerCase() === normalizedUsername && user.password === password.trim(),
+        );
 
-      const match = registeredUsers.find(
-        (user) =>
-          user.username.toLowerCase() === normalizedUsername && user.password === password.trim(),
-      );
+        if (match) {
+          logger.success('Login successful', {
+            username: match.username,
+            role: match.role,
+            userId: match.id,
+          });
+          setCurrentUser(match);
+          setError(null);
 
-      if (match) {
-        logger.success('Login successful', {
-          username: match.username,
-          role: match.role,
-          userId: match.id,
-        });
-        setCurrentUser(match);
-        setError(null);
-        void ensureCoachSessionsSeeded().catch((seedError) => {
-          logger.error('Failed to seed coach sessions after login', seedError);
-        });
+          const now = Date.now();
+          const sessionUser = {
+            id: match.id,
+            fullName: match.fullName || match.name || match.username,
+            email: match.email || `${match.username}@demo.clubroom.app`,
+            role: match.role,
+            joinedDate: new Date().toISOString(),
+          };
+          const sessionTokens = {
+            accessToken: `demo_access_${match.id}_${now}`,
+            refreshToken: `demo_refresh_${match.id}_${now}`,
+            expiresAt: now + 7 * 24 * 60 * 60 * 1000,
+          };
 
-        const now = Date.now();
-        const sessionUser = {
-          id: match.id,
-          fullName: match.fullName || match.name || match.username,
-          email: match.email || `${match.username}@demo.clubroom.app`,
-          role: match.role,
-          joinedDate: new Date().toISOString(),
-        };
-        const sessionTokens = {
-          accessToken: `demo_access_${match.id}_${now}`,
-          refreshToken: `demo_refresh_${match.id}_${now}`,
-          expiresAt: now + 7 * 24 * 60 * 60 * 1000,
-        };
+          void Promise.all([
+            apiClient.set(STORAGE_KEYS.AUTH_USER, sessionUser),
+            authService.storeTokens(sessionTokens),
+          ]).catch((persistError) => {
+            logger.error('Failed to persist demo auth session', persistError);
+          });
 
-        void Promise.all([
-          apiClient.set(STORAGE_KEYS.AUTH_USER, sessionUser),
-          authService.storeTokens(sessionTokens),
-        ]).catch((persistError) => {
-          logger.error('Failed to persist demo auth session', persistError);
-        });
+          return true;
+        }
 
-        return true;
-      }
-
-      logger.warn('Login failed: Invalid credentials', { username: normalizedUsername });
-      setError('Invalid username or password.');
-      return false;
-    }, () => {
-      isAuthenticatingRef.current = false;
-    });
+        logger.warn('Login failed: Invalid credentials', { username: normalizedUsername });
+        setError('Invalid username or password.');
+        return false;
+      },
+      () => {
+        isAuthenticatingRef.current = false;
+      },
+    );
   };
 
   const registerCoach = async (data: CoachSignupData) => {
@@ -946,12 +949,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false;
       }
 
-      const mappedUser = mapAuthProfileToDemoUser(result.data.user, data.password);
+      const mappedUser = mapAuthProfileToDemoUser(result.data.user);
       setCurrentUser(mappedUser);
       setError(null);
-      if (mappedUser.role === 'COACH') {
-        await ensureCoachSessionsSeeded();
-      }
       return true;
     }
 
@@ -984,9 +984,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRegisteredUsers((prev) => [...prev, newUser]);
     setCurrentUser(newUser);
     setError(null);
-    if (newUser.role === 'COACH') {
-      await ensureCoachSessionsSeeded();
-    }
     return true;
   };
 
@@ -1006,12 +1003,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false;
       }
 
-      const mappedUser = mapAuthProfileToDemoUser(result.data.user, data.password);
+      const mappedUser = mapAuthProfileToDemoUser(result.data.user);
       setCurrentUser(mappedUser);
       setError(null);
-      if (mappedUser.role === 'COACH') {
-        await ensureCoachSessionsSeeded();
-      }
       return true;
     }
 
@@ -1067,9 +1061,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRegisteredUsers((prev) => [...prev, newUser]);
     setCurrentUser(newUser);
     setError(null);
-    if (newUser.role === 'COACH') {
-      await ensureCoachSessionsSeeded();
-    }
     return true;
   };
 
@@ -1106,12 +1097,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.replace(Routes.ROOT);
   };
 
-  const forgotPassword = async (email: string) => {
-    logger.info('Forgot password requested', { email });
-    await authService.forgotPassword(email);
-  };
-
-  const value = ({
+  const value = {
     currentUser,
     isAuthenticated: currentUser != null,
     isLoading,
@@ -1122,7 +1108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     forgotPassword,
     error,
     availableUsers: activeUsers,
-  });
+  };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

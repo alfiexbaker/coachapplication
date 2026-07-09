@@ -37,6 +37,20 @@ interface SessionOfferingCardProps {
   selectionMode?: 'navigation' | 'select';
 }
 
+function formatCardPriceLabel(offering: SessionOffering): string {
+  if (
+    typeof offering.price !== 'number' ||
+    !Number.isFinite(offering.price) ||
+    offering.price < 0
+  ) {
+    return 'No price';
+  }
+  if (offering.price === 0) {
+    return 'Free';
+  }
+  return Number.isInteger(offering.price) ? `£${offering.price}` : `£${offering.price.toFixed(2)}`;
+}
+
 export function SessionOfferingCard({
   offering,
   onPress,
@@ -66,8 +80,8 @@ export function SessionOfferingCard({
   const totalParticipants = getSessionOfferingHeadcount(offering);
   const isFull = isSessionOfferingFull(offering);
   const capacityText = `${totalParticipants}/${offering.maxParticipants}`;
-  const priceLabel =
-    offering.price !== undefined && offering.price > 0 ? `£${offering.price.toFixed(2)}` : null;
+  const priceLabel = formatCardPriceLabel(offering);
+  const isPriceMissing = priceLabel === 'No price';
   const viewerAudienceText = offering.viewerAthleteNames?.length
     ? offering.viewerAthleteNames.length <= 2
       ? offering.viewerAthleteNames.join(', ')
@@ -259,14 +273,16 @@ export function SessionOfferingCard({
         </View>
 
         <View style={styles.trailing}>
-          {priceLabel ? (
-            <ThemedText
-              style={[styles.price, selected ? { color: palette.tint } : undefined]}
-              numberOfLines={1}
-            >
-              {priceLabel}
-            </ThemedText>
-          ) : null}
+          <ThemedText
+            style={[
+              styles.price,
+              selected ? { color: palette.tint } : undefined,
+              isPriceMissing ? { color: palette.warning } : undefined,
+            ]}
+            numberOfLines={1}
+          >
+            {priceLabel}
+          </ThemedText>
           <View
             style={[
               styles.trailingIcon,

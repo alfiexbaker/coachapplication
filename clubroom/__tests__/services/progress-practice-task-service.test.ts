@@ -2,29 +2,61 @@ import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import type { AssignedDrill } from '@/constants/types';
 import { apiClient } from '@/services/api-client';
-import { progressFeedbackService } from '@/services/progress/progress-feedback-service';
-import { progressPracticeTaskService } from '@/services/progress/progress-practice-task-service';
+import {
+  progressPracticeTaskService,
+  type PracticeTaskRecord,
+} from '@/services/progress/progress-practice-task-service';
 
 const ATHLETE_ID = 'athlete_task_1';
 const COACH_ID = 'coach_task_1';
 
 async function seedPracticeTask() {
-  await progressFeedbackService.addSessionFeedback({
-    sessionId: 'session_task_1',
+  const now = new Date().toISOString();
+  const dueAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+  const drillAssignment: AssignedDrill = {
+    id: 'assignment_task_1',
+    drillId: 'drill_task_1',
+    drill: {
+      id: 'drill_task_1',
+      coachId: COACH_ID,
+      title: 'Wall Passing',
+      description: 'Clean first touch and pass rhythm.',
+      category: 'TECHNIQUE',
+      duration: 20,
+      difficulty: 'BEGINNER',
+      tags: ['First touch'],
+      createdAt: now,
+      updatedAt: now,
+    },
+    athleteId: ATHLETE_ID,
+    assignedBy: COACH_ID,
+    assignedAt: now,
+    dueDate: dueAt,
+    isCompleted: false,
+    notes: 'Wall passing, 20 minutes',
+  };
+  const seededTask: PracticeTaskRecord = {
+    id: 'practice_task_seeded_1',
+    source: 'drill_assignment',
+    sourceFeedbackId: drillAssignment.id,
+    drillAssignmentId: drillAssignment.id,
+    sessionId: `drill_assignment_${drillAssignment.drillId}`,
+    sessionTitle: drillAssignment.drill?.title,
     coachId: COACH_ID,
     coachName: 'Coach Task',
     athleteId: ATHLETE_ID,
     athleteName: 'Task Athlete',
-    publicSummary: 'Strong session output',
-    skillsWorkedOn: ['First touch'],
-    skillRatings: [{ skill: 'First touch', rating: 4 }],
-    improvements: 'Open body shape sooner',
-    homework: 'Wall passing, 20 minutes',
-    effortRating: 4,
-    overallPerformance: 4,
     visibility: 'athlete',
-  });
+    description: 'Wall passing, 20 minutes',
+    assignedAt: now,
+    dueAt,
+    status: 'pending',
+    updatedAt: now,
+  };
+  await apiClient.set(STORAGE_KEYS.DRILL_ASSIGNMENTS, [drillAssignment]);
+  await apiClient.set(STORAGE_KEYS.PROGRESS_PRACTICE_TASKS, [seededTask]);
 
   const tasks = await progressPracticeTaskService.listTasksForAthlete(ATHLETE_ID, 'athlete');
   assert.equal(tasks.length, 1);

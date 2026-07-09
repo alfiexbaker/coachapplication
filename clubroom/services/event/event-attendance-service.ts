@@ -78,7 +78,7 @@ const MOCK_ATTENDANCE: EventAttendance[] = [
   },
 ];
 
-let attendanceCache: EventAttendance[] = [...MOCK_ATTENDANCE];
+let attendanceCache: EventAttendance[] = USE_MOCK ? [...MOCK_ATTENDANCE] : [];
 
 // ============================================================================
 // PERSISTENCE HELPERS
@@ -94,7 +94,7 @@ async function loadAttendance(): Promise<EventAttendance[]> {
   } catch (error) {
     logger.error('Failed to load attendance', error);
   }
-  return [...MOCK_ATTENDANCE];
+  return USE_MOCK ? [...MOCK_ATTENDANCE] : [];
 }
 
 async function saveAttendance(attendance: EventAttendance[]): Promise<void> {
@@ -271,7 +271,7 @@ export const eventAttendanceService = {
     );
     if (!result.success) {
       logger.error('Failed to load event attendance via API', { eventId, error: result.error });
-      return [];
+      throw new Error(result.error.message);
     }
     return result.data.attendance.map((item) => mapApiAttendanceToEventAttendance(item, eventId));
   },
@@ -309,7 +309,7 @@ export const eventAttendanceService = {
         userId,
         error: result.error,
       });
-      return null;
+      throw new Error(result.error.message);
     }
     return result.data.attendance
       ? mapApiAttendanceToEventAttendance(result.data.attendance, eventId)

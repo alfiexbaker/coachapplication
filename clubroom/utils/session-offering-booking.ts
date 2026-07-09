@@ -1,5 +1,6 @@
-import type { SessionOffering } from '@/constants/session-types';
+import type { GroupSession, SessionOffering } from '@/constants/session-types';
 import { toDateStr } from '@/utils/format';
+import { getSessionOfferingGroupSessionId } from '@/utils/session-offering-projections';
 
 export interface SessionOfferingCategory {
   id: string;
@@ -7,6 +8,12 @@ export interface SessionOfferingCategory {
   count: number;
   priority: number;
   description: string;
+}
+
+export interface DiscoverSessionSections {
+  thisWeekOfferings: SessionOffering[];
+  clubSessions: GroupSession[];
+  openSessions: SessionOffering[];
 }
 
 interface SessionOfferingCategoryMeta {
@@ -20,9 +27,7 @@ export function getOfferingDuration(offering: SessionOffering): number {
   return offering.duration ?? 60;
 }
 
-function getSessionOfferingCategoryMeta(
-  offering: SessionOffering,
-): SessionOfferingCategoryMeta {
+function getSessionOfferingCategoryMeta(offering: SessionOffering): SessionOfferingCategoryMeta {
   if (offering.sessionType === '1on1') {
     return {
       id: 'one-to-one',
@@ -256,4 +261,55 @@ export function sortSessionOfferingsForBooking(offerings: SessionOffering[]): Se
 
     return left.title.localeCompare(right.title);
   });
+}
+
+export function buildDiscoverSessionSections(params: {
+  offerings: SessionOffering[];
+  groupSessions: GroupSession[];
+  now?: Date;
+}): DiscoverSessionSections {
+  const now = params.now ?? new Date();
+  const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const shownGroupSessionIds = new Set<string>();
+  const markOfferingShown = (offering: SessionOffering): void => {
+    const groupSessionId = getSessionOfferingGroupSessionId(offering);
+    if (groupSessionId) shownGroupSessionIds.add(groupSessionId);
+  };
+
+  const thisWeekOfferings = params.offerings.filter((offering) => {
+    if (offering.isRecurring) return true;
+    const scheduledDate = new Date(offering.scheduledAt);
+    return scheduledDate >= now && scheduledDate <= weekFromNow;
+  });
+  thisWeekOfferings.forEach(markOfferingShown);
+
+  const offeringsByGroupSessionId = new Map<string, SessionOffering>();
+  for (const offering of params.offerings) {
+    const groupSessionId = getSessionOfferingGroupSessionId(offering);
+    if (groupSessionId) offeringsByGroupSessionId.set(groupSessionId, offering);
+  }
+
+  const clubSessions = params.groupSessions
+    .filter((session) => {
+      if (!session.clubId) return false;
+      return offeringsByGroupSessionId.has(session.id) && !shownGroupSessionIds.has(session.id);
+    })
+    .sort((a, b) => {
+      const aDate = a.schedule[0]?.date || '';
+      const bDate = b.schedule[0]?.date || '';
+      return aDate.localeCompare(bDate);
+    });
+  for (const session of clubSessions) {
+    shownGroupSessionIds.add(session.id);
+  }
+
+  const openSessions = params.offerings.filter((offering) => {
+    const groupSessionId = getSessionOfferingGroupSessionId(offering);
+    return (
+      offering.inviteType === 'OPEN' &&
+      !(groupSessionId && shownGroupSessionIds.has(groupSessionId))
+    );
+  });
+
+  return { thisWeekOfferings, clubSessions, openSessions };
 }

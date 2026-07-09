@@ -68,6 +68,8 @@ interface SessionPaymentsData {
   independentSummary: PaymentBusinessSummary;
 }
 
+const RECONCILABLE_INVOICE_STATUSES: Invoice['status'][] = ['SENT', 'PAID', 'WRITTEN_OFF'];
+
 const MANUAL_PAYMENT_OPTIONS: Array<{
   id: ManualReceiptMethod;
   label: string;
@@ -97,6 +99,175 @@ function createPaymentBusinessSummary(): PaymentBusinessSummary {
   };
 }
 
+function bookingFromInvoice(invoice: Invoice, booking?: Booking): Booking {
+  return {
+    ...(booking ?? {}),
+    id: booking?.id ?? invoice.bookingId,
+    coachId: booking?.coachId ?? invoice.coachId,
+    athleteId: booking?.athleteId ?? invoice.athleteId,
+    athleteIds: booking?.athleteIds ?? (invoice.athleteId ? [invoice.athleteId] : undefined),
+    bookedById: booking?.bookedById ?? invoice.userId,
+    status: booking?.status ?? 'COMPLETED',
+    scheduledAt: booking?.scheduledAt ?? invoice.sessionDate,
+    duration: booking?.duration ?? invoice.sessionDuration ?? 60,
+    location: booking?.location ?? invoice.sessionLocation ?? '',
+    service: booking?.service ?? invoice.sessionType,
+    serviceType: booking?.serviceType ?? invoice.sessionType,
+    price: booking?.price ?? invoice.total,
+    createdAt: booking?.createdAt ?? invoice.createdAt,
+  };
+}
+
+function athleteNameForPayment(
+  booking: Booking,
+  invoice: Invoice,
+  nameMap: Map<string, string>,
+  currentUserName?: string,
+): string {
+  const athleteId = booking.athleteId ?? invoice.athleteId ?? '';
+  return (
+    nameMap.get(athleteId) ??
+    (booking.coachName !== currentUserName ? (booking.coachName ?? 'Athlete') : 'Athlete')
+  );
+}
+
+function pushPaymentItem(
+  item: SessionPaymentItem,
+  target: {
+    unpaid: SessionPaymentItem[];
+    paid: SessionPaymentItem[];
+    writtenOff: SessionPaymentItem[];
+    orgSummary: PaymentBusinessSummary;
+    independentSummary: PaymentBusinessSummary;
+    totalOwed: number;
+    totalCollected: number;
+    totalWrittenOff: number;
+    overdueCount: number;
+  },
+  now: number,
+) {
+  const { booking, invoice } = item;
+  const summary = item.businessContext === 'org' ? target.orgSummary : target.independentSummary;
+  if (invoice.status === 'PAID') {
+    target.paid.push(item);
+    target.totalCollected += invoice.total;
+    summary.totalCollected += invoice.total;
+    summary.paidCount += 1;
+    if (item.moneyContext === 'org_credit') {
+      summary.creditCollected += invoice.total;
+    } else {
+      summary.directCollected += invoice.total;
+    }
+    return;
+  }
+  if (invoice.status === 'WRITTEN_OFF') {
+    target.writtenOff.push(item);
+    target.totalWrittenOff += invoice.total;
+    summary.totalWrittenOff += invoice.total;
+    summary.writtenOffCount += 1;
+    return;
+  }
+
+  const dueDate = invoice.dueDate
+    ? new Date(invoice.dueDate).getTime()
+    : new Date(booking.scheduledAt).getTime() + 14 * 24 * 60 * 60 * 1000;
+  const isOverdue = now > dueDate;
+
+  target.unpaid.push({ ...item, isOverdue });
+  target.totalOwed += invoice.total;
+  summary.totalOwed += invoice.total;
+  summary.unpaidCount += 1;
+  if (item.moneyContext === 'org_credit') {
+    summary.creditOwed += invoice.total;
+  } else {
+    summary.directOwed += invoice.total;
+  }
+  if (isOverdue) target.overdueCount += 1;
+  if (isOverdue) summary.overdueCount += 1;
+}
+
+function sortSessionPaymentItems(
+  unpaid: SessionPaymentItem[],
+  paid: SessionPaymentItem[],
+  writtenOff: SessionPaymentItem[],
+) {
+  unpaid.sort((a, b) => {
+    if (a.isOverdue && !b.isOverdue) return -1;
+    if (!a.isOverdue && b.isOverdue) return 1;
+    return new Date(b.booking.scheduledAt).getTime() - new Date(a.booking.scheduledAt).getTime();
+  });
+  const sortByDate = (a: SessionPaymentItem, b: SessionPaymentItem) =>
+    new Date(b.booking.scheduledAt).getTime() - new Date(a.booking.scheduledAt).getTime();
+  paid.sort(sortByDate);
+  writtenOff.sort(sortByDate);
+}
+
+async function loadApiSessionPayments(
+  coachId: string,
+  currentUserName?: string,
+): Promise<SessionPaymentsData> {
+  const [invoices, bookings, roster] = await Promise.all([
+    invoiceService.getInvoicesFiltered(coachId, {
+      coachId,
+      status: RECONCILABLE_INVOICE_STATUSES,
+    }),
+    bookingService.getBookingsForUser(coachId, 'coach'),
+    rosterService.getRoster(coachId),
+  ]);
+  const nameMap = new Map<string, string>();
+  for (const entry of roster) {
+    if (entry.athleteName) {
+      nameMap.set(entry.athleteId, entry.athleteName);
+    }
+  }
+  const bookingsById = new Map(bookings.map((booking) => [booking.id, booking]));
+  const target = {
+    unpaid: [] as SessionPaymentItem[],
+    paid: [] as SessionPaymentItem[],
+    writtenOff: [] as SessionPaymentItem[],
+    orgSummary: createPaymentBusinessSummary(),
+    independentSummary: createPaymentBusinessSummary(),
+    totalOwed: 0,
+    totalCollected: 0,
+    totalWrittenOff: 0,
+    overdueCount: 0,
+  };
+  const now = Date.now();
+
+  for (const invoice of invoices) {
+    if (invoice.total <= 0 || invoice.status === 'VOID') continue;
+    const booking = bookingFromInvoice(invoice, bookingsById.get(invoice.bookingId));
+    const moneyDisplay = getCoachMoneyContextDisplay(booking);
+    pushPaymentItem(
+      {
+        booking,
+        invoice,
+        athleteName: athleteNameForPayment(booking, invoice, nameMap, currentUserName),
+        businessContext: getCoachBusinessContext(booking),
+        moneyContext: getCoachMoneyContext(booking),
+        moneyLabel: moneyDisplay.label,
+        moneyDetail: moneyDisplay.detail,
+      },
+      target,
+      now,
+    );
+  }
+
+  sortSessionPaymentItems(target.unpaid, target.paid, target.writtenOff);
+
+  return {
+    unpaid: target.unpaid,
+    paid: target.paid,
+    writtenOff: target.writtenOff,
+    totalOwed: target.totalOwed,
+    totalCollected: target.totalCollected,
+    totalWrittenOff: target.totalWrittenOff,
+    overdueCount: target.overdueCount,
+    orgSummary: target.orgSummary,
+    independentSummary: target.independentSummary,
+  };
+}
+
 export function useSessionPayments() {
   const { currentUser } = useAuth();
   const coachId = currentUser?.id ?? '';
@@ -105,6 +276,10 @@ export function useSessionPayments() {
 
   const load = async () => {
     try {
+      if (!api.useMock) {
+        return ok(await loadApiSessionPayments(coachId, currentUser?.name));
+      }
+
       const [bookings, roster] = await Promise.all([
         bookingService.getBookingsForUser(coachId, 'coach'),
         rosterService.getRoster(coachId),
@@ -133,49 +308,6 @@ export function useSessionPayments() {
       let totalCollected = 0;
       let totalWrittenOff = 0;
       let overdueCount = 0;
-      const getSummaryForContext = (context: CoachBusinessContext) =>
-        context === 'org' ? orgSummary : independentSummary;
-      const pushItem = (item: SessionPaymentItem) => {
-        const { booking, invoice } = item;
-        const summary = getSummaryForContext(item.businessContext);
-        if (invoice.status === 'PAID') {
-          paid.push(item);
-          totalCollected += invoice.total;
-          summary.totalCollected += invoice.total;
-          summary.paidCount += 1;
-          if (item.moneyContext === 'org_credit') {
-            summary.creditCollected += invoice.total;
-          } else {
-            summary.directCollected += invoice.total;
-          }
-          return;
-        }
-        if (invoice.status === 'WRITTEN_OFF') {
-          writtenOff.push(item);
-          totalWrittenOff += invoice.total;
-          summary.totalWrittenOff += invoice.total;
-          summary.writtenOffCount += 1;
-          return;
-        }
-
-        // Check if overdue (past dueDate or > 14 days since session with no dueDate)
-        const dueDate = invoice.dueDate
-          ? new Date(invoice.dueDate).getTime()
-          : new Date(booking.scheduledAt).getTime() + 14 * 24 * 60 * 60 * 1000;
-        const isOverdue = now > dueDate;
-
-        unpaid.push({ ...item, isOverdue });
-        totalOwed += invoice.total;
-        summary.totalOwed += invoice.total;
-        summary.unpaidCount += 1;
-        if (item.moneyContext === 'org_credit') {
-          summary.creditOwed += invoice.total;
-        } else {
-          summary.directOwed += invoice.total;
-        }
-        if (isOverdue) overdueCount += 1;
-        if (isOverdue) summary.overdueCount += 1;
-      };
 
       const invoiceAmounts = reconcilable.map((booking) =>
         booking.status === 'CANCELLED' ? (booking.cancellationFee ?? 0) : (booking.price ?? 0),
@@ -254,7 +386,22 @@ export function useSessionPayments() {
           moneyLabel: moneyDisplay.label,
           moneyDetail: moneyDisplay.detail,
         };
-        pushItem(item);
+        const target = {
+          unpaid,
+          paid,
+          writtenOff,
+          orgSummary,
+          independentSummary,
+          totalOwed,
+          totalCollected,
+          totalWrittenOff,
+          overdueCount,
+        };
+        pushPaymentItem(item, target, now);
+        totalOwed = target.totalOwed;
+        totalCollected = target.totalCollected;
+        totalWrittenOff = target.totalWrittenOff;
+        overdueCount = target.overdueCount;
       }
 
       if (syntheticInvoicesToPersist.length > 0) {
@@ -263,18 +410,7 @@ export function useSessionPayments() {
         );
       }
 
-      // Sort: overdue first in unpaid, then most recent
-      unpaid.sort((a, b) => {
-        if (a.isOverdue && !b.isOverdue) return -1;
-        if (!a.isOverdue && b.isOverdue) return 1;
-        return (
-          new Date(b.booking.scheduledAt).getTime() - new Date(a.booking.scheduledAt).getTime()
-        );
-      });
-      const sortByDate = (a: SessionPaymentItem, b: SessionPaymentItem) =>
-        new Date(b.booking.scheduledAt).getTime() - new Date(a.booking.scheduledAt).getTime();
-      paid.sort(sortByDate);
-      writtenOff.sort(sortByDate);
+      sortSessionPaymentItems(unpaid, paid, writtenOff);
 
       return ok<SessionPaymentsData>({
         unpaid,

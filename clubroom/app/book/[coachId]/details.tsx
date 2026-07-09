@@ -25,6 +25,10 @@ import {
   hasAccountChildren,
   resolveAccountChildCount,
 } from '@/utils/booking-self-capability';
+import { buildBookingTargetDraftPatch } from '@/utils/booking-targets';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('BookingDetailsScreen');
 
 export default function DetailsScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
@@ -62,13 +66,23 @@ export default function DetailsScreen() {
       return;
     }
     let cancelled = false;
-    void bookingSelfSettingService.isEnabled(currentUser.id).then((enabled) => {
-      if (!cancelled) {
-        startTransition(() => {
-          setAllowBookSelf(enabled);
-        });
-      }
-    });
+    void bookingSelfSettingService
+      .isEnabled(currentUser.id)
+      .then((enabled) => {
+        if (!cancelled) {
+          startTransition(() => {
+            setAllowBookSelf(enabled);
+          });
+        }
+      })
+      .catch((error) => {
+        logger.warn('Failed to load self-booking setting', { error });
+        if (!cancelled) {
+          startTransition(() => {
+            setAllowBookSelf(false);
+          });
+        }
+      });
     return () => {
       cancelled = true;
     };
@@ -135,20 +149,35 @@ export default function DetailsScreen() {
     }
 
     if (children.length === 1) {
-      updateDraft({ childId: children[0].id, athleteName: children[0].name });
+      updateDraft(
+        buildBookingTargetDraftPatch({
+          targetId: children[0].id,
+          currentUser,
+          children,
+        }),
+      );
       return;
     }
 
     if (canSelectSelf) {
-      updateDraft({
-        childId: currentUser.id,
-        athleteName: currentUser.name || currentUser.fullName || 'Athlete',
-      });
+      updateDraft(
+        buildBookingTargetDraftPatch({
+          targetId: currentUser.id,
+          currentUser,
+          children,
+        }),
+      );
       return;
     }
 
     if (children.length > 0) {
-      updateDraft({ childId: children[0].id, athleteName: children[0].name });
+      updateDraft(
+        buildBookingTargetDraftPatch({
+          targetId: children[0].id,
+          currentUser,
+          children,
+        }),
+      );
     }
   }, [canSelectSelf, children, currentUser, draft.childId, updateDraft]);
 
@@ -160,11 +189,17 @@ export default function DetailsScreen() {
       return;
     }
     if (children.length > 0) {
-      updateDraft({ childId: children[0].id, athleteName: children[0].name });
+      updateDraft(
+        buildBookingTargetDraftPatch({
+          targetId: children[0].id,
+          currentUser,
+          children,
+        }),
+      );
     } else {
       updateDraft({ childId: undefined, athleteName: undefined });
     }
-  }, [canSelectSelf, children, currentUser?.id, draft.childId, updateDraft]);
+  }, [canSelectSelf, children, currentUser, draft.childId, updateDraft]);
 
   const handleSelectChild = (targetId: string) => {
     if (!currentUser) {
@@ -176,15 +211,24 @@ export default function DetailsScreen() {
     }
 
     if (targetId === currentUser.id && canSelectSelf) {
-      updateDraft({
-        childId: currentUser.id,
-        athleteName: currentUser.name || currentUser.fullName || 'Athlete',
-      });
+      updateDraft(
+        buildBookingTargetDraftPatch({
+          targetId: currentUser.id,
+          currentUser,
+          children,
+        }),
+      );
       return;
     }
 
-    const child = children.find((c) => c.id === targetId);
-    updateDraft({ childId: targetId, athleteName: child?.name });
+    updateDraft(
+      buildBookingTargetDraftPatch({
+        targetId,
+        currentUser,
+        children,
+        draftAthleteName: draft.athleteName,
+      }),
+    );
   };
   const handleBack = () => {
     void bookingStepAnalyticsService.track({

@@ -26,6 +26,7 @@ type SafeguardingActionType =
   | 'contacted_authority'
   | 'close_case'
   | 'reopen_case';
+type SafeguardingIncidentReporterFilter = 'me' | 'any';
 
 export interface CreateSafeguardingIncidentInput {
   athleteId?: string;
@@ -65,6 +66,19 @@ export interface SafeguardingIncident {
   actions: SafeguardingAction[];
 }
 
+export interface ListSafeguardingIncidentsInput {
+  athleteId?: string;
+  status?: SafeguardingIncidentStatus | SafeguardingIncidentStatus[];
+  reportedBy?: SafeguardingIncidentReporterFilter;
+  limit?: number;
+}
+
+export interface SafeguardingIncidentList {
+  incidents: SafeguardingIncident[];
+  total: number;
+  requestId?: string;
+}
+
 async function resolveSafeguardingAccess(
   athleteId?: string,
 ): Promise<
@@ -91,6 +105,54 @@ async function resolveSafeguardingAccess(
 }
 
 class SafeguardingService {
+  async listIncidents(
+    input: ListSafeguardingIncidentsInput = {},
+  ): Promise<Result<SafeguardingIncidentList, ServiceError>> {
+    const access = await resolveSafeguardingAccess(input.athleteId);
+    if (!access.success) {
+      return access;
+    }
+
+    const query = new URLSearchParams();
+    if (access.data.apiAthleteId) {
+      query.set('athleteId', access.data.apiAthleteId);
+    }
+    const statuses = Array.isArray(input.status)
+      ? input.status
+      : input.status
+        ? [input.status]
+        : [];
+    if (statuses.length > 0) {
+      query.set('status', statuses.join(','));
+    }
+    if (input.reportedBy) {
+      query.set('reportedBy', input.reportedBy);
+    }
+    if (input.limit) {
+      query.set('limit', String(input.limit));
+    }
+
+    const queryString = query.toString();
+    const result = await apiFetch<SafeguardingIncidentList>(
+      `/v1/safeguarding/incidents${queryString ? `?${queryString}` : ''}`,
+      {
+        method: 'GET',
+        headers: access.data.headers,
+      },
+    );
+
+    if (!result.success) {
+      logger.error('Failed to list safeguarding incidents', {
+        athleteId: input.athleteId,
+        status: input.status,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+
+    return result;
+  }
+
   async createIncident(
     input: CreateSafeguardingIncidentInput,
   ): Promise<Result<SafeguardingIncident, ServiceError>> {

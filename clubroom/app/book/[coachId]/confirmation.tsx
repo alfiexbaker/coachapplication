@@ -22,7 +22,7 @@ import { bookingStepAnalyticsService } from '@/services/booking/booking-step-ana
 import { bookingSelfSettingService } from '@/services/booking-self-setting-service';
 import { cancellationService } from '@/services/cancellation-service';
 import { coachService } from '@/services/coach-service';
-import { socialFeedService } from '@/services/social-feed-service';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import { userService } from '@/services/user-service';
 import { createLogger } from '@/utils/logger';
 import { CelebrationOverlay, CelebrationOverlayRef } from '@/components/celebration-overlay';
@@ -32,6 +32,7 @@ import {
   getBookingRelationshipContext,
   safeDisplayLabel,
 } from '@/utils/booking-display';
+import { hasResolvedBookingTargets, resolveBookingDraftTargets } from '@/utils/booking-targets';
 import type { OrganizationCommercialMode } from '@/constants/types';
 
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
@@ -142,8 +143,9 @@ export default function ConfirmationScreen() {
       return;
     }
     let cancelled = false;
-    void socialFeedService.getClub(draft.clubId).then((club) => {
+    void clubAuthorityService.getClubById(draft.clubId).then((result) => {
       if (cancelled) return;
+      const club = result.success ? result.data : null;
       if (club?.name) {
         setClubLabel(club.name);
         setCommercialMode(club.commercialMode ?? 'COACH_OWNED');
@@ -168,7 +170,9 @@ export default function ConfirmationScreen() {
     void userService.getUserById(draft.assigneeCoachId).then((result) => {
       if (cancelled) return;
       if (result.success) {
-        setAssigneeLabel(result.data.name?.trim() || safeDisplayLabel(draft.assigneeCoachId, 'Coach'));
+        setAssigneeLabel(
+          result.data.name?.trim() || safeDisplayLabel(draft.assigneeCoachId, 'Coach'),
+        );
       } else {
         setAssigneeLabel(safeDisplayLabel(draft.assigneeCoachId, 'Coach'));
       }
@@ -196,135 +200,181 @@ export default function ConfirmationScreen() {
     setIsCreating(true);
     setError(null);
 
-    return await runAsyncTryCatchFinally(async () => {
-      const resolvedCoach = coachId || draft.coachId;
-      const coachName = draft.coachName || resolvedCoachName;
-      const selectedAthleteIds = (
-        draft.childIds?.length
-          ? draft.childIds
-          : draft.childId
-            ? [draft.childId]
-            : currentUser?.id
-              ? [currentUser.id]
-              : []
-      ).filter((id, index, source) => Boolean(id) && source.indexOf(id) === index);
-      const selectedAthleteNames = selectedAthleteIds.map((athleteId) => {
-        if (currentUser?.id && athleteId === currentUser.id) {
-          return currentUser.name || currentUser.fullName || 'Athlete';
-        }
-        const child = children.find(
-          (candidate) => candidate.id === athleteId || candidate.referenceId === athleteId,
-        );
-        return child?.name || draft.athleteName || 'Athlete';
-      });
+    return await runAsyncTryCatchFinally(
+      async () => {
+        const resolvedCoach = coachId || draft.coachId;
+        const coachName = (draft.coachName || resolvedCoachName || '').trim();
+        const { athleteIds: selectedAthleteIds, athleteNames: selectedAthleteNames } =
+          resolveBookingDraftTargets({ draft, currentUser, children });
+        const bookedByName = (currentUser?.name || currentUser?.fullName || '').trim();
+        const location = draft.locationText?.trim() ?? '';
+        const duration =
+          typeof draft.duration === 'number' && Number.isFinite(draft.duration)
+            ? draft.duration
+            : null;
+        const hasResolvedPrice = typeof draft.price === 'number' && Number.isFinite(draft.price);
 
-      if (!resolvedCoach || !coachName) {
-        trackConfirmStep('validation_fail', 'missing_coach_context');
-        setError('Missing coach information. Please go back and try again.');
-        setIsCreating(false);
-        return;
-      }
-      if (selectedAthleteIds.length === 0 || selectedAthleteNames.length === 0) {
-        trackConfirmStep('validation_fail', 'missing_booking_target');
-        setError('No booking target selected. Please go back and choose who this session is for.');
-        setIsCreating(false);
-        return;
-      }
-      if (!currentUser?.id) {
-        trackConfirmStep('validation_fail', 'missing_current_user');
-        setError('You must be logged in to book a session.');
-        setIsCreating(false);
-        return;
-      }
-      if (accountHasChildren && selectedAthleteIds.includes(currentUser.id)) {
-        const canBookSelf = await bookingSelfSettingService.isEnabled(currentUser.id);
-        if (!canBookSelf) {
-          trackConfirmStep('validation_fail', 'self_booking_disabled');
-          setError('Booking for yourself is disabled. Enable it in Settings to continue.');
+        if (!resolvedCoach || !coachName) {
+          trackConfirmStep('validation_fail', 'missing_coach_context');
+          setError('Missing coach information. Please go back and try again.');
           setIsCreating(false);
           return;
         }
-      }
-      if (!draft.date || !draft.slot) {
-        trackConfirmStep('validation_fail', !draft.date ? 'missing_date' : 'missing_slot');
-        setError('Missing date or time. Please go back and select a slot.');
-        setIsCreating(false);
-        return;
-      }
+        if (selectedAthleteIds.length === 0 || selectedAthleteNames.length === 0) {
+          trackConfirmStep('validation_fail', 'missing_booking_target');
+          setError(
+            'No booking target selected. Please go back and choose who this session is for.',
+          );
+          setIsCreating(false);
+          return;
+        }
+        if (
+          !hasResolvedBookingTargets({
+            athleteIds: selectedAthleteIds,
+            athleteNames: selectedAthleteNames,
+          })
+        ) {
+          trackConfirmStep('validation_fail', 'missing_athlete_names');
+          setError('Missing athlete details. Please go back and choose the session target again.');
+          setIsCreating(false);
+          return;
+        }
+        if (!currentUser?.id) {
+          trackConfirmStep('validation_fail', 'missing_current_user');
+          setError('You must be logged in to book a session.');
+          setIsCreating(false);
+          return;
+        }
+        if (!bookedByName) {
+          trackConfirmStep('validation_fail', 'missing_booker_name');
+          setError('Your account name is missing. Update your profile before booking.');
+          setIsCreating(false);
+          return;
+        }
+        if (accountHasChildren && selectedAthleteIds.includes(currentUser.id)) {
+          let canBookSelf = false;
+          try {
+            canBookSelf = await bookingSelfSettingService.isEnabled(currentUser.id);
+          } catch (preferenceError) {
+            logger.error('Failed to verify self-booking setting', preferenceError);
+            setError('Could not verify self-booking setting. Please try again.');
+            setIsCreating(false);
+            return;
+          }
+          if (!canBookSelf) {
+            trackConfirmStep('validation_fail', 'self_booking_disabled');
+            setError('Booking for yourself is disabled. Enable it in Settings to continue.');
+            setIsCreating(false);
+            return;
+          }
+        }
+        if (!draft.date || !draft.slot) {
+          trackConfirmStep('validation_fail', !draft.date ? 'missing_date' : 'missing_slot');
+          setError('Missing date or time. Please go back and select a slot.');
+          setIsCreating(false);
+          return;
+        }
+        if (!duration || duration <= 0) {
+          trackConfirmStep('validation_fail', 'missing_duration');
+          setError('Missing session duration. Please go back and choose the session again.');
+          setIsCreating(false);
+          return;
+        }
+        if (!location) {
+          trackConfirmStep('validation_fail', 'missing_location');
+          setError('Missing session location. Please go back and choose the session again.');
+          setIsCreating(false);
+          return;
+        }
+        if (!hasResolvedPrice) {
+          trackConfirmStep('validation_fail', 'missing_price');
+          setError('Missing session price. Please go back and choose the session again.');
+          setIsCreating(false);
+          return;
+        }
 
-      const serviceLabel =
-        draft.sessionTypeLabel ||
-        (draft.sessionType ? formatServiceTypeLabel(draft.sessionType) : 'Session');
-      const serviceType = draft.sessionType || '1-to-1';
+        const serviceLabel =
+          draft.sessionTypeLabel?.trim() ||
+          (draft.sessionType ? formatServiceTypeLabel(draft.sessionType) : '');
+        const serviceType = draft.sessionType?.trim();
+        if (!serviceType || !serviceLabel) {
+          trackConfirmStep('validation_fail', 'missing_session_type');
+          setError('Missing session type. Please go back and choose the session again.');
+          setIsCreating(false);
+          return;
+        }
 
-      const result = await bookingService.createBooking({
-        coachId: resolvedCoach,
-        coachName,
-        athleteIds: selectedAthleteIds,
-        athleteNames: selectedAthleteNames,
-        bookedById: currentUser.id,
-        bookedByName: currentUser.name || currentUser.fullName || 'User',
-        scheduledAt: `${draft.date}T${draft.slot}:00`,
-        duration: draft.duration || 60,
-        location: draft.locationText || draft.locationOption || '',
-        service: serviceLabel,
-        serviceType,
-        sessionOfferingId: draft.sessionOfferingId,
-        sessionSource: draft.sessionSource,
-        sessionSourceEntityId: draft.sessionSourceEntityId || draft.sessionOfferingId,
-        clubId: draft.clubId,
-        actingAs: draft.actingAs,
-        commercialMode: commercialMode ?? draft.commercialMode,
-        ownerCoachId: draft.ownerCoachId,
-        assigneeCoachId: draft.assigneeCoachId,
-        createdByUserId: draft.createdByUserId,
-        createdByRole: draft.createdByRole,
-        objectives: draft.objectives,
-        price: draft.price,
-        notes: draft.notes,
-      });
-
-      if (result.success && result.data) {
-        trackConfirmStep('success');
-        setBookingId(result.data.id);
-
-        // Trigger celebration with haptics
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        celebrationRef.current?.celebrate({
-          title: 'Booking Confirmed!',
-          subtitle: `Session with ${coachName || 'your coach'} is all set`,
-          icon: 'checkmark-circle',
-          iconColor: palette.success,
-          duration: 2500,
+        const result = await bookingService.createBooking({
+          coachId: resolvedCoach,
+          coachName,
+          athleteIds: selectedAthleteIds,
+          athleteNames: selectedAthleteNames,
+          bookedById: currentUser.id,
+          bookedByName,
+          scheduledAt: `${draft.date}T${draft.slot}:00`,
+          duration,
+          location,
+          service: serviceLabel,
+          serviceType,
+          sessionOfferingId: draft.sessionOfferingId,
+          sessionSource: draft.sessionSource,
+          sessionSourceEntityId: draft.sessionSourceEntityId || draft.sessionOfferingId,
+          clubId: draft.clubId,
+          actingAs: draft.actingAs,
+          commercialMode: commercialMode ?? draft.commercialMode,
+          ownerCoachId: draft.ownerCoachId,
+          assigneeCoachId: draft.assigneeCoachId,
+          createdByUserId: draft.createdByUserId,
+          createdByRole: draft.createdByRole,
+          objectives: draft.objectives,
+          price: draft.price,
+          notes: draft.notes,
         });
 
-        // Navigate after celebration
-        setTimeout(() => {
-          handleOpenBooking(result.data!.id);
-        }, 2600);
-      } else {
-        const resultCode = !result.success ? result.error?.code : undefined;
-        const status =
-          resultCode === 'CONFLICT'
-            ? 'conflict_fail'
-            : resultCode === 'VALIDATION'
-              ? 'validation_fail'
-              : 'conflict_fail';
-        trackConfirmStep(status, (resultCode || 'booking_create_failed').toLowerCase());
-        setError(
-          result.success
-            ? 'Failed to create booking.'
-            : result.error?.message ||
-                'Failed to create booking. The slot may no longer be available.',
-        );
-      }
-    }, async err => {
-      trackConfirmStep('conflict_fail', 'unexpected_error');
-      logger.error('Error creating booking', err);
-      setError('An unexpected error occurred. Please try again.');
-    }, () => {
-      setIsCreating(false);
-    });
+        if (result.success && result.data) {
+          trackConfirmStep('success');
+          setBookingId(result.data.id);
+
+          // Trigger celebration with haptics
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          celebrationRef.current?.celebrate({
+            title: 'Booking Confirmed!',
+            subtitle: `Session with ${coachName} is all set`,
+            icon: 'checkmark-circle',
+            iconColor: palette.success,
+            duration: 2500,
+          });
+
+          // Navigate after celebration
+          setTimeout(() => {
+            handleOpenBooking(result.data!.id);
+          }, 2600);
+        } else {
+          const resultCode = !result.success ? result.error?.code : undefined;
+          const status =
+            resultCode === 'CONFLICT'
+              ? 'conflict_fail'
+              : resultCode === 'VALIDATION'
+                ? 'validation_fail'
+                : 'conflict_fail';
+          trackConfirmStep(status, (resultCode || 'booking_create_failed').toLowerCase());
+          setError(
+            result.success
+              ? 'Failed to create booking.'
+              : result.error?.message ||
+                  'Failed to create booking. The slot may no longer be available.',
+          );
+        }
+      },
+      async (err) => {
+        trackConfirmStep('conflict_fail', 'unexpected_error');
+        logger.error('Error creating booking', err);
+        setError('An unexpected error occurred. Please try again.');
+      },
+      () => {
+        setIsCreating(false);
+      },
+    );
   };
 
   return (

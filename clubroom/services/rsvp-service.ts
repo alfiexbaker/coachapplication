@@ -335,7 +335,7 @@ function cloneRsvp(rsvp: SessionRsvp): SessionRsvp {
   return { ...rsvp };
 }
 
-let rsvpCache: SessionRsvp[] = MOCK_RSVPS.map(cloneRsvp);
+let rsvpCache: SessionRsvp[] = isMockMode() ? MOCK_RSVPS.map(cloneRsvp) : [];
 
 async function loadRsvps(): Promise<SessionRsvp[]> {
   return rsvpCache.map(cloneRsvp);
@@ -391,7 +391,7 @@ export const rsvpService = {
           sessionId,
           error: result.error.message,
         });
-        return [];
+        throw new Error(result.error.message);
       }
       return result.data.rsvps.map(cloneRsvp);
     }
@@ -519,7 +519,7 @@ export const rsvpService = {
           sessionId,
           error: result.error.message,
         });
-        return [];
+        throw new Error(result.error.message);
       }
       return result.data.rsvps.map(cloneRsvp);
     }
@@ -542,7 +542,7 @@ export const rsvpService = {
           userId,
           error: result.error.message,
         });
-        return [];
+        throw new Error(result.error.message);
       }
       return result.data.rsvps.map(cloneRsvp);
     }
@@ -564,7 +564,7 @@ export const rsvpService = {
           userId,
           error: result.error.message,
         });
-        return [];
+        throw new Error(result.error.message);
       }
       return result.data.rsvps.map(cloneRsvp);
     }
@@ -636,7 +636,7 @@ export const rsvpService = {
           sessionId,
           error: result.error.message,
         });
-        return emptyCounts();
+        throw new Error(result.error.message);
       }
       return result.data.counts;
     }
@@ -671,7 +671,7 @@ export const rsvpService = {
           count: sessionIds.length,
           error: result.error.message,
         });
-        return new Map(sessionIds.map((sessionId) => [sessionId, emptyCounts()]));
+        throw new Error(result.error.message);
       }
       return new Map(
         sessionIds.map((sessionId) => [
@@ -718,7 +718,7 @@ export const rsvpService = {
         },
       );
       if (!result.success) {
-        logger.warn('Failed to delete session RSVPs through API authority', {
+        logger.warn('Failed to remove session RSVPs through API authority', {
           sessionId,
           error: result.error.message,
         });
@@ -730,7 +730,7 @@ export const rsvpService = {
     const rsvps = await loadRsvps();
     const filtered = rsvps.filter((r) => r.sessionId !== sessionId);
     await saveRsvps(filtered);
-    logger.info('RSVPs deleted for session', { sessionId });
+    logger.info('RSVPs removed for session', { sessionId });
   },
 
   /**
@@ -746,7 +746,10 @@ export const rsvpService = {
           rsvpId,
           error: result.error.message,
         });
-        return null;
+        if (result.error.code === 'NOT_FOUND') {
+          return null;
+        }
+        throw new Error(result.error.message);
       }
       return cloneRsvp(result.data.rsvp);
     }
@@ -756,10 +759,17 @@ export const rsvpService = {
   },
 
   __resetMockRsvps(): void {
+    if (!isMockMode()) {
+      rsvpCache = [];
+      return;
+    }
     rsvpCache = MOCK_RSVPS.map(cloneRsvp);
   },
 
   __seedMockRsvps(rsvps: SessionRsvp[]): void {
+    if (!isMockMode()) {
+      return;
+    }
     rsvpCache = rsvps.map(cloneRsvp);
   },
 };

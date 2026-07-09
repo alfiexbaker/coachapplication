@@ -158,12 +158,7 @@ function toUiInjury(apiInjury: ApiInjuryRecord): Injury {
   const bodyPart = toUiBodyPart(apiInjury.type);
   const description = apiInjury.notes ?? apiInjury.title;
   const status = UI_STATUS_FROM_API[apiInjury.status];
-  const recoveryPercent =
-    status === 'HEALED'
-      ? 100
-      : status === 'RECOVERING'
-        ? 60
-        : 0;
+  const recoveryPercent = status === 'HEALED' ? 100 : status === 'RECOVERING' ? 60 : 0;
 
   return {
     id: apiInjury.id,
@@ -514,7 +509,7 @@ async function getAllInjuries(): Promise<Injury[]> {
   const injuries = await apiClient.get<Injury[]>(STORAGE_KEYS.INJURIES, []);
   // Return mock data if no injuries stored
   if (injuries.length === 0) {
-    return [...MOCK_INJURIES];
+    return apiClient.isMockMode ? [...MOCK_INJURIES] : [];
   }
   return injuries;
 }
@@ -680,11 +675,16 @@ async function canActorAccessSubject(actorUserId: string, subjectUserId: string)
     return true;
   }
 
-  const authUser = await apiClient.get<Record<string, unknown> | null>(STORAGE_KEYS.AUTH_USER, null);
+  const authUser = await apiClient.get<Record<string, unknown> | null>(
+    STORAGE_KEYS.AUTH_USER,
+    null,
+  );
   const rawChildren = Array.isArray(authUser?.children) ? authUser.children : [];
   const childIds = new Set(
     rawChildren
-      .map((child) => (typeof child === 'object' && child && 'childId' in child ? child.childId : null))
+      .map((child) =>
+        typeof child === 'object' && child && 'childId' in child ? child.childId : null,
+      )
       .filter((childId): childId is string => typeof childId === 'string'),
   );
   return childIds.has(subjectUserId);
@@ -741,7 +741,11 @@ async function getInjuryByIdForActor(id: string, actorUserId: string): Promise<I
 
   const canAccess = await canActorAccessSubject(actorUserId, injury.userId);
   if (!canAccess) {
-    logger.warn('injury_access_denied_detail', { actorUserId, injuryId: id, subjectUserId: injury.userId });
+    logger.warn('injury_access_denied_detail', {
+      actorUserId,
+      injuryId: id,
+      subjectUserId: injury.userId,
+    });
     return null;
   }
 
@@ -756,49 +760,56 @@ async function getInjuryByIdForActor(id: string, actorUserId: string): Promise<I
  */
 async function updateInjury(id: string, updates: UpdateInjuryInput): Promise<Injury | null> {
   if (!apiClient.isMockMode) {
-    const cached = latestApiInjuriesById.get(id);
-    if (cached) {
-      try {
-        const headers = await buildApiActorHeaders(cached.userId);
-        const result = await apiFetch<ApiInjuryRecord>(`/v1/injuries/${id}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({
-            severity:
-              updates.severity !== undefined ? API_SEVERITY_FROM_UI[updates.severity] : undefined,
-            status: updates.status !== undefined ? API_STATUS_FROM_UI[updates.status] : undefined,
-            expectedRecoveryDate:
-              updates.expectedRecovery !== undefined ? updates.expectedRecovery : undefined,
-            notes: updates.description !== undefined ? updates.description : undefined,
-          }),
-        });
+    try {
+      const status =
+        updates.status ??
+        (updates.recoveryPercent === undefined
+          ? undefined
+          : updates.recoveryPercent >= 100
+            ? 'HEALED'
+            : updates.recoveryPercent > 0
+              ? 'RECOVERING'
+              : undefined);
+      const headers = await buildApiCurrentActorHeaders();
+      const result = await apiFetch<ApiInjuryRecord>(`/v1/injuries/${id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({
+          severity:
+            updates.severity !== undefined ? API_SEVERITY_FROM_UI[updates.severity] : undefined,
+          status: status !== undefined ? API_STATUS_FROM_UI[status] : undefined,
+          expectedRecoveryDate:
+            updates.expectedRecovery !== undefined ? updates.expectedRecovery : undefined,
+          notes: updates.description !== undefined ? updates.description : undefined,
+        }),
+      });
 
-        if (result.success) {
-          const mapped = toUiInjury(result.data);
-          if (updates.recoveryPercent !== undefined) {
-            mapped.recoveryPercent = updates.recoveryPercent;
-            if (updates.recoveryPercent >= 100) {
-              mapped.status = 'HEALED';
-            } else if (updates.recoveryPercent > 0 && mapped.status === 'ACTIVE') {
-              mapped.status = 'RECOVERING';
-            }
+      if (result.success) {
+        const mapped = toUiInjury(result.data);
+        if (updates.recoveryPercent !== undefined) {
+          mapped.recoveryPercent = updates.recoveryPercent;
+          if (updates.recoveryPercent >= 100) {
+            mapped.status = 'HEALED';
+          } else if (updates.recoveryPercent > 0 && mapped.status === 'ACTIVE') {
+            mapped.status = 'RECOVERING';
           }
-          if (updates.sharedWithCoach !== undefined) {
-            mapped.sharedWithCoach = updates.sharedWithCoach;
-          }
-          latestApiInjuriesById.set(mapped.id, mapped);
-          return mapped;
         }
-
-        throwApiInjuryError('API injury update failed', result.error);
-      } catch (error) {
-        logger.error('API injury update threw', { id, error });
-        throw error;
+        if (updates.sharedWithCoach !== undefined) {
+          mapped.sharedWithCoach = updates.sharedWithCoach;
+        }
+        latestApiInjuriesById.set(mapped.id, mapped);
+        return mapped;
       }
-    }
 
-    logger.warn('API injury update skipped because detail is not loaded', { injuryId: id });
-    return null;
+      if (result.error.code === 'NOT_FOUND') {
+        return null;
+      }
+
+      throwApiInjuryError('API injury update failed', result.error);
+    } catch (error) {
+      logger.error('API injury update threw', { id, error });
+      throw error;
+    }
   }
 
   const injuries = await getAllInjuries();
@@ -867,7 +878,9 @@ async function addRecoveryNote(
   recoveryPercent?: number,
 ): Promise<Injury | null> {
   if (!apiClient.isMockMode) {
-    const cached = latestApiInjuriesById.get(injuryId);
+    const cached =
+      latestApiInjuriesById.get(injuryId) ??
+      (await getInjuryByIdForActor(injuryId, createdBy));
     if (cached) {
       const nextDescription = cached.description
         ? `${cached.description}\n\n[${new Date().toISOString()}] ${note}`
@@ -885,7 +898,6 @@ async function addRecoveryNote(
             : cached.status,
       });
     }
-    logger.warn('API recovery note skipped because injury detail is not loaded', { injuryId });
     return null;
   }
 

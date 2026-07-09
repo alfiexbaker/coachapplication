@@ -122,7 +122,7 @@ async function getApiRsvpState(
   );
 }
 
-let responsesCache: InviteRsvpResponse[] = MOCK_INVITE_RSVPS.map(cloneResponse);
+let responsesCache: InviteRsvpResponse[] = isMockMode() ? MOCK_INVITE_RSVPS.map(cloneResponse) : [];
 
 function cloneResponse(response: InviteRsvpResponse): InviteRsvpResponse {
   return { ...response };
@@ -351,7 +351,7 @@ export const inviteRsvpService = {
   },
 
   __resetMockResponses(): void {
-    responsesCache = MOCK_INVITE_RSVPS.map(cloneResponse);
+    responsesCache = isMockMode() ? MOCK_INVITE_RSVPS.map(cloneResponse) : [];
   },
 
   __seedMockResponses(responses: InviteRsvpResponse[]): void {

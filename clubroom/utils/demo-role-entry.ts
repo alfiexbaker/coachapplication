@@ -4,7 +4,7 @@ import { Routes } from '@/navigation/routes';
 
 type DemoRoleUser = {
   username: string;
-  password: string;
+  password?: string;
   role: string;
   fullName?: string;
   name?: string;
@@ -128,6 +128,9 @@ export function buildDemoRoleEntries(users: DemoRoleUser[]): DemoRoleEntry[] {
     if (!matchedUser) {
       continue;
     }
+    if (!matchedUser.password) {
+      continue;
+    }
 
     entries.push({
       id: definition.id,
@@ -150,7 +153,7 @@ export function buildDemoCredentialRows(users: DemoRoleUser[]): DemoCredentialRo
   const usersByUsername = new Map(users.map((user) => [user.username.toLowerCase(), user]));
 
   const pushUser = (user: DemoRoleUser | undefined) => {
-    if (!user || seen.has(user.username)) {
+    if (!user || !user.password || seen.has(user.username)) {
       return;
     }
 

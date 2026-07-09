@@ -14,6 +14,7 @@ import type { SessionInvite, SessionInviteType } from '@/constants/types';
 import {
   getSessionInviteAthleteNames,
   getSessionInviteCoachName,
+  getSessionInviteServiceLabel,
 } from '@/utils/session-invite-display';
 import { formatInUserTimezone } from '@/utils/timezone';
 import { uiFeedback } from '@/services/ui-feedback';
@@ -158,6 +159,7 @@ export const InviteListCard = function InviteListCard({
   const sc = statusCfg(status, colors);
   const coachName = getSessionInviteCoachName(invite);
   const athleteNames = getSessionInviteAthleteNames(invite);
+  const serviceLabel = getSessionInviteServiceLabel(invite);
   const initials =
     mode === 'sent'
       ? athleteNames[0]?.charAt(0) || 'A'
@@ -172,10 +174,10 @@ export const InviteListCard = function InviteListCard({
     mode === 'received'
       ? invite.clubName
         ? `Coach ${first} has invited ${ath} to ${invite.clubName}`
-        : `Coach ${first} has invited ${ath} to a ${invite.sessionType.toLowerCase()}`
+        : `Coach ${first} has invited ${ath} to a ${serviceLabel.toLowerCase()}`
       : invite.clubName
         ? `Invite to ${invite.clubName}`
-        : `${invite.sessionType} invite`;
+        : `${serviceLabel} invite`;
   const slot = invite.proposedSlots[0];
   const dateStr = slot
     ? formatInUserTimezone(`${slot.date}T${slot.startTime || '00:00'}`, {
@@ -236,7 +238,7 @@ export const InviteListCard = function InviteListCard({
               <ThemedText style={[st.club, { color: colors.tint }]}>{invite.clubName}</ThemedText>
             )}
             <ThemedText style={{ color: colors.muted, ...Typography.small }}>
-              {invite.sessionType} - {invite.focus}
+              {serviceLabel} - {invite.focus}
             </ThemedText>
             {childLabel != null && childLabel.length > 0 && (
               <ThemedText style={{ color: colors.muted, ...Typography.caption }}>

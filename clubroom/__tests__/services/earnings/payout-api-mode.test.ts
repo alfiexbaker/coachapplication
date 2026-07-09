@@ -250,4 +250,68 @@ describe('payoutService API mode', () => {
       payoutMethodId: payoutMethod.id,
     });
   });
+
+  it('fails closed when payout API responses are not explicitly simulated', async () => {
+    const { payoutService } = await import('@/services/earnings/payout-service');
+    const calls: Array<{ method: string; path: string }> = [];
+
+    globalThis.fetch = (async (input, init) => {
+      const url = new URL(String(input));
+      const method = init?.method ?? 'GET';
+      calls.push({ method, path: `${url.pathname}${url.search}` });
+
+      if (url.pathname === '/v1/coaches/me/payout-methods') {
+        return jsonResponse({
+          payoutMethods: [],
+          total: 0,
+          provider: 'stripe',
+          providerConfigured: true,
+          requestId: 'req_real_provider',
+        });
+      }
+      if (url.pathname === '/v1/coaches/me/withdrawals/wd_missing_provider/complete') {
+        return jsonResponse({
+          withdrawal: {
+            id: 'wd_missing_provider',
+            coachId: 'coach_live_test',
+            amount: 50,
+            currency: 'GBP',
+            fee: 0,
+            netAmount: 50,
+            payoutMethodId: 'pm_live_test',
+            payoutMethod: 'BANK_ACCOUNT',
+            status: 'COMPLETED',
+            requestedAt: '2026-06-23T09:01:00.000Z',
+            completedAt: '2026-06-23T09:02:00.000Z',
+          },
+          withdrawals: [],
+          total: 1,
+          status: 'all',
+          providerConfigured: false,
+          requestId: 'req_missing_provider',
+        });
+      }
+
+      return jsonResponse({ message: `Unhandled ${method} ${url.pathname}${url.search}` }, 500);
+    }) as typeof fetch;
+
+    const methods = await payoutService.getPayoutMethods('coach_live_test');
+    assert.equal(methods.success, false);
+    assert.match(
+      methods.success ? '' : methods.error.message,
+      /explicit simulated payout provider response/i,
+    );
+
+    const completed = await payoutService.completeWithdrawal('wd_missing_provider');
+    assert.equal(completed.success, false);
+    assert.match(
+      completed.success ? '' : completed.error.message,
+      /explicit simulated payout provider response/i,
+    );
+
+    assert.deepEqual(calls, [
+      { method: 'GET', path: '/v1/coaches/me/payout-methods' },
+      { method: 'POST', path: '/v1/coaches/me/withdrawals/wd_missing_provider/complete' },
+    ]);
+  });
 });

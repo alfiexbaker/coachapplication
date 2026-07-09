@@ -8,10 +8,13 @@
 import assert from 'node:assert/strict';
 import test, { describe, beforeEach } from 'node:test';
 
-import { apiClient } from '../../services/api-client';
-import { STORAGE_KEYS } from '../../constants/storage-keys';
-import { sessionRegistrationService } from '../../services/group-session/session-registration-service';
-import type { GroupRegistration } from '../../constants/session-types';
+import { apiClient } from '@/services/api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { api } from '@/constants/config';
+import { sessionRegistrationService } from '@/services/group-session/session-registration-service';
+import { groupSessionAuthorityService } from '@/services/group-session/group-session-authority-service';
+import { serviceError } from '@/types/result';
+import type { GroupRegistration } from '@/constants/session-types';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -123,5 +126,36 @@ describe('sessionRegistrationService.getRegistrationsForAthletes', () => {
     assert.equal(result.length, 1);
     assert.equal(result[0].id, 'reg_a6');
     assert.equal(result[0].athleteId, 'athlete-4');
+  });
+
+  test('API mode surfaces registration list failures instead of empty badge state', async () => {
+    const originalUseMock = Object.getOwnPropertyDescriptor(api, 'useMock');
+    const originalGetRegistrationsForAthletes =
+      groupSessionAuthorityService.getRegistrationsForAthletes;
+
+    Object.defineProperty(api, 'useMock', {
+      configurable: true,
+      get: () => false,
+    });
+    groupSessionAuthorityService.getRegistrationsForAthletes = async () => ({
+      success: false,
+      error: serviceError('NOT_FOUND', 'registration route missing'),
+    });
+
+    try {
+      await assert.rejects(
+        () =>
+          sessionRegistrationService.getRegistrationsForAthletes(
+            new Set(['athlete_api_1']),
+          ),
+        /registration route missing/i,
+      );
+    } finally {
+      if (originalUseMock) {
+        Object.defineProperty(api, 'useMock', originalUseMock);
+      }
+      groupSessionAuthorityService.getRegistrationsForAthletes =
+        originalGetRegistrationsForAthletes;
+    }
   });
 });

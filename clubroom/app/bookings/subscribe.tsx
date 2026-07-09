@@ -64,6 +64,26 @@ export default function SubscribeScreen() {
     );
   }
 
+  if (!c.currentUser?.id) {
+    return renderCoachSelectionShell(
+      <ErrorState message="Sign in before creating a subscription." onRetry={c.retry} />,
+    );
+  }
+  const currentUserName = (
+    c.currentUser.fullName ||
+    c.currentUser.name ||
+    c.currentUser.username ||
+    ''
+  ).trim();
+  if (!currentUserName) {
+    return renderCoachSelectionShell(
+      <ErrorState
+        message="Complete your account name before creating a subscription."
+        onRetry={c.retry}
+      />,
+    );
+  }
+
   if (!c.selectedCoach) {
     const coachItems = getCoachSelectionItems(c.coaches, palette, c.setSelectedCoach);
 
@@ -120,8 +140,8 @@ export default function SubscribeScreen() {
           pricePerSession: c.selectedCoach.pricePerSession,
           location: c.selectedCoach.location,
         }}
-        userId={c.currentUser?.id || 'user1'}
-        userName={c.currentUser?.fullName || 'Guest User'}
+        userId={c.currentUser.id}
+        userName={currentUserName}
         athletes={c.athletes}
         onSubmit={c.handleSubmit}
         onCancel={c.handleCancel}

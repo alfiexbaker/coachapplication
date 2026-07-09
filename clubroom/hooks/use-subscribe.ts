@@ -6,6 +6,7 @@
 import { useState, useEffect, startTransition } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
+import { api } from '@/constants/config';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen } from '@/hooks/use-screen';
@@ -13,7 +14,7 @@ import { recurringBookingService } from '@/services/recurring-booking-service';
 import { discoverService } from '@/services/discover-service';
 import { createLogger } from '@/utils/logger';
 import type { CreateRecurringBookingParams, CoachProfile } from '@/constants/types';
-import { ok } from '@/types/result';
+import { err, ok } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
 const logger = createLogger('SubscribeScreen');
@@ -48,9 +49,15 @@ export function useSubscribe() {
   const [submitting, setSubmitting] = useState(false);
   const loadCoaches = async () => {
     const result = await discoverService.getAllCoaches();
-    if (result.success && result.data.length > 0) {
-      return ok(result.data.map(mapCoachProfileToOption));
+    if (result.success) {
+      const apiCoaches = result.data.map(mapCoachProfileToOption);
+      if (apiCoaches.length > 0 || !api.useMock) {
+        return ok(apiCoaches);
+      }
+    } else if (!api.useMock) {
+      return err(result.error);
     }
+
     const fallbackCoaches = availableUsers.flatMap((user) =>
       user.role === 'COACH'
         ? [
@@ -86,16 +93,25 @@ export function useSubscribe() {
   const coaches = coachesData ?? EMPTY_COACHES;
   const athletes = (() => {
     if (!currentUser?.id || currentUser.role === 'COACH') return undefined;
+    const selfName = (
+      currentUser.fullName ||
+      currentUser.name ||
+      currentUser.username ||
+      ''
+    ).trim();
     if (isParent) {
       return contextChildren.map((c) => ({
         id: c.id,
         name: c.name,
       }));
     }
+    if (!selfName) {
+      return undefined;
+    }
     return [
       {
         id: currentUser.id,
-        name: currentUser.fullName || 'Me',
+        name: selfName,
       },
     ];
   })();

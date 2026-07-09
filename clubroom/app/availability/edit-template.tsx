@@ -167,7 +167,7 @@ export default function EditTemplateScreen() {
           <Row gap="sm" align="center" justify="center">
             <Ionicons name="trash-outline" size={20} color={colors.error} />
             <ThemedText style={[styles.deleteBtnText, { color: colors.error }]}>
-              Delete Template
+              Remove Template
             </ThemedText>
           </Row>
         </Clickable>

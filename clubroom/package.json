@@ -45,6 +45,7 @@
     "audit:ui:quality": "node ./scripts/ui-quality-pipeline.js",
     "audit:ui:quality:release": "node ./scripts/ui-quality-pipeline.js --require-flows",
     "audit:db:stage": "node ./scripts/db-staging-preflight.js",
+    "audit:db:migrations": "node ./scripts/audit-db-migrations.js",
     "audit:db:stage:write": "node ./scripts/db-staging-preflight.js --write",
     "audit:db:stage:strict": "node ./scripts/db-staging-preflight.js --strict",
     "audit:pdos:routes": "node ./scripts/pdos-route-authority-audit.js",

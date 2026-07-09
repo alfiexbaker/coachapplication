@@ -17,6 +17,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import type { SessionOffering } from '@/constants/types';
 import { useSessionDetailModal } from '@/hooks/use-session-detail-modal';
+import { getSessionOfferingGroupSessionId } from '@/utils/session-offering-projections';
 import { SessionInfoSection } from './session-info-section';
 import { SessionRegistrations } from './session-registrations';
 import { SessionInstanceManager } from './session-instance-manager';
@@ -98,6 +99,7 @@ export function SessionDetailModal({
   const showOwnershipSection = isCoach || canManageOffering;
   const needsBookingSelection = bookableChildren.length > 0 && selectedChildIds.length === 0;
   const bookingFooterDisabled = isFull || needsBookingSelection;
+  const isGroupOffering = Boolean(getSessionOfferingGroupSessionId(offering));
 
   return (
     <Modal
@@ -213,14 +215,17 @@ export function SessionDetailModal({
 
                 <Clickable
                   onPress={handleSaveOffPlatformParticipants}
-                  disabled={savingOffPlatform || draftOffPlatformParticipants === offPlatformParticipants}
+                  disabled={
+                    savingOffPlatform || draftOffPlatformParticipants === offPlatformParticipants
+                  }
                   accessibilityLabel="Save off-platform attendee count"
                   style={[
                     styles.offPlatformSaveButton,
                     {
                       backgroundColor: palette.tint,
                       opacity:
-                        savingOffPlatform || draftOffPlatformParticipants === offPlatformParticipants
+                        savingOffPlatform ||
+                        draftOffPlatformParticipants === offPlatformParticipants
                           ? 0.55
                           : 1,
                     },
@@ -258,7 +263,9 @@ export function SessionDetailModal({
                 >
                   <Row align="center" gap="xxs">
                     <Ionicons name="person-add-outline" size={16} color={palette.onPrimary} />
-                    <ThemedText style={[styles.inviteManageButtonText, { color: palette.onPrimary }]}>
+                    <ThemedText
+                      style={[styles.inviteManageButtonText, { color: palette.onPrimary }]}
+                    >
                       Invite Athletes
                     </ThemedText>
                   </Row>
@@ -285,6 +292,7 @@ export function SessionDetailModal({
               canLeaveReview={canLeaveReview}
               canOpenBookingDetail={canOpenBookingDetail}
               postSessionMessage={postSessionMessage}
+              isGroupOffering={isGroupOffering}
               isRecurring={offering.isRecurring ?? false}
               hasMultipleKids={hasMultipleKids}
               childOptions={bookableChildren}
@@ -323,15 +331,23 @@ export function SessionDetailModal({
                   ? 'Session Full'
                   : needsBookingSelection
                     ? "Choose who's attending"
-                  : isRegistered && canAddAnotherChild
-                    ? selectedChildIds.length > 1
-                      ? `Add ${selectedChildIds.length} family members`
-                      : 'Add family member'
-                    : selectedChildIds.length > 1
-                      ? `Continue (${selectedChildIds.length} attending)`
-                      : bookableChildren.length === 0
-                        ? 'Book this session'
-                        : 'Continue to booking'}
+                    : isRegistered && canAddAnotherChild
+                      ? selectedChildIds.length > 1
+                        ? `Register ${selectedChildIds.length} family members`
+                        : isGroupOffering
+                          ? 'Register family member'
+                          : 'Add family member'
+                      : selectedChildIds.length > 1
+                        ? isGroupOffering
+                          ? `Register ${selectedChildIds.length} attending`
+                          : `Continue (${selectedChildIds.length} attending)`
+                        : bookableChildren.length === 0
+                          ? isGroupOffering
+                            ? 'Register'
+                            : 'Book this session'
+                          : isGroupOffering
+                            ? 'Register'
+                            : 'Continue to booking'}
               </ThemedText>
             </Clickable>
           </View>
@@ -345,7 +361,8 @@ export function SessionDetailModal({
             <Clickable
               onPress={() => {
                 onClose();
-                router.push(Routes.sessionComplete(offering.id));
+                const sessionId = getSessionOfferingGroupSessionId(offering) ?? offering.id;
+                router.push(Routes.sessionComplete(sessionId));
               }}
               style={[
                 styles.completeButton,

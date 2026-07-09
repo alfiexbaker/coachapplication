@@ -5,7 +5,6 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
 import { verificationService, type VerificationDocumentUploadInput } from '@/services/verification-service';
-import { apiClient } from '@/services/api-client';
 import { createLogger } from '@/utils/logger';
 import type { VerificationStatus } from '@/constants/types';
 import { err, serviceError, type ServiceError } from '@/types/result';
@@ -33,12 +32,10 @@ export interface UseIdVerificationResult {
   uploaded: boolean;
   isVerified: boolean;
   isPending: boolean;
-  canUseMockApproval: boolean;
   setSelectedType: (value: string | null) => void;
   setUploaded: (value: boolean) => void;
   handleUpload: () => Promise<void>;
   handleSubmit: () => Promise<void>;
-  handleMockApprove: () => Promise<void>;
 }
 
 export function useIdVerification() {
@@ -78,7 +75,6 @@ export function useIdVerification() {
 
   const loading = screenStatus === 'loading';
   const uploaded = Boolean(selectedDocument);
-  const canUseMockApproval = __DEV__ && apiClient.isMockMode;
 
   const handleUpload = async () => {
     if (!selectedType) return;
@@ -120,25 +116,6 @@ export function useIdVerification() {
     });
   };
 
-  const handleMockApprove = async () => {
-    if (!coachId || !canUseMockApproval) return;
-    setSubmitting(true);
-
-    await runAsyncTryCatchFinally(async () => {
-      const result = await verificationService.mockApproveVerification(coachId, 'identity');
-      if (result.success) {
-        onRefresh();
-        router.back();
-      } else {
-        logger.error('Failed to approve:', result.error);
-      }
-    }, async error => {
-      logger.error('Failed to approve:', error);
-    }, () => {
-      setSubmitting(false);
-    });
-  };
-
   const isVerified = status?.identity.status === 'VERIFIED';
   const isPending = status?.identity.status === 'PENDING';
 
@@ -155,7 +132,6 @@ export function useIdVerification() {
     uploaded,
     isVerified,
     isPending,
-    canUseMockApproval,
     setSelectedType: (value: string | null) => {
       setSelectedType(value);
       setSelectedDocument(null);
@@ -165,6 +141,5 @@ export function useIdVerification() {
     },
     handleUpload,
     handleSubmit,
-    handleMockApprove,
   } satisfies UseIdVerificationResult;
 }

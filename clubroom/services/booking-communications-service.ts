@@ -48,6 +48,11 @@ class BookingCommunicationsService {
     nextAssigneeId: string;
     nextAssigneeName: string;
   }): Promise<Result<void, ServiceError>> {
+    if (!api.useMock) {
+      logger.info("Assignment-change notifications are owned by /v1 club staffing routes");
+      return ok(undefined);
+    }
+
     try {
       const club = await socialFeedService.getClub(params.clubId);
       const organizationLabel = club?.name || params.clubId;

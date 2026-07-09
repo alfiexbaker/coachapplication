@@ -69,17 +69,8 @@ export function CoachOfferingsShowcase({
       ? `${offeringSummary.groupOfferingsCount} group options`
       : '1:1 sessions available';
   const accessValue =
-    offeringSummary.clubOfferingsCount > 0 || offeringSummary.eventOfferingsCount > 0
-      ? [
-          offeringSummary.clubOfferingsCount > 0
-            ? `${offeringSummary.clubOfferingsCount} club`
-            : null,
-          offeringSummary.eventOfferingsCount > 0
-            ? `${offeringSummary.eventOfferingsCount} event`
-            : null,
-        ]
-          .filter(Boolean)
-          .join(' · ')
+    offeringSummary.clubOfferingsCount > 0
+      ? `${offeringSummary.clubOfferingsCount} club`
       : offeringSummary.publicOfferingsCount > 0
         ? `${offeringSummary.publicOfferingsCount} public sessions`
         : 'Private booking first';
@@ -90,7 +81,12 @@ export function CoachOfferingsShowcase({
     <Column gap="md">
       <Row style={styles.signalRow}>
         <View style={styles.signalColumn}>
-          <SignalCard icon="cash-outline" label="Typical price" value={priceValue} tint={colors.tint} />
+          <SignalCard
+            icon="cash-outline"
+            label="Typical price"
+            value={priceValue}
+            tint={colors.tint}
+          />
         </View>
         <View style={styles.signalColumn}>
           <SignalCard
@@ -130,9 +126,7 @@ export function CoachOfferingsShowcase({
                 Live sessions with real availability, format, and club context.
               </ThemedText>
             </View>
-            <View
-              style={[styles.liveBadge, { backgroundColor: withAlpha(colors.success, 0.1) }]}
-            >
+            <View style={[styles.liveBadge, { backgroundColor: withAlpha(colors.success, 0.1) }]}>
               <ThemedText style={[styles.liveBadgeText, { color: colors.success }]}>
                 {sessionOfferings.length} live
               </ThemedText>
@@ -150,9 +144,7 @@ export function CoachOfferingsShowcase({
         </Column>
       ) : (
         <SurfaceCard style={styles.emptyCard}>
-          <View
-            style={[styles.emptyIconWrap, { backgroundColor: withAlpha(colors.tint, 0.08) }]}
-          >
+          <View style={[styles.emptyIconWrap, { backgroundColor: withAlpha(colors.tint, 0.08) }]}>
             <Ionicons name="flash-outline" size={20} color={colors.tint} />
           </View>
           <View style={styles.flex}>

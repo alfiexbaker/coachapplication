@@ -42,7 +42,10 @@ export interface AppRecurringPattern {
 export interface AppGroupSession {
   id: string;
   coachId: string;
+  coachName?: string;
   clubId?: string;
+  clubName?: string;
+  createdByName?: string;
   title: string;
   description: string;
   sessionType: AppGroupSessionType;
@@ -350,7 +353,9 @@ interface PrismaSessionRsvpRow {
 interface PrismaSessionRow {
   id: string;
   coachUserId: string;
+  coachName?: string;
   clubId: string | null;
+  clubName?: string;
   squadId: string | null;
   title: string;
   description: string | null;
@@ -377,6 +382,7 @@ interface PrismaSessionRow {
   createdAt: string;
   updatedAt: string;
   createdByUserId: string;
+  createdByName?: string;
   updatedByUserId: string;
   deletedAt: string | null;
   deletedByUserId: string | null;
@@ -546,6 +552,87 @@ function requireAssignedDeliveryCoach(sessionId: string, coachUserId: string | u
   }
   return coachUserId;
 }
+function buildSessionThreadParticipants(params: {
+  coachUserId?: string | null;
+  bookedByUserId?: string | null;
+  athleteUserId?: string | null;
+}): Array<{ userId: string; role: string }> {
+  const entries = [
+    { userId: params.coachUserId, role: 'COACH' },
+    { userId: params.bookedByUserId, role: 'MEMBER' },
+    { userId: params.athleteUserId, role: 'ATHLETE' },
+  ];
+  const seen = new Set<string>();
+  return entries.flatMap((entry) => {
+    const userId = entry.userId?.trim();
+    if (!userId || seen.has(userId)) {
+      return [];
+    }
+    seen.add(userId);
+    return [{ userId, role: entry.role }];
+  });
+}
+function ensureStoreGroupSessionThread(params: {
+  tables: SeedTables;
+  session: SeedRow;
+  participantEntries: Array<{ userId: string; role: string }>;
+  authUserId: string;
+  now: string;
+}): void {
+  const sessionId = asString(params.session.id);
+  if (!sessionId || params.participantEntries.length < 2) {
+    return;
+  }
+  const threads = params.tables.messageThreads = asRows(params.tables.messageThreads);
+  const participants = params.tables.messageParticipants = asRows(params.tables.messageParticipants);
+  let thread = threads.find(
+    (row) =>
+      asString(row.groupSessionId) === sessionId &&
+      asString(row.threadType)?.toUpperCase() === 'GROUP' &&
+      !asString(row.deletedAt),
+  );
+  if (!thread) {
+    thread = {
+      id: newId('thr'),
+      threadType: 'GROUP',
+      clubId: asString(params.session.clubId) ?? null,
+      communityGroupId: null,
+      groupSessionId: sessionId,
+      bookingId: null,
+      title: asString(params.session.title) ?? 'Session chat',
+      lastMessageAt: null,
+      createdByUserId: params.authUserId,
+      updatedByUserId: params.authUserId,
+      version: 1,
+      createdAt: params.now,
+      updatedAt: params.now,
+      deletedAt: null,
+    };
+    threads.push(thread);
+  }
+  for (const entry of params.participantEntries) {
+    const existing = participants.find(
+      (row) =>
+        asString(row.messageThreadId) === asString(thread.id) &&
+        asString(row.userId) === entry.userId,
+    );
+    if (existing) {
+      existing.role = asString(existing.role) ?? entry.role;
+      existing.leftAt = null;
+      continue;
+    }
+    participants.push({
+      id: newId('mpt'),
+      messageThreadId: asString(thread.id),
+      userId: entry.userId,
+      role: entry.role,
+      lastReadAt: null,
+      muted: false,
+      joinedAt: params.now,
+      leftAt: null,
+    });
+  }
+}
 function buildScheduleEntries(value: unknown): AppGroupSessionSchedule[] {
   return asRows(value).flatMap((entry) => {
     const mapped = (() => {
@@ -648,9 +735,24 @@ function mapSessionRow(session: SeedRow): AppGroupSession {
   return {
     id: asString(session.id) ?? '',
     coachId: asString(session.coachUserId) ?? '',
+    ...(asString(session.coachName)
+      ? {
+          coachName: asString(session.coachName),
+        }
+      : {}),
     ...(asString(session.clubId)
       ? {
           clubId: asString(session.clubId),
+        }
+      : {}),
+    ...(asString(session.clubName)
+      ? {
+          clubName: asString(session.clubName),
+        }
+      : {}),
+    ...(asString(session.createdByName)
+      ? {
+          createdByName: asString(session.createdByName),
         }
       : {}),
     title: asString(session.title) ?? 'Session',
@@ -1659,6 +1761,19 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
           registrationId: registration.id,
         });
       }
+      if (registration.status === 'REGISTERED') {
+        ensureStoreGroupSessionThread({
+          tables: store.tables,
+          session,
+          participantEntries: buildSessionThreadParticipants({
+            coachUserId: asString(session.coachUserId),
+            bookedByUserId: registration.parentId,
+            athleteUserId: getAthleteUserIdsByAthleteId(store.tables).get(registration.athleteId),
+          }),
+          authUserId: params.authUserId,
+          now: isoNow(),
+        });
+      }
       const linkedBooking = findLinkedSeedBooking(store.tables, params.sessionId, params.athleteId);
       return {
         registration,
@@ -1736,6 +1851,17 @@ class StoreGroupSessionRepository implements GroupSessionRepository {
         athleteId: params.athleteId,
         bookedByUserId: params.bookedByUserId,
         note: params.note,
+      });
+      ensureStoreGroupSessionThread({
+        tables: store.tables,
+        session,
+        participantEntries: buildSessionThreadParticipants({
+          coachUserId: asString(session.coachUserId),
+          bookedByUserId: params.bookedByUserId,
+          athleteUserId: getAthleteUserIdsByAthleteId(store.tables).get(params.athleteId),
+        }),
+        authUserId: params.authUserId,
+        now,
       });
     }
     session.updatedAt = now;
@@ -2352,7 +2478,64 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
         },
       }),
     );
-    return sessions;
+    const userIds = Array.from(
+      new Set(
+        sessions.flatMap((session) =>
+          [session.coachUserId, session.createdByUserId].filter(Boolean),
+        ),
+      ),
+    );
+    const clubIds = Array.from(new Set(sessions.flatMap((session) => session.clubId ?? [])));
+    const [users, clubs] = await Promise.all([
+      userIds.length > 0
+        ? prisma.user.findMany({
+            where: {
+              id: {
+                in: userIds,
+              },
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              name: true,
+            },
+          })
+        : [],
+      clubIds.length > 0
+        ? prisma.club.findMany({
+            where: {
+              id: {
+                in: clubIds,
+              },
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              name: true,
+            },
+          })
+        : [],
+    ]);
+    const userNameById = new Map(users.map((user) => [user.id, user.name] as const));
+    const clubNameById = new Map(clubs.map((club) => [club.id, club.name] as const));
+    return sessions.map((session) => ({
+      ...session,
+      ...(session.coachUserId && userNameById.get(session.coachUserId)
+        ? {
+            coachName: userNameById.get(session.coachUserId),
+          }
+        : {}),
+      ...(session.createdByUserId && userNameById.get(session.createdByUserId)
+        ? {
+            createdByName: userNameById.get(session.createdByUserId),
+          }
+        : {}),
+      ...(session.clubId && clubNameById.get(session.clubId)
+        ? {
+            clubName: clubNameById.get(session.clubId),
+          }
+        : {}),
+    }));
   }
   private mapPrismaSession(session: PrismaSessionRow): AppGroupSession {
     return mapSessionRow(session as unknown as SeedRow);
@@ -3125,6 +3308,86 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
     const prisma = getPrismaClientOrThrow();
     const session = await this.assertSessionWriteAccess(params.authUserId, true, params.sessionId);
     assertSessionOpenForRegistration(params.sessionId, session.status);
+    const athleteForThread = await prisma.athlete.findUnique({
+      where: {
+        id: params.athleteId,
+      },
+      select: {
+        userId: true,
+      },
+    });
+    const sessionThreadParticipants = buildSessionThreadParticipants({
+      coachUserId: session.coachUserId,
+      bookedByUserId: params.bookedByUserId,
+      athleteUserId: athleteForThread?.userId ?? null,
+    });
+    const ensureDbGroupSessionThread = async <
+      T extends Pick<typeof prisma, 'messageThread' | 'messageParticipant'>,
+    >(
+      tx: T,
+      now: Date,
+    ): Promise<void> => {
+      if (sessionThreadParticipants.length < 2) {
+        return;
+      }
+      let thread = await tx.messageThread.findFirst({
+        where: {
+          groupSessionId: params.sessionId,
+          threadType: 'GROUP',
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+      if (!thread) {
+        thread = await tx.messageThread.create({
+          data: {
+            id: newId('thr'),
+            threadType: 'GROUP',
+            clubId: session.clubId,
+            communityGroupId: null,
+            groupSessionId: params.sessionId,
+            bookingId: null,
+            title: session.title || 'Session chat',
+            lastMessageAt: null,
+            createdByUserId: params.authUserId,
+            updatedByUserId: params.authUserId,
+            createdAt: now,
+            updatedAt: now,
+          },
+          select: {
+            id: true,
+          },
+        });
+      }
+      await Promise.all(
+        sessionThreadParticipants.map((entry) =>
+          tx.messageParticipant.upsert({
+            where: {
+              messageThreadId_userId: {
+                messageThreadId: thread.id,
+                userId: entry.userId,
+              },
+            },
+            update: {
+              role: entry.role,
+              leftAt: null,
+            },
+            create: {
+              id: newId('mpt'),
+              messageThreadId: thread.id,
+              userId: entry.userId,
+              role: entry.role,
+              lastReadAt: null,
+              muted: false,
+              joinedAt: now,
+              leftAt: null,
+            },
+          }),
+        ),
+      );
+    };
     const existing = normalizeAs<PrismaRegistrationRow | null>(
       await prisma.groupSessionRegistration.findFirst({
         where: {
@@ -3151,6 +3414,11 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
         throw conflict('Athlete is already registered for this group session', {
           sessionId: params.sessionId,
           registrationId: registration.id,
+        });
+      }
+      if (registration.status === 'REGISTERED') {
+        await prisma.$transaction(async (tx) => {
+          await ensureDbGroupSessionThread(tx, new Date());
         });
       }
       const linkedBooking = normalizeAs<{
@@ -3355,6 +3623,7 @@ class PrismaGroupSessionRepository implements GroupSessionRepository {
           recurringSeriesId: null,
           groupSessionId: params.sessionId,
         };
+        await ensureDbGroupSessionThread(tx, now);
       }
       return {
         registration: normalizeAs<PrismaRegistrationRow>(registration),

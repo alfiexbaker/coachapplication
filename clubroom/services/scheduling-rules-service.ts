@@ -25,6 +25,7 @@ import type {
 } from '@/constants/types';
 import { api } from '@/constants/config';
 import { createLogger } from '@/utils/logger';
+import { isBrowserFetchFailure } from '@/utils/network-errors';
 import {
   type Result,
   type ServiceError,
@@ -243,10 +244,15 @@ class SchedulingRulesService {
       return ok(result.data);
     }
 
-    logger.error('Failed to load authoritative coach scheduling rules', {
+    const payload = {
       coachId,
       error: result.error.message,
-    });
+    };
+    if (isBrowserFetchFailure(result.error)) {
+      logger.warn('Failed to load authoritative coach scheduling rules', payload);
+    } else {
+      logger.error('Failed to load authoritative coach scheduling rules', payload);
+    }
     return err(result.error);
   }
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { apiClient } from '@/services/api-client';
+import { seenService } from '@/services/seen-service';
 import { useRouter, type Href } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
@@ -36,7 +36,7 @@ interface CoachOnboardingChecklistProps {
   isLive: boolean;
 }
 
-const DISMISS_KEY_PREFIX = 'clubroom.coach_onboarding_dismissed_';
+const COACH_ONBOARDING_DISMISSED_ENTITY = 'coach_onboarding_checklist_dismissed';
 
 // ============================================================================
 // COMPONENT
@@ -57,16 +57,23 @@ export function CoachOnboardingChecklist({
   const { colors: palette } = useTheme();
   const [isDismissed, setIsDismissed] = useState<boolean>(true);
 
-  const dismissKey = `${DISMISS_KEY_PREFIX}${coachId}`;
-
   useEffect(() => {
-    apiClient.get<string | null>(dismissKey, null).then((value) => {
-      setIsDismissed(value === 'true');
-    });
-  }, [dismissKey]);
+    let active = true;
+
+    void seenService
+      .getSeenStatus(COACH_ONBOARDING_DISMISSED_ENTITY, coachId)
+      .then((result) => {
+        if (!active) return;
+        setIsDismissed(result.success ? Boolean(result.data) : false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [coachId]);
 
   const handleDismiss = async () => {
-    await apiClient.set(dismissKey, 'true');
+    await seenService.markSeen(COACH_ONBOARDING_DISMISSED_ENTITY, coachId, coachId);
     setIsDismissed(true);
   };
 

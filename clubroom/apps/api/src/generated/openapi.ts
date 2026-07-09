@@ -67,13 +67,13 @@ export const openApiDocument: Record<string, unknown> = {
       "name": "Matches"
     },
     {
+      "name": "Trust Ops"
+    },
+    {
       "name": "Group Sessions"
     },
     {
       "name": "Events"
-    },
-    {
-      "name": "Trust Ops"
     },
     {
       "name": "Media"
@@ -2702,7 +2702,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Auth"
         ],
         "summary": "Get Auth Profile",
-        "description": "**Status:** implemented\n\n**Contract(s):** scaffold auth profile response\n\n**AuthZ:** authenticated self\n\n**UI anchors:** auth bootstrap + profile/onboarding flows via services/auth-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** scaffold auth profile response; self email/name/phone/profile patch with duplicate-email guard; auth-managed verification state is not client-patchable\n\n**AuthZ:** authenticated self\n\n**UI anchors:** auth bootstrap + profile/onboarding flows via services/auth-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "getAuthProfile",
         "parameters": [
           {
@@ -2744,7 +2744,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Auth"
         ],
         "summary": "Update Auth Profile",
-        "description": "**Status:** implemented\n\n**Contract(s):** scaffold auth profile response\n\n**AuthZ:** authenticated self\n\n**UI anchors:** auth bootstrap + profile/onboarding flows via services/auth-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** scaffold auth profile response; self email/name/phone/profile patch with duplicate-email guard; auth-managed verification state is not client-patchable\n\n**AuthZ:** authenticated self\n\n**UI anchors:** auth bootstrap + profile/onboarding flows via services/auth-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "updateAuthProfile",
         "parameters": [
           {
@@ -3897,7 +3897,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Bookings"
         ],
         "summary": "List Booking",
-        "description": "**Status:** scaffolded\n\n**Contract(s):** BookingListResponse with nullable booking recurringSeriesId/groupSessionId\n\n**AuthZ:** participants/guardian/coach\n\n**UI anchors:** app/(tabs)/bookings/index.tsx, hooks/use-bookings.ts, services/booking/booking-authority-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** BookingListResponse with nullable booking recurringSeriesId/groupSessionId\n\n**AuthZ:** participants/guardian/coach\n\n**UI anchors:** app/(tabs)/bookings/index.tsx, hooks/use-bookings.ts, services/booking/booking-authority-service.ts; API-mode client list reads always refetch /v1/bookings instead of serving the runtime memory mirror\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "listBooking",
         "parameters": [
           {
@@ -3932,14 +3932,14 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "list",
-        "x-clubroom-status": "scaffolded"
+        "x-clubroom-status": "implemented"
       },
       "post": {
         "tags": [
           "Bookings"
         ],
         "summary": "Create Booking",
-        "description": "**Status:** scaffolded\n\n**Contract(s):** CreateBookingRequest, BookingResponse\n\n**AuthZ:** actor must pass repository athlete-relationship authz; backend re-validates the selected slot before create and honors same-key idempotency replay/conflict\n\n**UI anchors:** app/book/[coachId]/*, components/ui/booking/*, services/booking/booking-authority-service.ts; client CRUD keeps runtime memory only and does not create API-mode local notification overlays\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** CreateBookingRequest, BookingResponse\n\n**AuthZ:** actor must pass repository athlete-relationship authz; backend re-validates the selected slot before create and honors same-key idempotency replay/conflict\n\n**UI anchors:** app/book/[coachId]/*, components/ui/booking/*, services/booking/booking-authority-service.ts; client CRUD keeps runtime memory only and does not create API-mode local notification overlays\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "createBooking",
         "parameters": [
           {
@@ -3994,7 +3994,7 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "create",
-        "x-clubroom-status": "scaffolded"
+        "x-clubroom-status": "implemented"
       }
     },
     "/v1/bookings/{bookingId}": {
@@ -4003,7 +4003,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Bookings"
         ],
         "summary": "Get Booking",
-        "description": "**Status:** scaffolded\n\n**Contract(s):** BookingResponse with nullable recurringSeriesId/groupSessionId\n\n**AuthZ:** participants/guardian/coach\n\n**UI anchors:** app/(tabs)/bookings/[id].tsx, hooks/use-booking-detail.ts, services/booking/booking-authority-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** BookingResponse with nullable recurringSeriesId/groupSessionId\n\n**AuthZ:** participants/guardian/coach\n\n**UI anchors:** app/(tabs)/bookings/[id].tsx, hooks/use-booking-detail.ts, services/booking/booking-authority-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "getBooking",
         "parameters": [
           {
@@ -4047,7 +4047,7 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "get",
-        "x-clubroom-status": "scaffolded"
+        "x-clubroom-status": "implemented"
       },
       "patch": {
         "tags": [
@@ -4117,7 +4117,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Bookings"
         ],
         "summary": "Cancel Booking",
-        "description": "**Status:** scaffolded\n\n**Contract(s):** CancelBookingRequest, BookingResponse\n\n**AuthZ:** parent/athlete/coach tied to booking participants or delivery coach\n\n**UI anchors:** app/booking/[id]/cancel.tsx, hooks/use-booking-cancel.ts, services/booking/booking-authority-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** CancelBookingRequest, BookingResponse\n\n**AuthZ:** parent/athlete/coach tied to booking participants or delivery coach\n\n**UI anchors:** app/booking/[id]/cancel.tsx, hooks/use-booking-cancel.ts, services/booking/booking-authority-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "cancelBooking",
         "parameters": [
           {
@@ -4181,7 +4181,7 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "cancel",
-        "x-clubroom-status": "scaffolded"
+        "x-clubroom-status": "implemented"
       }
     },
     "/v1/bookings/{bookingId}/complete": {
@@ -4389,7 +4389,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Bookings"
         ],
         "summary": "Reopen Booking",
-        "description": "**Status:** scaffolded\n\n**Contract(s):** ReopenBookingRequest, BookingResponse\n\n**AuthZ:** parent/athlete/coach tied to booking participants or delivery coach\n\n**UI anchors:** app/(tabs)/bookings/[id].tsx, hooks/use-booking-detail.ts, services/booking/booking-authority-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** ReopenBookingRequest, BookingResponse\n\n**AuthZ:** parent/athlete/coach tied to booking participants or delivery coach\n\n**UI anchors:** app/(tabs)/bookings/[id].tsx, hooks/use-booking-detail.ts, services/booking/booking-authority-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "reopenBooking",
         "parameters": [
           {
@@ -4453,7 +4453,7 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "reopen",
-        "x-clubroom-status": "scaffolded"
+        "x-clubroom-status": "implemented"
       }
     },
     "/v1/bookings/{bookingId}/reviews": {
@@ -5766,6 +5766,79 @@ export const openApiDocument: Record<string, unknown> = {
         "x-clubroom-status": "implemented"
       }
     },
+    "/v1/clubs/{clubId}/invites": {
+      "post": {
+        "tags": [
+          "Invites"
+        ],
+        "summary": "Create Club Invite",
+        "description": "**Status:** implemented\n\n**Contract(s):** pending club invite list\n\n**AuthZ:** manage_staff_and_invites capability plus role outrank, or platform privileged admin; direct invites support MEMBER, coach-account COACH, and staff-account ADMIN targets; existing accounts are targeted by user id, unregistered emails are stored as HMAC email-target pending invites, create/respond paths are audited without raw invite email metadata, and email-target delivery is audited by count/provider\n\n**UI anchors:** selected existing-user and manual email club invite flow through hooks/use-club-invite.ts and services/club-authority-service.ts; email delivery uses the configured webhook, Brevo API, SMTP, or dev-outbox provider and does not block durable invite creation\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "operationId": "createClubInvite",
+        "parameters": [
+          {
+            "name": "clubId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Path parameter: clubId."
+          },
+          {
+            "$ref": "#/components/parameters/ActingRoleHeader"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response. See the route contract and implementation for payload shape.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created response when this route creates a resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-clubroom-effect": "create",
+        "x-clubroom-status": "implemented"
+      }
+    },
     "/v1/clubs/{clubId}/matches": {
       "get": {
         "tags": [
@@ -6156,6 +6229,79 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "update",
+        "x-clubroom-status": "implemented"
+      }
+    },
+    "/v1/clubs/{clubId}/members/me/leave": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Create Member Leave",
+        "description": "**Status:** implemented\n\n**Contract(s):** club member removal payload\n\n**AuthZ:** authenticated active member only; target is pinned to the actor; ownership cannot be abandoned; soft-removes membership and squad links; writes audited as club_member.leave\n\n**UI anchors:** Club Detail self-leave through hooks/use-club-detail.ts and services/club-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "operationId": "createMemberLeave",
+        "parameters": [
+          {
+            "name": "clubId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Path parameter: clubId."
+          },
+          {
+            "$ref": "#/components/parameters/ActingRoleHeader"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response. See the route contract and implementation for payload shape.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created response when this route creates a resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-clubroom-effect": "create",
         "x-clubroom-status": "implemented"
       }
     },
@@ -7647,7 +7793,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Scheduling"
         ],
         "summary": "List Availability Slot",
-        "description": "**Status:** scaffolded\n\n**Contract(s):** AvailabilitySlot*\n\n**AuthZ:** authenticated viewer; current runtime exposes bookable coach slots through backend authority\n\n**UI anchors:** app/book/[coachId]/schedule.tsx, hooks/use-multi-week.ts, services/availability-service.ts, services/invite/session-invite-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** AvailabilitySlot*\n\n**AuthZ:** authenticated viewer; derives slots from backend availability templates/overrides, bookings, pending invite holds when requested, and scheduling rules when requested\n\n**UI anchors:** app/book/[coachId]/schedule.tsx, hooks/use-multi-week.ts, services/availability-service.ts, services/invite/session-invite-service.ts; route tests cover booked slots, pending-hold exclusion, and scheduling-rule filtering, and staging smoke uses it before invite create/accept flows\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "listAvailabilitySlot",
         "parameters": [
           {
@@ -7691,7 +7837,7 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "list",
-        "x-clubroom-status": "scaffolded"
+        "x-clubroom-status": "implemented"
       }
     },
     "/v1/coaches/{coachId}/availability/templates": {
@@ -8011,6 +8157,59 @@ export const openApiDocument: Record<string, unknown> = {
         "summary": "List Coach Practice Follow Up",
         "description": "**Status:** implemented\n\n**Contract(s):** db-aware coach follow-up queue derived from pending drill assignments\n\n**AuthZ:** coach self or privileged admin; success/deny sensitive reads are audited\n\n**UI anchors:** services/progress/progress-practice-task-service.ts, hooks/use-progress-loop.ts, and apps/api/src/modules/wave2plus/routes.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "listCoachPracticeFollowUp",
+        "parameters": [
+          {
+            "name": "coachId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Path parameter: coachId."
+          },
+          {
+            "$ref": "#/components/parameters/ActingRoleHeader"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response. See the route contract and implementation for payload shape.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-clubroom-effect": "list",
+        "x-clubroom-status": "implemented"
+      }
+    },
+    "/v1/coaches/{coachId}/profile": {
+      "get": {
+        "tags": [
+          "Coaches"
+        ],
+        "summary": "List Coach Profile",
+        "description": "**Status:** implemented\n\n**Contract(s):** public coach profile bundle with active offerings\n\n**AuthZ:** authenticated viewer; returns public coach display name, bio, pricing, website, social links, experience, languages, specialties, qualifications, travel flags, and active offerings; does not expose verification documents, payout/payment fields, or private settings\n\n**UI anchors:** public coach profile read through services/coach-service.ts#getCoach; profile screens keep reviews and bookable offerings on their dedicated /v1 contracts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "operationId": "listCoachProfile",
         "parameters": [
           {
             "name": "coachId",
@@ -9364,6 +9563,78 @@ export const openApiDocument: Record<string, unknown> = {
         "x-clubroom-status": "implemented"
       }
     },
+    "/v1/coaches/{coachId}/verifications/{type}/review": {
+      "patch": {
+        "tags": [
+          "Trust Ops"
+        ],
+        "summary": "Review Coach Verification",
+        "description": "**Status:** implemented\n\n**Contract(s):** reviewer decision for pending coach verification evidence\n\n**AuthZ:** platform admin or security_admin only; club admins and coaches are denied; updates CoachVerification to approved, rejected, or expired, records reviewer/timestamp/notes/expiry, keeps legacy DBS flag in sync, and audits success/deny paths without exposing documents\n\n**UI anchors:** reviewer/admin verification actions through services/verification-service.ts#updateVerificationItem; email/phone verification remain auth-provider owned\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "operationId": "reviewCoachVerification",
+        "parameters": [
+          {
+            "name": "coachId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Path parameter: coachId."
+          },
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Path parameter: type."
+          },
+          {
+            "$ref": "#/components/parameters/ActingRoleHeader"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoachVerificationReviewInput"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response. See the route contract and implementation for payload shape.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-clubroom-effect": "review",
+        "x-clubroom-status": "implemented"
+      }
+    },
     "/v1/coaches/me/availability/overrides": {
       "get": {
         "tags": [
@@ -10386,7 +10657,7 @@ export const openApiDocument: Record<string, unknown> = {
         ],
         "summary": "List Coach Profile",
         "description": "**Status:** implemented\n\n**Contract(s):** CoachProfile*\n\n**AuthZ:** coach self\n\n**UI anchors:** app/(tabs)/coach-profile.tsx\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
-        "operationId": "listCoachProfile",
+        "operationId": "listCoachProfileGetV1CoachMeProfile",
         "parameters": [
           {
             "$ref": "#/components/parameters/ActingRoleHeader"
@@ -10938,6 +11209,226 @@ export const openApiDocument: Record<string, unknown> = {
         "x-clubroom-status": "implemented"
       }
     },
+    "/v1/coaches/me/venues": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "List Coach Venue",
+        "description": "**Status:** implemented\n\n**Contract(s):** coach venue preset list/create backed by CoachLocation\n\n**AuthZ:** coach self with active coach profile; reads and creates are audited; API mode never uses client-local COACH_VENUES as live venue authority\n\n**UI anchors:** schedule venue presets through services/coach-venue-service.ts and hooks/use-schedule.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "operationId": "listCoachVenue",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActingRoleHeader"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response. See the route contract and implementation for payload shape.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-clubroom-effect": "list",
+        "x-clubroom-status": "implemented"
+      },
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Create Coach Venue",
+        "description": "**Status:** implemented\n\n**Contract(s):** coach venue preset list/create backed by CoachLocation\n\n**AuthZ:** coach self with active coach profile; reads and creates are audited; API mode never uses client-local COACH_VENUES as live venue authority\n\n**UI anchors:** schedule venue presets through services/coach-venue-service.ts and hooks/use-schedule.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "operationId": "createCoachVenue",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActingRoleHeader"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response. See the route contract and implementation for payload shape.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created response when this route creates a resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-clubroom-effect": "create",
+        "x-clubroom-status": "implemented"
+      }
+    },
+    "/v1/coaches/me/venues/{venueId}": {
+      "patch": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Update Coach Venue",
+        "description": "**Status:** implemented\n\n**Contract(s):** coach venue preset update/archive backed by CoachLocation\n\n**AuthZ:** coach self with active coach profile; item must belong to authenticated coach; delete soft-removes and audits as coach_venue.archive\n\n**UI anchors:** schedule venue preset edits/removal through services/coach-venue-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "operationId": "updateCoachVenue",
+        "parameters": [
+          {
+            "name": "venueId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Path parameter: venueId."
+          },
+          {
+            "$ref": "#/components/parameters/ActingRoleHeader"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response. See the route contract and implementation for payload shape.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-clubroom-effect": "update",
+        "x-clubroom-status": "implemented"
+      },
+      "delete": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Archive Coach Venue",
+        "description": "**Status:** implemented\n\n**Contract(s):** coach venue preset update/archive backed by CoachLocation\n\n**AuthZ:** coach self with active coach profile; item must belong to authenticated coach; delete soft-removes and audits as coach_venue.archive\n\n**UI anchors:** schedule venue preset edits/removal through services/coach-venue-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "operationId": "archiveCoachVenue",
+        "parameters": [
+          {
+            "name": "venueId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Path parameter: venueId."
+          },
+          {
+            "$ref": "#/components/parameters/ActingRoleHeader"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response. See the route contract and implementation for payload shape.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-clubroom-effect": "archive",
+        "x-clubroom-status": "implemented"
+      }
+    },
     "/v1/coaches/me/verifications/{type}/documents": {
       "get": {
         "tags": [
@@ -11358,6 +11849,236 @@ export const openApiDocument: Record<string, unknown> = {
         "x-clubroom-status": "implemented"
       }
     },
+    "/v1/coaches/search": {
+      "get": {
+        "tags": [
+          "Coaches"
+        ],
+        "summary": "Search Coaches",
+        "description": "**Status:** implemented\n\n**Contract(s):** public coach search result page with safe profile metadata, active offerings, relevance score, public rating aggregate, public-location distance fields, filter options, and pagination\n\n**AuthZ:** authenticated viewer; filters and ranks on backend-owned public coach profile fields, active offerings, completed public-review aggregates, public CoachLocation.label text, and public CoachLocation.latLngJson coordinates for query, sport, price, focus, format, language, rating, and coordinate radius; does not expose verification documents, payout/payment fields, private settings, raw addresses, or sensitive review detail\n\n**UI anchors:** coach marketplace search and simple coach service list/search/featured reads through services/discover-service.ts, services/coach-service.ts, and shared services/coach-offering-api.ts; coordinate distance search uses lat, lng, and optional radiusKm; external geocoding/postcode-to-coordinate lookup remains out of scope\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "operationId": "searchCoaches",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActingRoleHeader"
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "description": "Text search across public coach profile fields and active offerings."
+          },
+          {
+            "name": "priceMin",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            "description": "Minimum GBP price per session."
+          },
+          {
+            "name": "priceMax",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            "description": "Maximum GBP price per session."
+          },
+          {
+            "name": "rating",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 5
+            },
+            "description": "Minimum completed public-review rating aggregate."
+          },
+          {
+            "name": "sports",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "maxItems": 20
+            },
+            "style": "form",
+            "explode": true,
+            "description": "Sports to include. Clubroom is football-only today."
+          },
+          {
+            "name": "focuses",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "maxItems": 20
+            },
+            "style": "form",
+            "explode": true,
+            "description": "Football focus labels to include."
+          },
+          {
+            "name": "formats",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "maxItems": 20
+            },
+            "style": "form",
+            "explode": true,
+            "description": "Session formats to include."
+          },
+          {
+            "name": "languages",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "maxItems": 20
+            },
+            "style": "form",
+            "explode": true,
+            "description": "Coach language names to include."
+          },
+          {
+            "name": "lat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "description": "Search origin latitude. Required with lng for distance filtering or distance sort."
+          },
+          {
+            "name": "lng",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            },
+            "description": "Search origin longitude. Required with lat for distance filtering or distance sort."
+          },
+          {
+            "name": "radiusKm",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 500
+            },
+            "description": "Maximum distance from the lat/lng origin in kilometres. Uses public coach location coordinates only and never exposes raw addresses."
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "relevance",
+                "distance",
+                "rating",
+                "price_low",
+                "price_high",
+                "reviews"
+              ],
+              "default": "relevance"
+            },
+            "description": "Sort order for backend public coach search results."
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 1
+            },
+            "description": "Page number."
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "Page size."
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response. See the route contract and implementation for payload shape.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-clubroom-effect": "search",
+        "x-clubroom-status": "implemented"
+      }
+    },
     "/v1/comments/{commentId}": {
       "get": {
         "tags": [
@@ -11722,7 +12443,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Community"
         ],
         "summary": "Create Community Group",
-        "description": "**Status:** implemented\n\n**Contract(s):** scaffold community-group create for GENERAL, CLUB, and private SQUAD groups\n\n**AuthZ:** authenticated actor creates GENERAL groups as owner; CLUB groups require active club staff or privileged admin; SQUAD groups require squadId, derive clubId from the squad, stay private, are idempotent by one active group per squad, and can only seed users assigned to the squad as owner coach, linked athlete user, or linked guardian; idempotency replay/conflict is enforced and writes are audited\n\n**UI anchors:** community group creation via services/community/community-group-service.ts, services/community-media-authority-service.ts, and services/squad-group-service.ts; session group creation remains fail-closed until dedicated session membership authority exists\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** scaffold community-group create for GENERAL, CLUB, and private SQUAD groups\n\n**AuthZ:** authenticated actor creates GENERAL groups as owner; CLUB groups require active club staff or privileged admin; SQUAD groups require squadId, derive clubId from the squad, stay private, are idempotent by one active group per squad, and can only seed users assigned to the squad as owner coach, linked athlete user, or linked guardian; idempotency replay/conflict is enforced and writes are audited\n\n**UI anchors:** community group creation via services/community/community-group-service.ts, services/community-media-authority-service.ts, and services/squad-group-service.ts; session chat uses MessageThread.groupSessionId from confirmed registration rather than CommunityGroup\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "createCommunityGroup",
         "parameters": [
           {
@@ -12675,7 +13396,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Messaging"
         ],
         "summary": "Create Community Group Message",
-        "description": "**Status:** implemented\n\n**Contract(s):** scaffold group message create\n\n**AuthZ:** authenticated active group member only; sender is derived from auth, attachments are denied until backend media proof exists, idempotency replay/conflict is enforced, and allowed/denied writes are audited\n\n**UI anchors:** group chat send flow via services/community/community-messaging-service.ts and services/community-media-authority-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** group message create with optional finalized media proof attachments\n\n**AuthZ:** authenticated active group member only; sender is derived from auth, up to five media attachments must reference finalized media objects owned by the actor, idempotency replay/conflict is enforced, and allowed/denied writes are audited\n\n**UI anchors:** group chat send flow via services/community/community-messaging-service.ts and services/community-media-authority-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "createCommunityGroupMessage",
         "parameters": [
           {
@@ -12915,6 +13636,57 @@ export const openApiDocument: Record<string, unknown> = {
       }
     },
     "/v1/drill-assignments/{assignmentId}": {
+      "get": {
+        "tags": [
+          "Progress"
+        ],
+        "summary": "Get Drill Assignment",
+        "description": "**Status:** implemented\n\n**Contract(s):** db-aware drill assignment detail with drill and submission context\n\n**AuthZ:** athlete self, guardian, assigned coach, or privileged admin through athlete health read gate after resolving the assignment; success/deny sensitive reads are audited\n\n**UI anchors:** services/drill-service.ts#getAssignmentById; API mode reads detail through /v1 instead of returning null for every assignment\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "operationId": "getDrillAssignment",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Path parameter: assignmentId."
+          },
+          {
+            "$ref": "#/components/parameters/ActingRoleHeader"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response. See the route contract and implementation for payload shape.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-clubroom-effect": "get",
+        "x-clubroom-status": "implemented"
+      },
       "delete": {
         "tags": [
           "Progress"
@@ -14380,6 +15152,76 @@ export const openApiDocument: Record<string, unknown> = {
       }
     },
     "/v1/families/{familyId}/guardians/{guardianId}": {
+      "patch": {
+        "tags": [
+          "Family"
+        ],
+        "summary": "Update Family Guardian",
+        "description": "**Status:** implemented\n\n**Contract(s):** UpdateFamilyGuardianAccessRequest, FamilyGuardianResponse\n\n**AuthZ:** family admin guardian; primary guardian access cannot be modified; child access must stay inside family and success/deny paths are audited\n\n**UI anchors:** services/family/family-permission-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "operationId": "updateFamilyGuardian",
+        "parameters": [
+          {
+            "name": "familyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Path parameter: familyId."
+          },
+          {
+            "name": "guardianId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Path parameter: guardianId."
+          },
+          {
+            "$ref": "#/components/parameters/ActingRoleHeader"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response. See the route contract and implementation for payload shape.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-clubroom-effect": "update",
+        "x-clubroom-status": "implemented"
+      },
       "delete": {
         "tags": [
           "Family"
@@ -15920,7 +16762,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Group Sessions"
         ],
         "summary": "Register Group Session",
-        "description": "**Status:** implemented\n\n**Contract(s):** RegisterGroupSessionRequest, RegisterGroupSessionResponse\n\n**AuthZ:** athlete self, guardian of athlete, or club_admin acting on behalf; session must be PUBLISHED or FULL; billable registrations create linked booking and invoice, with paidAt set only after backend payment confirmation; writes registration audit events\n\n**UI anchors:** hooks/use-group-session.ts, services/group-session/session-registration-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** RegisterGroupSessionRequest, RegisterGroupSessionResponse\n\n**AuthZ:** athlete self, guardian of athlete, or club_admin acting on behalf; session must be PUBLISHED or FULL; billable confirmed registrations create linked booking and invoice, create/reactivate a MessageThread.groupSessionId session thread for the delivery coach plus registering family/athlete account, and set paidAt only after backend payment confirmation; writes registration audit events\n\n**UI anchors:** hooks/use-group-session.ts, services/group-session/session-registration-service.ts; session message shortcuts use /v1/message-threads\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "registerGroupSession",
         "parameters": [
           {
@@ -16410,7 +17252,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Group Sessions"
         ],
         "summary": "Create Group Session Waitlist",
-        "description": "**Status:** implemented\n\n**Contract(s):** JoinGroupSessionWaitlistRequest, RegisterGroupSessionResponse\n\n**AuthZ:** athlete self, guardian of athlete, or club_admin acting on behalf; session must be full and waitlist-enabled; creates or returns a waitlisted registration without a booking or invoice; denies waitlist attempts while spaces remain; writes waitlist audit events\n\n**UI anchors:** group session detail waitlist action via hooks/use-group-session.ts, services/group-session/session-registration-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** JoinGroupSessionWaitlistRequest, RegisterGroupSessionResponse\n\n**AuthZ:** athlete self, guardian of athlete, or club_admin acting on behalf; session must be full and waitlist-enabled; creates or returns a waitlisted registration without a booking, invoice, or session message-thread membership; denies waitlist attempts while spaces remain; writes waitlist audit events\n\n**UI anchors:** group session detail waitlist action via hooks/use-group-session.ts, services/group-session/session-registration-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "createGroupSessionWaitlist",
         "parameters": [
           {
@@ -16629,7 +17471,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Platform"
         ],
         "summary": "List Health",
-        "description": "**Status:** scaffolded\n\n**Notes:** contract in @clubroom/shared-contracts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Notes:** public liveness payload validated by @clubroom/shared-contracts; covered by API security-header and rate-limit tests\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "listHealth",
         "security": [],
         "responses": {
@@ -16655,7 +17497,7 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "list",
-        "x-clubroom-status": "scaffolded"
+        "x-clubroom-status": "implemented"
       }
     },
     "/v1/injuries/{injuryId}": {
@@ -16841,7 +17683,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Invites"
         ],
         "summary": "List Invite",
-        "description": "**Status:** scaffolded\n\n**Contract(s):** scaffold session-invite list response\n\n**AuthZ:** seed/db-fixture plus real db Invite/InviteTarget route adapter; owner coach sent view or invite target received view for authenticated self; SQUAD_ONLY fallback discovery by squadIds requires linked guardian/athlete squad membership instead of trusting guessed squad ids\n\n**UI anchors:** app/session-invites/index.tsx, services/invite/session-invite-authority-service.ts, services/invite/squad-invite-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** session-invite list response\n\n**AuthZ:** seed/db-fixture plus real db Invite/InviteTarget route adapter; owner coach sent view or invite target received view for authenticated self; SQUAD_ONLY fallback discovery by squadIds requires linked guardian/athlete squad membership instead of trusting guessed squad ids\n\n**UI anchors:** app/session-invites/index.tsx, services/invite/session-invite-authority-service.ts, services/invite/squad-invite-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "listInvite",
         "parameters": [
           {
@@ -16876,14 +17718,14 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "list",
-        "x-clubroom-status": "scaffolded"
+        "x-clubroom-status": "implemented"
       },
       "post": {
         "tags": [
           "Invites"
         ],
         "summary": "Create Invite",
-        "description": "**Status:** scaffolded\n\n**Contract(s):** scaffold session-invite create payload + invite snapshot\n\n**AuthZ:** seed/db-fixture plus real db Invite/InviteTarget route adapter; owner coach self or club_admin acting on behalf; backend honors same-key idempotency replay/conflict, validates direct-invite proposed slots and pending-hold conflicts before create, validates SQUAD_ONLY squadIds against active squad membership, persists create state, and audits allowed and denied creates\n\n**UI anchors:** app/sessions/create.tsx, hooks/use-create-session.ts, services/invite/session-invite-authority-service.ts, services/invite/bulk-invite-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** session-invite create payload + invite snapshot\n\n**AuthZ:** seed/db-fixture plus real db Invite/InviteTarget route adapter; owner coach self or club_admin acting on behalf; backend honors same-key idempotency replay/conflict, validates direct-invite proposed slots and pending-hold conflicts before create, validates SQUAD_ONLY squadIds against active squad membership, persists create state, and audits allowed and denied creates\n\n**UI anchors:** app/sessions/create.tsx, hooks/use-create-session.ts, services/invite/session-invite-authority-service.ts, services/invite/bulk-invite-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "createInvite",
         "parameters": [
           {
@@ -16938,7 +17780,7 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "create",
-        "x-clubroom-status": "scaffolded"
+        "x-clubroom-status": "implemented"
       }
     },
     "/v1/invites/{inviteId}": {
@@ -16947,7 +17789,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Invites"
         ],
         "summary": "Get Invite",
-        "description": "**Status:** scaffolded\n\n**Contract(s):** scaffold session-invite detail response\n\n**AuthZ:** seed/db-fixture plus real db Invite/InviteTarget route adapter; owner coach or invite target only\n\n**UI anchors:** app/session-invites/[id].tsx, services/invite/session-invite-authority-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** session-invite detail response\n\n**AuthZ:** seed/db-fixture plus real db Invite/InviteTarget route adapter; owner coach or invite target only\n\n**UI anchors:** app/session-invites/[id].tsx, services/invite/session-invite-authority-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "getInvite",
         "parameters": [
           {
@@ -16991,14 +17833,14 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "get",
-        "x-clubroom-status": "scaffolded"
+        "x-clubroom-status": "implemented"
       },
       "delete": {
         "tags": [
           "Invites"
         ],
         "summary": "Remove Invite",
-        "description": "**Status:** scaffolded\n\n**Contract(s):** none\n\n**AuthZ:** seed/db-fixture plus real db Invite/InviteTarget route adapter; owner coach or club_admin; allowed and denied cancellations are audited\n\n**UI anchors:** app/session-invites/index.tsx, app/session-invites/[id].tsx, services/invite/session-invite-authority-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** none\n\n**AuthZ:** seed/db-fixture plus real db Invite/InviteTarget route adapter; owner coach or club_admin; allowed and denied cancellations are audited\n\n**UI anchors:** app/session-invites/index.tsx, app/session-invites/[id].tsx, services/invite/session-invite-authority-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "removeInvite",
         "parameters": [
           {
@@ -17035,7 +17877,7 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "remove",
-        "x-clubroom-status": "scaffolded"
+        "x-clubroom-status": "implemented"
       }
     },
     "/v1/invites/{inviteId}/dismiss": {
@@ -17044,7 +17886,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Invites"
         ],
         "summary": "Dismiss Invite",
-        "description": "**Status:** scaffolded\n\n**Contract(s):** none\n\n**AuthZ:** seed/db-fixture plus real db Invite/InviteTarget route adapter; invite target only; allowed and denied dismissals are audited\n\n**UI anchors:** app/session-invites/index.tsx, services/invite/session-invite-authority-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** none\n\n**AuthZ:** seed/db-fixture plus real db Invite/InviteTarget route adapter; invite target only; allowed and denied dismissals are audited\n\n**UI anchors:** app/session-invites/index.tsx, services/invite/session-invite-authority-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "dismissInvite",
         "parameters": [
           {
@@ -17108,7 +17950,7 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "dismiss",
-        "x-clubroom-status": "scaffolded"
+        "x-clubroom-status": "implemented"
       }
     },
     "/v1/invites/{inviteId}/remind": {
@@ -17117,7 +17959,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Invites"
         ],
         "summary": "Remind Invite",
-        "description": "**Status:** scaffolded\n\n**Contract(s):** none\n\n**AuthZ:** seed/db-fixture plus real db Invite/InviteTarget route adapter; owner coach or club_admin; allowed and denied reminders are audited\n\n**UI anchors:** app/session-invites/[id].tsx, services/invite/session-invite-authority-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** none\n\n**AuthZ:** seed/db-fixture plus real db Invite/InviteTarget route adapter; owner coach or club_admin; allowed and denied reminders are audited\n\n**UI anchors:** app/session-invites/[id].tsx, services/invite/session-invite-authority-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "remindInvite",
         "parameters": [
           {
@@ -17181,7 +18023,7 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "remind",
-        "x-clubroom-status": "scaffolded"
+        "x-clubroom-status": "implemented"
       }
     },
     "/v1/invites/{inviteId}/respond": {
@@ -17190,7 +18032,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Invites"
         ],
         "summary": "Respond Invite",
-        "description": "**Status:** scaffolded\n\n**Contract(s):** InviteResponseRequest, InviteResponseResult plus scaffold invite snapshot\n\n**AuthZ:** seed/db-fixture plus real db Invite/InviteTarget route adapter; invite target only; backend re-validates accepted direct-invite slots, creates direct-invite bookings through booking repository authority in db mode, creates recurring booking series and accepted-week bookings for recurringWeekResponses, persists terminal response state, replays same terminal responses, rejects accept/decline flips after response, and audits allowed/denied responses\n\n**UI anchors:** app/session-invites/*, services/invite/session-invite-authority-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** InviteResponseRequest, InviteResponseResult plus invite snapshot\n\n**AuthZ:** seed/db-fixture plus real db Invite/InviteTarget route adapter; invite target only; backend re-validates accepted direct-invite slots, creates direct-invite bookings through booking repository authority in db mode, creates recurring booking series and accepted-week bookings for recurringWeekResponses, persists terminal response state, replays same terminal responses, rejects accept/decline flips after response, and audits allowed/denied responses\n\n**UI anchors:** app/session-invites/*, services/invite/session-invite-authority-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "respondInvite",
         "parameters": [
           {
@@ -17254,7 +18096,7 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "respond",
-        "x-clubroom-status": "scaffolded"
+        "x-clubroom-status": "implemented"
       }
     },
     "/v1/invites/{inviteId}/rsvps": {
@@ -17387,7 +18229,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Revenue"
         ],
         "summary": "List Invoice",
-        "description": "**Status:** scaffolded\n\n**Contract(s):** InvoiceListResponse\n\n**AuthZ:** authenticated self; filtered to owner coach / payer / privileged admin / active club owner-admin finance role for linked club invoices\n\n**UI anchors:** app/invoices/index.tsx, app/(tabs)/bookings/[id].tsx, services/invoice-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** InvoiceListResponse\n\n**AuthZ:** authenticated self; filtered through backend invoice authority to owner coach, payer, privileged admin, or active club owner/admin finance role for linked club invoices; db mode reads Prisma Invoice rows and audits sensitive finance reads\n\n**UI anchors:** app/invoices/index.tsx, app/(tabs)/bookings/[id].tsx, services/invoice-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "listInvoice",
         "parameters": [
           {
@@ -17422,7 +18264,7 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "list",
-        "x-clubroom-status": "scaffolded"
+        "x-clubroom-status": "implemented"
       }
     },
     "/v1/invoices/{invoiceId}": {
@@ -17431,7 +18273,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Revenue"
         ],
         "summary": "Get Invoice",
-        "description": "**Status:** scaffolded\n\n**Contract(s):** InvoiceResponse\n\n**AuthZ:** owner coach / payer / privileged admin / active club owner-admin finance role for linked club invoices\n\n**UI anchors:** components/invoices/*, hooks/use-invoice-detail.ts, services/invoice-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** InvoiceResponse\n\n**AuthZ:** owner coach, payer, privileged admin, or active club owner/admin finance role for the linked club invoice; db mode reads Prisma invoice detail, line items, events, reminders, payment attempts, and payment-instruction templates, then audits sensitive finance reads\n\n**UI anchors:** components/invoices/*, hooks/use-invoice-detail.ts, services/invoice-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "getInvoice",
         "parameters": [
           {
@@ -17475,7 +18317,7 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "get",
-        "x-clubroom-status": "scaffolded"
+        "x-clubroom-status": "implemented"
       }
     },
     "/v1/invoices/{invoiceId}/mark-paid": {
@@ -17630,7 +18472,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Revenue"
         ],
         "summary": "Create Invoice Payment",
-        "description": "**Status:** implemented\n\n**Contract(s):** CreateInvoicePaymentSessionRequest\n\n**AuthZ:** payer self or privileged admin\n\n**UI anchors:** hosted payer checkout/session creation from invoice detail\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** CreateInvoicePaymentSessionRequest\n\n**AuthZ:** payer self or privileged admin\n\n**UI anchors:** backend-owned simulated/provider-cutover payment session route; parent invoice detail keeps checkout hidden until real provider cutover\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "createInvoicePayment",
         "parameters": [
           {
@@ -17776,7 +18618,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Revenue"
         ],
         "summary": "Create Invoice Reminder",
-        "description": "**Status:** implemented\n\n**Contract(s):** SendInvoiceReminderRequest\n\n**AuthZ:** owner coach / privileged admin / active club owner-admin finance role for linked club invoices\n\n**UI anchors:** invoice detail send/reminder flow\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** SendInvoiceReminderRequest\n\n**AuthZ:** owner coach / privileged admin / active club owner-admin finance role for linked club invoices; creates a PaymentReminder, sends/skips/fails through the configured email provider, updates deliveryStatus, and audits provider/status without raw recipient email metadata\n\n**UI anchors:** invoice detail send/reminder flow\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "createInvoiceReminder",
         "parameters": [
           {
@@ -18520,7 +19362,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Account"
         ],
         "summary": "Get Me",
-        "description": "**Status:** scaffolded\n\n**Contract(s):** MeResponse\n\n**AuthZ:** authenticated self\n\n**UI anchors:** settings/account screens\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** MeResponse\n\n**AuthZ:** authenticated self; returns backend identity/profile, active role memberships, linked family memberships, and linked athlete account rows\n\n**UI anchors:** settings/account screens, API-mode family/child context resolution via services/family/family-api-support.ts; p0 and dual-mode tests cover seeded memberships plus seed/db response-shape parity\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "getMe",
         "parameters": [
           {
@@ -18555,7 +19397,103 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "get",
-        "x-clubroom-status": "scaffolded"
+        "x-clubroom-status": "implemented"
+      }
+    },
+    "/v1/me/booking-preferences": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "List Booking Preference",
+        "description": "**Status:** implemented\n\n**Contract(s):** self booking preference payload\n\n**AuthZ:** authenticated requester self only; reads are audited as sensitive and writes audit changed booking-preference keys; persists UserBookingPreference instead of local ALLOW_BOOK_SELF storage\n\n**UI anchors:** settings self-booking toggle and booking participant selection via services/booking-self-setting-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "operationId": "listBookingPreference",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActingRoleHeader"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response. See the route contract and implementation for payload shape.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-clubroom-effect": "list",
+        "x-clubroom-status": "implemented"
+      },
+      "patch": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Update Booking Preference",
+        "description": "**Status:** implemented\n\n**Contract(s):** self booking preference payload\n\n**AuthZ:** authenticated requester self only; reads are audited as sensitive and writes audit changed booking-preference keys; persists UserBookingPreference instead of local ALLOW_BOOK_SELF storage\n\n**UI anchors:** settings self-booking toggle and booking participant selection via services/booking-self-setting-service.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "operationId": "updateBookingPreference",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActingRoleHeader"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response. See the route contract and implementation for payload shape.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-clubroom-effect": "update",
+        "x-clubroom-status": "implemented"
       }
     },
     "/v1/me/community-group-invites": {
@@ -19696,7 +20634,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Messaging"
         ],
         "summary": "Create Message Thread Message",
-        "description": "**Status:** implemented\n\n**Contract(s):** scaffold direct/thread message create\n\n**AuthZ:** authenticated active thread participant only; sender is derived from auth, attachments are denied until backend media proof exists, idempotency replay/conflict is enforced, and allowed/denied writes are audited\n\n**UI anchors:** direct chat send flow via services/messaging-service.ts and services/community-media-authority-service.ts; API mode no longer creates local-only direct messages\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** direct/thread message create with optional finalized media proof attachments\n\n**AuthZ:** authenticated active thread participant only; sender is derived from auth, up to five media attachments must reference finalized media objects owned by the actor, idempotency replay/conflict is enforced, and allowed/denied writes are audited\n\n**UI anchors:** direct chat send flow via services/messaging-service.ts and services/community-media-authority-service.ts; API mode no longer creates local-only direct messages\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "createMessageThreadMessage",
         "parameters": [
           {
@@ -19888,7 +20826,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Platform"
         ],
         "summary": "List Seed Health",
-        "description": "**Status:** scaffolded\n\n**Notes:** privileged-admin-only internal seed/runtime coverage counters for staging verification; disabled when API_DATA_BACKEND=db\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Notes:** privileged-admin-only internal seed/runtime coverage counters for staging verification; denies unauthenticated/non-privileged actors and returns 503 when API_DATA_BACKEND=db; covered by wave2plus route tests\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "listSeedHealth",
         "parameters": [
           {
@@ -19923,7 +20861,7 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "list",
-        "x-clubroom-status": "scaffolded"
+        "x-clubroom-status": "implemented"
       }
     },
     "/v1/meta/version": {
@@ -19932,7 +20870,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Platform"
         ],
         "summary": "List Version",
-        "description": "**Status:** scaffolded\n\n**Notes:** dev metadata only\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Notes:** public runtime metadata with API version, data-backend mode, and marketplace-seed flag; covered by p0 route tests\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "listVersion",
         "security": [],
         "responses": {
@@ -19958,7 +20896,7 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "list",
-        "x-clubroom-status": "scaffolded"
+        "x-clubroom-status": "implemented"
       }
     },
     "/v1/milestones/{milestoneId}": {
@@ -20227,12 +21165,42 @@ export const openApiDocument: Record<string, unknown> = {
         "tags": [
           "Community"
         ],
-        "summary": "List Post",
-        "description": "**Status:** implemented\n\n**Contract(s):** scaffold post list payload\n\n**AuthZ:** authenticated author, readable club member, or readable group member; clubId and communityGroupId filters fail closed for outsiders\n\n**UI anchors:** club/community feeds and post surfaces, including homepage club highlights through services/social-feed-service.ts#getFeedAuthority; current backend owner is apps/api/src/repositories/p0/community-media-repository.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
-        "operationId": "listPost",
+        "summary": "List Posts",
+        "description": "**Status:** implemented\n\n**Contract(s):** scaffold post list payload with optional followingOnly=true filter\n\n**AuthZ:** authenticated author, readable club member, or readable group member; clubId and communityGroupId filters fail closed for outsiders; following-only filters to active followed authors, excludes blocked relationships, and does not grant new post visibility\n\n**UI anchors:** club/community feeds, following updates, and homepage club highlights through services/social-feed-service.ts#getFeedAuthority, getUpdatesFeedAuthority, and getFollowingFeedAuthority; current backend owner is apps/api/src/repositories/p0/community-media-repository.ts\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "operationId": "listPosts",
         "parameters": [
           {
             "$ref": "#/components/parameters/ActingRoleHeader"
+          },
+          {
+            "name": "clubId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Club identifier. Mutually exclusive with communityGroupId."
+          },
+          {
+            "name": "communityGroupId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Community group identifier. Mutually exclusive with clubId."
+          },
+          {
+            "name": "followingOnly",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "When true, returns readable personal/BOTH posts authored by active followed users. This filter does not grant additional visibility."
           }
         ],
         "security": [
@@ -20270,7 +21238,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Community"
         ],
         "summary": "Create Post",
-        "description": "**Status:** implemented\n\n**Contract(s):** scaffold staff post create payload\n\n**AuthZ:** authenticated active club/group staff or privileged admin only; author is derived from auth, media attachments are denied until backend upload proof exists, idempotency replay/conflict is enforced, and allowed/denied writes are audited\n\n**UI anchors:** club/staff post composer via services/social-feed-service.ts; API mode fails closed instead of using local feed state for top-level post creation\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** staff post create payload with optional finalized media proof attachments\n\n**AuthZ:** authenticated active club/group staff or privileged admin only; author is derived from auth, up to five media attachments must reference finalized media objects owned by the actor, arbitrary media URLs remain denied, idempotency replay/conflict is enforced, and allowed/denied writes are audited\n\n**UI anchors:** club/staff post composer via services/social-feed-service.ts; API mode fails closed instead of using local feed state for top-level post creation\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "createPost",
         "parameters": [
           {
@@ -20325,6 +21293,59 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "create",
+        "x-clubroom-status": "implemented"
+      }
+    },
+    "/v1/posts/{postId}": {
+      "get": {
+        "tags": [
+          "Community"
+        ],
+        "summary": "Get Post",
+        "description": "**Status:** implemented\n\n**Contract(s):** scaffold post detail payload\n\n**AuthZ:** authenticated actor must be able to read the target post through author, group, club, or privileged-admin scope; unreadable posts return not found through the readable-post projection\n\n**UI anchors:** post detail header/body through services/social-feed-service.ts#getPostAuthority; comments and reactions keep using their dedicated post subroutes\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "operationId": "getPost",
+        "parameters": [
+          {
+            "name": "postId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Path parameter: postId."
+          },
+          {
+            "$ref": "#/components/parameters/ActingRoleHeader"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response. See the route contract and implementation for payload shape.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-clubroom-effect": "get",
         "x-clubroom-status": "implemented"
       }
     },
@@ -20449,6 +21470,69 @@ export const openApiDocument: Record<string, unknown> = {
           }
         },
         "x-clubroom-effect": "create",
+        "x-clubroom-status": "implemented"
+      }
+    },
+    "/v1/posts/{postId}/pin": {
+      "patch": {
+        "tags": [
+          "Community"
+        ],
+        "summary": "Update Post Pin",
+        "description": "**Status:** implemented\n\n**Contract(s):** post payload\n\n**AuthZ:** authenticated readable-post actor with active club/group staff capability or privileged admin; pin metadata is backend-owned and allowed/denied writes are audited\n\n**UI anchors:** club detail pin/unpin action through hooks/use-club-detail.ts and services/social-feed-service.ts#setPostPinAuthority; local pin overlays remain mock-only\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "operationId": "updatePostPin",
+        "parameters": [
+          {
+            "name": "postId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Path parameter: postId."
+          },
+          {
+            "$ref": "#/components/parameters/ActingRoleHeader"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonObject"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response. See the route contract and implementation for payload shape.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-clubroom-effect": "update",
         "x-clubroom-status": "implemented"
       }
     },
@@ -21121,6 +22205,48 @@ export const openApiDocument: Record<string, unknown> = {
       }
     },
     "/v1/safeguarding/incidents": {
+      "get": {
+        "tags": [
+          "Safeguarding"
+        ],
+        "summary": "List Safeguarding Incident",
+        "description": "**Status:** implemented\n\n**Contract(s):** ListSafeguardingIncidentsQuery, SafeguardingIncidentListResponse\n\n**AuthZ:** defaults to actor-reported incidents; athlete filters require safeguarding read scope; unfiltered broad lists require privileged admin; success/deny list reads are audited\n\n**UI anchors:** services/trust/index.ts, services/concern-service.ts, trust follow-up surfaces\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "operationId": "listSafeguardingIncident",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ActingRoleHeader"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response. See the route contract and implementation for payload shape.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonValue"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-clubroom-effect": "list",
+        "x-clubroom-status": "implemented"
+      },
       "post": {
         "tags": [
           "Safeguarding"
@@ -22280,7 +23406,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Media"
         ],
         "summary": "Create Upload Init",
-        "description": "**Status:** implemented\n\n**Contract(s):** scaffold upload-init payload\n\n**AuthZ:** authenticated uploader; db mode requires signed private object-storage config\n\n**UI anchors:** media/video/verification upload entrypoints via apps/api/src/modules/wave2plus/routes.ts; db mode persists pending MediaObject and UploadSession, seed mode keeps the placeholder URL\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** scaffold upload-init payload\n\n**AuthZ:** authenticated uploader; db mode requires signed private object-storage config and creates a PENDING malware-scan marker for the pending media\n\n**UI anchors:** media/video/verification upload entrypoints via apps/api/src/modules/wave2plus/routes.ts; db mode persists pending MediaObject, UploadSession, and initial scan state; seed mode keeps the placeholder URL\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "createUploadInit",
         "parameters": [
           {
@@ -22344,7 +23470,7 @@ export const openApiDocument: Record<string, unknown> = {
           "Account"
         ],
         "summary": "List User Search",
-        "description": "**Status:** implemented\n\n**Contract(s):** user directory search response\n\n**AuthZ:** authenticated; no blank directory browse; excludes minors unless self, shared family, guardian link, or assigned active booking coach; hides private adult profiles except explicit relationship or exact-email invitation-safe lookup; sensitive reads are audited without storing raw query text; block relationships still need /v1/blocks authority\n\n**UI anchors:** services/user-service.ts#searchUsers, guardian invite recipient lookup\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
+        "description": "**Status:** implemented\n\n**Contract(s):** user directory search response\n\n**AuthZ:** authenticated; no blank directory browse; excludes minors unless self, shared family, guardian link, or assigned active booking coach; hides private adult profiles except explicit relationship or exact-email invitation-safe lookup; sensitive reads are audited without storing raw query text; active /v1/blocks relationships exclude users in either direction\n\n**UI anchors:** services/user-service.ts#searchUsers, guardian invite recipient lookup\n\n**Source:** `docs/backend-api/ROUTE_INVENTORY_V1.md`",
         "operationId": "listUserSearch",
         "parameters": [
           {
@@ -22934,6 +24060,49 @@ export const openApiDocument: Record<string, unknown> = {
       "JsonObject": {
         "type": "object",
         "additionalProperties": true
+      },
+      "CoachVerificationReviewInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "REJECTED",
+              "EXPIRED"
+            ]
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "verificationId": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
       },
       "ViewerRole": {
         "type": "string",

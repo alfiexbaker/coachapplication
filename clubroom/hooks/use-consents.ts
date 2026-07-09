@@ -26,9 +26,13 @@ export function useConsents() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedType, setSelectedType] = useState<ConsentType | null>(null);
 
-  const coachId = currentUser?.id || 'coach_1';
+  const coachId = currentUser?.id ?? null;
 
   const loadData = async () => {
+    if (!coachId) {
+      return err(serviceError('UNAUTHORIZED', 'Sign in as a coach to view roster consents.'));
+    }
+
     try {
       const [consentsResult, summaryResult] = await Promise.all([
         consentService.getRosterConsents(coachId, { ...filters, search: searchQuery }),
@@ -60,7 +64,7 @@ export function useConsents() {
     isEmpty: (value) => value.consents.length === 0,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
-    dataKey: `consents:${coachId}:${searchQuery}:${filters.type ?? 'all'}:${filters.status ?? 'all'}`,
+    dataKey: `consents:${coachId ?? 'missing'}:${searchQuery}:${filters.type ?? 'all'}:${filters.status ?? 'all'}`,
   });
 
   const consents = data?.consents ?? [];

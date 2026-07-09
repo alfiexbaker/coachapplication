@@ -175,6 +175,15 @@ function sanitizeHydratedState(state: OnboardingState): OnboardingState {
   };
 }
 
+async function clearOnboardingDraft(): Promise<void> {
+  if (apiClient.isMockMode) {
+    await apiClient.remove(STORAGE_KEYS.ONBOARDING_PROGRESS);
+    return;
+  }
+
+  await apiClient.removeLocal(STORAGE_KEYS.ONBOARDING_PROGRESS);
+}
+
 export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOptions) {
   const [state, dispatch] = useReducer(onboardingReducer, INITIAL_STATE);
   const { registerFromOnboarding } = useAuth();
@@ -186,25 +195,37 @@ export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOption
     let isCancelled = false;
 
     const loadDraft = async () => {
-      return await runAsyncTryCatchFinally(async () => {
-        const draft = await apiClient.get<OnboardingDraft | null>(STORAGE_KEYS.ONBOARDING_PROGRESS, null);
-        if (isCancelled || !draft) {
-          return;
-        }
+      return await runAsyncTryCatchFinally(
+        async () => {
+          if (!apiClient.isMockMode) {
+            await apiClient.removeLocal(STORAGE_KEYS.ONBOARDING_PROGRESS);
+            return;
+          }
 
-        const hydrated = sanitizeHydratedState(draft.state);
-        dispatch({ type: 'HYDRATE_STATE', state: hydrated });
-        setSavedDraftTimestamp(draft.timestamp);
-        if (hasOnboardingProgress(hydrated)) {
-          setShowResumePrompt(true);
-        }
-      }, async error => {
-        logger.warn('Failed to load onboarding draft', error);
-      }, () => {
-        if (!isCancelled) {
-          setIsHydrated(true);
-        }
-      });
+          const draft = await apiClient.get<OnboardingDraft | null>(
+            STORAGE_KEYS.ONBOARDING_PROGRESS,
+            null,
+          );
+          if (isCancelled || !draft) {
+            return;
+          }
+
+          const hydrated = sanitizeHydratedState(draft.state);
+          dispatch({ type: 'HYDRATE_STATE', state: hydrated });
+          setSavedDraftTimestamp(draft.timestamp);
+          if (hasOnboardingProgress(hydrated)) {
+            setShowResumePrompt(true);
+          }
+        },
+        async (error) => {
+          logger.warn('Failed to load onboarding draft', error);
+        },
+        () => {
+          if (!isCancelled) {
+            setIsHydrated(true);
+          }
+        },
+      );
     };
 
     void loadDraft();
@@ -216,6 +237,7 @@ export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOption
 
   useEffect(() => {
     if (!isHydrated) return;
+    if (!apiClient.isMockMode) return;
     if (!hasOnboardingProgress(state) || state.step === 'complete') return;
 
     const timeoutId = setTimeout(() => {
@@ -250,7 +272,7 @@ export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOption
     setShowResumePrompt(false);
     setSavedDraftTimestamp(null);
     try {
-      await apiClient.remove(STORAGE_KEYS.ONBOARDING_PROGRESS);
+      await clearOnboardingDraft();
     } catch (error) {
       logger.warn('Failed to discard onboarding draft', error);
     }
@@ -294,25 +316,32 @@ export function useOnboarding({ onComplete, onBackToLogin }: UseOnboardingOption
         childrenCount: state.accountType === 'PARENT' ? state.childrenCount : undefined,
       };
 
-      await runAsyncTryCatchFinally(async () => {
-        const success = await registerFromOnboarding(data);
+      await runAsyncTryCatchFinally(
+        async () => {
+          const success = await registerFromOnboarding(data);
 
-        if (success) {
-          void apiClient.remove(STORAGE_KEYS.ONBOARDING_PROGRESS).catch((error) => {
-            logger.warn('Failed to clear onboarding draft after completion', error);
-          });
-          setShowResumePrompt(false);
-          setSavedDraftTimestamp(null);
-          dispatch({ type: 'SET_STEP', step: 'complete' });
-        } else {
-          dispatch({ type: 'SET_ERROR', error: 'Registration failed. Email may already be in use.' });
-        }
-      }, async error => {
-        logger.error('Unexpected onboarding registration failure', error);
-        dispatch({ type: 'SET_ERROR', error: 'Registration failed. Please try again.' });
-      }, () => {
-        dispatch({ type: 'SET_SUBMITTING', value: false });
-      });
+          if (success) {
+            void clearOnboardingDraft().catch((error) => {
+              logger.warn('Failed to clear onboarding draft after completion', error);
+            });
+            setShowResumePrompt(false);
+            setSavedDraftTimestamp(null);
+            dispatch({ type: 'SET_STEP', step: 'complete' });
+          } else {
+            dispatch({
+              type: 'SET_ERROR',
+              error: 'Registration failed. Email may already be in use.',
+            });
+          }
+        },
+        async (error) => {
+          logger.error('Unexpected onboarding registration failure', error);
+          dispatch({ type: 'SET_ERROR', error: 'Registration failed. Please try again.' });
+        },
+        () => {
+          dispatch({ type: 'SET_SUBMITTING', value: false });
+        },
+      );
 
       return;
     }

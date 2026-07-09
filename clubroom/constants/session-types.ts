@@ -38,7 +38,12 @@ export type SessionState = 'DRAFT' | 'OPEN' | 'REQUESTED' | 'CONFIRMED' | 'COMPL
 
 export type AttendanceStatus = 'ATTENDED' | 'NO_SHOW';
 
-export type NoShowCategory = 'no_contact' | 'cancelled_late' | 'arrived_late' | 'weather_travel' | 'other';
+export type NoShowCategory =
+  | 'no_contact'
+  | 'cancelled_late'
+  | 'arrived_late'
+  | 'weather_travel'
+  | 'other';
 
 export interface CoachSession {
   id: string;
@@ -247,7 +252,7 @@ export interface BookingSummary {
   service: string;
   price?: number;
   recurringBookingId?: string;
-  sessionSource?: 'direct' | 'event' | 'group';
+  sessionSource?: 'direct' | 'group';
   sessionSourceEntityId?: string;
   start: string;
   status: 'Confirmed' | 'Pending' | 'Needs Completion' | 'Completed' | 'Cancelled';
@@ -313,7 +318,7 @@ export interface SessionOwnershipAuditEvent {
   note?: string;
 }
 
-export type SessionOfferingSource = 'direct' | 'event' | 'group';
+export type SessionOfferingSource = 'direct' | 'group';
 
 export interface SessionOffering {
   id: string;
@@ -435,11 +440,14 @@ export interface TimeSlot {
 export interface SessionInvite {
   id: string;
   coachId: string;
+  coachName?: string;
   clubName?: string; // Club or Academy name (e.g., "Bradwell Boys")
   inviteType?: SessionInviteType; // OPEN = browsable, CLOSED = invite-only, SQUAD_ONLY = squad members
   squadIds?: string[]; // Relevant squad IDs when inviteType is SQUAD_ONLY
   athleteIds: string[];
+  athleteNames?: string[];
   parentId: string;
+  parentName?: string;
   proposedSlots: TimeSlot[];
   sessionType: string;
   sessionTemplateId?: string; // Links to SessionTemplate for auto-fill
@@ -491,7 +499,7 @@ export interface CoachVenue {
   id: string;
   coachId: string;
   label: string;
-  icon?: string;       // Ionicons name
+  icon?: string; // Ionicons name
   isDefault?: boolean;
   createdAt: string;
 }
@@ -570,14 +578,16 @@ export interface GroupSessionSchedule {
 export interface RecurringPattern {
   dayOfWeek: number; // 0-6 (Sunday-Saturday)
   startTime: string; // HH:mm format
-  endTime: string;   // HH:mm format
-  until?: string;    // ISO date string - when the recurring pattern ends
+  endTime: string; // HH:mm format
+  until?: string; // ISO date string - when the recurring pattern ends
 }
 
 export interface GroupSession {
   id: string;
   coachId: string;
+  coachName?: string;
   clubId?: string;
+  clubName?: string;
   actingAs?: 'self' | 'club';
   commercialMode?: OrganizationCommercialMode;
   ownerCoachId?: string;
@@ -612,11 +622,11 @@ export interface GroupSession {
   isRecurring?: boolean;
   recurringPattern?: RecurringPattern;
   cancelledInstances?: string[];
-  squadId?: string;      // Link to specific squad
+  squadId?: string; // Link to specific squad
   parentSessionId?: string; // For recurring instances, links to the template
-  isFree?: boolean;         // Quick flag for free sessions
+  isFree?: boolean; // Quick flag for free sessions
   inviteType?: SessionInviteType; // OPEN = browsable, CLOSED = invite-only, SQUAD_ONLY = squad members
-  registrationDeadline?: string;  // ISO date — after this, RSVP responses are locked
+  registrationDeadline?: string; // ISO date — after this, RSVP responses are locked
 }
 
 export interface GroupRegistration {

@@ -84,11 +84,14 @@ export default function LoginScreen() {
     }
     setSubmitting(true);
 
-    await runAsyncFinally(async () => {
-      await login(username.trim(), password.trim());
-    }, () => {
-      setSubmitting(false);
-    });
+    await runAsyncFinally(
+      async () => {
+        await login(username.trim(), password.trim());
+      },
+      () => {
+        setSubmitting(false);
+      },
+    );
   };
 
   const handleUsernameChange = (text: string) => {
@@ -106,31 +109,36 @@ export default function LoginScreen() {
     setPassword(user.password);
   };
 
-  const handleRoleEntry = async (entry: { username: string; password: string; initialRoute?: unknown }) => {
+  const handleRoleEntry = async (entry: {
+    username: string;
+    password: string;
+    initialRoute?: unknown;
+  }) => {
     if (submitting) return;
     setLocalError(null);
     setUsername(entry.username);
     setPassword(entry.password);
     setSubmitting(true);
 
-    await runAsyncFinally(async () => {
-      const success = await login(entry.username, entry.password);
-      if (success && entry.initialRoute) {
-        router.replace(entry.initialRoute as never);
-      }
-    }, () => {
-      setSubmitting(false);
-    });
+    await runAsyncFinally(
+      async () => {
+        const success = await login(entry.username, entry.password);
+        if (success && entry.initialRoute) {
+          router.replace(entry.initialRoute as never);
+        }
+      },
+      () => {
+        setSubmitting(false);
+      },
+    );
   };
 
   const isDesktop = screenWidth >= 980;
   const canSubmit = username.trim().length > 0 && password.trim().length > 0 && !submitting;
   const demoRoleEntries = buildDemoRoleEntries(availableUsers);
   const demoCredentialRows = buildDemoCredentialRows(availableUsers);
-  const showRoleEntry = __DEV__ || availableUsers.length > 0;
-  const loginHint = MOCK_API_MODE
-    ? 'e.g. coach1 or user1'
-    : 'e.g. coach1 or amelia.shaw@clubroom.demo';
+  const showRoleEntry = MOCK_API_MODE && (__DEV__ || availableUsers.length > 0);
+  const loginHint = MOCK_API_MODE ? 'e.g. coach1 or user1' : 'e.g. coach username or email';
   const lazyFallback = (
     <View style={[styles.lazyFallback, { backgroundColor: palette.surface }]}>
       <ThemedText style={[styles.hint, { color: palette.muted }]}>Loading…</ThemedText>
@@ -141,20 +149,25 @@ export default function LoginScreen() {
   if (screenMode === 'signup') {
     return (
       <Suspense fallback={lazyFallback}>
-        <LazyOnboardingScreen
-          onComplete={() => {}}
-          onBackToLogin={() => setScreenMode('login')}
-        />
+        <LazyOnboardingScreen onComplete={() => {}} onBackToLogin={() => setScreenMode('login')} />
       </Suspense>
     );
   }
 
-  if (screenMode === 'coach-signup') {
+  if (screenMode === 'coach-signup' && MOCK_API_MODE) {
     return (
       <Suspense fallback={lazyFallback}>
         <LazyCoachSignupScreen
           signupError={error}
-          onSignupComplete={async (data: { fullName: string; email: string; phone: string; password: string; inviteCode: string; schoolId: string; schoolName: string }) => {
+          onSignupComplete={async (data: {
+            fullName: string;
+            email: string;
+            phone: string;
+            password: string;
+            inviteCode: string;
+            schoolId: string;
+            schoolName: string;
+          }) => {
             // registerCoach calls setCurrentUser which makes isAuthenticated=true,
             // triggering RootNavigation to swap LoginScreen for the authenticated Stack.
             await registerCoach(data);
@@ -213,7 +226,9 @@ export default function LoginScreen() {
 
             {/* Email / username */}
             <View style={styles.fieldWrap}>
-              <ThemedText style={[styles.label, { color: palette.muted }]}>Email or username</ThemedText>
+              <ThemedText style={[styles.label, { color: palette.muted }]}>
+                Email or username
+              </ThemedText>
               <TextInput
                 style={[
                   styles.input,
@@ -273,13 +288,15 @@ export default function LoginScreen() {
             {displayError ? (
               <View style={[styles.errorCard, { backgroundColor: withAlpha(palette.error, 0.08) }]}>
                 <Ionicons name="alert-circle" size={18} color={palette.error} />
-                <ThemedText style={[styles.hint, { color: palette.error, flex: 1 }]}>{displayError}</ThemedText>
+                <ThemedText style={[styles.hint, { color: palette.error, flex: 1 }]}>
+                  {displayError}
+                </ThemedText>
               </View>
             ) : (
               <ThemedText style={[styles.hint, { color: palette.muted }]}>
                 {MOCK_API_MODE
                   ? 'Mock mode accepts the seeded username for the active story.'
-                  : 'API mode accepts the seeded username or the seeded email.'}
+                  : 'Enter the email or username for your Clubroom account.'}
               </ThemedText>
             )}
 
@@ -331,17 +348,19 @@ export default function LoginScreen() {
               </ThemedText>
             </Pressable>
 
-            <Pressable
-              onPress={() => setScreenMode('coach-signup')}
-              style={[styles.secondaryBtn, { borderColor: withAlpha(palette.text, 0.12) }]}
-            >
-              <ThemedText style={[styles.secondaryLabel, { color: palette.text }]}>
-                Use invite code
-              </ThemedText>
-            </Pressable>
+            {MOCK_API_MODE ? (
+              <Pressable
+                onPress={() => setScreenMode('coach-signup')}
+                style={[styles.secondaryBtn, { borderColor: withAlpha(palette.text, 0.12) }]}
+              >
+                <ThemedText style={[styles.secondaryLabel, { color: palette.text }]}>
+                  Use invite code
+                </ThemedText>
+              </Pressable>
+            ) : null}
 
             {/* Demo accounts — DEV builds only */}
-            {__DEV__ && (
+            {__DEV__ && MOCK_API_MODE && (
               <>
                 <Pressable
                   onPress={() => setShowDemo((p) => !p)}
@@ -359,7 +378,12 @@ export default function LoginScreen() {
                       onPress={() => handleDemoSelect(user)}
                       style={[styles.demoRow, { borderBottomColor: withAlpha(palette.text, 0.06) }]}
                     >
-                      <View style={[styles.rolePill, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
+                      <View
+                        style={[
+                          styles.rolePill,
+                          { backgroundColor: withAlpha(palette.tint, 0.12) },
+                        ]}
+                      >
                         <ThemedText style={[styles.roleText, { color: palette.tint }]}>
                           {user.role}
                         </ThemedText>
@@ -515,5 +539,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
   },
   roleText: { ...Typography.caption, textTransform: 'uppercase' },
-  demoCred: { ...Typography.small, fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }) },
+  demoCred: {
+    ...Typography.small,
+    fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }),
+  },
 });

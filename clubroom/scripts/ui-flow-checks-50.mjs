@@ -928,7 +928,12 @@ async function login(page, role) {
   const usernameInput = page.getByPlaceholder('e.g. coach');
   const passwordInput = page.getByPlaceholder('••••••••');
 
-  if (!(await usernameInput.isVisible().catch(() => false))) {
+  const loginVisible = await usernameInput
+    .waitFor({ state: 'visible', timeout: 10000 })
+    .then(() => true)
+    .catch(() => false);
+
+  if (!loginVisible) {
     return;
   }
 

@@ -201,7 +201,7 @@ function cloneVideos(videos: SessionVideo[]): SessionVideo[] {
   return videos.map(cloneVideo);
 }
 
-let videosCache: SessionVideo[] = cloneVideos(MOCK_VIDEOS);
+let videosCache: SessionVideo[] = USE_MOCK ? cloneVideos(MOCK_VIDEOS) : [];
 
 async function loadFromStorage(): Promise<SessionVideo[]> {
   return cloneVideos(videosCache);
@@ -949,7 +949,10 @@ export const videoService = {
     );
 
     if (!result.success) {
-      return null;
+      if (result.error.code === 'NOT_FOUND') {
+        return null;
+      }
+      throw new Error(result.error.message || 'Failed to update video annotation');
     }
     return mapApiAnnotation(result.data.annotation);
   },
@@ -958,6 +961,27 @@ export const videoService = {
    * Delete an annotation from a video
    */
   async deleteAnnotation(videoId: string, annotationId: string): Promise<boolean> {
+    if (!USE_MOCK) {
+      const result = await apiFetch<void>(`/v1/videos/${videoId}/annotations/${annotationId}`, {
+        method: 'DELETE',
+      });
+      if (!result.success) {
+        if (result.error.code === 'NOT_FOUND') {
+          return false;
+        }
+        throw new Error(result.error.message || 'Failed to delete video annotation');
+      }
+      emitTyped(ServiceEvents.VIDEO_ANNOTATION_REMOVED, {
+        videoId,
+        annotationId,
+      });
+      emitTyped(ServiceEvents.VIDEO_ANNOTATION_DELETED, {
+        videoId,
+        annotationId,
+      });
+      return true;
+    }
+
     try {
       await this.removeAnnotation(videoId, annotationId);
       emitTyped(ServiceEvents.VIDEO_ANNOTATION_DELETED, {
@@ -1316,6 +1340,6 @@ export const videoService = {
   },
 
   __resetMockVideos(): void {
-    videosCache = cloneVideos(MOCK_VIDEOS);
+    videosCache = USE_MOCK ? cloneVideos(MOCK_VIDEOS) : [];
   },
 };

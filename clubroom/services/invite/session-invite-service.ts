@@ -308,7 +308,7 @@ function cloneInvites(invites: SessionInvite[]): SessionInvite[] {
   return invites.map(cloneInvite);
 }
 
-let invitesCache: SessionInvite[] = cloneInvites(MOCK_INVITES);
+let invitesCache: SessionInvite[] = isMockMode() ? cloneInvites(MOCK_INVITES) : [];
 async function resolveUserName(userId: string, fallback: string): Promise<string> {
   const userResult = await userService.getUserById(userId);
   if (!userResult.success) {
@@ -364,7 +364,7 @@ async function resolveInviteTemplateContext(invite: SessionInvite): Promise<{
   };
 }
 interface InviteLineageContext {
-  sessionSource?: 'direct' | 'event' | 'group';
+  sessionSource?: 'direct' | 'group';
   sessionSourceEntityId?: string;
   clubId?: string;
   actingAs?: 'self' | 'club';
@@ -409,7 +409,7 @@ export function setInvitesCache(invites: SessionInvite[]): void {
   invitesCache = cloneInvites(invites);
 }
 export function getMockInvites(): SessionInvite[] {
-  return cloneInvites(MOCK_INVITES);
+  return isMockMode() ? cloneInvites(MOCK_INVITES) : [];
 }
 
 // ============================================================================
@@ -537,16 +537,24 @@ export const sessionInviteService = {
    * Internal method to create a single invite
    */
   async _createSingleInvite(input: CreateInviteInput): Promise<SessionInvite> {
+    const apiValidation = validateApiCreateInviteInput(input);
+    if (!apiValidation.success) {
+      throw apiValidation.error;
+    }
+
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + (input.expiresInDays || 7));
     const newInvite: SessionInvite = {
       id: apiClient.generateId('inv'),
       coachId: input.coachId,
+      coachName: input.coachName,
       clubName: input.clubName,
       inviteType: input.inviteType || 'OPEN',
       squadIds: input.squadIds,
       athleteIds: input.athleteIds,
+      athleteNames: input.athleteNames,
       parentId: input.parentId,
+      parentName: input.parentName,
       proposedSlots: input.proposedSlots,
       sessionType: input.sessionType,
       sessionTemplateId: input.sessionTemplateId,
@@ -947,6 +955,10 @@ export const sessionInviteService = {
    */
   async getPendingInvites(parentId?: string): Promise<SessionInvite[]> {
     if (!parentId) {
+      if (!isMockMode()) {
+        logger.warn('Blocked pending invite read without parent context in API mode');
+        throw serviceError('VALIDATION', 'Parent context is required to load pending invites.');
+      }
       // Return all pending invites if no parentId provided
       invitesCache = await loadFromStorage();
       return invitesCache.filter(
@@ -971,7 +983,7 @@ export const sessionInviteService = {
       logger.error('Failed to load invite history via API', {
         error: result.error,
       });
-      return [];
+      throw result.error;
     }
     return result.data;
   },
@@ -985,11 +997,14 @@ export const sessionInviteService = {
     }
     const result = await sessionInviteAuthorityService.getInvite(inviteId);
     if (!result.success) {
+      if (result.error.code === 'NOT_FOUND') {
+        return null;
+      }
       logger.error('Failed to load invite detail via API', {
         inviteId,
         error: result.error,
       });
-      return null;
+      throw result.error;
     }
     return result.data;
   },
@@ -1022,7 +1037,7 @@ export const sessionInviteService = {
       logger.error('Failed to load open invites via API', {
         error: result.error,
       });
-      return [];
+      throw result.error;
     }
     return result.data;
   },
@@ -1043,7 +1058,7 @@ export const sessionInviteService = {
         parentId,
         error: result.error,
       });
-      return [];
+      throw result.error;
     }
     return result.data;
   },
@@ -1075,7 +1090,7 @@ export const sessionInviteService = {
         memberSquadIds,
         error: result.error,
       });
-      return [];
+      throw result.error;
     }
     return result.data;
   },
@@ -1114,7 +1129,7 @@ export const sessionInviteService = {
         memberSquadIds,
         error: result.error,
       });
-      return [];
+      throw result.error;
     }
     return result.data;
   },
@@ -1122,7 +1137,7 @@ export const sessionInviteService = {
    * Clear invite cache (for testing)
    */
   async clearCache(): Promise<void> {
-    invitesCache = cloneInvites(MOCK_INVITES);
+    invitesCache = isMockMode() ? cloneInvites(MOCK_INVITES) : [];
   },
   // ==========================================================================
   // MULTI-WEEK / RECURRING INVITE METHODS

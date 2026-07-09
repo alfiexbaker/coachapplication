@@ -6,27 +6,6 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { apiClient } from '@/services/api-client';
 import { progressSelfAssessmentService } from '@/services/progress/progress-self-assessment-service';
 
-interface PromptRecord {
-  id: string;
-  athleteId: string;
-  athleteName: string;
-  coachId: string;
-  bookingId: string;
-  sessionId: string;
-  createdAt: string;
-  dueAt: string;
-  status: 'pending' | 'completed';
-  completedAt?: string;
-  notificationSentAt?: string;
-}
-
-interface JournalRecord {
-  id: string;
-  athleteId: string;
-  sessionId: string;
-  coachNotes?: string;
-}
-
 interface NotificationRecord {
   recipientId?: string;
   title?: string;
@@ -74,15 +53,13 @@ describe('progressSelfAssessmentService', () => {
     assert.equal(second.success, true);
     assert.equal(second.success ? second.data.length : 0, 0);
 
-    const prompts = await apiClient.get<PromptRecord[]>(
-      STORAGE_KEYS.PROGRESS_SELF_ASSESSMENT_PROMPTS,
-      [],
-    );
-    assert.equal(prompts.length, 2);
-    assert.ok(prompts.every((prompt) => prompt.status === 'pending'));
+    const promptA = await progressSelfAssessmentService.getPendingPromptForAthlete('athlete_sa_a');
+    const promptB = await progressSelfAssessmentService.getPendingPromptForAthlete('athlete_sa_b');
+    assert.equal(promptA?.status, 'pending');
+    assert.equal(promptB?.status, 'pending');
   });
 
-  it('submits self-assessment, completes prompt, and mirrors entry into journal', async () => {
+  it('submits self-assessment and completes the pending prompt', async () => {
     const booking = buildCompletedBooking({
       id: 'booking_sa_submit',
       athleteIds: ['athlete_sa_submit'],
@@ -109,79 +86,52 @@ describe('progressSelfAssessmentService', () => {
     assert.equal(submit.success, true);
     assert.equal(submit.success ? submit.data.confidence : 0, 4);
 
-    const prompts = await apiClient.get<PromptRecord[]>(
-      STORAGE_KEYS.PROGRESS_SELF_ASSESSMENT_PROMPTS,
-      [],
-    );
-    const completedPrompt = prompts.find((prompt) => prompt.bookingId === booking.id);
-    assert.equal(completedPrompt?.status, 'completed');
-    assert.ok(completedPrompt?.completedAt);
+    const completedPrompt =
+      await progressSelfAssessmentService.getPendingPromptForAthlete('athlete_sa_submit');
+    assert.equal(completedPrompt, null);
 
     const assessments = await progressSelfAssessmentService.listAssessmentsForAthlete('athlete_sa_submit');
     assert.equal(assessments.length, 1);
     assert.equal(assessments[0].notes, 'Felt stronger in second half.');
-
-    const journalEntries = await apiClient.get<JournalRecord[]>(STORAGE_KEYS.SESSION_JOURNAL, []);
-    const mirroredEntry = journalEntries.find(
-      (entry) =>
-        entry.sessionId === booking.id && entry.athleteId === 'athlete_sa_submit',
-    );
-    assert.ok(mirroredEntry);
-    assert.match(mirroredEntry.coachNotes ?? '', /\[Self-assessment\]/);
   });
 
   it('dispatches only due pending prompts for the target athlete', async () => {
-    await apiClient.set(STORAGE_KEYS.PROGRESS_SELF_ASSESSMENT_PROMPTS, [
-      {
-        id: 'prompt_due_target',
-        athleteId: 'athlete_due_target',
-        athleteName: 'Athlete Due',
-        coachId: 'coach_sa_1',
-        bookingId: 'booking_due_target',
-        sessionId: 'booking_due_target',
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        dueAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-        status: 'pending',
-      },
-      {
-        id: 'prompt_future_target',
-        athleteId: 'athlete_due_target',
-        athleteName: 'Athlete Due',
-        coachId: 'coach_sa_1',
-        bookingId: 'booking_future_target',
-        sessionId: 'booking_future_target',
-        createdAt: new Date().toISOString(),
-        dueAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-        status: 'pending',
-      },
-      {
-        id: 'prompt_due_other',
-        athleteId: 'athlete_due_other',
-        athleteName: 'Athlete Other',
-        coachId: 'coach_sa_1',
-        bookingId: 'booking_due_other',
-        sessionId: 'booking_due_other',
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        dueAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-        status: 'pending',
-      },
-    ]);
+    const dueTarget = await progressSelfAssessmentService.schedulePromptsForCompletedBooking(
+      buildCompletedBooking({
+        id: 'booking_due_target',
+        athleteIds: ['athlete_due_target'],
+        athleteNames: ['Athlete Due'],
+        scheduledAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+      }),
+    );
+    const futureTarget = await progressSelfAssessmentService.schedulePromptsForCompletedBooking(
+      buildCompletedBooking({
+        id: 'booking_future_target',
+        athleteIds: ['athlete_due_target'],
+        athleteNames: ['Athlete Due'],
+        scheduledAt: new Date().toISOString(),
+      }),
+    );
+    const dueOther = await progressSelfAssessmentService.schedulePromptsForCompletedBooking(
+      buildCompletedBooking({
+        id: 'booking_due_other',
+        athleteIds: ['athlete_due_other'],
+        athleteNames: ['Athlete Other'],
+        scheduledAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+      }),
+    );
+    assert.equal(dueTarget.success, true);
+    assert.equal(futureTarget.success, true);
+    assert.equal(dueOther.success, true);
 
     const dispatch = await progressSelfAssessmentService.dispatchDuePrompts('athlete_due_target');
     assert.equal(dispatch.success, true);
     assert.equal(dispatch.success ? dispatch.data : 0, 1);
 
-    const prompts = await apiClient.get<PromptRecord[]>(
-      STORAGE_KEYS.PROGRESS_SELF_ASSESSMENT_PROMPTS,
-      [],
-    );
-    const dueTarget = prompts.find((prompt) => prompt.id === 'prompt_due_target');
-    const futureTarget = prompts.find((prompt) => prompt.id === 'prompt_future_target');
-    const dueOther = prompts.find((prompt) => prompt.id === 'prompt_due_other');
-
-    assert.ok(dueTarget?.notificationSentAt);
-    assert.equal(futureTarget?.notificationSentAt, undefined);
-    assert.equal(dueOther?.notificationSentAt, undefined);
+    const repeatDispatch =
+      await progressSelfAssessmentService.dispatchDuePrompts('athlete_due_target');
+    assert.equal(repeatDispatch.success, true);
+    assert.equal(repeatDispatch.success ? repeatDispatch.data : 1, 0);
 
     const notifications = await apiClient.get<NotificationRecord[]>(STORAGE_KEYS.NOTIFICATIONS, []);
     const notification = notifications.find(
@@ -189,5 +139,9 @@ describe('progressSelfAssessmentService', () => {
         item.recipientId === 'athlete_due_target' && item.title === 'Quick Session Check-In',
     );
     assert.ok(notification);
+    assert.equal(
+      notifications.some((item) => item.recipientId === 'athlete_due_other'),
+      false,
+    );
   });
 });

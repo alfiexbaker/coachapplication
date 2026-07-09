@@ -322,7 +322,7 @@ async function getPendingPromptForAthlete(athleteId: string): Promise<SelfAssess
     const access = await resolveSelfAssessmentApiAccess(athleteId);
     if (!access.success) {
       logger.warn('self_assessment_prompt_api_access_denied', { athleteId, error: access.error });
-      return null;
+      throw new Error(access.error.message);
     }
     const result = await apiFetch<ApiSelfAssessmentPromptsResponse>(
       `/v1/me/self-assessment-prompts?athleteId=${encodeURIComponent(access.data.apiAthleteId)}`,
@@ -333,7 +333,7 @@ async function getPendingPromptForAthlete(athleteId: string): Promise<SelfAssess
     );
     if (!result.success) {
       logger.error('self_assessment_prompt_api_read_failed', { athleteId, error: result.error });
-      return null;
+      throw new Error(result.error.message);
     }
     return result.data.prompt;
   }
@@ -367,7 +367,7 @@ async function listAssessmentsForAthlete(athleteId: string): Promise<SelfAssessm
     const access = await resolveSelfAssessmentApiAccess(athleteId);
     if (!access.success) {
       logger.warn('self_assessment_api_access_denied', { athleteId, error: access.error });
-      return [];
+      throw new Error(access.error.message);
     }
     const result = await apiFetch<ApiSelfAssessmentEntriesResponse>(
       `/v1/athletes/${encodeURIComponent(access.data.apiAthleteId)}/self-assessments?limit=100`,
@@ -378,7 +378,7 @@ async function listAssessmentsForAthlete(athleteId: string): Promise<SelfAssessm
     );
     if (!result.success) {
       logger.error('self_assessment_api_list_failed', { athleteId, error: result.error });
-      return [];
+      throw new Error(result.error.message);
     }
     return result.data.entries;
   }

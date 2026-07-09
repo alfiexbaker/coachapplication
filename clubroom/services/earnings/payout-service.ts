@@ -62,12 +62,9 @@ interface WithdrawalsApiResponse {
 }
 
 function payoutUnsupportedError(action: string): ServiceError {
-  return unsupportedError(
-    `${action} is not available from this /v1 payout API response.`,
-    {
-      missingAuthority: 'coach_payouts',
-    },
-  );
+  return unsupportedError(`${action} is not available from this /v1 payout API response.`, {
+    missingAuthority: 'coach_payouts',
+  });
 }
 
 function payoutApiError(action: string, error: ServiceError): ServiceError {
@@ -80,6 +77,16 @@ function payoutApiError(action: string, error: ServiceError): ServiceError {
     return payoutUnsupportedError(action);
   }
   return error;
+}
+
+function validateSimulatedPayoutApiResponse(
+  action: string,
+  response: { provider?: unknown; providerConfigured?: unknown },
+): ServiceError | null {
+  if (response.provider === 'simulated' && response.providerConfigured === false) {
+    return null;
+  }
+  return validationError(`${action} requires an explicit simulated payout provider response`);
 }
 
 // ============================================================================
@@ -244,8 +251,8 @@ const MOCK_WITHDRAWALS: Withdrawal[] = [
 // STORAGE HELPERS
 // ============================================================================
 
-let payoutMethodsCache: PayoutMethod[] = [...MOCK_PAYOUT_METHODS];
-let withdrawalsCache: Withdrawal[] = [...MOCK_WITHDRAWALS];
+let payoutMethodsCache: PayoutMethod[] = USE_MOCK ? [...MOCK_PAYOUT_METHODS] : [];
+let withdrawalsCache: Withdrawal[] = USE_MOCK ? [...MOCK_WITHDRAWALS] : [];
 
 async function loadEarnings(): Promise<Record<string, CoachEarnings>> {
   try {
@@ -273,7 +280,7 @@ async function loadPayoutMethods(): Promise<PayoutMethod[]> {
   } catch (error) {
     logger.error('Failed to load payout methods', error);
   }
-  return [...MOCK_PAYOUT_METHODS];
+  return USE_MOCK ? [...MOCK_PAYOUT_METHODS] : [];
 }
 
 async function savePayoutMethods(methods: PayoutMethod[]): Promise<void> {
@@ -293,7 +300,7 @@ async function loadWithdrawals(): Promise<Withdrawal[]> {
   } catch (error) {
     logger.error('Failed to load withdrawals', error);
   }
-  return [...MOCK_WITHDRAWALS];
+  return USE_MOCK ? [...MOCK_WITHDRAWALS] : [];
 }
 
 async function saveWithdrawals(withdrawals: Withdrawal[]): Promise<void> {
@@ -390,6 +397,11 @@ export const payoutService = {
       if (!response.success) {
         return err(payoutApiError('Adding a payout method', response.error));
       }
+      const providerError = validateSimulatedPayoutApiResponse(
+        'Adding a payout method',
+        response.data,
+      );
+      if (providerError) return err(providerError);
       const createdMethod =
         response.data.payoutMethod ??
         response.data.payoutMethods[response.data.payoutMethods.length - 1];
@@ -448,6 +460,11 @@ export const payoutService = {
       if (!response.success) {
         return err(payoutApiError('Removing a payout method', response.error));
       }
+      const providerError = validateSimulatedPayoutApiResponse(
+        'Removing a payout method',
+        response.data,
+      );
+      if (providerError) return err(providerError);
       return ok(true);
     } catch (error) {
       logger.error('Error removing payout method', error);
@@ -509,6 +526,11 @@ export const payoutService = {
       if (!response.success) {
         return err(payoutApiError('Setting a default payout method', response.error));
       }
+      const providerError = validateSimulatedPayoutApiResponse(
+        'Setting a default payout method',
+        response.data,
+      );
+      if (providerError) return err(providerError);
       const updatedMethod =
         response.data.payoutMethod ??
         response.data.payoutMethods.find((method) => method.id === methodId);
@@ -540,6 +562,11 @@ export const payoutService = {
       if (!response.success) {
         return err(payoutApiError('Reading payout methods', response.error));
       }
+      const providerError = validateSimulatedPayoutApiResponse(
+        'Reading payout methods',
+        response.data,
+      );
+      if (providerError) return err(providerError);
       return ok(response.data.payoutMethods);
     } catch (error) {
       logger.error('Error getting payout methods', error);
@@ -664,6 +691,11 @@ export const payoutService = {
       if (!response.success) {
         return err(payoutApiError('Requesting a withdrawal', response.error));
       }
+      const providerError = validateSimulatedPayoutApiResponse(
+        'Requesting a withdrawal',
+        response.data,
+      );
+      if (providerError) return err(providerError);
       const withdrawal = response.data.withdrawal ?? response.data.withdrawals[0];
       return withdrawal
         ? ok(withdrawal)
@@ -733,6 +765,11 @@ export const payoutService = {
       if (!response.success) {
         return err(payoutApiError('Cancelling a withdrawal', response.error));
       }
+      const providerError = validateSimulatedPayoutApiResponse(
+        'Cancelling a withdrawal',
+        response.data,
+      );
+      if (providerError) return err(providerError);
       return ok(undefined);
     } catch (error) {
       logger.error('Error cancelling withdrawal', error);
@@ -778,6 +815,11 @@ export const payoutService = {
       if (!response.success) {
         return err(payoutApiError('Completing a withdrawal', response.error));
       }
+      const providerError = validateSimulatedPayoutApiResponse(
+        'Completing a withdrawal',
+        response.data,
+      );
+      if (providerError) return err(providerError);
       const withdrawal = response.data.withdrawal ?? response.data.withdrawals[0];
       return withdrawal
         ? ok(withdrawal)
@@ -809,6 +851,11 @@ export const payoutService = {
       if (!response.success) {
         return err(payoutApiError('Reading withdrawal history', response.error));
       }
+      const providerError = validateSimulatedPayoutApiResponse(
+        'Reading withdrawal history',
+        response.data,
+      );
+      if (providerError) return err(providerError);
       return ok(response.data.withdrawals);
     } catch (error) {
       logger.error('Error getting withdrawal history', error);
@@ -840,6 +887,11 @@ export const payoutService = {
       if (!response.success) {
         return err(payoutApiError('Reading pending withdrawals', response.error));
       }
+      const providerError = validateSimulatedPayoutApiResponse(
+        'Reading pending withdrawals',
+        response.data,
+      );
+      if (providerError) return err(providerError);
       return ok(response.data.withdrawals);
     } catch (error) {
       logger.error('Error getting pending withdrawals', error);
@@ -851,14 +903,14 @@ export const payoutService = {
    * Get mock data for testing
    */
   getMockPayoutMethods(): PayoutMethod[] {
-    return [...MOCK_PAYOUT_METHODS];
+    return USE_MOCK ? [...MOCK_PAYOUT_METHODS] : [];
   },
 
   /**
    * Get mock data for testing
    */
   getMockWithdrawals(): Withdrawal[] {
-    return [...MOCK_WITHDRAWALS];
+    return USE_MOCK ? [...MOCK_WITHDRAWALS] : [];
   },
 
   /**

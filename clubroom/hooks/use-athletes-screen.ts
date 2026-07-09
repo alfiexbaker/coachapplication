@@ -5,7 +5,14 @@ import { useAuth } from '@/hooks/use-auth';
 import { rosterService } from '@/services/roster-service';
 import { bookingService } from '@/services/booking-service';
 import { ServiceEvents } from '@/services/event-bus';
-import { ok, err, storageError, type Result, type ServiceError } from '@/types/result';
+import {
+  ok,
+  err,
+  serviceError,
+  storageError,
+  type Result,
+  type ServiceError,
+} from '@/types/result';
 import type { RosterEntry } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';
 import { getRosterAthleteName, getRosterParentName } from '@/utils/roster-display';
@@ -18,13 +25,17 @@ interface AthletesData {
 
 export function useAthletesScreen() {
   const { currentUser } = useAuth();
-  const coachId = currentUser?.id || 'coach_1';
+  const coachId = currentUser?.id ?? null;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
 
   const screen = useScreen<AthletesData>({
     load: async (): Promise<Result<AthletesData, ServiceError>> => {
+      if (!coachId) {
+        return err(serviceError('UNAUTHORIZED', 'Sign in as a coach to view athletes.'));
+      }
+
       try {
         const [rosterData, bookingsData] = await Promise.all([
           rosterService.getRoster(coachId),
@@ -52,7 +63,7 @@ export function useAthletesScreen() {
     isEmpty: (d) => d.roster.length === 0,
     refetchOnFocus: true,
     loadingStrategy: 'warm-first',
-    dataKey: coachId,
+    dataKey: `athletes:${coachId ?? 'missing'}`,
   });
 
   const roster = screen.data?.roster || [];

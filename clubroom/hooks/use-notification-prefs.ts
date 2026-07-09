@@ -19,7 +19,7 @@ const logger = createLogger('useNotificationPrefs');
 
 export function useNotificationPrefs() {
   const { currentUser } = useAuth();
-  const userId = currentUser?.id ?? 'current_user';
+  const userId = currentUser?.id ?? null;
 
   const [preferencesOverride, setPreferencesOverride] =
     useState<EnhancedNotificationPreferences | null>(null);
@@ -28,6 +28,10 @@ export function useNotificationPrefs() {
   const { showToast } = useToast();
 
   const loadPreferences = async () => {
+    if (!userId) {
+      return err(serviceError('UNAUTHORIZED', 'Sign in to manage notification preferences.'));
+    }
+
     try {
       const prefsResult = await notificationService.getPreferences(userId);
       if (!prefsResult.success) {
@@ -54,7 +58,7 @@ export function useNotificationPrefs() {
     isEmpty: () => false,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
-    dataKey: `notification-preferences:${userId}`,
+    dataKey: `notification-preferences:${userId ?? 'missing'}`,
   });
 
   useEffect(() => {
@@ -76,7 +80,10 @@ export function useNotificationPrefs() {
   };
 
   const handleQuietHoursChange = async (quietHours: QuietHours) => {
-    if (!preferences) return;
+    if (!preferences || !userId) {
+      showToast('Sign in to manage notification preferences.', 'error');
+      return;
+    }
     setUpdating(true);
     setActionError(null);
 
@@ -104,7 +111,10 @@ export function useNotificationPrefs() {
   };
 
   const handleChannelToggle = async (channel: NotificationChannel, enabled: boolean) => {
-    if (!preferences) return;
+    if (!preferences || !userId) {
+      showToast('Sign in to manage notification preferences.', 'error');
+      return;
+    }
     setUpdating(true);
     setActionError(null);
 
@@ -131,7 +141,10 @@ export function useNotificationPrefs() {
   };
 
   const handleTypeToggle = async (type: NotificationType, enabled: boolean) => {
-    if (!preferences) return;
+    if (!preferences || !userId) {
+      showToast('Sign in to manage notification preferences.', 'error');
+      return;
+    }
     setUpdating(true);
     setActionError(null);
 
@@ -162,7 +175,10 @@ export function useNotificationPrefs() {
   };
 
   const handleUnmuteCoach = async (coachId: string) => {
-    if (!preferences) return;
+    if (!preferences || !userId) {
+      showToast('Sign in to manage notification preferences.', 'error');
+      return;
+    }
     setUpdating(true);
     setActionError(null);
 

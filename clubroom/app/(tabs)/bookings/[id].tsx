@@ -32,7 +32,7 @@ import { useBookingDetail } from '@/hooks/use-booking-detail';
 import { useAuth } from '@/hooks/use-auth';
 import { cancellationService } from '@/services/cancellation-service';
 import { invoiceService } from '@/services/invoice-service';
-import { socialFeedService } from '@/services/social-feed-service';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import {
   getBookingRelationshipContext,
   getBookingStatusLabel,
@@ -185,8 +185,9 @@ export default function SessionDetailScreen() {
     }
 
     let isMounted = true;
-    void socialFeedService.getClub(booking.clubId).then((club) => {
+    void clubAuthorityService.getClubById(booking.clubId).then((result) => {
       if (!isMounted) return;
+      const club = result.success ? result.data : null;
       setOrganizationLabel(club?.name || booking.clubId || null);
     });
 
@@ -417,7 +418,7 @@ export default function SessionDetailScreen() {
           <BookingAthleteCard
             childName={childName}
             clientId={booking.clientId}
-            clientPhotoUrl={booking.client?.photoUrl || 'https://i.pravatar.cc/100'}
+            clientPhotoUrl={booking.client?.photoUrl || undefined}
           />
         )}
 

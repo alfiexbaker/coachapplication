@@ -53,6 +53,7 @@ const checkEmailQuerySchema = z.object({
 });
 
 const mePatchSchema = z.object({
+  email: z.string().trim().email().max(254).optional(),
   firstName: z.string().trim().min(1).max(80).optional(),
   lastName: z.string().trim().min(1).max(80).optional(),
   dateOfBirth: z.string().trim().optional(),
@@ -73,7 +74,6 @@ const mePatchSchema = z.object({
   specializations: z.array(z.string().trim().min(1).max(120)).optional(),
   bio: z.string().trim().max(2000).optional(),
   hourlyRate: z.number().int().min(0).max(10000).optional(),
-  isVerified: z.boolean().optional(),
   isLive: z.boolean().optional(),
   onboardingComplete: z.boolean().optional(),
   phone: z.string().trim().max(40).optional(),
@@ -212,20 +212,45 @@ const authRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Authenticated user is required');
     }
 
-    const updates = mePatchSchema.parse(request.body ?? {});
-    const user = await updateAuthUserProfile(authUserId, updates);
-    await recordAuditEvent({
-      request,
-      action: 'auth.profile_update',
-      resourceType: 'user',
-      resourceId: authUserId,
-      subjectUserId: authUserId,
-      result: 'SUCCESS',
-    });
-    return reply.send({
-      user,
-      requestId: request.requestId,
-    });
+    let changedFields: string[] = [];
+    try {
+      const updates = mePatchSchema.parse(request.body ?? {});
+      changedFields = Object.keys(updates);
+      const user = await updateAuthUserProfile(authUserId, updates);
+      await recordAuditEvent({
+        request,
+        action: 'auth.profile_update',
+        resourceType: 'user',
+        resourceId: authUserId,
+        subjectUserId: authUserId,
+        result: 'SUCCESS',
+        metadata: {
+          changedFields,
+        },
+      });
+      return reply.send({
+        user,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'auth.profile_update',
+        resourceType: 'user',
+        resourceId: authUserId,
+        subjectUserId: authUserId,
+        result:
+          error instanceof z.ZodError || (error instanceof ApiProblemError && error.status < 500)
+            ? 'DENY'
+            : 'ERROR',
+        metadata: {
+          changedFields,
+          errorCode: error instanceof ApiProblemError ? error.code : 'UNKNOWN',
+          status: error instanceof z.ZodError ? 400 : error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
   });
 
   app.post('/auth/forgot-password', async (request, reply) => {

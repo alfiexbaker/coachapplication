@@ -55,7 +55,10 @@ function base64UrlDecode(value: string): string {
 }
 
 function sign(value: string): string {
-  return crypto.createHmac('sha256', env.API_PAYMENT_SIMULATION_SECRET).update(value).digest('base64url');
+  return crypto
+    .createHmac('sha256', env.API_PAYMENT_SIMULATION_SECRET)
+    .update(value)
+    .digest('base64url');
 }
 
 interface AllowedReturnTarget {
@@ -97,7 +100,10 @@ function matchesAllowedReturnTarget(parsed: URL, allowed: AllowedReturnTarget): 
     return true;
   }
 
-  return parsed.pathname === allowedPath || parsed.pathname.startsWith(`${allowedPath.replace(/\/$/, '')}/`);
+  return (
+    parsed.pathname === allowedPath ||
+    parsed.pathname.startsWith(`${allowedPath.replace(/\/$/, '')}/`)
+  );
 }
 
 export function validateHostedReturnUrl(value: string | undefined): string | undefined {
@@ -127,7 +133,9 @@ export function validateHostedReturnUrl(value: string | undefined): string | und
   return parsed.toString();
 }
 
-export function issueSimulatedPaymentToken(payload: Omit<SimulatedPaymentTokenPayload, 'exp'> & { exp?: number }): string {
+export function issueSimulatedPaymentToken(
+  payload: Omit<SimulatedPaymentTokenPayload, 'exp'> & { exp?: number },
+): string {
   const tokenPayload: SimulatedPaymentTokenPayload = {
     ...payload,
     exp: payload.exp ?? Date.now() + SIMULATED_TTL_MS,
@@ -147,8 +155,8 @@ export function verifySimulatedPaymentToken(token: string): SimulatedPaymentToke
   const providedBuffer = Buffer.from(providedSignature, 'base64url');
   const expectedBuffer = Buffer.from(expectedSignature, 'base64url');
   if (
-    providedBuffer.length !== expectedBuffer.length
-    || !crypto.timingSafeEqual(providedBuffer, expectedBuffer)
+    providedBuffer.length !== expectedBuffer.length ||
+    !crypto.timingSafeEqual(providedBuffer, expectedBuffer)
   ) {
     throw badRequest('Simulated payment token signature mismatch');
   }
@@ -198,6 +206,7 @@ export function getConfiguredPaymentProvider(): PaymentProvider {
 
   throw serviceUnavailable('Stripe payment provider is not configured in this runtime', {
     provider: env.API_PAYMENT_PROVIDER,
-    action: 'Keep API_PAYMENT_PROVIDER=simulated until Stripe credentials and webhook runtime are wired.',
+    action:
+      'Keep API_PAYMENT_PROVIDER=simulated until Stripe credentials and webhook runtime are wired.',
   });
 }

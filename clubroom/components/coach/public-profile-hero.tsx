@@ -39,17 +39,8 @@ export const PublicProfileHero = function PublicProfileHero({
     offeringSummary.nextOffering?.scheduledAt ?? coach.nextAvailable,
   );
   const accessLabel =
-    offeringSummary.clubOfferingsCount > 0 || offeringSummary.eventOfferingsCount > 0
-      ? [
-          offeringSummary.clubOfferingsCount > 0
-            ? `${offeringSummary.clubOfferingsCount} club`
-            : null,
-          offeringSummary.eventOfferingsCount > 0
-            ? `${offeringSummary.eventOfferingsCount} event`
-            : null,
-        ]
-          .filter(Boolean)
-          .join(' · ')
+    offeringSummary.clubOfferingsCount > 0
+      ? `${offeringSummary.clubOfferingsCount} club`
       : offeringSummary.publicOfferingsCount > 0
         ? `${offeringSummary.publicOfferingsCount} public sessions`
         : 'Private booking first';

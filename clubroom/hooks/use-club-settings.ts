@@ -6,6 +6,7 @@ import { Share } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { Routes } from '@/navigation/routes';
+import { api } from '@/constants/config';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
 import { useToast } from '@/components/ui/toast';
@@ -13,7 +14,13 @@ import { clubService, type ClubBranding, type ClubMember } from '@/services/club
 import { squadService } from '@/services/squad-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { ServiceEvents } from '@/services/event-bus';
-import type { Club, ClubSquad, ClubRole, OrganizationCommercialMode } from '@/constants/types';
+import type {
+  Club,
+  ClubMembership,
+  ClubSquad,
+  ClubRole,
+  OrganizationCommercialMode,
+} from '@/constants/types';
 import { clubAuthorityService } from '@/services/club-authority-service';
 import { buildClubInviteLink } from '@/services/club-invite-link-service';
 import { createLogger } from '@/utils/logger';
@@ -49,6 +56,7 @@ export interface InviteCodeItem {
 
 interface ClubSettingsData {
   club: Club | null;
+  membership: ClubMembership | null;
   squads: ClubSquad[];
   members: ClubMember[];
   inviteCodes: InviteCodeItem[];
@@ -57,6 +65,7 @@ interface ClubSettingsData {
 
 const EMPTY_CLUB_SETTINGS_DATA: ClubSettingsData = {
   club: null,
+  membership: null,
   squads: [],
   members: [],
   inviteCodes: [],
@@ -104,9 +113,13 @@ export function useClubSettings() {
   const { currentUser, availableUsers } = useAuth();
   const { showToast } = useToast();
 
-  const userClubs = currentUser?.id ? socialFeedService.getUserClubs(currentUser.id) : [];
+  const userClubs =
+    api.useMock && currentUser?.id ? socialFeedService.getUserClubs(currentUser.id) : [];
 
   const knownClubs = (() => {
+    if (!api.useMock) {
+      return [];
+    }
     const deduped = new Map<string, Club>();
     userClubs.forEach((club) => deduped.set(club.id, club));
     availableUsers.forEach((user) => {
@@ -120,10 +133,6 @@ export function useClubSettings() {
   })();
 
   const clubId = paramClubId || userClubs[0]?.id;
-  const membership =
-    currentUser?.id && clubId ? socialFeedService.getMembership(currentUser.id, clubId) : undefined;
-  const canManageClub = canManageClubMembers(membership?.role);
-  const canEditCommercialMode = canEditClubCommercialMode(membership?.role);
 
   const routeSection: SettingsSection | null = SETTINGS_SECTIONS.some(
     (section) => section.key === paramSection,
@@ -142,17 +151,32 @@ export function useClubSettings() {
     if (!clubId) {
       return ok(EMPTY_CLUB_SETTINGS_DATA);
     }
+    if (!currentUser?.id) {
+      return ok(EMPTY_CLUB_SETTINGS_DATA);
+    }
 
     try {
-      const authorityClubs = await clubAuthorityService.listClubs();
-      const authorityClub = authorityClubs.success
-        ? authorityClubs.data.clubs.find((candidate) => candidate.id === clubId) ?? null
-        : null;
-      const clubData =
-        authorityClub ??
-        (await socialFeedService.getClub(clubId)) ??
-        knownClubs.find((candidate) => candidate.id === clubId) ??
-        null;
+      let clubData: Club | null = null;
+      let membership: ClubMembership | null = null;
+      if (api.useMock) {
+        clubData =
+          (await socialFeedService.getClub(clubId)) ??
+          knownClubs.find((candidate) => candidate.id === clubId) ??
+          null;
+        membership = socialFeedService.getMembership(currentUser.id, clubId) ?? null;
+      } else {
+        const authorityClubs = await clubAuthorityService.listClubs();
+        if (!authorityClubs.success) {
+          return err(authorityClubs.error);
+        }
+        clubData =
+          authorityClubs.data.clubs.find((candidate) => candidate.id === clubId) ?? null;
+        membership =
+          authorityClubs.data.memberships.find(
+            (candidate) =>
+              candidate.clubId === clubId && candidate.userId === currentUser.id,
+          ) ?? null;
+      }
 
       const [squadData, memberData, brandingData, inviteData] = await Promise.all([
         squadService.getSquads(clubId),
@@ -160,13 +184,17 @@ export function useClubSettings() {
         clubService.getBranding(clubId),
         clubAuthorityService.listInviteCodes(clubId),
       ]);
+      if (!inviteData.success) {
+        return err(inviteData.error);
+      }
 
       logger.debug('ClubSettingsLoaded', { clubId, memberCount: memberData.length });
       return ok({
         club: clubData,
+        membership,
         squads: squadData,
         members: memberData,
-        inviteCodes: buildInviteCodes(clubData, inviteData.success ? inviteData.data : []),
+        inviteCodes: buildInviteCodes(clubData, inviteData.data),
         branding: brandingData,
       });
     } catch (error) {
@@ -185,7 +213,9 @@ export function useClubSettings() {
   });
 
   const settingsData = data ?? EMPTY_CLUB_SETTINGS_DATA;
-  const { club, squads, members, inviteCodes } = settingsData;
+  const { club, membership, squads, members, inviteCodes } = settingsData;
+  const canManageClub = canManageClubMembers(membership?.role);
+  const canEditCommercialMode = canEditClubCommercialMode(membership?.role);
   const requestedSection = selectedSection ?? routeSection ?? 'details';
   const activeSection =
     !canManageClub && requestedSection !== 'details' && requestedSection !== 'branding'

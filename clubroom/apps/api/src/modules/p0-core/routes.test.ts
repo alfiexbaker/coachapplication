@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { after, beforeEach, describe, it } from 'node:test';
 import { env } from '@clubroom/config';
@@ -853,7 +855,7 @@ describe('p0 core routes', () => {
       membership: { role: string; clubId: string; userId: string };
     };
     assert.equal(joinPayload.outcome, 'joined');
-    assert.equal(joinPayload.membership.role, 'member');
+    assert.equal(joinPayload.membership.role, 'MEMBER');
     assert.equal(joinPayload.membership.userId, standaloneMemberId);
 
     const joinedClubs = await app.inject({
@@ -867,6 +869,108 @@ describe('p0 core routes', () => {
     });
     const joinedPayload = joinedClubs.json() as { total: number };
     assert.equal(joinedPayload.total >= 1, true);
+  });
+
+  it('lets active club members leave themselves through an audited soft removal', async () => {
+    const tables = loadTables();
+    const membership = asRows(tables.clubMemberships).find((row) => {
+      const role = parseOrganizationRole(asString(row.role));
+      return isActiveClubMembership(row) && role && role !== 'OWNER';
+    });
+    assert.ok(membership, 'expected active non-owner club membership');
+    const clubId = asString(membership.clubId) as string;
+    const userId = asString(membership.userId) as string;
+
+    const leaveRes = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/members/me/leave`,
+      headers: authHeaders(tables, userId, 'member'),
+      payload: { customReason: 'Moved to a different club' },
+    });
+    assert.equal(leaveRes.statusCode, 200);
+    const leavePayload = leaveRes.json() as {
+      removal: { clubId: string; userId: string; reason: string; removedBy: string };
+    };
+    assert.equal(leavePayload.removal.clubId, clubId);
+    assert.equal(leavePayload.removal.userId, userId);
+    assert.equal(leavePayload.removal.removedBy, userId);
+    assert.equal(leavePayload.removal.reason, 'LEFT_CLUB');
+
+    const storedMembership = asRows(getMarketplaceSeedStore().tables.clubMemberships).find(
+      (row) => asString(row.clubId) === clubId && asString(row.userId) === userId,
+    );
+    assert.equal(storedMembership?.active, false);
+    assert.ok(asString(storedMembership?.deletedAt), 'expected soft removal timestamp');
+    assert.equal(asString(storedMembership?.deletedByUserId), userId);
+
+    const afterLeaveClubs = await app.inject({
+      method: 'GET',
+      url: '/v1/clubs',
+      headers: authHeaders(tables, userId, 'member'),
+    });
+    assert.equal(afterLeaveClubs.statusCode, 200);
+    const afterLeavePayload = afterLeaveClubs.json() as {
+      clubs: { id: string; viewerMembership?: { userId?: string } | null }[];
+    };
+    assert.equal(
+      afterLeavePayload.clubs.some(
+        (club) => club.id === clubId && club.viewerMembership?.userId === userId,
+      ),
+      false,
+    );
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_member.leave',
+        resourceId: `${clubId}:${userId}`,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+  });
+
+  it('denies owner self-leave so club ownership cannot be abandoned', async () => {
+    const tables = loadTables();
+    const coachUserId = asString(asRows(tables.coachProfiles)[0]?.userId) as string;
+    assert.ok(coachUserId, 'expected seeded coach user');
+
+    const createRes = await app.inject({
+      method: 'POST',
+      url: '/v1/clubs',
+      headers: authHeaders(tables, coachUserId, 'coach'),
+      payload: {
+        name: `Owner Leave Guard ${Date.now()}`,
+        city: 'London',
+        visibility: 'private',
+      },
+    });
+    assert.equal(createRes.statusCode, 201);
+    const createPayload = createRes.json() as {
+      club: { id: string };
+      membership: { userId: string; role: string };
+    };
+    assert.equal(createPayload.membership.userId, coachUserId);
+    assert.equal(createPayload.membership.role, 'OWNER');
+    const clubId = createPayload.club.id;
+
+    const leaveRes = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/members/me/leave`,
+      headers: authHeaders(tables, coachUserId, 'coach'),
+    });
+    assert.equal(leaveRes.statusCode, 403);
+
+    const storedMembership = asRows(getMarketplaceSeedStore().tables.clubMemberships).find(
+      (row) => asString(row.clubId) === clubId && asString(row.userId) === coachUserId,
+    );
+    assert.equal(isActiveClubMembership(storedMembership), true);
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_member.leave',
+        resourceId: `${clubId}:${coachUserId}`,
+        result: 'DENY',
+      }).length,
+      1,
+    );
   });
 
   it('creates pending staff invites from coach links and accepts them via inbox', async () => {
@@ -968,8 +1072,720 @@ describe('p0 core routes', () => {
       invite: { status: string };
     };
     assert.equal(respondPayload.invite.status, 'accepted');
-    assert.equal(respondPayload.membership?.role, 'coach');
+    assert.equal(respondPayload.membership?.role, 'COACH');
     assert.equal(respondPayload.membership?.userId, otherCoachUserId);
+  });
+
+  it('creates direct member invites for existing users and accepts them via inbox', async () => {
+    const tables = loadTables();
+    const clubAdminMembership = asRows(tables.clubMemberships).find(
+      (row) => asString(row.role) === 'club_admin' && isActiveClubMembership(row),
+    );
+    assert.ok(clubAdminMembership, 'expected club admin membership');
+    const adminUserId = asString(clubAdminMembership.userId) as string;
+    const clubId = asString(clubAdminMembership.clubId) as string;
+    assert.ok(clubId, 'expected club id');
+
+    const existingClubUserIds = new Set(
+      asRows(tables.clubMemberships)
+        .filter((row) => asString(row.clubId) === clubId && isActiveClubMembership(row))
+        .map((row) => asString(row.userId))
+        .filter((userId): userId is string => Boolean(userId)),
+    );
+    const targetMemberUserId = asRows(tables.userRoleMemberships)
+      .filter((row) => asString(row.role) === 'member')
+      .map((row) => asString(row.userId))
+      .filter((userId): userId is string => Boolean(userId))
+      .find((userId) => !existingClubUserIds.has(userId));
+    assert.ok(targetMemberUserId, 'expected standalone member user');
+
+    const createRes = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/invites`,
+      headers: authHeaders(tables, adminUserId, 'club_admin'),
+      payload: {
+        targetUserIds: [targetMemberUserId],
+        role: 'MEMBER',
+      },
+    });
+    assert.equal(createRes.statusCode, 201);
+    const createPayload = createRes.json() as {
+      invites: { id: string; clubId: string; targetUserId: string; role: string; status: string }[];
+      total: number;
+    };
+    assert.equal(createPayload.total, 1);
+    assert.equal(createPayload.invites[0]?.clubId, clubId);
+    assert.equal(createPayload.invites[0]?.targetUserId, targetMemberUserId);
+    assert.equal(createPayload.invites[0]?.role, 'MEMBER');
+    assert.equal(createPayload.invites[0]?.status, 'pending');
+
+    const inboxRes = await app.inject({
+      method: 'GET',
+      url: '/v1/clubs/invites',
+      headers: authHeaders(tables, targetMemberUserId, 'member'),
+    });
+    assert.equal(inboxRes.statusCode, 200);
+    const inboxPayload = inboxRes.json() as {
+      invites: { id: string; clubId: string; role: string }[];
+    };
+    assert.equal(
+      inboxPayload.invites.some(
+        (invite) =>
+          invite.id === createPayload.invites[0]?.id &&
+          invite.clubId === clubId &&
+          invite.role === 'MEMBER',
+      ),
+      true,
+    );
+
+    const respondRes = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/invites/${createPayload.invites[0]?.id}/respond`,
+      headers: authHeaders(tables, targetMemberUserId, 'member'),
+      payload: { response: 'accepted' },
+    });
+    assert.equal(respondRes.statusCode, 200);
+    const respondPayload = respondRes.json() as {
+      invite: { status: string };
+      membership: { clubId: string; userId: string; role: string } | null;
+    };
+    assert.equal(respondPayload.invite.status, 'accepted');
+    assert.equal(respondPayload.membership?.clubId, clubId);
+    assert.equal(respondPayload.membership?.userId, targetMemberUserId);
+    assert.equal(respondPayload.membership?.role, 'MEMBER');
+
+    const storedMembership = asRows(getMarketplaceSeedStore().tables.clubMemberships).find(
+      (row) => asString(row.clubId) === clubId && asString(row.userId) === targetMemberUserId,
+    );
+    assert.equal(isActiveClubMembership(storedMembership), true);
+    assert.equal(asString(storedMembership?.role), 'member');
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_invite.create',
+        resourceId: clubId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_invite.respond',
+        resourceId: createPayload.invites[0]?.id,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+  });
+
+  it('creates email-target member invites without storing raw email in response or audit', async () => {
+    const tables = loadTables();
+    const clubAdminMembership = asRows(tables.clubMemberships).find(
+      (row) => asString(row.role) === 'club_admin' && isActiveClubMembership(row),
+    );
+    assert.ok(clubAdminMembership, 'expected club admin membership');
+    const adminUserId = asString(clubAdminMembership.userId) as string;
+    const clubId = asString(clubAdminMembership.clubId) as string;
+    const inviteEmail = 'pending.member@example.com';
+
+    const createRes = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/invites`,
+      headers: authHeaders(tables, adminUserId, 'club_admin'),
+      payload: {
+        targetEmails: [inviteEmail],
+        role: 'MEMBER',
+      },
+    });
+    assert.equal(createRes.statusCode, 201);
+    const createPayload = createRes.json() as {
+      invites: Array<{
+        id: string;
+        clubId: string;
+        targetUserId?: string;
+        targetKind?: string;
+        targetEmailHint?: string;
+        role: string;
+        status: string;
+      }>;
+      total: number;
+    };
+    assert.equal(createPayload.total, 1);
+    const invite = createPayload.invites[0];
+    assert.ok(invite, 'expected created invite');
+    assert.equal(invite.clubId, clubId);
+    assert.equal(invite.targetUserId, undefined);
+    assert.equal(invite.targetKind, 'email');
+    assert.equal(invite.role, 'MEMBER');
+    assert.equal(invite.status, 'pending');
+    assert.equal(JSON.stringify(createPayload).includes(inviteEmail), false);
+
+    const storedInvite = asRows(getMarketplaceSeedStore().tables.invites).find(
+      (row) => asString(row.id) === invite.id,
+    );
+    const metadata = asRecord(storedInvite?.metadataJson);
+    assert.equal(asString(metadata?.targetEmailHash)?.length, 64);
+    assert.equal(asString(metadata?.targetEmailHint), invite.targetEmailHint);
+    assert.equal(JSON.stringify(metadata).includes(inviteEmail), false);
+    const storedTarget = asRows(getMarketplaceSeedStore().tables.inviteTargets).find(
+      (row) => asString(row.inviteId) === invite.id,
+    );
+    assert.equal(asString(storedTarget?.targetUserId), undefined);
+
+    const creatorInboxRes = await app.inject({
+      method: 'GET',
+      url: '/v1/clubs/invites',
+      headers: authHeaders(tables, adminUserId, 'club_admin'),
+    });
+    assert.equal(creatorInboxRes.statusCode, 200);
+    assert.equal(
+      (creatorInboxRes.json() as { invites: Array<{ id: string }> }).invites.some(
+        (candidate) => candidate.id === invite.id,
+      ),
+      false,
+      'email-target invite must not be visible to a non-matching account',
+    );
+
+    const targetUserId = 'usr_pending-email-member';
+    getMarketplaceSeedStore().tables.users.push({
+      id: targetUserId,
+      authProvider: 'test',
+      authProviderSubject: targetUserId,
+      email: inviteEmail,
+      name: 'Pending Email Member',
+      accountStatus: 'active',
+      isVerified: true,
+      onboardingComplete: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+    });
+
+    const inboxRes = await app.inject({
+      method: 'GET',
+      url: '/v1/clubs/invites',
+      headers: authHeaders(tables, targetUserId, 'member'),
+    });
+    assert.equal(inboxRes.statusCode, 200);
+    const inboxPayload = inboxRes.json() as {
+      invites: Array<{ id: string; clubId: string; targetKind?: string; targetUserId?: string }>;
+    };
+    assert.equal(
+      inboxPayload.invites.some(
+        (candidate) =>
+          candidate.id === invite.id &&
+          candidate.clubId === clubId &&
+          candidate.targetKind === 'email' &&
+          candidate.targetUserId === undefined,
+      ),
+      true,
+    );
+
+    const respondRes = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/invites/${invite.id}/respond`,
+      headers: authHeaders(tables, targetUserId, 'member'),
+      payload: { response: 'accepted' },
+    });
+    assert.equal(respondRes.statusCode, 200);
+    const respondPayload = respondRes.json() as {
+      invite: { status: string; targetUserId?: string };
+      membership: { clubId: string; userId: string; role: string } | null;
+    };
+    assert.equal(respondPayload.invite.status, 'accepted');
+    assert.equal(respondPayload.invite.targetUserId, targetUserId);
+    assert.equal(respondPayload.membership?.clubId, clubId);
+    assert.equal(respondPayload.membership?.userId, targetUserId);
+    assert.equal(respondPayload.membership?.role, 'MEMBER');
+    assert.equal(asString(storedTarget?.targetUserId), targetUserId);
+    assert.equal(
+      JSON.stringify(
+        auditEventsFor(getMarketplaceSeedStore().tables, {
+          action: 'club_invite.create',
+          resourceId: clubId,
+          result: 'SUCCESS',
+        }),
+      ).includes(inviteEmail),
+      false,
+      'audit metadata must not persist raw invite email',
+    );
+  });
+
+  it('delivers email-target club invites through the configured webhook', async () => {
+    const tables = loadTables();
+    const clubAdminMembership = asRows(tables.clubMemberships).find(
+      (row) => asString(row.role) === 'club_admin' && isActiveClubMembership(row),
+    );
+    assert.ok(clubAdminMembership, 'expected club admin membership');
+    const adminUserId = asString(clubAdminMembership.userId) as string;
+    const clubId = asString(clubAdminMembership.clubId) as string;
+    const inviteEmail = 'delivered.member@example.com';
+    const deliveries: Array<{
+      authorization?: string;
+      body: Record<string, unknown>;
+    }> = [];
+    const deliveryServer = http.createServer((req, res) => {
+      let raw = '';
+      req.setEncoding('utf8');
+      req.on('data', (chunk) => {
+        raw += chunk;
+      });
+      req.on('end', () => {
+        deliveries.push({
+          authorization: req.headers.authorization,
+          body: raw ? (JSON.parse(raw) as Record<string, unknown>) : {},
+        });
+        res.statusCode = 202;
+        res.end('accepted');
+      });
+    });
+
+    await new Promise<void>((resolve) => deliveryServer.listen(0, '127.0.0.1', resolve));
+    const address = deliveryServer.address() as AddressInfo;
+    const previousWebhookUrl = env.API_PASSWORD_RESET_EMAIL_WEBHOOK_URL;
+    const previousWebhookSecret = env.API_PASSWORD_RESET_EMAIL_WEBHOOK_SECRET;
+    const previousFrom = env.API_PASSWORD_RESET_EMAIL_FROM;
+    env.API_PASSWORD_RESET_EMAIL_WEBHOOK_URL = `http://127.0.0.1:${address.port}/club-invite`;
+    env.API_PASSWORD_RESET_EMAIL_WEBHOOK_SECRET = 'invite-webhook-secret';
+    env.API_PASSWORD_RESET_EMAIL_FROM = 'Clubroom Support <support@clubroom.test>';
+
+    try {
+      const createRes = await app.inject({
+        method: 'POST',
+        url: `/v1/clubs/${clubId}/invites`,
+        headers: authHeaders(tables, adminUserId, 'club_admin'),
+        payload: {
+          targetEmails: [inviteEmail],
+          role: 'MEMBER',
+        },
+      });
+      assert.equal(createRes.statusCode, 201);
+      const createPayload = createRes.json() as {
+        emailDelivery?: {
+          total: number;
+          sent: number;
+          skipped: number;
+          failed: number;
+          providers: string[];
+        };
+      };
+      assert.deepEqual(createPayload.emailDelivery, {
+        total: 1,
+        sent: 1,
+        skipped: 0,
+        failed: 0,
+        providers: ['webhook'],
+      });
+      assert.equal(deliveries.length, 1);
+      assert.equal(deliveries[0]?.authorization, 'Bearer invite-webhook-secret');
+      assert.equal(deliveries[0]?.body.type, 'club_invite');
+      assert.equal(deliveries[0]?.body.to, inviteEmail);
+      assert.equal(deliveries[0]?.body.from, 'Clubroom Support <support@clubroom.test>');
+      assert.equal(deliveries[0]?.body.role, 'MEMBER');
+
+      const deliveryAudits = auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_invite.email_delivery',
+        resourceId: clubId,
+        result: 'SUCCESS',
+      });
+      assert.equal(deliveryAudits.length, 1);
+      assert.equal(JSON.stringify(deliveryAudits).includes(inviteEmail), false);
+      assert.equal(
+        (deliveryAudits[0]?.metadataJson as { delivery?: { sent?: number } } | undefined)
+          ?.delivery?.sent,
+        1,
+      );
+    } finally {
+      env.API_PASSWORD_RESET_EMAIL_WEBHOOK_URL = previousWebhookUrl;
+      env.API_PASSWORD_RESET_EMAIL_WEBHOOK_SECRET = previousWebhookSecret;
+      env.API_PASSWORD_RESET_EMAIL_FROM = previousFrom;
+      await new Promise<void>((resolve, reject) => {
+        deliveryServer.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
+  });
+
+  it('creates direct coach invites for existing coach users and accepts them via inbox', async () => {
+    const tables = loadTables();
+    const clubAdminMembership = asRows(tables.clubMemberships).find(
+      (row) => asString(row.role) === 'club_admin' && isActiveClubMembership(row),
+    );
+    assert.ok(clubAdminMembership, 'expected club admin membership');
+    const adminUserId = asString(clubAdminMembership.userId) as string;
+    const clubId = asString(clubAdminMembership.clubId) as string;
+    assert.ok(clubId, 'expected club id');
+
+    const existingClubUserIds = new Set(
+      asRows(tables.clubMemberships)
+        .filter((row) => asString(row.clubId) === clubId && isActiveClubMembership(row))
+        .map((row) => asString(row.userId))
+        .filter((userId): userId is string => Boolean(userId)),
+    );
+    const targetCoachUserId = asRows(tables.coachProfiles)
+      .map((row) => asString(row.userId))
+      .filter((userId): userId is string => Boolean(userId))
+      .find((userId) => userId !== adminUserId && !existingClubUserIds.has(userId));
+    assert.ok(targetCoachUserId, 'expected standalone coach user');
+
+    const createRes = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/invites`,
+      headers: authHeaders(tables, adminUserId, 'club_admin'),
+      payload: {
+        targetUserIds: [targetCoachUserId],
+        role: 'COACH',
+      },
+    });
+    assert.equal(createRes.statusCode, 201);
+    const createPayload = createRes.json() as {
+      invites: { id: string; clubId: string; targetUserId: string; role: string; status: string }[];
+      total: number;
+    };
+    assert.equal(createPayload.total, 1);
+    assert.equal(createPayload.invites[0]?.clubId, clubId);
+    assert.equal(createPayload.invites[0]?.targetUserId, targetCoachUserId);
+    assert.equal(createPayload.invites[0]?.role, 'COACH');
+    assert.equal(createPayload.invites[0]?.status, 'pending');
+    assert.equal(
+      asRows(getMarketplaceSeedStore().tables.clubMemberships).some(
+        (row) =>
+          asString(row.clubId) === clubId &&
+          asString(row.userId) === targetCoachUserId &&
+          isActiveClubMembership(row),
+      ),
+      false,
+      'direct coach invite must stay pending until target acceptance',
+    );
+
+    const inboxRes = await app.inject({
+      method: 'GET',
+      url: '/v1/clubs/invites',
+      headers: authHeaders(tables, targetCoachUserId, 'coach'),
+    });
+    assert.equal(inboxRes.statusCode, 200);
+    const inboxPayload = inboxRes.json() as {
+      invites: { id: string; clubId: string; role: string }[];
+    };
+    assert.equal(
+      inboxPayload.invites.some(
+        (invite) =>
+          invite.id === createPayload.invites[0]?.id &&
+          invite.clubId === clubId &&
+          invite.role === 'COACH',
+      ),
+      true,
+    );
+
+    const respondRes = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/invites/${createPayload.invites[0]?.id}/respond`,
+      headers: authHeaders(tables, targetCoachUserId, 'coach'),
+      payload: { response: 'accepted' },
+    });
+    assert.equal(respondRes.statusCode, 200);
+    const respondPayload = respondRes.json() as {
+      invite: { status: string };
+      membership: { clubId: string; userId: string; role: string } | null;
+    };
+    assert.equal(respondPayload.invite.status, 'accepted');
+    assert.equal(respondPayload.membership?.clubId, clubId);
+    assert.equal(respondPayload.membership?.userId, targetCoachUserId);
+    assert.equal(respondPayload.membership?.role, 'COACH');
+
+    const storedMembership = asRows(getMarketplaceSeedStore().tables.clubMemberships).find(
+      (row) => asString(row.clubId) === clubId && asString(row.userId) === targetCoachUserId,
+    );
+    assert.equal(isActiveClubMembership(storedMembership), true);
+    assert.equal(asString(storedMembership?.role), 'coach');
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_invite.create',
+        resourceId: clubId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_invite.respond',
+        resourceId: createPayload.invites[0]?.id,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+  });
+
+  it('denies direct coach invites for non-coach targets', async () => {
+    const tables = loadTables();
+    const clubAdminMembership = asRows(tables.clubMemberships).find(
+      (row) => asString(row.role) === 'club_admin' && isActiveClubMembership(row),
+    );
+    assert.ok(clubAdminMembership, 'expected club admin membership');
+    const adminUserId = asString(clubAdminMembership.userId) as string;
+    const clubId = asString(clubAdminMembership.clubId) as string;
+    const existingClubUserIds = new Set(
+      asRows(tables.clubMemberships)
+        .filter((row) => asString(row.clubId) === clubId && isActiveClubMembership(row))
+        .map((row) => asString(row.userId))
+        .filter((userId): userId is string => Boolean(userId)),
+    );
+    const coachUserIds = new Set(
+      asRows(tables.coachProfiles)
+        .map((row) => asString(row.userId))
+        .filter((userId): userId is string => Boolean(userId)),
+    );
+    const targetMemberUserId = asRows(tables.userRoleMemberships)
+      .filter((row) => asString(row.role) === 'member')
+      .map((row) => asString(row.userId))
+      .filter((userId): userId is string => Boolean(userId))
+      .find((userId) => !coachUserIds.has(userId) && !existingClubUserIds.has(userId));
+    assert.ok(targetMemberUserId, 'expected standalone non-coach member user');
+
+    const createRes = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/invites`,
+      headers: authHeaders(tables, adminUserId, 'club_admin'),
+      payload: {
+        targetUserIds: [targetMemberUserId],
+        role: 'COACH',
+      },
+    });
+    assert.equal(createRes.statusCode, 400);
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_invite.create',
+        resourceId: clubId,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+  });
+
+  it('creates direct admin invites from club owners for existing staff users and accepts them via inbox', async () => {
+    const tables = loadTables();
+    const ownerUserId = asString(asRows(tables.coachProfiles)[0]?.userId) as string;
+    assert.ok(ownerUserId, 'expected seeded coach owner user');
+    const targetCoachUserId = asRows(tables.coachProfiles)
+      .map((row) => asString(row.userId))
+      .filter((userId): userId is string => Boolean(userId))
+      .find((userId) => userId !== ownerUserId);
+    assert.ok(targetCoachUserId, 'expected second coach user');
+
+    const createClubRes = await app.inject({
+      method: 'POST',
+      url: '/v1/clubs',
+      headers: authHeaders(tables, ownerUserId, 'coach'),
+      payload: {
+        name: `Direct Admin Invite ${Date.now()}`,
+        city: 'London',
+        visibility: 'private',
+      },
+    });
+    assert.equal(createClubRes.statusCode, 201);
+    const clubId = (createClubRes.json() as { club: { id: string } }).club.id;
+
+    const createInviteRes = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/invites`,
+      headers: authHeaders(tables, ownerUserId, 'coach'),
+      payload: {
+        targetUserIds: [targetCoachUserId],
+        role: 'ADMIN',
+      },
+    });
+    assert.equal(createInviteRes.statusCode, 201);
+    const createInvitePayload = createInviteRes.json() as {
+      invites: { id: string; clubId: string; targetUserId: string; role: string; status: string }[];
+      total: number;
+    };
+    assert.equal(createInvitePayload.total, 1);
+    assert.equal(createInvitePayload.invites[0]?.clubId, clubId);
+    assert.equal(createInvitePayload.invites[0]?.targetUserId, targetCoachUserId);
+    assert.equal(createInvitePayload.invites[0]?.role, 'ADMIN');
+    assert.equal(createInvitePayload.invites[0]?.status, 'pending');
+    assert.equal(
+      asRows(getMarketplaceSeedStore().tables.clubMemberships).some(
+        (row) =>
+          asString(row.clubId) === clubId &&
+          asString(row.userId) === targetCoachUserId &&
+          isActiveClubMembership(row),
+      ),
+      false,
+      'direct admin invite must stay pending until target acceptance',
+    );
+
+    const respondRes = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/invites/${createInvitePayload.invites[0]?.id}/respond`,
+      headers: authHeaders(tables, targetCoachUserId, 'coach'),
+      payload: { response: 'accepted' },
+    });
+    assert.equal(respondRes.statusCode, 200);
+    const respondPayload = respondRes.json() as {
+      invite: { status: string };
+      membership: { clubId: string; userId: string; role: string } | null;
+    };
+    assert.equal(respondPayload.invite.status, 'accepted');
+    assert.equal(respondPayload.membership?.clubId, clubId);
+    assert.equal(respondPayload.membership?.userId, targetCoachUserId);
+    assert.equal(respondPayload.membership?.role, 'ADMIN');
+
+    const storedMembership = asRows(getMarketplaceSeedStore().tables.clubMemberships).find(
+      (row) => asString(row.clubId) === clubId && asString(row.userId) === targetCoachUserId,
+    );
+    assert.equal(isActiveClubMembership(storedMembership), true);
+    assert.equal(asString(storedMembership?.role), 'club_admin');
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_invite.create',
+        resourceId: clubId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_invite.respond',
+        resourceId: createInvitePayload.invites[0]?.id,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+  });
+
+  it('denies direct admin invites for non-staff targets', async () => {
+    const tables = loadTables();
+    const ownerUserId = asString(asRows(tables.coachProfiles)[0]?.userId) as string;
+    assert.ok(ownerUserId, 'expected seeded coach owner user');
+    const coachUserIds = new Set(
+      asRows(tables.coachProfiles)
+        .map((row) => asString(row.userId))
+        .filter((userId): userId is string => Boolean(userId)),
+    );
+    const adminUserIds = new Set(
+      asRows(tables.userRoleMemberships)
+        .filter((row) => asString(row.role) === 'club_admin')
+        .map((row) => asString(row.userId))
+        .filter((userId): userId is string => Boolean(userId)),
+    );
+    const targetMemberUserId = asRows(tables.userRoleMemberships)
+      .filter((row) => asString(row.role) === 'member' || asString(row.role) === 'parent')
+      .map((row) => asString(row.userId))
+      .filter((userId): userId is string => Boolean(userId))
+      .find((userId) => !coachUserIds.has(userId) && !adminUserIds.has(userId));
+    assert.ok(targetMemberUserId, 'expected non-staff user');
+
+    const createClubRes = await app.inject({
+      method: 'POST',
+      url: '/v1/clubs',
+      headers: authHeaders(tables, ownerUserId, 'coach'),
+      payload: {
+        name: `Direct Admin Non Staff ${Date.now()}`,
+        city: 'London',
+        visibility: 'private',
+      },
+    });
+    assert.equal(createClubRes.statusCode, 201);
+    const clubId = (createClubRes.json() as { club: { id: string } }).club.id;
+
+    const createInviteRes = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/invites`,
+      headers: authHeaders(tables, ownerUserId, 'coach'),
+      payload: {
+        targetUserIds: [targetMemberUserId],
+        role: 'ADMIN',
+      },
+    });
+    assert.equal(createInviteRes.statusCode, 400);
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_invite.create',
+        resourceId: clubId,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+  });
+
+  it('denies direct admin invites from equal-rank club admins', async () => {
+    const tables = loadTables();
+    const clubAdminMembership = asRows(tables.clubMemberships).find(
+      (row) => asString(row.role) === 'club_admin' && isActiveClubMembership(row),
+    );
+    assert.ok(clubAdminMembership, 'expected club admin membership');
+    const adminUserId = asString(clubAdminMembership.userId) as string;
+    const clubId = asString(clubAdminMembership.clubId) as string;
+    const existingClubUserIds = new Set(
+      asRows(tables.clubMemberships)
+        .filter((row) => asString(row.clubId) === clubId && isActiveClubMembership(row))
+        .map((row) => asString(row.userId))
+        .filter((userId): userId is string => Boolean(userId)),
+    );
+    const targetCoachUserId = asRows(tables.coachProfiles)
+      .map((row) => asString(row.userId))
+      .filter((userId): userId is string => Boolean(userId))
+      .find((userId) => userId !== adminUserId && !existingClubUserIds.has(userId));
+    assert.ok(targetCoachUserId, 'expected standalone coach user');
+
+    const createRes = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/invites`,
+      headers: authHeaders(tables, adminUserId, 'club_admin'),
+      payload: {
+        targetUserIds: [targetCoachUserId],
+        role: 'ADMIN',
+      },
+    });
+    assert.equal(createRes.statusCode, 403);
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_invite.create',
+        resourceId: clubId,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+  });
+
+  it('denies direct member invites from club members without invite management', async () => {
+    const tables = loadTables();
+    const memberMembership = asRows(tables.clubMemberships).find(
+      (row) => asString(row.role) === 'member' && isActiveClubMembership(row),
+    );
+    assert.ok(memberMembership, 'expected ordinary club member membership');
+    const clubId = asString(memberMembership.clubId) as string;
+    const memberUserId = asString(memberMembership.userId) as string;
+    const existingClubUserIds = new Set(
+      asRows(tables.clubMemberships)
+        .filter((row) => asString(row.clubId) === clubId && isActiveClubMembership(row))
+        .map((row) => asString(row.userId))
+        .filter((userId): userId is string => Boolean(userId)),
+    );
+    const targetMemberUserId = asRows(tables.userRoleMemberships)
+      .filter((row) => asString(row.role) === 'member')
+      .map((row) => asString(row.userId))
+      .filter((userId): userId is string => Boolean(userId))
+      .find((userId) => userId !== memberUserId && !existingClubUserIds.has(userId));
+    assert.ok(targetMemberUserId, 'expected target member outside club');
+
+    const createRes = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/invites`,
+      headers: authHeaders(tables, memberUserId, 'member'),
+      payload: {
+        targetUserIds: [targetMemberUserId],
+        role: 'MEMBER',
+      },
+    });
+    assert.equal(createRes.statusCode, 403);
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_invite.create',
+        resourceId: clubId,
+        result: 'DENY',
+      }).length,
+      1,
+    );
   });
 
   it('keeps the club authority flow working in db fixture mode', async () => {
@@ -1048,7 +1864,7 @@ describe('p0 core routes', () => {
       };
       assert.equal(joinPayload.outcome, 'joined');
       assert.equal(joinPayload.membership.userId, standaloneMemberId);
-      assert.equal(joinPayload.membership.role, 'member');
+      assert.equal(joinPayload.membership.role, 'MEMBER');
 
       const createCoachCodeRes = await app.inject({
         method: 'POST',
@@ -1117,7 +1933,7 @@ describe('p0 core routes', () => {
         membership: { role: string; userId: string } | null;
       };
       assert.equal(respondPayload.invite.status, 'accepted');
-      assert.equal(respondPayload.membership?.role, 'coach');
+      assert.equal(respondPayload.membership?.role, 'COACH');
       assert.equal(respondPayload.membership?.userId, targetCoachUserId);
     } finally {
       env.API_DATA_BACKEND = previousBackend;

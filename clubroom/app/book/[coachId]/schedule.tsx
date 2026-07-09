@@ -32,6 +32,7 @@ import { BOOKING_LOCATION_OPTIONS } from '@/constants/booking-flow';
 import { hasAccountChildren } from '@/utils/booking-self-capability';
 import type { SessionOffering } from '@/constants/session-types';
 import { isBookingScheduleLocked } from '@/utils/booking-schedule-lock';
+import { isBrowserFetchFailure } from '@/utils/network-errors';
 
 const logger = createLogger('ScheduleScreen');
 
@@ -127,7 +128,11 @@ export default function ScheduleScreen() {
       );
       return ok(slots);
     } catch (loadError) {
-      logger.error('Failed to fetch availability:', loadError);
+      if (isBrowserFetchFailure(loadError)) {
+        logger.warn('Failed to fetch availability:', loadError);
+      } else {
+        logger.error('Failed to fetch availability:', loadError);
+      }
       return err(
         serviceError('UNKNOWN', 'Unable to load available times. Please try again.', loadError),
       );

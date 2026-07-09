@@ -15,11 +15,14 @@ const logger = createLogger('EmergencyQuickAccessScreen');
 export function useEmergencyAccess() {
   const { athleteId } = useLocalSearchParams<{ athleteId: string }>();
   const { currentUser } = useAuth();
-  const coachId = currentUser?.id || 'coach_1';
+  const coachId = currentUser?.id ?? null;
 
   const loadData = async () => {
     if (!athleteId) {
       return ok<AthleteEmergencyQuickView | null>(null);
+    }
+    if (!coachId) {
+      return err(serviceError('UNAUTHORIZED', 'Sign in as a coach to view emergency information.'));
     }
 
     try {
@@ -51,6 +54,7 @@ export function useEmergencyAccess() {
     deps: [athleteId, coachId],
     isEmpty: (value) => !value,
     refetchOnFocus: true,
+    dataKey: `emergency:${coachId ?? 'missing'}:${athleteId ?? 'missing'}`,
   });
 
   const handleCallContact = async (phone: string, name: string) => {

@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
+import { api } from '@/constants/config';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import {
   orgStaffingService,
@@ -99,17 +101,31 @@ export function useManageBookings() {
       return ok(EMPTY_MANAGE_BOOKINGS_DATA);
     }
     try {
-      const [memberships, coachInvites] = await Promise.all([
-        socialFeedService.getUserMembershipsHydrated(currentUser.id),
+      const [authorityResult, coachInvites] = await Promise.all([
+        api.useMock ? Promise.resolve(null) : clubAuthorityService.listClubs(),
         inviteService.getCoachInvites(currentUser.id),
       ]);
+      if (authorityResult && !authorityResult.success) {
+        return err(authorityResult.error);
+      }
+      const memberships = api.useMock
+        ? await socialFeedService.getUserMembershipsHydrated(currentUser.id)
+        : (authorityResult?.data.memberships ?? []);
+      const authorityClubMap = new Map(
+        (authorityResult?.success ? authorityResult.data.clubs : []).map((club) => [
+          club.id,
+          club,
+        ]),
+      );
       const eligibleMemberships = memberships.filter(
         (membership) => membership.status === 'active' && canCreateSessions(membership.role),
       );
       const nextClubs = (
         await Promise.all(
           eligibleMemberships.map(async (membership) => {
-            const club = await socialFeedService.getClub(membership.clubId);
+            const club = api.useMock
+              ? await socialFeedService.getClub(membership.clubId)
+              : authorityClubMap.get(membership.clubId);
             if (!club) return null;
             return {
               id: club.id,

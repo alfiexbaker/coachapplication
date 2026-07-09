@@ -459,12 +459,6 @@ export const STORAGE_KEYS = {
   /** Offline queue for write operations */
   OFFLINE_QUEUE: 'clubroom.offline_queue',
 
-  /** Last synthetic activity pulse timestamp in pre-API live mode */
-  PRE_API_LIVE_LAST_PULSE_AT: 'clubroom.pre_api_live.last_pulse_at',
-
-  /** Last user id bootstrapped by pre-API live mode */
-  PRE_API_LIVE_LAST_BOOTSTRAP_USER: 'clubroom.pre_api_live.last_bootstrap_user',
-
   /** Prefix for per-form draft keys (suffix with formId) */
   FORM_DRAFT_PREFIX: 'clubroom.form_draft.',
 
@@ -536,9 +530,6 @@ export const STORAGE_KEYS = {
 
   /** In-progress onboarding wizard draft */
   ONBOARDING_PROGRESS: 'clubroom.onboarding_progress',
-
-  /** Whether the availability tutorial has been completed by the coach */
-  AVAILABILITY_TUTORIAL_COMPLETED: 'clubroom.availability_tutorial_completed',
 
   // ============================================================================
   // SESSION COMPLETION DOMAIN

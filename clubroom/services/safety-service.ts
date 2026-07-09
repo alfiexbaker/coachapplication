@@ -231,7 +231,7 @@ function cloneEmergencyInfoStore(
   );
 }
 
-let mockEmergencyInfo = cloneEmergencyInfoStore(MOCK_EMERGENCY_INFO);
+let mockEmergencyInfo = apiClient.isMockMode ? cloneEmergencyInfoStore(MOCK_EMERGENCY_INFO) : {};
 let emergencyCache: EmergencyCache = {};
 
 class SafetyService {

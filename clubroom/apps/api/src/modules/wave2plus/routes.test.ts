@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { after, beforeEach, describe, it } from 'node:test';
 import { env } from '@clubroom/config';
@@ -7,6 +9,7 @@ import { buildApp } from '../../app.js';
 import { getDbFixtureStore, resetDbFixtureStoreForTests } from '../../lib/db-fixture-store.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { resetMarketplaceSeedStoreForTests } from '../../lib/marketplace-seed-store.js';
+import { recordUploadMalwareScanResult } from '../../lib/storage-runtime.js';
 
 type SeedRow = Record<string, unknown>;
 type SeedTables = Record<string, SeedRow[]>;
@@ -16,10 +19,19 @@ const asString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
 const asNumber = (value: unknown): number | undefined =>
   typeof value === 'number' ? value : undefined;
+const asRecord = (value: unknown): SeedRow | undefined =>
+  value && typeof value === 'object' && !Array.isArray(value) ? (value as SeedRow) : undefined;
 const asStringArray = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
 const tokenFromHostedUrl = (value: string): string =>
   new URL(value, 'http://clubroom.test').searchParams.get('token') ?? '';
+
+function ensureRows(tables: SeedTables, key: string): SeedRow[] {
+  if (!Array.isArray(tables[key])) {
+    tables[key] = [];
+  }
+  return tables[key];
+}
 
 function resolveDatasetPath(): string {
   const primary = path.resolve(
@@ -1921,6 +1933,19 @@ describe('wave2+ routes', () => {
     });
     assert.equal(denied.statusCode, 403);
 
+    const previousWebhookUrl = env.API_PASSWORD_RESET_EMAIL_WEBHOOK_URL;
+    const previousBrevoKey = env.API_PASSWORD_RESET_BREVO_API_KEY;
+    const previousSmtpHost = env.API_PASSWORD_RESET_SMTP_HOST;
+    const previousSmtpUsername = env.API_PASSWORD_RESET_SMTP_USERNAME;
+    const previousSmtpPassword = env.API_PASSWORD_RESET_SMTP_PASSWORD;
+    const previousDevOutbox = env.API_PASSWORD_RESET_DEV_OUTBOX;
+    env.API_PASSWORD_RESET_EMAIL_WEBHOOK_URL = undefined;
+    env.API_PASSWORD_RESET_BREVO_API_KEY = undefined;
+    env.API_PASSWORD_RESET_SMTP_HOST = undefined;
+    env.API_PASSWORD_RESET_SMTP_USERNAME = undefined;
+    env.API_PASSWORD_RESET_SMTP_PASSWORD = undefined;
+    env.API_PASSWORD_RESET_DEV_OUTBOX = false;
+
     const reminded = await app.inject({
       method: 'POST',
       url: `/v1/invoices/${invoiceId}/reminders`,
@@ -1930,17 +1955,32 @@ describe('wave2+ routes', () => {
         message: 'Please pay through the secure hosted payment page.',
       },
     });
+    env.API_PASSWORD_RESET_EMAIL_WEBHOOK_URL = previousWebhookUrl;
+    env.API_PASSWORD_RESET_BREVO_API_KEY = previousBrevoKey;
+    env.API_PASSWORD_RESET_SMTP_HOST = previousSmtpHost;
+    env.API_PASSWORD_RESET_SMTP_USERNAME = previousSmtpUsername;
+    env.API_PASSWORD_RESET_SMTP_PASSWORD = previousSmtpPassword;
+    env.API_PASSWORD_RESET_DEV_OUTBOX = previousDevOutbox;
     assert.equal(reminded.statusCode, 200);
     const remindedPayload = reminded.json() as {
       invoice: { id: string; status: string; sentAt?: string };
-      reminder: { deliveryStatus?: string; channel?: string };
+      reminder: { id?: string; deliveryStatus?: string; channel?: string };
       sentAt: string;
     };
     assert.equal(remindedPayload.invoice.id, invoiceId);
     assert.equal(remindedPayload.invoice.status, 'SENT');
-    assert.equal(remindedPayload.reminder.deliveryStatus, 'queued');
+    assert.equal(remindedPayload.reminder.deliveryStatus, 'skipped');
     assert.equal(remindedPayload.reminder.channel, 'email');
     assert.equal(Boolean(remindedPayload.sentAt), true);
+    const storedReminder = asRows(getMarketplaceSeedStore().tables.paymentReminders).find(
+      (row) => asString(row.id) === remindedPayload.reminder.id,
+    );
+    assert.equal(asString(storedReminder?.deliveryStatus), 'skipped');
+    assert.equal(
+      JSON.stringify(asRecord(storedReminder?.metadataJson)).includes('payer@example.com'),
+      false,
+    );
+    assert.equal(asString(asRecord(storedReminder?.metadataJson)?.recipientEmailDomain), 'example.com');
 
     const detail = await app.inject({
       method: 'GET',
@@ -1957,6 +1997,81 @@ describe('wave2+ routes', () => {
       detailPayload.events.some((event) => event.eventType === 'REMINDER_SENT'),
       true,
     );
+  });
+
+  it('delivers invoice reminders through the configured webhook without raw email metadata', async () => {
+    const tables = loadTables();
+    const sentInvoice = asRows(tables.invoices).find((row) => asString(row.status) === 'SENT');
+    assert.ok(sentInvoice, 'expected seeded SENT invoice');
+    const invoiceId = asString(sentInvoice.id) as string;
+    const coachUserId = asString(sentInvoice.coachUserId) as string;
+    const recipientEmail = 'payer@example.com';
+    const deliveries: Array<{ authorization?: string; body: Record<string, unknown> }> = [];
+    const deliveryServer = http.createServer((req, res) => {
+      let raw = '';
+      req.setEncoding('utf8');
+      req.on('data', (chunk) => {
+        raw += chunk;
+      });
+      req.on('end', () => {
+        deliveries.push({
+          authorization: req.headers.authorization,
+          body: raw ? (JSON.parse(raw) as Record<string, unknown>) : {},
+        });
+        res.statusCode = 202;
+        res.end('accepted');
+      });
+    });
+
+    await new Promise<void>((resolve) => deliveryServer.listen(0, '127.0.0.1', resolve));
+    const address = deliveryServer.address() as AddressInfo;
+    const previousWebhookUrl = env.API_PASSWORD_RESET_EMAIL_WEBHOOK_URL;
+    const previousWebhookSecret = env.API_PASSWORD_RESET_EMAIL_WEBHOOK_SECRET;
+    const previousFrom = env.API_PASSWORD_RESET_EMAIL_FROM;
+    env.API_PASSWORD_RESET_EMAIL_WEBHOOK_URL = `http://127.0.0.1:${address.port}/invoice-reminder`;
+    env.API_PASSWORD_RESET_EMAIL_WEBHOOK_SECRET = 'invoice-webhook-secret';
+    env.API_PASSWORD_RESET_EMAIL_FROM = 'Clubroom Billing <billing@clubroom.test>';
+
+    try {
+      const reminded = await app.inject({
+        method: 'POST',
+        url: `/v1/invoices/${invoiceId}/reminders`,
+        headers: authHeaders(tables, coachUserId, 'coach'),
+        payload: {
+          recipientEmail,
+          message: 'Please pay through the secure hosted payment page.',
+        },
+      });
+      assert.equal(reminded.statusCode, 200);
+      const remindedPayload = reminded.json() as {
+        reminder: { id?: string; deliveryStatus?: string; metadataJson?: Record<string, unknown> };
+      };
+      assert.equal(remindedPayload.reminder.deliveryStatus, 'sent');
+      assert.equal(deliveries.length, 1);
+      assert.equal(deliveries[0]?.authorization, 'Bearer invoice-webhook-secret');
+      assert.equal(deliveries[0]?.body.type, 'invoice_reminder');
+      assert.equal(deliveries[0]?.body.to, recipientEmail);
+      assert.equal(deliveries[0]?.body.from, 'Clubroom Billing <billing@clubroom.test>');
+
+      const storedReminder = asRows(getMarketplaceSeedStore().tables.paymentReminders).find(
+        (row) => asString(row.id) === remindedPayload.reminder.id,
+      );
+      assert.equal(asString(storedReminder?.deliveryStatus), 'sent');
+      assert.equal(JSON.stringify(storedReminder).includes(recipientEmail), false);
+      assert.equal(asString(asRecord(storedReminder?.metadataJson)?.deliveryProvider), 'webhook');
+      const reminderAudit = asRows(getMarketplaceSeedStore().tables.auditEvents).find(
+        (row) => asString(row.action) === 'invoice.reminder' && asString(row.resourceId) === invoiceId,
+      );
+      assert.equal(JSON.stringify(reminderAudit).includes(recipientEmail), false);
+      assert.equal(asString(asRecord(reminderAudit?.metadataJson)?.deliveryStatus), 'sent');
+    } finally {
+      env.API_PASSWORD_RESET_EMAIL_WEBHOOK_URL = previousWebhookUrl;
+      env.API_PASSWORD_RESET_EMAIL_WEBHOOK_SECRET = previousWebhookSecret;
+      env.API_PASSWORD_RESET_EMAIL_FROM = previousFrom;
+      await new Promise<void>((resolve, reject) => {
+        deliveryServer.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
   });
 
   it('lets a coach reconcile invoice status transitions through v1 routes', async () => {
@@ -4191,6 +4306,27 @@ describe('wave2+ routes', () => {
     assert.ok(directAssignment, 'expected direct drill assignment');
     assert.equal(directAssignment.drill?.id, asString(assignment.drillId));
 
+    const directAssignmentDetail = await app.inject({
+      method: 'GET',
+      url: `/v1/drill-assignments/${assignmentId}`,
+      headers: parentHeaders,
+    });
+    assert.equal(directAssignmentDetail.statusCode, 200);
+    const directAssignmentDetailPayload = directAssignmentDetail.json() as {
+      assignment: {
+        id?: string;
+        athleteId?: string;
+        coachUserId?: string;
+        drill?: { id?: string };
+        submissions?: unknown[];
+      };
+    };
+    assert.equal(directAssignmentDetailPayload.assignment.id, assignmentId);
+    assert.equal(directAssignmentDetailPayload.assignment.athleteId, athleteId);
+    assert.equal(directAssignmentDetailPayload.assignment.coachUserId, coachUserId);
+    assert.equal(directAssignmentDetailPayload.assignment.drill?.id, asString(assignment.drillId));
+    assert.ok(Array.isArray(directAssignmentDetailPayload.assignment.submissions));
+
     const assignableDrill = asRows(tables.drills).find(
       (row) =>
         asString(row.authorUserId) === coachUserId &&
@@ -4434,6 +4570,13 @@ describe('wave2+ routes', () => {
     });
     assert.equal(deniedDirectAssignments.statusCode, 403);
 
+    const deniedDirectAssignmentDetail = await app.inject({
+      method: 'GET',
+      url: `/v1/drill-assignments/${assignmentId}`,
+      headers: authHeaders(tables, outsiderUserId, 'parent'),
+    });
+    assert.equal(deniedDirectAssignmentDetail.statusCode, 403);
+
     const deniedDueAt = await app.inject({
       method: 'PATCH',
       url: `/v1/practice-tasks/${taskId}/due-at`,
@@ -4571,6 +4714,22 @@ describe('wave2+ routes', () => {
       auditEventsFor(liveTables, {
         action: 'drill_assignments.read',
         resourceId: athleteId,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'drill_assignment.read',
+        resourceId: assignmentId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(liveTables, {
+        action: 'drill_assignment.read',
+        resourceId: assignmentId,
         result: 'DENY',
       }).length,
       1,
@@ -5153,8 +5312,23 @@ describe('wave2+ routes', () => {
       const coachUserId = asString(drills[0]?.authorUserId) as string;
       const athleteId = asString(asRows(tables.athletes)[0]?.id) as string;
       const outsiderUserId = findUnprivilegedUserId(tables, new Set([coachUserId]));
+      const parentUserId = asRows(tables.users)
+        .map((row) => asString(row.id))
+        .find((candidateUserId): candidateUserId is string => {
+          if (!candidateUserId || candidateUserId === coachUserId) {
+            return false;
+          }
+          const roles = rolesForUser(tables, candidateUserId);
+          return (
+            roles.includes('parent') &&
+            !roles.some((role) =>
+              ['coach', 'club_admin', 'admin', 'security_admin'].includes(role),
+            )
+          );
+        });
       assert.ok(coachUserId, 'expected db fixture drill author');
       assert.ok(athleteId, 'expected db fixture athlete');
+      assert.ok(parentUserId, 'expected parent-only user for drill authz denial coverage');
 
       const now = '2026-06-01T09:00:00.000Z';
       drills.push({
@@ -5247,6 +5421,34 @@ describe('wave2+ routes', () => {
         true,
       );
       assert.equal(detailPayload.seedVersion, store.version);
+
+      const deniedParentList = await app.inject({
+        method: 'GET',
+        url: '/v1/drills',
+        headers: authHeaders(tables, parentUserId, 'parent'),
+      });
+      assert.equal(deniedParentList.statusCode, 403);
+
+      const deniedParentDetail = await app.inject({
+        method: 'GET',
+        url: '/v1/drills/drl_db_fixture_live',
+        headers: authHeaders(tables, parentUserId, 'parent'),
+      });
+      assert.equal(deniedParentDetail.statusCode, 403);
+
+      const deniedParentCreate = await app.inject({
+        method: 'POST',
+        url: '/v1/drills',
+        headers: authHeaders(tables, parentUserId, 'parent'),
+        payload: {
+          title: 'Denied Parent Drill',
+          description: 'Parents cannot author coach library drills.',
+          category: 'TECHNIQUE',
+          duration: 12,
+          difficulty: 'BEGINNER',
+        },
+      });
+      assert.equal(deniedParentCreate.statusCode, 403);
 
       const deniedUpdate = await app.inject({
         method: 'PATCH',
@@ -5352,6 +5554,32 @@ describe('wave2+ routes', () => {
       );
       assert.equal(directAssignmentsPayload.seedVersion, store.version);
 
+      const directAssignmentDetail = await app.inject({
+        method: 'GET',
+        url: '/v1/drill-assignments/dra_db_fixture_live',
+        headers: authHeaders(tables, coachUserId, 'coach', {
+          'x-coach-athlete-ids': athleteId,
+          'x-coach-verified': '1',
+        }),
+      });
+      assert.equal(directAssignmentDetail.statusCode, 200);
+      const directAssignmentDetailPayload = directAssignmentDetail.json() as {
+        assignment: SeedRow & { drill?: SeedRow; submissions?: SeedRow[] };
+        seedVersion: string | null;
+      };
+      assert.equal(asString(directAssignmentDetailPayload.assignment.id), 'dra_db_fixture_live');
+      assert.equal(
+        asString(directAssignmentDetailPayload.assignment.drill?.id),
+        'drl_db_fixture_live',
+      );
+      assert.equal(
+        directAssignmentDetailPayload.assignment.submissions?.some(
+          (submission) => asString(submission.id) === 'das_db_fixture_live',
+        ),
+        true,
+      );
+      assert.equal(directAssignmentDetailPayload.seedVersion, store.version);
+
       const created = await app.inject({
         method: 'POST',
         url: '/v1/drill-assignments',
@@ -5425,6 +5653,29 @@ describe('wave2+ routes', () => {
         }).length,
         1,
       );
+      assert.equal(
+        auditEventsFor(tables, {
+          action: 'drills.read',
+          resourceId: parentUserId,
+          result: 'DENY',
+        }).length,
+        1,
+      );
+      assert.equal(
+        auditEventsFor(tables, {
+          action: 'drill.read',
+          resourceId: 'drl_db_fixture_live',
+          result: 'DENY',
+        }).some((event) => asString(event.actorUserId) === parentUserId),
+        true,
+      );
+      assert.equal(
+        auditEventsFor(tables, {
+          action: 'drill.create',
+          result: 'DENY',
+        }).some((event) => asString(event.actorUserId) === parentUserId),
+        true,
+      );
       const deniedDrillUpdateAudits = auditEventsFor(tables, {
         action: 'drill.update',
         resourceId: 'drl_db_fixture_live',
@@ -5470,6 +5721,14 @@ describe('wave2+ routes', () => {
         auditEventsFor(tables, {
           action: 'drill_assignments.read',
           resourceId: athleteId,
+          result: 'SUCCESS',
+        }).length,
+        1,
+      );
+      assert.equal(
+        auditEventsFor(tables, {
+          action: 'drill_assignment.read',
+          resourceId: 'dra_db_fixture_live',
           result: 'SUCCESS',
         }).length,
         1,
@@ -7487,9 +7746,47 @@ describe('wave2+ routes', () => {
 
   it('creates and removes direct thread messages through backend authority', async () => {
     const tables = loadTables();
+    const store = getMarketplaceSeedStore();
     const { threadId, senderUserId, otherUserId, participantUserIds } =
       findDirectMessageThreadActors(tables);
     const outsiderUserId = findUnprivilegedUserId(tables, participantUserIds);
+    const now = new Date().toISOString();
+    ensureRows(store.tables, 'mediaObjects').push(
+      {
+        id: 'med_direct_message_attachment',
+        ownerUserId: senderUserId,
+        kind: 'IMAGE',
+        status: 'AVAILABLE',
+        storageKey: 'test/direct-message/photo.jpg',
+        bucketName: 'clubroom-private',
+        contentType: 'image/jpeg',
+        sizeBytes: 2048,
+        originalFileName: 'touch-map.jpg',
+        visibilityScope: 'private',
+        consentRequired: false,
+        createdByUserId: senderUserId,
+        updatedByUserId: senderUserId,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'med_direct_message_wrong_owner',
+        ownerUserId: otherUserId,
+        kind: 'IMAGE',
+        status: 'AVAILABLE',
+        storageKey: 'test/direct-message/wrong-owner.jpg',
+        bucketName: 'clubroom-private',
+        contentType: 'image/jpeg',
+        sizeBytes: 2048,
+        originalFileName: 'wrong-owner.jpg',
+        visibilityScope: 'private',
+        consentRequired: false,
+        createdByUserId: otherUserId,
+        updatedByUserId: otherUserId,
+        createdAt: now,
+        updatedAt: now,
+      },
+    );
 
     const unauthenticated = await app.inject({
       method: 'POST',
@@ -7523,6 +7820,55 @@ describe('wave2+ routes', () => {
       },
     });
     assert.equal(deniedMedia.statusCode, 400);
+
+    const deniedWrongOwnerMedia = await app.inject({
+      method: 'POST',
+      url: `/v1/message-threads/${threadId}/messages`,
+      headers: authHeaders(tables, senderUserId),
+      payload: {
+        body: 'Wrong owner media must not attach',
+        attachments: [{ mediaObjectId: 'med_direct_message_wrong_owner' }],
+        idempotencyKey: 'direct-message-media-wrong-owner-deny',
+      },
+    });
+    assert.equal(deniedWrongOwnerMedia.statusCode, 403);
+
+    const createdMedia = await app.inject({
+      method: 'POST',
+      url: `/v1/message-threads/${threadId}/messages`,
+      headers: authHeaders(tables, senderUserId),
+      payload: {
+        body: 'Backend-owned direct message with media proof',
+        attachments: [{ mediaObjectId: 'med_direct_message_attachment', title: 'Touch map' }],
+        idempotencyKey: 'direct-message-media-create-test',
+      },
+    });
+    assert.equal(createdMedia.statusCode, 201);
+    const createdMediaPayload = createdMedia.json() as {
+      message: { attachmentsJson: Array<{ mediaObjectId: string; type: string; title: string }> };
+    };
+    assert.deepEqual(createdMediaPayload.message.attachmentsJson, [
+      {
+        id: 'med_direct_message_attachment',
+        mediaObjectId: 'med_direct_message_attachment',
+        type: 'photo',
+        title: 'Touch map',
+        subtitle: 'image/jpeg',
+        contentType: 'image/jpeg',
+        originalFileName: 'touch-map.jpg',
+      },
+    ]);
+
+    const mediaIdempotencyConflict = await app.inject({
+      method: 'POST',
+      url: `/v1/message-threads/${threadId}/messages`,
+      headers: authHeaders(tables, senderUserId),
+      payload: {
+        body: 'Backend-owned direct message with media proof',
+        idempotencyKey: 'direct-message-media-create-test',
+      },
+    });
+    assert.equal(mediaIdempotencyConflict.statusCode, 409);
 
     const created = await app.inject({
       method: 'POST',
@@ -7820,9 +8166,47 @@ describe('wave2+ routes', () => {
 
   it('creates staff feed posts through backend authority', async () => {
     const tables = loadTables();
+    const store = getMarketplaceSeedStore();
     const { clubId, staffUserId, staffRole, memberUserId, memberUserIds } =
       findClubPostActors(tables);
     const outsiderUserId = findUnprivilegedUserId(tables, memberUserIds);
+    const now = new Date().toISOString();
+    ensureRows(store.tables, 'mediaObjects').push(
+      {
+        id: 'med_staff_feed_attachment',
+        ownerUserId: staffUserId,
+        kind: 'IMAGE',
+        status: 'AVAILABLE',
+        storageKey: 'test/staff-feed/photo.jpg',
+        bucketName: 'clubroom-private',
+        contentType: 'image/jpeg',
+        sizeBytes: 4096,
+        originalFileName: 'training-update.jpg',
+        visibilityScope: 'private',
+        consentRequired: false,
+        createdByUserId: staffUserId,
+        updatedByUserId: staffUserId,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'med_staff_feed_wrong_owner',
+        ownerUserId: memberUserId,
+        kind: 'IMAGE',
+        status: 'AVAILABLE',
+        storageKey: 'test/staff-feed/wrong-owner.jpg',
+        bucketName: 'clubroom-private',
+        contentType: 'image/jpeg',
+        sizeBytes: 4096,
+        originalFileName: 'wrong-owner.jpg',
+        visibilityScope: 'private',
+        consentRequired: false,
+        createdByUserId: memberUserId,
+        updatedByUserId: memberUserId,
+        createdAt: now,
+        updatedAt: now,
+      },
+    );
 
     const unauthenticated = await app.inject({
       method: 'POST',
@@ -7872,7 +8256,79 @@ describe('wave2+ routes', () => {
     });
     assert.equal(deniedMedia.statusCode, 400);
 
+    const deniedWrongOwnerMedia = await app.inject({
+      method: 'POST',
+      url: '/v1/posts',
+      headers: authHeaders(tables, staffUserId, staffRole),
+      payload: {
+        clubId,
+        content: 'Wrong owner media must not publish',
+        attachments: [{ mediaObjectId: 'med_staff_feed_wrong_owner' }],
+        idempotencyKey: 'staff-feed-post-media-wrong-owner-deny',
+      },
+    });
+    assert.equal(deniedWrongOwnerMedia.statusCode, 403);
+
     const created = await app.inject({
+      method: 'POST',
+      url: '/v1/posts',
+      headers: authHeaders(tables, staffUserId, staffRole),
+      payload: {
+        clubId,
+        content: 'Backend-owned staff update',
+        visibility: 'CLUB',
+        metadata: {
+          title: 'Training update',
+          postType: 'announcement',
+          postAs: 'club',
+          feedType: 'CLUB',
+          audience: 'club',
+          audienceLabel: 'Club-wide',
+        },
+        attachments: [{ mediaObjectId: 'med_staff_feed_attachment', title: 'Training photo' }],
+        idempotencyKey: 'staff-feed-post-create-test',
+      },
+    });
+    assert.equal(created.statusCode, 201);
+    const createdPayload = created.json() as {
+      post: {
+        id: string;
+        clubId: string;
+        communityGroupId: string | null;
+        authorUserId: string;
+        content: string;
+        visibility: string;
+        attachmentsJson?: {
+          title?: string;
+          postType?: string;
+          attachments?: Array<{ mediaObjectId: string; type: string; title: string }>;
+        };
+        commentsCount: number;
+        reactionsCount: number;
+      };
+    };
+    assert.equal(createdPayload.post.clubId, clubId);
+    assert.equal(createdPayload.post.communityGroupId, null);
+    assert.equal(createdPayload.post.authorUserId, staffUserId);
+    assert.equal(createdPayload.post.content, 'Backend-owned staff update');
+    assert.equal(createdPayload.post.visibility, 'CLUB');
+    assert.equal(createdPayload.post.attachmentsJson?.title, 'Training update');
+    assert.equal(createdPayload.post.attachmentsJson?.postType, 'announcement');
+    assert.deepEqual(createdPayload.post.attachmentsJson?.attachments, [
+      {
+        id: 'med_staff_feed_attachment',
+        mediaObjectId: 'med_staff_feed_attachment',
+        type: 'photo',
+        title: 'Training photo',
+        subtitle: 'image/jpeg',
+        contentType: 'image/jpeg',
+        originalFileName: 'training-update.jpg',
+      },
+    ]);
+    assert.equal(createdPayload.post.commentsCount, 0);
+    assert.equal(createdPayload.post.reactionsCount, 0);
+
+    const mediaIdempotencyConflict = await app.inject({
       method: 'POST',
       url: '/v1/posts',
       headers: authHeaders(tables, staffUserId, staffRole),
@@ -7891,29 +8347,166 @@ describe('wave2+ routes', () => {
         idempotencyKey: 'staff-feed-post-create-test',
       },
     });
-    assert.equal(created.statusCode, 201);
-    const createdPayload = created.json() as {
+    assert.equal(mediaIdempotencyConflict.statusCode, 409);
+
+    const detail = await app.inject({
+      method: 'GET',
+      url: `/v1/posts/${createdPayload.post.id}`,
+      headers: authHeaders(tables, memberUserId, 'member'),
+    });
+    assert.equal(detail.statusCode, 200);
+    const detailPayload = detail.json() as {
       post: {
         id: string;
         clubId: string;
-        communityGroupId: string | null;
-        authorUserId: string;
         content: string;
-        visibility: string;
-        attachmentsJson?: { title?: string; postType?: string };
         commentsCount: number;
         reactionsCount: number;
       };
     };
-    assert.equal(createdPayload.post.clubId, clubId);
-    assert.equal(createdPayload.post.communityGroupId, null);
-    assert.equal(createdPayload.post.authorUserId, staffUserId);
-    assert.equal(createdPayload.post.content, 'Backend-owned staff update');
-    assert.equal(createdPayload.post.visibility, 'CLUB');
-    assert.equal(createdPayload.post.attachmentsJson?.title, 'Training update');
-    assert.equal(createdPayload.post.attachmentsJson?.postType, 'announcement');
-    assert.equal(createdPayload.post.commentsCount, 0);
-    assert.equal(createdPayload.post.reactionsCount, 0);
+    assert.equal(detailPayload.post.id, createdPayload.post.id);
+    assert.equal(detailPayload.post.clubId, clubId);
+    assert.equal(detailPayload.post.content, 'Backend-owned staff update');
+    assert.equal(detailPayload.post.commentsCount, 0);
+    assert.equal(detailPayload.post.reactionsCount, 0);
+
+    const feedLiveTables = getMarketplaceSeedStore().tables;
+    const followCreatedAt = new Date().toISOString();
+    ensureRows(feedLiveTables, 'userFollows').push({
+      id: 'follow_member_staff_feed_test',
+      followerUserId: memberUserId,
+      followedUserId: staffUserId,
+      followerType: 'USER',
+      followingType: 'COACH',
+      notifyOnPost: true,
+      notifyOnSession: true,
+      createdAt: followCreatedAt,
+      updatedAt: followCreatedAt,
+    });
+
+    const followedPersonalPost = await app.inject({
+      method: 'POST',
+      url: '/v1/posts',
+      headers: authHeaders(tables, staffUserId, staffRole),
+      payload: {
+        clubId,
+        content: 'Followed coach personal update',
+        visibility: 'CLUB',
+        metadata: {
+          title: 'Personal coach note',
+          postType: 'general',
+          postAs: 'self',
+          feedType: 'PERSONAL',
+          audience: 'club',
+          audienceLabel: 'Personal Feed',
+        },
+        idempotencyKey: 'staff-feed-following-personal-post',
+      },
+    });
+    assert.equal(followedPersonalPost.statusCode, 201);
+    const followedPersonalPayload = followedPersonalPost.json() as {
+      post: { id: string; authorUserId: string; attachmentsJson?: { feedType?: string } };
+    };
+    assert.equal(followedPersonalPayload.post.authorUserId, staffUserId);
+    assert.equal(followedPersonalPayload.post.attachmentsJson?.feedType, 'PERSONAL');
+
+    const followingFeed = await app.inject({
+      method: 'GET',
+      url: '/v1/posts?followingOnly=true',
+      headers: authHeaders(tables, memberUserId, 'member'),
+    });
+    assert.equal(followingFeed.statusCode, 200);
+    const followingFeedPayload = followingFeed.json() as { posts: Array<{ id: string }> };
+    assert.equal(
+      followingFeedPayload.posts.some((post) => post.id === followedPersonalPayload.post.id),
+      true,
+    );
+    assert.equal(
+      followingFeedPayload.posts.some((post) => post.id === createdPayload.post.id),
+      false,
+    );
+
+    ensureRows(feedLiveTables, 'userBlocks').push({
+      id: 'block_member_staff_feed_test',
+      blockerUserId: memberUserId,
+      blockedUserId: staffUserId,
+      createdAt: followCreatedAt,
+      updatedAt: followCreatedAt,
+    });
+    const blockedFollowingFeed = await app.inject({
+      method: 'GET',
+      url: '/v1/posts?followingOnly=true',
+      headers: authHeaders(tables, memberUserId, 'member'),
+    });
+    assert.equal(blockedFollowingFeed.statusCode, 200);
+    const blockedFollowingPayload = blockedFollowingFeed.json() as { posts: Array<{ id: string }> };
+    assert.equal(
+      blockedFollowingPayload.posts.some((post) => post.id === followedPersonalPayload.post.id),
+      false,
+    );
+
+    const deniedPin = await app.inject({
+      method: 'PATCH',
+      url: `/v1/posts/${createdPayload.post.id}/pin`,
+      headers: authHeaders(tables, memberUserId, 'member'),
+      payload: { pinned: true },
+    });
+    assert.equal(deniedPin.statusCode, 403);
+
+    const pinned = await app.inject({
+      method: 'PATCH',
+      url: `/v1/posts/${createdPayload.post.id}/pin`,
+      headers: authHeaders(tables, staffUserId, staffRole),
+      payload: { pinned: true },
+    });
+    assert.equal(pinned.statusCode, 200);
+    const pinnedPayload = pinned.json() as {
+      post: {
+        id: string;
+        attachmentsJson?: { isPinned?: boolean; pinnedBy?: string; pinnedAt?: string };
+      };
+    };
+    assert.equal(pinnedPayload.post.id, createdPayload.post.id);
+    assert.equal(pinnedPayload.post.attachmentsJson?.isPinned, true);
+    assert.equal(pinnedPayload.post.attachmentsJson?.pinnedBy, staffUserId);
+    assert.ok(pinnedPayload.post.attachmentsJson?.pinnedAt, 'expected pinned timestamp');
+
+    const listedAfterPin = await app.inject({
+      method: 'GET',
+      url: `/v1/posts?clubId=${clubId}`,
+      headers: authHeaders(tables, memberUserId, 'member'),
+    });
+    assert.equal(listedAfterPin.statusCode, 200);
+    const listedAfterPinPayload = listedAfterPin.json() as {
+      posts: Array<{ id: string; attachmentsJson?: { isPinned?: boolean } }>;
+    };
+    assert.equal(
+      listedAfterPinPayload.posts.some(
+        (post) => post.id === createdPayload.post.id && post.attachmentsJson?.isPinned === true,
+      ),
+      true,
+    );
+
+    const unpinned = await app.inject({
+      method: 'PATCH',
+      url: `/v1/posts/${createdPayload.post.id}/pin`,
+      headers: authHeaders(tables, staffUserId, staffRole),
+      payload: { pinned: false },
+    });
+    assert.equal(unpinned.statusCode, 200);
+    const unpinnedPayload = unpinned.json() as {
+      post: { attachmentsJson?: { isPinned?: boolean; pinnedBy?: string; pinnedAt?: string } };
+    };
+    assert.equal(unpinnedPayload.post.attachmentsJson?.isPinned, undefined);
+    assert.equal(unpinnedPayload.post.attachmentsJson?.pinnedBy, undefined);
+    assert.equal(unpinnedPayload.post.attachmentsJson?.pinnedAt, undefined);
+
+    const deniedDetail = await app.inject({
+      method: 'GET',
+      url: `/v1/posts/${createdPayload.post.id}`,
+      headers: authHeaders(tables, outsiderUserId),
+    });
+    assert.equal(deniedDetail.statusCode, 404);
 
     const deniedPostReaction = await app.inject({
       method: 'POST',
@@ -7968,6 +8561,22 @@ describe('wave2+ routes', () => {
     assert.equal(unlikedPostPayload.post.reactionsCount, 0);
     assert.equal(unlikedPostPayload.post.likedByCurrentUser, false);
     assert.deepEqual(unlikedPostPayload.post.likes, []);
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'community.post.pin.update',
+        resourceId: createdPayload.post.id,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'community.post.pin.update',
+        resourceId: createdPayload.post.id,
+        result: 'SUCCESS',
+      }).length,
+      2,
+    );
 
     const replayed = await app.inject({
       method: 'POST',
@@ -7985,6 +8594,7 @@ describe('wave2+ routes', () => {
           audience: 'club',
           audienceLabel: 'Club-wide',
         },
+        attachments: [{ mediaObjectId: 'med_staff_feed_attachment', title: 'Training photo' }],
         idempotencyKey: 'staff-feed-post-create-test',
       },
     });
@@ -8775,9 +9385,14 @@ describe('wave2+ routes', () => {
       const mediaObject = asRows(fixtureTables.mediaObjects).find(
         (row) => asString(row.id) === payload.mediaObjectId,
       );
+      const pendingScan = asRows(fixtureTables.malwareScanResults).find(
+        (row) => asString(row.mediaObjectId) === payload.mediaObjectId,
+      );
       assert.ok(uploadSession);
       assert.ok(mediaObject);
       assert.equal(asString(mediaObject?.status), 'PENDING_UPLOAD');
+      assert.equal(asString(pendingScan?.verdict) ?? asString(pendingScan?.status), 'PENDING');
+      assert.equal(asString(pendingScan?.scanner) ?? asString(pendingScan?.engine), 'upload-init');
       assert.equal(
         auditEventsFor(fixtureTables, {
           action: 'upload.init',
@@ -8864,20 +9479,15 @@ describe('wave2+ routes', () => {
         assert.equal(asString(uploadSession?.status), 'INITIATED');
         assert.equal(asString(mediaObject?.status), 'PENDING_UPLOAD');
 
-        asRows(fixtureTables.malwareScanResults).push({
-          id: 'msr_video_clean_test',
+        await recordUploadMalwareScanResult({
           uploadSessionId: uploadPayload.uploadSessionId,
           mediaObjectId: uploadPayload.mediaObjectId,
           verdict: 'CLEAN',
-          status: 'CLEAN',
           scanner: 'test-clean-scanner',
-          engine: 'test-clean-scanner',
-          detailsJson: {
+          scannedAt: '2030-01-01T10:00:00.000Z',
+          details: {
             source: 'route_test_seed',
           },
-          scannedAt: '2030-01-01T10:00:00.000Z',
-          createdAt: '2030-01-01T10:00:00.000Z',
-          updatedAt: '2030-01-01T10:00:00.000Z',
         });
 
         const finalized = await app.inject({
@@ -8906,7 +9516,9 @@ describe('wave2+ routes', () => {
           (row) => asString(row.id) === uploadPayload.mediaObjectId,
         );
         const malwareScan = asRows(fixtureTables.malwareScanResults).find(
-          (row) => asString(row.mediaObjectId) === uploadPayload.mediaObjectId,
+          (row) =>
+            asString(row.mediaObjectId) === uploadPayload.mediaObjectId &&
+            asString(row.scanner) === 'test-clean-scanner',
         );
         assert.equal(asString(uploadSession?.status), 'COMPLETED');
         assert.ok(asString(uploadSession?.completedAt), 'expected upload completion timestamp');
@@ -9068,17 +9680,15 @@ describe('wave2+ routes', () => {
         );
         assert.ok(mediaObject, 'expected media object created by upload init');
         mediaObject.status = 'QUARANTINED';
-        asRows(fixtureTables.malwareScanResults).push({
-          id: 'msr_unsafe_video_test',
+        await recordUploadMalwareScanResult({
           uploadSessionId: uploadPayload.uploadSessionId,
           mediaObjectId: uploadPayload.mediaObjectId,
           verdict: 'INFECTED',
-          status: 'INFECTED',
           scanner: 'test-scanner',
-          engine: 'test-scanner',
           scannedAt: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          details: {
+            source: 'route_test_seed',
+          },
         });
 
         const unsafeVideo = await app.inject({

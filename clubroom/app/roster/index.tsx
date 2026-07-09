@@ -34,9 +34,13 @@ export default function RosterScreen() {
   const [filters, setFilters] = useState<RosterFilters>({});
   const [showFilters, setShowFilters] = useState(false);
 
-  const coachId = currentUser?.id || 'coach_1';
+  const coachId = currentUser?.id ?? null;
 
   const loadData = async () => {
+    if (!coachId) {
+      return err(serviceError('UNAUTHORIZED', 'Sign in as a coach to view your roster.'));
+    }
+
     try {
       const [rosterData, statsData] = await Promise.all([
         rosterService.getRoster(coachId, { ...filters, search: searchQuery }),
@@ -55,15 +59,7 @@ export default function RosterScreen() {
     }
   };
 
-  const {
-    data,
-    status,
-    error,
-    refreshing,
-    onRefresh,
-    retry,
-    showLoadingState,
-  } = useScreen<{
+  const { data, status, error, refreshing, onRefresh, retry, showLoadingState } = useScreen<{
     roster: RosterEntry[];
     stats: RosterStats | null;
     allTags: string[];
@@ -73,7 +69,7 @@ export default function RosterScreen() {
     isEmpty: (value) => value.roster.length === 0,
     refetchOnFocus: true,
     loadingStrategy: 'warm-first',
-    dataKey: `${coachId}:${searchQuery}:${JSON.stringify(filters)}`,
+    dataKey: `roster:${coachId ?? 'missing'}:${searchQuery}:${JSON.stringify(filters)}`,
   });
 
   const roster = data?.roster ?? [];
@@ -105,7 +101,9 @@ export default function RosterScreen() {
   }
 
   if (status === 'error') {
-    return renderShell(<ErrorState message={error?.message || 'Failed to load athlete roster.'} onRetry={retry} />);
+    return renderShell(
+      <ErrorState message={error?.message || 'Failed to load athlete roster.'} onRetry={retry} />,
+    );
   }
 
   return renderShell(

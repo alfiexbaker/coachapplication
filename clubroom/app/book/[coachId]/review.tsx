@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, startTransition } from 'react';
+import { useEffect, useState, startTransition } from 'react';
 import { ScrollView, StyleSheet, View, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -25,12 +25,15 @@ import { bookingStepAnalyticsService } from '@/services/booking/booking-step-ana
 import { apiClient } from '@/services/api-client';
 import { coachService } from '@/services/coach-service';
 import type { Coach } from '@/services/coach-service';
-import { listPublicCoachOfferingsFromApi } from '@/services/coach-offering-api';
+import {
+  listPublicCoachOfferingsFromApi,
+  type SessionOfferingWithCoachProfile,
+} from '@/services/coach-offering-api';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import type { CancellationPolicy, OrganizationCommercialMode } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { BOOKING_LOCATION_OPTIONS } from '@/constants/booking-flow';
-import { socialFeedService } from '@/services/social-feed-service';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import { userService } from '@/services/user-service';
 import { hasAccountChildren } from '@/utils/booking-self-capability';
 import {
@@ -38,6 +41,7 @@ import {
   getBookingRelationshipContext,
   safeDisplayLabel,
 } from '@/utils/booking-display';
+import { hasResolvedBookingTargets, resolveBookingDraftTargets } from '@/utils/booking-targets';
 
 const logger = createLogger('BookingReview');
 
@@ -57,10 +61,14 @@ function createPublicBookingCoachFallback(input: {
     sports: ['Football'],
     rating: 0,
     reviewCount: 0,
-    minPrice: input.minPrice ?? 60,
+    minPrice: input.minPrice ?? 0,
     totalSessions: 0,
     badges: ['Bookable'],
   };
+}
+
+function priceMinorToPounds(value: number | null | undefined): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value / 100 : undefined;
 }
 
 export default function ReviewScreen() {
@@ -74,7 +82,7 @@ export default function ReviewScreen() {
     draft.commercialMode ?? null,
   );
 
-  const loadCoach = useCallback(async () => {
+  const loadCoach = async () => {
     if (!coachId) {
       return err(serviceError('UNKNOWN', 'Coach not provided for booking review.'));
     }
@@ -106,12 +114,19 @@ export default function ReviewScreen() {
           return ok<ReviewLoadData | null>(null);
         }
 
-        const firstOffering = offeringsResult.success ? offeringsResult.data[0] : undefined;
+        const firstOffering = offeringsResult.success
+          ? (offeringsResult.data[0] as SessionOfferingWithCoachProfile | undefined)
+          : undefined;
+        const offeringCoachName = firstOffering?.coachProfile?.displayName?.trim() || undefined;
+        const offeringPrice =
+          firstOffering?.price ??
+          priceMinorToPounds(firstOffering?.coachProfile?.sessionRateMinor) ??
+          priceMinorToPounds(firstOffering?.coachProfile?.priceMaxMinor);
         return ok<ReviewLoadData | null>({
           coach: createPublicBookingCoachFallback({
             coachId,
-            coachName: draft.coachName,
-            minPrice: draft.price ?? firstOffering?.price,
+            coachName: draft.coachName || offeringCoachName,
+            minPrice: draft.price ?? offeringPrice,
           }),
           cancellationPolicy,
         });
@@ -125,7 +140,7 @@ export default function ReviewScreen() {
       logger.error('Failed to load coach:', loadError);
       return err(serviceError('UNKNOWN', 'Failed to load coach details for review.', loadError));
     }
-  }, [coachId, draft.coachName, draft.price]);
+  };
 
   const {
     data,
@@ -137,7 +152,7 @@ export default function ReviewScreen() {
     colors: palette,
   } = useScreen<ReviewLoadData | null>({
     load: loadCoach,
-    deps: [loadCoach],
+    deps: [coachId, draft.coachName, draft.price],
     isEmpty: (reviewData) => reviewData === null,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
@@ -145,16 +160,26 @@ export default function ReviewScreen() {
   const coach = data?.coach ?? null;
   const cancellationPolicy = data?.cancellationPolicy ?? null;
   const resolvedCoachId = coachId || draft.coachId;
-  const selectedAthleteCount = draft.childIds?.length ?? (draft.childId ? 1 : 0);
+  const resolvedTargets = resolveBookingDraftTargets({ draft, currentUser, children });
+  const selectedAthleteCount = resolvedTargets.athleteIds.length;
+  const hasResolvedAthleteTarget = hasResolvedBookingTargets(resolvedTargets);
+  const selectedAthleteName = resolvedTargets.athleteNames[0];
   const accountHasChildren = hasAccountChildren({
     contextChildCount: children.length,
     accountChildRefCount: currentUser?.children?.length ?? 0,
   });
+  const selectedSessionPrice =
+    typeof draft.price === 'number' && Number.isFinite(draft.price) ? draft.price : undefined;
+  const hasSessionPrice = selectedSessionPrice !== undefined;
+  const sessionPrice = selectedSessionPrice ?? 0;
+  const total = sessionPrice;
   const hasRequiredDraft =
     Boolean(resolvedCoachId) &&
+    Boolean(draft.sessionOfferingId) &&
     Boolean(coach?.name || draft.coachName) &&
     Boolean(draft.date && draft.slot) &&
-    Boolean(selectedAthleteCount > 0 || draft.athleteName);
+    hasResolvedAthleteTarget &&
+    hasSessionPrice;
 
   useEffect(() => {
     if (coach?.name) {
@@ -170,8 +195,9 @@ export default function ReviewScreen() {
       return;
     }
     let cancelled = false;
-    void socialFeedService.getClub(draft.clubId).then((club) => {
+    void clubAuthorityService.getClubById(draft.clubId).then((result) => {
       if (cancelled) return;
+      const club = result.success ? result.data : null;
       if (club?.name) {
         setClubLabel(club.name);
         const nextCommercialMode = club.commercialMode ?? 'COACH_OWNED';
@@ -200,7 +226,9 @@ export default function ReviewScreen() {
     void userService.getUserById(draft.assigneeCoachId).then((result) => {
       if (cancelled) return;
       if (result.success) {
-        setAssigneeLabel(result.data.name?.trim() || safeDisplayLabel(draft.assigneeCoachId, 'Coach'));
+        setAssigneeLabel(
+          result.data.name?.trim() || safeDisplayLabel(draft.assigneeCoachId, 'Coach'),
+        );
       } else {
         setAssigneeLabel(safeDisplayLabel(draft.assigneeCoachId, 'Coach'));
       }
@@ -210,8 +238,6 @@ export default function ReviewScreen() {
     };
   }, [draft.assigneeCoachId]);
 
-  const sessionPrice = draft.price ?? coach?.minPrice ?? 60;
-  const total = sessionPrice;
   const locationSummary = (() => {
     const locationText = draft.locationText?.trim();
     if (!locationText) {
@@ -386,8 +412,8 @@ export default function ReviewScreen() {
               <SummaryRow label="Location" value={locationSummary} />
               {selectedAthleteCount > 1 ? (
                 <SummaryRow label="Athletes" value={`${selectedAthleteCount} selected`} />
-              ) : draft.athleteName ? (
-                <SummaryRow label="Athlete" value={draft.athleteName} />
+              ) : selectedAthleteName ? (
+                <SummaryRow label="Athlete" value={selectedAthleteName} />
               ) : null}
             </View>
 
@@ -406,14 +432,13 @@ export default function ReviewScreen() {
               </>
             ) : null}
 
-            <BookingTotalsCard
-              colors={palette}
-              sessionPrice={sessionPrice}
-              total={total}
-            />
+            {hasSessionPrice ? (
+              <BookingTotalsCard colors={palette} sessionPrice={sessionPrice} total={total} />
+            ) : null}
             {!hasRequiredDraft ? (
               <ThemedText style={[styles.rateNote, { color: palette.warning }]}>
-                Complete session type, schedule, and athlete details before confirmation.
+                Complete session type, live price, schedule, and athlete details before
+                confirmation.
               </ThemedText>
             ) : null}
 
@@ -437,13 +462,11 @@ export default function ReviewScreen() {
           disabled={!hasRequiredDraft}
         >
           <Row justify="center" align="center" gap="sm">
-            <Ionicons
-              name="receipt-outline"
-              size={18}
-              color={palette.onPrimary}
-            />
+            <Ionicons name="receipt-outline" size={18} color={palette.onPrimary} />
             <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
-              Continue to confirmation (£{total.toFixed(2)})
+              {hasSessionPrice
+                ? `Continue to confirmation (£${total.toFixed(2)})`
+                : 'Continue to confirmation'}
             </ThemedText>
           </Row>
         </Clickable>

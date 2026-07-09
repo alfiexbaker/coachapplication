@@ -160,4 +160,31 @@ describe('progressPositionService', () => {
       globalThis.fetch = originalFetch;
     }
   });
+
+  it('fails closed for direct API-mode position writes', async () => {
+    const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+    Object.defineProperty(apiClient, 'isMockMode', {
+      configurable: true,
+      get: () => false,
+    });
+
+    try {
+      const result = await progressPositionService.recordPosition(
+        'session_api_position',
+        'ath_api_position',
+        'MID',
+      );
+
+      assert.equal(result.success, false);
+      if (result.success) {
+        return;
+      }
+      assert.equal(result.error.code, 'UNSUPPORTED');
+      assert.match(result.error.message, /session-feedback/i);
+    } finally {
+      if (originalIsMockMode) {
+        Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+      }
+    }
+  });
 });

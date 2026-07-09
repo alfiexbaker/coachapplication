@@ -5,29 +5,54 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 process.env.EXPO_PUBLIC_USE_MOCK = 'false';
 
+function apiCoachUser() {
+  return {
+    id: 'coach_api_badge',
+    email: 'coach-api-badge@example.test',
+    accountType: 'COACH',
+    firstName: 'API',
+    lastName: 'Coach',
+    isVerified: true,
+    onboardingComplete: true,
+    createdAt: '2026-07-05T10:00:00.000Z',
+    updatedAt: '2026-07-05T10:00:00.000Z',
+  };
+}
+
+function apiParentUser() {
+  return {
+    id: 'parent_api_badge',
+    email: 'parent-api-badge@example.test',
+    accountType: 'PARENT',
+    firstName: 'API',
+    lastName: 'Parent',
+    isVerified: true,
+    onboardingComplete: true,
+    createdAt: '2026-07-05T10:00:00.000Z',
+    updatedAt: '2026-07-05T10:00:00.000Z',
+  };
+}
+
 describe('badgeService API mode', () => {
   it('lists athlete badge awards from /v1 instead of local badge storage', async () => {
-    const [{ badgeService }, { apiClient }] = await Promise.all([
+    const [{ badgeService }, { apiClient }, { authService }] = await Promise.all([
       import('@/services/badge-service'),
       import('@/services/api-client'),
+      import('@/services/auth-service'),
     ]);
 
     const originalGet = apiClient.get;
     const originalSet = apiClient.set;
+    const originalGetCurrentUser = authService.getCurrentUser;
     const originalFetch = globalThis.fetch;
     const requestedUrls: string[] = [];
     const requestedHeaders: unknown[] = [];
 
+    authService.getCurrentUser = async () =>
+      apiCoachUser() as Awaited<ReturnType<typeof authService.getCurrentUser>>;
     apiClient.get = async <T>(key: string, fallback: T): Promise<T> => {
       if (key === STORAGE_KEYS.AUTH_USER) {
-        return {
-          id: 'coach_api_badge',
-          email: 'coach-api-badge@example.test',
-          accountType: 'COACH',
-          firstName: 'API',
-          lastName: 'Coach',
-          isVerified: true,
-        } as T;
+        return apiCoachUser() as T;
       }
       void fallback;
       throw new Error('local badge reads should not run in API mode');
@@ -111,31 +136,29 @@ describe('badgeService API mode', () => {
     } finally {
       apiClient.get = originalGet;
       apiClient.set = originalSet;
+      authService.getCurrentUser = originalGetCurrentUser;
       globalThis.fetch = originalFetch;
     }
   });
 
   it('surfaces API badge read failures instead of returning empty local awards', async () => {
-    const [{ badgeService }, { apiClient }] = await Promise.all([
+    const [{ badgeService }, { apiClient }, { authService }] = await Promise.all([
       import('@/services/badge-service'),
       import('@/services/api-client'),
+      import('@/services/auth-service'),
     ]);
 
     const originalGet = apiClient.get;
     const originalSet = apiClient.set;
+    const originalGetCurrentUser = authService.getCurrentUser;
     const originalFetch = globalThis.fetch;
     const requestedUrls: string[] = [];
 
+    authService.getCurrentUser = async () =>
+      apiCoachUser() as Awaited<ReturnType<typeof authService.getCurrentUser>>;
     apiClient.get = async <T>(key: string, fallback: T): Promise<T> => {
       if (key === STORAGE_KEYS.AUTH_USER) {
-        return {
-          id: 'coach_api_badge',
-          email: 'coach-api-badge@example.test',
-          accountType: 'COACH',
-          firstName: 'API',
-          lastName: 'Coach',
-          isVerified: true,
-        } as T;
+        return apiCoachUser() as T;
       }
       void fallback;
       throw new Error('local badge reads should not run in API mode');
@@ -175,31 +198,29 @@ describe('badgeService API mode', () => {
     } finally {
       apiClient.get = originalGet;
       apiClient.set = originalSet;
+      authService.getCurrentUser = originalGetCurrentUser;
       globalThis.fetch = originalFetch;
     }
   });
 
   it('awards badges through /v1 instead of writing local badge storage', async () => {
-    const [{ badgeService }, { apiClient }] = await Promise.all([
+    const [{ badgeService }, { apiClient }, { authService }] = await Promise.all([
       import('@/services/badge-service'),
       import('@/services/api-client'),
+      import('@/services/auth-service'),
     ]);
 
     const originalGet = apiClient.get;
     const originalSet = apiClient.set;
+    const originalGetCurrentUser = authService.getCurrentUser;
     const originalFetch = globalThis.fetch;
     const requestedUrls: string[] = [];
     const requestedBodies: unknown[] = [];
+    authService.getCurrentUser = async () =>
+      apiCoachUser() as Awaited<ReturnType<typeof authService.getCurrentUser>>;
     apiClient.get = async <T>(key: string, fallback: T): Promise<T> => {
       if (key === STORAGE_KEYS.AUTH_USER) {
-        return {
-          id: 'coach_api_badge',
-          email: 'coach-api-badge@example.test',
-          accountType: 'COACH',
-          firstName: 'API',
-          lastName: 'Coach',
-          isVerified: true,
-        } as T;
+        return apiCoachUser() as T;
       }
       void fallback;
       throw new Error('local badge reads should not run in API mode');
@@ -286,29 +307,28 @@ describe('badgeService API mode', () => {
     } finally {
       apiClient.get = originalGet;
       apiClient.set = originalSet;
+      authService.getCurrentUser = originalGetCurrentUser;
       globalThis.fetch = originalFetch;
     }
   });
 
   it('does not read or write local badge state for API-mode share and seen helpers', async () => {
-    const [{ badgeService }, { apiClient }] = await Promise.all([
+    const [{ badgeService }, { apiClient }, { authService }] = await Promise.all([
       import('@/services/badge-service'),
       import('@/services/api-client'),
+      import('@/services/auth-service'),
     ]);
 
     const originalGet = apiClient.get;
     const originalSet = apiClient.set;
+    const originalGetCurrentUser = authService.getCurrentUser;
     const originalFetch = globalThis.fetch;
     const requestedUrls: string[] = [];
+    authService.getCurrentUser = async () =>
+      apiParentUser() as Awaited<ReturnType<typeof authService.getCurrentUser>>;
     apiClient.get = async <T>(key: string, fallback: T): Promise<T> => {
       if (key === STORAGE_KEYS.AUTH_USER) {
-        return {
-          id: 'parent_api_badge',
-          email: 'parent-api-badge@example.test',
-          accountType: 'PARENT',
-          firstName: 'API',
-          lastName: 'Parent',
-        } as T;
+        return apiParentUser() as T;
       }
       void fallback;
       throw new Error('local badge reads should not run in API mode');
@@ -381,6 +401,76 @@ describe('badgeService API mode', () => {
     } finally {
       apiClient.get = originalGet;
       apiClient.set = originalSet;
+      authService.getCurrentUser = originalGetCurrentUser;
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('surfaces API badge action failures instead of returning silent success', async () => {
+    const [{ badgeService }, { apiClient }, { authService }] = await Promise.all([
+      import('@/services/badge-service'),
+      import('@/services/api-client'),
+      import('@/services/auth-service'),
+    ]);
+
+    const originalGet = apiClient.get;
+    const originalSet = apiClient.set;
+    const originalGetCurrentUser = authService.getCurrentUser;
+    const originalFetch = globalThis.fetch;
+    const requestedUrls: string[] = [];
+    authService.getCurrentUser = async () =>
+      apiParentUser() as Awaited<ReturnType<typeof authService.getCurrentUser>>;
+    apiClient.get = async <T>(key: string, fallback: T): Promise<T> => {
+      if (key === STORAGE_KEYS.AUTH_USER) {
+        return apiParentUser() as T;
+      }
+      void fallback;
+      throw new Error('local badge reads should not run in API mode');
+    };
+    apiClient.set = async () => {
+      throw new Error('local badge writes should not run in API mode');
+    };
+    globalThis.fetch = (async (input: Parameters<typeof fetch>[0]) => {
+      requestedUrls.push(String(input));
+      return new Response(
+        JSON.stringify({
+          error: {
+            code: 'FORBIDDEN',
+            message: 'Not allowed to update badge action state',
+          },
+        }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } },
+      );
+    }) as typeof fetch;
+
+    try {
+      await assert.rejects(
+        () => badgeService.markShared('award_api_badge'),
+        /Not allowed to update badge action state/,
+      );
+      await assert.rejects(
+        () => badgeService.markSeenByParent('award_api_badge'),
+        /Not allowed to update badge action state/,
+      );
+      await assert.rejects(
+        () => badgeService.postBadgeToFeed('award_api_badge'),
+        /Not allowed to update badge action state/,
+      );
+      await assert.rejects(
+        () => badgeService.markAllSeenByParent('ath_api_badge'),
+        /Not allowed to update badge action state/,
+      );
+
+      assert.deepEqual(requestedUrls, [
+        'http://localhost:4000/v1/badge-awards/award_api_badge/share',
+        'http://localhost:4000/v1/badge-awards/award_api_badge/seen',
+        'http://localhost:4000/v1/badge-awards/award_api_badge/feed-post',
+        'http://localhost:4000/v1/athletes/ath_api_badge/badge-awards/seen',
+      ]);
+    } finally {
+      apiClient.get = originalGet;
+      apiClient.set = originalSet;
+      authService.getCurrentUser = originalGetCurrentUser;
       globalThis.fetch = originalFetch;
     }
   });

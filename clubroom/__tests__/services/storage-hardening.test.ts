@@ -83,13 +83,15 @@ describe('storage hardening', () => {
   });
 
   test('product code does not persist auth tokens through generic apiClient storage', () => {
-    const forbidden = SOURCE_ROOTS.flatMap(readSourceFiles).filter(({ path: sourcePath, source }) => {
-      if (sourcePath === 'services/auth-token-storage.ts') {
-        return false;
-      }
+    const forbidden = SOURCE_ROOTS.flatMap(readSourceFiles).filter(
+      ({ path: sourcePath, source }) => {
+        if (sourcePath === 'services/auth-token-storage.ts') {
+          return false;
+        }
 
-      return /apiClient\.(get|set|remove)\(\s*STORAGE_KEYS\.AUTH_TOKENS?/.test(source);
-    });
+        return /apiClient\.(get|set|remove)\(\s*STORAGE_KEYS\.AUTH_TOKENS?/.test(source);
+      },
+    );
 
     assert.deepEqual(
       forbidden.map((entry) => entry.path),
@@ -104,14 +106,30 @@ describe('storage hardening', () => {
     assert.match(source, /confirmPassword:\s*''/);
   });
 
-  test('API mode keeps only non-sensitive wizard resume drafts local', () => {
+  test('API mode does not keep wizard resume drafts local', () => {
+    const source = readSource('services/api-client.ts');
+    const localKeysBlock = source.match(
+      /const CLIENT_LOCAL_STORAGE_KEYS = new Set<string>\(\[([\s\S]*?)\]\);/,
+    );
+    const localPrefixesBlock = source.match(
+      /const CLIENT_LOCAL_STORAGE_PREFIXES = \[([\s\S]*?)\];/,
+    );
+
+    assert.ok(localKeysBlock, 'expected client local storage allowlist');
+    assert.ok(localPrefixesBlock, 'expected client local storage prefix allowlist');
+    assert.equal(localKeysBlock[1]?.includes('STORAGE_KEYS.ONBOARDING_COMPLETE'), false);
+    assert.equal(localKeysBlock[1]?.includes('STORAGE_KEYS.ONBOARDING_PROGRESS'), false);
+    assert.equal(localKeysBlock[1]?.includes('STORAGE_KEYS.ADD_CHILD_DRAFT'), false);
+    assert.equal(localPrefixesBlock[1]?.includes('STORAGE_KEYS.FORM_DRAFT_PREFIX'), false);
+  });
+
+  test('API mode does not keep local offline mutation queues', () => {
     const source = readSource('services/api-client.ts');
     const localKeysBlock = source.match(
       /const CLIENT_LOCAL_STORAGE_KEYS = new Set<string>\(\[([\s\S]*?)\]\);/,
     );
 
     assert.ok(localKeysBlock, 'expected client local storage allowlist');
-    assert.ok(localKeysBlock[1]?.includes('STORAGE_KEYS.ONBOARDING_PROGRESS'));
-    assert.equal(localKeysBlock[1]?.includes('STORAGE_KEYS.ADD_CHILD_DRAFT'), false);
+    assert.equal(localKeysBlock[1]?.includes('STORAGE_KEYS.OFFLINE_QUEUE'), false);
   });
 });

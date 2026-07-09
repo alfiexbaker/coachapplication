@@ -13,7 +13,7 @@ The goal is to keep backend work traceable to:
 ## Current Reality
 
 - A real Fastify API exists under `apps/api`.
-- The Expo app still supports mock and pre-API live modes.
+- Normal Expo app runtime is API-first; retained mock branches are test-only scaffolding and pre-API live mode is retired.
 - Shared contracts and governance sources already exist in the monorepo.
 - Frontend and backend auth are now aligned on `/v1/auth/*` with JWT/session runtime handling in `apps/api`.
 - Sentry is now wired across Expo native, Expo web, and `apps/api`, with release tagging plus sourcemap export/upload paths in the repo.

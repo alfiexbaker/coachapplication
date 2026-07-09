@@ -6,8 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { useTheme } from '@/hooks/useTheme';
 import { withAlpha } from '@/constants/theme';
-import { apiClient } from '@/services/api-client';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { seenService } from '@/services/seen-service';
 import { createLogger } from '@/utils/logger';
 
 import {
@@ -21,6 +20,9 @@ import { styles } from './availability-tutorial-styles';
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('AvailabilityTutorial');
+const AVAILABILITY_TUTORIAL_ENTITY = 'availability_tutorial';
+const AVAILABILITY_TUTORIAL_ID = 'coach_availability';
+const DEVICE_SEEN_USER = 'device';
 
 interface AvailabilityTutorialProps {
   visible: boolean;
@@ -29,10 +31,13 @@ interface AvailabilityTutorialProps {
 
 export function AvailabilityTutorial({ visible, onComplete }: AvailabilityTutorialProps) {
   const handleComplete = async () => {
-    try {
-      await apiClient.set(STORAGE_KEYS.AVAILABILITY_TUTORIAL_COMPLETED, true);
-    } catch (error) {
-      logger.error('Failed to save tutorial completion', error);
+    const result = await seenService.markSeen(
+      AVAILABILITY_TUTORIAL_ENTITY,
+      AVAILABILITY_TUTORIAL_ID,
+      DEVICE_SEEN_USER,
+    );
+    if (!result.success) {
+      logger.error('Failed to save tutorial completion', result.error);
     }
     onComplete();
   };
@@ -139,12 +144,15 @@ export function useAvailabilityTutorial() {
     (async () => {
       await runAsyncTryCatchFinally(
         async () => {
-          const completed = await apiClient.get<boolean>(
-            STORAGE_KEYS.AVAILABILITY_TUTORIAL_COMPLETED,
-            false,
+          const result = await seenService.getSeenStatus(
+            AVAILABILITY_TUTORIAL_ENTITY,
+            AVAILABILITY_TUTORIAL_ID,
           );
-          if (mounted && !completed) {
+          if (mounted && (!result.success || !result.data)) {
             setShowTutorial(true);
+          }
+          if (!result.success) {
+            logger.error('Failed to check tutorial status', result.error);
           }
         },
         async (error) => {

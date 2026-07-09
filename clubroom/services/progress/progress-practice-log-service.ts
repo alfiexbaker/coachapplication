@@ -77,15 +77,17 @@ async function saveLogs(logs: PracticeLogEntry[]): Promise<void> {
   await apiClient.set(STORAGE_KEYS.PROGRESS_PRACTICE_LOGS, logs);
 }
 
-async function listAthleteLogs(athleteId: string): Promise<PracticeLogEntry[]> {
+async function listAthleteLogsResult(
+  athleteId: string,
+): Promise<Result<PracticeLogEntry[], ServiceError>> {
   if (!athleteId) {
-    return [];
+    return ok([]);
   }
   if (isApiMode()) {
     const access = await resolvePracticeLogApiAccess(athleteId);
     if (!access.success) {
       logger.warn('practice_log_api_access_denied', { athleteId, error: access.error });
-      return [];
+      return err(access.error);
     }
     const result = await apiFetch<ApiPracticeLogsResponse>(
       `/v1/athletes/${encodeURIComponent(access.data.apiAthleteId)}/practice-logs?limit=100`,
@@ -96,15 +98,29 @@ async function listAthleteLogs(athleteId: string): Promise<PracticeLogEntry[]> {
     );
     if (!result.success) {
       logger.error('practice_log_api_list_failed', { athleteId, error: result.error });
-      return [];
+      return err(result.error);
     }
-    return result.data.logs;
+    return ok(result.data.logs);
   }
 
   const logs = await getLogs();
-  return logs
-    .filter((entry) => entry.athleteId === athleteId)
-    .sort((left, right) => right.dateKey.localeCompare(left.dateKey));
+  return ok(
+    logs
+      .filter((entry) => entry.athleteId === athleteId)
+      .sort((left, right) => right.dateKey.localeCompare(left.dateKey)),
+  );
+}
+
+async function listAthleteLogs(athleteId: string): Promise<PracticeLogEntry[]> {
+  const result = await listAthleteLogsResult(athleteId);
+  if (result.success) {
+    return result.data;
+  }
+  if (isApiMode()) {
+    throw new Error(result.error.message);
+  }
+  logger.warn('practice_log_mock_list_failed', { athleteId, error: result.error });
+  return [];
 }
 
 async function getTodayLog(athleteId: string): Promise<PracticeLogEntry | null> {
@@ -112,7 +128,7 @@ async function getTodayLog(athleteId: string): Promise<PracticeLogEntry | null> 
     const access = await resolvePracticeLogApiAccess(athleteId);
     if (!access.success) {
       logger.warn('practice_log_api_access_denied', { athleteId, error: access.error });
-      return null;
+      throw new Error(access.error.message);
     }
     const result = await apiFetch<ApiTodayPracticeLogResponse>(
       `/v1/athletes/${encodeURIComponent(access.data.apiAthleteId)}/practice-logs/today`,
@@ -123,7 +139,7 @@ async function getTodayLog(athleteId: string): Promise<PracticeLogEntry | null> 
     );
     if (!result.success) {
       logger.error('practice_log_api_today_failed', { athleteId, error: result.error });
-      return null;
+      throw new Error(result.error.message);
     }
     return result.data.log;
   }
@@ -217,6 +233,7 @@ async function logPractice(
 
 export const progressPracticeLogService = {
   listAthleteLogs,
+  listAthleteLogsResult,
   getTodayLog,
   logPractice,
 };

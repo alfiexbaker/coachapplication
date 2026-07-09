@@ -42,9 +42,20 @@ export interface FeedPostCardProps {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
+function isInternalDisplayId(value: string): boolean {
+  return /^(usr|ath|clb|fam|bok|inv|gse|gsr|drl|dra|med|safe|payatt|invc|pm|wd)[_-]/i.test(
+    value,
+  );
+}
+
 function FeedPostCardInner({ post, onLike, onComment, onShare }: FeedPostCardProps) {
   const { colors: palette } = useTheme();
-  const authorName = post.authorId || 'Coach';
+  const authorName =
+    post.authorName?.trim() && !isInternalDisplayId(post.authorName.trim())
+      ? post.authorName.trim()
+      : post.postAs === 'club'
+        ? post.clubName
+        : 'Club update';
 
   const initials =
     post.postAs === 'club'

@@ -25,6 +25,10 @@ import type { CoachDirectoryEntry } from "@/constants/relational-demo-seeds";
 import { apiClient } from "./api-client";
 import {
   listPublicCoachOfferingIndexFromApi,
+  mapApiCoachOfferingToSessionOffering,
+  searchPublicCoachesFromApi,
+  type ApiPublicCoachSearchParams,
+  type ApiPublicCoachSearchResponse,
   type ApiPublicCoachProfile,
   type SessionOfferingWithCoachProfile,
 } from "@/services/coach-offering-api";
@@ -38,6 +42,7 @@ import {
   ok,
   err,
   storageError,
+  unsupportedError,
 } from "@/types/result";
 const logger = createLogger("DiscoverService");
 const MAX_RECENT_SEARCHES = 10;
@@ -48,6 +53,7 @@ const DISCOVER_DEFAULT_LOCATION = {
 };
 const DISCOVER_DEFAULT_FOCUS: FootballObjective[] = ["Passing", "Dribbling"];
 const COACH_DIRECTORY_KEY = STORAGE_KEYS.COACH_DIRECTORY;
+const projectedApiOfferingDate = () => new Date(Date.now() + DAY_MS).toISOString();
 
 // Phase 2: keep discover data local to the service (no mock-data import dependency).
 const importedCoachProfiles: CoachProfile[] = [];
@@ -634,6 +640,12 @@ function mapQualificationLabels(
   }));
 }
 
+function primaryPublicLocation(
+  profile: ApiPublicCoachProfile | undefined,
+): NonNullable<ApiPublicCoachProfile["publicLocations"]>[number] | undefined {
+  return profile?.publicLocations?.find((location) => location.isDefault) ?? profile?.publicLocations?.[0];
+}
+
 function mapOfferingIndexToCoachProfiles(
   offerings: SessionOfferingWithCoachProfile[],
 ): CoachProfile[] {
@@ -686,6 +698,7 @@ function mapOfferingIndexToCoachProfiles(
                 proficiency: "Native" as const,
               },
             ];
+      const publicLocation = primaryPublicLocation(profile);
 
       return [
         {
@@ -693,7 +706,7 @@ function mapOfferingIndexToCoachProfiles(
           fullName: displayName,
           primarySport: "Football",
           sports: ["Football"],
-          city: "London",
+          city: publicLocation?.label ?? "London",
           state: "England",
           distanceMiles: 0,
           rating: {
@@ -723,8 +736,8 @@ function mapOfferingIndexToCoachProfiles(
             ...titles.split(/\s+/),
           ]),
           location: {
-            lat: DISCOVER_DEFAULT_LOCATION.lat,
-            lng: DISCOVER_DEFAULT_LOCATION.lng,
+            lat: publicLocation?.lat ?? DISCOVER_DEFAULT_LOCATION.lat,
+            lng: publicLocation?.lng ?? DISCOVER_DEFAULT_LOCATION.lng,
           },
           bio: profileBio || undefined,
           website: profile?.website ?? undefined,
@@ -742,6 +755,115 @@ function mapOfferingIndexToCoachProfiles(
       ];
     },
   );
+}
+
+function mapApiSearchPriceRange(
+  priceRange: ApiPublicCoachSearchResponse["filterOptions"]["priceRange"],
+): FilterOptions["priceRange"] {
+  return {
+    min: toPricePounds(priceRange.minMinor) ?? 0,
+    max: toPricePounds(priceRange.maxMinor) ?? 0,
+  };
+}
+
+function mapApiSearchFilterOptions(
+  filterOptions: ApiPublicCoachSearchResponse["filterOptions"],
+): FilterOptions {
+  return {
+    sports: filterOptions.sports,
+    focuses: filterOptions.focuses,
+    languages: filterOptions.languages,
+    genders: [],
+    verificationLevels: [],
+    formats: filterOptions.formats,
+    priceRange: mapApiSearchPriceRange(filterOptions.priceRange),
+    ratingDistribution: filterOptions.ratingDistribution,
+    totalCount: filterOptions.totalCount,
+  };
+}
+
+function mapApiSearchResultToCoachProfile(
+  item: ApiPublicCoachSearchResponse["results"][number],
+): CoachProfile | null {
+  const scheduledAt = projectedApiOfferingDate();
+  const offerings = item.offerings.flatMap((offering) =>
+    offering.active !== false
+      ? [
+          mapApiCoachOfferingToSessionOffering(
+            offering,
+            item.coachId,
+            scheduledAt,
+          ),
+        ]
+      : [],
+  );
+  const mapped = mapOfferingIndexToCoachProfiles(
+    offerings as SessionOfferingWithCoachProfile[],
+  )[0];
+  if (!mapped) {
+    return null;
+  }
+  const publicLocation = item.publicLocation ?? primaryPublicLocation(item.coachProfile);
+  return {
+    ...mapped,
+    city: publicLocation?.label ?? mapped.city,
+    distanceMiles: item.distanceMiles ?? mapped.distanceMiles,
+    location: {
+      lat: publicLocation?.lat ?? mapped.location.lat,
+      lng: publicLocation?.lng ?? mapped.location.lng,
+    },
+    rating: {
+      average: item.ratingAverage,
+      reviewCount: item.reviewCount,
+    },
+    priceRange: {
+      min: toPricePounds(item.minPriceMinor) ?? mapped.priceRange.min,
+      max: toPricePounds(item.maxPriceMinor) ?? mapped.priceRange.max,
+      unitLabel: mapped.priceRange.unitLabel,
+    },
+    sessionRate: toPricePounds(item.minPriceMinor) ?? mapped.sessionRate,
+    sessionFormats:
+      item.sessionFormats.length > 0
+        ? (item.sessionFormats as TrainingFormat[])
+        : mapped.sessionFormats,
+    footballFocuses:
+      item.focuses.length > 0
+        ? (item.focuses as FootballObjective[])
+        : mapped.footballFocuses,
+  };
+}
+
+function toApiPublicCoachSearchParams(
+  filters: CoachSearchFilters,
+  page: number,
+  pageSize: number,
+): ApiPublicCoachSearchParams {
+  const radiusKm = filters.distance ?? filters.location?.radiusKm;
+  return {
+    query: filters.query,
+    priceMin: filters.priceMin,
+    priceMax: filters.priceMax,
+    rating: filters.rating,
+    sports: filters.sports,
+    focuses: filters.focuses,
+    formats: filters.formats,
+    languages: filters.languages,
+    lat: filters.location?.lat,
+    lng: filters.location?.lng,
+    radiusKm,
+    sortBy: filters.sortBy ?? "relevance",
+    page,
+    pageSize,
+  };
+}
+
+function apiLocationSearchUnsupported(filters: CoachSearchFilters): ServiceError | null {
+  if (!filters.location && (filters.distance !== undefined || filters.sortBy === "distance")) {
+    return unsupportedError(
+      "Distance coach search needs a lat/lng origin before it can run in API mode.",
+    );
+  }
+  return null;
 }
 
 function mapBadgeTone(label: string): "success" | "warning" | "default" {
@@ -867,9 +989,10 @@ class DiscoverService {
     }
   }
   private async hydrateFromStorage(): Promise<void> {
+    let markHydrated = false;
     try {
       const offeringsResult = await listPublicCoachOfferingIndexFromApi(
-        new Date().toISOString(),
+        projectedApiOfferingDate(),
       );
       if (!offeringsResult.success) {
         throw offeringsResult.error;
@@ -881,6 +1004,7 @@ class DiscoverService {
           coachCount: this.coaches.length,
           offerings: offerings.length,
         });
+        markHydrated = true;
         return;
       }
 
@@ -898,6 +1022,7 @@ class DiscoverService {
           : Promise.resolve([]),
       ]);
       if (directory.length === 0) {
+        markHydrated = true;
         return;
       }
       const travelSettingsByCoachId = new Map(
@@ -925,12 +1050,22 @@ class DiscoverService {
           offerings: offerings.length,
         });
       }
+      markHydrated = true;
     } catch (error) {
+      if (!apiClient.isMockMode) {
+        logger.error("discover_api_hydration_failed", {
+          error,
+        });
+        throw error;
+      }
       logger.warn("discover_storage_hydration_failed", {
         error,
       });
+      markHydrated = true;
     } finally {
-      this.lastHydratedAt = Date.now();
+      if (markHydrated) {
+        this.lastHydratedAt = Date.now();
+      }
     }
   }
 
@@ -943,6 +1078,48 @@ class DiscoverService {
     pageSize: number = 20,
   ): Promise<Result<CoachSearchResponse, ServiceError>> {
     try {
+      if (!apiClient.isMockMode) {
+        const unsupported = apiLocationSearchUnsupported(filters);
+        if (unsupported) {
+          return err(unsupported);
+        }
+        const responseResult = await searchPublicCoachesFromApi(
+          toApiPublicCoachSearchParams(filters, page, pageSize),
+        );
+        if (!responseResult.success) {
+          return err(responseResult.error);
+        }
+        const response = responseResult.data;
+        const coachesById = new Map(
+          response.results.flatMap((item) => {
+            const coach = mapApiSearchResultToCoachProfile(item);
+            return coach ? [[item.coachId, coach] as const] : [];
+          }),
+        );
+        if (filters.query) {
+          await this.saveRecentSearch(filters.query);
+        }
+        return ok({
+          results: response.results.flatMap((item) => {
+            const coach = coachesById.get(item.coachId);
+            return coach
+              ? [
+                  {
+                    coach,
+                    relevanceScore: item.relevanceScore,
+                    distanceKm: item.distanceKm,
+                    matchedTerms: item.matchedTerms,
+                  },
+                ]
+              : [];
+          }),
+          totalCount: response.total,
+          page: response.page,
+          pageSize: response.pageSize,
+          hasMore: response.hasMore,
+          filterOptions: mapApiSearchFilterOptions(response.filterOptions),
+        });
+      }
       await this.ensureDataset();
       let results = [...this.coaches];
 
@@ -1137,6 +1314,34 @@ class DiscoverService {
     radiusKm: number = 10,
   ): Promise<Result<CoachSearchResult[], ServiceError>> {
     try {
+      if (!apiClient.isMockMode) {
+        const responseResult = await searchPublicCoachesFromApi({
+          lat,
+          lng,
+          radiusKm,
+          sortBy: "distance",
+          page: 1,
+          pageSize: 100,
+        });
+        if (!responseResult.success) {
+          return err(responseResult.error);
+        }
+        return ok(
+          responseResult.data.results.flatMap((item) => {
+            const coach = mapApiSearchResultToCoachProfile(item);
+            return coach
+              ? [
+                  {
+                    coach,
+                    relevanceScore: item.relevanceScore,
+                    distanceKm: item.distanceKm,
+                    matchedTerms: item.matchedTerms,
+                  },
+                ]
+              : [];
+          }),
+        );
+      }
       await this.ensureDataset();
       const results = this.coaches
         .flatMap((coach) => {
@@ -1181,6 +1386,18 @@ class DiscoverService {
     currentFilters: CoachSearchFilters = {},
   ): Promise<Result<FilterOptions, ServiceError>> {
     try {
+      if (!apiClient.isMockMode) {
+        const unsupported = apiLocationSearchUnsupported(currentFilters);
+        if (unsupported) {
+          return err(unsupported);
+        }
+        const responseResult = await searchPublicCoachesFromApi(
+          toApiPublicCoachSearchParams(currentFilters, 1, 1),
+        );
+        return responseResult.success
+          ? ok(mapApiSearchFilterOptions(responseResult.data.filterOptions))
+          : err(responseResult.error);
+      }
       await this.ensureDataset();
       // Get all coaches that match current filters (except the filter being counted)
       const matchingCoaches = this.coaches.filter((coach) => {
@@ -1546,6 +1763,10 @@ class DiscoverService {
    * Reset to mock data (for testing)
    */
   async resetToMockData(): Promise<Result<void, ServiceError>> {
+    if (!apiClient.isMockMode || process.env.NODE_ENV !== "test") {
+      return err(storageError("Discover mock reset is only available in test mock mode"));
+    }
+
     try {
       this.coaches = [...MOCK_DISCOVERY_COACHES];
       this.forceMockData = true;

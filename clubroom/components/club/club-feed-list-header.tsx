@@ -47,8 +47,11 @@ export const ClubFeedListHeader = function ClubFeedListHeader({
         pendingInvites={hub.pendingSessionInvites}
         isCoach={hub.isCoach}
         clubId={hub.membership?.clubId}
+        clubName={hub.club?.name}
         onInvitePress={hub.handleInvitePress}
-        viewAllHref={hub.membership?.clubId ? Routes.clubSchedule(hub.membership.clubId) : undefined}
+        viewAllHref={
+          hub.membership?.clubId ? Routes.clubSchedule(hub.membership.clubId) : undefined
+        }
         showCreateActions={false}
       />
 

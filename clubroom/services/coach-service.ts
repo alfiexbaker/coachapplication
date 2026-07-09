@@ -8,15 +8,17 @@
 import { apiClient, apiFetch } from './api-client';
 import { createLogger } from '@/utils/logger';
 import type { Result, ServiceError } from '@/types/result';
-import { ok, err, notFound, serviceError, storageError } from '@/types/result';
+import { ok, err, notFound, serviceError, storageError, unsupportedError } from '@/types/result';
 import { accountIdsMatch } from '@/utils/account-id';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { normalizeLegacyMockDates } from '@/utils/mock-date-normalizer';
 import { appendCoachReview, type StoredCoachReview } from '@/services/review-sync-service';
 import type { SessionOffering } from '@/constants/types';
 import {
-  listPublicCoachOfferingIndexFromApi,
-  listPublicCoachOfferingsFromApi,
+  mapApiCoachOfferingToSessionOffering,
+  searchPublicCoachesFromApi,
+  type ApiCoachOffering,
+  type ApiPublicCoachSearchParams,
   type ApiPublicCoachProfile,
   type SessionOfferingWithCoachProfile,
 } from '@/services/coach-offering-api';
@@ -117,6 +119,24 @@ interface ApiCoachReviewsResponse {
     isVerifiedBooking: true;
     createdAt: string;
   }>;
+}
+interface ApiPublicCoachProfileResponse {
+  coachId: string;
+  coachProfile: ApiPublicCoachProfile;
+  offerings: ApiCoachOffering[];
+  total: number;
+  seedVersion?: string | null;
+  requestId: string;
+}
+interface ApiCoachFollowStatusResponse {
+  following?: boolean;
+  follow?: unknown;
+  requestId?: string;
+}
+interface ApiCoachFollowMutationResponse {
+  follow?: unknown;
+  removed?: boolean;
+  requestId?: string;
 }
 
 // ============================================================================
@@ -369,6 +389,19 @@ function getApiCoachDisplayName(
   return profile?.displayName?.trim() || getCoachDisplayName(coachId);
 }
 
+function getApiCoachLocation(profile: ApiPublicCoachProfile | undefined): Coach['location'] {
+  const location =
+    profile?.publicLocations?.find((candidate) => candidate.isDefault) ??
+    profile?.publicLocations?.[0];
+  return location
+    ? {
+        city: location.label,
+        lat: location.lat,
+        lng: location.lng,
+      }
+    : { city: 'Unknown' };
+}
+
 function priceMinorToPounds(value: number | null | undefined): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? Math.round(value / 100) : undefined;
 }
@@ -410,7 +443,7 @@ function toCoachFromOfferings(coachId: string, offerings: SessionOffering[]): Co
     name: getApiCoachDisplayName(coachId, profile),
     bio: profile?.bio ?? 'This coach has live API-backed offerings.',
     sports: ['Football'],
-    location: { city: 'Unknown' },
+    location: getApiCoachLocation(profile),
     rating: 0,
     reviewCount: 0,
     minPrice,
@@ -430,6 +463,56 @@ function toCoachFromOfferings(coachId: string, offerings: SessionOffering[]): Co
       issueDate: '',
     })),
     languages: profile?.languages ?? [],
+  };
+}
+
+function toCoachFromPublicProfileResponse(
+  response: ApiPublicCoachProfileResponse,
+  scheduledAt: string,
+): Coach {
+  const offerings = response.offerings.flatMap((offering) =>
+    offering.active !== false
+      ? [
+          mapApiCoachOfferingToSessionOffering(
+            offering,
+            response.coachId,
+            scheduledAt,
+          ),
+        ]
+      : [],
+  );
+  const base = toCoachFromOfferings(response.coachId, offerings);
+  const profile = response.coachProfile;
+  const minPrice = priceMinorToPounds(profile.sessionRateMinor) ?? base?.minPrice ?? 0;
+  const maxPrice = priceMinorToPounds(profile.priceMaxMinor) ?? base?.maxPrice;
+
+  return {
+    id: response.coachId,
+    name: getApiCoachDisplayName(response.coachId, profile),
+    bio: profile.bio ?? base?.bio ?? 'This coach has a live API-backed profile.',
+    sports: base?.sports ?? ['Football'],
+    location: getApiCoachLocation(profile) ?? base?.location ?? { city: 'Unknown' },
+    rating: base?.rating ?? 0,
+    reviewCount: base?.reviewCount ?? 0,
+    minPrice,
+    maxPrice,
+    profilePhotoUrl: base?.profilePhotoUrl,
+    coverPhotoUrl: base?.coverPhotoUrl,
+    joinedAt: base?.joinedAt,
+    totalSessions: base?.totalSessions ?? 0,
+    nextAvailable: base?.nextAvailable,
+    badges: base?.badges ?? [],
+    footballFocuses:
+      profile.specialties && profile.specialties.length > 0
+        ? profile.specialties
+        : base?.footballFocuses ?? [],
+    experiences: profile.experiences ?? base?.experiences ?? [],
+    certifications: (profile.qualifications ?? []).map((name) => ({
+      name,
+      issuer: '',
+      issueDate: '',
+    })),
+    languages: profile.languages ?? base?.languages ?? [],
   };
 }
 
@@ -459,20 +542,27 @@ function filterCoaches(
   return filtered;
 }
 
-async function listApiCoachesFromOfferings(): Promise<Result<Coach[], ServiceError>> {
-  const offeringsResult = await listPublicCoachOfferingIndexFromApi(new Date().toISOString());
-  if (!offeringsResult.success) {
-    return err(offeringsResult.error);
+async function searchApiCoaches(
+  params: ApiPublicCoachSearchParams,
+): Promise<Result<Coach[], ServiceError>> {
+  const scheduledAt = new Date().toISOString();
+  const result = await searchPublicCoachesFromApi(params);
+  if (!result.success) {
+    return err(result.error);
   }
-
-  const coachIds = Array.from(
-    new Set(offeringsResult.data.map((offering) => offering.coachId).filter(Boolean)),
-  );
   return ok(
-    coachIds.flatMap((coachId) => {
-      const coach = toCoachFromOfferings(coachId, offeringsResult.data);
-      return coach ? [coach] : [];
-    }),
+    result.data.results.map((item) =>
+      toCoachFromPublicProfileResponse(
+        {
+          coachId: item.coachId,
+          coachProfile: item.coachProfile,
+          offerings: item.offerings,
+          total: item.offerings.length,
+          requestId: result.data.requestId,
+        },
+        scheduledAt,
+      ),
+    ),
   );
 }
 
@@ -484,15 +574,14 @@ export const coachService = {
     logger.info('Getting coach', { coachId });
     try {
       if (!apiClient.isMockMode) {
-        const offeringsResult = await listPublicCoachOfferingsFromApi(
-          coachId,
-          new Date().toISOString(),
+        const scheduledAt = new Date().toISOString();
+        const profileResult = await apiFetch<ApiPublicCoachProfileResponse>(
+          `/v1/coaches/${encodeURIComponent(coachId)}/profile`,
         );
-        if (!offeringsResult.success) {
-          return err(offeringsResult.error);
+        if (!profileResult.success) {
+          return err(profileResult.error);
         }
-        const coach = toCoachFromOfferings(coachId, offeringsResult.data);
-        return coach ? ok(coach) : err(notFound('Coach', coachId));
+        return ok(toCoachFromPublicProfileResponse(profileResult.data, scheduledAt));
       }
 
       const coaches = await apiClient.get<Coach[]>(COACHES_KEY, MOCK_COACHES);
@@ -517,10 +606,25 @@ export const coachService = {
     logger.info('Getting coaches', { filters });
     try {
       if (!apiClient.isMockMode) {
-        const coachesResult = await listApiCoachesFromOfferings();
-        return coachesResult.success
-          ? ok(filterCoaches(coachesResult.data, filters))
-          : err(coachesResult.error);
+        if (
+          filters?.sport &&
+          filters.sport.toLowerCase() !== 'football'
+        ) {
+          return ok([]);
+        }
+        if (filters?.location) {
+          return err(
+            unsupportedError(
+              'Location coach filtering needs a public location projection before it can run in API mode.',
+            ),
+          );
+        }
+        return searchApiCoaches({
+          sports: ['Football'],
+          priceMax: filters?.maxPrice,
+          rating: filters?.minRating,
+          pageSize: 100,
+        });
       }
 
       let coaches = await apiClient.get<Coach[]>(COACHES_KEY, MOCK_COACHES);
@@ -632,19 +736,11 @@ export const coachService = {
     logger.info('Searching coaches', { query });
     try {
       if (!apiClient.isMockMode) {
-        const coachesResult = await listApiCoachesFromOfferings();
-        if (!coachesResult.success) {
-          return err(coachesResult.error);
-        }
-        const lowerQuery = query.toLowerCase();
-        return ok(
-          coachesResult.data.filter(
-            (coach) =>
-              coach.name.toLowerCase().includes(lowerQuery) ||
-              coach.bio?.toLowerCase().includes(lowerQuery) ||
-              coach.footballFocuses?.some((focus) => focus.toLowerCase().includes(lowerQuery)),
-          ),
-        );
+        return searchApiCoaches({
+          query,
+          sports: ['Football'],
+          pageSize: 100,
+        });
       }
 
       const coaches = await apiClient.get<Coach[]>(COACHES_KEY, MOCK_COACHES);
@@ -669,10 +765,11 @@ export const coachService = {
     logger.info('Getting featured coaches');
     try {
       if (!apiClient.isMockMode) {
-        const coachesResult = await listApiCoachesFromOfferings();
-        return coachesResult.success
-          ? ok(Array.from(coachesResult.data).toSorted((a, b) => b.minPrice - a.minPrice).slice(0, 5))
-          : err(coachesResult.error);
+        return searchApiCoaches({
+          sports: ['Football'],
+          sortBy: 'price_high',
+          pageSize: 5,
+        });
       }
 
       const coaches = await apiClient.get<Coach[]>(COACHES_KEY, MOCK_COACHES);
@@ -690,7 +787,38 @@ export const coachService = {
   async toggleFollow(coachId: string, _userId: string): Promise<Result<boolean, ServiceError>> {
     logger.info('Toggling follow', { coachId });
     try {
-      // TODO: Implement persistent follow storage when follow-service is integrated
+      if (!apiClient.isMockMode) {
+        const statusResult = await apiFetch<ApiCoachFollowStatusResponse>(
+          `/v1/follows?targetUserId=${encodeURIComponent(coachId)}`,
+        );
+        if (!statusResult.success) {
+          return err(statusResult.error);
+        }
+
+        if (statusResult.data.following === true) {
+          const removeResult = await apiFetch<ApiCoachFollowMutationResponse>(
+            `/v1/follows?followingId=${encodeURIComponent(coachId)}`,
+            {
+              method: 'DELETE',
+            },
+          );
+          return removeResult.success ? ok(false) : err(removeResult.error);
+        }
+
+        const followResult = await apiFetch<ApiCoachFollowMutationResponse>('/v1/follows', {
+          method: 'POST',
+          body: JSON.stringify({
+            followingId: coachId,
+            followingType: 'COACH',
+          }),
+        });
+        if (!followResult.success) {
+          return err(followResult.error);
+        }
+        if (!followResult.data.follow) {
+          return err(serviceError('UNKNOWN', 'Follow API did not return a follow relationship.'));
+        }
+      }
       return ok(true);
     } catch (error) {
       logger.error('Failed to toggle follow', error);

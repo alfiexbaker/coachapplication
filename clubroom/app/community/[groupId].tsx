@@ -143,9 +143,14 @@ export default function GroupChatScreen() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
-  const parentId = currentUser?.id ?? (USE_LOCAL_GROUP_MANAGEMENT ? 'parent1' : '');
-  const parentName =
-    currentUser?.fullName ?? currentUser?.name ?? (USE_LOCAL_GROUP_MANAGEMENT ? 'Parent' : 'Member');
+  const currentUserId = currentUser?.id ?? null;
+  const parentId = currentUserId ?? '';
+  const parentName = (
+    currentUser?.fullName ??
+    currentUser?.name ??
+    currentUser?.username ??
+    ''
+  ).trim();
 
   const [inputValue, setInputValue] = useState('');
   const [sending, setSending] = useState(false);
@@ -156,6 +161,9 @@ export default function GroupChatScreen() {
 
   const loadData = async () => {
     if (!groupId) return ok<GroupChatData>({ group: null, messages: [] });
+    if (!currentUserId) {
+      return err(serviceError('UNAUTHORIZED', 'Sign in to view this group.'));
+    }
 
     try {
       const [groupResult, messagesResult] = await Promise.all([
@@ -166,7 +174,7 @@ export default function GroupChatScreen() {
       if (!groupResult.success) return err(groupResult.error);
       if (!messagesResult.success) return err(messagesResult.error);
 
-      const markReadResult = await communityService.markMessagesRead(groupId, parentId);
+      const markReadResult = await communityService.markMessagesRead(groupId, currentUserId);
       if (!markReadResult.success) {
         logger.warn('Failed to mark group messages as read', markReadResult.error);
       }
@@ -192,12 +200,12 @@ export default function GroupChatScreen() {
     isPending,
   } = useScreen<GroupChatData>({
     load: loadData,
-    deps: [groupId, parentId],
+    deps: [groupId, currentUserId],
     events: [ServiceEvents.GROUP_MEMBER_JOINED, ServiceEvents.GROUP_MEMBER_ROLE_CHANGED],
     isEmpty: (value) => value.group === null,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
-    dataKey: groupId ?? null,
+    dataKey: groupId ? `community-group:${currentUserId ?? 'missing'}:${groupId}` : null,
   });
 
   const group = data?.group ?? null;
@@ -210,6 +218,14 @@ export default function GroupChatScreen() {
 
   const handleSend = async () => {
     if (!inputValue.trim() || !groupId || sending) return;
+    if (!currentUserId) {
+      uiFeedback.showToast('Sign in to send group messages.', 'error');
+      return;
+    }
+    if (!parentName) {
+      uiFeedback.showToast('Complete your account name before sending group messages.', 'error');
+      return;
+    }
 
     const messageText = inputValue.trim();
     setInputValue('');
@@ -218,7 +234,7 @@ export default function GroupChatScreen() {
     return await runAsyncTryCatchFinally(async () => {
       const sendResult = await communityService.sendGroupMessage(
         groupId,
-        parentId,
+        currentUserId,
         parentName,
         messageText,
       );
@@ -238,6 +254,10 @@ export default function GroupChatScreen() {
   };
 
   const handleLeaveGroup = () => {
+    if (!currentUserId) {
+      uiFeedback.showToast('Sign in to leave this group.', 'error');
+      return;
+    }
     if (!USE_LOCAL_GROUP_MANAGEMENT) {
       uiFeedback.showToast('Group membership changes are managed by the club workspace.');
       return;
@@ -251,7 +271,7 @@ export default function GroupChatScreen() {
         onPress: async () => {
           try {
             if (!groupId) return;
-            const leaveResult = await communityService.leaveGroup(groupId, parentId);
+            const leaveResult = await communityService.leaveGroup(groupId, currentUserId);
             if (!leaveResult.success) {
               uiFeedback.showToast(leaveResult.error.message, 'error');
               return;
@@ -276,6 +296,10 @@ export default function GroupChatScreen() {
   const roleBreakdown = group ? communityGroupService.getRoleBreakdown(group.members) : null;
 
   const handleMemberManage = (member: GroupMember) => {
+    if (!currentUserId) {
+      uiFeedback.showToast('Sign in to manage group members.', 'error');
+      return;
+    }
     if (!USE_LOCAL_GROUP_MANAGEMENT) {
       uiFeedback.showToast('Group roles are managed by the club workspace.');
       return;
@@ -288,6 +312,10 @@ export default function GroupChatScreen() {
 
   const handleRoleChange = async (newRole: GroupMemberRole) => {
     if (!selectedMember || !groupId) return;
+    if (!currentUserId) {
+      uiFeedback.showToast('Sign in to manage group roles.', 'error');
+      return;
+    }
     if (!USE_LOCAL_GROUP_MANAGEMENT) {
       uiFeedback.showToast('Group roles are managed by the club workspace.');
       setShowRolePickerModal(false);
@@ -298,7 +326,7 @@ export default function GroupChatScreen() {
     try {
       const result = await communityService.changeMemberRole({
         groupId,
-        requesterId: parentId,
+        requesterId: currentUserId,
         memberId: selectedMember.parentId,
         newRole,
       });

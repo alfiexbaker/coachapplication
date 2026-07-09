@@ -5,107 +5,61 @@
  * modal state, and all navigation/action handlers.
  */
 
-import { useCallback, useMemo, useState, useRef, useEffect } from "react";
-import { router } from "expo-router";
-import { Routes } from "@/navigation/routes";
-import { bookingService } from "@/services/booking";
-import { eventService } from "@/services/event";
-import {
-  groupSessionService,
-  sessionRegistrationService,
-} from "@/services/group-session";
-import { inviteService as sessionInviteService } from "@/services/invite";
-import { ensureRelationalDemoSeeded } from "@/services/relational-demo-seed-service";
-import { ServiceEvents } from "@/services/event-bus";
-import { apiClient } from "@/services/api-client";
-import { socialFeedService } from "@/services/social-feed-service";
-import { STORAGE_KEYS } from "@/constants/storage-keys";
-import { useAuth } from "@/hooks/use-auth";
-import { useChildContext } from "@/hooks/use-child-context";
-import { useScreen } from "@/hooks/use-screen";
-import { createLogger } from "@/utils/logger";
-import { isBrowserFetchFailure } from "@/utils/network-errors";
-import { getSessionInviteCoachName } from "@/utils/session-invite-display";
+import { useCallback, useMemo, useState, useRef, useEffect } from 'react';
+import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
+import { bookingService } from '@/services/booking';
+import { groupSessionService, sessionRegistrationService } from '@/services/group-session';
+import { inviteService as sessionInviteService } from '@/services/invite';
+import { ServiceEvents } from '@/services/event-bus';
+import { apiClient } from '@/services/api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { useAuth } from '@/hooks/use-auth';
+import { useChildContext } from '@/hooks/use-child-context';
+import { useScreen } from '@/hooks/use-screen';
+import { createLogger } from '@/utils/logger';
+import { isBrowserFetchFailure } from '@/utils/network-errors';
+import { getSessionInviteCoachName } from '@/utils/session-invite-display';
 import {
   getBookingAthleteName,
   getBookingServiceLabel,
   safeDisplayLabel,
-} from "@/utils/booking-display";
-import { isCoach, isAdmin } from "@/utils/user-helpers";
+} from '@/utils/booking-display';
+import { isCoach, isAdmin } from '@/utils/user-helpers';
 import {
-  extractGroupSessionIdFromOfferingId,
-  GROUP_SESSION_OFFERING_PREFIX,
-  canViewerSeeEvent,
+  getSessionOfferingGroupSessionId,
   isGroupSessionRelevantToViewer,
   isOfferingVisibleToCoachUser,
-  mapEventToOffering,
   mapGroupSessionToOffering,
   normalizeSessionOfferingSource,
-} from "@/utils/session-offering-projections";
+} from '@/utils/session-offering-projections';
 import {
   matchesCoachBusinessFilter,
   type CoachBusinessFilter,
-} from "@/utils/coach-business-context";
-import { err, ok, serviceError } from "@/types/result";
+} from '@/utils/coach-business-context';
+import { err, ok, serviceError } from '@/types/result';
 import type {
   BookingSummary,
   GroupRegistration,
   SessionOffering,
   SessionInvite,
   RecurringBooking,
-} from "@/constants/types";
-import type { TimeFilter } from "@/components/bookings/BookingsList";
-import { uiFeedback } from "@/services/ui-feedback";
-import { runAsyncFinally } from "@/utils/async-control";
-const logger = createLogger("useBookings");
-const mapBookingStatus = (status: string): BookingSummary["status"] => {
-  if (status === "CONFIRMED") return "Confirmed";
-  if (status === "AWAITING_COMPLETION") return "Needs Completion";
-  if (status === "PENDING" || status === "AWAITING_CONFIRMATION")
-    return "Pending";
-  if (status === "COMPLETED") return "Completed";
-  if (status === "CANCELLED") return "Cancelled";
-  return "Pending";
+} from '@/constants/types';
+import type { TimeFilter } from '@/components/bookings/BookingsList';
+import { uiFeedback } from '@/services/ui-feedback';
+import { runAsyncFinally } from '@/utils/async-control';
+const logger = createLogger('useBookings');
+const mapBookingStatus = (status: string): BookingSummary['status'] => {
+  if (status === 'CONFIRMED') return 'Confirmed';
+  if (status === 'AWAITING_COMPLETION') return 'Needs Completion';
+  if (status === 'PENDING' || status === 'AWAITING_CONFIRMATION') return 'Pending';
+  if (status === 'COMPLETED') return 'Completed';
+  if (status === 'CANCELLED') return 'Cancelled';
+  return 'Pending';
 };
-const DEFAULT_DEMO_CLUB_ID = "club_lions";
 function isOffPlatformAudienceLabel(label: string): boolean {
   const normalized = label.trim().toLowerCase();
-  return (
-    normalized.includes("off-platform") || normalized.includes("off platform")
-  );
-}
-function collectRelevantClubIds({
-  currentUserId,
-  childClubIds,
-  sessionClubIds,
-  bookings,
-}: {
-  currentUserId?: string;
-  childClubIds: string[];
-  sessionClubIds: string[];
-  bookings: Awaited<ReturnType<typeof bookingService.list>>;
-}): Set<string> {
-  const clubIds = new Set<string>();
-  if (currentUserId) {
-    socialFeedService.getUserClubs(currentUserId).forEach((club) => {
-      clubIds.add(club.id);
-    });
-  }
-  for (const childClubId of childClubIds) {
-    clubIds.add(childClubId);
-  }
-  for (const sessionClubId of sessionClubIds) {
-    clubIds.add(sessionClubId);
-  }
-  for (const booking of bookings) {
-    if (booking.clubId) {
-      clubIds.add(booking.clubId);
-    }
-  }
-  if (clubIds.size === 0) {
-    clubIds.add(DEFAULT_DEMO_CLUB_ID);
-  }
-  return clubIds;
+  return normalized.includes('off-platform') || normalized.includes('off platform');
 }
 export interface UseBookingsResult {
   // Data
@@ -148,7 +102,7 @@ export interface UseBookingsResult {
   retry: () => void;
   handleAcceptInvite: (
     invite: SessionInvite,
-    selectedSlot?: SessionInvite["proposedSlots"][0],
+    selectedSlot?: SessionInvite['proposedSlots'][0],
   ) => Promise<void>;
   handleDeclineInvite: (invite: SessionInvite) => void;
 }
@@ -163,48 +117,37 @@ let lastBookingsSnapshot: BookingsScreenData | null = null;
 export function useBookings(): UseBookingsResult {
   const { currentUser } = useAuth();
   const { children: contextChildren } = useChildContext();
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>("upcoming");
-  const [businessFilter, setBusinessFilter] =
-    useState<CoachBusinessFilter>("all");
-  const [selectedOffering, setSelectedOffering] =
-    useState<SessionOffering | null>(null);
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('upcoming');
+  const [businessFilter, setBusinessFilter] = useState<CoachBusinessFilter>('all');
+  const [selectedOffering, setSelectedOffering] = useState<SessionOffering | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const seedEnsuredRef = useRef(false);
   const loadCycleRef = useRef(0);
   const userRole = currentUser?.role;
   const isCoachUser = isCoach(currentUser) || isAdmin(currentUser);
   const hasChildProfiles = contextChildren.length > 0;
   const hasParentInviteScope = Boolean(
     currentUser &&
-      !isCoachUser &&
-      (currentUser.role === "PARENT" ||
-        currentUser.hasChildren ||
-        (currentUser.children?.length ?? 0) > 0 ||
-        hasChildProfiles),
+    !isCoachUser &&
+    (currentUser.role === 'PARENT' ||
+      currentUser.hasChildren ||
+      (currentUser.children?.length ?? 0) > 0 ||
+      hasChildProfiles),
   );
   const contextChildrenSignature = contextChildren
     .map((child) =>
       [
         child.id,
         child.referenceId,
-        child.profileId ?? "",
+        child.profileId ?? '',
         child.name,
-        child.clubIds.join(","),
-      ].join(":"),
+        child.clubIds.join(','),
+      ].join(':'),
     )
-    .join("|");
-  const ensureSeedOnce = useCallback(async () => {
-    if (seedEnsuredRef.current) {
-      return;
-    }
-    await ensureRelationalDemoSeeded();
-    seedEnsuredRef.current = true;
-  }, []);
-
+    .join('|');
   // Load all data
   const loadData = useCallback(async () => {
     const loadId = ++loadCycleRef.current;
-    logger.debug("Load cycle start", {
+    logger.debug('Load cycle start', {
       loadId,
       userId: currentUser?.id,
       role: currentUser?.role,
@@ -218,18 +161,13 @@ export function useBookings(): UseBookingsResult {
       ),
     });
     try {
-      await ensureSeedOnce();
-      logger.debug("Seed ensured for load cycle", {
-        loadId,
-        seedEnsured: seedEnsuredRef.current,
-      });
       const bookings = await bookingService.list();
       const viewerNameById = new Map<string, string>();
       if (currentUser?.id) {
-        viewerNameById.set(currentUser.id, "You");
+        viewerNameById.set(currentUser.id, 'You');
       }
       for (const child of contextChildren) {
-        const childLabel = safeDisplayLabel(child.name, "Child");
+        const childLabel = safeDisplayLabel(child.name, 'Child');
         viewerNameById.set(child.id, childLabel);
         viewerNameById.set(child.referenceId, childLabel);
         if (child.profileId) {
@@ -246,14 +184,12 @@ export function useBookings(): UseBookingsResult {
         const recurringSource = booking.recurringBookingId
           ? recurringById.get(booking.recurringBookingId)
           : undefined;
-        const athleteId = booking.athleteId ?? booking.athleteIds?.[0] ?? "";
+        const athleteId = booking.athleteId ?? booking.athleteIds?.[0] ?? '';
         const athleteName = getBookingAthleteName(booking);
-        const isSelfBooking = Boolean(
-          currentUser?.id && athleteId && athleteId === currentUser.id,
-        );
+        const isSelfBooking = Boolean(currentUser?.id && athleteId && athleteId === currentUser.id);
         const audienceLabel = safeDisplayLabel(
-          isSelfBooking ? "You" : viewerNameById.get(athleteId) || athleteName,
-          "Athlete",
+          isSelfBooking ? 'You' : viewerNameById.get(athleteId) || athleteName,
+          'Athlete',
         );
         return {
           id: booking.id,
@@ -264,12 +200,12 @@ export function useBookings(): UseBookingsResult {
           status: mapBookingStatus(booking.status),
           locationLabel: booking.location,
           coach: {
-            name: safeDisplayLabel(booking.coachName, "Coach"),
-            photoUrl: "https://i.pravatar.cc/100?u=" + booking.coachId,
+            name: safeDisplayLabel(booking.coachName, 'Coach'),
+            photoUrl: '',
           },
           client: {
             name: audienceLabel,
-            photoUrl: "https://i.pravatar.cc/100?u=" + booking.athleteId,
+            photoUrl: '',
           },
           coachId: booking.coachId,
           clientId: athleteId,
@@ -278,25 +214,18 @@ export function useBookings(): UseBookingsResult {
           audienceLabel,
           clubId: booking.clubId ?? recurringSource?.clubId,
           actingAs: booking.actingAs ?? recurringSource?.actingAs,
-          commercialMode:
-            booking.commercialMode ?? recurringSource?.commercialMode,
+          commercialMode: booking.commercialMode ?? recurringSource?.commercialMode,
           ownerCoachId: booking.ownerCoachId ?? recurringSource?.ownerCoachId,
-          assigneeCoachId:
-            booking.assigneeCoachId ?? recurringSource?.assigneeCoachId,
-          createdByUserId:
-            booking.createdByUserId ?? recurringSource?.createdByUserId,
-          createdByRole:
-            booking.createdByRole ?? recurringSource?.createdByRole,
+          assigneeCoachId: booking.assigneeCoachId ?? recurringSource?.assigneeCoachId,
+          createdByUserId: booking.createdByUserId ?? recurringSource?.createdByUserId,
+          createdByRole: booking.createdByRole ?? recurringSource?.createdByRole,
         };
       });
-      const bookingStatusCounts = summaries.reduce<Record<string, number>>(
-        (acc, booking) => {
-          acc[booking.status] = (acc[booking.status] || 0) + 1;
-          return acc;
-        },
-        {},
-      );
-      logger.debug("Loaded session bookings", {
+      const bookingStatusCounts = summaries.reduce<Record<string, number>>((acc, booking) => {
+        acc[booking.status] = (acc[booking.status] || 0) + 1;
+        return acc;
+      }, {});
+      logger.debug('Loaded session bookings', {
         loadId,
         count: summaries.length,
         statusCounts: bookingStatusCounts,
@@ -305,7 +234,7 @@ export function useBookings(): UseBookingsResult {
       const registrationAthleteIds = new Set<string>();
       if (currentUser?.id) {
         viewerIds.add(currentUser.id);
-        if (!hasChildProfiles && currentUser.id.startsWith("ath_")) {
+        if (!hasChildProfiles && currentUser.id.startsWith('ath_')) {
           registrationAthleteIds.add(currentUser.id);
         }
       }
@@ -319,7 +248,7 @@ export function useBookings(): UseBookingsResult {
           registrationAthleteIds.add(child.profileId);
         }
       }
-      logger.debug("Viewer identity scope resolved", {
+      logger.debug('Viewer identity scope resolved', {
         loadId,
         viewerIds: Array.from(viewerIds),
         viewerNameMapSize: viewerNameById.size,
@@ -335,7 +264,7 @@ export function useBookings(): UseBookingsResult {
           ? groupSessionService.getCoachSessions(currentUser.id)
           : groupSessionService.discoverSessions()
       ).catch((sessionError) => {
-        logger.warn("Failed to load group session offerings", {
+        logger.warn('Failed to load group session offerings', {
           loadId,
           error: sessionError,
         });
@@ -344,7 +273,7 @@ export function useBookings(): UseBookingsResult {
       const groupRegistrationsPromise = sessionRegistrationService
         .getRegistrationsForAthletes(registrationAthleteIds)
         .catch((registrationError) => {
-          logger.warn("Failed to load group session registrations", {
+          logger.warn('Failed to load group session registrations', {
             loadId,
             error: registrationError,
           });
@@ -359,13 +288,10 @@ export function useBookings(): UseBookingsResult {
         if (!registrationsBySessionId.has(registration.sessionId)) {
           registrationsBySessionId.set(registration.sessionId, []);
         }
-        registrationsBySessionId
-          .get(registration.sessionId)!
-          .push(registration);
+        registrationsBySessionId.get(registration.sessionId)!.push(registration);
       }
       const relevantGroupSessions = groupSessions.filter((session) => {
-        const sessionRegistrations =
-          registrationsBySessionId.get(session.id) ?? [];
+        const sessionRegistrations = registrationsBySessionId.get(session.id) ?? [];
         return isGroupSessionRelevantToViewer({
           session,
           sessionRegistrations,
@@ -375,41 +301,6 @@ export function useBookings(): UseBookingsResult {
           isCoachUser,
         });
       });
-      const groupSessionClubIds = relevantGroupSessions.flatMap((session) =>
-        session.clubId ? [session.clubId] : [],
-      );
-      const clubIds = collectRelevantClubIds({
-        currentUserId: currentUser?.id,
-        childClubIds: Array.from(childClubIds),
-        sessionClubIds: groupSessionClubIds,
-        bookings,
-      });
-      const clubEventsResults = await Promise.all(
-        Array.from(clubIds).map(async (clubId) => {
-          try {
-            return await eventService.getAllClubEvents(clubId);
-          } catch (eventError) {
-            logger.warn("Failed to load club events for bookings", {
-              clubId,
-              error: eventError,
-            });
-            return [];
-          }
-        }),
-      );
-      const eventOfferings = clubEventsResults
-        .flat()
-        .flatMap((event) =>
-          canViewerSeeEvent(
-            event,
-            viewerIds,
-            isCoachUser,
-            hasChildProfiles,
-            currentUser?.id,
-          )
-            ? [mapEventToOffering(event)]
-            : [],
-        );
       const groupSessionOfferings = relevantGroupSessions.flatMap((session) => {
         const mapped = mapGroupSessionToOffering(
           session,
@@ -419,25 +310,18 @@ export function useBookings(): UseBookingsResult {
         return mapped !== null ? [mapped] : [];
       });
       const offeringsById = new Map<string, SessionOffering>();
-      for (const eventOffering of eventOfferings) {
-        offeringsById.set(eventOffering.id, eventOffering);
-      }
       for (const groupOffering of groupSessionOfferings) {
         offeringsById.set(groupOffering.id, groupOffering);
       }
       const offerings = Array.from(offeringsById.values());
-      const offeringsBySource = offerings.reduce<Record<string, number>>(
-        (acc, offering) => {
-          const source = offering.source || "unknown";
-          acc[source] = (acc[source] || 0) + 1;
-          return acc;
-        },
-        {},
-      );
-      logger.debug("Loaded session offerings", {
+      const offeringsBySource = offerings.reduce<Record<string, number>>((acc, offering) => {
+        const source = offering.source || 'unknown';
+        acc[source] = (acc[source] || 0) + 1;
+        return acc;
+      }, {});
+      logger.debug('Loaded session offerings', {
         loadId,
         count: offerings.length,
-        eventOfferings: eventOfferings.length,
         groupSessionOfferings: groupSessionOfferings.length,
         offeringsBySource,
         sampleOfferingIds: offerings.slice(0, 8).map((offering) => offering.id),
@@ -445,11 +329,9 @@ export function useBookings(): UseBookingsResult {
       let pendingInvitesList: SessionInvite[] = [];
       if (hasParentInviteScope && currentUser) {
         try {
-          const invites = await sessionInviteService.getPendingInvites(
-            currentUser.id,
-          );
+          const invites = await sessionInviteService.getPendingInvites(currentUser.id);
           pendingInvitesList = invites;
-          logger.debug("Loaded pending invites", {
+          logger.debug('Loaded pending invites', {
             loadId,
             count: invites.length,
             inviteIds: invites.slice(0, 8).map((invite) => invite.id),
@@ -457,13 +339,13 @@ export function useBookings(): UseBookingsResult {
         } catch (inviteErr) {
           const details = { loadId, error: inviteErr };
           if (isBrowserFetchFailure(inviteErr)) {
-            logger.warn("Pending invites fetch was interrupted", details);
+            logger.warn('Pending invites fetch was interrupted', details);
           } else {
-            logger.error("Failed to load pending invites", details);
+            logger.error('Failed to load pending invites', details);
           }
         }
       }
-      logger.debug("Load cycle complete", {
+      logger.debug('Load cycle complete', {
         loadId,
         bookings: summaries.length,
         offerings: offerings.length,
@@ -475,16 +357,12 @@ export function useBookings(): UseBookingsResult {
         pendingInvitesList,
       });
     } catch (loadError) {
-      logger.error("Failed to load bookings data", {
+      logger.error('Failed to load bookings data', {
         loadId,
         error: loadError,
       });
       return err(
-        serviceError(
-          "UNKNOWN",
-          "Failed to load bookings. Pull down to refresh.",
-          loadError,
-        ),
+        serviceError('UNKNOWN', 'Failed to load bookings. Pull down to refresh.', loadError),
       );
     }
   }, [
@@ -493,7 +371,6 @@ export function useBookings(): UseBookingsResult {
     currentUser?.id,
     currentUser?.name,
     currentUser?.role,
-    ensureSeedOnce,
     hasParentInviteScope,
     hasChildProfiles,
     isCoachUser,
@@ -522,7 +399,7 @@ export function useBookings(): UseBookingsResult {
       value.sessionOfferings.length === 0 &&
       value.pendingInvitesList.length === 0,
     refetchOnFocus: true,
-    loadingStrategy: "warm-first",
+    loadingStrategy: 'warm-first',
   });
   useEffect(() => {
     if (data) {
@@ -534,28 +411,27 @@ export function useBookings(): UseBookingsResult {
   const sessionOfferings = resolvedData?.sessionOfferings;
   const pendingInvitesList = resolvedData?.pendingInvitesList ?? [];
   const pendingInvites = pendingInvitesList.length;
-  const loading = status === "loading" && resolvedData === null;
+  const loading = status === 'loading' && resolvedData === null;
   const error =
-    status === "error" && resolvedData === null
-      ? (screenError?.message ??
-        "Failed to load bookings. Pull down to refresh.")
+    status === 'error' && resolvedData === null
+      ? (screenError?.message ?? 'Failed to load bookings. Pull down to refresh.')
       : null;
   const displayItems = useMemo(() => {
     const now = new Date();
     const isPastBooking = (booking: BookingSummary) =>
-      booking.status === "Completed" ||
-      booking.status === "Cancelled" ||
+      booking.status === 'Completed' ||
+      booking.status === 'Cancelled' ||
       new Date(booking.start) < now;
     const isPastOffering = (offering: SessionOffering) =>
-      offering.status === "completed" ||
-      offering.status === "cancelled" ||
+      offering.status === 'completed' ||
+      offering.status === 'cancelled' ||
       (!offering.isRecurring && new Date(offering.scheduledAt) < now);
     if (isCoachUser) {
       const myOfferings = (sessionOfferings ?? []).filter((offering) =>
         isOfferingVisibleToCoachUser(offering, currentUser?.id),
       );
       const timeWindowOfferings =
-        timeFilter === "upcoming"
+        timeFilter === 'upcoming'
           ? myOfferings.filter((offering) => !isPastOffering(offering))
           : myOfferings.filter((offering) => isPastOffering(offering));
       return timeWindowOfferings.filter((offering) =>
@@ -566,10 +442,10 @@ export function useBookings(): UseBookingsResult {
     const viewerNameById = new Map<string, string>();
     if (currentUser?.id) {
       viewerIds.add(currentUser.id);
-      viewerNameById.set(currentUser.id, "You");
+      viewerNameById.set(currentUser.id, 'You');
     }
     for (const child of contextChildren) {
-      const childLabel = safeDisplayLabel(child.name, "Child");
+      const childLabel = safeDisplayLabel(child.name, 'Child');
       viewerIds.add(child.id);
       viewerIds.add(child.referenceId);
       if (child.profileId) {
@@ -581,56 +457,51 @@ export function useBookings(): UseBookingsResult {
         viewerNameById.set(child.profileId, childLabel);
       }
     }
-    const myRegisteredOfferings = (sessionOfferings ?? []).reduce<
-      SessionOffering[]
-    >((acc, offering) => {
-      const matchingRegistrations = offering.registrations.filter(
-        (reg) => reg.status === "confirmed" && viewerIds.has(reg.userId),
-      );
-      if (matchingRegistrations.length === 0) {
+    const myRegisteredOfferings = (sessionOfferings ?? []).reduce<SessionOffering[]>(
+      (acc, offering) => {
+        const matchingRegistrations = offering.registrations.filter(
+          (reg) => reg.status === 'confirmed' && viewerIds.has(reg.userId),
+        );
+        if (matchingRegistrations.length === 0) {
+          return acc;
+        }
+        const viewerAthleteNames = Array.from(
+          new Set(
+            matchingRegistrations.map((registration) => {
+              if (currentUser?.id && registration.userId === currentUser.id) {
+                return 'You';
+              }
+              const registrationLabel = safeDisplayLabel(registration.userName, '');
+              if (registrationLabel) {
+                return registrationLabel;
+              }
+              return safeDisplayLabel(viewerNameById.get(registration.userId), 'Athlete');
+            }),
+          ),
+        ).filter((name) => !isOffPlatformAudienceLabel(name));
+        acc.push({
+          ...offering,
+          viewerAthleteNames,
+        });
         return acc;
-      }
-      const viewerAthleteNames = Array.from(
-        new Set(
-          matchingRegistrations.map((registration) => {
-            if (currentUser?.id && registration.userId === currentUser.id) {
-              return "You";
-            }
-            const registrationLabel = safeDisplayLabel(registration.userName, "");
-            if (registrationLabel) {
-              return registrationLabel;
-            }
-            return safeDisplayLabel(viewerNameById.get(registration.userId), "Athlete");
-          }),
-        ),
-      ).filter((name) => !isOffPlatformAudienceLabel(name));
-      acc.push({
-        ...offering,
-        viewerAthleteNames,
-      });
-      return acc;
-    }, []);
+      },
+      [],
+    );
     const filteredBookings = (sessionBookings ?? []).filter((booking) => {
-      const clientId = booking.clientId || "";
-      const bookedById = booking.bookedById || "";
+      const clientId = booking.clientId || '';
+      const bookedById = booking.bookedById || '';
       const matchesByName =
         booking.client?.name === currentUser?.fullName ||
         booking.client?.name === currentUser?.name;
-      return (
-        viewerIds.has(clientId) || viewerIds.has(bookedById) || matchesByName
-      );
+      return viewerIds.has(clientId) || viewerIds.has(bookedById) || matchesByName;
     });
-    return timeFilter === "upcoming"
+    return timeFilter === 'upcoming'
       ? [
-          ...myRegisteredOfferings.filter(
-            (offering) => !isPastOffering(offering),
-          ),
+          ...myRegisteredOfferings.filter((offering) => !isPastOffering(offering)),
           ...filteredBookings.filter((booking) => !isPastBooking(booking)),
         ]
       : [
-          ...myRegisteredOfferings.filter((offering) =>
-            isPastOffering(offering),
-          ),
+          ...myRegisteredOfferings.filter((offering) => isPastOffering(offering)),
           ...filteredBookings.filter((booking) => isPastBooking(booking)),
         ];
   }, [
@@ -658,29 +529,22 @@ export function useBookings(): UseBookingsResult {
     );
     const now = new Date();
     const isPastOffering = (offering: SessionOffering) =>
-      offering.status === "completed" ||
-      offering.status === "cancelled" ||
+      offering.status === 'completed' ||
+      offering.status === 'cancelled' ||
       (!offering.isRecurring && new Date(offering.scheduledAt) < now);
     const timeWindowOfferings =
-      timeFilter === "upcoming"
+      timeFilter === 'upcoming'
         ? myOfferings.filter((offering) => !isPastOffering(offering))
         : myOfferings.filter((offering) => isPastOffering(offering));
     return {
       all: timeWindowOfferings.length,
-      org: timeWindowOfferings.filter((offering) =>
-        matchesCoachBusinessFilter(offering, "org"),
-      ).length,
+      org: timeWindowOfferings.filter((offering) => matchesCoachBusinessFilter(offering, 'org'))
+        .length,
       independent: timeWindowOfferings.filter((offering) =>
-        matchesCoachBusinessFilter(offering, "independent"),
+        matchesCoachBusinessFilter(offering, 'independent'),
       ).length,
     };
-  }, [
-    currentUser?.id,
-    displayItems.length,
-    isCoachUser,
-    sessionOfferings,
-    timeFilter,
-  ]);
+  }, [currentUser?.id, displayItems.length, isCoachUser, sessionOfferings, timeFilter]);
   const overallVisibleItemCount = useMemo(() => {
     if (isCoachUser) {
       return (sessionOfferings ?? []).filter((offering) =>
@@ -689,15 +553,13 @@ export function useBookings(): UseBookingsResult {
     }
     return displayItems.length;
   }, [currentUser?.id, displayItems.length, isCoachUser, sessionOfferings]);
-  const totalVisibleItemCount = isCoachUser
-    ? businessCounts.all
-    : displayItems.length;
+  const totalVisibleItemCount = isCoachUser ? businessCounts.all : displayItems.length;
   useEffect(() => {
     const offeringCount = displayItems.filter(
-      (item): item is SessionOffering => "registrations" in item,
+      (item): item is SessionOffering => 'registrations' in item,
     ).length;
     const bookingCount = displayItems.length - offeringCount;
-    logger.debug("Display items updated", {
+    logger.debug('Display items updated', {
       timeFilter,
       businessFilter,
       total: displayItems.length,
@@ -720,79 +582,79 @@ export function useBookings(): UseBookingsResult {
 
   // Navigation handlers
   const handleCalendarPress = () => {
-    logger.press("CalendarButton", {
-      route: "/(tabs)/availability",
+    logger.press('CalendarButton', {
+      route: '/(tabs)/availability',
     });
     router.push(Routes.AVAILABILITY);
   };
   const handleSettingsPress = () => {
-    logger.press("SettingsButton", {
-      route: "/settings",
+    logger.press('SettingsButton', {
+      route: '/settings',
     });
     router.push(Routes.SETTINGS);
   };
   const handleGroupSessionsPress = () => {
-    logger.press("GroupSessionsButton", {
-      route: "/group-sessions",
+    logger.press('GroupSessionsButton', {
+      route: '/group-sessions',
     });
     router.push(Routes.GROUP_SESSIONS);
   };
   const handleDiscoverSessionsPress = () => {
-    logger.press("DiscoverSessionsButton", {
-      route: "/discover-sessions",
+    logger.press('DiscoverSessionsButton', {
+      route: '/discover-sessions',
     });
     router.push(Routes.DISCOVER_SESSIONS);
   };
   const handleInvitesPress = () => {
-    logger.press("InvitesButton", {
-      route: "/invites",
+    logger.press('InvitesButton', {
+      route: '/invites',
     });
     router.push(Routes.INVITES);
   };
   const handleCreateSessionPress = () => {
-    logger.press("CreateSessionButton", {
-      intent: "new",
+    logger.press('CreateSessionButton', {
+      intent: 'new',
     });
     router.push(
       Routes.sessionsCreateIntent({
-        intent: "new",
-        source: "manual",
+        intent: 'new',
+        source: 'manual',
       }),
     );
   };
   const handleCreateDirectPress = () => {
-    logger.press("CreateDirectButton", {
-      preset: "1on1",
+    logger.press('CreateDirectButton', {
+      preset: '1on1',
     });
     router.push(
       Routes.sessionsCreateIntent({
-        intent: "new",
-        source: "manual",
-        preset: "1on1",
+        intent: 'new',
+        source: 'manual',
+        preset: '1on1',
       }),
     );
   };
   const handleCreateGroupPress = () => {
-    logger.press("CreateGroupButton", {
-      preset: "group",
+    logger.press('CreateGroupButton', {
+      preset: 'group',
     });
     router.push(
       Routes.sessionsCreateIntent({
-        intent: "new",
-        source: "manual",
-        preset: "group",
+        intent: 'new',
+        source: 'manual',
+        preset: 'group',
       }),
     );
   };
   const handleFindCoachPress = () => {
-    logger.press("FindCoachButton", {
+    logger.press('FindCoachButton', {
       route: Routes.DISCOVER_MAP,
     });
     router.push(Routes.DISCOVER_MAP);
   };
   const handleOfferingPress = (offering: SessionOffering) => {
     const normalizedOffering = normalizeSessionOfferingSource(offering);
-    logger.press("OfferingCardPressed", {
+    logger.press('OfferingCardPressed', {
       offeringId: normalizedOffering.id,
       source: normalizedOffering.source,
       sourceEntityId: normalizedOffering.sourceEntityId,
@@ -801,21 +663,16 @@ export function useBookings(): UseBookingsResult {
       status: normalizedOffering.status,
       sessionType: normalizedOffering.sessionType,
     });
-    if (normalizedOffering.source === "group") {
-      const groupSessionId =
-        normalizedOffering.sourceEntityId ??
-        extractGroupSessionIdFromOfferingId(normalizedOffering.id) ??
-        normalizedOffering.id.replace(GROUP_SESSION_OFFERING_PREFIX, "");
-      if (groupSessionId) {
-        logger.debug("Routing to group session screen from bookings list", {
-          offeringId: normalizedOffering.id,
-          groupSessionId,
-        });
-        router.push(Routes.groupSession(groupSessionId));
-        return;
-      }
+    const groupSessionId = getSessionOfferingGroupSessionId(normalizedOffering);
+    if (groupSessionId) {
+      logger.debug('Routing to group session screen from bookings list', {
+        offeringId: normalizedOffering.id,
+        groupSessionId,
+      });
+      router.push(Routes.groupSession(groupSessionId));
+      return;
     }
-    logger.debug("Opening session detail modal from bookings list", {
+    logger.debug('Opening session detail modal from bookings list', {
       offeringId: normalizedOffering.id,
       source: normalizedOffering.source,
       sourceEntityId: normalizedOffering.sourceEntityId,
@@ -824,7 +681,7 @@ export function useBookings(): UseBookingsResult {
     setShowDetailModal(true);
   };
   const handleModalClose = () => {
-    logger.debug("Session detail modal closed from bookings list", {
+    logger.debug('Session detail modal closed from bookings list', {
       selectedOfferingId: selectedOffering?.id,
       hadModalOpen: showDetailModal,
     });
@@ -832,23 +689,23 @@ export function useBookings(): UseBookingsResult {
     setSelectedOffering(null);
   };
   const handleModalUpdate = () => {
-    logger.debug("Session detail modal requested bookings refresh");
+    logger.debug('Session detail modal requested bookings refresh');
     onRefresh();
   };
   const processingInviteIdsRef = useRef<Set<string>>(new Set());
   const handleAcceptInvite = async (
     invite: SessionInvite,
-    selectedSlot?: SessionInvite["proposedSlots"][0],
+    selectedSlot?: SessionInvite['proposedSlots'][0],
   ) => {
     if (processingInviteIdsRef.current.has(invite.id)) {
-      logger.debug("Invite accept skipped - already processing", {
+      logger.debug('Invite accept skipped - already processing', {
         inviteId: invite.id,
       });
       return;
     }
     processingInviteIdsRef.current.add(invite.id);
     const slot = selectedSlot || invite.proposedSlots[0];
-    logger.action("AcceptInvite", {
+    logger.action('AcceptInvite', {
       inviteId: invite.id,
       coachId: invite.coachId,
       selectedSlotDate: slot?.date,
@@ -858,10 +715,10 @@ export function useBookings(): UseBookingsResult {
       async () => {
         const result = await sessionInviteService.respondToInvite({
           inviteId: invite.id,
-          response: "ACCEPTED",
+          response: 'ACCEPTED',
           selectedSlot: slot,
         });
-        logger.debug("Invite accept response", {
+        logger.debug('Invite accept response', {
           inviteId: invite.id,
           success: result.success,
           errorCode: result.success ? undefined : result.error.code,
@@ -872,7 +729,7 @@ export function useBookings(): UseBookingsResult {
       },
       () => {
         processingInviteIdsRef.current.delete(invite.id);
-        logger.debug("Invite accept processing cleared", {
+        logger.debug('Invite accept processing cleared', {
           inviteId: invite.id,
         });
       },
@@ -880,55 +737,51 @@ export function useBookings(): UseBookingsResult {
   };
   const handleDeclineInvite = (invite: SessionInvite) => {
     const coachName = getSessionInviteCoachName(invite);
-    uiFeedback.alert(
-      "Decline Invite?",
-      `Decline the session invite from ${coachName}?`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Decline",
-          style: "destructive",
-          onPress: async () => {
-            if (processingInviteIdsRef.current.has(invite.id)) {
-              logger.debug("Invite decline skipped - already processing", {
+    uiFeedback.alert('Decline Invite?', `Decline the session invite from ${coachName}?`, [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Decline',
+        style: 'destructive',
+        onPress: async () => {
+          if (processingInviteIdsRef.current.has(invite.id)) {
+            logger.debug('Invite decline skipped - already processing', {
+              inviteId: invite.id,
+            });
+            return;
+          }
+          processingInviteIdsRef.current.add(invite.id);
+          logger.action('DeclineInvite', {
+            inviteId: invite.id,
+            coachId: invite.coachId,
+          });
+          await runAsyncFinally(
+            async () => {
+              const result = await sessionInviteService.respondToInvite({
+                inviteId: invite.id,
+                response: 'DECLINED',
+              });
+              logger.debug('Invite decline response', {
+                inviteId: invite.id,
+                success: result.success,
+                errorCode: result.success ? undefined : result.error.code,
+              });
+              if (result.success) {
+                onRefresh();
+              }
+            },
+            () => {
+              processingInviteIdsRef.current.delete(invite.id);
+              logger.debug('Invite decline processing cleared', {
                 inviteId: invite.id,
               });
-              return;
-            }
-            processingInviteIdsRef.current.add(invite.id);
-            logger.action("DeclineInvite", {
-              inviteId: invite.id,
-              coachId: invite.coachId,
-            });
-            await runAsyncFinally(
-              async () => {
-                const result = await sessionInviteService.respondToInvite({
-                  inviteId: invite.id,
-                  response: "DECLINED",
-                });
-                logger.debug("Invite decline response", {
-                  inviteId: invite.id,
-                  success: result.success,
-                  errorCode: result.success ? undefined : result.error.code,
-                });
-                if (result.success) {
-                  onRefresh();
-                }
-              },
-              () => {
-                processingInviteIdsRef.current.delete(invite.id);
-                logger.debug("Invite decline processing cleared", {
-                  inviteId: invite.id,
-                });
-              },
-            );
-          },
+            },
+          );
         },
-      ],
-    );
+      },
+    ]);
   };
   return {
     displayItems,

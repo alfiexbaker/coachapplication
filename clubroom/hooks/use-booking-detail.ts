@@ -20,7 +20,11 @@ import type { BookingSummary, Booking, RecurringBooking } from '@/constants/type
 import { createLogger } from '@/utils/logger';
 import type { ServiceError } from '@/types/result';
 import { err, ok, serviceError } from '@/types/result';
-import { getBookingAthleteName, getBookingServiceLabel, safeDisplayLabel } from '@/utils/booking-display';
+import {
+  getBookingAthleteName,
+  getBookingServiceLabel,
+  safeDisplayLabel,
+} from '@/utils/booking-display';
 import { uiFeedback } from '@/services/ui-feedback';
 import type { SessionFeedback } from '@/services/progress-service';
 import { progressService } from '@/services/progress-service';
@@ -58,7 +62,7 @@ export interface BookingDetailResult {
     weekday: string;
     dateStr: string;
     time: string;
-    coachPhotoUrl: string;
+    coachPhotoUrl?: string;
   } | null;
 }
 
@@ -119,11 +123,11 @@ const toBookingSummary = (
     createdByRole: booking.createdByRole ?? recurringSource?.createdByRole,
     coach: {
       name: coachDisplayName ?? 'Coach',
-      photoUrl: `https://i.pravatar.cc/100?u=${booking.coachId}`,
+      photoUrl: '',
     },
     client: {
       name: audienceLabel,
-      photoUrl: `https://i.pravatar.cc/100?u=${booking.athleteId ?? 'athlete'}`,
+      photoUrl: '',
     },
     coachId: booking.coachId,
     clientId: athleteId,
@@ -185,9 +189,7 @@ async function resolveBookingUserNames(
     return new Map();
   }
 
-  return new Map(
-    result.data.map((user) => [user.id, user.name?.trim() || user.id]),
-  );
+  return new Map(result.data.map((user) => [user.id, user.name?.trim() || user.id]));
 }
 
 export function useBookingDetail(id: string): BookingDetailResult {
@@ -213,7 +215,11 @@ export function useBookingDetail(id: string): BookingDetailResult {
         );
         setDeliveryFeedback(feedback);
         return ok<BookingSummary | null>(
-          toBookingSummary(booking, { viewerUserId: currentUser?.id, recurringSource, userNameById }),
+          toBookingSummary(booking, {
+            viewerUserId: currentUser?.id,
+            recurringSource,
+            userNameById,
+          }),
         );
       }
 
@@ -266,7 +272,9 @@ export function useBookingDetail(id: string): BookingDetailResult {
   const handleCancelBooking = () => {
     if (!booking) return;
     if (!canCancelBooking) {
-      uiFeedback.showToast('Only upcoming bookings can be cancelled. Past or completed sessions cannot be cancelled.');
+      uiFeedback.showToast(
+        'Only upcoming bookings can be cancelled. Past or completed sessions cannot be cancelled.',
+      );
       return;
     }
     router.push(Routes.bookingCancel(booking.id, isCoach ? 'coach' : 'parent'));
@@ -301,7 +309,10 @@ export function useBookingDetail(id: string): BookingDetailResult {
 
     const reopenedBooking = await bookingService.reopen(booking.id, isCoach ? 'coach' : 'parent');
     if (!reopenedBooking) {
-      uiFeedback.showToast('We could not reopen this booking. Try again from the bookings list.', 'error');
+      uiFeedback.showToast(
+        'We could not reopen this booking. Try again from the bookings list.',
+        'error',
+      );
       return;
     }
 
@@ -366,7 +377,7 @@ export function useBookingDetail(id: string): BookingDetailResult {
             year: 'numeric',
           }),
           time: date.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit' }),
-          coachPhotoUrl: booking.coach?.photoUrl || 'https://i.pravatar.cc/100',
+          coachPhotoUrl: booking.coach?.photoUrl || undefined,
         };
       })()
     : null;

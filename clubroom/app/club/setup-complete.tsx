@@ -10,10 +10,12 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { Row } from '@/components/primitives/row';
 import { LoadingState, ErrorState } from '@/components/ui/screen-states';
+import { api } from '@/constants/config';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useScreen } from '@/hooks/use-screen';
 import { Routes } from '@/navigation/routes';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { uiFeedback } from '@/services/ui-feedback';
 import { formatCommercialModeLabel } from '@/utils/organization-commercial-mode';
@@ -81,7 +83,19 @@ export default function ClubSetupCompleteScreen() {
     }
 
     try {
-      const nextClub = await socialFeedService.getClub(clubId);
+      if (api.useMock) {
+        const nextClub = await socialFeedService.getClub(clubId);
+        if (!nextClub) {
+          return err(serviceError('NOT_FOUND', 'Club setup details could not be loaded.'));
+        }
+        return ok(nextClub);
+      }
+
+      const result = await clubAuthorityService.listClubs();
+      if (!result.success) {
+        return err(result.error);
+      }
+      const nextClub = result.data.clubs.find((candidate) => candidate.id === clubId);
       if (!nextClub) {
         return err(serviceError('NOT_FOUND', 'Club setup details could not be loaded.'));
       }

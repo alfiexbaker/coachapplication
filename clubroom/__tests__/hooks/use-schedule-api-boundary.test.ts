@@ -23,4 +23,14 @@ test('useSchedule does not read legacy session offering or blocked-date mirrors'
     'legacy blocked-date mirrors should not be read from the hook',
   );
   assert.equal(source.includes('apiClient.get'), false, 'schedule hook should not own local reads');
+  assert.equal(
+    source.includes("scheduledAt?.split('T')[0]"),
+    false,
+    'schedule hook should use local date keys, not raw ISO string splits',
+  );
+  assert.equal(
+    source.includes("scheduledAt.split('T')[0]"),
+    false,
+    'schedule hook should use local date keys, not raw ISO string splits',
+  );
 });

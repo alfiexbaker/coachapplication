@@ -20,7 +20,7 @@ import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { DailyChallengeDefinition } from '@/constants/daily-challenges';
 import { HapticPatterns } from '@/utils/haptics';
-import { apiClient } from '@/services/api-client';
+import { seenService } from '@/services/seen-service';
 
 interface DailyChallengeBannerProps {
   challenge: DailyChallengeDefinition | null;
@@ -40,6 +40,8 @@ const DIFFICULTY_XP_LABEL: Record<string, string> = {
   medium: 'Standard',
   hard: 'Challenge',
 };
+const DAILY_CHALLENGE_ANIMATION_SEEN = 'daily_challenge_animation_seen';
+const DEVICE_UI_SEEN_ACTOR = 'device';
 
 export const DailyChallengeBanner = function DailyChallengeBanner({
   challenge,
@@ -66,11 +68,18 @@ export const DailyChallengeBanner = function DailyChallengeBanner({
       if (lastChallengeIdRef.current !== challenge.id) {
         lastChallengeIdRef.current = challenge.id;
       }
-      const seen = await apiClient.get<boolean>(`CHALLENGE_ANIMATION_SEEN_${challenge.id}`, false);
+      const seenResult = await seenService.getSeenStatus(
+        DAILY_CHALLENGE_ANIMATION_SEEN,
+        challenge.id,
+      );
       if (!active) return;
-      if (!seen) {
+      if (!seenResult.success || !seenResult.data) {
         setPlayEntrance(true);
-        await apiClient.set(`CHALLENGE_ANIMATION_SEEN_${challenge.id}`, true);
+        void seenService.markSeen(
+          DAILY_CHALLENGE_ANIMATION_SEEN,
+          challenge.id,
+          DEVICE_UI_SEEN_ACTOR,
+        );
       } else {
         setPlayEntrance(false);
       }

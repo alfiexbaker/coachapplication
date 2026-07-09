@@ -28,7 +28,7 @@ function loadExpoSharing() {
 
 export function useCalendarSync() {
   const { currentUser } = useAuth();
-  const userId = currentUser?.id ?? 'current_user';
+  const userId = currentUser?.id ?? null;
 
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -37,10 +37,14 @@ export function useCalendarSync() {
 
   const defaultSettings = ({
     ...calendarService.getDefaultSettings(),
-    userId,
+    userId: userId ?? '',
   });
 
   const loadSettings = async () => {
+    if (!userId) {
+      return err(serviceError('UNAUTHORIZED', 'Sign in to manage calendar sync settings.'));
+    }
+
     try {
       const existingSettings = await calendarService.getSyncSettings(userId);
       return ok<CalendarSyncSettings>(existingSettings ?? defaultSettings);
@@ -63,7 +67,7 @@ export function useCalendarSync() {
     isEmpty: () => false,
     refetchOnFocus: true,
     loadingStrategy: 'section-skeleton',
-    dataKey: `calendar-sync:${userId}`,
+    dataKey: `calendar-sync:${userId ?? 'missing'}`,
   });
 
   useEffect(() => {
@@ -77,6 +81,11 @@ export function useCalendarSync() {
   const settings = settingsOverride ?? data ?? defaultSettings;
 
   const saveSettings = async (updates: Partial<CalendarSyncSettings>) => {
+    if (!userId) {
+      uiFeedback.showToast('Sign in to manage calendar sync settings.', 'error');
+      return;
+    }
+
     const previousSettings = settings;
     const nextSettings: CalendarSyncSettings = { ...previousSettings, ...updates, userId };
 
@@ -112,6 +121,11 @@ export function useCalendarSync() {
   const handleReminderChange = (reminderMinutes: number) => saveSettings({ reminderMinutes });
 
   const handleExportAllSessions = async () => {
+    if (!userId) {
+      uiFeedback.showToast('Sign in before exporting your calendar.', 'error');
+      return;
+    }
+
     setIsExporting(true);
     setActionError(null);
 
@@ -140,7 +154,7 @@ export function useCalendarSync() {
 
       // Club events
       try {
-        const upcomingEvents = await eventService.getUpcomingEvents(userId);
+        const upcomingEvents = await eventService.getUpcomingUserEvents(userId);
         allEvents.push(...upcomingEvents.map((e) => calendarService.clubEventToEvent(e)));
       } catch (evError) {
         logger.warn('Could not fetch club events for export', evError);
@@ -151,7 +165,7 @@ export function useCalendarSync() {
         return;
       }
 
-      const result = await calendarService.generateICSFileFromEvents(allEvents);
+      const result = await calendarService.generateICSFileFromEvents(allEvents, undefined, settings);
       if (!result.success || !result.filePath) {
         const message = result.error || 'Failed to export sessions.';
         setActionError(message);

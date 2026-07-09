@@ -524,7 +524,7 @@ async function listTasksForAthlete(
     const access = await resolvePracticeTaskApiAccess(athleteId);
     if (!access.success) {
       logger.warn('practice_task_api_access_denied', { athleteId, error: access.error });
-      return [];
+      throw new Error(access.error.message);
     }
     const result = await apiFetch<ApiPracticeTasksResponse>(
       `/v1/athletes/${encodeURIComponent(access.data.apiAthleteId ?? toApiAthleteId(athleteId))}/practice-tasks?viewerRole=${encodeURIComponent(viewerRole)}`,
@@ -538,7 +538,7 @@ async function listTasksForAthlete(
         viewerRole,
         error: result.error,
       });
-      return [];
+      throw new Error(result.error.message);
     }
     rememberApiPracticeTaskScopes(result.data.tasks);
     return result.data.tasks;
@@ -1026,7 +1026,7 @@ async function listCoachFollowUpQueue(coachId: string): Promise<CoachFollowUpIte
     const access = await resolvePracticeTaskApiAccess();
     if (!access.success) {
       logger.warn('practice_followup_api_access_denied', { coachId, error: access.error });
-      return [];
+      throw new Error(access.error.message);
     }
     const result = await apiFetch<ApiCoachFollowUpQueueResponse>(
       `/v1/coaches/${encodeURIComponent(toApiUserId(coachId))}/practice-follow-ups`,
@@ -1039,7 +1039,7 @@ async function listCoachFollowUpQueue(coachId: string): Promise<CoachFollowUpIte
         coachId,
         error: result.error,
       });
-      return [];
+      throw new Error(result.error.message);
     }
     rememberApiCoachFollowUpScopes(result.data.queue);
     return result.data.queue;

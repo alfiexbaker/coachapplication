@@ -68,6 +68,11 @@ function fallbackAthleteFromSession(session: SessionRecord): SessionAthlete {
     avatar: athleteName.charAt(0).toUpperCase(),
   };
 }
+function resolveCurrentUserName(
+  user: { fullName?: string; name?: string; username?: string } | null | undefined,
+): string {
+  return (user?.fullName || user?.name || user?.username || '').trim();
+}
 export function formatDate(date: Date | string): string {
   const parsed = typeof date === 'string' ? new Date(date) : date;
   if (Number.isNaN(parsed.getTime())) {
@@ -262,6 +267,7 @@ export function useDevSession({
           (athleteResult.success ? athleteResult.data.name : undefined) ??
           latestFeedback?.athleteName ??
           athleteId;
+        const currentCoachName = resolveCurrentUserName(currentUser);
         const foundSession: SessionRecord = {
           id: sessionId,
           bookingId: latestFeedback?.bookingId ?? sessionId,
@@ -269,7 +275,7 @@ export function useDevSession({
           athleteId,
           athleteName,
           coachId: latestFeedback?.coachId ?? currentUser?.id ?? '',
-          coachName: latestFeedback?.coachName ?? currentUser?.name ?? 'Coach',
+          coachName: (latestFeedback?.coachName ?? currentCoachName) || undefined,
           completedAt: latestFeedback?.createdAt ?? new Date().toISOString(),
           attendance: 'ATTENDED',
           performanceRating: latestFeedback?.overallPerformance ?? 3,
@@ -577,13 +583,19 @@ export function useDevSession({
   // ─── Save ─────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (!session || !athlete || !currentUser || !sessionId) return;
+    const coachName = resolveCurrentUserName(currentUser);
+    if (!coachName) {
+      uiFeedback.showToast('Complete your account name before saving session feedback.', 'error');
+      return;
+    }
     const persistFeedback = async (bookingId?: string) => {
-      // Record positions played (for position history tracking)
-      await Promise.all(
-        positionsPlayed.map((pos) =>
-          progressPositionService.recordPosition(sessionId, athlete.id, pos),
-        ),
-      );
+      if (apiClient.isMockMode) {
+        await Promise.all(
+          positionsPlayed.map((pos) =>
+            progressPositionService.recordPosition(sessionId, athlete.id, pos),
+          ),
+        );
+      }
 
       // Build SessionSkillRating array for updateFromPositionRate
       const sessionSkillRatings: SessionSkillRating[] = skillRatings.map((r) => ({
@@ -624,7 +636,7 @@ export function useDevSession({
           sessionId,
           bookingId,
           coachId: currentUser.id,
-          coachName: currentUser.name || 'Coach',
+          coachName,
           athleteId: athlete.id,
           athleteName: athlete.name,
           publicSummary: publicNotes,

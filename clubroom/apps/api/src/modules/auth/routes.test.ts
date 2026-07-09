@@ -164,6 +164,7 @@ describe('auth routes', () => {
     });
     assert.equal((availabilityAfter.json() as { available: boolean }).available, false);
 
+    const nextEmail = `updated_${Date.now()}@clubroom.demo`;
     const patch = await app.inject({
       method: 'PATCH',
       url: '/v1/auth/me',
@@ -171,18 +172,74 @@ describe('auth routes', () => {
         authorization: `Bearer ${registerPayload.tokens.accessToken}`,
       },
       payload: {
+        email: nextEmail.toUpperCase(),
         city: 'London',
         postcode: 'SW1A 1AA',
+        isVerified: true,
         onboardingComplete: true,
       },
     });
     assert.equal(patch.statusCode, 200);
     const patchPayload = patch.json() as {
-      user: { city?: string; postcode?: string; onboardingComplete: boolean };
+      user: {
+        email: string;
+        city?: string;
+        postcode?: string;
+        isVerified: boolean;
+        onboardingComplete: boolean;
+      };
     };
+    assert.equal(patchPayload.user.email, nextEmail);
     assert.equal(patchPayload.user.city, 'London');
     assert.equal(patchPayload.user.postcode, 'SW1A 1AA');
+    assert.equal(patchPayload.user.isVerified, false);
     assert.equal(patchPayload.user.onboardingComplete, true);
+
+    const oldEmailLogin = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/login',
+      payload: {
+        email,
+        password: 'securePass123',
+      },
+    });
+    assert.equal(oldEmailLogin.statusCode, 401);
+
+    const newEmailLogin = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/login',
+      payload: {
+        email: nextEmail,
+        password: 'securePass123',
+      },
+    });
+    assert.equal(newEmailLogin.statusCode, 200);
+
+    const duplicateEmailPatch = await app.inject({
+      method: 'PATCH',
+      url: '/v1/auth/me',
+      headers: {
+        authorization: `Bearer ${registerPayload.tokens.accessToken}`,
+      },
+      payload: {
+        email: 'amelia.shaw@clubroom.demo',
+      },
+    });
+    assert.equal(duplicateEmailPatch.statusCode, 409);
+
+    const profileUpdateAudits = asRows(getMarketplaceSeedStore().tables.auditEvents).filter(
+      (row) => asString(row.action) === 'auth.profile_update',
+    );
+    const successAudit = profileUpdateAudits.find((row) => asString(row.result) === 'SUCCESS');
+    const denyAudit = profileUpdateAudits.find((row) => asString(row.result) === 'DENY');
+    assert.ok(successAudit, 'expected successful profile update audit');
+    assert.ok(denyAudit, 'expected denied profile update audit');
+    assert.deepEqual(
+      [...((successAudit.metadataJson as { changedFields?: string[] }).changedFields ?? [])].sort(),
+      ['city', 'email', 'onboardingComplete', 'postcode'],
+    );
+    assert.equal(JSON.stringify(profileUpdateAudits).includes(nextEmail), false);
+    assert.equal(JSON.stringify(profileUpdateAudits).includes('amelia.shaw@clubroom.demo'), false);
   });
 
   it('revokes bearer sessions on logout and explicit revoke', async () => {

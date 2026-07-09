@@ -218,14 +218,14 @@ export const squadGroupService = {
     return ok(undefined);
   },
   /**
-   * Delete the group associated with a squad.
-   * Called when a squad is deleted.
+   * Remove the group associated with a squad.
+   * Called when a squad is removed.
    */
   async deleteSquadGroup(squadId: string): Promise<Result<void, ServiceError>> {
     const map = await loadMap();
     const groupId = map[squadId];
     if (!groupId) {
-      logger.debug("No group mapping for squad, nothing to delete", {
+      logger.debug("No group mapping for squad, nothing to remove", {
         squadId,
       });
       return ok(undefined);
@@ -236,19 +236,19 @@ export const squadGroupService = {
     delete map[squadId];
     const mapResult = await saveMap(map);
     if (!mapResult.success) {
-      logger.warn("Failed to persist map cleanup after squad group delete", {
+      logger.warn("Failed to persist map cleanup after squad group removal", {
         squadId,
       });
     }
     if (!result.success) {
-      logger.error("Failed to delete squad group", {
+      logger.error("Failed to remove squad group", {
         squadId,
         groupId,
         error: result.error,
       });
       return err(result.error);
     }
-    logger.info("Deleted squad group", {
+    logger.info("Removed squad group", {
       squadId,
       groupId,
     });

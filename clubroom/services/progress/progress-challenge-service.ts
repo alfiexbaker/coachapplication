@@ -381,14 +381,20 @@ async function buildMetricsSnapshot(
   athleteId: string,
 ): Promise<Result<ChallengeMetricsSnapshot, ServiceError>> {
   try {
-    const [progress, streak, awards, feedback, definitions, practiceLogs] = await Promise.all([
-      progressReportService.getAthleteProgress(athleteId, 'athlete'),
-      badgeService.getStreakInfo(athleteId),
-      badgeService.listAwardsForAthlete(athleteId),
-      progressFeedbackService.getFeedbackForAthlete(athleteId, 'athlete'),
-      badgeService.listDefinitions(),
-      progressPracticeLogService.listAthleteLogs(athleteId),
-    ]);
+    const [progress, streak, awards, feedback, definitions, practiceLogsResult] = await Promise.all(
+      [
+        progressReportService.getAthleteProgress(athleteId, 'athlete'),
+        badgeService.getStreakInfo(athleteId),
+        badgeService.listAwardsForAthlete(athleteId),
+        progressFeedbackService.getFeedbackForAthlete(athleteId, 'athlete'),
+        badgeService.listDefinitions(),
+        progressPracticeLogService.listAthleteLogsResult(athleteId),
+      ],
+    );
+    if (!practiceLogsResult.success) {
+      return err(practiceLogsResult.error);
+    }
+    const practiceLogs = practiceLogsResult.data;
 
     const definitionCategoryById = new Map(
       definitions.map((definition) => [definition.id, definition.category] as const),
@@ -437,8 +443,9 @@ async function buildMetricsSnapshot(
       : weakestCornerFromSkills(progress.skills);
 
     const weekStartKey = recentWeekStartDateKey();
-    const journalEntriesThisWeek = practiceLogs.filter((entry) => entry.dateKey >= weekStartKey)
-      .length;
+    const journalEntriesThisWeek = practiceLogs.filter(
+      (entry) => entry.dateKey >= weekStartKey,
+    ).length;
 
     const improvingSkills = progress.skills.filter((skill) => skill.trend === 'improving').length;
 

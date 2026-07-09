@@ -56,6 +56,28 @@ export const guardianInviteListResponseSchema = z.object({
   invites: z.array(guardianInviteResponseSchema),
 });
 
+export const updateFamilyGuardianAccessRequestSchema = z
+  .object({
+    permissions: z.array(guardianPermissionSchema).max(6).optional(),
+    childAccess: z.array(athleteIdSchema).max(20).optional(),
+  })
+  .refine((body) => body.permissions !== undefined || body.childAccess !== undefined, {
+    message: 'At least one guardian access field is required',
+  });
+
+export const familyGuardianResponseSchema = z.object({
+  id: z.string().min(1),
+  familyId: familyIdSchema,
+  userId: userIdSchema,
+  role: guardianRoleSchema,
+  permissions: z.array(guardianPermissionSchema),
+  relationship: z.string(),
+  childAccess: z.array(athleteIdSchema),
+  isPrimary: z.boolean(),
+  addedAt: z.string().datetime(),
+  updatedAt: z.string().datetime().optional(),
+});
+
 export const injurySeveritySchema = z.enum(['low', 'medium', 'high']);
 export const injuryStatusSchema = z.enum(['active', 'recovering', 'resolved']);
 
@@ -197,6 +219,10 @@ export type GuardianInviteStatus = z.infer<typeof guardianInviteStatusSchema>;
 export type CreateGuardianInviteRequest = z.infer<typeof createGuardianInviteRequestSchema>;
 export type GuardianInviteResponse = z.infer<typeof guardianInviteResponseSchema>;
 export type GuardianInviteListResponse = z.infer<typeof guardianInviteListResponseSchema>;
+export type UpdateFamilyGuardianAccessRequest = z.infer<
+  typeof updateFamilyGuardianAccessRequestSchema
+>;
+export type FamilyGuardianResponse = z.infer<typeof familyGuardianResponseSchema>;
 
 export type UpdateMedicalRecordRequest = z.infer<typeof updateMedicalRecordRequestSchema>;
 export type MedicalRecordResponse = z.infer<typeof medicalRecordResponseSchema>;

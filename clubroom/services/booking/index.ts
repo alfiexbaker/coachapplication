@@ -1,4 +1,8 @@
-export { bookingAuthorityService } from './booking-authority-service';
+export {
+  bookingAuthorityService,
+  mapApiBookingToBooking,
+  type ApiBookingResponse,
+} from './booking-authority-service';
 export { bookingCrudService } from './booking-crud-service';
 export { bookingStatusService } from './booking-status-service';
 export { bookingSearchService } from './booking-search-service';

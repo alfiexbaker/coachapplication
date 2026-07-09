@@ -66,7 +66,7 @@ const mockMessages: Record<string, GroupMessage[]> = normalizeLegacyMockDates({
 });
 
 class CommunityMessagingService {
-  private inMemoryMessages: Record<string, GroupMessage[]> = { ...mockMessages };
+  private inMemoryMessages: Record<string, GroupMessage[]> = USE_MOCK ? { ...mockMessages } : {};
 
   private async loadPersistedMessages(): Promise<Record<string, GroupMessage[]>> {
     return getLocalOverlayValue<Record<string, GroupMessage[]>>(STORAGE_KEYS.GROUP_MESSAGES, {});
@@ -115,12 +115,7 @@ class CommunityMessagingService {
   ): Promise<Result<GroupMessage, ServiceError>> {
     try {
       if (!USE_MOCK) {
-        if (attachments && attachments.length > 0) {
-          return err(
-            validationError('Message attachments require backend media proof before send'),
-          );
-        }
-        return communityMediaAuthorityService.sendGroupMessage(groupId, body);
+        return communityMediaAuthorityService.sendGroupMessage(groupId, body, attachments);
       }
 
       // S-37: Verify sender is a member of this group

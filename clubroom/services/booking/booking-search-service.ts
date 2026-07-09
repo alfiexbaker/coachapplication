@@ -6,10 +6,11 @@
  *
  * API Integration Notes:
  * - Queries are performed against local storage in mock mode
- * - Would map to various GET /api/bookings?... endpoints in production
+ * - API mode composes bookingCrudService.list() and surfaces read failures
  */
 
 import { Booking } from '@/constants/app-types';
+import { apiClient } from '@/services/api-client';
 import { createLogger } from '@/utils/logger';
 import { accountIdsMatch } from '@/utils/account-id';
 import { bookingCrudService } from './booking-crud-service';
@@ -40,6 +41,9 @@ export const bookingSearchService = {
       }
     } catch (error) {
       logger.error('Failed to get bookings', error);
+      if (!apiClient.isMockMode) {
+        throw error;
+      }
       return [];
     }
   },

@@ -1,9 +1,20 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it } from 'node:test';
 
 process.env.EXPO_PUBLIC_USE_MOCK = 'false';
 
 describe('drillService API mode', () => {
+  it('does not hydrate drill fixtures from empty local storage in API mode', () => {
+    const source = fs.readFileSync(path.join(process.cwd(), 'services/drill-service.ts'), 'utf8');
+
+    assert.doesNotMatch(source, /return\s+\[\.\.\.MOCK_DRILLS\];/);
+    assert.doesNotMatch(source, /return\s+\[\.\.\.MOCK_ASSIGNMENTS\];/);
+    assert.ok(source.includes('apiClient.isMockMode ? [...MOCK_DRILLS] : []'));
+    assert.ok(source.includes('apiClient.isMockMode ? [...MOCK_ASSIGNMENTS] : []'));
+  });
+
   it('reads and writes drill library through /v1/drills without local storage', async () => {
     const [{ drillService }, { apiClient }] = await Promise.all([
       import('@/services/drill-service'),
@@ -88,6 +99,41 @@ describe('drillService API mode', () => {
               deletedAt: '2026-07-04T11:00:00.000Z',
             },
             requestId: 'req_drill_assignment_remove_api',
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }
+      if (method === 'GET' && url.endsWith('/v1/drill-assignments/assignment_api_1')) {
+        return new Response(
+          JSON.stringify({
+            assignment: {
+              id: 'assignment_api_1',
+              drillId: 'drill_api_1',
+              athleteId: 'ath_athlete_api_drill',
+              coachUserId: 'coach_api_drill',
+              instructions: 'Loaded from assignment detail API',
+              requiresEvidence: true,
+              dueDate: '2026-07-10T10:00:00.000Z',
+              status: 'ASSIGNED',
+              createdAt: '2026-07-01T10:00:00.000Z',
+              updatedAt: '2026-07-02T10:00:00.000Z',
+              drill: {
+                id: 'drill_api_1',
+                authorUserId: 'coach_api_drill',
+                title: 'API drill',
+                description: 'Loaded from backend',
+                category: 'TECHNIQUE',
+                difficulty: 'intermediate',
+                duration: 25,
+                createdAt: '2026-07-01T10:00:00.000Z',
+                updatedAt: '2026-07-02T10:00:00.000Z',
+              },
+              submissions: [],
+            },
+            requestId: 'req_drill_assignment_detail_api',
           }),
           {
             status: 200,
@@ -370,6 +416,14 @@ describe('drillService API mode', () => {
         ],
       );
 
+      const assignmentDetail = await drillService.getAssignmentById('assignment_api_1');
+      assert.equal(
+        requestedUrls[3],
+        'http://localhost:4000/v1/drill-assignments/assignment_api_1',
+      );
+      assert.equal(assignmentDetail?.id, 'assignment_api_1');
+      assert.equal(assignmentDetail?.notes, 'Loaded from assignment detail API');
+
       const createdDrill = await drillService.createDrill('coach_api_drill', 'Coach API', {
         title: 'API created drill',
         description: 'Created on backend',
@@ -377,7 +431,7 @@ describe('drillService API mode', () => {
         duration: 15,
         difficulty: 'BEGINNER',
       });
-      assert.equal(requestedUrls[3], 'http://localhost:4000/v1/drills');
+      assert.equal(requestedUrls[4], 'http://localhost:4000/v1/drills');
       assert.deepEqual(requestedBodies[0], {
         coachId: 'coach_api_drill',
         title: 'API created drill',
@@ -393,7 +447,7 @@ describe('drillService API mode', () => {
         title: 'Updated API drill',
         duration: 20,
       });
-      assert.equal(requestedUrls[4], 'http://localhost:4000/v1/drills/drill_api_1');
+      assert.equal(requestedUrls[5], 'http://localhost:4000/v1/drills/drill_api_1');
       assert.deepEqual(requestedBodies[1], {
         title: 'Updated API drill',
         duration: 20,
@@ -402,7 +456,7 @@ describe('drillService API mode', () => {
       assert.equal(updatedDrill?.duration, 20);
 
       const removedDrill = await drillService.deleteDrill('drill_api_1');
-      assert.equal(requestedUrls[5], 'http://localhost:4000/v1/drills/drill_api_1');
+      assert.equal(requestedUrls[6], 'http://localhost:4000/v1/drills/drill_api_1');
       assert.equal(removedDrill, true);
 
       const assignment = await drillService.assignDrill(
@@ -416,7 +470,7 @@ describe('drillService API mode', () => {
           notes: 'API homework note',
         },
       );
-      assert.equal(requestedUrls[6], 'http://localhost:4000/v1/drill-assignments');
+      assert.equal(requestedUrls[7], 'http://localhost:4000/v1/drill-assignments');
       assert.deepEqual(requestedBodies[2], {
         drillId: 'drill_api_1',
         athleteId: 'ath_athlete_api_drill',
@@ -424,10 +478,7 @@ describe('drillService API mode', () => {
         instructions: 'API homework note',
       });
       assert.equal(assignment.success, true);
-      assert.equal(
-        assignment.success && assignment.data.id,
-        'assignment_api_created',
-      );
+      assert.equal(assignment.success && assignment.data.id, 'assignment_api_created');
       assert.equal(assignment.success && assignment.data.notes, 'API homework note');
 
       const completed = await drillService.completeDrill('assignment_api_1', {
@@ -435,7 +486,7 @@ describe('drillService API mode', () => {
         evidenceNotes: 'Two sets completed',
       });
       assert.equal(
-        requestedUrls[7],
+        requestedUrls[8],
         'http://localhost:4000/v1/drill-assignments/assignment_api_1/completion',
       );
       assert.equal(completed?.isCompleted, true);
@@ -443,13 +494,16 @@ describe('drillService API mode', () => {
 
       const uncompleted = await drillService.uncompleteDrill('assignment_api_1');
       assert.equal(
-        requestedUrls[8],
+        requestedUrls[9],
         'http://localhost:4000/v1/drill-assignments/assignment_api_1/completion',
       );
       assert.equal(uncompleted?.isCompleted, false);
 
       const removed = await drillService.deleteAssignment('assignment_api_1');
-      assert.equal(requestedUrls[9], 'http://localhost:4000/v1/drill-assignments/assignment_api_1');
+      assert.equal(
+        requestedUrls[10],
+        'http://localhost:4000/v1/drill-assignments/assignment_api_1',
+      );
       assert.equal(removed, true);
     } finally {
       apiClient.get = originalGet;

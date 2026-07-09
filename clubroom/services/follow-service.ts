@@ -67,7 +67,7 @@ const MOCK_FOLLOWS: Follow[] = [
     notifyOnSession: true,
   },
 ];
-let followsCache: Follow[] = [...MOCK_FOLLOWS];
+let followsCache: Follow[] = apiClient.isMockMode ? [...MOCK_FOLLOWS] : [];
 let requestsCache: FollowRequest[] = [];
 
 interface FollowsApiResponse {
@@ -132,7 +132,7 @@ async function loadFollows(): Promise<Follow[]> {
   } catch (error) {
     logger.error('Failed to load follows', error);
   }
-  return [...MOCK_FOLLOWS];
+  return apiClient.isMockMode ? [...MOCK_FOLLOWS] : [];
 }
 async function saveFollows(follows: Follow[]): Promise<Result<void, ServiceError>> {
   if (!apiClient.isMockMode) {
@@ -475,7 +475,14 @@ export const followService = {
       this.getFollowingIds(userId),
       coachService.getCoaches(),
     ]);
-    const allCoachIds = allCoaches.success ? allCoaches.data.map((c: Coach) => c.id) : [];
+    if (!allCoaches.success) {
+      if (!apiClient.isMockMode) {
+        throwApiError(allCoaches.error);
+      }
+      return [];
+    }
+
+    const allCoachIds = allCoaches.data.map((c: Coach) => c.id);
 
     // Filter out coaches the user already follows
     const suggestions = allCoachIds.filter((id: string) => !following.includes(id));

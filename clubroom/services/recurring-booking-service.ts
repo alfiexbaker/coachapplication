@@ -1094,12 +1094,12 @@ class RecurringBookingService {
 
       await this.saveList(filtered);
 
-      logger.info('recurring_booking_deleted', { id: recurringId });
+      logger.info('recurring_booking_cancelled', { id: recurringId });
 
       return ok(undefined);
     } catch (error) {
-      logger.error('recurring_booking_delete_failed', { error, recurringId });
-      return err(storageError('Failed to delete recurring booking. Please try again.'));
+      logger.error('recurring_booking_cancel_failed', { error, recurringId });
+      return err(storageError('Failed to cancel recurring booking. Please try again.'));
     }
   }
 

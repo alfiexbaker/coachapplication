@@ -17,6 +17,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Row } from '@/components/primitives/row';
 import { Column } from '@/components/primitives/column';
+import { LoadingState } from '@/components/ui/screen-states';
 import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useCreateSquad, AGE_GROUPS, SQUAD_LEVELS, SKILL_TAGS } from '@/hooks/use-create-squad';
@@ -27,6 +28,32 @@ export default function CreateSquadScreen() {
   const c = useCreateSquad();
   const modalRef = useRef<View>(null);
   useFocusTrap(modalRef, 'Create squad modal');
+
+  if (c.isLoadingClub) {
+    return (
+      <View
+        ref={modalRef}
+        accessible
+        accessibilityViewIsModal
+        accessibilityRole="none"
+        style={[styles.container, { backgroundColor: palette.background }]}
+      >
+        <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+          <PageHeader
+            title="Create Squad"
+            showBack
+            backIcon="close"
+            onBackPress={() => router.back()}
+            centerTitle
+            containerStyle={[styles.header, { borderBottomColor: palette.border }]}
+          />
+          <View style={styles.errorContent}>
+            <LoadingState variant="detail" />
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
 
   if (!c.club) {
     return (
@@ -47,7 +74,9 @@ export default function CreateSquadScreen() {
             containerStyle={[styles.header, { borderBottomColor: palette.border }]}
           />
           <View style={styles.errorContent}>
-            <ThemedText style={{ color: palette.error }}>Club not found</ThemedText>
+            <ThemedText style={{ color: palette.error }}>
+              {c.clubLoadError ?? 'Club not found'}
+            </ThemedText>
           </View>
         </SafeAreaView>
       </View>

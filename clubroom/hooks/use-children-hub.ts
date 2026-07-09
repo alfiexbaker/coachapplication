@@ -168,8 +168,8 @@ export function useChildrenHub() {
     const displayName = child?.nickname || child?.firstName || 'this child';
 
     uiFeedback.alert(
-      'Remove Child',
-      `Are you sure you want to remove ${displayName} from your account? This cannot be undone.`,
+      'Remove Child From Account',
+      `${displayName} will leave your active family view. The backend keeps the athlete record and audit trail.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {

@@ -8,6 +8,10 @@ import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ClubActivity } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
+import {
+  getClubActivityPrimaryLabel,
+  getClubActivitySourceLabel,
+} from '@/utils/club-schedule-display';
 
 function formatActivitySchedule(startsAt: string): string {
   const date = new Date(startsAt);
@@ -18,22 +22,6 @@ function formatActivitySchedule(startsAt: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-function formatPrice(price?: number, currency: string = 'GBP'): string {
-  if (price == null || price <= 0) {
-    return 'Free';
-  }
-
-  try {
-    return price.toLocaleString('en-GB', {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: price % 1 === 0 ? 0 : 2,
-    });
-  } catch {
-    return `${currency} ${price}`;
-  }
 }
 
 function getActivityIcon(activity: ClubActivity): keyof typeof Ionicons.glyphMap {
@@ -47,7 +35,10 @@ function getActivityIcon(activity: ClubActivity): keyof typeof Ionicons.glyphMap
   }
 }
 
-function getActivityTint(activity: ClubActivity, colors: ReturnType<typeof useTheme>['colors']): string {
+function getActivityTint(
+  activity: ClubActivity,
+  colors: ReturnType<typeof useTheme>['colors'],
+): string {
   if (activity.kind === 'match') {
     return colors.warning;
   }
@@ -95,6 +86,7 @@ export function ClubScheduleActivityCard({
   const { colors } = useTheme();
   const tint = getActivityTint(activity, colors);
   const statusLabel = getStatusLabel(activity);
+  const sourceLabel = getClubActivitySourceLabel(activity);
 
   return (
     <Clickable
@@ -104,7 +96,7 @@ export function ClubScheduleActivityCard({
         compact ? styles.compactRow : null,
       ]}
       onPress={onPress}
-      accessibilityLabel={`${activity.title}, ${activity.accessLabel}, ${activity.participationLabel}`}
+      accessibilityLabel={`${activity.title}, ${sourceLabel}, ${activity.accessLabel}, ${activity.participationLabel}`}
     >
       <Row align="flex-start" gap="sm">
         <View style={[styles.activityIcon, { backgroundColor: withAlpha(tint, 0.1) }]}>
@@ -117,11 +109,14 @@ export function ClubScheduleActivityCard({
               {activity.title}
             </ThemedText>
             <ThemedText style={[Typography.smallSemiBold, { color: tint }]}>
-              {activity.kind === 'match' ? activity.homeAwayLabel ?? activity.typeLabel : formatPrice(activity.price, activity.currency)}
+              {getClubActivityPrimaryLabel(activity)}
             </ThemedText>
           </Row>
 
           <Row style={styles.badgeRow}>
+            <View style={[styles.badge, { backgroundColor: withAlpha(tint, 0.1) }]}>
+              <ThemedText style={[Typography.micro, { color: tint }]}>{sourceLabel}</ThemedText>
+            </View>
             <View style={[styles.badge, { backgroundColor: withAlpha(colors.tint, 0.08) }]}>
               <ThemedText style={[Typography.micro, { color: colors.tint }]}>
                 {activity.typeLabel}

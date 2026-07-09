@@ -35,12 +35,7 @@ import { academyService } from '@/services/academy-service';
 import { userService } from '@/services/user-service';
 import { getRosterAthleteName, getRosterParentName } from '@/utils/roster-display';
 import { safeDisplayLabel } from '@/utils/booking-display';
-import type {
-  Academy,
-  AcademyMembership,
-  GroupSession,
-  TimeSlot,
-} from '@/constants/types';
+import type { Academy, AcademyMembership, GroupSession, TimeSlot } from '@/constants/types';
 import { uiFeedback } from '@/services/ui-feedback';
 import type { OrganizationCommercialMode } from '@/constants/types';
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
@@ -324,7 +319,10 @@ function ExistingInviteFlow({
         .map((member) => ({
           id: member.userId,
           role: member.role,
-          label: safeDisplayLabel(nameById.get(member.userId), academyService.formatRole(member.role)),
+          label: safeDisplayLabel(
+            nameById.get(member.userId),
+            academyService.formatRole(member.role),
+          ),
         }))
         .sort((a, b) => STAFF_ROLE_ORDER[a.role] - STAFF_ROLE_ORDER[b.role]);
       setAssigneeOptions(options);
@@ -399,17 +397,33 @@ function ExistingInviteFlow({
         );
         let sentCount = 0;
         let failedCount = 0;
-        let ownerCoachName = currentUser.name || currentUser.fullName || 'Coach';
+        const actorName = (
+          currentUser.name ||
+          currentUser.fullName ||
+          currentUser.username ||
+          ''
+        ).trim();
+        if (!actorName) {
+          uiFeedback.showToast('Complete your account name before sending invites.', 'error');
+          return;
+        }
+        let ownerCoachName = actorName;
         if (ownerCoachId !== currentUser.id) {
           const ownerResult = await userService.getUserById(ownerCoachId);
-          if (ownerResult.success) {
-            ownerCoachName = ownerResult.data.name?.trim() || ownerCoachName;
-          }
+          ownerCoachName = ownerResult.success ? ownerResult.data.name?.trim() || '' : '';
+        }
+        if (!ownerCoachName) {
+          uiFeedback.showToast('Resolve the coach owner name before sending invites.', 'error');
+          return;
         }
         const inviteResults = await Promise.all(
           Object.values(groupedByParent).map(async (athletesForParent) => {
             const parentId = athletesForParent[0]?.parentId;
             if (!parentId) {
+              return { sent: 0, failed: athletesForParent.length };
+            }
+            const parentName = athletesForParent[0]?.parentName?.trim();
+            if (!parentName) {
               return { sent: 0, failed: athletesForParent.length };
             }
             const result = await inviteService.createInvite(
@@ -418,7 +432,7 @@ function ExistingInviteFlow({
                 coachId: ownerCoachId,
                 coachName: ownerCoachName,
                 parentId,
-                parentName: athletesForParent[0]?.parentName || 'Parent',
+                parentName,
                 athleteNames: athletesForParent.map((athlete) => athlete.name),
                 clubName: postingAs === 'club' ? selectedClub?.name : undefined,
                 inviteType: selectedSession.inviteType ?? 'CLOSED',
@@ -428,7 +442,7 @@ function ExistingInviteFlow({
                 notes: [
                   notes.trim() || `You're invited to join "${selectedSession.title}"`,
                   postingAs === 'club' && selectedClub
-                    ? `Created by ${currentUser.name || currentUser.fullName || 'Club staff'} on behalf of ${selectedClub.name}. Session owner: ${ownerCoachName}.`
+                    ? `Created by ${actorName} on behalf of ${selectedClub.name}. Session owner: ${ownerCoachName}.`
                     : null,
                 ]
                   .filter(Boolean)

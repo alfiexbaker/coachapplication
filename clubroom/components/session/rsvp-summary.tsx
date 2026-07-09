@@ -38,10 +38,12 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
   const [rsvps, setRsvps] = useState<SessionRsvp[]>([]);
   const [counts, setCounts] = useState({ going: 0, notGoing: 0, maybe: 0, pending: 0 });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
+      setLoadError(null);
       await runAsyncTryCatchFinally(
         async () => {
           const [sessionRsvps, sessionCounts] = await Promise.all([
@@ -52,7 +54,7 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
           setCounts(sessionCounts);
         },
         async () => {
-          // Fail silently, show empty state
+          setLoadError('Unable to load RSVPs');
         },
         () => {
           setLoading(false);
@@ -73,6 +75,15 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
         style={[styles.cardBase, styles.loadingContainer, { backgroundColor: palette.surface }]}
       >
         <ActivityIndicator size="small" color={palette.tint} />
+      </View>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <View style={[styles.cardBase, styles.emptyContainer, { backgroundColor: palette.surface }]}>
+        <Ionicons name="warning-outline" size={32} color={palette.warning} />
+        <ThemedText style={styles.emptyText}>{loadError}</ThemedText>
       </View>
     );
   }

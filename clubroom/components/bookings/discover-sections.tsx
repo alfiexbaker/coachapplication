@@ -13,11 +13,7 @@ import { CoachCardCompact } from './coach-card-compact';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { AccessibleListCell } from '@/components/ui/list-accessibility';
-import type {
-  SessionOffering,
-  CoachProfile,
-  GroupSession,
-} from '@/constants/types';
+import type { SessionOffering, CoachProfile, GroupSession } from '@/constants/types';
 
 // ─── Section Header ───────────────────────────────────────────────
 
@@ -74,7 +70,7 @@ export const ThisWeekSection = function ThisWeekSection({
 
   return (
     <Column gap="xs" style={styles.section}>
-      <SectionHeader icon="calendar-outline" title="This Week" count={offerings.length} />
+      <SectionHeader icon="calendar-outline" title="Sessions This Week" count={offerings.length} />
       {offerings.slice(0, 4).map((offering) => (
         <SessionOfferingCard
           key={offering.id}
@@ -182,9 +178,7 @@ export const ClubTrainingSection = function ClubTrainingSection({
           accessibilityLabel={`${session.title} club training`}
         >
           <Row align="center" gap="sm">
-            <View
-              style={[styles.clubIcon, { backgroundColor: withAlpha(palette.tint, 0.12) }]}
-            >
+            <View style={[styles.clubIcon, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
               <Ionicons name="shield" size={18} color={palette.tint} />
             </View>
             <Column gap="micro" style={styles.clubContent}>
@@ -233,7 +227,7 @@ export const OpenSessionsSection = function OpenSessionsSection({
     <Column gap="xs" style={styles.section}>
       <SectionHeader
         icon="globe-outline"
-        title="Open Sessions"
+        title="Open Coach Sessions"
         count={offerings.length}
         onViewAll={offerings.length > 3 ? handleViewAll : undefined}
       />

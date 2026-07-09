@@ -7,7 +7,7 @@
  * @see https://docs.expo.dev/workflow/configuration/
  */
 
-import { ExpoConfig, ConfigContext } from 'expo/config';
+import type { ExpoConfig, ConfigContext } from 'expo/config';
 
 function parseFloatEnv(value: string | undefined, defaultValue: number): number {
   const parsed = Number.parseFloat(value ?? '');
@@ -22,6 +22,7 @@ function compactObject<T extends Record<string, unknown>>(value: T): Partial<T> 
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const env = process.env.EXPO_PUBLIC_ENV || 'development';
+  assertRuntimeModeConfig(env);
   const webOutput = getWebOutput(process.env.EXPO_WEB_OUTPUT);
   const sentryEnvironment = process.env.SENTRY_ENVIRONMENT || env;
   const sentryRelease = process.env.SENTRY_RELEASE || `clubroom@1.0.0+${env}`;
@@ -181,6 +182,19 @@ function getBundleId(env: string): string {
       return 'com.coachapptrial.clubroom.staging';
     default:
       return 'com.coachapptrial.clubroom.dev';
+  }
+}
+
+function assertRuntimeModeConfig(env: string): void {
+  if (process.env.EXPO_PUBLIC_PRE_API_LIVE_MODE === 'true') {
+    throw new Error(
+      'Invalid Clubroom app config: EXPO_PUBLIC_PRE_API_LIVE_MODE=true is no longer supported.',
+    );
+  }
+  if (process.env.EXPO_PUBLIC_USE_MOCK === 'true' && process.env.NODE_ENV !== 'test') {
+    throw new Error(
+      'Invalid Clubroom app config: EXPO_PUBLIC_USE_MOCK=true is test-only; normal app runtimes must use the /v1 API.',
+    );
   }
 }
 

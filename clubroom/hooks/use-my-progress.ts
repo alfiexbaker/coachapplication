@@ -7,17 +7,16 @@ import { apiClient } from '@/services/api-client';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
-import { bookingService } from '@/services/booking';
+import {
+  bookingAuthorityService,
+  bookingService,
+  mapApiBookingToBooking,
+} from '@/services/booking';
 import {
   progressService,
   type AthleteProgress,
   type SessionFeedback,
 } from '@/services/progress-service';
-import {
-  clearProgressDemoSeedData,
-  ensureProgressDemoSeeded,
-  ensureUser1DiamondTestDataSeeded,
-} from '@/services/progress/progress-demo-seed-lazy-service';
 import { badgeService, type AllBadgeWithProgress } from '@/services/badge-service';
 import { mediaService } from '@/services/media-service';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -45,7 +44,6 @@ import {
   type TaskViewerRole,
 } from '@/services/progress/progress-practice-task-service';
 import { createLogger } from '@/utils/logger';
-import { preApiLive } from '@/constants/config';
 import type { BadgeAward } from '@/constants/types';
 import { err, ok, serviceError, type Result, type ServiceError } from '@/types/result';
 import {
@@ -66,10 +64,23 @@ import type { FamilyHighlightItem } from '@/components/progress/parent-value-sum
 import type { CoachBadgeData } from '@/components/progress/coach-badge';
 import type { Booking } from '@/constants/app-types';
 const logger = createLogger('MyProgressScreen');
-const ENABLE_PROGRESS_DEMO_SEED =
-  preApiLive.enabled ||
-  process.env.EXPO_PUBLIC_ENABLE_PROGRESS_DEMO_SEED === 'true' ||
-  process.env.EXPO_PUBLIC_ENABLE_PROGRESS_DEMO_SEED === '1';
+
+async function listOptionalAttendanceBookings(): Promise<Booking[]> {
+  if (apiClient.isMockMode) {
+    return bookingService.list();
+  }
+
+  const result = await bookingAuthorityService.listBookings();
+  if (!result.success) {
+    logger.warn('Optional progress attendance bookings unavailable', {
+      error: result.error.message,
+    });
+    return [];
+  }
+
+  return result.data.map((booking) => mapApiBookingToBooking(booking));
+}
+
 interface StreakInfo {
   currentStreak: number;
   nextMilestone: number;
@@ -134,6 +145,12 @@ function buildCoachDirectoryMap(
     acc[coach.id] = coach;
     return acc;
   }, {});
+}
+export async function loadCoachDirectoryForProgress(): Promise<CoachDirectoryEntry[]> {
+  if (!apiClient.isMockMode) {
+    return [];
+  }
+  return apiClient.get<CoachDirectoryEntry[]>(STORAGE_KEYS.COACH_DIRECTORY, []);
 }
 function getMostImprovedSkill(progress: AthleteProgress): string | undefined {
   const improvingSkills = progress.skills
@@ -280,9 +297,9 @@ export function useMyProgress() {
   }>();
   const isParentContext = Boolean(
     currentUser?.role === 'PARENT' ||
-      currentUser?.hasChildren ||
-      (currentUser?.children?.length ?? 0) > 0 ||
-      contextChildren.length > 0,
+    currentUser?.hasChildren ||
+    (currentUser?.children?.length ?? 0) > 0 ||
+    contextChildren.length > 0,
   );
   const declaredParentHasChildren = Boolean(
     currentUser?.hasChildren || (currentUser?.children?.length ?? 0) > 0,
@@ -318,22 +335,19 @@ export function useMyProgress() {
     if (isExplicitAthleteIdValid && explicitAthleteId) {
       return explicitAthleteId;
     }
-    if (isParentContext && declaredParentHasChildren && childrenLoading && contextChildren.length === 0) {
+    if (
+      isParentContext &&
+      declaredParentHasChildren &&
+      childrenLoading &&
+      contextChildren.length === 0
+    ) {
       return null;
     }
     if (profileMode === 'self') {
-      if (
-        isParentContext &&
-        declaredParentHasChildren &&
-        contextChildren.length === 0
-      ) {
+      if (isParentContext && declaredParentHasChildren && contextChildren.length === 0) {
         return null;
       }
-      if (
-        isParentContext &&
-        contextChildren.length > 0 &&
-        !canSelectSelfProfile
-      ) {
+      if (isParentContext && contextChildren.length > 0 && !canSelectSelfProfile) {
         return null;
       }
       return currentUser.id;
@@ -439,23 +453,6 @@ export function useMyProgress() {
       });
     }
     try {
-      if (currentUser.role !== 'COACH') {
-        try {
-          if (__DEV__ && selectedAthleteId === 'user1') {
-            await ensureUser1DiamondTestDataSeeded();
-          }
-          if (ENABLE_PROGRESS_DEMO_SEED) {
-            await ensureProgressDemoSeeded(selectedAthleteId, selectedAthleteName);
-          } else {
-            await clearProgressDemoSeedData(selectedAthleteId);
-          }
-        } catch (seedError) {
-          logger.warn('Progress demo seed bootstrap failed, continuing with live data load.', {
-            athleteId: selectedAthleteId,
-            error: seedError,
-          });
-        }
-      }
       const viewerRole: TaskViewerRole = isParentContext ? 'parent' : 'athlete';
       const [
         progressData,
@@ -476,9 +473,9 @@ export function useMyProgress() {
         progressPositionService.getMostPlayedPosition(selectedAthleteId),
         badgeService.getStreakInfo(selectedAthleteId),
         mediaService.listMediaForAthlete(selectedAthleteId),
-        apiClient.get<CoachDirectoryEntry[]>(STORAGE_KEYS.COACH_DIRECTORY, []),
+        loadCoachDirectoryForProgress(),
         loadHomeworkState(selectedAthleteId, viewerRole),
-        bookingService.list(),
+        listOptionalAttendanceBookings(),
       ]);
       const familyHighlights: FamilyHighlightItem[] =
         isParentContext && contextChildren.length > 1
@@ -500,7 +497,6 @@ export function useMyProgress() {
           : [];
       progressData.athleteName = selectedAthleteName;
       const visibleBadges = badgesData.filter((badge) => badge.visibility !== 'coach_only');
-      const media = mediaResult.success ? mediaResult.data : [];
       const attendanceDates = bookings.flatMap((booking) => {
         if (!(booking.status === 'COMPLETED' && bookingMatchesAthlete(booking, selectedAthleteId)))
           return [];
@@ -513,7 +509,9 @@ export function useMyProgress() {
           athleteId: selectedAthleteId,
           error: mediaResult.error,
         });
+        return err(mediaResult.error);
       }
+      const media = mediaResult.data;
       logger.info('My progress loaded', {
         userId: currentUser.id,
         athleteId: selectedAthleteId,
@@ -647,7 +645,9 @@ export function useMyProgress() {
       if (fromDirectory[entry.coachId]) {
         continue;
       }
-      const fallback = resolveCoachAndProfile(entry.coachId).coachProfile;
+      const fallback = apiClient.isMockMode
+        ? resolveCoachAndProfile(entry.coachId).coachProfile
+        : undefined;
       fromDirectory[entry.coachId] = fallback?.qualifications?.[0];
     }
     return fromDirectory;
@@ -718,7 +718,9 @@ export function useMyProgress() {
         dbsChecked: coach.dbsChecked,
       };
     }
-    const fallback = resolveCoachAndProfile(latestFeedback.coachId).coachProfile;
+    const fallback = apiClient.isMockMode
+      ? resolveCoachAndProfile(latestFeedback.coachId).coachProfile
+      : null;
     if (!fallback) {
       return null;
     }

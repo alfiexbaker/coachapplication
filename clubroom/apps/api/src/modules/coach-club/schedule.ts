@@ -97,14 +97,6 @@ function mapEventStatus(
   if (status === "COMPLETED") return "completed";
   return "scheduled";
 }
-function mapEventType(
-  metadataType: string | undefined,
-): ClubScheduleActivity["kind"] {
-  if (metadataType === "training_camp" || metadataType === "trial_day") {
-    return "training";
-  }
-  return "informational";
-}
 function mapEventActivity(event: SeedRow): ClubScheduleActivity | null {
   const eventId = asString(event.id);
   const startsAt = asString(event.startsAt);
@@ -119,6 +111,7 @@ function mapEventActivity(event: SeedRow): ClubScheduleActivity | null {
       : {};
   const metadataType = asString(metadataJson.type);
   const priceMinor = asNumber(event.priceMinor) ?? asNumber(metadataJson.priceMinor);
+  const rsvpRequired = asBoolean(metadataJson.rsvpRequired) ?? true;
   const squadIdsFromRow = parseJsonArray(event.squadIdsJson).filter(
     (value): value is string => typeof value === "string",
   );
@@ -138,10 +131,10 @@ function mapEventActivity(event: SeedRow): ClubScheduleActivity | null {
     startsAt,
     endsAt: asString(event.endsAt),
     status: mapEventStatus(asString(event.status)),
-    kind: mapEventType(metadataType),
+    kind: "informational",
     typeLabel: formatTypeLabel(metadataType, "Event"),
-    participationMode: "rsvp",
-    participationLabel: "RSVP",
+    participationMode: rsvpRequired ? "rsvp" : "none",
+    participationLabel: rsvpRequired ? "RSVP" : "Info only",
     accessScope:
       squadIds.length > 0
         ? "squad"
@@ -155,7 +148,7 @@ function mapEventActivity(event: SeedRow): ClubScheduleActivity | null {
     price: typeof priceMinor === "number" ? priceMinor / 100 : undefined,
     currency: asString(event.currency) ?? asString(metadataJson.currency) ?? "GBP",
     squadIds,
-    allowsExternalRegistration: visibility === "public",
+    allowsExternalRegistration: false,
   };
 }
 function mapGroupStatus(

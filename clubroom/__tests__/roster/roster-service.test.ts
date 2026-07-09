@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import { beforeEach, describe, it } from 'node:test';
 
 import type { RosterEntry, RosterNote } from '@/constants/types';
@@ -51,6 +53,12 @@ async function withApiMode<T>(run: () => Promise<T>): Promise<T> {
 describe('rosterService', () => {
   beforeEach(async () => {
     await apiClient.remove(STORAGE_KEYS.ROSTER_REMOVAL_HISTORY);
+  });
+
+  it('does not initialize roster fixtures as API-mode mock data', () => {
+    const source = fs.readFileSync(path.join(process.cwd(), 'services/roster-service.ts'), 'utf8');
+
+    assert.ok(source.includes('this.mockData = USE_MOCK ? [...MOCK_ROSTER] : []'));
   });
 
   it('creates entry and returns it in getRoster (happy path)', async () => {

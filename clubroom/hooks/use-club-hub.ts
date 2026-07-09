@@ -529,6 +529,16 @@ export function useClubHub(): ClubHubState {
 
   const handleConfirmMemberRemoval = async (reason: MemberRemovalReason, customReason?: string) => {
     if (!selectedMemberForRemoval || !membership?.clubId || !currentUser) return;
+    const actorName = (
+      currentUser.fullName ||
+      currentUser.name ||
+      currentUser.username ||
+      ''
+    ).trim();
+    if (!actorName) {
+      showToast('Complete your account name before removing club members.', 'error');
+      return;
+    }
 
     setIsRemovingMember(true);
 
@@ -538,7 +548,7 @@ export function useClubHub(): ClubHubState {
           membership.clubId,
           selectedMemberForRemoval.userId,
           reason,
-          { id: currentUser.id, name: currentUser.fullName || currentUser.username || 'Coach' },
+          { id: currentUser.id, name: actorName },
           { customReason },
         );
 

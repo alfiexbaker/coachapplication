@@ -21,11 +21,17 @@ import type { ClubEvent } from '@/constants/types';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import { eventService } from '@/services/event-service';
 import { err, ok, serviceError } from '@/types/result';
-import { DEFAULT_EVENT_CLUB_ID } from '@/hooks/use-create-event';
 
 const logger = createLogger('EventsListScreen');
+
+interface EventsScreenData {
+  events: ClubEvent[];
+  clubId?: string;
+  clubName?: string;
+}
 
 function renderEventListItem({
   item,
@@ -43,12 +49,20 @@ export default function EventsListScreen() {
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
   const [filter, setFilter] = useState<EventFilter>('upcoming');
 
-  const clubId = DEFAULT_EVENT_CLUB_ID;
-
   const loadEvents = async () => {
     try {
-      const data = await eventService.getAllClubEvents(clubId);
-      return ok(data);
+      const clubsResult = await clubAuthorityService.listClubs();
+      if (!clubsResult.success) {
+        return err(clubsResult.error);
+      }
+
+      const club = clubsResult.data.clubs[0];
+      if (!club) {
+        return ok({ events: [] });
+      }
+
+      const events = await eventService.getAllClubEvents(club.id);
+      return ok({ events, clubId: club.id, clubName: club.name });
     } catch (loadError) {
       logger.error('Failed to load events:', loadError);
       return err(
@@ -57,14 +71,17 @@ export default function EventsListScreen() {
     }
   };
 
-  const { data, status, error, refreshing, onRefresh, retry } = useScreen<ClubEvent[]>({
+  const { data, status, error, refreshing, onRefresh, retry } = useScreen<EventsScreenData>({
     load: loadEvents,
-    deps: [clubId],
-    isEmpty: (value) => value.length === 0,
+    deps: [currentUser?.id],
+    isEmpty: (value) => value.events.length === 0,
     refetchOnFocus: true,
   });
 
-  const events = data ?? [];
+  const events = data?.events ?? [];
+  const activeClubId = data?.clubId;
+  const activeClubName = data?.clubName;
+  const canCreateEvent = isCoach && Boolean(activeClubId);
   const filteredEvents = events.filter((event) => {
     const today = toDateStr(new Date());
     const isPast = event.date < today;
@@ -75,14 +92,19 @@ export default function EventsListScreen() {
     return event.status === 'PUBLISHED';
   });
 
-  const onCreate = () => router.push(Routes.EVENTS_CREATE);
+  const onCreate = () => {
+    if (!activeClubId) {
+      return;
+    }
+    router.push(Routes.eventCreate({ clubId: activeClubId, clubName: activeClubName }));
+  };
   const openEvent = (eventId: string) => router.push(Routes.event(eventId));
   const renderEventItem = ({ item }: { item: ClubEvent }) =>
     renderEventListItem({ item, onPress: openEvent });
   const header = (
     <EventsHeader
       colors={palette}
-      isCoach={isCoach}
+      isCoach={canCreateEvent}
       onBack={() => router.back()}
       onCreate={onCreate}
     />
@@ -104,17 +126,19 @@ export default function EventsListScreen() {
   }
 
   if (status === 'error') {
-    return renderShell(<ErrorState message={error?.message || 'Failed to load events.'} onRetry={retry} />);
+    return renderShell(
+      <ErrorState message={error?.message || 'Failed to load events.'} onRetry={retry} />,
+    );
   }
 
   if (status === 'empty') {
     return renderShell(
       <EmptyState
         icon="calendar-outline"
-        title="No events yet"
-        message="No events created yet."
-        actionLabel={isCoach ? 'Create Event' : undefined}
-        onPressAction={isCoach ? onCreate : undefined}
+        title={activeClubId ? 'No events yet' : 'No club selected'}
+        message={activeClubId ? 'No events created yet.' : 'Join or create a club to view events.'}
+        actionLabel={canCreateEvent ? 'Create Event' : undefined}
+        onPressAction={canCreateEvent ? onCreate : undefined}
       />,
     );
   }
@@ -133,7 +157,7 @@ export default function EventsListScreen() {
         <EventsListEmptyState
           colors={palette}
           filter={filter}
-          isCoach={isCoach}
+          isCoach={canCreateEvent}
           onCreate={onCreate}
         />
       }

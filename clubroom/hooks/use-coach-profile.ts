@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 
 import { router } from 'expo-router';
 
+import { api } from '@/constants/config';
 import { authService } from '@/services/auth-service';
 import { apiClient } from '@/services/api-client';
 import { listSelfCoachOfferingsFromApi } from '@/services/coach-offering-api';
@@ -22,7 +23,7 @@ import { Routes } from '@/navigation/routes';
 import { createLogger } from '@/utils/logger';
 import { uiFeedback } from '@/services/ui-feedback';
 
-import { runAsyncTryCatchFinally, runSyncTryCatchFinally } from '@/utils/async-control';
+import { runAsyncTryCatchFinally } from '@/utils/async-control';
 
 const logger = createLogger('CoachProfile');
 
@@ -144,7 +145,7 @@ function buildFallbackCoach(currentUser: ReturnType<typeof useAuth>['currentUser
   const coachName = currentUser?.fullName || currentUser?.name || 'Coach';
 
   return {
-    id: currentUser?.id || 'coach-fallback',
+    id: currentUser?.id ?? '',
     fullName: coachName,
     primarySport: 'Football',
     sports: ['Football'],
@@ -208,6 +209,14 @@ async function loadCoachProfileDataIntoState(
     setSessionOfferings: (offerings: SessionOffering[]) => void;
   },
 ) {
+  if (!currentUser?.id) {
+    targets.setCoach(buildFallbackCoach(currentUser));
+    targets.setSessionOfferings([]);
+    targets.setProfileError('Sign in as a coach to view your profile.');
+    targets.setProfileLoading(false);
+    return;
+  }
+
   targets.setProfileError(null);
   targets.setProfileLoading(true);
 
@@ -248,21 +257,37 @@ async function loadCoachProfileDataIntoState(
   );
 }
 
-function loadCoachFeedPostsIntoState(
+async function loadCoachFeedPostsIntoState(
   coachId: string,
   targets: {
     setFeedLoading: (value: boolean) => void;
     setFeedPosts: (posts: NormalizedPost[]) => void;
   },
 ) {
+  if (!coachId) {
+    targets.setFeedLoading(false);
+    targets.setFeedPosts([]);
+    return;
+  }
+
   targets.setFeedLoading(true);
-  runSyncTryCatchFinally(
-    () => {
-      const posts = socialFeedService.getFollowingFeed([coachId], 'all') as AggregatedFeedPost[];
+  await runAsyncTryCatchFinally(
+    async () => {
+      const posts = await (async (): Promise<AggregatedFeedPost[]> => {
+        if (api.useMock) {
+          return socialFeedService.getFollowingFeed([coachId], 'all') as AggregatedFeedPost[];
+        }
+        const result = await socialFeedService.getUpdatesFeedAuthority('all');
+        if (!result.success) {
+          throw new Error(result.error.message);
+        }
+        return result.data.filter((post) => post.authorId === coachId);
+      })();
       targets.setFeedPosts(posts.map(normalizePost));
     },
-    (error) => {
+    async (error) => {
       logger.error('Failed to load feed posts', error);
+      targets.setFeedPosts([]);
     },
     () => {
       targets.setFeedLoading(false);
@@ -330,13 +355,13 @@ export function useCoachProfile(): UseCoachProfileResult {
 
   // ── Load profile updates ──
   const loadFeedPosts = () =>
-    loadCoachFeedPostsIntoState(resolvedCoach.id, {
+    void loadCoachFeedPostsIntoState(resolvedCoach.id, {
       setFeedLoading,
       setFeedPosts,
     });
 
   useEffect(() => {
-    loadCoachFeedPostsIntoState(resolvedCoach.id, {
+    void loadCoachFeedPostsIntoState(resolvedCoach.id, {
       setFeedLoading,
       setFeedPosts,
     });
@@ -345,7 +370,7 @@ export function useCoachProfile(): UseCoachProfileResult {
   useEffect(() => {
     const unsub = onTyped(ServiceEvents.COACH_POST_CREATED, ({ coachId }) => {
       if (coachId === resolvedCoach.id) {
-        loadCoachFeedPostsIntoState(resolvedCoach.id, {
+        void loadCoachFeedPostsIntoState(resolvedCoach.id, {
           setFeedLoading,
           setFeedPosts,
         });
@@ -357,6 +382,16 @@ export function useCoachProfile(): UseCoachProfileResult {
   // ── Connection toggle ──
   const handleFollowToggle = async () => {
     if (!currentUser || followLoading) return;
+    const followerName = (
+      currentUser.name ||
+      currentUser.fullName ||
+      currentUser.username ||
+      ''
+    ).trim();
+    if (!isFollowing && !followerName) {
+      uiFeedback.showToast('Complete your account name before following a coach.', 'error');
+      return;
+    }
     setFollowLoading(true);
 
     await runAsyncTryCatchFinally(
@@ -368,7 +403,7 @@ export function useCoachProfile(): UseCoachProfileResult {
         } else {
           await followService.follow({
             followerId: currentUser.id,
-            followerName: currentUser.name || currentUser.fullName || 'User',
+            followerName,
             followerType: currentUser.role === 'COACH' ? 'COACH' : 'USER',
             followingId: resolvedCoach.id,
             followingName: resolvedCoach.fullName,

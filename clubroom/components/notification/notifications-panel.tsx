@@ -31,15 +31,10 @@ const logger = createLogger('NotificationsPanel');
 
 interface NotificationsPanelProps {
   limit?: number;
-  seedOnMount?: boolean;
   refreshToken?: number;
 }
 
-export function NotificationsPanel({
-  limit = 0,
-  seedOnMount = false,
-  refreshToken = 0,
-}: NotificationsPanelProps) {
+export function NotificationsPanel({ limit = 0, refreshToken = 0 }: NotificationsPanelProps) {
   const { colors: palette } = useTheme();
   const {
     notifications,
@@ -55,12 +50,6 @@ export function NotificationsPanel({
     currentFilter,
     setFilter,
   } = useNotifications();
-
-  useEffect(() => {
-    if (seedOnMount) {
-      notificationService.seedDemoNotifications().then(() => refresh());
-    }
-  }, [seedOnMount, refresh]);
 
   useEffect(() => {
     if (refreshToken > 0) {
@@ -155,10 +144,7 @@ export function NotificationsPanel({
   return (
     <View style={styles.flex}>
       <View
-        style={[
-          styles.muteHint,
-          { backgroundColor: palette.surface, borderColor: palette.border },
-        ]}
+        style={[styles.muteHint, { backgroundColor: palette.surface, borderColor: palette.border }]}
       >
         <ThemedText style={[styles.muteHintText, { color: palette.muted }]}>
           Swipe a notification to mute that notification type. You can turn it back on in
@@ -174,9 +160,7 @@ export function NotificationsPanel({
       ) : (
         <ScrollView
           contentContainerStyle={styles.content}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={refresh} />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
         >
           {visibleItems.length === 0 ? (
             <View style={styles.emptyState}>

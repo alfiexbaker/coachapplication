@@ -7,7 +7,7 @@ import {
   resolveSignedInApiUser,
   toApiAthleteId,
 } from '@/services/api-auth-context';
-import { err, ok, storageError, type Result, type ServiceError } from '@/types/result';
+import { err, ok, storageError, unsupportedError, type Result, type ServiceError } from '@/types/result';
 import type { PositionRole } from '@/types/progress-types';
 import { createLogger } from '@/utils/logger';
 const logger = createLogger('ProgressPositionService');
@@ -129,12 +129,17 @@ export async function recordPosition(
       recordedAt: now,
     };
     if (!apiClient.isMockMode) {
-      logger.info('position_record_delegated_to_session_feedback', {
+      logger.warn('position_record_requires_session_feedback_api', {
         athleteId,
         sessionId,
         position,
       });
-      return ok(nextEntry);
+      return err(
+        unsupportedError(
+          'Direct position-history writes are mock-only. In API mode, save positionPlayed or positionsPlayed through /v1/session-feedback.',
+          { route: '/v1/session-feedback', sessionId, athleteId, position },
+        ),
+      );
     }
     const store = await getPositionStore();
     const existing = store[athleteId] ?? [];

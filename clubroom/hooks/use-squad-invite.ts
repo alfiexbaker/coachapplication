@@ -217,6 +217,16 @@ export function useSquadInvite() {
 
   const sendBulkInvites = async () => {
     if (!currentUser || !squadId || !canSend) return;
+    const coachName = (
+      currentUser.name ||
+      currentUser.fullName ||
+      currentUser.username ||
+      ''
+    ).trim();
+    if (!coachName) {
+      uiFeedback.showToast('Complete your account name before sending squad invites.', 'error');
+      return;
+    }
 
     setSendingInvites(true);
     setViewMode('sending');
@@ -228,7 +238,7 @@ export function useSquadInvite() {
           sessionId: `session_${Date.now()}`,
           sessionTitle,
           coachId: currentUser.id,
-          coachName: currentUser.name || 'Coach',
+          coachName,
           clubName: squad?.name,
           proposedSlots,
           sessionType,

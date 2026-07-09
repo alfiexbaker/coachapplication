@@ -112,6 +112,10 @@ const cancellationRecordsQuerySchema = z.object({
 });
 const INVITE_CREATE_ENDPOINT_KEY = 'POST:/v1/invites';
 const INVITE_IDEMPOTENCY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const INVITE_RUNTIME_TRANSACTION_OPTIONS = {
+  maxWait: 5_000,
+  timeout: 15_000,
+};
 async function recordInviteAudit(params: {
   request: FastifyRequest;
   action:
@@ -348,12 +352,24 @@ async function getInviteRuntimeStore(params?: {
           })
         : Promise.resolve([]),
     ]);
+    const athletes =
+      athleteIds.length > 0
+        ? await prisma.athlete.findMany({
+            where: {
+              id: {
+                in: athleteIds,
+              },
+              deletedAt: null,
+            },
+          })
+        : [];
     return {
       version: null,
       backend: 'db',
       tables: {
         users: toSeedRows(users),
         guardianChildLinks: toSeedRows(guardianChildLinks),
+        athletes: toSeedRows(athletes),
         groupSessions: toSeedRows(groupSessions),
         clubs: toSeedRows(clubs),
         invites: toSeedRows(invites),
@@ -484,7 +500,7 @@ async function commitInviteRuntimeStore(store: InviteRuntimeStore): Promise<void
           }),
         ),
       );
-  });
+  }, INVITE_RUNTIME_TRANSACTION_OPTIONS);
 }
 const eventRsvpRequestSchema = z.object({
   status: z.enum(['GOING', 'MAYBE', 'NOT_GOING']),
@@ -2815,9 +2831,9 @@ function buildSessionInviteView(params: {
   const declinedWeeks = asStringArray(responsePayload?.declinedWeeks);
   const athleteIds = Array.from(
     new Set(
-      targets.flatMap((target) => {
+      targets.flatMap((target): string[] => {
         const mapped = asString(target.targetAthleteId);
-        return Boolean(mapped) ? [mapped] : [];
+        return mapped ? [mapped] : [];
       }),
     ),
   );
@@ -2838,9 +2854,35 @@ function buildSessionInviteView(params: {
     normalizeInviteAudienceType(asString(metadata?.inviteAudienceType));
   const locationCoordinates = buildInviteLocationCoordinates(metadata);
   const rsvpResponses = readInviteRsvpResponses(invite);
+  const coachId = asString(invite.senderUserId) ?? '';
+  const parentId = asString(primaryTarget?.targetUserId) ?? '';
+  const athleteNameById = new Map(
+    asRows(tables.athletes)
+      .map((athlete) => {
+        const id = asString(athlete.id);
+        const name =
+          asString(athlete.displayName) ??
+          [asString(athlete.firstName), asString(athlete.lastName)].filter(Boolean).join(' ');
+        return id && name ? ([id, name] as const) : null;
+      })
+      .filter((entry): entry is readonly [string, string] => Boolean(entry)),
+  );
+  const athleteNames = athleteIds.flatMap((athleteId) => {
+    const name = athleteNameById.get(athleteId);
+    return name ? [name] : [];
+  });
   return {
     id: inviteId,
-    coachId: asString(invite.senderUserId) ?? '',
+    coachId,
+    ...(coachId
+      ? {
+          coachName: resolveInviteRsvpDisplayName({
+            tables,
+            userId: coachId,
+            fallback: 'Coach',
+          }),
+        }
+      : {}),
     ...((asString(metadata?.clubName) ?? asString(club?.name))
       ? {
           clubName: asString(metadata?.clubName) ?? asString(club?.name),
@@ -2857,7 +2899,17 @@ function buildSessionInviteView(params: {
         }
       : {}),
     athleteIds,
-    parentId: asString(primaryTarget?.targetUserId) ?? '',
+    ...(athleteNames.length > 0 ? { athleteNames } : {}),
+    parentId,
+    ...(parentId
+      ? {
+          parentName: resolveInviteRsvpDisplayName({
+            tables,
+            userId: parentId,
+            fallback: 'Parent',
+          }),
+        }
+      : {}),
     proposedSlots: proposedSlots.length > 0 ? proposedSlots : metadataProposedSlots,
     sessionType:
       asString(metadata?.sessionType) ??

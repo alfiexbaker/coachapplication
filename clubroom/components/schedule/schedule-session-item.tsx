@@ -23,8 +23,23 @@ interface Props {
   onPress: (session: SessionData) => void;
 }
 
+const INTERNAL_ID_PREFIX = /^(ath|bok|clb|grp|inv|loc|sqd|usr)_/i;
+
+function getSessionDisplayLabel(session: SessionData): string {
+  const athleteName = session.athleteName?.trim();
+  if (athleteName && !INTERNAL_ID_PREFIX.test(athleteName)) {
+    return athleteName;
+  }
+  const title = session.title?.trim();
+  if (title && !INTERNAL_ID_PREFIX.test(title)) {
+    return title;
+  }
+  return session.type === 'offering' ? 'Group session' : 'Athlete session';
+}
+
 export const ScheduleSessionItem = function ScheduleSessionItem({ session, onPress }: Props) {
   const { colors } = useTheme();
+  const displayLabel = getSessionDisplayLabel(session);
 
   const handlePress = () => {
     onPress(session);
@@ -41,9 +56,9 @@ export const ScheduleSessionItem = function ScheduleSessionItem({ session, onPre
   };
 
   return (
-    <Clickable
-      onPress={handlePress}
-      accessibilityLabel={`${session.athleteName || session.title} at ${session.time}`}
+    <Row
+      align="center"
+      gap="xs"
       style={[
         styles.item,
         {
@@ -52,85 +67,93 @@ export const ScheduleSessionItem = function ScheduleSessionItem({ session, onPre
         },
       ]}
     >
-      <Column align="center" style={styles.timeCol}>
-        <ThemedText type="defaultSemiBold" style={styles.timeText}>
-          {session.time}
-        </ThemedText>
-        <ThemedText style={[styles.endTime, { color: colors.muted }]}>{session.endTime}</ThemedText>
-      </Column>
-
-      <Column flex gap="xxs">
-        <Row align="center" gap="xs">
-          <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.titleText}>
-            {session.athleteName || session.title}
+      <Clickable
+        onPress={handlePress}
+        accessibilityLabel={`${displayLabel} at ${session.time}`}
+        style={styles.sessionButton}
+      >
+        <Column align="center" style={styles.timeCol}>
+          <ThemedText type="defaultSemiBold" style={styles.timeText}>
+            {session.time}
           </ThemedText>
-          {session.type === 'offering' && session.athleteCount !== undefined && (
-            <Row
-              align="center"
-              gap="micro"
-              style={[styles.badge, { backgroundColor: withAlpha(colors.success, 0.1) }]}
-            >
-              <Ionicons name="people-outline" size={10} color={colors.success} />
-              <ThemedText style={[styles.badgeText, { color: colors.success }]}>
-                {session.athleteCount}
+          <ThemedText style={[styles.endTime, { color: colors.muted }]}>
+            {session.endTime}
+          </ThemedText>
+        </Column>
+
+        <Column flex gap="xxs">
+          <Row align="center" gap="xs">
+            <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.titleText}>
+              {displayLabel}
+            </ThemedText>
+            {session.type === 'offering' && session.athleteCount !== undefined && (
+              <Row
+                align="center"
+                gap="micro"
+                style={[styles.badge, { backgroundColor: withAlpha(colors.success, 0.1) }]}
+              >
+                <Ionicons name="people-outline" size={10} color={colors.success} />
+                <ThemedText style={[styles.badgeText, { color: colors.success }]}>
+                  {session.athleteCount}
+                </ThemedText>
+              </Row>
+            )}
+            {session.seriesId && session.seriesTotalWeeks ? (
+              <Row
+                align="center"
+                gap="micro"
+                style={[styles.badge, { backgroundColor: withAlpha(colors.tint, 0.1) }]}
+              >
+                <Ionicons name="repeat-outline" size={10} color={colors.tint} />
+                <ThemedText style={[styles.badgeText, { color: colors.tint }]}>
+                  {(session.seriesIndex ?? 0) + 1}/{session.seriesTotalWeeks}
+                </ThemedText>
+              </Row>
+            ) : null}
+          </Row>
+
+          {session.location && (
+            <Row align="center" gap="xxs">
+              <Ionicons name="location-outline" size={12} color={colors.tint} />
+              <ThemedText style={[styles.metaText, { color: colors.tint }]}>
+                {session.location}
               </ThemedText>
             </Row>
           )}
-          {session.seriesId && session.seriesTotalWeeks ? (
-            <Row
-              align="center"
-              gap="micro"
-              style={[styles.badge, { backgroundColor: withAlpha(colors.tint, 0.1) }]}
-            >
-              <Ionicons name="repeat-outline" size={10} color={colors.tint} />
-              <ThemedText style={[styles.badgeText, { color: colors.tint }]}>
-                {(session.seriesIndex ?? 0) + 1}/{session.seriesTotalWeeks}
-              </ThemedText>
-            </Row>
-          ) : null}
-        </Row>
-
-        {session.location && (
-          <Row align="center" gap="xxs">
-            <Ionicons name="location-outline" size={12} color={colors.tint} />
-            <ThemedText style={[styles.metaText, { color: colors.tint }]}>
-              {session.location}
-            </ThemedText>
-          </Row>
-        )}
-        <Row
-          align="center"
-          gap="micro"
-          style={[
-            styles.contextBadge,
-            {
-              backgroundColor:
-                session.businessContext === 'org'
-                  ? withAlpha(colors.info, 0.1)
-                  : withAlpha(colors.tint, 0.1),
-            },
-          ]}
-        >
-          <Ionicons
-            name={session.businessContext === 'org' ? 'business-outline' : 'briefcase-outline'}
-            size={10}
-            color={session.businessContext === 'org' ? colors.info : colors.tint}
-          />
-          <ThemedText
+          <Row
+            align="center"
+            gap="micro"
             style={[
-              styles.badgeText,
-              { color: session.businessContext === 'org' ? colors.info : colors.tint },
+              styles.contextBadge,
+              {
+                backgroundColor:
+                  session.businessContext === 'org'
+                    ? withAlpha(colors.info, 0.1)
+                    : withAlpha(colors.tint, 0.1),
+              },
             ]}
           >
-            {session.businessLabel}
-          </ThemedText>
-        </Row>
-        {session.isGroupSession && session.rsvpCounts && (
-          <RsvpMiniBar counts={session.rsvpCounts} compact />
-        )}
-      </Column>
+            <Ionicons
+              name={session.businessContext === 'org' ? 'business-outline' : 'briefcase-outline'}
+              size={10}
+              color={session.businessContext === 'org' ? colors.info : colors.tint}
+            />
+            <ThemedText
+              style={[
+                styles.badgeText,
+                { color: session.businessContext === 'org' ? colors.info : colors.tint },
+              ]}
+            >
+              {session.businessLabel}
+            </ThemedText>
+          </Row>
+          {session.isGroupSession && session.rsvpCounts && (
+            <RsvpMiniBar counts={session.rsvpCounts} compact />
+          )}
+        </Column>
+      </Clickable>
 
-      <Row align="center" gap="xs">
+      <Row align="center" gap="xs" style={styles.trailingActions}>
         {session.location ? (
           <Clickable
             onPress={handleOpenMap}
@@ -142,7 +165,7 @@ export const ScheduleSessionItem = function ScheduleSessionItem({ session, onPre
         ) : null}
         <Ionicons name="chevron-forward" size={18} color={colors.muted} />
       </Row>
-    </Clickable>
+    </Row>
   );
 };
 
@@ -154,6 +177,13 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderLeftWidth: 3,
     gap: Spacing.md,
+  },
+  sessionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    minWidth: 0,
   },
   timeCol: {
     minWidth: 50,
@@ -190,5 +220,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
+  },
+  trailingActions: {
+    flexShrink: 0,
   },
 });

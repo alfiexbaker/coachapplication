@@ -67,4 +67,28 @@ describe('Service-layer mock boundary contract', () => {
       `Only services/api-client.ts may import AsyncStorage directly. Offenders: ${offenders.join(', ')}`
     );
   });
+
+  it('does not hydrate community fixture stores in API mode constructors', () => {
+    const offenders: string[] = [];
+    const forbiddenPatterns = [
+      /private\s+inMemoryGroups\s*:\s*ParentGroup\[\]\s*=\s*\[\.\.\.mockGroups\]/,
+      /private\s+inMemoryMessages\s*:\s*Record<string,\s*GroupMessage\[\]>\s*=\s*\{\s*\.\.\.mockMessages\s*\}/,
+    ];
+
+    for (const relative of [
+      'services/community/community-group-service.ts',
+      'services/community/community-messaging-service.ts',
+    ]) {
+      const source = fs.readFileSync(path.join(ROOT, relative), 'utf8');
+      if (forbiddenPatterns.some((pattern) => pattern.test(source))) {
+        offenders.push(relative);
+      }
+    }
+
+    assert.deepEqual(
+      offenders,
+      [],
+      `Community services must not preload mock fixtures in API mode constructors. Offenders: ${offenders.join(', ')}`
+    );
+  });
 });

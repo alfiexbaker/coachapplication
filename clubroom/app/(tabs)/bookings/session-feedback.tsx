@@ -49,7 +49,10 @@ export default function SessionFeedbackScreen() {
         if (!apiClient.isMockMode) {
           if (!bookingId) {
             logger.error('Missing booking id for session feedback');
-            uiFeedback.showToast('Choose a completed booking before opening session feedback.', 'error');
+            uiFeedback.showToast(
+              'Choose a completed booking before opening session feedback.',
+              'error',
+            );
             router.back();
             return;
           }
@@ -63,15 +66,20 @@ export default function SessionFeedbackScreen() {
           }
 
           if (booking.status !== 'COMPLETED') {
-            const updateResult = await bookingService.updateBooking(bookingId, {
-              status: 'COMPLETED',
+            const completeResult = await bookingService.completeBooking(bookingId, {
+              completedAt: new Date().toISOString(),
+              note:
+                athleteObjectives.length > 0
+                  ? `Detailed feedback started for: ${athleteObjectives.join(', ')}`
+                  : 'Detailed feedback started from booking feedback flow.',
+              idempotencyKey: `session-feedback-complete-${bookingId}`,
             });
-            if (!updateResult.success) {
+            if (!completeResult.success) {
               logger.error('Failed to mark booking completed before session feedback', {
                 bookingId,
-                error: updateResult.error,
+                error: completeResult.error,
               });
-              uiFeedback.showToast(updateResult.error.message, 'error');
+              uiFeedback.showToast(completeResult.error.message, 'error');
               router.back();
               return;
             }

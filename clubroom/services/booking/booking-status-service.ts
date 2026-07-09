@@ -91,6 +91,9 @@ export const bookingStatusService = {
     sessionEnd.setMinutes(sessionEnd.getMinutes() + (booking.duration || 60));
 
     if (booking.status === 'CONFIRMED' && new Date() > sessionEnd) {
+      if (!apiClient.isMockMode) {
+        return ok(booking);
+      }
       return bookingCrudService.updateBooking(bookingId, { status: 'AWAITING_COMPLETION' });
     }
     return ok(booking);

@@ -5,6 +5,7 @@ import {
   canManageClubAssignments,
   createSafeguardingActionRequestSchema,
   createSafeguardingIncidentRequestSchema,
+  listSafeguardingIncidentsQuerySchema,
   parseOrganizationRole,
   type SafeguardingIncidentResponse,
   safeguardingIncidentIdSchema,
@@ -14,6 +15,8 @@ import { ApiProblemError, badRequest, forbidden, notFound } from '../../lib/http
 import {
   assertCanAccessSafeguardingIncident,
   assertCanCreateSafeguardingIncident,
+  assertCanReadSafeguardingForAthlete,
+  isPrivilegedAdminAuth,
 } from '../../lib/authz.js';
 import { recordAuditEvent } from '../../lib/audit-runtime.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
@@ -636,81 +639,207 @@ const trustOpsRoutes: FastifyPluginAsync = async (app) => {
   });
 
   app.post('/safeguarding/incidents', async (request, reply) => {
-    const body = createSafeguardingIncidentRequestSchema.parse(request.body);
-    await assertCanCreateSafeguardingIncident(request, body.athleteId ?? null);
-    const reportedByUserId = ensureAuthUserId(request.auth?.userId);
-    const repository = resolveSafeguardingRepository();
-    const incident = await repository.createIncident(body, reportedByUserId);
-    const notificationCount = await createSupportIssueNotifications(incident, reportedByUserId);
-    await recordAuditEvent({
-      request,
-      action: 'safeguarding_incident.create',
-      resourceType: 'safeguarding_incident',
-      resourceId: incident.id,
-      result: 'SUCCESS',
-      metadata: {
-        athleteId: incident.athleteId,
-        bookingId: incident.bookingId,
-        category: incident.category,
-        notificationCount,
-      },
-    });
+    let athleteId: string | null = null;
+    let bookingId: string | null = null;
+    let category: string | undefined;
+    try {
+      const body = createSafeguardingIncidentRequestSchema.parse(request.body);
+      athleteId = body.athleteId ?? null;
+      bookingId = body.bookingId ?? null;
+      category = body.category;
+      await assertCanCreateSafeguardingIncident(request, athleteId);
+      const reportedByUserId = ensureAuthUserId(request.auth?.userId);
+      const repository = resolveSafeguardingRepository();
+      const incident = await repository.createIncident(body, reportedByUserId);
+      const notificationCount = await createSupportIssueNotifications(incident, reportedByUserId);
+      await recordAuditEvent({
+        request,
+        action: 'safeguarding_incident.create',
+        resourceType: 'safeguarding_incident',
+        resourceId: incident.id,
+        result: 'SUCCESS',
+        metadata: {
+          athleteId: incident.athleteId,
+          bookingId: incident.bookingId,
+          category: incident.category,
+          notificationCount,
+        },
+      });
 
-    return reply.status(201).send(incident);
+      return reply.status(201).send(incident);
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'safeguarding_incident.create',
+        resourceType: 'safeguarding_incident',
+        result: auditErrorResult(error),
+        metadata: {
+          athleteId,
+          bookingId,
+          category,
+          errorCode: error instanceof ApiProblemError ? error.code : 'UNKNOWN',
+        },
+      });
+      throw error;
+    }
+  });
+
+  app.get('/safeguarding/incidents', async (request, reply) => {
+    const actorUserId = ensureAuthUserId(request.auth?.userId);
+    const query = listSafeguardingIncidentsQuerySchema.parse(request.query ?? {});
+    try {
+      if (query.athleteId) {
+        await assertCanReadSafeguardingForAthlete(request, query.athleteId);
+      }
+      if (
+        query.reportedBy === 'any' &&
+        !query.athleteId &&
+        !isPrivilegedAdminAuth(request.auth)
+      ) {
+        throw forbidden('Privileged admin scope is required to list all safeguarding incidents');
+      }
+
+      const repository = resolveSafeguardingRepository();
+      const candidates = await repository.listIncidents({
+        athleteId: query.athleteId,
+        statuses: query.status,
+        reportedByUserId: query.reportedBy === 'me' ? actorUserId : undefined,
+        limit: query.limit,
+      });
+      const incidents: SafeguardingIncidentResponse[] = [];
+      for (const incident of candidates) {
+        await assertCanAccessSafeguardingIncident(request, incident);
+        incidents.push(incident);
+      }
+
+      await recordAuditEvent({
+        request,
+        action: 'safeguarding_incident.list',
+        resourceType: 'safeguarding_incident',
+        resourceId: query.athleteId ?? null,
+        result: 'SUCCESS',
+        sensitiveRead: true,
+        metadata: {
+          athleteId: query.athleteId ?? null,
+          status: query.status ?? [],
+          reportedBy: query.reportedBy,
+          resultCount: incidents.length,
+        },
+      });
+      return reply.send({
+        incidents,
+        total: incidents.length,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'safeguarding_incident.list',
+        resourceType: 'safeguarding_incident',
+        resourceId: query.athleteId ?? null,
+        result: auditErrorResult(error),
+        sensitiveRead: true,
+        metadata: {
+          athleteId: query.athleteId ?? null,
+          status: query.status ?? [],
+          reportedBy: query.reportedBy,
+          errorCode: error instanceof ApiProblemError ? error.code : 'UNKNOWN',
+        },
+      });
+      throw error;
+    }
   });
 
   app.get('/safeguarding/incidents/:incidentId', async (request, reply) => {
     const incidentId = safeguardingIncidentIdSchema.parse(
       (request.params as { incidentId: string }).incidentId,
     );
-    const repository = resolveSafeguardingRepository();
-    const incident = await repository.getIncidentById(incidentId);
-    if (!incident) {
-      throw notFound('Safeguarding incident not found', { incidentId });
+    let athleteId: string | null = null;
+    try {
+      const repository = resolveSafeguardingRepository();
+      const incident = await repository.getIncidentById(incidentId);
+      if (!incident) {
+        throw notFound('Safeguarding incident not found', { incidentId });
+      }
+      athleteId = incident.athleteId;
+      await assertCanAccessSafeguardingIncident(request, incident);
+      await recordAuditEvent({
+        request,
+        action: 'safeguarding_incident.read',
+        resourceType: 'safeguarding_incident',
+        resourceId: incident.id,
+        result: 'SUCCESS',
+        sensitiveRead: true,
+        metadata: {
+          athleteId,
+        },
+      });
+      return reply.send(incident);
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'safeguarding_incident.read',
+        resourceType: 'safeguarding_incident',
+        resourceId: incidentId,
+        result: auditErrorResult(error),
+        sensitiveRead: true,
+        metadata: {
+          athleteId,
+          errorCode: error instanceof ApiProblemError ? error.code : 'UNKNOWN',
+        },
+      });
+      throw error;
     }
-    await assertCanAccessSafeguardingIncident(request, incident);
-    await recordAuditEvent({
-      request,
-      action: 'safeguarding_incident.read',
-      resourceType: 'safeguarding_incident',
-      resourceId: incident.id,
-      result: 'SUCCESS',
-      sensitiveRead: true,
-      metadata: {
-        athleteId: incident.athleteId,
-      },
-    });
-    return reply.send(incident);
   });
 
   app.post('/safeguarding/incidents/:incidentId/actions', async (request, reply) => {
     const incidentId = safeguardingIncidentIdSchema.parse(
       (request.params as { incidentId: string }).incidentId,
     );
-    const repository = resolveSafeguardingRepository();
-    const incident = await repository.getIncidentById(incidentId);
-    if (!incident) {
-      throw notFound('Safeguarding incident not found', { incidentId });
+    let athleteId: string | null = null;
+    let actionType: string | undefined;
+    try {
+      const repository = resolveSafeguardingRepository();
+      const incident = await repository.getIncidentById(incidentId);
+      if (!incident) {
+        throw notFound('Safeguarding incident not found', { incidentId });
+      }
+      athleteId = incident.athleteId;
+      await assertCanAccessSafeguardingIncident(request, incident);
+
+      const body = createSafeguardingActionRequestSchema.parse(request.body);
+      actionType = body.actionType;
+      const performedByUserId = ensureAuthUserId(request.auth?.userId);
+      const result = await repository.addAction(incidentId, body, performedByUserId);
+      await recordAuditEvent({
+        request,
+        action: 'safeguarding_incident.action',
+        resourceType: 'safeguarding_incident',
+        resourceId: result.incident.id,
+        result: 'SUCCESS',
+        metadata: {
+          actionId: result.action.id,
+          actionType: result.action.actionType,
+          status: result.incident.status,
+        },
+      });
+
+      return reply.status(201).send(result.action);
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'safeguarding_incident.action',
+        resourceType: 'safeguarding_incident',
+        resourceId: incidentId,
+        result: auditErrorResult(error),
+        metadata: {
+          athleteId,
+          actionType,
+          errorCode: error instanceof ApiProblemError ? error.code : 'UNKNOWN',
+        },
+      });
+      throw error;
     }
-    await assertCanAccessSafeguardingIncident(request, incident);
-
-    const body = createSafeguardingActionRequestSchema.parse(request.body);
-    const performedByUserId = ensureAuthUserId(request.auth?.userId);
-    const result = await repository.addAction(incidentId, body, performedByUserId);
-    await recordAuditEvent({
-      request,
-      action: 'safeguarding_incident.action',
-      resourceType: 'safeguarding_incident',
-      resourceId: result.incident.id,
-      result: 'SUCCESS',
-      metadata: {
-        actionId: result.action.id,
-        actionType: result.action.actionType,
-        status: result.incident.status,
-      },
-    });
-
-    return reply.status(201).send(result.action);
   });
 };
 

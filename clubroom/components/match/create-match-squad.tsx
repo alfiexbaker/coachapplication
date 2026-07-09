@@ -92,7 +92,7 @@ export const CreateMatchSquad = function CreateMatchSquad({
             <ThemedText type="defaultSemiBold">No squads found</ThemedText>
             <ThemedText style={[Typography.small, { color: colors.muted, textAlign: 'center' }]}>
               {allowNoSquad
-                ? 'Create a club-level fixture now. Squad assignment and player invites can be added once squad authority is synced.'
+                ? 'Create a club-level fixture now, or create a squad first to invite players.'
                 : 'Create a squad first so you can select players and send invites for this match.'}
             </ThemedText>
             {canCreateSquad && onCreateSquad ? (

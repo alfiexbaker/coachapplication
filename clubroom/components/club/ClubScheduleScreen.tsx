@@ -55,8 +55,54 @@ function getEmptyMessage(filter: ClubScheduleFilter, scope: 'club' | 'squad'): s
     : 'This team does not have any schedule items yet.';
 }
 
-function getPrimaryCreateHref(_scope: 'club' | 'squad', _clubId?: string, _squadId?: string): Href {
-  return Routes.GROUP_SESSIONS_CREATE;
+function getPrimaryCreateHref(scope: 'club' | 'squad', clubId?: string, squadId?: string): Href {
+  if (!clubId) {
+    return Routes.GROUP_SESSIONS_CREATE;
+  }
+
+  return Routes.sessionsCreateIntent({
+    intent: 'new',
+    source: 'club_manage',
+    preset: 'group',
+    actingAs: 'club',
+    clubId,
+    inviteType: scope === 'squad' ? 'SQUAD_ONLY' : 'CLOSED',
+    ...(scope === 'squad' && squadId ? { squadId } : {}),
+  });
+}
+
+function getEventCreateHref(
+  scope: 'club' | 'squad',
+  clubId?: string,
+  clubName?: string,
+  squadId?: string,
+): Href {
+  if (!clubId) {
+    return Routes.EVENTS_CREATE;
+  }
+
+  return Routes.eventCreate({
+    clubId,
+    ...(clubName ? { clubName } : {}),
+    ...(scope === 'squad' && squadId ? { squadId } : {}),
+  });
+}
+
+function getMatchCreateHref(
+  scope: 'club' | 'squad',
+  clubId?: string,
+  clubName?: string,
+  squadId?: string,
+): Href {
+  if (!clubId) {
+    return Routes.MATCHES_CREATE;
+  }
+
+  return Routes.matchCreate({
+    clubId,
+    ...(clubName ? { clubName } : {}),
+    ...(scope === 'squad' && squadId ? { squadId } : {}),
+  });
 }
 
 function getEmptyTitle(filter: ClubScheduleFilter): string {
@@ -161,21 +207,43 @@ export function ClubScheduleScreen({ clubId, squadId, scope }: ClubScheduleScree
             <Row align="center" gap="xs">
               <Clickable
                 style={[styles.headerAction, { borderColor: colors.border }]}
-                onPress={() => router.push(Routes.EVENTS_CREATE)}
+                onPress={() =>
+                  router.push(
+                    getEventCreateHref(
+                      scope,
+                      clubId ?? schedule.squad?.clubId,
+                      schedule.club?.name,
+                      squadId,
+                    ),
+                  )
+                }
                 accessibilityLabel="Create event"
               >
                 <Ionicons name="calendar-outline" size={18} color={colors.tint} />
               </Clickable>
               <Clickable
                 style={[styles.headerAction, { borderColor: colors.border }]}
-                onPress={() => router.push(getPrimaryCreateHref(scope, clubId, squadId))}
+                onPress={() =>
+                  router.push(
+                    getPrimaryCreateHref(scope, clubId ?? schedule.squad?.clubId, squadId),
+                  )
+                }
                 accessibilityLabel="Create training"
               >
                 <Ionicons name="football-outline" size={18} color={colors.tint} />
               </Clickable>
               <Clickable
                 style={[styles.headerAction, { borderColor: colors.border }]}
-                onPress={() => router.push(Routes.MATCHES_CREATE)}
+                onPress={() =>
+                  router.push(
+                    getMatchCreateHref(
+                      scope,
+                      clubId ?? schedule.squad?.clubId,
+                      schedule.club?.name,
+                      squadId,
+                    ),
+                  )
+                }
                 accessibilityLabel="Create match"
               >
                 <Ionicons name="trophy-outline" size={18} color={colors.tint} />

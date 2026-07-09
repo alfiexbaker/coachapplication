@@ -278,9 +278,9 @@ export const calendarService = {
   async generateICSFile(
     bookings: Booking[],
     filename?: string,
+    settings?: CalendarSyncSettings | null,
   ): Promise<{ success: boolean; filePath?: string; error?: string }> {
     try {
-      const settings = await this.getSyncSettings('current_user');
       const events = bookings.map(bookingToCalendarEvent);
       const icsContent = generateMultiEventICSContent(events, settings || undefined);
 
@@ -304,9 +304,12 @@ export const calendarService = {
   /**
    * Export a single booking to calendar (opens share sheet on mobile)
    */
-  async exportToCalendar(booking: Booking): Promise<{ success: boolean; error?: string }> {
+  async exportToCalendar(
+    booking: Booking,
+    settings?: CalendarSyncSettings | null,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
-      const result = await this.generateICSFile([booking], `session-${booking.id}.ics`);
+      const result = await this.generateICSFile([booking], `session-${booking.id}.ics`, settings);
 
       if (!result.success || !result.filePath) {
         return { success: false, error: result.error || 'Failed to create calendar file' };
@@ -340,13 +343,14 @@ export const calendarService = {
    */
   async exportMultipleToCalendar(
     bookings: Booking[],
+    settings?: CalendarSyncSettings | null,
   ): Promise<{ success: boolean; error?: string }> {
     try {
       if (bookings.length === 0) {
         return { success: false, error: 'No bookings to export' };
       }
 
-      const result = await this.generateICSFile(bookings);
+      const result = await this.generateICSFile(bookings, undefined, settings);
 
       if (!result.success || !result.filePath) {
         return { success: false, error: result.error || 'Failed to create calendar file' };
@@ -425,8 +429,10 @@ export const calendarService = {
   /**
    * Get ICS content as a string for a booking (useful for web download)
    */
-  async getICSContent(booking: Booking): Promise<string> {
-    const settings = await this.getSyncSettings('current_user');
+  async getICSContent(
+    booking: Booking,
+    settings?: CalendarSyncSettings | null,
+  ): Promise<string> {
     const event = bookingToCalendarEvent(booking);
     return generateICSContent(event, settings || undefined);
   },
@@ -443,9 +449,9 @@ export const calendarService = {
    */
   async exportGroupSessionToCalendar(
     session: GroupSession,
+    settings?: CalendarSyncSettings | null,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const settings = await this.getSyncSettings('current_user');
       const event = groupSessionToCalendarEvent(session);
       const icsContent = generateICSContent(event, settings || undefined);
 
@@ -480,9 +486,9 @@ export const calendarService = {
    */
   async exportClubEventToCalendar(
     clubEvent: ClubEvent,
+    settings?: CalendarSyncSettings | null,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const settings = await this.getSyncSettings('current_user');
       const event = clubEventToCalendarEvent(clubEvent);
       const icsContent = generateICSContent(event, settings || undefined);
 
@@ -532,9 +538,9 @@ export const calendarService = {
   async generateICSFileFromEvents(
     events: CalendarEvent[],
     filename?: string,
+    settings?: CalendarSyncSettings | null,
   ): Promise<{ success: boolean; filePath?: string; error?: string }> {
     try {
-      const settings = await this.getSyncSettings('current_user');
       const icsContent = generateMultiEventICSContent(events, settings || undefined);
 
       const finalFilename = filename || `clubroom-all-${Date.now()}.ics`;

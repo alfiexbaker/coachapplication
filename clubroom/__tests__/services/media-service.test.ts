@@ -240,6 +240,50 @@ describe('mediaService', () => {
         globalThis.fetch = originalFetch;
       }
     });
+
+    test('API mode returns an error when athlete media history cannot load', async () => {
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+      const originalGetCurrentUser = authService.getCurrentUser;
+      const originalFetch = globalThis.fetch;
+      const requestedUrls: string[] = [];
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+      authService.getCurrentUser = async () => ({
+        id: 'coach_api_media',
+        email: 'coach.api.media@example.test',
+        accountType: 'COACH',
+        firstName: 'API',
+        lastName: 'Coach',
+        isVerified: true,
+        onboardingComplete: true,
+        createdAt: '2026-07-05T10:00:00.000Z',
+        updatedAt: '2026-07-05T10:00:00.000Z',
+      });
+      globalThis.fetch = (async (input: Parameters<typeof fetch>[0]) => {
+        requestedUrls.push(String(input));
+        return jsonResponse({ message: 'athlete media down' }, 503);
+      }) as typeof fetch;
+
+      try {
+        const result = await mediaService.listMediaForAthlete('usr_api_media');
+
+        assert.equal(result.success, false);
+        assert.match(result.success ? '' : result.error.message, /athlete media down/i);
+        assert.equal(
+          requestedUrls[0],
+          'http://localhost:4000/v1/athletes/ath_api_media/session-media',
+        );
+      } finally {
+        if (originalIsMockMode) {
+          Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+        }
+        authService.getCurrentUser = originalGetCurrentUser;
+        globalThis.fetch = originalFetch;
+      }
+    });
   });
 
   // ---------------------------------------------------------------------------

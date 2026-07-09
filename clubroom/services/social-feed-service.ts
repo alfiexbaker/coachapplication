@@ -91,6 +91,11 @@ interface ApiPost {
 interface ApiPostCreateResponse {
   post: ApiPost;
 }
+interface ApiPostResponse {
+  post: ApiPost;
+  seedVersion?: string | null;
+  requestId: string;
+}
 interface ApiPostListResponse {
   posts: ApiPost[];
   seedVersion?: string | null;
@@ -558,6 +563,18 @@ function metadataPostAs(
 ): ClubFeedPost["postAs"] {
   return metadataString(metadata, "postAs") === "club" ? "club" : "self";
 }
+function isInternalDisplayId(value: string): boolean {
+  return /^(usr|ath|clb|fam|bok|inv|gse|gsr|drl|dra|med|safe|payatt|invc|pm|wd)[_-]/i.test(
+    value,
+  );
+}
+function safePostAuthorName(
+  value: string | null | undefined,
+  fallback: string,
+): string {
+  const trimmed = value?.trim();
+  return trimmed && !isInternalDisplayId(trimmed) ? trimmed : fallback;
+}
 function mapApiPostToClubFeedPost(
   post: ApiPost,
   context?: FeedApiContext,
@@ -565,6 +582,11 @@ function mapApiPostToClubFeedPost(
   const metadata = coerceApiPostMetadata(post.attachmentsJson);
   const authorId =
     post.authorUserId || post.author?.id || context?.currentUserId;
+  const authorName = safePostAuthorName(
+    post.author?.name ||
+      (context?.currentUserId === authorId ? context?.currentUserName : undefined),
+    "Club update",
+  );
   return {
     id: post.id,
     clubId: post.clubId ?? "",
@@ -574,6 +596,7 @@ function mapApiPostToClubFeedPost(
     audience: metadataAudience(metadata),
     audienceLabel: metadataString(metadata, "audienceLabel"),
     authorId,
+    authorName,
     postAs: metadataPostAs(metadata),
     postType: metadataPostType(metadata),
     feedType: metadataFeedType(metadata),
@@ -583,6 +606,9 @@ function mapApiPostToClubFeedPost(
     reactionCount: post.reactionsCount ?? 0,
     likedByCurrentUser: post.likedByCurrentUser === true,
     likes: post.likes,
+    isPinned: metadata.isPinned === true,
+    pinnedBy: metadataString(metadata, "pinnedBy"),
+    pinnedAt: metadataString(metadata, "pinnedAt"),
     commentCount: post.commentsCount ?? 0,
     eventId: metadataString(metadata, "eventId"),
     eventDate: metadataString(metadata, "eventDate"),
@@ -605,13 +631,18 @@ function mirrorClubFeedPost(post: ClubFeedPost): void {
   clubFeedStore.unshift(post);
 }
 function unsupportedApiPostMedia(
-  input: Pick<CreateClubPostInput, "attachments" | "imageUrl" | "videoUrl">,
+  input: Pick<CreateClubPostInput, "imageUrl" | "videoUrl">,
 ): boolean {
-  return Boolean(
-    input.imageUrl ||
-    input.videoUrl ||
-    (input.attachments && input.attachments.length > 0),
-  );
+  return Boolean(input.imageUrl || input.videoUrl);
+}
+function postAttachmentProofs(
+  attachmentIds: string[] | undefined,
+): Array<{ mediaObjectId: string }> | undefined {
+  const proofs = (attachmentIds ?? []).flatMap((attachmentId) => {
+    const mediaObjectId = attachmentId.trim();
+    return mediaObjectId ? [{ mediaObjectId }] : [];
+  });
+  return proofs.length > 0 ? proofs : undefined;
 }
 function metadataForClubPost(
   input: CreateClubPostInput,
@@ -942,6 +973,7 @@ class ClubFeedService {
       audience: input.audience || "club",
       audienceLabel,
       authorId: input.authorId,
+      authorName: input.authorName,
       postAs,
       postType: input.postType || "general",
       feedType,
@@ -1007,6 +1039,7 @@ class ClubFeedService {
         content: body,
         visibility: "CLUB",
         metadata: metadataForClubPost(input),
+        attachments: postAttachmentProofs(input.attachments),
         idempotencyKey: generateId("post-create"),
       }),
     });
@@ -1074,6 +1107,44 @@ class ClubFeedService {
   getFeed(clubId: string, filter: FeedFilter = "all"): ClubFeedPost[] {
     return getClubFeedInternal(clubId, filter);
   }
+  async getPostAuthority(postId: string): Promise<Result<ClubFeedPost, ServiceError>> {
+    if (!postId) {
+      return err(validationError("Post ID is required"));
+    }
+    const contextResult = await resolveFeedApiContext("Sign in to view posts");
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const context = contextResult.data;
+
+    if (USE_MOCK) {
+      const post =
+        getAggregatedFeedInternal(context.currentUserId).find((candidate) => candidate.id === postId) ??
+        getPersonalFeedForCoachInternal(context.currentUserId).find(
+          (candidate) => candidate.id === postId,
+        ) ??
+        clubFeedStore.find((candidate) => candidate.id === postId);
+      return post ? ok(post) : err(validationError("Post not found"));
+    }
+
+    const result = await apiFetch<ApiPostResponse>(`/v1/posts/${encodeURIComponent(postId)}`, {
+      method: "GET",
+      headers: context.headers,
+    });
+    if (!result.success) {
+      this.logger.error("Failed to load post via API", {
+        postId,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    const post = mapApiPostToClubFeedPost(result.data.post, context);
+    mirrorClubFeedPost(post);
+    if (context.currentUserId) {
+      syncUserReaction(post.id, context.currentUserId, post.likedByCurrentUser === true);
+    }
+    return ok(post);
+  }
   async getFeedAuthority(
     clubId: string,
     filter: FeedFilter = "all",
@@ -1130,6 +1201,49 @@ class ClubFeedService {
       pinnedBy: isPinned ? userId : undefined,
     });
     return isPinned;
+  }
+  async setPostPinAuthority(
+    postId: string,
+    pinned: boolean,
+  ): Promise<Result<ClubFeedPost, ServiceError>> {
+    if (USE_MOCK) {
+      const contextResult = await resolveFeedApiContext("Sign in to pin posts");
+      if (!contextResult.success) {
+        return contextResult;
+      }
+      const post = clubFeedStore.find((candidate) => candidate.id === postId);
+      if (!post) {
+        return err(validationError("Post not found"));
+      }
+      if (post.isPinned !== pinned) {
+        this.togglePin(postId, contextResult.data.currentUserId);
+      }
+      return ok(post);
+    }
+    if (!postId) {
+      return err(validationError("Post ID is required"));
+    }
+    const contextResult = await resolveFeedApiContext("Sign in to pin posts");
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const context = contextResult.data;
+    const result = await apiFetch<ApiPostResponse>(`/v1/posts/${encodeURIComponent(postId)}/pin`, {
+      method: "PATCH",
+      headers: context.headers,
+      body: JSON.stringify({ pinned }),
+    });
+    if (!result.success) {
+      this.logger.error("Failed to update post pin via API", {
+        postId,
+        pinned,
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    const post = mapApiPostToClubFeedPost(result.data.post, context);
+    mirrorClubFeedPost(post);
+    return ok(post);
   }
   toggleReaction(postId: string, userId: string): boolean {
     const isNowReacted = toggleReactionInternal(postId, userId);
@@ -1194,6 +1308,112 @@ class ClubFeedService {
       postCount: posts.length,
     });
     return posts;
+  }
+  async getUpdatesFeedAuthority(
+    filter: FeedFilter = "all",
+  ): Promise<Result<AggregatedFeedPost[], ServiceError>> {
+    if (USE_MOCK) {
+      const contextResult = await resolveFeedApiContext(
+        "Sign in to view updates",
+      );
+      if (!contextResult.success) {
+        return contextResult;
+      }
+      return ok(
+        this.getAggregatedFeed(contextResult.data.currentUserId, filter),
+      );
+    }
+    const contextResult = await resolveFeedApiContext("Sign in to view updates");
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const context = contextResult.data;
+    const result = await apiFetch<ApiPostListResponse>("/v1/posts", {
+      method: "GET",
+      headers: context.headers,
+    });
+    if (!result.success) {
+      this.logger.error("Failed to load updates feed via API", {
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    const posts = result.data.posts.map((post) =>
+      mapApiPostToClubFeedPost(post, context),
+    );
+    posts.forEach(mirrorClubFeedPost);
+    posts.forEach((post) => {
+      if (context.currentUserId) {
+        syncUserReaction(
+          post.id,
+          context.currentUserId,
+          post.likedByCurrentUser === true,
+        );
+      }
+    });
+    return ok(
+      sortByDateDesc(filterPostsByType(posts, filter)).map((post) => {
+        const club = post.clubId ? getClubById(post.clubId) : undefined;
+        return {
+          ...post,
+          clubName: club?.name || "Club update",
+          clubBadge: club?.badge,
+        };
+      }),
+    );
+  }
+  async getFollowingFeedAuthority(
+    filter: FeedFilter = "all",
+  ): Promise<Result<AggregatedFeedPost[], ServiceError>> {
+    if (USE_MOCK) {
+      const contextResult = await resolveFeedApiContext(
+        "Sign in to view followed updates",
+      );
+      if (!contextResult.success) {
+        return contextResult;
+      }
+      return ok(this.getFollowingFeed([], filter));
+    }
+    const contextResult = await resolveFeedApiContext(
+      "Sign in to view followed updates",
+    );
+    if (!contextResult.success) {
+      return contextResult;
+    }
+    const context = contextResult.data;
+    const result = await apiFetch<ApiPostListResponse>("/v1/posts?followingOnly=true", {
+      method: "GET",
+      headers: context.headers,
+    });
+    if (!result.success) {
+      this.logger.error("Failed to load following feed via API", {
+        error: result.error,
+      });
+      return err(result.error);
+    }
+    const posts = result.data.posts.map((post) =>
+      mapApiPostToClubFeedPost(post, context),
+    );
+    posts.forEach(mirrorClubFeedPost);
+    posts.forEach((post) => {
+      if (context.currentUserId) {
+        syncUserReaction(
+          post.id,
+          context.currentUserId,
+          post.likedByCurrentUser === true,
+        );
+      }
+    });
+    return ok(
+      sortByDateDesc(filterPostsByType(posts, filter)).map((post) => {
+        const club = post.clubId ? getClubById(post.clubId) : undefined;
+        return {
+          ...post,
+          clubName: club?.name || "Followed update",
+          clubBadge: club?.badge,
+        };
+      }),
+    );
   }
   getUserClubs(userId: string): Club[] {
     return getUserClubsInternal(userId);
@@ -1690,6 +1910,7 @@ class ClubFeedService {
       audience: "club",
       audienceLabel: "Club-wide",
       authorId: input.authorId,
+      authorName: input.authorName,
       postAs: "self",
       postType: input.badgeAwardId ? "achievement" : "general",
       badgeAwarded: input.badgeLabel,
@@ -1724,6 +1945,7 @@ class ClubFeedService {
       audience: "club",
       audienceLabel: "Club-wide",
       authorId: input.coachId,
+      authorName: input.coachName,
       postAs: "club",
       postType: "achievement",
       badgeAwarded: input.badgeLabel,
@@ -1763,6 +1985,7 @@ class ClubFeedService {
       audience: input.squadName ? "squad" : "club",
       audienceLabel: input.squadName || "Club-wide",
       authorId: input.coachId,
+      authorName: input.coachName,
       postAs: "club",
       postType: "session",
       sessionId: input.sessionId,
@@ -1803,6 +2026,7 @@ class ClubFeedService {
       audience: input.squadName ? "squad" : "club",
       audienceLabel: input.squadName || "Club-wide",
       authorId: input.coachId,
+      authorName: input.coachName,
       postAs: "club",
       postType: "match",
       matchId: input.matchId,
@@ -1855,6 +2079,7 @@ class ClubFeedService {
       audience: "club",
       audienceLabel: "Club-wide",
       authorId: input.parentId,
+      authorName: "Family update",
       postAs: "self",
       postType: input.badgeAwardId ? "achievement" : "general",
       badgeAwarded: input.badgeAwarded,
@@ -1958,6 +2183,7 @@ class ClubFeedService {
       audienceLabel: "Personal + Club",
       feedType: "BOTH",
       authorId: input.coachId,
+      authorName: input.coachName,
       postAs: "self",
       postType: "session_announcement",
       sessionId: input.sessionId,
@@ -2036,6 +2262,7 @@ class ClubFeedService {
       audience: "club",
       audienceLabel,
       authorId: input.coachId,
+      authorName: input.coachName,
       postAs: "self",
       postType: input.postType || "general",
       feedType,

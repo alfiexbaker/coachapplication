@@ -42,12 +42,6 @@ function parseEndIso(date: string, endTime?: string): string | undefined {
   return parsed.toISOString();
 }
 
-function mapEventKind(event: ClubEvent): ClubActivity['kind'] {
-  return event.eventType === 'TRIAL_DAY' || event.eventType === 'TRAINING_CAMP'
-    ? 'training'
-    : 'informational';
-}
-
 function mapEventStatus(event: ClubEvent): ClubActivity['status'] {
   if (event.status === 'DRAFT') return 'draft';
   if (event.status === 'CANCELLED') return 'cancelled';
@@ -192,7 +186,7 @@ export function mapEventToClubActivity(event: ClubEvent): ClubActivity {
     startsAt,
     endsAt: parseEndIso(event.date, event.endTime),
     status: mapEventStatus(event),
-    kind: mapEventKind(event),
+    kind: 'informational',
     typeLabel: formatTypeLabel(event.eventType),
     participationMode: event.rsvpRequired ? 'rsvp' : 'none',
     participationLabel: getEventParticipationLabel(event),

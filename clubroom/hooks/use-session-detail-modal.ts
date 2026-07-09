@@ -27,11 +27,15 @@ import {
   getSessionOfferingRegisteredCount,
   isSessionOfferingFull,
 } from '@/utils/session-offering-capacity';
-import { extractGroupSessionIdFromOfferingId } from '@/utils/session-offering-projections';
+import {
+  getSessionOfferingGroupSessionId,
+  resolveSessionOfferingSourceIds,
+} from '@/utils/session-offering-projections';
 import {
   canManageSessionOperations,
   isAssignedSessionCoach,
 } from '@/utils/session-ownership-authority';
+import { resolveBookingTarget, resolveDefaultBookingTarget } from '@/utils/booking-targets';
 import { uiFeedback } from '@/services/ui-feedback';
 import { runAsyncTryCatchFinally } from '@/utils/async-control';
 const logger = createLogger('useSessionDetailModal');
@@ -250,18 +254,17 @@ export function useSessionDetailModal(
           [staffingResult.data.club.id]: staffingResult.data.club.name,
         });
         setCanManageClubOwnership(staffingResult.data.canManageAssignments);
-        const options = staffingResult.data.staff
-          .flatMap((member) =>
-            member.canTakeAssignments
-              ? [
-                  {
-                    id: member.userId,
-                    label: member.label,
-                    role: member.role,
-                  },
-                ]
-              : [],
-          );
+        const options = staffingResult.data.staff.flatMap((member) =>
+          member.canTakeAssignments
+            ? [
+                {
+                  id: member.userId,
+                  label: member.label,
+                  role: member.role,
+                },
+              ]
+            : [],
+        );
         setAssigneeOptions(options);
         setSelectedAssigneeId((previous) => {
           if (previous && options.some((option) => option.id === previous)) {
@@ -301,26 +304,26 @@ export function useSessionDetailModal(
   const isCoach = currentUser?.role === 'COACH';
   const isMyOffering = Boolean(
     offering &&
-      currentUser &&
-      isAssignedSessionCoach({
-        actingAs: offering.actingAs,
-        coachId: offering.coachId,
-        ownerCoachId: offering.ownerCoachId,
-        assigneeCoachId: offering.assigneeCoachId,
-        currentUserId: currentUser.id,
-      }),
+    currentUser &&
+    isAssignedSessionCoach({
+      actingAs: offering.actingAs,
+      coachId: offering.coachId,
+      ownerCoachId: offering.ownerCoachId,
+      assigneeCoachId: offering.assigneeCoachId,
+      currentUserId: currentUser.id,
+    }),
   );
   const canManageOffering = Boolean(
     offering &&
-      currentUser &&
-      canManageSessionOperations({
-        actingAs: offering.actingAs,
-        coachId: offering.coachId,
-        ownerCoachId: offering.ownerCoachId,
-        assigneeCoachId: offering.assigneeCoachId,
-        currentUserId: currentUser.id,
-        canManageClubAssignments: canManageClubOwnership,
-      }),
+    currentUser &&
+    canManageSessionOperations({
+      actingAs: offering.actingAs,
+      coachId: offering.coachId,
+      ownerCoachId: offering.ownerCoachId,
+      assigneeCoachId: offering.assigneeCoachId,
+      currentUserId: currentUser.id,
+      canManageClubAssignments: canManageClubOwnership,
+    }),
   );
   const canManageRecurringInstances = Boolean(
     canManageOffering && offering?.source === 'group' && offering?.isRecurring,
@@ -429,19 +432,9 @@ export function useSessionDetailModal(
       return;
     }
     let cancelled = false;
-    const directEntityIds = new Set<string>();
-    directEntityIds.add(offering.id);
-    if (offering.sourceEntityId) {
-      directEntityIds.add(offering.sourceEntityId);
-    }
-    const groupSessionIds = new Set<string>();
-    const inferredGroupSessionId = extractGroupSessionIdFromOfferingId(offering.id);
-    if (inferredGroupSessionId) {
-      groupSessionIds.add(inferredGroupSessionId);
-    }
-    if (offering.source === 'group' && offering.sourceEntityId) {
-      groupSessionIds.add(offering.sourceEntityId);
-    }
+    const sourceIds = resolveSessionOfferingSourceIds(offering);
+    const directEntityIds = new Set(sourceIds.directEntityIds);
+    const groupSessionIds = new Set(sourceIds.groupSessionIds);
     const loadLinkedBookings = async () => {
       try {
         const bookings = await bookingService.list();
@@ -796,9 +789,7 @@ export function useSessionDetailModal(
   const handleCancelInstance = async (instanceDate: Date) => {
     if (!offering) return;
     const dateStr = toDateStr(instanceDate);
-    const sessionId =
-      (offering.source === 'group' && offering.sourceEntityId) ||
-      extractGroupSessionIdFromOfferingId(offering.id);
+    const sessionId = getSessionOfferingGroupSessionId(offering);
     if (!sessionId) {
       uiFeedback.showToast('Only group sessions can cancel recurring instances.', 'error');
       return;
@@ -857,9 +848,10 @@ export function useSessionDetailModal(
         : undefined) ?? confirmedActorRegistrations[0];
     try {
       const bookings = await bookingService.list();
+      const groupSessionId = getSessionOfferingGroupSessionId(offering);
       const linkedBooking = bookings.find((booking) => {
         if (booking.status === 'CANCELLED') return false;
-        if (booking.groupSessionId !== offering.id) return false;
+        if (!groupSessionId || booking.groupSessionId !== groupSessionId) return false;
         if (booking.groupRegistrationId && booking.groupRegistrationId === myRegistration.id)
           return true;
         const athleteIds = new Set<string>();
@@ -943,9 +935,7 @@ export function useSessionDetailModal(
           text: 'End Series',
           style: 'destructive',
           onPress: async () => {
-            const sessionId =
-              (offering.source === 'group' && offering.sourceEntityId) ||
-              extractGroupSessionIdFromOfferingId(offering.id);
+            const sessionId = getSessionOfferingGroupSessionId(offering);
             if (!sessionId) {
               uiFeedback.showToast('Only group sessions can end recurring series.', 'error');
               return;
@@ -976,9 +966,7 @@ export function useSessionDetailModal(
         const selectedAssigneeLabel =
           assigneeOptions.find((option) => option.id === selectedAssigneeId)?.label ||
           selectedAssigneeId;
-        const assignmentId =
-          (offering.source === 'group' && offering.sourceEntityId) ||
-          extractGroupSessionIdFromOfferingId(offering.id);
+        const assignmentId = getSessionOfferingGroupSessionId(offering);
         if (!offering.clubId || !assignmentId) {
           uiFeedback.showToast('Only club group sessions can be reassigned here.', 'error');
           return;
@@ -1037,9 +1025,7 @@ export function useSessionDetailModal(
     setSavingOffPlatform(true);
     await runAsyncTryCatchFinally(
       async () => {
-        const sessionId =
-          (offering.source === 'group' && offering.sourceEntityId) ||
-          extractGroupSessionIdFromOfferingId(offering.id);
+        const sessionId = getSessionOfferingGroupSessionId(offering);
         if (!sessionId) {
           uiFeedback.showToast('Only group sessions can update off-platform attendees.', 'error');
           return;
@@ -1111,40 +1097,44 @@ export function useSessionDetailModal(
     const selectedIds = (
       bookableChildren.length > 0 ? selectedChildIds : currentUser?.id ? [currentUser.id] : []
     ).filter((id, index, source) => source.indexOf(id) === index);
-    const prefillChildren = selectedIds
-      .map((childId) => {
-        if (currentUser?.id && childId === currentUser.id) {
-          return {
-            id: currentUser.id,
-            name: currentUser.name || currentUser.fullName || 'Athlete',
-          };
-        }
-        const matchedChild = children.find((child) => child.id === childId);
-        return matchedChild
-          ? {
-              id: matchedChild.id,
-              name: matchedChild.name,
-            }
-          : null;
-      })
-      .filter(
-        (
-          child,
-        ): child is {
-          id: string;
-          name: string;
-        } => child !== null,
+    const prefillChildren = selectedIds.map((childId) =>
+      resolveBookingTarget({ targetId: childId, currentUser, children }),
+    );
+    const prefillChild =
+      prefillChildren[0] ?? resolveDefaultBookingTarget({ currentUser, children });
+    const groupSessionId = getSessionOfferingGroupSessionId(offering);
+    if (groupSessionId) {
+      const registrationTargets =
+        prefillChildren.length > 0 ? prefillChildren : prefillChild ? [prefillChild] : [];
+      if (registrationTargets.length === 0) {
+        uiFeedback.showToast('Choose who is attending before registering.', 'warning');
+        return;
+      }
+
+      const results = await Promise.all(
+        registrationTargets.map((child) =>
+          groupSessionService.register(groupSessionId, child.id, currentUser.id),
+        ),
       );
-    const prefillChild = prefillChildren[0]
-      ? (() => {
-          return prefillChildren[0];
-        })()
-      : children.length === 0
-        ? {
-            id: currentUser.id,
-            name: currentUser.name || currentUser.fullName || 'Athlete',
-          }
-        : null;
+      const failed = results.find((result) => !result.success);
+      if (failed && !failed.success) {
+        uiFeedback.showToast(failed.error.message || 'Registration failed.', 'error');
+        return;
+      }
+
+      uiFeedback.showToast(
+        registrationTargets.length > 1
+          ? `${registrationTargets.length} family members registered.`
+          : registrationTargets[0].name
+            ? `${registrationTargets[0].name} is registered.`
+            : 'Registration complete.',
+        'success',
+      );
+      onUpdate?.();
+      onClose();
+      return;
+    }
+
     updateDraft({
       ...buildBookingDraftPatchFromOffering({
         coachId: offering.coachId,

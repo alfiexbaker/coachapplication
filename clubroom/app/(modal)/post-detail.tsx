@@ -13,7 +13,7 @@ import { router } from 'expo-router';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { ErrorState, SubmitProgressState } from '@/components/ui/screen-states';
+import { ErrorState, LoadingState, SubmitProgressState } from '@/components/ui/screen-states';
 import { CommentCard } from '@/components/social/comment-card';
 import { CommentInput } from '@/components/social/comment-input';
 import { PostDetailCard } from '@/components/social/post-detail-card';
@@ -98,15 +98,21 @@ export default function PostDetailScreen() {
           <ThemedText style={styles.headerTitle}>Post</ThemedText>
           <View style={styles.headerSpacer} />
         </Row>
-        <View style={styles.emptyContainer}>
-          <Ionicons name="document-text-outline" size={48} color={palette.muted} />
-          <ThemedText style={[styles.emptyTitle, { color: palette.text }]}>
-            Post not found
-          </ThemedText>
-          <ThemedText style={[styles.emptySubtitle, { color: palette.muted }]}>
-            This post may have been removed.
-          </ThemedText>
-        </View>
+        {p.postLoading ? (
+          <View style={styles.loadingContainer}>
+            <LoadingState variant="detail" />
+          </View>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="document-text-outline" size={48} color={palette.muted} />
+            <ThemedText style={[styles.emptyTitle, { color: palette.text }]}>
+              Post not found
+            </ThemedText>
+            <ThemedText style={[styles.emptySubtitle, { color: palette.muted }]}>
+              {p.postError ?? 'This post may have been removed.'}
+            </ThemedText>
+          </View>
+        )}
       </SafeAreaView>
     );
   }

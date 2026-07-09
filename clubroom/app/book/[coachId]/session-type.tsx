@@ -27,6 +27,7 @@ import {
   buildBookingDraftPatchFromOffering,
   type BookingPrefillChild,
 } from '@/utils/booking-draft-prefill';
+import { resolveDefaultBookingTarget } from '@/utils/booking-targets';
 import {
   buildSessionOfferingCategories,
   filterSessionOfferingsByCategory,
@@ -44,8 +45,19 @@ function formatCurrencyValue(value: number): string {
   return Number.isInteger(value) ? `£${value}` : `£${value.toFixed(2)}`;
 }
 
+function hasOfferingPrice(offering: SessionOffering): offering is SessionOffering & {
+  price: number;
+} {
+  return (
+    typeof offering.price === 'number' && Number.isFinite(offering.price) && offering.price >= 0
+  );
+}
+
 function formatOfferingPrice(offering: SessionOffering): string {
-  if (typeof offering.price === 'number' && offering.price > 0) {
+  if (!hasOfferingPrice(offering)) {
+    return 'Price unavailable';
+  }
+  if (offering.price > 0) {
     return formatCurrencyValue(offering.price);
   }
   return 'Free';
@@ -118,57 +130,19 @@ export default function SessionTypeScreen() {
   });
 
   const preselectedChild = (() => {
-    if (childId) {
-      if (currentUser?.id && childId === currentUser.id) {
-        return {
-          id: currentUser.id,
-          name: currentUser.name || currentUser.fullName || 'Athlete',
-        };
-      }
-
-      if (childContextLoading) {
-        return null;
-      }
-
-      const matchedChild = children.find((child) => child.id === childId);
-      if (matchedChild) {
-        return {
-          id: matchedChild.id,
-          name: matchedChild.name,
-        };
-      }
+    if (childContextLoading && childId !== currentUser?.id) {
       return null;
     }
 
-    if (childContextLoading) {
+    const target = resolveDefaultBookingTarget({
+      preferredChildId: childId ?? activeChildId,
+      currentUser,
+      children,
+    });
+    if (childId && target?.id !== childId) {
       return null;
     }
-
-    if (activeChildId) {
-      const activeChild = children.find((child) => child.id === activeChildId);
-      if (activeChild) {
-        return {
-          id: activeChild.id,
-          name: activeChild.name,
-        };
-      }
-    }
-
-    if (children.length === 1) {
-      return {
-        id: children[0].id,
-        name: children[0].name,
-      };
-    }
-
-    if (children.length === 0 && currentUser?.id) {
-      return {
-        id: currentUser.id,
-        name: currentUser.name || currentUser.fullName || 'Athlete',
-      };
-    }
-
-    return null;
+    return target;
   })();
 
   const loadOfferings = async () => {
@@ -302,17 +276,30 @@ export default function SessionTypeScreen() {
     }
 
     const currentResolvedOfferings = offerings ?? [];
+    const requestedOffering = offeringId
+      ? currentResolvedOfferings.find((offering) => offering.id === offeringId)
+      : undefined;
+    if (requestedOffering && requestedOffering.id !== draft.sessionOfferingId) {
+      updateDraft(
+        buildBookingDraftPatchFromOffering({
+          coachId,
+          offering: requestedOffering,
+          child: preselectedChild,
+          entrySource: source,
+        }),
+      );
+      return;
+    }
+
     const currentSelection = currentResolvedOfferings.find(
       (offering) => offering.id === draft.sessionOfferingId,
     );
-    if (currentSelection) {
+    if (currentSelection && (!offeringId || currentSelection.id === offeringId)) {
       return;
     }
 
     const preferredOffering =
-      (offeringId
-        ? currentResolvedOfferings.find((offering) => offering.id === offeringId)
-        : undefined) ??
+      requestedOffering ??
       (currentResolvedOfferings.length === 1 ? currentResolvedOfferings[0] : undefined);
 
     if (preferredOffering) {
@@ -433,6 +420,21 @@ export default function SessionTypeScreen() {
       return;
     }
 
+    if (!hasOfferingPrice(selectedOffering)) {
+      void bookingStepAnalyticsService.track({
+        step: 'type',
+        status: 'validation_fail',
+        failure_code: 'missing_price',
+        source,
+        role: currentUser?.role,
+        currentUserId: currentUser?.id,
+        hasChildren: accountHasChildren,
+        actingAs: draft.actingAs,
+        draft,
+      });
+      return;
+    }
+
     void bookingStepAnalyticsService.track({
       step: 'type',
       status: 'success',
@@ -459,7 +461,7 @@ export default function SessionTypeScreen() {
     router.push(Routes.bookReview(coachId));
   };
 
-  const canContinue = Boolean(coachId && selectedOffering);
+  const canContinue = Boolean(coachId && selectedOffering && hasOfferingPrice(selectedOffering));
   const visibleSessionCount =
     effectiveFilter === 'all' ? resolvedOfferings.length : filteredOfferings.length;
   const catalogTitle = effectiveFilter === 'all' ? 'All sessions' : selectedFilter.label;
@@ -651,7 +653,7 @@ export default function SessionTypeScreen() {
               </Row>
             </Clickable>
           </>
-        ) : canContinue && selectedOffering ? (
+        ) : selectedOffering ? (
           <>
             <View
               style={[
@@ -686,11 +688,16 @@ export default function SessionTypeScreen() {
                 { backgroundColor: canContinue ? palette.tint : withAlpha(palette.tint, 0.4) },
               ]}
               disabled={!canContinue}
+              accessibilityLabel={canContinue ? 'Continue booking' : 'Price unavailable'}
             >
               <Row justify="center" align="center" gap="sm">
-                <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
+                <Ionicons
+                  name={canContinue ? 'arrow-forward' : 'alert-circle-outline'}
+                  size={18}
+                  color={palette.onPrimary}
+                />
                 <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
-                  Continue
+                  {canContinue ? 'Continue' : 'Price unavailable'}
                 </ThemedText>
               </Row>
             </Clickable>

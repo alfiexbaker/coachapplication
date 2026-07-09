@@ -296,6 +296,7 @@ model User {
   notifications                  Notification[]
   notificationPreference         NotificationPreference?
   privacySetting                 UserPrivacySetting?
+  bookingPreference              UserBookingPreference?
   mutedSources                   MutedSource[]
   quietHours                     QuietHours?
   coachFavourites                CoachFavourite[]           @relation("UserCoachFavourites")
@@ -2685,6 +2686,15 @@ model UserPrivacySetting {
   showClientList     Boolean  @default(false)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+}
+
+model UserBookingPreference {
+  userId        String   @id
+  allowBookSelf Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 }

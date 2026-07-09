@@ -1,7 +1,9 @@
 import { useState, useEffect, startTransition } from 'react';
 
+import { api } from '@/constants/config';
 import { useAuth } from '@/hooks/use-auth';
 import { useChildContext } from '@/hooks/use-child-context';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import { groupSessionService } from '@/services/group-session-service';
 import { squadService } from '@/services/squad-service';
 import { socialFeedService } from '@/services/social-feed-service';
@@ -41,8 +43,15 @@ export function useTrainingSchedule() {
 
       return await runAsyncTryCatchFinally(
         async () => {
-          const userClubs = socialFeedService.getUserClubs(currentUserId);
-          const activeClub = userClubs[0];
+          const activeClub = api.useMock
+            ? socialFeedService.getUserClubs(currentUserId)[0]
+            : await (async () => {
+                const result = await clubAuthorityService.listClubs();
+                if (!result.success) {
+                  throw new Error(result.error.message);
+                }
+                return result.data.clubs[0];
+              })();
 
           if (!activeClub) {
             setClubName('Club');

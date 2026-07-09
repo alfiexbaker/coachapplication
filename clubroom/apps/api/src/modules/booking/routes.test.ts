@@ -232,6 +232,68 @@ describe('booking group-session routes', () => {
     await app.close();
   });
 
+  it('returns resolved display labels for session invites', async () => {
+    const store = getMarketplaceSeedStore();
+    const tables = store.tables;
+    const coachUserId = getSeededCoachUserId(tables);
+    const guardianSelection = getGuardianSelections(tables)[0];
+    assert.ok(guardianSelection, 'expected guardian-child link');
+
+    const slot = isoDaysFromNow(8, 18, 60);
+    const sessionId = 'gse_invite_labels';
+    ensureTable(tables, 'groupSessions').push(
+      createSessionRow({
+        id: sessionId,
+        coachUserId,
+        title: 'Invite Label Session',
+        startsAt: slot.startsAt,
+        endsAt: slot.endsAt,
+      }),
+    );
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/invites',
+      headers: authHeaders(tables, coachUserId, 'coach'),
+      payload: {
+        coachUserId,
+        athleteIds: [guardianSelection.athleteId],
+        parentUserId: guardianSelection.guardianUserId,
+        proposedSlots: [
+          {
+            date: slot.date,
+            startTime: '18:00',
+            endTime: '19:00',
+            location: 'Authority Pitch',
+          },
+        ],
+        sessionType: 'Small-group session',
+        focus: 'Passing',
+        existingSessionId: sessionId,
+        idempotencyKey: 'session-invite-labels',
+      },
+    });
+    assert.equal(response.statusCode, 201);
+
+    const coach = asRows(tables.users).find((row) => asString(row.id) === coachUserId);
+    const parent = asRows(tables.users).find(
+      (row) => asString(row.id) === guardianSelection.guardianUserId,
+    );
+    const athlete = asRows(tables.athletes).find(
+      (row) => asString(row.id) === guardianSelection.athleteId,
+    );
+    const payload = response.json() as {
+      invite: {
+        coachName?: string;
+        parentName?: string;
+        athleteNames?: string[];
+      };
+    };
+    assert.equal(payload.invite.coachName, asString(coach?.name));
+    assert.equal(payload.invite.parentName, asString(parent?.name));
+    assert.deepEqual(payload.invite.athleteNames, [asString(athlete?.displayName)]);
+  });
+
   it('updates booking details through v1 with idempotency and audit events', async () => {
     const store = getMarketplaceSeedStore();
     const tables = store.tables;
@@ -1169,6 +1231,40 @@ describe('booking group-session routes', () => {
     assert.equal(registeredPayload.invoice?.status, 'SENT');
     assert.equal(registeredPayload.invoice?.totalMinor, 2500);
 
+    const sessionThread = ensureTable(store.tables, 'messageThreads').find(
+      (row) =>
+        asString(row.groupSessionId) === sessionId &&
+        asString(row.threadType) === 'GROUP' &&
+        !asString(row.deletedAt),
+    );
+    assert.ok(sessionThread, 'expected confirmed registration to create a session message thread');
+    assert.equal(asString(sessionThread.title), 'Authority Registration Flow');
+    const sessionThreadParticipants = ensureTable(store.tables, 'messageParticipants').filter(
+      (row) => asString(row.messageThreadId) === asString(sessionThread.id) && !asString(row.leftAt),
+    );
+    const participantRoles = new Map(
+      sessionThreadParticipants.map((row) => [asString(row.userId), asString(row.role)]),
+    );
+    assert.equal(participantRoles.get(coachUserId), 'COACH');
+    assert.equal(participantRoles.get(guardianSelection.guardianUserId), 'MEMBER');
+
+    const guardianThreads = await app.inject({
+      method: 'GET',
+      url: '/v1/message-threads',
+      headers: authHeaders(store.tables, guardianSelection.guardianUserId, 'parent'),
+    });
+    assert.equal(guardianThreads.statusCode, 200);
+    const guardianThreadsPayload = guardianThreads.json() as {
+      threads: Array<{ id: string; groupSessionId?: string | null }>;
+    };
+    assert.equal(
+      guardianThreadsPayload.threads.some(
+        (thread) =>
+          thread.id === asString(sessionThread.id) && thread.groupSessionId === sessionId,
+      ),
+      true,
+    );
+
     const paymentSession = await app.inject({
       method: 'POST',
       url: `/v1/invoices/${registeredPayload.invoice?.id}/payments`,
@@ -1324,6 +1420,13 @@ describe('booking group-session routes', () => {
     assert.equal(storedSession?.waitlistCount, 1);
     assert.equal(asString(storedSession?.status), 'FULL');
     assert.equal(asString(storedRegistration?.status), 'WAITLISTED');
+    assert.equal(
+      ensureTable(store.tables, 'messageThreads').some(
+        (row) => asString(row.groupSessionId) === fullSessionId && !asString(row.deletedAt),
+      ),
+      false,
+      'waitlisted athletes should not receive session chat access',
+    );
     assert.equal(
       asString(storedRegistration?.notes),
       'Joined waitlist via /v1/group-sessions/:sessionId/waitlist',

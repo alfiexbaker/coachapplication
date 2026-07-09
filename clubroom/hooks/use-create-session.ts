@@ -311,6 +311,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     inviteType?: SessionInviteType;
     actingAs?: 'self' | 'club';
     clubId?: string;
+    squadId?: string;
     assigneeCoachId?: string;
   }>();
 
@@ -654,6 +655,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
     params.clubId,
     params.inviteType,
     params.preset,
+    params.squadId,
   ]);
   useEffect(() => {
     if (!allowedInviteTypes.includes(inviteType)) {
@@ -909,6 +911,8 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
             ? selectedAssigneeName || currentUserDisplayName
             : currentUserDisplayName;
         const ownerClubId = resolvedActingAs === 'club' ? (selectedClubId ?? undefined) : undefined;
+        const ownerSquadId =
+          resolvedActingAs === 'club' && inviteType === 'SQUAD_ONLY' ? params.squadId : undefined;
         const creatorRole = (currentUser.role as UserRole | undefined) ?? 'COACH';
         const creatorDisplayName = currentUserDisplayName;
         if (resolvedActingAs === 'club') {
@@ -935,6 +939,11 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
         }
         if (!creatorDisplayName) {
           setValidationMessage('Unable to resolve creator name.');
+          setLoading(false);
+          return;
+        }
+        if (ownerSquadId && isRecurring) {
+          setValidationMessage('Squad training from the team schedule must be one-off for now.');
           setLoading(false);
           return;
         }
@@ -1076,6 +1085,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
             createdByUserId: currentUser.id,
             createdByRole: creatorRole,
             createdByName: creatorDisplayName,
+            squadId: ownerSquadId,
             title,
             description: description || 'Football camp session',
             sessionType: 'CAMP',
@@ -1208,6 +1218,7 @@ export function useCreateSession(): CreateSessionState & CreateSessionActions {
           coachId: ownerCoachId,
           coachName: ownerCoachName,
           clubId: ownerClubId,
+          squadId: ownerSquadId,
           actingAs: resolvedActingAs,
           commercialMode: selectedCommercialMode,
           ownerCoachId,

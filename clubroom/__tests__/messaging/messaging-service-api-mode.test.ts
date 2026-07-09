@@ -186,11 +186,30 @@ describe('MessagingService API mode', () => {
               messages: [],
               participants: [],
             },
+            {
+              id: 'thread_api_group_session',
+              threadType: 'GROUP',
+              title: 'Session group chat',
+              communityGroupId: 'community_api_group',
+              groupSessionId: 'group_session_api_1',
+              createdAt: '2026-07-03T12:10:00.000Z',
+              messages: [],
+              participants: [{ userId: 'parent_api_reader' }],
+            },
           ],
         });
       }
       if (url.endsWith('/v1/community-groups')) {
-        return jsonResponse({ groups: [] });
+        return jsonResponse({
+          groups: [
+            {
+              id: 'community_api_group',
+              type: 'SESSION',
+              name: 'U12 finishing group',
+              description: 'Session group messages',
+            },
+          ],
+        });
       }
       if (url.endsWith('/v1/bookings')) {
         return jsonResponse({ bookings: [] });
@@ -210,11 +229,99 @@ describe('MessagingService API mode', () => {
         'http://localhost:4000/v1/community-groups',
         'http://localhost:4000/v1/bookings',
       ]);
+      assert.equal(result.data.length, 2);
+      const directThread = result.data.find((thread) => thread.id === 'thread_api_direct');
+      assert.equal(directThread?.title, 'Coach');
+      assert.equal(directThread?.unreadCount, 0);
+      assert.equal(directThread?.lastMessageSnippet, undefined);
+
+      const groupThread = result.data.find((thread) => thread.id === 'thread_api_group_session');
+      assert.equal(groupThread?.kind, 'group');
+      assert.equal(groupThread?.communityGroupId, 'community_api_group');
+      assert.equal(groupThread?.groupSessionId, 'group_session_api_1');
+      assert.equal(groupThread?.title, 'Session group chat');
+    } finally {
+      restoreUser();
+    }
+  });
+
+  it('keeps API-mode thread summaries available when optional booking labels fail', async () => {
+    const restoreUser = await setupApiModeUser();
+    const { messagingService } = await import('@/services/messaging-service');
+    const fetchCalls: string[] = [];
+
+    globalThis.fetch = (async (input) => {
+      const url = String(input);
+      fetchCalls.push(url);
+      if (url.endsWith('/v1/message-threads')) {
+        return jsonResponse({
+          threads: [
+            {
+              id: 'thread_api_direct',
+              threadType: 'DIRECT',
+              bookingId: 'booking_api_unavailable',
+              createdAt: '2026-07-03T12:00:00.000Z',
+              messages: [],
+              participants: [{ userId: 'coach_api_sender' }],
+            },
+          ],
+        });
+      }
+      if (url.endsWith('/v1/community-groups')) {
+        return jsonResponse({ groups: [] });
+      }
+      if (url.endsWith('/v1/bookings')) {
+        return jsonResponse({ message: 'temporary booking label failure' }, 503);
+      }
+      return jsonResponse({ message: `Unexpected ${url}` }, 500);
+    }) as typeof fetch;
+
+    try {
+      const result = await messagingService.listThreads();
+
+      assert.equal(result.success, true);
+      if (!result.success) {
+        return;
+      }
+      assert.deepEqual(fetchCalls, [
+        'http://localhost:4000/v1/message-threads',
+        'http://localhost:4000/v1/community-groups',
+        'http://localhost:4000/v1/bookings',
+      ]);
       assert.equal(result.data.length, 1);
-      assert.equal(result.data[0]?.id, 'thread_api_direct');
       assert.equal(result.data[0]?.title, 'Coach');
-      assert.equal(result.data[0]?.unreadCount, 0);
-      assert.equal(result.data[0]?.lastMessageSnippet, undefined);
+      assert.equal(result.data[0]?.serviceName, 'Direct message');
+    } finally {
+      restoreUser();
+    }
+  });
+
+  it('fails co-guardian access checks closed on message-thread API failure', async () => {
+    const restoreUser = await setupApiModeUser();
+    const { messagingService } = await import('@/services/messaging-service');
+    const fetchCalls: string[] = [];
+
+    globalThis.fetch = (async (input) => {
+      const url = String(input);
+      fetchCalls.push(url);
+      if (url.endsWith('/v1/message-threads')) {
+        return jsonResponse({ message: 'Message thread authority unavailable' }, 503);
+      }
+      return jsonResponse({ message: `Unexpected ${url}` }, 500);
+    }) as typeof fetch;
+
+    try {
+      const result = await messagingService.checkCoGuardianAccess(
+        'thread_api_direct',
+        'parent_api_reader',
+        ['athlete_api_child'],
+      );
+
+      assert.equal(result.success, false);
+      if (!result.success) {
+        assert.equal(result.error.message, 'Message thread authority unavailable');
+      }
+      assert.deepEqual(fetchCalls, ['http://localhost:4000/v1/message-threads']);
     } finally {
       restoreUser();
     }

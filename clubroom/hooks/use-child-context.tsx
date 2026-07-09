@@ -233,17 +233,31 @@ export function ChildProvider({ children: reactChildren }: ChildProviderProps) {
       setSelfProfileSelectionLoaded(false);
     });
 
-    void bookingSelfSettingService.isEnabled(userId).then((enabled) => {
-      if (cancelled || !mountedRef.current) {
-        return;
-      }
-      startTransition(() => {
-        setSelfProfileSelectionEnabled(enabled);
+    void bookingSelfSettingService
+      .isEnabled(userId)
+      .then((enabled) => {
+        if (cancelled || !mountedRef.current) {
+          return;
+        }
+        startTransition(() => {
+          setSelfProfileSelectionEnabled(enabled);
+        });
+        startTransition(() => {
+          setSelfProfileSelectionLoaded(true);
+        });
+      })
+      .catch((error) => {
+        logger.warn('Failed to load self-booking setting', { userId, error });
+        if (cancelled || !mountedRef.current) {
+          return;
+        }
+        startTransition(() => {
+          setSelfProfileSelectionEnabled(false);
+        });
+        startTransition(() => {
+          setSelfProfileSelectionLoaded(true);
+        });
       });
-      startTransition(() => {
-        setSelfProfileSelectionLoaded(true);
-      });
-    });
 
     return () => {
       cancelled = true;

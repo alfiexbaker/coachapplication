@@ -37,14 +37,7 @@ import { socialFeedService } from './social-feed-service';
 import { userService } from './user-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
-import {
-  type Result,
-  type ServiceError,
-  ok,
-  err,
-  notFound,
-  storageError,
-} from '@/types/result';
+import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
 import {
   buildApiAuthHeaders,
   deriveApiActingRole,
@@ -204,7 +197,7 @@ const MOCK_MATCHES: Match[] = [
   },
 ];
 
-let matchesCache: Match[] = [...MOCK_MATCHES];
+let matchesCache: Match[] = USE_MOCK ? [...MOCK_MATCHES] : [];
 
 export interface CreateMatchInput {
   clubId: string;
@@ -263,7 +256,7 @@ async function loadFromStorage(): Promise<Match[]> {
   } catch (error) {
     logger.error('Failed to load from storage', error);
   }
-  return [...MOCK_MATCHES];
+  return USE_MOCK ? [...MOCK_MATCHES] : [];
 }
 
 async function saveToStorage(matches: Match[]): Promise<Result<void, ServiceError>> {
@@ -364,7 +357,7 @@ export const matchService = {
 
     const headersResult = await resolveMatchHeaders('Sign in to view match details.');
     if (!headersResult.success) {
-      return null;
+      throwServiceError(headersResult.error);
     }
     const response = await apiFetch<ApiMatchResponse>(
       `/v1/matches/${encodeURIComponent(matchId)}`,
@@ -374,8 +367,11 @@ export const matchService = {
       },
     );
     if (!response.success) {
+      if (response.error.code === 'NOT_FOUND') {
+        return null;
+      }
       logger.error('Failed to load match via API', { matchId, error: response.error });
-      return null;
+      throwServiceError(response.error);
     }
     return response.data.match;
   },
@@ -604,7 +600,10 @@ export const matchService = {
       return ok(match);
     }
 
-    const headersResult = await resolveMatchHeaders('Sign in to respond to match invites.', 'parent');
+    const headersResult = await resolveMatchHeaders(
+      'Sign in to respond to match invites.',
+      'parent',
+    );
     if (!headersResult.success) {
       return headersResult;
     }

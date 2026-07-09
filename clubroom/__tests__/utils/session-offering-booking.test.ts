@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { SessionOffering } from '../../constants/session-types';
+import type { GroupSession, SessionOffering } from '../../constants/session-types';
 import {
+  buildDiscoverSessionSections,
   buildSessionOfferingCategories,
   filterSessionOfferingsByCategory,
   getFixedScheduleFromOffering,
@@ -45,6 +46,33 @@ function buildOffering(
     ageMax: overrides.ageMax,
     footballSkill: overrides.footballSkill,
     visibility: overrides.visibility,
+    inviteType: overrides.inviteType,
+  };
+}
+
+function buildGroupSession(
+  overrides: Partial<GroupSession> & Pick<GroupSession, 'id' | 'title'>,
+): GroupSession {
+  return {
+    id: overrides.id,
+    coachId: overrides.coachId ?? 'coach_1',
+    title: overrides.title,
+    description: overrides.description ?? 'Training session',
+    sessionType: overrides.sessionType ?? 'TRAINING',
+    schedule: overrides.schedule ?? [{ date: '2026-04-02', startTime: '18:00', endTime: '19:00' }],
+    maxParticipants: overrides.maxParticipants ?? 12,
+    currentParticipants: overrides.currentParticipants ?? 0,
+    offPlatformParticipants: overrides.offPlatformParticipants,
+    waitlistEnabled: overrides.waitlistEnabled ?? true,
+    waitlistCount: overrides.waitlistCount ?? 0,
+    pricePerParticipant: overrides.pricePerParticipant ?? 10,
+    currency: overrides.currency ?? 'GBP',
+    location: overrides.location ?? 'Main Pitch',
+    isVirtual: overrides.isVirtual ?? false,
+    status: overrides.status ?? 'PUBLISHED',
+    createdAt: overrides.createdAt ?? '2026-03-01T12:00:00.000Z',
+    clubId: overrides.clubId,
+    inviteType: overrides.inviteType,
   };
 }
 
@@ -151,4 +179,76 @@ test('getFixedScheduleFromOffering returns the next bookable recurring slot for 
 
   assert.ok(fixedSchedule);
   assert.equal(fixedSchedule?.slot, '18:30');
+});
+
+test('buildDiscoverSessionSections shows each group session once across discover sections', () => {
+  const duplicateCandidate = buildOffering({
+    id: 'group_session_offering:gs_mixed_this_week',
+    title: 'Mixed Club Session',
+    sessionType: 'group',
+    maxParticipants: 12,
+    scheduledAt: '2026-04-02T18:00:00.000Z',
+    source: 'group',
+    sourceEntityId: 'gs_mixed_this_week',
+    clubId: 'club_1',
+    inviteType: 'OPEN',
+  });
+  const laterClubOffering = buildOffering({
+    id: 'group_session_offering:gs_club_later',
+    title: 'Club Session Later',
+    sessionType: 'group',
+    maxParticipants: 12,
+    scheduledAt: '2026-04-20T18:00:00.000Z',
+    source: 'group',
+    sourceEntityId: 'gs_club_later',
+    clubId: 'club_1',
+    inviteType: 'CLOSED',
+  });
+  const laterOpenOffering = buildOffering({
+    id: 'group_session_offering:gs_open_later',
+    title: 'Open Session Later',
+    sessionType: 'group',
+    maxParticipants: 12,
+    scheduledAt: '2026-04-20T18:00:00.000Z',
+    source: 'group',
+    sourceEntityId: 'gs_open_later',
+    inviteType: 'OPEN',
+  });
+
+  const sections = buildDiscoverSessionSections({
+    offerings: [duplicateCandidate, laterClubOffering, laterOpenOffering],
+    groupSessions: [
+      buildGroupSession({
+        id: 'gs_mixed_this_week',
+        title: 'Mixed Club Session',
+        clubId: 'club_1',
+        inviteType: 'OPEN',
+      }),
+      buildGroupSession({
+        id: 'gs_club_later',
+        title: 'Club Session Later',
+        clubId: 'club_1',
+        inviteType: 'CLOSED',
+      }),
+      buildGroupSession({
+        id: 'gs_open_later',
+        title: 'Open Session Later',
+        inviteType: 'OPEN',
+      }),
+    ],
+    now: new Date('2026-04-01T09:00:00.000Z'),
+  });
+
+  assert.deepEqual(
+    sections.thisWeekOfferings.map((offering) => offering.sourceEntityId),
+    ['gs_mixed_this_week'],
+  );
+  assert.deepEqual(
+    sections.clubSessions.map((session) => session.id),
+    ['gs_club_later'],
+  );
+  assert.deepEqual(
+    sections.openSessions.map((offering) => offering.sourceEntityId),
+    ['gs_open_later'],
+  );
 });

@@ -1,18 +1,18 @@
-import { StyleSheet, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import type { Href } from "expo-router";
-import { Clickable } from "@/components/primitives/clickable";
-import { SurfaceCard } from "@/components/primitives/surface-card";
-import { Column } from "@/components/primitives/column";
-import { Row } from "@/components/primitives/row";
-import { ThemedText } from "@/components/themed-text";
-import { Radii, Spacing, Typography } from "@/constants/theme";
-import type { ClubActivity, SessionInvite } from "@/constants/types";
-import { useTheme } from "@/hooks/useTheme";
-import { Routes } from "@/navigation/routes";
-import { ClubScheduleActivityCard } from "./ClubScheduleActivityCard";
-import { getSessionInviteCoachName } from "@/utils/session-invite-display";
+import { StyleSheet, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import type { Href } from 'expo-router';
+import { Clickable } from '@/components/primitives/clickable';
+import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Column } from '@/components/primitives/column';
+import { Row } from '@/components/primitives/row';
+import { ThemedText } from '@/components/themed-text';
+import { Radii, Spacing, Typography } from '@/constants/theme';
+import type { ClubActivity, SessionInvite } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
+import { Routes } from '@/navigation/routes';
+import { ClubScheduleActivityCard } from './ClubScheduleActivityCard';
+import { getSessionInviteCoachName } from '@/utils/session-invite-display';
 function defaultActivityPress(activity: ClubActivity, clubId?: string) {
   const resolvedClubId = activity.clubId ?? clubId;
   if (!resolvedClubId) {
@@ -22,6 +22,40 @@ function defaultActivityPress(activity: ClubActivity, clubId?: string) {
 }
 function defaultInvitePress(inviteId: string) {
   router.push(Routes.sessionInvite(inviteId));
+}
+function getClubTrainingCreateHref(clubId?: string): Href {
+  if (!clubId) {
+    return Routes.GROUP_SESSIONS_CREATE;
+  }
+
+  return Routes.sessionsCreateIntent({
+    intent: 'new',
+    source: 'club_manage',
+    preset: 'group',
+    actingAs: 'club',
+    clubId,
+    inviteType: 'CLOSED',
+  });
+}
+function getClubEventCreateHref(clubId?: string, clubName?: string): Href {
+  if (!clubId) {
+    return Routes.EVENTS_CREATE;
+  }
+
+  return Routes.eventCreate({
+    clubId,
+    ...(clubName ? { clubName } : {}),
+  });
+}
+function getClubMatchCreateHref(clubId?: string, clubName?: string): Href {
+  if (!clubId) {
+    return Routes.MATCHES_CREATE;
+  }
+
+  return Routes.matchCreate({
+    clubId,
+    ...(clubName ? { clubName } : {}),
+  });
 }
 const EMPTY_PENDING_INVITES: SessionInvite[] = [];
 function getInviteStartsAt(invite: SessionInvite): string {
@@ -36,6 +70,7 @@ export interface ClubActivitiesPanelProps {
   pendingInvites?: SessionInvite[];
   isCoach: boolean;
   clubId?: string;
+  clubName?: string;
   maxItems?: number;
   onActivityPress?: (activity: ClubActivity) => void;
   onInvitePress?: (inviteId: string) => void;
@@ -47,6 +82,7 @@ export const ClubActivitiesPanel = function ClubActivitiesPanel({
   pendingInvites = EMPTY_PENDING_INVITES,
   isCoach,
   clubId,
+  clubName,
   maxItems = 5,
   onActivityPress,
   onInvitePress,
@@ -57,15 +93,14 @@ export const ClubActivitiesPanel = function ClubActivitiesPanel({
   const visibleEntries = (() => {
     const publishedSessionIds = new Set(
       activities.flatMap((activity) =>
-        activity.source === "group_session" ? [activity.sourceEntityId] : [],
+        activity.source === 'group_session' ? [activity.sourceEntityId] : [],
       ),
     );
     const inviteEntries = pendingInvites.flatMap((invite) =>
-      !invite.existingSessionId ||
-      !publishedSessionIds.has(invite.existingSessionId)
+      !invite.existingSessionId || !publishedSessionIds.has(invite.existingSessionId)
         ? [
             {
-              kind: "invite" as const,
+              kind: 'invite' as const,
               id: `invite-${invite.id}`,
               startsAt: getInviteStartsAt(invite),
               invite,
@@ -74,17 +109,13 @@ export const ClubActivitiesPanel = function ClubActivitiesPanel({
         : [],
     );
     const activityEntries = activities.map((activity) => ({
-      kind: "activity" as const,
+      kind: 'activity' as const,
       id: activity.id,
       startsAt: activity.startsAt,
       activity,
     }));
     return [...activityEntries, ...inviteEntries]
-      .sort(
-        (left, right) =>
-          new Date(left.startsAt).getTime() -
-          new Date(right.startsAt).getTime(),
-      )
+      .sort((left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime())
       .slice(0, maxItems);
   })();
   return (
@@ -126,7 +157,7 @@ export const ClubActivitiesPanel = function ClubActivitiesPanel({
                   borderColor: colors.tint,
                 },
               ]}
-              onPress={() => router.push(Routes.EVENTS_CREATE)}
+              onPress={() => router.push(getClubEventCreateHref(clubId, clubName))}
             >
               <ThemedText
                 style={[
@@ -146,7 +177,7 @@ export const ClubActivitiesPanel = function ClubActivitiesPanel({
                   backgroundColor: colors.tint,
                 },
               ]}
-              onPress={() => router.push(Routes.GROUP_SESSIONS_CREATE)}
+              onPress={() => router.push(getClubTrainingCreateHref(clubId))}
             >
               <ThemedText
                 style={[
@@ -166,7 +197,7 @@ export const ClubActivitiesPanel = function ClubActivitiesPanel({
                   borderColor: colors.warning,
                 },
               ]}
-              onPress={() => router.push(Routes.MATCHES_CREATE)}
+              onPress={() => router.push(getClubMatchCreateHref(clubId, clubName))}
             >
               <ThemedText
                 style={[
@@ -185,17 +216,13 @@ export const ClubActivitiesPanel = function ClubActivitiesPanel({
 
       {visibleEntries.length === 0 ? (
         <View style={styles.emptyState}>
-          <Ionicons
-            name="calendar-clear-outline"
-            size={28}
-            color={colors.muted}
-          />
+          <Ionicons name="calendar-clear-outline" size={28} color={colors.muted} />
           <ThemedText
             style={[
               Typography.small,
               {
                 color: colors.muted,
-                textAlign: "center",
+                textAlign: 'center',
               },
             ]}
           >
@@ -205,7 +232,7 @@ export const ClubActivitiesPanel = function ClubActivitiesPanel({
       ) : (
         <Column gap="sm">
           {visibleEntries.map((entry) => {
-            if (entry.kind === "activity") {
+            if (entry.kind === 'activity') {
               return (
                 <ClubScheduleActivityCard
                   key={entry.id}
@@ -269,20 +296,16 @@ export const ClubActivitiesPanel = function ClubActivitiesPanel({
                     ]}
                     numberOfLines={1}
                   >
-                    {new Date(entry.startsAt).toLocaleDateString("en-GB", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                    })}{" "}
-                    · {entry.invite.proposedSlots[0]?.startTime ?? "Time TBC"} ·{" "}
+                    {new Date(entry.startsAt).toLocaleDateString('en-GB', {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                    })}{' '}
+                    · {entry.invite.proposedSlots[0]?.startTime ?? 'Time TBC'} ·{' '}
                     {getSessionInviteCoachName(entry.invite)}
                   </ThemedText>
                 </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  color={colors.muted}
-                />
+                <Ionicons name="chevron-forward" size={18} color={colors.muted} />
               </Clickable>
             );
           })}
@@ -309,11 +332,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   viewAllButton: {
-    alignItems: "center",
+    alignItems: 'center',
     gap: Spacing.xxs,
   },
   emptyState: {
-    alignItems: "center",
+    alignItems: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.md,
   },
@@ -321,8 +344,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.sm,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.sm,
   },
   inviteCopy: {
@@ -336,7 +359,7 @@ const styles = StyleSheet.create({
   },
   inviteBadgeText: {
     ...Typography.caption,
-    fontWeight: "700",
+    fontWeight: '700',
   },
   inviteMeta: {
     ...Typography.caption,

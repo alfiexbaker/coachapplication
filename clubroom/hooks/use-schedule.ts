@@ -24,6 +24,7 @@ import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
+import { uiFeedback } from '@/services/ui-feedback';
 import {
   getCoachWorkContextDisplay,
   type CoachBusinessFilter,
@@ -92,7 +93,7 @@ export function useSchedule() {
   const [timeOffOpen, setTimeOffOpen] = useState(false);
   const [timeOffConfig, setTimeOffConfig] = useState<TimeOffConfig | null>(null);
 
-  const coachId = currentUser?.id || 'coach_1';
+  const coachId = currentUser?.id ?? null;
 
   // Sync segment from URL params
   useEffect(() => {
@@ -106,6 +107,10 @@ export function useSchedule() {
   // Load all schedule data through useScreen so schedule follows the standard
   // loading/error/empty/success + refresh contract.
   const refreshFromServer = async () => {
+    if (!coachId) {
+      return err(serviceError('UNAUTHORIZED', 'Sign in as a coach to view your schedule.'));
+    }
+
     try {
       const [templatesData, rulesResult, sessionTemplatesData, overridesData, venuesData] =
         await Promise.all([
@@ -167,6 +172,7 @@ export function useSchedule() {
       ServiceEvents.SESSION_CANCELLED,
     ],
     refetchOnFocus: true,
+    dataKey: `schedule:${coachId ?? 'missing'}`,
   });
 
   useEffect(() => {
@@ -205,6 +211,12 @@ export function useSchedule() {
     onRefresh();
   };
 
+  const requireCoachId = () => {
+    if (coachId) return coachId;
+    uiFeedback.showToast('Sign in as a coach to manage your schedule.', 'error');
+    return null;
+  };
+
   useFocusEffect(
     useCallback(() => {
       if (weekOffset === 0) {
@@ -237,12 +249,14 @@ export function useSchedule() {
       const daySessions: SessionData[] = [];
 
       bookings.forEach((b) => {
-        const bDate = b.scheduledAt?.split('T')[0];
+        const parsedDate = new Date(b.scheduledAt);
+        const bDate = Number.isNaN(parsedDate.getTime()) ? undefined : toDateStr(parsedDate);
         if (bDate === dateStr && b.status !== 'CANCELLED') {
-          const startDate = new Date(b.scheduledAt);
+          const startDate = parsedDate;
           const endDate = new Date(startDate);
           endDate.setMinutes(endDate.getMinutes() + (b.duration || 60));
           const workContext = getCoachWorkContextDisplay(b);
+          const athleteName = b.athleteNames?.filter(Boolean).join(', ') || 'Athlete';
 
           daySessions.push({
             id: b.id,
@@ -252,7 +266,7 @@ export function useSchedule() {
             businessContext: workContext.context,
             businessLabel: workContext.label,
             businessDetail: workContext.detail,
-            athleteName: b.athleteId || b.athleteIds?.[0] || 'Athlete',
+            athleteName,
             location: b.location,
             status: b.status === 'CONFIRMED' ? 'confirmed' : 'pending',
             type: 'booking',
@@ -264,9 +278,10 @@ export function useSchedule() {
       });
 
       offerings.forEach((o) => {
-        const oDate = o.scheduledAt?.split('T')[0];
+        const parsedDate = new Date(o.scheduledAt);
+        const oDate = Number.isNaN(parsedDate.getTime()) ? undefined : toDateStr(parsedDate);
         if (oDate === dateStr && o.status !== 'cancelled') {
-          const startDate = new Date(o.scheduledAt);
+          const startDate = parsedDate;
           const endDate = new Date(startDate);
           endDate.setMinutes(endDate.getMinutes() + (o.duration || 60));
           const workContext = getCoachWorkContextDisplay(o);
@@ -414,10 +429,12 @@ export function useSchedule() {
     endTime: string;
     location?: string;
   }) => {
+    const signedInCoachId = requireCoachId();
+    if (!signedInCoachId) return;
     const existing = dayEditorConfig?.template;
     const saved = await availabilityService.saveTemplate({
       ...(existing ? { id: existing.id } : {}),
-      coachId,
+      coachId: signedInCoachId,
       dayOfWeek: data.dayOfWeek as 0 | 1 | 2 | 3 | 4 | 5 | 6,
       startTime: data.startTime,
       endTime: data.endTime,
@@ -441,8 +458,10 @@ export function useSchedule() {
     endTime: string;
     location?: string;
   }) => {
+    const signedInCoachId = requireCoachId();
+    if (!signedInCoachId) return;
     const saved = await availabilityService.saveOverride({
-      coachId,
+      coachId: signedInCoachId,
       date: data.date,
       isBlocked: false,
       customSlots: [
@@ -455,7 +474,7 @@ export function useSchedule() {
       ],
     });
     setOverrides((prev) => {
-      const filtered = prev.filter((o) => !(o.coachId === coachId && o.date === data.date));
+      const filtered = prev.filter((o) => !(o.coachId === signedInCoachId && o.date === data.date));
       return [...filtered, saved];
     });
     setDayEditorOpen(false);
@@ -470,12 +489,14 @@ export function useSchedule() {
     location?: string;
     repeatWeeks: number;
   }) => {
+    const signedInCoachId = requireCoachId();
+    if (!signedInCoachId) return;
     const startDate = new Date(data.date + 'T12:00:00');
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + (data.repeatWeeks - 1) * 7);
     const repeatUntil = toDateStr(endDate);
     await availabilityService.saveRepeatedOverride({
-      coachId,
+      coachId: signedInCoachId,
       date: data.date,
       isBlocked: false,
       customSlots: [
@@ -494,7 +515,9 @@ export function useSchedule() {
   };
 
   const handleDeleteTemplate = async (id: string) => {
-    await availabilityService.deleteTemplate(id, coachId);
+    const signedInCoachId = requireCoachId();
+    if (!signedInCoachId) return;
+    await availabilityService.deleteTemplate(id, signedInCoachId);
     setTemplates((prev) => prev.filter((t) => t.id !== id));
     setDayEditorOpen(false);
     setDayEditorConfig(null);
@@ -502,8 +525,10 @@ export function useSchedule() {
   };
 
   const handleAddVenue = async (label: string) => {
-    await coachVenueService.saveVenue({ coachId, label });
-    const updated = await coachVenueService.getVenues(coachId);
+    const signedInCoachId = requireCoachId();
+    if (!signedInCoachId) return;
+    await coachVenueService.saveVenue({ coachId: signedInCoachId, label });
+    const updated = await coachVenueService.getVenues(signedInCoachId);
     setVenues(updated);
   };
 
@@ -514,7 +539,9 @@ export function useSchedule() {
   };
 
   const handleTimeOffSaved = async () => {
-    const freshOverrides = await availabilityService.getOverrides(coachId);
+    const signedInCoachId = requireCoachId();
+    if (!signedInCoachId) return;
+    const freshOverrides = await availabilityService.getOverrides(signedInCoachId);
     setOverrides(freshOverrides);
     loadData(false);
   };
@@ -568,22 +595,24 @@ export function useSchedule() {
   const handleSessionTypeSave = async (
     data: Omit<SessionTemplate, 'id' | 'coachId' | 'createdAt' | 'skillsFocus'>,
   ) => {
+    const signedInCoachId = requireCoachId();
+    if (!signedInCoachId) return;
     if (editingSessionType) {
       await sessionTemplateService.saveTemplate({
         ...data,
         id: editingSessionType.id,
-        coachId,
+        coachId: signedInCoachId,
         createdAt: editingSessionType.createdAt,
         skillsFocus: editingSessionType.skillsFocus,
       });
     } else {
       await sessionTemplateService.saveTemplate({
         ...data,
-        coachId,
+        coachId: signedInCoachId,
         skillsFocus: [],
       });
     }
-    const updated = await sessionTemplateService.getTemplates(coachId);
+    const updated = await sessionTemplateService.getTemplates(signedInCoachId);
     setSessionTemplates(updated);
     setShowSessionTypeModal(false);
     setEditingSessionType(null);
@@ -591,8 +620,10 @@ export function useSchedule() {
 
   const handleSessionTypeDelete = async () => {
     if (!editingSessionType) return;
+    const signedInCoachId = requireCoachId();
+    if (!signedInCoachId) return;
     await sessionTemplateService.deleteTemplate(editingSessionType.id);
-    const updated = await sessionTemplateService.getTemplates(coachId);
+    const updated = await sessionTemplateService.getTemplates(signedInCoachId);
     setSessionTemplates(updated);
     setShowSessionTypeModal(false);
     setEditingSessionType(null);
@@ -626,7 +657,13 @@ export function useSchedule() {
   };
 
   const handleAvailabilitySetupComplete = async (newTemplates: AvailabilityTemplate[]) => {
-    await Promise.all(newTemplates.map((template) => availabilityService.saveTemplate(template)));
+    const signedInCoachId = requireCoachId();
+    if (!signedInCoachId) return;
+    await Promise.all(
+      newTemplates.map((template) =>
+        availabilityService.saveTemplate({ ...template, coachId: signedInCoachId }),
+      ),
+    );
     loadData();
   };
 
@@ -659,7 +696,7 @@ export function useSchedule() {
     blockedDates,
     sessionTemplates,
     venues,
-    coachId,
+    coachId: coachId ?? '',
 
     // Week navigation
     weekOffset,

@@ -69,7 +69,7 @@ export default function VideoDetailScreen() {
             <Ionicons name="share-outline" size={22} color={colors.text} />
           </Clickable>
           {isOwner ? (
-            <Clickable accessibilityLabel="Delete video" onPress={handleDelete} hitSlop={8}>
+            <Clickable accessibilityLabel="Archive video" onPress={handleDelete} hitSlop={8}>
               <Ionicons name="trash-outline" size={22} color={colors.error} />
             </Clickable>
           ) : null}

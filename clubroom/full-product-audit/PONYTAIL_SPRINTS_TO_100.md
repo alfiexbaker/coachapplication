@@ -1,6 +1,6 @@
 # Ponytail Sprints To 100
 
-Date: 2026-07-07
+Date: 2026-07-08
 Starting score: `64/100`
 Target score: `100/100`
 
@@ -24,7 +24,8 @@ Rule: no new feature earns sprint space unless it removes fake certainty or make
 
 - Latest launch-readiness report says `ready`: `reviews/launch-readiness.md`.
 - Route inventory has `347` implemented V1 rows, `24` scaffolded rows, and `2` planned rows.
-- Product/API QA still found medium issues: raw IDs, raw enum labels, intermittent API fetch noise, booking review `Coach unavailable`, demo-first owner dashboard, and empty recurring bookings.
+- Product/API QA still found medium issues: raw IDs, raw enum labels, intermittent API fetch noise, demo-first owner dashboard, and empty recurring bookings.
+- Post-audit code fixes have closed the `getCoachBookings()` empty-schedule blocker and the booking review `Coach unavailable` fallback for valid V1 coaches.
 - The score is `64/100` because readiness gates can pass while the product still feels fake.
 
 ## External Setup Needed From You
@@ -39,24 +40,25 @@ Do these in parallel with Sprint 1. Do not wait until the end.
 | Private object storage      | `S3_ENDPOINT`, `S3_BUCKET_PRIVATE`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`                                   | Uploads, verification, media, and proof need signed storage.    |
 | Sentry                      | `SENTRY_DSN`, `EXPO_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`, `SENTRY_RELEASE`                 | Real app needs error visibility and release tagging.            |
 | API URLs                    | `EXPO_PUBLIC_API_URL`, public API domain, return URL origins                                                                  | App and hosted payment return links must point at the real API. |
-| Payment policy              | Decide `manual/direct only for V1` or `Stripe sprint`.                                                                        | Current code blocks Stripe provider as not implemented.         |
+| Payment policy              | Keep V1 on `manual/direct` or simulated money until Sprint 3. Sprint 3 is the Stripe/payment-provider go-live gate.           | Current code blocks Stripe provider as not implemented.         |
 | Maps                        | `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`                                                                                             | Discovery map should not degrade silently.                      |
 | Native release accounts     | Apple, Google Play, Expo/EAS credentials                                                                                      | Needed before native dogfood/release.                           |
 
 ## Score Simulation
 
-| Sprint                                | Score | User-visible change                                                                                            |
-| ------------------------------------- | ----: | -------------------------------------------------------------------------------------------------------------- |
-| Now                                   |    64 | Real bones, too many almost-real surfaces.                                                                     |
-| 0. Setup and freeze                   |    66 | Everybody knows what must be configured and what cannot ship.                                                  |
-| 1. Kill fake life                     |    72 | No raw IDs, fake counts, demo copy, dead controls, or seeded social activity in API mode.                      |
-| 2. Booking/schedule truth             |    79 | Parents and coaches can book, see schedules, review coach details, cancel, and complete without hollow states. |
-| 3. Money truth                        |    84 | Invoices, earnings, payment instructions, refunds/cancellations, and payout state are honest and auditable.    |
-| 4. Social as operations               |    88 | Feed, groups, messages, comments, and notifications show real coordination, not filler.                        |
-| 5. Achievements and progress evidence |    91 | "Badges" become recognition/achievements tied to sessions, notes, skills, and proof.                           |
-| 6. Club ops and recurring             |    94 | Owner/head-coach dashboards and recurring bookings become operational, not walkthrough-like.                   |
-| 7. Trust and compliance hardening     |    97 | Verification, DBS, safeguarding, consent snapshots, data rights, and audit evidence are launch-grade.          |
-| 8. Native release hardening           |   100 | iOS/Android dogfood passes, release gates are strict, and medium UI flow warnings are zero.                    |
+| Sprint                                  | Score | User-visible change                                                                                              |
+| --------------------------------------- | ----: | ---------------------------------------------------------------------------------------------------------------- |
+| Now                                     |    64 | Real bones, too many almost-real surfaces.                                                                       |
+| 0. Setup and freeze                     |    66 | Everybody knows what must be configured and what cannot ship.                                                    |
+| 1. Kill fake life                       |    72 | No raw IDs, fake counts, demo copy, dead controls, or seeded social activity in API mode.                        |
+| 2A. Booking/schedule truth              |    79 | Parents and coaches can book, see schedules, review coach details, cancel, and complete without hollow states.   |
+| 2B. Manual money truth                  |    84 | Invoices, earnings, payment instructions, refunds/cancellations, and payout state are honest and auditable.      |
+| 2C. Social as operations                |    88 | Feed, groups, messages, comments, and notifications show real coordination, not filler.                          |
+| 2D. Achievements and progress evidence  |    91 | "Badges" become recognition/achievements tied to sessions, notes, skills, and proof.                             |
+| 2E. Club ops and recurring              |    94 | Owner/head-coach dashboards and recurring bookings become operational, not walkthrough-like.                     |
+| 2F. Trust and compliance hardening      |    97 | Verification, DBS, safeguarding, consent snapshots, data rights, and audit evidence are launch-grade.            |
+| 2G. Native release hardening            |    99 | iOS/Android dogfood passes, release gates are strict, and medium UI flow warnings are zero.                      |
+| 3. Stripe/payment provider go-live gate |   100 | Real provider checkout, webhooks, refunds, disputes, settlement, and payout references are proven before launch. |
 
 ## Sprint 0 - Setup And Freeze
 
@@ -68,9 +70,10 @@ Score: `64 -> 66`
 Tasks:
 
 1. Create `.env.staging.local` and production secret checklist from `.env.example`.
-2. Decide payment path:
-   - `manual/direct only for V1`, quickest
-   - `Stripe provider`, slower but cleaner for score
+2. Confirm the payment path:
+   - `manual/direct only for Sprint 1 and Sprint 2`
+   - Stripe/payment-provider work is Sprint 3
+   - Sprint 3 is the last step before go-live, not a halfway money feature
 3. Freeze feature scope:
    - keep social
    - keep achievements
@@ -154,12 +157,9 @@ Score: `72 -> 79`
 Implement:
 
 1. Fix coach schedule:
-   - `services/availability-service.ts#getCoachBookings()` must return real booking data.
-   - It should use V1 booking list data in API mode.
-   - In mock mode, keep mock behavior isolated.
+   - Done: `services/availability-service.ts#getCoachBookings()` reads booking authority data, filters by coach/assignee and date, and keeps mock behavior isolated.
 2. Fix booking review dead end:
-   - Add permission-safe public coach profile data for booking review, or carry enough display data from selected offering/draft.
-   - No more `Coach unavailable` when the coach exists in V1.
+   - Done: booking review reuses permission-safe public offering coach profile data and no longer dead-ends for valid V1 coaches.
 3. Finish scaffolded booking routes or reclassify them:
    - `/v1/bookings GET`
    - `/v1/bookings POST`
@@ -208,30 +208,21 @@ Done when:
 - parent booking review never dead-ends for valid V1 coaches
 - cancellation/reopen/completion are backend-authoritative
 
-## Sprint 3 - Money Truth
+## Sprint 2B - Manual Money Truth
 
 Goal: money cannot look fake.
 
 Duration: `1 week`
 Score: `79 -> 84`
 
-Path A: manual/direct V1, fastest:
+Implement:
 
 1. Keep `API_PAYMENT_PROVIDER=simulated`.
-2. Rename user-facing copy away from "paid online" unless a real provider is involved.
-3. Make manual/direct payment instructions explicit.
-4. Require manual receipt metadata for `mark-paid`.
-5. Keep refund/settlement copy honest.
-
-Path B: Stripe, higher score:
-
-1. Implement provider runtime instead of current blocked `STRIPE_PROVIDER_NOT_IMPLEMENTED`.
-2. Add hosted checkout/session creation.
-3. Add webhook verification.
-4. Persist payment event, fee, settlement, dispute, refund, and provider reference.
-5. Add idempotency and replay tests.
-
-Do not mix the paths. Pick one.
+2. Remove parent-facing hosted checkout/card-payment actions until provider cutover.
+3. Rename user-facing copy away from "paid online", "card charged", or "settled" unless a real provider is involved.
+4. Make manual/direct payment instructions explicit on invoice and booking surfaces.
+5. Require manual receipt metadata for `mark-paid`.
+6. Keep refund/cancellation copy honest: "manual refund required" where the app cannot execute a provider refund.
 
 Likely files:
 
@@ -258,7 +249,7 @@ Done when:
 - simulated/manual provider states never masquerade as real settlement
 - cancellations and paid invoice hard walls are proven by tests
 
-## Sprint 4 - Social As Operations
+## Sprint 2C - Social As Operations
 
 Goal: keep social, remove filler.
 
@@ -314,7 +305,7 @@ Done when:
 - fake activity is gone
 - child/athlete visibility is explicitly tested
 
-## Sprint 5 - Achievements And Progress Evidence
+## Sprint 2D - Achievements And Progress Evidence
 
 Goal: make achievements meaningful without overbuilding.
 
@@ -366,7 +357,7 @@ Done when:
 - users see achievements/recognition, not "badges"
 - no achievement claims proof it cannot show
 
-## Sprint 6 - Club Ops And Recurring
+## Sprint 2E - Club Ops And Recurring
 
 Goal: leadership and recurring bookings must be operational.
 
@@ -428,7 +419,7 @@ Done when:
 - recurring bookings no longer look empty in seeded/API flow
 - invite lifecycle is backend-authoritative
 
-## Sprint 7 - Trust And Compliance Hardening
+## Sprint 2F - Trust And Compliance Hardening
 
 Goal: launch-grade child safety and coach trust.
 
@@ -485,7 +476,7 @@ Done when:
 - child safety actions are not broad writable
 - consent is snapshotted where it matters
 
-## Sprint 8 - Native Release Hardening
+## Sprint 2G - Native Release Hardening
 
 Goal: stop trusting web-only checks.
 
@@ -526,14 +517,55 @@ Done when:
 - native dogfood issues are fixed or explicitly blocked
 - scorecard has no remaining product-truth blockers
 
+## Sprint 3 - Stripe/payment Provider Go-Live Gate
+
+Goal: turn real provider money on only after booking, schedule, session, trust, and native dogfood gates are stable.
+
+Duration: `final go-live cutover`
+Score: `99 -> 100`
+
+Implement:
+
+1. Implement provider runtime instead of current blocked `STRIPE_PROVIDER_NOT_IMPLEMENTED`.
+2. Add hosted checkout/session creation.
+3. Add webhook verification.
+4. Persist payment event, fee, settlement, dispute, refund, and provider reference.
+5. Add idempotency and replay tests.
+6. Enable parent-facing card payment copy only for real provider sessions.
+
+Likely files:
+
+- `apps/api/src/lib/payment-provider.ts`
+- `apps/api/src/lib/invoice-runtime.ts`
+- `apps/api/src/modules/payments/*`
+- `services/invoice-service.ts`
+- `components/invoices/*`
+- `app/invoices/*`
+
+Validation:
+
+```bash
+npm run test:invoices
+npm --prefix apps/api run test
+npm run smoke:staging
+npm run launch:readiness
+```
+
+Done when:
+
+- Stripe/payment-provider credentials are configured in staging and production.
+- Webhook replay, idempotency, refund, and dispute paths pass.
+- Provider payment state cannot be marked paid from a client callback alone.
+- Parent-facing card payment copy is enabled only for real provider sessions.
+
 ## First Ten PRs
 
 Do these first. They are the highest return.
 
 1. Add UI-flow failure rules for raw IDs, raw enum labels, demo copy, and "coming soon".
 2. Replace raw athlete/user/squad/club IDs with display-name view models.
-3. Fix `services/availability-service.ts#getCoachBookings()`.
-4. Fix booking review `Coach unavailable` by adding public coach display data.
+3. Done: fix `services/availability-service.ts#getCoachBookings()`.
+4. Done: fix booking review `Coach unavailable` by adding public coach display data.
 5. Remove API-mode demo notifications.
 6. Replace social-feed mock club member list with V1 relationship data or hide the count.
 7. Hide dev-only verification approve buttons outside explicit dev mode.

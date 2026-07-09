@@ -6,9 +6,11 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
+import { api } from '@/constants/config';
 import { Routes } from '@/navigation/routes';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { isAdmin, isCoach } from '@/utils/user-helpers';
 import { pickOwnerDashboardClubId } from '@/utils/manage-home-routing';
@@ -29,8 +31,20 @@ export default function ManageRedirectScreen() {
     }
 
     try {
-      const memberships = await socialFeedService.getUserMembershipsHydrated(currentUser.id);
-      const ownerDashboardClubId = pickOwnerDashboardClubId(memberships, clubId);
+      const memberships = await (async () => {
+        if (api.useMock) {
+          return ok(await socialFeedService.getUserMembershipsHydrated(currentUser.id));
+        }
+        const authorityResult = await clubAuthorityService.listClubs();
+        if (!authorityResult.success) {
+          return authorityResult;
+        }
+        return ok(authorityResult.data.memberships);
+      })();
+      if (!memberships.success) {
+        return err(memberships.error);
+      }
+      const ownerDashboardClubId = pickOwnerDashboardClubId(memberships.data, clubId);
 
       if (ownerDashboardClubId) {
         return ok({ href: Routes.clubDashboard(ownerDashboardClubId) });

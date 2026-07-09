@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it } from 'node:test';
 
 import type { ConsentType } from '@/constants/types';
@@ -16,6 +18,16 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 describe('safetyService API mode', () => {
+  it('initializes emergency fixture storage empty outside mock mode', () => {
+    const source = fs.readFileSync(path.join(process.cwd(), 'services/safety-service.ts'), 'utf8');
+
+    assert.ok(
+      source.includes(
+        'let mockEmergencyInfo = apiClient.isMockMode ? cloneEmergencyInfoStore(MOCK_EMERGENCY_INFO) : {}',
+      ),
+    );
+  });
+
   it('fails closed instead of showing cached or empty emergency data when live reads fail', async () => {
     const [{ safetyService }, { familyHealthService }] = await Promise.all([
       import('@/services/safety-service'),
@@ -165,10 +177,7 @@ describe('safetyService API mode', () => {
         return jsonResponse(medical);
       }
 
-      if (
-        url.pathname === `/v1/athletes/${apiAthleteId}/emergency-contacts` &&
-        method === 'GET'
-      ) {
+      if (url.pathname === `/v1/athletes/${apiAthleteId}/emergency-contacts` && method === 'GET') {
         return jsonResponse({
           athleteId: apiAthleteId,
           contacts,
@@ -285,8 +294,7 @@ describe('safetyService API mode', () => {
 
     const patchContactsCall = calls.find(
       (call) =>
-        call.method === 'PATCH' &&
-        call.path === `/v1/athletes/${apiAthleteId}/emergency-contacts`,
+        call.method === 'PATCH' && call.path === `/v1/athletes/${apiAthleteId}/emergency-contacts`,
     );
     assert.deepEqual(patchContactsCall?.body, {
       contacts: [
@@ -313,8 +321,9 @@ describe('safetyService API mode', () => {
       (call) => call.method === 'PUT' && call.path === `/v1/athletes/${apiAthleteId}/consents`,
     );
     assert.equal(
-      (putConsentsCall?.body as { consents?: Array<{ type: ConsentType; granted: boolean }> })
-        .consents?.find((consent) => consent.type === 'VIDEO')?.granted,
+      (
+        putConsentsCall?.body as { consents?: Array<{ type: ConsentType; granted: boolean }> }
+      ).consents?.find((consent) => consent.type === 'VIDEO')?.granted,
       true,
     );
   });

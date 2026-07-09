@@ -157,6 +157,20 @@ export function useSquadDetail(squadId: string | undefined) {
 
   const handleGroupChat = async () => {
     if (!squadId || openingGroupChat) return;
+    if (!currentUser?.id) {
+      showToast('Sign in as a coach to open the squad group chat.', 'error');
+      return;
+    }
+    const actorName = (
+      currentUser.fullName ||
+      currentUser.name ||
+      currentUser.username ||
+      ''
+    ).trim();
+    if (!actorName) {
+      showToast('Complete your account name before opening the squad group chat.', 'error');
+      return;
+    }
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setOpeningGroupChat(true);
 
@@ -164,8 +178,8 @@ export function useSquadDetail(squadId: string | undefined) {
       async () => {
         const result = await squadGroupService.getOrCreateSquadGroup(
           squadId,
-          currentUser?.id ?? 'coach1',
-          currentUser?.fullName ?? currentUser?.name ?? 'Coach',
+          currentUser.id,
+          actorName,
         );
         if (result.success) {
           router.push(Routes.communityGroup(result.data.id));

@@ -233,4 +233,50 @@ describe('followService API mode', () => {
       global.fetch = originalFetch;
     }
   });
+
+  it('fails closed when coach suggestions cannot load live coach data', async () => {
+    const [{ followService }, { apiClient }] = await Promise.all([
+      import('@/services/follow-service'),
+      import('@/services/api-client'),
+    ]);
+
+    const originalGet = apiClient.get;
+    const originalFetch = global.fetch;
+
+    global.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input));
+      const method = init?.method ?? 'GET';
+      const json = (payload: unknown, status = 200) =>
+        new Response(JSON.stringify(payload), {
+          status,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+      if (url.pathname === '/v1/follows' && method === 'GET') {
+        return json({ follows: [] });
+      }
+
+      if (url.pathname === '/v1/coaches/search' && method === 'GET') {
+        return json({ message: 'coach index unavailable' }, 503);
+      }
+
+      return json({ message: `unexpected route ${method} ${url.pathname}` }, 404);
+    }) as typeof fetch;
+
+    apiClient.get = async () => {
+      throw new Error('local coach suggestion reads should not run in API mode');
+    };
+
+    try {
+      await assert.rejects(
+        () => followService.getSuggestedCoaches('user_api_1'),
+        /coach index unavailable/,
+      );
+    } finally {
+      apiClient.get = originalGet;
+      global.fetch = originalFetch;
+    }
+  });
 });

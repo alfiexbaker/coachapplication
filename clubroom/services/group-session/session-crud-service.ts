@@ -379,7 +379,7 @@ const MOCK_SESSIONS: GroupSession[] = [
   },
 ];
 
-let sessionsCache: GroupSession[] = [...MOCK_SESSIONS];
+let sessionsCache: GroupSession[] = USE_MOCK ? [...MOCK_SESSIONS] : [];
 
 // ============================================================================
 // SHARED PERSISTENCE HELPERS (used by other session sub-services)
@@ -392,7 +392,7 @@ export async function loadSessions(): Promise<GroupSession[]> {
   } catch (error) {
     logger.error('Failed to load sessions', error);
   }
-  return [...MOCK_SESSIONS];
+  return USE_MOCK ? [...MOCK_SESSIONS] : [];
 }
 
 export async function saveSessions(sessions: GroupSession[]): Promise<void> {
@@ -650,10 +650,7 @@ export const sessionCrudService = {
       // Trigger notification for parent-created sessions only when a recipient is known.
       const firstDate = newSession.schedule[0]?.date || 'TBD';
       const creatorRole = (newSession.createdByRole ?? '').toUpperCase();
-      if (
-        newSession.createdByUserId &&
-        (creatorRole === 'USER' || creatorRole === 'PARENT')
-      ) {
+      if (newSession.createdByUserId && (creatorRole === 'USER' || creatorRole === 'PARENT')) {
         await notificationTriggers.groupSessionCreated(
           newSession.title,
           firstDate,
@@ -763,11 +760,13 @@ export const sessionCrudService = {
             squadId: session.squadId,
             coachId: session.coachId,
             coachName,
-            proposedSlots: [{
-              date: firstSchedule.date,
-              startTime: firstSchedule.startTime,
-              endTime: firstSchedule.endTime,
-            }],
+            proposedSlots: [
+              {
+                date: firstSchedule.date,
+                startTime: firstSchedule.startTime,
+                endTime: firstSchedule.endTime,
+              },
+            ],
             sessionType: session.sessionType,
             focus: session.focus?.join(', ') ?? '',
             notes: session.description,
@@ -810,7 +809,9 @@ export const sessionCrudService = {
 
       // Notify only parents who already have RSVPs for this session.
       const rsvps = await rsvpService.getForSession(sessionId);
-      const recipientIds = [...new Set(rsvps.flatMap((rsvp) => (rsvp.userId ? [rsvp.userId] : [])))];
+      const recipientIds = [
+        ...new Set(rsvps.flatMap((rsvp) => (rsvp.userId ? [rsvp.userId] : []))),
+      ];
       await Promise.all(
         recipientIds.map((recipientId) =>
           notificationTriggers.groupSessionCancelled(session.title, recipientId),

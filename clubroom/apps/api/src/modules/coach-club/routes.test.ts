@@ -474,6 +474,147 @@ describe('coach-club routes', () => {
     );
   });
 
+  it('lets security admins review coach verification evidence and audits denials', async () => {
+    const tables = getMarketplaceSeedStore().tables as SeedTables;
+    const coachProfile = asRows(tables.coachProfiles)[0];
+    assert.ok(coachProfile, 'expected seeded coach profile');
+    const coachUserId = asString(coachProfile.userId) as string;
+    const securityAdminUserId = asString(
+      asRows(tables.userRoleMemberships).find(
+        (row) => asString(row.role) === 'security_admin' && row.active !== false,
+      )?.userId,
+    );
+    const clubAdminUserId = asString(
+      asRows(tables.userRoleMemberships).find(
+        (row) => asString(row.role) === 'club_admin' && row.active !== false,
+      )?.userId,
+    );
+    assert.ok(securityAdminUserId, 'expected seeded security admin');
+    assert.ok(clubAdminUserId, 'expected seeded club admin');
+
+    coachProfile.dbsChecked = false;
+    const pendingDbsId = 'cvf_route_review_dbs';
+    ensureTable(tables, 'coachVerifications').push({
+      id: pendingDbsId,
+      coachUserId,
+      verificationType: 'DBS',
+      status: 'PENDING',
+      reviewedByUserId: null,
+      reviewedAt: null,
+      expiresAt: null,
+      notes: null,
+      createdByUserId: coachUserId,
+      updatedByUserId: coachUserId,
+      version: 1,
+      createdAt: '2026-07-03T12:00:00.000Z',
+      updatedAt: '2026-07-03T12:00:00.000Z',
+    });
+
+    const coachDenied = await app.inject({
+      method: 'PATCH',
+      url: `/v1/coaches/${coachUserId}/verifications/dbs/review`,
+      headers: authHeaders(tables, coachUserId, 'coach'),
+      payload: {
+        status: 'APPROVED',
+        verificationId: pendingDbsId,
+      },
+    });
+    assert.equal(coachDenied.statusCode, 403);
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'coach_verification.review',
+        resourceId: `${coachUserId}:dbs`,
+        result: 'DENY',
+      }).length,
+      1,
+    );
+
+    const clubAdminDenied = await app.inject({
+      method: 'PATCH',
+      url: `/v1/coaches/${coachUserId}/verifications/dbs/review`,
+      headers: authHeaders(tables, clubAdminUserId, 'club_admin'),
+      payload: {
+        status: 'APPROVED',
+        verificationId: pendingDbsId,
+      },
+    });
+    assert.equal(clubAdminDenied.statusCode, 403);
+
+    const approved = await app.inject({
+      method: 'PATCH',
+      url: `/v1/coaches/${coachUserId}/verifications/dbs/review`,
+      headers: authHeaders(tables, securityAdminUserId, 'security_admin'),
+      payload: {
+        status: 'APPROVED',
+        verificationId: pendingDbsId,
+        expiresAt: '2029-07-03T12:00:00.000Z',
+        notes: 'DBS evidence checked',
+      },
+    });
+    assert.equal(approved.statusCode, 200);
+    const approvedPayload = approved.json() as {
+      verification: {
+        id?: string;
+        status?: string;
+        reviewedByUserId?: string;
+        notes?: string;
+      };
+      status: {
+        backgroundCheck: { status: string; expiresAt?: string };
+      };
+    };
+    assert.equal(approvedPayload.verification.id, pendingDbsId);
+    assert.equal(approvedPayload.verification.status, 'APPROVED');
+    assert.equal(approvedPayload.verification.reviewedByUserId, securityAdminUserId);
+    assert.equal(approvedPayload.verification.notes, 'DBS evidence checked');
+    assert.equal(approvedPayload.status.backgroundCheck.status, 'VERIFIED');
+    assert.equal(approvedPayload.status.backgroundCheck.expiresAt, '2029-07-03T12:00:00.000Z');
+    assert.equal(coachProfile.dbsChecked, true);
+    assert.equal(
+      auditEventsFor(tables, {
+        action: 'coach_verification.review',
+        resourceId: pendingDbsId,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+
+    const pendingInsuranceId = 'cvf_route_review_insurance';
+    ensureTable(tables, 'coachVerifications').push({
+      id: pendingInsuranceId,
+      coachUserId,
+      verificationType: 'INSURANCE',
+      status: 'PENDING',
+      reviewedByUserId: null,
+      reviewedAt: null,
+      expiresAt: null,
+      notes: null,
+      createdByUserId: coachUserId,
+      updatedByUserId: coachUserId,
+      version: 1,
+      createdAt: '2026-07-03T12:05:00.000Z',
+      updatedAt: '2026-07-03T12:05:00.000Z',
+    });
+    const rejected = await app.inject({
+      method: 'PATCH',
+      url: `/v1/coaches/${coachUserId}/verifications/insurance/review`,
+      headers: authHeaders(tables, securityAdminUserId, 'security_admin'),
+      payload: {
+        status: 'REJECTED',
+        verificationId: pendingInsuranceId,
+        notes: 'Insurance document did not match coach identity',
+      },
+    });
+    assert.equal(rejected.statusCode, 200);
+    const rejectedPayload = rejected.json() as {
+      verification: { status?: string; notes?: string };
+      status: { insurance: { status: string } };
+    };
+    assert.equal(rejectedPayload.verification.status, 'REJECTED');
+    assert.equal(rejectedPayload.verification.notes, 'Insurance document did not match coach identity');
+    assert.equal(rejectedPayload.status.insurance.status, 'FAILED');
+  });
+
   it('creates, updates, and soft-deletes clubs through governed v1 authority', async () => {
     const tables = loadTables();
     const ownerUserId = getSeededCoachUserId(tables);
@@ -605,6 +746,114 @@ describe('coach-club routes', () => {
       return new Date(items[index - 1].startsAt).getTime() <= new Date(activity.startsAt).getTime();
     });
     assert.equal(sorted, true);
+  });
+
+  it('keeps training-named club events separate from group sessions in club schedule', async () => {
+    const store = getMarketplaceSeedStore();
+    const tables = store.tables as SeedTables;
+    const { clubId, userId } = getSeededClubMembership(tables);
+    const eventId = 'cle_training_named_event_not_session';
+
+    ensureTable(tables, 'clubEvents').push({
+      id: eventId,
+      clubId,
+      creatorUserId: userId,
+      title: 'Holiday Training Camp Info',
+      description: 'RSVP briefing for the holiday camp.',
+      startsAt: `${addDaysIso(14)}T09:00:00.000Z`,
+      endsAt: `${addDaysIso(14)}T10:00:00.000Z`,
+      location: 'Clubhouse',
+      status: 'PUBLISHED',
+      visibility: 'club',
+      metadataJson: { type: 'training_camp', priceMinor: 0, currency: 'GBP' },
+      squadIdsJson: [],
+      createdByUserId: userId,
+      updatedByUserId: userId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/schedule`,
+      headers: authHeaders(tables, userId),
+    });
+    assert.equal(res.statusCode, 200);
+
+    const payload = res.json() as {
+      activities: Array<{
+        id: string;
+        source: string;
+        sourceEntityId: string;
+        kind: string;
+        typeLabel: string;
+        participationMode: string;
+        allowsExternalRegistration: boolean;
+      }>;
+    };
+    const activity = payload.activities.find((candidate) => candidate.sourceEntityId === eventId);
+
+    assert.ok(activity, 'expected training-named event in club schedule');
+    assert.equal(activity.source, 'club_event');
+    assert.equal(activity.kind, 'informational');
+    assert.equal(activity.typeLabel, 'Training Camp');
+    assert.equal(activity.participationMode, 'rsvp');
+    assert.equal(activity.allowsExternalRegistration, false);
+    assert.equal(
+      payload.activities.some(
+        (candidate) =>
+          candidate.source === 'group_session' && candidate.sourceEntityId === eventId,
+      ),
+      false,
+    );
+  });
+
+  it('keeps non-RSVP club events info-only in club schedule', async () => {
+    const store = getMarketplaceSeedStore();
+    const tables = store.tables as SeedTables;
+    const { clubId, userId } = getSeededClubMembership(tables);
+    const eventId = 'cle_info_only_schedule_event';
+
+    ensureTable(tables, 'clubEvents').push({
+      id: eventId,
+      clubId,
+      creatorUserId: userId,
+      title: 'Boot Room Notice',
+      description: 'Pitch access update.',
+      startsAt: `${addDaysIso(15)}T18:00:00.000Z`,
+      endsAt: `${addDaysIso(15)}T18:15:00.000Z`,
+      location: 'Clubhouse',
+      status: 'PUBLISHED',
+      visibility: 'club',
+      metadataJson: { type: 'presentation', rsvpRequired: false },
+      squadIdsJson: [],
+      createdByUserId: userId,
+      updatedByUserId: userId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/v1/clubs/${clubId}/schedule`,
+      headers: authHeaders(tables, userId),
+    });
+    assert.equal(res.statusCode, 200);
+
+    const payload = res.json() as {
+      activities: Array<{
+        sourceEntityId: string;
+        participationMode: string;
+        participationLabel: string;
+        allowsExternalRegistration: boolean;
+      }>;
+    };
+    const activity = payload.activities.find((candidate) => candidate.sourceEntityId === eventId);
+
+    assert.ok(activity, 'expected info-only event in club schedule');
+    assert.equal(activity.participationMode, 'none');
+    assert.equal(activity.participationLabel, 'Info only');
+    assert.equal(activity.allowsExternalRegistration, false);
   });
 
   it('denies club schedule access to non-members of a private club', async () => {
@@ -2592,6 +2841,22 @@ describe('coach-club routes', () => {
     const memberInviteCode = inviteCodesPayload.inviteCodes.find((code) => code.role === 'MEMBER')?.code;
     assert.ok(memberInviteCode, 'expected member invite code');
 
+    const createdInviteCode = await app.inject({
+      method: 'POST',
+      url: `/v1/clubs/${clubId}/invite-codes`,
+      headers: authHeaders(tables, managerUserId),
+      payload: {
+        role: 'MEMBER',
+      },
+    });
+    assert.equal(createdInviteCode.statusCode, 201);
+    const createdInviteCodePayload = createdInviteCode.json() as {
+      inviteCode: { code: string; role: string; remainingUses: number };
+    };
+    assert.equal(createdInviteCodePayload.inviteCode.role, 'MEMBER');
+    assert.equal(createdInviteCodePayload.inviteCode.remainingUses > 0, true);
+    const createdMemberInviteCode = createdInviteCodePayload.inviteCode.code;
+
     const banned = await app.inject({
       method: 'POST',
       url: `/v1/clubs/${clubId}/members/${targetUserId}/ban`,
@@ -2618,14 +2883,14 @@ describe('coach-club routes', () => {
       url: '/v1/clubs/join',
       headers: authHeaders(tables, targetUserId),
       payload: {
-        code: memberInviteCode,
+        code: createdMemberInviteCode,
       },
     });
     assert.equal(bannedRejoin.statusCode, 403);
 
     const deletedInviteCode = await app.inject({
       method: 'DELETE',
-      url: `/v1/clubs/${clubId}/invite-codes/${memberInviteCode}`,
+      url: `/v1/clubs/${clubId}/invite-codes/${createdMemberInviteCode}`,
       headers: authHeaders(tables, managerUserId),
     });
     assert.equal(deletedInviteCode.statusCode, 204);
@@ -2712,8 +2977,36 @@ describe('coach-club routes', () => {
     );
     assert.equal(
       auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_invite_code.read',
+        resourceId: clubId,
+        result: 'SUCCESS',
+      }).some((row) => row.sensitiveRead === true),
+      true,
+    );
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
+        action: 'club_invite_code.create',
+        resourceId: `${clubId}:${createdMemberInviteCode}`,
+        result: 'SUCCESS',
+      }).length,
+      1,
+    );
+    assert.equal(
+      asRows(tables.auditEvents).some((row) => {
+        const metadata = asRecord(row.metadataJson);
+        return (
+          asString(row.action) === 'club.join' &&
+          asString(row.actorUserId) === targetUserId &&
+          asString(row.result) === 'DENY' &&
+          asString(metadata?.code) === createdMemberInviteCode
+        );
+      }),
+      true,
+    );
+    assert.equal(
+      auditEventsFor(getMarketplaceSeedStore().tables, {
         action: 'club_invite_code.remove',
-        resourceId: `${clubId}:${memberInviteCode}`,
+        resourceId: `${clubId}:${createdMemberInviteCode}`,
         result: 'SUCCESS',
       }).length,
       1,
@@ -4004,6 +4297,61 @@ describe('coach-club routes', () => {
       assert.deepEqual(profilePatchPayload.profile.specialties, ['Finishing', 'First touch']);
       assert.deepEqual(profilePatchPayload.profile.qualifications, ['UEFA B']);
 
+      const searchFixtureTables = getDbFixtureStore().tables as SeedTables;
+      const searchReviewAthleteId = asString(asRows(searchFixtureTables.athletes)[0]?.id);
+      assert.ok(searchReviewAthleteId, 'expected athlete for public coach search aggregate');
+      ensureTable(searchFixtureTables, 'bookings').push({
+        id: 'booking_public_coach_search_rating',
+        coachUserId,
+        bookedByUserId: viewerUserId,
+        status: 'COMPLETED',
+        scheduledAt: '2026-07-03T12:00:00.000Z',
+        durationMinutes: 60,
+        location: 'API pitch',
+        serviceType: '1-to-1',
+        priceMinor: 7250,
+        currency: 'GBP',
+        createdByUserId: viewerUserId,
+        updatedByUserId: viewerUserId,
+        version: 1,
+        createdAt: '2026-07-03T12:00:00.000Z',
+        updatedAt: '2026-07-03T12:00:00.000Z',
+      });
+      ensureTable(searchFixtureTables, 'sessionFeedback').push({
+        id: 'sfb_public_coach_search_rating',
+        bookingId: 'booking_public_coach_search_rating',
+        athleteId: searchReviewAthleteId,
+        authorUserId: viewerUserId,
+        rating: 5,
+        publicComment: 'Excellent public feedback',
+        visibility: 'public',
+        createdAt: '2026-07-03T12:10:00.000Z',
+        updatedAt: '2026-07-03T12:10:00.000Z',
+      });
+      for (const location of asRows(searchFixtureTables.coachLocations)) {
+        if (asString(location.coachUserId) === coachUserId) {
+          location.isDefault = false;
+        }
+      }
+      ensureTable(searchFixtureTables, 'coachLocations').push({
+        id: 'loc_public_coach_search_distance',
+        coachUserId,
+        label: 'Public Search Pitch',
+        addressText: 'Hidden full address must not leak',
+        latLngJson: {
+          lat: 51.49,
+          lng: -0.12,
+        },
+        isDefault: true,
+        createdAt: '2026-07-03T12:00:00.000Z',
+        updatedAt: '2026-07-03T12:00:00.000Z',
+        createdByUserId: coachUserId,
+        updatedByUserId: coachUserId,
+        version: 1,
+        deletedAt: null,
+        deletedByUserId: null,
+      });
+
       const nonCoachProfilePatch = await app.inject({
         method: 'PATCH',
         url: '/v1/coaches/me/profile',
@@ -4065,6 +4413,252 @@ describe('coach-club routes', () => {
       assert.equal(patchedPublicOffering?.coachProfile?.socialLinks?.instagram, 'coach.example');
       assert.equal(patchedPublicOffering?.coachProfile?.experiences?.[0]?.title, 'Academy coach');
       assert.equal(patchedPublicOffering?.coachProfile?.languages?.[0]?.name, 'Spanish');
+
+      const publicProfile = await app.inject({
+        method: 'GET',
+        url: `/v1/coaches/${coachUserId}/profile`,
+        headers: authHeaders(tables, viewerUserId),
+      });
+      assert.equal(publicProfile.statusCode, 200);
+      const publicProfilePayload = publicProfile.json() as {
+        coachId: string;
+        total: number;
+        coachProfile: {
+          userId?: string;
+          displayName?: string | null;
+          priceMaxMinor?: number | null;
+          website?: string | null;
+          socialLinks?: Record<string, string>;
+          experiences?: Array<{ title?: string }>;
+          languages?: Array<{ name?: string }>;
+          qualifications?: string[];
+        };
+        offerings: Array<{ coachUserId: string; active: boolean; deletedAt?: string | null }>;
+      };
+      assert.equal(publicProfilePayload.coachId, coachUserId);
+      assert.equal(publicProfilePayload.coachProfile.userId, coachUserId);
+      assert.equal(
+        publicProfilePayload.coachProfile.displayName,
+        getSeededUserName(tables, coachUserId),
+      );
+      assert.equal(publicProfilePayload.coachProfile.priceMaxMinor, 9500);
+      assert.equal(publicProfilePayload.coachProfile.website, 'https://coach.example.com');
+      assert.equal(publicProfilePayload.coachProfile.socialLinks?.instagram, 'coach.example');
+      assert.equal(publicProfilePayload.coachProfile.experiences?.[0]?.title, 'Academy coach');
+      assert.equal(publicProfilePayload.coachProfile.languages?.[0]?.name, 'Spanish');
+      assert.deepEqual(publicProfilePayload.coachProfile.qualifications, ['UEFA B']);
+      assert.equal(publicProfilePayload.total >= 1, true);
+      assert.equal(
+        publicProfilePayload.offerings.every(
+          (offering) =>
+            offering.coachUserId === coachUserId &&
+            offering.active !== false &&
+            !offering.deletedAt,
+        ),
+        true,
+      );
+
+      const publicSearch = await app.inject({
+        method: 'GET',
+        url: '/v1/coaches/search?query=Finishing&priceMax=100&focuses=Finishing&languages=Spanish&pageSize=5',
+        headers: authHeaders(tables, viewerUserId),
+      });
+      assert.equal(publicSearch.statusCode, 200);
+      const publicSearchPayload = publicSearch.json() as {
+        total: number;
+        page: number;
+        pageSize: number;
+        hasMore: boolean;
+        results: Array<{
+          coachId: string;
+          relevanceScore: number;
+          matchedTerms: string[];
+          minPriceMinor: number;
+          maxPriceMinor: number;
+          ratingAverage: number;
+          reviewCount: number;
+          coachProfile: {
+            userId?: string;
+            dbsChecked?: boolean;
+            qualifications?: string[];
+            publicLocations?: Array<{
+              label: string;
+              lat: number;
+              lng: number;
+              addressText?: string;
+            }>;
+          };
+          offerings: Array<{ coachUserId: string; active: boolean; deletedAt?: string | null }>;
+          focuses: string[];
+          languages: string[];
+          publicLocation?: {
+            label: string;
+            lat: number;
+            lng: number;
+            addressText?: string;
+          };
+          distanceKm?: number;
+          distanceMiles?: number;
+        }>;
+        offerings: Array<{ coachUserId: string }>;
+        filterOptions: {
+          totalCount: number;
+          focuses: Array<{ value: string; selected?: boolean }>;
+          languages: Array<{ value: string; selected?: boolean }>;
+          priceRange: { minMinor: number; maxMinor: number };
+        };
+      };
+      assert.equal(publicSearchPayload.total >= 1, true);
+      assert.equal(publicSearchPayload.page, 1);
+      assert.equal(publicSearchPayload.pageSize, 5);
+      assert.equal(typeof publicSearchPayload.hasMore, 'boolean');
+      const publicSearchResult = publicSearchPayload.results.find(
+        (result) => result.coachId === coachUserId,
+      );
+      assert.ok(publicSearchResult, 'expected patched coach in public search results');
+      assert.equal(publicSearchResult.coachProfile.userId, coachUserId);
+      assert.equal(publicSearchResult.coachProfile.dbsChecked, undefined);
+      assert.deepEqual(publicSearchResult.coachProfile.qualifications, ['UEFA B']);
+      assert.equal(publicSearchResult.publicLocation?.label, 'Public Search Pitch');
+      assert.equal(publicSearchResult.publicLocation?.addressText, undefined);
+      assert.equal(publicSearchResult.coachProfile.publicLocations?.[0]?.label, 'Public Search Pitch');
+      assert.equal(publicSearchResult.coachProfile.publicLocations?.[0]?.addressText, undefined);
+      assert.equal(publicSearchResult.relevanceScore > 0, true);
+      assert.ok(publicSearchResult.matchedTerms.includes('finishing'));
+      assert.equal(publicSearchResult.minPriceMinor, 7250);
+      assert.equal(publicSearchResult.maxPriceMinor, 9500);
+      assert.equal(publicSearchResult.ratingAverage > 0, true);
+      assert.equal(publicSearchResult.reviewCount >= 1, true);
+      assert.equal(publicSearchResult.focuses.includes('Finishing'), true);
+      assert.equal(publicSearchResult.languages.includes('Spanish'), true);
+      assert.equal(
+        publicSearchResult.offerings.every(
+          (offering) =>
+            offering.coachUserId === coachUserId &&
+            offering.active !== false &&
+            !offering.deletedAt,
+        ),
+        true,
+      );
+      assert.equal(
+        publicSearchPayload.offerings.every((offering) => offering.coachUserId === coachUserId),
+        true,
+      );
+      assert.equal(publicSearchPayload.filterOptions.totalCount >= 1, true);
+      assert.equal(publicSearchPayload.filterOptions.priceRange.minMinor > 0, true);
+      assert.equal(
+        publicSearchPayload.filterOptions.focuses.some(
+          (focus) => focus.value === 'Finishing' && focus.selected === true,
+        ),
+        true,
+      );
+      assert.equal(
+        publicSearchPayload.filterOptions.languages.some(
+          (language) => language.value === 'Spanish' && language.selected === true,
+        ),
+        true,
+      );
+
+      const publicLocationTextSearch = await app.inject({
+        method: 'GET',
+        url: '/v1/coaches/search?query=Public%20Search%20Pitch&pageSize=5',
+        headers: authHeaders(tables, viewerUserId),
+      });
+      assert.equal(publicLocationTextSearch.statusCode, 200);
+      const publicLocationTextPayload = publicLocationTextSearch.json() as {
+        total: number;
+        results: Array<{
+          coachId: string;
+          matchedTerms: string[];
+          publicLocation?: { label: string; addressText?: string };
+        }>;
+      };
+      const publicLocationTextResult = publicLocationTextPayload.results.find(
+        (result) => result.coachId === coachUserId,
+      );
+      assert.ok(publicLocationTextResult, 'expected public location label to be searchable text');
+      assert.equal(publicLocationTextResult.publicLocation?.label, 'Public Search Pitch');
+      assert.equal(publicLocationTextResult.publicLocation?.addressText, undefined);
+      assert.deepEqual(publicLocationTextResult.matchedTerms, ['public', 'search', 'pitch']);
+
+      const privateAddressTextSearch = await app.inject({
+        method: 'GET',
+        url: '/v1/coaches/search?query=Hidden%20full%20address',
+        headers: authHeaders(tables, viewerUserId),
+      });
+      assert.equal(privateAddressTextSearch.statusCode, 200);
+      assert.equal((privateAddressTextSearch.json() as { total: number }).total, 0);
+
+      const locationPublicSearch = await app.inject({
+        method: 'GET',
+        url: '/v1/coaches/search?lat=51.49&lng=-0.12&radiusKm=2&sortBy=distance&pageSize=5',
+        headers: authHeaders(tables, viewerUserId),
+      });
+      assert.equal(locationPublicSearch.statusCode, 200);
+      const locationPayload = locationPublicSearch.json() as {
+        results: Array<{
+          coachId: string;
+          distanceKm?: number;
+          distanceMiles?: number;
+          publicLocation?: { label: string; addressText?: string };
+        }>;
+        total: number;
+      };
+      const locationResult = locationPayload.results.find((result) => result.coachId === coachUserId);
+      assert.ok(locationResult, 'expected patched coach in distance search results');
+      assert.equal((locationResult.distanceKm ?? 999) <= 0.1, true);
+      assert.equal((locationResult.distanceMiles ?? 999) <= 0.1, true);
+      assert.equal(locationResult.publicLocation?.label, 'Public Search Pitch');
+      assert.equal(locationResult.publicLocation?.addressText, undefined);
+
+      const farLocationPublicSearch = await app.inject({
+        method: 'GET',
+        url: '/v1/coaches/search?lat=0&lng=0&radiusKm=1&sortBy=distance&pageSize=5',
+        headers: authHeaders(tables, viewerUserId),
+      });
+      assert.equal(farLocationPublicSearch.statusCode, 200);
+      assert.equal((farLocationPublicSearch.json() as { total: number }).total, 0);
+
+      const invalidLocationPublicSearch = await app.inject({
+        method: 'GET',
+        url: '/v1/coaches/search?lat=51.49&radiusKm=2',
+        headers: authHeaders(tables, viewerUserId),
+      });
+      assert.equal(invalidLocationPublicSearch.statusCode, 400);
+
+      const ratedPublicSearch = await app.inject({
+        method: 'GET',
+        url: '/v1/coaches/search?rating=4&pageSize=5',
+        headers: authHeaders(tables, viewerUserId),
+      });
+      assert.equal(ratedPublicSearch.statusCode, 200);
+      const ratedPayload = ratedPublicSearch.json() as {
+        results: Array<{ coachId: string; ratingAverage: number; reviewCount: number }>;
+      };
+      const ratedResult = ratedPayload.results.find((result) => result.coachId === coachUserId);
+      assert.ok(ratedResult, 'expected public rating aggregate to satisfy rating filter');
+      assert.equal(ratedResult.ratingAverage >= 4, true);
+      assert.equal(ratedResult.reviewCount >= 1, true);
+
+      const emptyPublicSearch = await app.inject({
+        method: 'GET',
+        url: '/v1/coaches/search?query=DefinitelyNoCoachMatchesThis',
+        headers: authHeaders(tables, viewerUserId),
+      });
+      assert.equal(emptyPublicSearch.statusCode, 200);
+      assert.equal((emptyPublicSearch.json() as { total: number }).total, 0);
+
+      const unauthenticatedSearch = await app.inject({
+        method: 'GET',
+        url: '/v1/coaches/search',
+      });
+      assert.equal(unauthenticatedSearch.statusCode, 403);
+
+      const unauthenticatedProfile = await app.inject({
+        method: 'GET',
+        url: `/v1/coaches/${coachUserId}/profile`,
+      });
+      assert.equal(unauthenticatedProfile.statusCode, 403);
 
       const unauthenticatedOfferingIndex = await app.inject({
         method: 'GET',

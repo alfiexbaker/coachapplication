@@ -193,7 +193,7 @@ const mockGroups: ParentGroup[] = normalizeLegacyMockDates([
 // ============================================================================
 
 class CommunityGroupService {
-  private inMemoryGroups: ParentGroup[] = [...mockGroups];
+  private inMemoryGroups: ParentGroup[] = USE_MOCK ? [...mockGroups] : [];
 
   private async loadPersistedGroups(): Promise<ParentGroup[]> {
     return getLocalOverlayValue<ParentGroup[]>(STORAGE_KEYS.PARENT_GROUPS, []);
@@ -1053,7 +1053,7 @@ class CommunityGroupService {
     this.inMemoryGroups = allGroups;
     await this.persistGroups();
 
-    logger.info('group_deleted', { groupId });
+    logger.info('group_removed', { groupId });
 
     return ok(undefined);
   }

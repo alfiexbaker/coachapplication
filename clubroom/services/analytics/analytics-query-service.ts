@@ -444,8 +444,8 @@ const MOCK_GOALS: Goal[] = [
 // STORAGE HELPERS
 // ============================================================================
 
-let analyticsCache: AthleteAnalytics[] = [...MOCK_ANALYTICS];
-let goalsCache: Goal[] = [...MOCK_GOALS];
+let analyticsCache: AthleteAnalytics[] = USE_MOCK ? [...MOCK_ANALYTICS] : [];
+let goalsCache: Goal[] = USE_MOCK ? [...MOCK_GOALS] : [];
 
 async function loadAnalytics(): Promise<AthleteAnalytics[]> {
   try {
@@ -457,7 +457,7 @@ async function loadAnalytics(): Promise<AthleteAnalytics[]> {
   } catch (error) {
     logger.error('Failed to load analytics', error);
   }
-  return [...MOCK_ANALYTICS];
+  return USE_MOCK ? [...MOCK_ANALYTICS] : [];
 }
 
 async function loadGoals(): Promise<Goal[]> {
@@ -475,7 +475,7 @@ async function loadGoals(): Promise<Goal[]> {
   } catch (error) {
     logger.error('Failed to load goals', error);
   }
-  return [...MOCK_GOALS];
+  return USE_MOCK ? [...MOCK_GOALS] : [];
 }
 
 /**

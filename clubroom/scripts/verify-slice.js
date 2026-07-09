@@ -61,6 +61,7 @@ function main() {
   checks.push(npmCheck('audit:api-boundaries', 'frontend/API authority boundary ratchet', 'audit:api-boundaries'));
   checks.push(npmCheck('audit:alerts', 'native alert usage guardrail', 'audit:alerts'));
   checks.push(npmCheck('lint:ui-actions', 'dead action and icon-only action guardrail', 'lint:ui-actions'));
+  checks.push(npmCheck('audit:db:migrations', 'database migration RLS guardrail', 'audit:db:migrations'));
   checks.push(
     runCheck(
       'audit:agentic',

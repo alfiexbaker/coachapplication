@@ -12,23 +12,22 @@ import { ThemedText } from '@/components/themed-text';
 import { JoinClubCard } from '@/components/club/JoinClubCard';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/screen-states';
 import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { api } from '@/constants/config';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
 import { useToast } from '@/components/ui/toast';
 import { Routes } from '@/navigation/routes';
-import { socialFeedService } from '@/services/social-feed-service';
-import type { ClubMembership } from '@/constants/types';
+import type { Club, ClubMembership } from '@/constants/types';
 import { ok } from '@/types/result';
 import { uiFeedback } from '@/services/ui-feedback';
 import { clubAuthorityService } from '@/services/club-authority-service';
 import {
   formatOrganizationRoleLabel,
   isClubStaffRole,
-  parseOrganizationRole,
 } from '@/contracts/club-governance';
 
 interface MyClubsData {
-  clubs: ReturnType<typeof socialFeedService.getUserClubs>;
+  clubs: Club[];
   memberships: ClubMembership[];
 }
 type UserClub = MyClubsData['clubs'][number];
@@ -84,14 +83,7 @@ export default function MyClubsScreen() {
     if (!currentUser?.id) {
       return ok<MyClubsData>({ clubs: [], memberships: [] });
     }
-    const authorityResult = await clubAuthorityService.listClubs();
-    if (authorityResult.success) {
-      return ok<MyClubsData>(authorityResult.data);
-    }
-    return ok<MyClubsData>({
-      clubs: socialFeedService.getUserClubs(currentUser.id),
-      memberships: socialFeedService.getUserMemberships(currentUser.id),
-    });
+    return clubAuthorityService.listClubs();
   };
 
   const { data, status, error, retry, onRefresh, refreshing, colors } = useScreen<MyClubsData>({
@@ -122,7 +114,7 @@ export default function MyClubsScreen() {
         style={styles.clubCard}
         onPress={() =>
           router.push(
-            isStaffMembership(membership?.role)
+            api.useMock && isStaffMembership(membership?.role)
               ? Routes.clubHub({ clubId: club.id })
               : Routes.club(club.id),
           )

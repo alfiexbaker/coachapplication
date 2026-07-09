@@ -9,8 +9,9 @@ function readSource(relativePath: string): string {
   return fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
 }
 
-test('coach venue presets remain device-local in API mode', () => {
+test('coach venue presets use explicit v1 ownership in API mode', () => {
   const apiClientSource = readSource('services/api-client.ts');
+  const venueServiceSource = readSource('services/coach-venue-service.ts');
   const serviceOwnershipSource = readSource('docs/architecture/service-ownership-map.md');
   const localKeysBlock = apiClientSource.match(
     /const CLIENT_LOCAL_STORAGE_KEYS = new Set<string>\(\[([\s\S]*?)\]\);/,
@@ -18,11 +19,15 @@ test('coach venue presets remain device-local in API mode', () => {
 
   assert.ok(localKeysBlock, 'expected CLIENT_LOCAL_STORAGE_KEYS block');
   assert.ok(
-    localKeysBlock[1]?.includes('STORAGE_KEYS.COACH_VENUES'),
-    'coach venue presets should not trigger explicit-v1-required warnings in API mode',
+    !localKeysBlock[1]?.includes('STORAGE_KEYS.COACH_VENUES'),
+    'coach venue presets should not be device-local in API mode',
   );
   assert.ok(
-    serviceOwnershipSource.includes('Coach venue presets are device-local UI conveniences'),
-    'service ownership docs should explain why coach venues stay local',
+    venueServiceSource.includes("'/v1/coaches/me/venues'"),
+    'coach venue service should use the v1 venue contract in API mode',
+  );
+  assert.ok(
+    serviceOwnershipSource.includes('Coach venue presets are backend-owned in API mode'),
+    'service ownership docs should record v1 ownership for coach venues',
   );
 });

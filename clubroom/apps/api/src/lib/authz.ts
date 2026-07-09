@@ -266,6 +266,29 @@ export async function assertCanCreateSafeguardingIncident(
   throw forbidden('Not allowed to create safeguarding incident for this athlete');
 }
 
+export async function assertCanReadSafeguardingForAthlete(
+  request: FastifyRequest,
+  athleteId: string,
+): Promise<void> {
+  const auth = getAuthOrThrow(request);
+  const role = getRoleOrThrow(request);
+
+  if (isPrivilegedAdminAuth(auth)) {
+    return;
+  }
+  if (role === 'athlete' && await isAthleteSelf(request, athleteId)) {
+    return;
+  }
+  if (role === 'parent' && await isGuardianForAthlete(request, athleteId)) {
+    return;
+  }
+  if (role === 'coach' && await isVerifiedAssignedCoach(request, athleteId)) {
+    return;
+  }
+
+  throw forbidden('Not allowed to access safeguarding incidents for this athlete');
+}
+
 export async function assertCanAccessSafeguardingIncident(
   request: FastifyRequest,
   incident: {
@@ -274,7 +297,6 @@ export async function assertCanAccessSafeguardingIncident(
   },
 ): Promise<void> {
   const auth = getAuthOrThrow(request);
-  const role = getRoleOrThrow(request);
 
   if (auth.userId === incident.reportedByUserId) {
     return;
@@ -285,15 +307,5 @@ export async function assertCanAccessSafeguardingIncident(
   if (!incident.athleteId) {
     throw forbidden('Not allowed to access this safeguarding incident');
   }
-  if (role === 'athlete' && await isAthleteSelf(request, incident.athleteId)) {
-    return;
-  }
-  if (role === 'parent' && await isGuardianForAthlete(request, incident.athleteId)) {
-    return;
-  }
-  if (role === 'coach' && await isVerifiedAssignedCoach(request, incident.athleteId)) {
-    return;
-  }
-
-  throw forbidden('Not allowed to access this safeguarding incident');
+  await assertCanReadSafeguardingForAthlete(request, incident.athleteId);
 }

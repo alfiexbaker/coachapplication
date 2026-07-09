@@ -24,10 +24,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { BookingSummary } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
-import {
-  CompactBookingCard,
-  DetailedBookingCard,
-} from './unified-booking-sections';
+import { CompactBookingCard, DetailedBookingCard } from './unified-booking-sections';
 import {
   type ExtendedBooking,
   formatBookingDateTime,
@@ -67,9 +64,7 @@ export function UnifiedBookingCard({
   const statusColor = getBookingStatusColor(booking.status, palette);
   const statusLabel = getBookingStatusLabel(booking.status, { isCoachView: isCoach });
   const { day, time, full } = formatBookingDateTime(booking.start);
-  const coachPhotoUrl =
-    extendedBooking.coach?.photoUrl ||
-    `https://i.pravatar.cc/100?u=${booking.coachId || 'default'}`;
+  const coachPhotoUrl = extendedBooking.coach?.photoUrl || undefined;
   const coachName = getBookingSummaryCoachName(booking);
   const childName = getBookingSummaryClientName(booking);
   const serviceLabel = getBookingServiceLabel(booking);
@@ -133,7 +128,19 @@ export function UnifiedBookingCard({
     <Clickable onPress={handlePress}>
       <SurfaceCard style={styles.standardCard}>
         <Row style={styles.standardRow}>
-          <Image source={{ uri: coachPhotoUrl }} style={styles.avatarMedium} />
+          {coachPhotoUrl ? (
+            <Image source={{ uri: coachPhotoUrl }} style={styles.avatarMedium} />
+          ) : (
+            <View
+              style={[
+                styles.avatarMedium,
+                styles.avatarFallback,
+                { backgroundColor: withAlpha(palette.tint, 0.1) },
+              ]}
+            >
+              <Ionicons name="person-outline" size={22} color={palette.tint} />
+            </View>
+          )}
 
           <View style={styles.standardContent}>
             <ThemedText style={styles.standardTitle} numberOfLines={1}>
@@ -193,6 +200,7 @@ export function UnifiedBookingCard({
 const styles = StyleSheet.create({
   pressed: { opacity: 0.7 },
   avatarMedium: { width: 48, height: 48, borderRadius: Radii.xl },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center' },
   statusBadge: {
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,

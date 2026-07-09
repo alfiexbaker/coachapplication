@@ -31,7 +31,6 @@ import {
   ok,
   err,
   notFound,
-  unsupportedError,
 } from '@/types/result';
 import type {
   ClubEvent,
@@ -56,16 +55,6 @@ interface ApiClubEventInviteResponse {
   athleteIds?: string[];
   inviteCount: number;
   targetAthleteCount?: number;
-}
-
-function eventUnsupportedError(action: string): ServiceError {
-  return unsupportedError(`${action} needs a /v1 club event API before it can run in API mode.`, {
-    missingAuthority: 'club_event',
-  });
-}
-
-function throwEventUnsupported(action: string): never {
-  throw new Error(eventUnsupportedError(action).message);
 }
 
 async function resolveEventApiHeaders(): Promise<Result<Record<string, string>, ServiceError>> {
@@ -242,7 +231,7 @@ const MOCK_EVENTS: ClubEvent[] = [
     createdAt: '2026-01-05T14:00:00Z',
   },
 ];
-let eventsCache: ClubEvent[] = [...MOCK_EVENTS];
+let eventsCache: ClubEvent[] = USE_MOCK ? [...MOCK_EVENTS] : [];
 const CLUB_STAFF_ROLES = new Set(['OWNER', 'ADMIN', 'HEAD_COACH', 'COACH']);
 function isActiveMember(member: ClubMember): boolean {
   return member.status === 'active';
@@ -346,7 +335,7 @@ export async function loadEvents(): Promise<ClubEvent[]> {
   } catch (error) {
     logger.error('Failed to load events', error);
   }
-  return [...MOCK_EVENTS];
+  return USE_MOCK ? [...MOCK_EVENTS] : [];
 }
 export async function saveEvents(events: ClubEvent[]): Promise<void> {
   try {
@@ -539,7 +528,7 @@ export const eventCrudService = {
         eventId,
         error: headersResult.error,
       });
-      return null;
+      throw new Error(headersResult.error.message);
     }
     const result = await apiFetch<ApiClubEventResponse>(
       `/v1/events/${encodeURIComponent(eventId)}`,
@@ -553,7 +542,10 @@ export const eventCrudService = {
         eventId,
         error: result.error,
       });
-      return null;
+      if (result.error.code === 'NOT_FOUND') {
+        return null;
+      }
+      throw new Error(result.error.message);
     }
     return result.data.event;
   },
@@ -574,7 +566,7 @@ export const eventCrudService = {
         clubId,
         error: result.error,
       });
-      return [];
+      throw new Error(result.error.message);
     }
     const now = toDateStr(new Date());
     return result.data
@@ -597,7 +589,7 @@ export const eventCrudService = {
         clubId,
         error: result.error,
       });
-      return [];
+      throw new Error(result.error.message);
     }
     return result.data.sort((a, b) => b.date.localeCompare(a.date));
   },

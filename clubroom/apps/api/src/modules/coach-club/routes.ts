@@ -8,6 +8,7 @@ import {
 import { recordAuditEvent } from "../../lib/audit-runtime.js";
 import {
   canUseStaffInviteLinks,
+  hasAnyGrantedRole,
   isPrivilegedAdminAuth,
 } from "../../lib/authz.js";
 import { getApiDataBackend } from "../../lib/data-backend.js";
@@ -19,6 +20,7 @@ import {
   forbidden,
   notFound,
 } from "../../lib/http-errors.js";
+import { deliverClubInviteEmail } from "../../lib/password-reset-delivery.js";
 import { getMarketplaceSeedStore } from "../../lib/marketplace-seed-store.js";
 import {
   getPrismaClientOrThrow,
@@ -42,10 +44,14 @@ import {
   resolveCoachSessionTemplateRepository,
   type CoachSessionTemplate,
 } from "../../repositories/p0/coach-session-template-repository.js";
-import { resolveCoachSelfRepository } from "../../repositories/p0/coach-self-repository.js";
+import {
+  resolveCoachSelfRepository,
+  type PublicCoachSearchSort,
+} from "../../repositories/p0/coach-self-repository.js";
 import { resolveCoachTravelSettingsRepository } from "../../repositories/p0/coach-travel-settings-repository.js";
 import { resolveCoachTrialOfferingRepository } from "../../repositories/p0/coach-trial-offering-repository.js";
 import { resolveCoachTrialUsageRepository } from "../../repositories/p0/coach-trial-usage-repository.js";
+import { resolveCoachVenueRepository } from "../../repositories/p0/coach-venue-repository.js";
 import { normalizeForJson } from "../../repositories/p0/normalize.js";
 import {
   parseAvailabilitySlotQuery,
@@ -86,6 +92,46 @@ interface SchedulingRulesPatchBody {
 const favouriteCoachParamsSchema = z.object({
   coachId: z.string().min(1),
 });
+const queryStringListSchema = z.preprocess((value) => {
+  if (value == null) return undefined;
+  const rawValues = Array.isArray(value) ? value : [value];
+  const values = rawValues.flatMap((entry) =>
+    typeof entry === "string" ? entry.split(",") : [],
+  );
+  return values.map((entry) => entry.trim()).filter(Boolean);
+}, z.array(z.string().min(1).max(80)).max(20).optional());
+const coachPublicSearchQuerySchema = z
+  .object({
+    query: z.string().trim().max(100).optional(),
+    priceMin: z.coerce.number().min(0).max(10_000).optional(),
+    priceMax: z.coerce.number().min(0).max(10_000).optional(),
+    rating: z.coerce.number().min(0).max(5).optional(),
+    sports: queryStringListSchema,
+    focuses: queryStringListSchema,
+    formats: queryStringListSchema,
+    languages: queryStringListSchema,
+    lat: z.coerce.number().min(-90).max(90).optional(),
+    lng: z.coerce.number().min(-180).max(180).optional(),
+    radiusKm: z.coerce.number().min(0).max(500).optional(),
+    sortBy: z
+      .enum(["relevance", "distance", "rating", "price_low", "price_high", "reviews"])
+      .default("relevance"),
+    page: z.coerce.number().int().min(1).max(1_000).default(1),
+    pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const hasLat = value.lat != null;
+    const hasLng = value.lng != null;
+    const needsOrigin = hasLat || hasLng || value.radiusKm != null || value.sortBy === "distance";
+    if (needsOrigin && (!hasLat || !hasLng)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "lat and lng are required for location distance search",
+        path: ["lat"],
+      });
+    }
+  });
 const coachSessionTemplateParamsSchema = z.object({
   templateId: z.string().min(1),
 });
@@ -360,6 +406,21 @@ const coachTravelSettingsPatchBodySchema = z
   .refine((body) => Object.keys(body).length > 0, {
     message: "At least one travel setting is required",
   });
+const coachVenueParamsSchema = z.object({
+  venueId: z.string().min(1),
+});
+const coachVenueBodySchema = z
+  .object({
+    label: z.string().trim().min(1).max(160),
+    isDefault: z.boolean().optional(),
+  })
+  .strict();
+const coachVenuePatchSchema = coachVenueBodySchema
+  .partial()
+  .strict()
+  .refine((body) => Object.keys(body).length > 0, {
+    message: "At least one venue field is required",
+  });
 const coachSessionTemplateBodySchema = z
   .object({
     name: z.string().trim().min(3).max(100),
@@ -561,6 +622,25 @@ const clubMemberRemovalBodySchema = z.object({
     .default("OTHER"),
   customReason: z.string().max(500).nullable().optional(),
 });
+const clubMemberSelfLeaveBodySchema = z.object({
+  reason: z
+    .enum(["LEFT_CLUB", "INACTIVE", "CONDUCT", "SEASON_END", "OTHER"])
+    .default("LEFT_CLUB"),
+  customReason: z.string().max(500).nullable().optional(),
+});
+const clubDirectInviteBodySchema = z
+  .object({
+    targetUserIds: z.array(z.string().trim().min(1)).max(50).default([]),
+    targetEmails: z.array(z.string().trim().email().max(254)).max(50).default([]),
+    role: z.enum(["MEMBER", "COACH", "ADMIN"]).default("MEMBER"),
+  })
+  .strict()
+  .refine((body) => body.targetUserIds.length + body.targetEmails.length > 0, {
+    message: "At least one target user or email is required",
+  })
+  .refine((body) => body.targetUserIds.length + body.targetEmails.length <= 50, {
+    message: "At most 50 invite targets are supported",
+  });
 const clubMemberBanBodySchema = z.object({
   reason: z.string().trim().min(3).max(500),
 });
@@ -586,6 +666,14 @@ const coachVerificationDocumentBodySchema = z
     fileLabel: z.string().trim().min(1).max(160).optional(),
   })
   .strict();
+const coachVerificationReviewBodySchema = z
+  .object({
+    status: z.enum(["APPROVED", "REJECTED", "EXPIRED"]),
+    expiresAt: z.string().datetime().nullable().optional(),
+    notes: z.string().trim().max(1000).nullable().optional(),
+    verificationId: z.string().trim().min(1).optional(),
+  })
+  .strict();
 const asRows = (value: unknown): SeedRow[] =>
   Array.isArray(value) ? (value as SeedRow[]) : [];
 const asString = (value: unknown): string | undefined =>
@@ -600,6 +688,32 @@ const asIsoString = (value: unknown, fallback = new Date().toISOString()): strin
     : value instanceof Date
       ? value.toISOString()
       : fallback;
+function inviteEmailDomainsForAudit(emails: string[]): string[] {
+  return Array.from(
+    new Set(
+      emails
+        .map((email) => email.trim().toLowerCase().split("@")[1])
+        .filter((domain): domain is string => Boolean(domain)),
+    ),
+  );
+}
+function summarizeInviteEmailDelivery(
+  results: Array<{ provider: string; status: "sent" | "skipped" | "failed" }>,
+): {
+  total: number;
+  sent: number;
+  skipped: number;
+  failed: number;
+  providers: string[];
+} {
+  return {
+    total: results.length,
+    sent: results.filter((result) => result.status === "sent").length,
+    skipped: results.filter((result) => result.status === "skipped").length,
+    failed: results.filter((result) => result.status === "failed").length,
+    providers: Array.from(new Set(results.map((result) => result.provider))),
+  };
+}
 const newId = (prefix: string): string => `${prefix}_${crypto.randomUUID()}`;
 function resolveSquadLevel(body: {
   level?: string;
@@ -1258,6 +1372,210 @@ async function submitCoachVerificationDocument(params: {
     dataVersion: store.version,
   };
 }
+type CoachVerificationReviewStatus = "APPROVED" | "REJECTED" | "EXPIRED";
+function requireVerificationReviewer(request: FastifyRequest): string {
+  const authUserId = requireAuthUserId(request.auth?.userId);
+  if (!hasAnyGrantedRole(request.auth, ["admin", "security_admin"])) {
+    throw forbidden("Only platform verification reviewers can review coach verification evidence");
+  }
+  return authUserId;
+}
+function defaultVerificationExpiryIso(): string {
+  const expiry = new Date();
+  expiry.setUTCFullYear(expiry.getUTCFullYear() + 3);
+  return expiry.toISOString();
+}
+function reviewExpiresAt(status: CoachVerificationReviewStatus, expiresAt?: string | null): Date | null {
+  if (status !== "APPROVED") {
+    return expiresAt ? new Date(expiresAt) : null;
+  }
+  const resolved = new Date(expiresAt ?? defaultVerificationExpiryIso());
+  if (!Number.isFinite(resolved.getTime()) || resolved.getTime() <= Date.now()) {
+    throw badRequest("Approved verification expiry must be in the future");
+  }
+  return resolved;
+}
+async function reviewCoachVerification(params: {
+  reviewerUserId: string;
+  coachUserId: string;
+  requestedType: string;
+  status: CoachVerificationReviewStatus;
+  expiresAt?: string | null;
+  notes?: string | null;
+  verificationId?: string;
+}): Promise<{
+  type: string;
+  verification: SeedRow;
+  status: SeedRow;
+  dataVersion: string | null;
+}> {
+  const verificationType = normalizeVerificationType(params.requestedType);
+  const expiresAt = reviewExpiresAt(params.status, params.expiresAt);
+  const now = new Date();
+  if (getApiDataBackend() === "db" && !shouldUseDbFixtureFallback()) {
+    const prisma = getPrismaClientOrThrow();
+    const updated = await prisma.$transaction(async (tx) => {
+      const profile = await tx.coachProfile.findFirst({
+        where: {
+          userId: params.coachUserId,
+          deletedAt: null,
+        },
+        select: {
+          userId: true,
+        },
+      });
+      if (!profile) {
+        throw notFound("Coach profile not found", {
+          coachUserId: params.coachUserId,
+        });
+      }
+      const target = params.verificationId
+        ? await tx.coachVerification.findFirst({
+            where: {
+              id: params.verificationId,
+              coachUserId: params.coachUserId,
+              verificationType,
+            },
+          })
+        : (await tx.coachVerification.findFirst({
+            where: {
+              coachUserId: params.coachUserId,
+              verificationType,
+              status: "PENDING",
+            },
+            orderBy: [
+              {
+                updatedAt: "desc",
+              },
+              {
+                createdAt: "desc",
+              },
+            ],
+          })) ??
+          (await tx.coachVerification.findFirst({
+            where: {
+              coachUserId: params.coachUserId,
+              verificationType,
+            },
+            orderBy: [
+              {
+                updatedAt: "desc",
+              },
+              {
+                createdAt: "desc",
+              },
+            ],
+          }));
+      if (!target) {
+        throw notFound("Coach verification not found", {
+          coachUserId: params.coachUserId,
+          verificationType,
+        });
+      }
+      const verification = await tx.coachVerification.update({
+        where: {
+          id: target.id,
+        },
+        data: {
+          status: params.status,
+          reviewedByUserId: params.reviewerUserId,
+          reviewedAt: now,
+          expiresAt,
+          notes: params.notes ?? null,
+          updatedByUserId: params.reviewerUserId,
+          version: {
+            increment: 1,
+          },
+        },
+      });
+      if (verificationType === "DBS") {
+        await tx.coachProfile.update({
+          where: {
+            userId: params.coachUserId,
+          },
+          data: {
+            dbsChecked: params.status === "APPROVED",
+          },
+        });
+      }
+      return verification;
+    });
+    const sources = await loadCoachVerificationSources(params.coachUserId);
+    return {
+      type: verificationType.toLowerCase(),
+      verification: normalizeForJson(updated) as SeedRow,
+      status: buildCoachVerificationStatus({
+        coachUserId: params.coachUserId,
+        user: sources.user,
+        profile: sources.profile,
+        verifications: sources.verifications,
+      }),
+      dataVersion: null,
+    };
+  }
+
+  const store =
+    getApiDataBackend() === "db" ? getDbFixtureStore() : getMarketplaceSeedStore();
+  const profile = asRows(store.tables.coachProfiles).find(
+    (row) => asString(row.userId) === params.coachUserId && !asString(row.deletedAt),
+  );
+  if (!profile) {
+    throw notFound("Coach profile not found", {
+      coachUserId: params.coachUserId,
+    });
+  }
+  const coachVerifications = Array.isArray(store.tables.coachVerifications)
+    ? store.tables.coachVerifications
+    : (store.tables.coachVerifications = []);
+  const target = params.verificationId
+    ? coachVerifications.find(
+        (row) =>
+          asString(row.id) === params.verificationId &&
+          asString(row.coachUserId) === params.coachUserId &&
+          asString(row.verificationType) === verificationType,
+      )
+    : coachVerifications
+        .filter(
+          (row) =>
+            asString(row.coachUserId) === params.coachUserId &&
+            asString(row.verificationType) === verificationType,
+        )
+        .sort((left, right) => {
+          const leftPending = asString(left.status) === "PENDING" ? 1 : 0;
+          const rightPending = asString(right.status) === "PENDING" ? 1 : 0;
+          return rightPending - leftPending || verificationRowTimestamp(right) - verificationRowTimestamp(left);
+        })[0];
+  if (!target) {
+    throw notFound("Coach verification not found", {
+      coachUserId: params.coachUserId,
+      verificationType,
+    });
+  }
+  target.status = params.status;
+  target.reviewedByUserId = params.reviewerUserId;
+  target.reviewedAt = now.toISOString();
+  target.expiresAt = expiresAt?.toISOString() ?? null;
+  target.notes = params.notes ?? null;
+  target.updatedByUserId = params.reviewerUserId;
+  target.updatedAt = now.toISOString();
+  target.version = Number(target.version ?? 1) + 1;
+  if (verificationType === "DBS") {
+    profile.dbsChecked = params.status === "APPROVED";
+    profile.updatedAt = now.toISOString();
+  }
+  const sources = await loadCoachVerificationSources(params.coachUserId);
+  return {
+    type: verificationType.toLowerCase(),
+    verification: target,
+    status: buildCoachVerificationStatus({
+      coachUserId: params.coachUserId,
+      user: sources.user,
+      profile: sources.profile,
+      verifications: sources.verifications,
+    }),
+    dataVersion: store.version,
+  };
+}
 function mutationAuditResult(error: unknown): "DENY" | "ERROR" {
   return error instanceof z.ZodError ||
     (error instanceof ApiProblemError && error.status < 500)
@@ -1433,6 +1751,27 @@ async function recordCoachTravelSettingsAudit(params: {
     action: params.action,
     resourceType: "coach_travel_settings",
     resourceId: params.request.auth?.userId ?? null,
+    subjectUserId: params.request.auth?.userId ?? null,
+    result: params.result,
+    metadata: params.metadata,
+  });
+}
+async function recordCoachVenueAudit(params: {
+  request: FastifyRequest;
+  action:
+    | "coach_venue.read"
+    | "coach_venue.create"
+    | "coach_venue.update"
+    | "coach_venue.archive";
+  venueId?: string | null;
+  result: "SUCCESS" | "DENY" | "ERROR";
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  await recordAuditEvent({
+    request: params.request,
+    action: params.action,
+    resourceType: "coach_venue",
+    resourceId: params.venueId ?? null,
     subjectUserId: params.request.auth?.userId ?? null,
     result: params.result,
     metadata: params.metadata,
@@ -2812,6 +3151,129 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       await recordCoachTravelSettingsAudit({
         request,
         action: "coach_travel_settings.update",
+        result: mutationAuditResult(error),
+        metadata: {
+          errorCode: mutationAuditErrorCode(error),
+        },
+      });
+      throw error;
+    }
+  });
+  app.get("/coaches/me/venues", async (request, reply) => {
+    try {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const repository = resolveCoachVenueRepository();
+      const venues = await repository.list(authUserId);
+      await recordCoachVenueAudit({
+        request,
+        action: "coach_venue.read",
+        result: "SUCCESS",
+        metadata: {
+          total: venues.length,
+        },
+      });
+      return reply.send({
+        venues,
+        total: venues.length,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordCoachVenueAudit({
+        request,
+        action: "coach_venue.read",
+        result: mutationAuditResult(error),
+        metadata: {
+          errorCode: mutationAuditErrorCode(error),
+        },
+      });
+      throw error;
+    }
+  });
+  app.post("/coaches/me/venues", async (request, reply) => {
+    let venueId: string | undefined;
+    try {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const body = coachVenueBodySchema.parse(request.body ?? {});
+      const repository = resolveCoachVenueRepository();
+      const venue = await repository.create(authUserId, body);
+      venueId = venue.id;
+      await recordCoachVenueAudit({
+        request,
+        action: "coach_venue.create",
+        venueId,
+        result: "SUCCESS",
+        metadata: {
+          fields: Object.keys(body),
+        },
+      });
+      return reply.code(201).send({
+        venue,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordCoachVenueAudit({
+        request,
+        action: "coach_venue.create",
+        venueId,
+        result: mutationAuditResult(error),
+        metadata: {
+          errorCode: mutationAuditErrorCode(error),
+        },
+      });
+      throw error;
+    }
+  });
+  app.patch("/coaches/me/venues/:venueId", async (request, reply) => {
+    const { venueId } = coachVenueParamsSchema.parse(request.params);
+    try {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const body = coachVenuePatchSchema.parse(request.body ?? {});
+      const repository = resolveCoachVenueRepository();
+      const venue = await repository.update(authUserId, venueId, body);
+      await recordCoachVenueAudit({
+        request,
+        action: "coach_venue.update",
+        venueId,
+        result: "SUCCESS",
+        metadata: {
+          fields: Object.keys(body),
+        },
+      });
+      return reply.send({
+        venue,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordCoachVenueAudit({
+        request,
+        action: "coach_venue.update",
+        venueId,
+        result: mutationAuditResult(error),
+        metadata: {
+          errorCode: mutationAuditErrorCode(error),
+        },
+      });
+      throw error;
+    }
+  });
+  app.delete("/coaches/me/venues/:venueId", async (request, reply) => {
+    const { venueId } = coachVenueParamsSchema.parse(request.params);
+    try {
+      const authUserId = requireAuthUserId(request.auth?.userId);
+      const repository = resolveCoachVenueRepository();
+      await repository.delete(authUserId, venueId);
+      await recordCoachVenueAudit({
+        request,
+        action: "coach_venue.archive",
+        venueId,
+        result: "SUCCESS",
+      });
+      return reply.code(204).send();
+    } catch (error) {
+      await recordCoachVenueAudit({
+        request,
+        action: "coach_venue.archive",
+        venueId,
         result: mutationAuditResult(error),
         metadata: {
           errorCode: mutationAuditErrorCode(error),
@@ -4202,6 +4664,59 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       requestId: request.requestId,
     });
   });
+  app.get("/coaches/search", async (request, reply) => {
+    requireAuthUserId(request.auth?.userId);
+    const query = coachPublicSearchQuerySchema.parse(request.query ?? {});
+    const repository = resolveCoachSelfRepository();
+    const result = await repository.searchPublicCoaches({
+      query: query.query || undefined,
+      priceMinMinor:
+        query.priceMin == null ? undefined : Math.round(query.priceMin * 100),
+      priceMaxMinor:
+        query.priceMax == null ? undefined : Math.round(query.priceMax * 100),
+      rating: query.rating,
+      sports: query.sports,
+      focuses: query.focuses,
+      formats: query.formats,
+      languages: query.languages,
+      location:
+        query.lat != null && query.lng != null
+          ? {
+              lat: query.lat,
+              lng: query.lng,
+              radiusKm: query.radiusKm,
+            }
+          : undefined,
+      sortBy: query.sortBy as PublicCoachSearchSort,
+      page: query.page,
+      pageSize: query.pageSize,
+    });
+    return reply.send({
+      results: result.results,
+      offerings: result.offerings,
+      total: result.total,
+      page: result.page,
+      pageSize: result.pageSize,
+      hasMore: result.hasMore,
+      filterOptions: result.filterOptions,
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
+  app.get("/coaches/:coachId/profile", async (request, reply) => {
+    requireAuthUserId(request.auth?.userId);
+    const { coachId } = favouriteCoachParamsSchema.parse(request.params);
+    const repository = resolveCoachSelfRepository();
+    const result = await repository.getPublicProfile(coachId);
+    return reply.send({
+      coachId,
+      coachProfile: result.coachProfile,
+      offerings: result.offerings,
+      total: result.offerings.length,
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
+  });
   app.get("/coaches/:coachId/offerings", async (request, reply) => {
     requireAuthUserId(request.auth?.userId);
     const { coachId } = favouriteCoachParamsSchema.parse(request.params);
@@ -5173,6 +5688,86 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       }
     },
   );
+  app.patch(
+    "/coaches/:coachId/verifications/:type/review",
+    async (request, reply) => {
+      requireAuthUserId(request.auth?.userId);
+      const coachUserId = asString(
+        (
+          request.params as {
+            coachId?: string;
+          }
+        ).coachId,
+      );
+      const requestedType = asString(
+        (
+          request.params as {
+            type?: string;
+          }
+        ).type,
+      )?.toLowerCase();
+      if (!coachUserId) {
+        throw notFound("Coach profile not found");
+      }
+      if (!requestedType) {
+        throw notFound("Verification type is required");
+      }
+      let reviewerUserId = request.auth?.userId ?? null;
+      let reviewStatus: string | null = null;
+      let verificationId: string | null = null;
+      try {
+        reviewerUserId = requireVerificationReviewer(request);
+        const body = coachVerificationReviewBodySchema.parse(request.body ?? {});
+        reviewStatus = body.status;
+        verificationId = body.verificationId ?? null;
+        const result = await reviewCoachVerification({
+          reviewerUserId,
+          coachUserId,
+          requestedType,
+          status: body.status,
+          expiresAt: body.expiresAt,
+          notes: body.notes,
+          verificationId: body.verificationId,
+        });
+        await recordAuditEvent({
+          request,
+          action: "coach_verification.review",
+          resourceType: "coach_verification",
+          resourceId: asString(result.verification.id) ?? `${coachUserId}:${result.type}`,
+          subjectUserId: coachUserId,
+          result: "SUCCESS",
+          metadata: {
+            reviewerUserId,
+            verificationType: result.type,
+            status: body.status,
+          },
+        });
+        return reply.send({
+          type: result.type,
+          verification: result.verification,
+          status: result.status,
+          seedVersion: result.dataVersion,
+          requestId: request.requestId,
+        });
+      } catch (error) {
+        await recordAuditEvent({
+          request,
+          action: "coach_verification.review",
+          resourceType: "coach_verification",
+          resourceId: verificationId ?? `${coachUserId}:${requestedType}`,
+          subjectUserId: coachUserId,
+          result: mutationAuditResult(error),
+          metadata: {
+            reviewerUserId,
+            verificationType: requestedType,
+            status: reviewStatus,
+            errorCode: mutationAuditErrorCode(error),
+          },
+        });
+        throw error;
+      }
+    },
+  );
   app.get("/coaches/:coachId/availability/slots", async (request, reply) => {
     requireAuthUserId(request.auth?.userId);
     const coachUserId = asString(
@@ -5732,6 +6327,52 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       throw error;
     }
   });
+  app.post("/clubs/:clubId/members/me/leave", async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const params = clubParamsSchema.parse(request.params ?? {});
+    const body = clubMemberSelfLeaveBodySchema.parse(request.body ?? {});
+    const repository = resolveClubAuthorityRepository();
+    try {
+      const removal = await repository.leaveClub({
+        clubId: params.clubId,
+        authUserId,
+        reason: body.reason,
+        customReason: body.customReason ?? null,
+      });
+      await recordClubMemberAudit({
+        request,
+        action: "club_member.leave",
+        clubId: params.clubId,
+        targetUserId: authUserId,
+        result: "SUCCESS",
+        metadata: {
+          reason: body.reason,
+          customReason: body.customReason ?? null,
+        },
+      });
+      return reply.send({
+        removal,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordClubMemberAudit({
+        request,
+        action: "club_member.leave",
+        clubId: params.clubId,
+        targetUserId: authUserId,
+        result:
+          error instanceof ApiProblemError && error.status < 500
+            ? "DENY"
+            : "ERROR",
+        metadata: {
+          reason: body.reason,
+          errorCode:
+            error instanceof ApiProblemError ? error.code : "INTERNAL_ERROR",
+        },
+      });
+      throw error;
+    }
+  });
   app.delete("/clubs/:clubId/members/:userId", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
     const params = clubMemberParamsSchema.parse(request.params ?? {});
@@ -6016,14 +6657,44 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       throw notFound("Club not found");
     }
     const repository = resolveClubAuthorityRepository();
-    const inviteCodes = await repository.listInviteCodes({
-      clubId,
-      authUserId,
-    });
-    return reply.send({
-      inviteCodes,
-      requestId: request.requestId,
-    });
+    try {
+      const inviteCodes = await repository.listInviteCodes({
+        clubId,
+        authUserId,
+      });
+      await recordAuditEvent({
+        request,
+        action: "club_invite_code.read",
+        resourceType: "club_invite_code",
+        resourceId: clubId,
+        subjectUserId: authUserId,
+        result: "SUCCESS",
+        sensitiveRead: true,
+        metadata: {
+          clubId,
+          resultCount: inviteCodes.length,
+        },
+      });
+      return reply.send({
+        inviteCodes,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: "club_invite_code.read",
+        resourceType: "club_invite_code",
+        resourceId: clubId,
+        subjectUserId: authUserId,
+        result: mutationAuditResult(error),
+        sensitiveRead: true,
+        metadata: {
+          clubId,
+          errorCode: mutationAuditErrorCode(error),
+        },
+      });
+      throw error;
+    }
   });
   app.post("/clubs/:clubId/invite-codes", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
@@ -6047,15 +6718,162 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
       throw notFound("Club not found");
     }
     const repository = resolveClubAuthorityRepository();
-    const inviteCode = await repository.createInviteCode({
-      clubId,
-      authUserId,
-      role,
-    });
-    return reply.code(201).send({
-      inviteCode,
-      requestId: request.requestId,
-    });
+    let code: string | null = null;
+    try {
+      const inviteCode = await repository.createInviteCode({
+        clubId,
+        authUserId,
+        role,
+      });
+      code = inviteCode.code;
+      await recordAuditEvent({
+        request,
+        action: "club_invite_code.create",
+        resourceType: "club_invite_code",
+        resourceId: `${clubId}:${inviteCode.code}`,
+        subjectUserId: authUserId,
+        result: "SUCCESS",
+        metadata: {
+          clubId,
+          code: inviteCode.code,
+          role,
+        },
+      });
+      return reply.code(201).send({
+        inviteCode,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: "club_invite_code.create",
+        resourceType: "club_invite_code",
+        resourceId: code ? `${clubId}:${code}` : clubId,
+        subjectUserId: authUserId,
+        result: mutationAuditResult(error),
+        metadata: {
+          clubId,
+          code,
+          role,
+          errorCode: mutationAuditErrorCode(error),
+        },
+      });
+      throw error;
+    }
+  });
+  app.post("/clubs/:clubId/invites", async (request, reply) => {
+    const authUserId = requireAuthUserId(request.auth?.userId);
+    const params = clubParamsSchema.parse(request.params ?? {});
+    const rawBody = (request.body ?? {}) as {
+      targetUserIds?: unknown;
+      targetEmails?: unknown;
+      role?: unknown;
+    };
+    let targetUserIds = Array.isArray(rawBody.targetUserIds)
+      ? rawBody.targetUserIds.filter((value): value is string => typeof value === "string")
+      : [];
+    let targetEmails = Array.isArray(rawBody.targetEmails)
+      ? rawBody.targetEmails.filter((value): value is string => typeof value === "string")
+      : [];
+    let role = asString(rawBody.role) ?? "MEMBER";
+    try {
+      const body = clubDirectInviteBodySchema.parse(request.body ?? {});
+      targetUserIds = body.targetUserIds;
+      targetEmails = body.targetEmails.map((email) => email.trim().toLowerCase());
+      role = body.role;
+      const repository = resolveClubAuthorityRepository();
+      const invites = await repository.createDirectInvites({
+        clubId: params.clubId,
+        targetUserIds,
+        targetEmails,
+        role,
+        authUserId,
+        isPrivilegedAdmin: hasAnyGrantedRole(request.auth, ["admin", "security_admin"]),
+      });
+      const subjectUserId =
+        targetEmails.length === 0 && targetUserIds.length === 1 ? targetUserIds[0] : null;
+      await recordAuditEvent({
+        request,
+        action: "club_invite.create",
+        resourceType: "club_invite",
+        resourceId: params.clubId,
+        subjectUserId,
+        result: "SUCCESS",
+        metadata: {
+          clubId: params.clubId,
+          targetUserIds,
+          targetUserCount: targetUserIds.length,
+          targetEmailCount: targetEmails.length,
+          targetEmailDomains: inviteEmailDomainsForAudit(targetEmails),
+          inviteIds: invites.map((invite) => invite.id),
+          role,
+        },
+      });
+      const emailDelivery =
+        targetEmails.length > 0
+          ? summarizeInviteEmailDelivery(
+              await Promise.all(
+                targetEmails.map((email) =>
+                  deliverClubInviteEmail({
+                    email,
+                    clubName: invites[0]?.clubName ?? "your club",
+                    invitedByLabel: invites[0]?.invitedByLabel ?? "Club staff",
+                    role,
+                    requestId: request.requestId,
+                  }).catch((error) => ({
+                    provider: "none",
+                    status: "failed" as const,
+                    error: error instanceof Error ? error.message : "Club invite email failed",
+                  })),
+                ),
+              ),
+            )
+          : undefined;
+      if (emailDelivery) {
+        await recordAuditEvent({
+          request,
+          action: "club_invite.email_delivery",
+          resourceType: "club_invite",
+          resourceId: params.clubId,
+          subjectUserId: null,
+          result: emailDelivery.failed > 0 ? "ERROR" : "SUCCESS",
+          metadata: {
+            clubId: params.clubId,
+            inviteIds: invites.map((invite) => invite.id),
+            targetEmailCount: targetEmails.length,
+            targetEmailDomains: inviteEmailDomainsForAudit(targetEmails),
+            delivery: emailDelivery,
+            role,
+          },
+        });
+      }
+      return reply.code(201).send({
+        invites,
+        total: invites.length,
+        emailDelivery,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: "club_invite.create",
+        resourceType: "club_invite",
+        resourceId: params.clubId,
+        subjectUserId:
+          targetEmails.length === 0 && targetUserIds.length === 1 ? targetUserIds[0] : null,
+        result: mutationAuditResult(error),
+        metadata: {
+          clubId: params.clubId,
+          targetUserIds,
+          targetUserCount: targetUserIds.length,
+          targetEmailCount: targetEmails.length,
+          targetEmailDomains: inviteEmailDomainsForAudit(targetEmails),
+          role,
+          errorCode: mutationAuditErrorCode(error),
+        },
+      });
+      throw error;
+    }
   });
   app.delete("/clubs/:clubId/invite-codes/:code", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
@@ -6136,23 +6954,60 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
         ).code,
       ) ?? "";
     const repository = resolveClubAuthorityRepository();
-    const result = await repository.joinWithCode({
-      authUserId,
-      code,
-      actingAuthCanUseStaffLinks: canUseStaffInviteLinks(request.auth),
-    });
-    return reply
-      .code(
-        result.outcome === "invite_pending"
-          ? 202
-          : result.outcome === "joined"
-            ? 201
-            : 200,
-      )
-      .send({
-        ...result,
-        requestId: request.requestId,
+    let clubId: string | null = null;
+    let outcome: string | undefined;
+    try {
+      const result = await repository.joinWithCode({
+        authUserId,
+        code,
+        actingAuthCanUseStaffLinks: canUseStaffInviteLinks(request.auth),
       });
+      clubId = result.club.id;
+      outcome = result.outcome;
+      await recordAuditEvent({
+        request,
+        action: "club.join",
+        resourceType: "club",
+        resourceId: clubId,
+        subjectUserId: authUserId,
+        result: "SUCCESS",
+        metadata: {
+          clubId,
+          code,
+          outcome,
+          membershipId: result.membership?.id ?? null,
+          inviteId: result.invite?.id ?? null,
+        },
+      });
+      return reply
+        .code(
+          result.outcome === "invite_pending"
+            ? 202
+            : result.outcome === "joined"
+              ? 201
+              : 200,
+        )
+        .send({
+          ...result,
+          requestId: request.requestId,
+        });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: "club.join",
+        resourceType: "club",
+        resourceId: clubId,
+        subjectUserId: authUserId,
+        result: mutationAuditResult(error),
+        metadata: {
+          clubId,
+          code,
+          outcome,
+          errorCode: mutationAuditErrorCode(error),
+        },
+      });
+      throw error;
+    }
   });
   app.get("/clubs/invites", async (request, reply) => {
     const authUserId = requireAuthUserId(request.auth?.userId);
@@ -6181,19 +7036,51 @@ const coachClubRoutes: FastifyPluginAsync = async (app) => {
         }
       ).response,
     )?.toLowerCase();
-    if (!inviteId || (response !== "accepted" && response !== "declined")) {
-      throw notFound("Club invite not found");
+    try {
+      if (!inviteId || (response !== "accepted" && response !== "declined")) {
+        throw notFound("Club invite not found");
+      }
+      const repository = resolveClubAuthorityRepository();
+      const result = await repository.respondToInvite({
+        authUserId,
+        inviteId,
+        response,
+      });
+      await recordAuditEvent({
+        request,
+        action: "club_invite.respond",
+        resourceType: "club_invite",
+        resourceId: inviteId,
+        subjectUserId: authUserId,
+        result: "SUCCESS",
+        metadata: {
+          inviteId,
+          clubId: result.invite.clubId,
+          response,
+          membershipId: result.membership?.id ?? null,
+          role: result.membership?.role ?? result.invite.role,
+        },
+      });
+      return reply.send({
+        ...result,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: "club_invite.respond",
+        resourceType: "club_invite",
+        resourceId: inviteId ?? null,
+        subjectUserId: authUserId,
+        result: mutationAuditResult(error),
+        metadata: {
+          inviteId: inviteId ?? null,
+          response: response ?? null,
+          errorCode: mutationAuditErrorCode(error),
+        },
+      });
+      throw error;
     }
-    const repository = resolveClubAuthorityRepository();
-    const result = await repository.respondToInvite({
-      authUserId,
-      inviteId,
-      response,
-    });
-    return reply.send({
-      ...result,
-      requestId: request.requestId,
-    });
   });
 };
 export default coachClubRoutes;

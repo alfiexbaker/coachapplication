@@ -3,10 +3,13 @@
  * Manages squad creation form state, validation, and submission.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { router, useLocalSearchParams } from 'expo-router';
+import { api } from '@/constants/config';
+import type { Club } from '@/constants/types';
 import { useAuth } from '@/hooks/use-auth';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import { squadService } from '@/services/squad-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { uiFeedback } from '@/services/ui-feedback';
@@ -56,10 +59,52 @@ export function useCreateSquad() {
   const [meetLocation, setMeetLocation] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [club, setClub] = useState<Club | null>(null);
+  const [clubLoadError, setClubLoadError] = useState<string | null>(null);
+  const [isLoadingClub, setIsLoadingClub] = useState(true);
 
-  const clubs = (currentUser?.id ? socialFeedService.getUserClubs(currentUser.id) : []);
+  useEffect(() => {
+    let active = true;
 
-  const club = clubs.find((candidate) => candidate.id === clubId);
+    const loadClub = async () => {
+      setIsLoadingClub(true);
+      setClubLoadError(null);
+
+      if (!clubId) {
+        setClub(null);
+        setClubLoadError('Club not found');
+        setIsLoadingClub(false);
+        return;
+      }
+
+      if (api.useMock) {
+        const mockClub = currentUser?.id
+          ? socialFeedService.getUserClubs(currentUser.id).find((candidate) => candidate.id === clubId)
+          : null;
+        if (!active) return;
+        setClub(mockClub ?? null);
+        setIsLoadingClub(false);
+        return;
+      }
+
+      const result = await clubAuthorityService.listClubs();
+      if (!active) return;
+      if (!result.success) {
+        setClub(null);
+        setClubLoadError(result.error.message || 'Could not load club');
+        setIsLoadingClub(false);
+        return;
+      }
+      setClub(result.data.clubs.find((candidate) => candidate.id === clubId) ?? null);
+      setIsLoadingClub(false);
+    };
+
+    void loadClub();
+
+    return () => {
+      active = false;
+    };
+  }, [clubId, currentUser?.id]);
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) => {
@@ -84,27 +129,35 @@ export function useCreateSquad() {
       uiFeedback.showToast('Please select a level', 'error');
       return;
     }
+    if (!clubId) {
+      uiFeedback.showToast('Club not found', 'error');
+      return;
+    }
 
     setIsSubmitting(true);
 
-    await runAsyncTryCatchFinally(async () => {
-      const newSquad = await squadService.createSquad({
-        clubId: clubId!,
-        name: squadName.trim(),
-        level: `${selectedAgeGroup.label} · ${selectedLevel}`,
-        description: selectedTags.length > 0 ? `Focus: ${selectedTags.join(', ')}` : undefined,
-        meetingLocation: meetLocation.trim() || undefined,
-        ageGroup: selectedAgeGroup.label,
-        skillLevel: selectedLevel,
-        focusAreas: selectedTags,
-      });
-      uiFeedback.showToast(`${newSquad.name} has been created successfully!`, 'success');
-router.back();
-    }, async error => {
-      uiFeedback.showToast('Failed to create squad. Please try again.', 'error');
-    }, () => {
-      setIsSubmitting(false);
-    });
+    await runAsyncTryCatchFinally(
+      async () => {
+        const newSquad = await squadService.createSquad({
+          clubId,
+          name: squadName.trim(),
+          level: `${selectedAgeGroup.label} · ${selectedLevel}`,
+          description: selectedTags.length > 0 ? `Focus: ${selectedTags.join(', ')}` : undefined,
+          meetingLocation: meetLocation.trim() || undefined,
+          ageGroup: selectedAgeGroup.label,
+          skillLevel: selectedLevel,
+          focusAreas: selectedTags,
+        });
+        uiFeedback.showToast(`${newSquad.name} has been created successfully!`, 'success');
+        router.back();
+      },
+      async () => {
+        uiFeedback.showToast('Failed to create squad. Please try again.', 'error');
+      },
+      () => {
+        setIsSubmitting(false);
+      },
+    );
   };
 
   return {
@@ -116,6 +169,8 @@ router.back();
     meetLocation,
     selectedTags,
     isSubmitting,
+    isLoadingClub,
+    clubLoadError,
     isValid,
     setSquadName,
     setSelectedAgeGroup,

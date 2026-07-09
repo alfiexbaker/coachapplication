@@ -133,3 +133,22 @@ test('buildDemoCredentialRows prefers one representative login per seeded story'
     ['coach1', 'parent1', 'user1', 'admin1'],
   );
 });
+
+test('demo entry builders ignore API-mode user metadata without passwords', () => {
+  const users = [
+    {
+      username: 'coach1',
+      role: 'COACH',
+      name: 'API Coach',
+    },
+    {
+      username: 'parent1',
+      role: 'USER',
+      name: 'API Parent',
+      hasChildren: true,
+    },
+  ];
+
+  assert.deepEqual(buildDemoRoleEntries(users), []);
+  assert.deepEqual(buildDemoCredentialRows(users), []);
+});

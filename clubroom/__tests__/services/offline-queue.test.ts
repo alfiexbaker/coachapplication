@@ -67,6 +67,32 @@ describe('offline-queue', () => {
         unsub();
       }
     });
+
+    it('rejects queued writes in API mode', async () => {
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+
+      try {
+        const result = await addToQueue({
+          method: 'POST',
+          path: '/v1/bookings',
+          body: { coachId: 'c1' },
+        });
+
+        assert.equal(result.success, false);
+        assert.equal(result.error.code, 'UNSUPPORTED');
+      } finally {
+        if (originalIsMockMode) {
+          Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+        } else {
+          delete (apiClient as unknown as { isMockMode?: boolean }).isMockMode;
+        }
+      }
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -175,6 +201,56 @@ describe('offline-queue', () => {
       assert.equal(result.processed, 0);
       assert.equal(result.failed, 0);
       assert.equal(result.remaining, 0);
+    });
+
+    it('clears legacy queue state and no-ops in API mode', async () => {
+      const originalFetch = globalThis.fetch;
+      const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+      let fetchCalls = 0;
+
+      Object.defineProperty(apiClient, 'isMockMode', {
+        configurable: true,
+        get: () => false,
+      });
+      globalThis.fetch = (async () => {
+        fetchCalls += 1;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({}),
+          text: async () => '',
+        };
+      }) as unknown as typeof globalThis.fetch;
+
+      try {
+        await apiClient.set(STORAGE_KEYS.OFFLINE_QUEUE, [
+          {
+            id: 'q_api_mode_conflict_skip',
+            method: 'PATCH',
+            path: '/api/bookings/booking_api_mode',
+            body: { status: 'COMPLETED' },
+            timestamp: Date.now(),
+            baseVersion: 1,
+            conflictStrategy: 'reject',
+          },
+        ]);
+
+        const result = expectOk(await flushQueue());
+
+        assert.equal(result.processed, 0);
+        assert.equal(result.failed, 0);
+        assert.equal(result.remaining, 0);
+        assert.equal(fetchCalls, 0);
+        const stored = await apiClient.get<unknown[]>(STORAGE_KEYS.OFFLINE_QUEUE, []);
+        assert.equal(stored.length, 0);
+      } finally {
+        globalThis.fetch = originalFetch;
+        if (originalIsMockMode) {
+          Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+        } else {
+          delete (apiClient as unknown as { isMockMode?: boolean }).isMockMode;
+        }
+      }
     });
   });
 

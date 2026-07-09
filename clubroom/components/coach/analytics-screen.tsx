@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, ScrollView } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { ErrorState } from '@/components/ui/screen-states';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { coachAnalyticsService } from '@/services/analytics-service';
@@ -28,6 +29,8 @@ export function CoachAnalyticsScreen() {
   const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const [analytics, setAnalytics] = useState<AnalyticsViewModel | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -36,6 +39,7 @@ export function CoachAnalyticsScreen() {
       if (!currentUser?.id) {
         if (active) {
           setAnalytics(null);
+          setLoadError(null);
         }
         return;
       }
@@ -46,19 +50,15 @@ export function CoachAnalyticsScreen() {
       }
 
       if (!result.success || !result.data) {
-        setAnalytics({
-          sessionsCount: 0,
-          activeClients: 0,
-          avgRating: 0,
-          topSkills: [],
-          busiestDay: 'N/A',
-          revenue: 0,
-          sessionRate: 0,
-        });
+        setAnalytics(null);
+        setLoadError(
+          result.success ? 'Unable to load coach analytics.' : result.error.message,
+        );
         return;
       }
 
       const data = result.data;
+      setLoadError(null);
       setAnalytics({
         sessionsCount: data.sessions.totalSessions,
         activeClients: data.retention.totalActiveClients,
@@ -80,9 +80,25 @@ export function CoachAnalyticsScreen() {
     return () => {
       active = false;
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, reloadKey]);
 
-  if (!currentUser || !analytics) {
+  if (!currentUser) {
+    return null;
+  }
+
+  if (loadError) {
+    return (
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
+        <ErrorState
+          title="Unable to load analytics"
+          message={loadError}
+          onRetry={() => setReloadKey((value) => value + 1)}
+        />
+      </View>
+    );
+  }
+
+  if (!analytics) {
     return null;
   }
 

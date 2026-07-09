@@ -55,3 +55,84 @@ test('booking mirrors are not classified as client-local authority in API mode',
   assert.ok(recurringSource.includes('Recurring booking plans require backend series authority'));
   assert.ok(multiWeekSource.includes('bookingAuthorityService.createBookingSeries({'));
 });
+
+test('booking wizard does not prefill generic names into live booking writes', () => {
+  const sessionTypeSource = readSource('app/book/[coachId]/session-type.tsx');
+  const detailsSource = readSource('app/book/[coachId]/details.tsx');
+  const confirmationSource = readSource('app/book/[coachId]/confirmation.tsx');
+  const discoverSource = readSource('hooks/use-bookings-discover.ts');
+  const sessionDetailHookSource = readSource('hooks/use-session-detail-modal.ts');
+  const multiWeekHookSource = readSource('hooks/use-multi-week.ts');
+  const bookingTargetsSource = readSource('utils/booking-targets.ts');
+  const bookingDraftSource = readSource('utils/booking-draft-prefill.ts');
+  const bookingCrudSource = readSource('services/booking/booking-crud-service.ts');
+
+  assert.equal(
+    sessionTypeSource.includes("currentUser.name || currentUser.fullName || 'Athlete'"),
+    false,
+  );
+  assert.equal(
+    detailsSource.includes("currentUser.name || currentUser.fullName || 'Athlete'"),
+    false,
+  );
+  assert.equal(
+    multiWeekHookSource.includes("currentUser.name || currentUser.fullName || 'Athlete'"),
+    false,
+  );
+  assert.equal(
+    multiWeekHookSource.includes("currentUser.name || currentUser.fullName || 'Parent'"),
+    false,
+  );
+  assert.ok(sessionTypeSource.includes('resolveDefaultBookingTarget({'));
+  assert.equal(
+    sessionTypeSource.includes('return resolveBookingTarget({ targetId: children[0].id'),
+    false,
+  );
+  assert.ok(detailsSource.includes('buildBookingTargetDraftPatch({'));
+  assert.ok(discoverSource.includes('resolveDefaultBookingTarget({'));
+  assert.ok(sessionDetailHookSource.includes('resolveBookingTarget({ targetId: childId'));
+  assert.ok(
+    sessionDetailHookSource.includes('resolveDefaultBookingTarget({ currentUser, children })'),
+  );
+  assert.ok(bookingTargetsSource.includes('resolveUserProfileName(currentUser)'));
+  assert.ok(multiWeekHookSource.includes('resolveUserProfileName(currentUser)'));
+  assert.ok(bookingTargetsSource.includes('resolveNonGenericPersonName(child?.name)'));
+  assert.ok(
+    bookingTargetsSource.includes(
+      'targets.athleteNames.every((name) => Boolean(resolveNonGenericPersonName(name)))',
+    ),
+  );
+  assert.ok(bookingDraftSource.includes('resolveNonGenericPersonName(child.name)'));
+  assert.ok(confirmationSource.includes('resolveBookingDraftTargets({'));
+  assert.ok(confirmationSource.includes('hasResolvedBookingTargets({'));
+  assert.equal(
+    confirmationSource.includes('currentUser?.id\n                ? [currentUser.id]'),
+    false,
+  );
+  assert.ok(
+    bookingTargetsSource.includes(
+      'draft.childIds?.length ? draft.childIds : [draft.childId ?? draft.athleteId]',
+    ),
+  );
+  assert.ok(bookingCrudSource.includes('isGenericPersonPlaceholder(coachName)'));
+  assert.ok(bookingCrudSource.includes('isGenericPersonPlaceholder(bookedByName)'));
+  assert.ok(bookingCrudSource.includes('isGenericPersonPlaceholder(name)'));
+  assert.ok(bookingCrudSource.includes('draft.childId ?? draft.athleteId'));
+});
+
+test('booking route offering selection wins over stale draft selection', () => {
+  const source = readSource('app/book/[coachId]/session-type.tsx');
+  const requestedStart = source.indexOf('const requestedOffering = offeringId');
+  const staleSelectionStart = source.indexOf('const currentSelection = currentResolvedOfferings');
+
+  assert.ok(requestedStart >= 0, 'session type screen should resolve route offering id');
+  assert.ok(staleSelectionStart > requestedStart, 'route offering should be checked first');
+  assert.ok(
+    source.includes('requestedOffering && requestedOffering.id !== draft.sessionOfferingId'),
+    'a changed route offering should replace stale draft offering state',
+  );
+  assert.ok(
+    source.includes('currentSelection && (!offeringId || currentSelection.id === offeringId)'),
+    'existing draft selection should only win when no different route offering was requested',
+  );
+});

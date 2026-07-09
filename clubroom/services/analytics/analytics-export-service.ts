@@ -47,30 +47,65 @@ const logger = createLogger('AnalyticsExportService');
 
 const USE_MOCK = api.useMock;
 
-function coachAnalyticsUnsupportedError(action: string, details?: unknown): ServiceError {
-  return unsupportedError(
-    `${action} needs a /v1 coach analytics API before it can run in API mode.`,
-    details,
-  );
-}
-
 function liveCoachAnalyticsResetUnsupported(): ServiceError {
   return unsupportedError(
     'Coach analytics mock reset is only available in mock mode; live analytics are derived from backend bookings, invoices, feedback, and skills.',
   );
 }
 
-function unsupportedCoachAnalytics<T>(action: string, details?: unknown): Result<T, ServiceError> {
-  logger.warn('Coach analytics API unavailable in live API mode', {
-    action,
-    details,
-    requiredRoutes: ['GET /v1/coaches/:coachId/analytics'],
-  });
-  return err(coachAnalyticsUnsupportedError(action, details));
-}
-
 interface ApiCoachAnalyticsResponse {
   analytics: CoachAnalytics;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function validateApiCoachAnalytics(value: unknown): Result<CoachAnalytics, ServiceError> {
+  if (!isRecord(value)) {
+    return err(storageError('Coach analytics API response missing analytics'));
+  }
+
+  const missing: string[] = [];
+  const requireString = (key: string) => {
+    if (typeof value[key] !== 'string') missing.push(key);
+  };
+  const requireNumber = (key: string) => {
+    if (typeof value[key] !== 'number') missing.push(key);
+  };
+  const requireArray = (key: string) => {
+    if (!Array.isArray(value[key])) missing.push(key);
+  };
+  const requireObject = (key: string) => {
+    if (!isRecord(value[key])) missing.push(key);
+  };
+
+  requireString('coachId');
+  requireString('period');
+  requireObject('dateRange');
+  requireNumber('totalRevenue');
+  requireNumber('revenueChange');
+  requireNumber('revenueChangePercent');
+  requireString('revenueTrend');
+  requireArray('revenueChart');
+  requireNumber('avgRevenuePerSession');
+  requireObject('sessions');
+  requireObject('retention');
+  requireObject('cancellations');
+  requireArray('peakHours');
+  requireObject('busiestDay');
+  requireObject('busiestHour');
+  requireArray('topSkills');
+  requireNumber('avgRating');
+  requireNumber('ratingChange');
+  requireNumber('reviewCount');
+  requireString('computedAt');
+
+  if (missing.length > 0) {
+    return err(storageError(`Coach analytics API response missing: ${missing.join(', ')}`));
+  }
+
+  return ok(value as unknown as CoachAnalytics);
 }
 
 async function resolveCoachAnalyticsApiContext(
@@ -108,7 +143,7 @@ async function fetchCoachAnalyticsFromApi(
   if (!result.success) {
     return err(result.error);
   }
-  return ok(result.data.analytics);
+  return validateApiCoachAnalytics(result.data.analytics);
 }
 
 // ============================================================================
@@ -435,7 +470,9 @@ const MOCK_COACH_ANALYTICS: Record<string, CoachAnalytics> = {
 // MOCK STORAGE HELPERS
 // ============================================================================
 
-let coachAnalyticsCache: Record<string, CoachAnalytics> = { ...MOCK_COACH_ANALYTICS };
+let coachAnalyticsCache: Record<string, CoachAnalytics> = USE_MOCK
+  ? { ...MOCK_COACH_ANALYTICS }
+  : {};
 
 async function loadCoachAnalytics(): Promise<Record<string, CoachAnalytics>> {
   try {
@@ -447,7 +484,7 @@ async function loadCoachAnalytics(): Promise<Record<string, CoachAnalytics>> {
   } catch (error) {
     logger.error('Failed to load coach analytics', error);
   }
-  return { ...MOCK_COACH_ANALYTICS };
+  return USE_MOCK ? { ...MOCK_COACH_ANALYTICS } : {};
 }
 
 async function saveCoachAnalytics(analytics: Record<string, CoachAnalytics>): Promise<void> {

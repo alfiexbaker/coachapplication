@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react';
 import { useLocalSearchParams, router } from 'expo-router';
 
 import { useToast } from '@/components/ui/toast';
+import { api } from '@/constants/config';
 import { useAuth } from '@/hooks/use-auth';
 import { bookingService } from '@/services/booking-service';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import { socialFeedService } from '@/services/social-feed-service';
-import type { ClubRole } from '@/constants/types';
+import { userService } from '@/services/user-service';
+import type { Club, ClubRole } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';
 import { createLogger } from '@/utils/logger';
 
@@ -44,14 +47,7 @@ export function useClubInvite() {
   const [isInviting, setIsInviting] = useState(false);
   const [completedBookings, setCompletedBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const club = (() => {
-    if (!clubId || !currentUser?.id) return null;
-    return (
-      socialFeedService.getUserClubs(currentUser.id).find((candidate) => candidate.id === clubId) ||
-      null
-    );
-  })();
+  const [club, setClub] = useState<Club | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -67,9 +63,25 @@ export function useClubInvite() {
       }
 
       return await runAsyncTryCatchFinally(async () => {
-        const allBookings = await bookingService.list();
+        const [allBookings, authorityResult] = await Promise.all([
+          bookingService.list(),
+          api.useMock ? Promise.resolve(null) : clubAuthorityService.listClubs(),
+        ]);
         if (!active) {
           return;
+        }
+        if (api.useMock) {
+          setClub(
+            clubId
+              ? socialFeedService
+                  .getUserClubs(currentUser.id)
+                  .find((candidate) => candidate.id === clubId) ?? null
+              : null,
+          );
+        } else if (authorityResult?.success) {
+          setClub(authorityResult.data.clubs.find((candidate) => candidate.id === clubId) ?? null);
+        } else {
+          setClub(null);
         }
 
         setCompletedBookings(
@@ -94,7 +106,7 @@ export function useClubInvite() {
     return () => {
       active = false;
     };
-  }, [currentUser?.id]);
+  }, [clubId, currentUser?.id]);
 
   const pastSessionUsers = (() => {
     if (!currentUser) return [];
@@ -168,6 +180,43 @@ export function useClubInvite() {
       showToast('Select at least one user', 'warning');
       return;
     }
+    const targetUserIds = Array.from(selectedUsers);
+    if (!api.useMock) {
+      if (!clubId) {
+        showToast('Club invite context is unavailable', 'error');
+        return;
+      }
+      if (selectedRole !== 'MEMBER' && selectedRole !== 'COACH' && selectedRole !== 'ADMIN') {
+        showToast(
+          'Direct invites for that role need backend support. Share a role invite code for now.',
+          'error',
+        );
+        return;
+      }
+      setIsInviting(true);
+      try {
+        logger.action('SendClubInvites', {
+          clubId,
+          userCount: selectedUsers.size,
+          role: selectedRole,
+        });
+        const result = await clubAuthorityService.inviteExistingUsers(
+          clubId,
+          targetUserIds,
+          selectedRole,
+        );
+        if (!result.success) {
+          showToast(result.error.message, 'error');
+          return;
+        }
+        showToast(`Invited ${result.data.length} users to ${club?.name ?? 'club'}`, 'success');
+        setSelectedUsers(new Set());
+        router.back();
+      } finally {
+        setIsInviting(false);
+      }
+      return;
+    }
 
     setIsInviting(true);
     logger.action('SendClubInvites', { clubId, userCount: selectedUsers.size, role: selectedRole });
@@ -179,14 +228,74 @@ export function useClubInvite() {
     router.back();
   };
 
-  const handleManualInvite = () => {
-    if (!manualEmail.trim() || !manualEmail.includes('@')) {
+  const handleManualInvite = async () => {
+    const normalizedEmail = manualEmail.trim().toLowerCase();
+    if (!normalizedEmail || !normalizedEmail.includes('@')) {
       showToast('Enter a valid email', 'warning');
       return;
     }
+    if (!api.useMock) {
+      if (!clubId) {
+        showToast('Club invite context is unavailable', 'error');
+        return;
+      }
+      setIsInviting(true);
+      try {
+        const lookup = await userService.searchUsers(normalizedEmail);
+        if (!lookup.success) {
+          showToast(lookup.error.message, 'error');
+          return;
+        }
+        const targetUser = lookup.data.find(
+          (user) => user.email.trim().toLowerCase() === normalizedEmail,
+        );
+        const emailDomain = normalizedEmail.split('@')[1] ?? 'unknown';
+        logger.action('ManualInvite', { emailDomain, role: selectedRole, source: 'api' });
+        if (targetUser) {
+          const result = await clubAuthorityService.inviteExistingUsers(
+            clubId,
+            [targetUser.id],
+            selectedRole,
+          );
+          if (!result.success) {
+            showToast(result.error.message, 'error');
+            return;
+          }
+          showToast(
+            `Invited ${targetUser.name || normalizedEmail} to ${club?.name ?? 'club'}`,
+            'success',
+          );
+          setManualEmail('');
+          router.back();
+          return;
+        }
 
-    logger.action('ManualInvite', { email: manualEmail, role: selectedRole });
-    showToast(`Invite sent to ${manualEmail}`, 'success');
+        const result = await clubAuthorityService.inviteEmailTargets(
+          clubId,
+          [normalizedEmail],
+          selectedRole,
+        );
+        if (!result.success) {
+          showToast(result.error.message, 'error');
+          return;
+        }
+        const delivery = result.data.emailDelivery;
+        showToast(
+          delivery && delivery.sent > 0
+            ? `Invite email sent to ${normalizedEmail}`
+            : `Invite recorded for ${normalizedEmail}`,
+          'success',
+        );
+        setManualEmail('');
+        router.back();
+      } finally {
+        setIsInviting(false);
+      }
+      return;
+    }
+
+    logger.action('ManualInvite', { email: normalizedEmail, role: selectedRole });
+    showToast(`Invite sent to ${normalizedEmail}`, 'success');
     setManualEmail('');
   };
 

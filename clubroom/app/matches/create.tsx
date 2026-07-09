@@ -55,10 +55,14 @@ export default function CreateMatchScreen() {
     selectedSquadId,
     setSelectedSquadId,
     selectedSquad,
+    activeClubId,
     squads,
     squadMemberCount,
     autoInvite,
     setAutoInvite,
+    clubContextLoading,
+    clubContextError,
+    retryClubContext,
     canCreateWithoutSquad,
     canCreateSquad,
     handleNext,
@@ -66,7 +70,8 @@ export default function CreateMatchScreen() {
     handleSubmit,
   } = useCreateMatch();
   const handleCreateSquad = () => {
-    router.push(Routes.CLUB_SQUAD_CREATE);
+    if (!activeClubId) return;
+    router.push(Routes.clubSquadCreate(activeClubId));
   };
 
   if (status === 'loading') {
@@ -133,6 +138,46 @@ export default function CreateMatchScreen() {
             actionLabel="Retry"
             onPressAction={retry}
           />
+        </PageContainer>
+      </>
+    );
+  }
+
+  if (clubContextLoading) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <PageContainer
+          header={
+            <PageHeader
+              title="Create Match"
+              subtitle="Preparing club context"
+              showBack
+              onBackPress={handleBack}
+            />
+          }
+        >
+          <LoadingState variant="form" />
+        </PageContainer>
+      </>
+    );
+  }
+
+  if (clubContextError) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <PageContainer
+          header={
+            <PageHeader
+              title="Create Match"
+              subtitle="Unable to load club"
+              showBack
+              onBackPress={handleBack}
+            />
+          }
+        >
+          <ErrorState message={clubContextError} onRetry={retryClubContext} />
         </PageContainer>
       </>
     );

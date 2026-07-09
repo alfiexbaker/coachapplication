@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 
 import { useToast } from '@/components/ui/toast';
+import { api } from '@/constants/config';
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen } from '@/hooks/use-screen';
 import { ServiceEvents } from '@/services/event-bus';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import {
   orgHeadCoachService,
   type HeadCoachCompletionItem,
@@ -60,13 +62,28 @@ export function useHeadCoachOversight() {
     }
 
     try {
-      const memberships = await socialFeedService.getUserMembershipsHydrated(currentUser.id);
+      let memberships: ClubMembership[] = [];
+      const authorityClubMap = new Map<string, { id: string; name: string }>();
+      if (api.useMock) {
+        memberships = await socialFeedService.getUserMembershipsHydrated(currentUser.id);
+      } else {
+        const authorityResult = await clubAuthorityService.listClubs();
+        if (!authorityResult.success) {
+          return err(authorityResult.error);
+        }
+        memberships = authorityResult.data.memberships;
+        authorityResult.data.clubs.forEach((club) => {
+          authorityClubMap.set(club.id, club);
+        });
+      }
       const eligibleMemberships = memberships.filter(isEligibleMembership);
 
       const nextClubs = (
         await Promise.all(
           eligibleMemberships.map(async (membership) => {
-            const club = await socialFeedService.getClub(membership.clubId);
+            const club = api.useMock
+              ? await socialFeedService.getClub(membership.clubId)
+              : authorityClubMap.get(membership.clubId);
             if (!club) return null;
             return {
               id: club.id,

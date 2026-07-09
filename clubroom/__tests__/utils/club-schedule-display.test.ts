@@ -4,6 +4,8 @@ import test, { describe } from 'node:test';
 import type { ClubActivity } from '@/constants/types';
 import {
   filterClubScheduleActivities,
+  getClubActivityPrimaryLabel,
+  getClubActivitySourceLabel,
   groupClubScheduleActivitiesByDay,
 } from '@/utils/club-schedule-display';
 
@@ -95,5 +97,64 @@ describe('club schedule display utilities', () => {
 
     assert.equal(activities[0]?.id, 'upcoming');
     assert.equal(activities[1]?.id, 'completed');
+  });
+
+  test('primary card label follows the source record type', () => {
+    assert.equal(
+      getClubActivityPrimaryLabel(makeActivity({ participationLabel: 'RSVP', price: 12 })),
+      'RSVP',
+    );
+    assert.equal(
+      getClubActivityPrimaryLabel(
+        makeActivity({
+          source: 'group_session',
+          sourceEntityId: 'session_1',
+          kind: 'training',
+          participationMode: 'registration',
+          participationLabel: 'Registration',
+          price: 12,
+        }),
+      ),
+      '£12',
+    );
+    assert.equal(
+      getClubActivityPrimaryLabel(
+        makeActivity({
+          source: 'match',
+          sourceEntityId: 'match_1',
+          kind: 'match',
+          participationMode: 'availability',
+          participationLabel: 'Availability & lineup',
+          homeAwayLabel: 'Away',
+          typeLabel: 'Cup Match',
+          price: 12,
+        }),
+      ),
+      'Away',
+    );
+  });
+
+  test('source label keeps events, training, and matches distinct in the shared schedule', () => {
+    assert.equal(getClubActivitySourceLabel(makeActivity()), 'Event');
+    assert.equal(
+      getClubActivitySourceLabel(
+        makeActivity({
+          source: 'group_session',
+          sourceEntityId: 'session_1',
+          kind: 'training',
+        }),
+      ),
+      'Training session',
+    );
+    assert.equal(
+      getClubActivitySourceLabel(
+        makeActivity({
+          source: 'match',
+          sourceEntityId: 'match_1',
+          kind: 'match',
+        }),
+      ),
+      'Match',
+    );
   });
 });

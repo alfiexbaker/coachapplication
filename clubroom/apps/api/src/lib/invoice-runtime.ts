@@ -5,6 +5,7 @@ import { badRequest, notFound } from './http-errors.js';
 import { getMarketplaceSeedStore } from './marketplace-seed-store.js';
 import {
   type HostedPaymentSession,
+  type PaymentProviderName,
   getConfiguredPaymentProvider,
   verifySimulatedPaymentToken,
 } from './payment-provider.js';
@@ -61,6 +62,12 @@ export interface InvoiceReminderRecord {
   reminder: SeedRow;
   sentAt: string;
 }
+export interface UpdateInvoiceReminderDeliveryInput {
+  reminderId: string;
+  deliveryStatus: 'sent' | 'skipped' | 'failed';
+  deliveryProvider: string;
+  deliveryError?: string;
+}
 export interface CreateInvoicePaymentSessionInput {
   invoiceId: string;
   actorUserId: string;
@@ -91,6 +98,24 @@ export interface InvoiceRefundRecord {
 export interface CompleteSimulatedInvoicePaymentInput {
   attemptId: string;
   token: string;
+}
+export interface CompleteProviderInvoicePaymentInput {
+  attemptId?: string;
+  providerSessionId?: string;
+  actorUserId?: string;
+  provider: PaymentProviderName | string;
+  source: string;
+  reason: string;
+  completionStatus: 'COMPLETED' | 'FAILED' | 'EXPIRED' | 'CANCELED';
+  expectedAmountMinor?: number;
+  expectedCurrency?: string;
+  failureCode?: string | null;
+  failureReason?: string | null;
+}
+export interface CompleteProviderInvoicePaymentResult {
+  invoice: SeedRow;
+  attempt: SeedRow;
+  alreadyCompleted: boolean;
 }
 export interface CompleteSimulatedInvoicePaymentResult {
   invoice: SeedRow;
@@ -158,6 +183,8 @@ const INVOICE_STATUSES = ['DRAFT', 'SENT', 'PAID', 'VOID', 'WRITTEN_OFF'] as con
 type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
 const ACTIVE_PAYMENT_ATTEMPT_STATUSES = new Set(['PENDING', 'ACTION_REQUIRED']);
 const SIMULATED_REFUND_VERIFICATION_CODE = '000000';
+const PROVIDER_PAYMENT_FAILURE_STATUSES = ['FAILED', 'EXPIRED', 'CANCELED'] as const;
+type ProviderPaymentFailureStatus = (typeof PROVIDER_PAYMENT_FAILURE_STATUSES)[number];
 const asRows = (value: unknown): SeedRow[] => (Array.isArray(value) ? (value as SeedRow[]) : []);
 const asString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
@@ -255,6 +282,9 @@ function mapInvoice(row: SeedRow, users: SeedRow[]): SeedRow {
     coachBusinessEmail: asString(row.coachBusinessEmail),
     billingAddress: asString(row.billingAddress),
   };
+}
+function emailDomain(email: string | undefined): string | null {
+  return email?.split('@')[1]?.trim().toLowerCase() || null;
 }
 function parseDate(value: string | undefined): number | null {
   if (!value) {
@@ -451,9 +481,7 @@ async function canManageClubInvoiceInDb(invoice: SeedRow, authUserId: string): P
     },
   });
   return Boolean(
-    membership?.active &&
-      !membership.deletedAt &&
-      hasClubInvoiceFinanceRole(membership.role),
+    membership?.active && !membership.deletedAt && hasClubInvoiceFinanceRole(membership.role),
   );
 }
 
@@ -686,8 +714,9 @@ function latestMarkedPaidEvent(invoiceEvents: SeedRow[], invoiceId: string): See
     .sort((left, right) => {
       const leftTime = Date.parse(asString(left.occurredAt) ?? '');
       const rightTime = Date.parse(asString(right.occurredAt) ?? '');
-      return (Number.isFinite(rightTime) ? rightTime : 0) -
-        (Number.isFinite(leftTime) ? leftTime : 0);
+      return (
+        (Number.isFinite(rightTime) ? rightTime : 0) - (Number.isFinite(leftTime) ? leftTime : 0)
+      );
     })[0];
 }
 function assertCanMarkPaidInvoiceUnpaid(params: {
@@ -2590,7 +2619,7 @@ export async function createInvoiceReminder(
         actorUserId: input.actorUserId,
         reason: 'Invoice sent to payer.',
         metadataJson: {
-          recipientEmail: input.recipientEmail ?? null,
+          recipientEmailDomain: emailDomain(input.recipientEmail),
           source: 'invoice-runtime',
         },
         requestId: null,
@@ -2607,7 +2636,7 @@ export async function createInvoiceReminder(
       messageSnapshot: input.message ?? null,
       sentAt: now,
       metadataJson: {
-        recipientEmail: input.recipientEmail ?? null,
+        recipientEmailDomain: emailDomain(input.recipientEmail),
       },
     };
     getMutableRows(mutable.tables, 'paymentReminders').push(reminder);
@@ -2618,7 +2647,7 @@ export async function createInvoiceReminder(
       actorUserId: input.actorUserId,
       reason: 'Invoice reminder queued.',
       metadataJson: {
-        recipientEmail: input.recipientEmail ?? null,
+        recipientEmailDomain: emailDomain(input.recipientEmail),
         source: 'invoice-runtime',
       },
       requestId: null,
@@ -2669,7 +2698,7 @@ export async function createInvoiceReminder(
                 actorUserId: input.actorUserId,
                 reason: 'Invoice sent to payer.',
                 metadataJson: {
-                  recipientEmail: input.recipientEmail ?? null,
+                  recipientEmailDomain: emailDomain(input.recipientEmail),
                   source: 'invoice-runtime',
                 } as never,
               },
@@ -2687,7 +2716,7 @@ export async function createInvoiceReminder(
       deliveryStatus: 'queued',
       messageSnapshot: input.message ?? null,
       metadataJson: {
-        recipientEmail: input.recipientEmail ?? null,
+        recipientEmailDomain: emailDomain(input.recipientEmail),
       } as never,
     },
   });
@@ -2699,7 +2728,7 @@ export async function createInvoiceReminder(
       actorUserId: input.actorUserId,
       reason: 'Invoice reminder queued.',
       metadataJson: {
-        recipientEmail: input.recipientEmail ?? null,
+        recipientEmailDomain: emailDomain(input.recipientEmail),
         source: 'invoice-runtime',
       } as never,
     },
@@ -2709,6 +2738,54 @@ export async function createInvoiceReminder(
     reminder: normalizeForJson(reminder),
     sentAt: now.toISOString(),
   };
+}
+export async function updateInvoiceReminderDelivery(
+  input: UpdateInvoiceReminderDeliveryInput,
+): Promise<SeedRow> {
+  const metadataPatch = {
+    deliveryProvider: input.deliveryProvider,
+    ...(input.deliveryError ? { deliveryError: input.deliveryError } : {}),
+  };
+  const mutable = resolveMutableTables();
+  if (mutable) {
+    const reminder = getMutableRows(mutable.tables, 'paymentReminders').find(
+      (row) => asString(row.id) === input.reminderId,
+    );
+    if (!reminder) {
+      throw notFound('Payment reminder not found', { reminderId: input.reminderId });
+    }
+    reminder.deliveryStatus = input.deliveryStatus;
+    reminder.metadataJson = {
+      ...coerceMetadata(reminder.metadataJson),
+      ...metadataPatch,
+    };
+    return reminder;
+  }
+  const prisma = getPrismaClientOrThrow();
+  const reminder = await prisma.paymentReminder.update({
+    where: {
+      id: input.reminderId,
+    },
+    data: {
+      deliveryStatus: input.deliveryStatus,
+      metadataJson: {
+        ...(coerceMetadata(
+          (
+            await prisma.paymentReminder.findUnique({
+              where: {
+                id: input.reminderId,
+              },
+              select: {
+                metadataJson: true,
+              },
+            })
+          )?.metadataJson,
+        ) as Record<string, unknown>),
+        ...metadataPatch,
+      } as never,
+    },
+  });
+  return normalizeForJson(reminder);
 }
 export async function createInvoicePaymentSession(
   input: CreateInvoicePaymentSessionInput,
@@ -3032,55 +3109,160 @@ export async function getHostedPaymentPageData(
     cancelUrl: payload.cancelUrl ?? null,
   };
 }
-export async function completeSimulatedInvoicePayment(
-  input: CompleteSimulatedInvoicePaymentInput,
-): Promise<CompleteSimulatedInvoicePaymentResult> {
-  const payload = verifySimulatedPaymentToken(input.token);
-  if (payload.attemptId !== input.attemptId) {
-    throw badRequest('Payment attempt token mismatch', {
-      attemptId: input.attemptId,
-    });
-  }
+function isProviderPaymentFailureStatus(value: string): value is ProviderPaymentFailureStatus {
+  return PROVIDER_PAYMENT_FAILURE_STATUSES.includes(value as ProviderPaymentFailureStatus);
+}
+
+async function getPaymentAttemptForProviderCompletion(
+  params:
+    | { attemptId: string; providerSessionId?: string }
+    | { attemptId?: string; providerSessionId: string },
+): Promise<{ attempt: SeedRow; invoice: SeedRow } | null> {
   const mutable = resolveMutableTables();
   if (mutable) {
     const attempts = getMutableRows(mutable.tables, 'paymentAttempts');
     ensureAttemptFreshness(attempts);
-    const attempt = attempts.find((row) => asString(row.id) === input.attemptId);
+    const attempt = attempts.find((row) =>
+      params.attemptId
+        ? asString(row.id) === params.attemptId
+        : asString(row.providerSessionId) === params.providerSessionId,
+    );
     if (!attempt) {
-      throw notFound('Payment attempt not found', {
-        attemptId: input.attemptId,
-      });
+      return null;
     }
     const invoice = getActiveRows(getMutableRows(mutable.tables, 'invoices')).find(
       (row) => asString(row.id) === asString(attempt.invoiceId),
     );
     if (!invoice) {
-      throw notFound('Invoice not found', {
-        invoiceId: asString(attempt.invoiceId),
-      });
+      return null;
     }
-    if (asString(attempt.providerSessionId) !== payload.providerSessionId) {
-      throw badRequest('Payment attempt provider session mismatch', {
-        attemptId: input.attemptId,
-      });
-    }
-    if (asString(attempt.provider) !== 'simulated') {
-      throw badRequest('Payment attempt is not managed by the simulated provider', {
-        attemptId: input.attemptId,
-        provider: asString(attempt.provider) ?? null,
-      });
-    }
-    if ((asNumber(attempt.amountMinor) ?? 0) !== payload.amountMinor) {
-      throw badRequest('Payment attempt amount mismatch', {
-        attemptId: input.attemptId,
-      });
-    }
-    if ((asString(attempt.currency) ?? 'GBP') !== payload.currency) {
-      throw badRequest('Payment attempt currency mismatch', {
-        attemptId: input.attemptId,
-      });
-    }
-    const attemptStatus = coerceAttemptStatus(attempt.status);
+    return { attempt, invoice };
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  const where = params.attemptId
+    ? { id: params.attemptId }
+    : { providerSessionId: params.providerSessionId };
+  const attempt = await prisma.paymentAttempt.findFirst({
+    where,
+    include: {
+      invoice: true,
+    },
+  });
+  if (!attempt) {
+    return null;
+  }
+  return {
+    attempt: normalizeForJson(attempt),
+    invoice: normalizeForJson(attempt.invoice),
+  };
+}
+
+function assertProviderCompletionInput(input: CompleteProviderInvoicePaymentInput): void {
+  if (!input.attemptId && !input.providerSessionId) {
+    throw badRequest('Payment completion callback is missing attempt reference', {});
+  }
+}
+
+function providerCompletionLookup(
+  input: CompleteProviderInvoicePaymentInput,
+):
+  | { attemptId: string; providerSessionId?: string }
+  | { attemptId?: string; providerSessionId: string } {
+  if (input.attemptId) {
+    return {
+      attemptId: input.attemptId,
+      providerSessionId: input.providerSessionId,
+    };
+  }
+  if (input.providerSessionId) {
+    return {
+      providerSessionId: input.providerSessionId,
+    };
+  }
+  throw badRequest('Payment completion callback is missing attempt reference', {});
+}
+
+function validateProviderCompletionBase(
+  input: CompleteProviderInvoicePaymentInput,
+  detail: { attempt: SeedRow; invoice: SeedRow },
+): void {
+  if (
+    input.providerSessionId &&
+    asString(detail.attempt.providerSessionId) !== input.providerSessionId
+  ) {
+    throw badRequest('Payment attempt provider session mismatch', {
+      attemptId: asString(detail.attempt.id) ?? input.attemptId,
+    });
+  }
+  if ((asString(detail.attempt.provider) ?? '') !== input.provider) {
+    throw badRequest('Payment attempt provider mismatch', {
+      attemptId: asString(detail.attempt.id) ?? input.attemptId,
+      provider: asString(detail.attempt.provider) ?? null,
+    });
+  }
+  if (
+    input.expectedAmountMinor !== undefined &&
+    (asNumber(detail.attempt.amountMinor) ?? 0) !== input.expectedAmountMinor
+  ) {
+    throw badRequest('Payment attempt amount mismatch', {
+      attemptId: asString(detail.attempt.id) ?? input.attemptId,
+    });
+  }
+  if (
+    input.expectedCurrency !== undefined &&
+    (asString(detail.attempt.currency) ?? 'GBP') !== input.expectedCurrency
+  ) {
+    throw badRequest('Payment attempt currency mismatch', {
+      attemptId: asString(detail.attempt.id) ?? input.attemptId,
+    });
+  }
+}
+
+function applyMutableProviderFailureUpdate(params: {
+  attempt: SeedRow;
+  status: ProviderPaymentFailureStatus;
+  actorUserId: string;
+  failureCode?: string | null;
+  failureReason: string;
+  now: string;
+}): void {
+  const attempt = params.attempt;
+  attempt.status = params.status;
+  attempt.updatedAt = params.now;
+  attempt.failureCode = params.failureCode ?? null;
+  attempt.failureReason = params.failureReason;
+  if (params.status === 'CANCELED') {
+    attempt.canceledAt = params.now;
+    attempt.failedAt = null;
+  } else {
+    attempt.failedAt = params.now;
+    attempt.canceledAt = null;
+  }
+  attempt.actorUserId = attempt.actorUserId ?? params.actorUserId;
+}
+
+async function completeProviderInvoicePaymentForMutable(
+  input: CompleteProviderInvoicePaymentInput,
+): Promise<CompleteProviderInvoicePaymentResult> {
+  const mutable = resolveMutableTables();
+  if (!mutable) {
+    throw new Error('Mutable invoice payment completion requires mutable tables.');
+  }
+  const detail = await getPaymentAttemptForProviderCompletion(providerCompletionLookup(input));
+  if (!detail) {
+    throw notFound('Payment attempt not found', {
+      attemptId: input.attemptId,
+      providerSessionId: input.providerSessionId,
+    });
+  }
+  validateProviderCompletionBase(input, detail);
+  const attempt = detail.attempt;
+  const invoice = detail.invoice;
+  const now = nowIso();
+  const actorUserId = input.actorUserId ?? asString(attempt.actorUserId) ?? 'system';
+  const attemptStatus = coerceAttemptStatus(attempt.status);
+  if (input.completionStatus === 'COMPLETED') {
     if (attemptStatus === 'COMPLETED') {
       return {
         invoice,
@@ -3090,7 +3272,7 @@ export async function completeSimulatedInvoicePayment(
     }
     if (!ACTIVE_PAYMENT_ATTEMPT_STATUSES.has(attemptStatus)) {
       throw badRequest('Payment attempt is not payable', {
-        attemptId: input.attemptId,
+        attemptId: asString(attempt.id) ?? input.attemptId,
         status: attempt.status,
       });
     }
@@ -3104,7 +3286,6 @@ export async function completeSimulatedInvoicePayment(
       });
     }
     assertMutableInvoiceBookingLink(mutable.tables, invoice, asString(invoice.id) ?? '');
-    const now = nowIso();
     const alreadyCompleted = toInvoiceStatus(invoice.status) === 'PAID';
     attempt.status = 'COMPLETED';
     attempt.confirmedAt = now;
@@ -3113,18 +3294,18 @@ export async function completeSimulatedInvoicePayment(
       invoice.status = 'PAID';
       invoice.paidAt = now;
       invoice.updatedAt = now;
-      invoice.updatedByUserId = asString(attempt.actorUserId) ?? 'system';
+      invoice.updatedByUserId = actorUserId;
       invoice.version = (asNumber(invoice.version) ?? 1) + 1;
       getMutableRows(mutable.tables, 'invoiceEvents').push({
         id: newId('ine'),
         invoiceId: asString(invoice.id),
         eventType: 'MARKED_PAID',
-        actorUserId: asString(attempt.actorUserId) ?? null,
-        reason: 'Hosted payment confirmed by simulated provider.',
+        actorUserId,
+        reason: input.reason,
         metadataJson: {
-          source: 'simulated-provider',
-          attemptId: input.attemptId,
-          providerSessionId: payload.providerSessionId,
+          source: input.source,
+          attemptId: asString(attempt.id),
+          providerSessionId: asString(attempt.providerSessionId) ?? '',
         },
         requestId: null,
         occurredAt: now,
@@ -3136,18 +3317,18 @@ export async function completeSimulatedInvoicePayment(
       if (reconcilerEntry) {
         reconcilerEntry.state = 'PAID';
         reconcilerEntry.updatedAt = now;
-        reconcilerEntry.updatedByUserId = asString(attempt.actorUserId) ?? 'system';
+        reconcilerEntry.updatedByUserId = actorUserId;
         reconcilerEntry.version = (asNumber(reconcilerEntry.version) ?? 1) + 1;
-        reconcilerEntry.internalNote = 'Marked paid by hosted payment confirmation.';
+        reconcilerEntry.internalNote = input.reason;
       } else {
         reconcilerEntries.push({
           id: newId('rec'),
           invoiceId: asString(invoice.id),
           coachUserId: asString(invoice.coachUserId),
           state: 'PAID',
-          internalNote: 'Created by hosted payment confirmation.',
-          createdByUserId: asString(attempt.actorUserId) ?? 'system',
-          updatedByUserId: asString(attempt.actorUserId) ?? 'system',
+          internalNote: `Created by ${input.source}.`,
+          createdByUserId: actorUserId,
+          updatedByUserId: actorUserId,
           version: 1,
           createdAt: now,
           updatedAt: now,
@@ -3157,7 +3338,7 @@ export async function completeSimulatedInvoicePayment(
         tables: mutable.tables,
         invoice,
         paidAt: now,
-        actorUserId: asString(attempt.actorUserId) ?? 'system',
+        actorUserId,
       });
     }
     return {
@@ -3166,102 +3347,132 @@ export async function completeSimulatedInvoicePayment(
       alreadyCompleted,
     };
   }
-  const prisma = getPrismaClientOrThrow();
-  const attempt = await prisma.paymentAttempt.findUnique({
-    where: {
-      id: input.attemptId,
-    },
-    include: {
-      invoice: true,
-    },
-  });
-  if (!attempt) {
-    throw notFound('Payment attempt not found', {
-      attemptId: input.attemptId,
+
+  if (!isProviderPaymentFailureStatus(input.completionStatus)) {
+    throw badRequest('Unsupported payment completion status', {
+      attemptId: asString(attempt.id) ?? input.attemptId,
+      completionStatus: input.completionStatus,
     });
   }
-  if (attempt.providerSessionId !== payload.providerSessionId) {
-    throw badRequest('Payment attempt provider session mismatch', {
-      attemptId: input.attemptId,
-    });
-  }
-  if (attempt.provider !== 'simulated') {
-    throw badRequest('Payment attempt is not managed by the simulated provider', {
-      attemptId: input.attemptId,
-      provider: attempt.provider,
-    });
-  }
-  if (attempt.amountMinor !== payload.amountMinor) {
-    throw badRequest('Payment attempt amount mismatch', {
-      attemptId: input.attemptId,
-    });
-  }
-  if (attempt.currency !== payload.currency) {
-    throw badRequest('Payment attempt currency mismatch', {
-      attemptId: input.attemptId,
-    });
-  }
-  if (attempt.status === 'COMPLETED') {
+  if (attemptStatus === 'COMPLETED') {
     return {
-      invoice: normalizeForJson(attempt.invoice),
-      attempt: normalizeForJson(attempt),
+      invoice,
+      attempt,
       alreadyCompleted: true,
     };
   }
-  if (!ACTIVE_PAYMENT_ATTEMPT_STATUSES.has(attempt.status)) {
+  if (
+    !ACTIVE_PAYMENT_ATTEMPT_STATUSES.has(attemptStatus) &&
+    attemptStatus !== input.completionStatus
+  ) {
     throw badRequest('Payment attempt is not payable', {
-      attemptId: input.attemptId,
+      attemptId: asString(attempt.id) ?? input.attemptId,
       status: attempt.status,
     });
   }
-  if (attempt.invoice.status === 'VOID' || attempt.invoice.status === 'WRITTEN_OFF') {
-    throw badRequest('Invoice cannot accept payment in its current state', {
-      invoiceId: attempt.invoiceId,
-      status: attempt.invoice.status,
-    });
-  }
-  if (attempt.invoice.bookingId) {
-    const booking = await prisma.booking.findFirst({
-      where: {
-        id: attempt.invoice.bookingId,
-        deletedAt: null,
-      },
-    });
-    if (!booking) {
-      throw badRequest('Invoice booking link is no longer authoritative', {
-        invoiceId: attempt.invoiceId,
-        bookingId: attempt.invoice.bookingId,
-      });
-    }
-    if (booking.coachUserId !== attempt.invoice.coachUserId) {
-      throw badRequest('Invoice booking coach link does not match authoritative booking', {
-        invoiceId: attempt.invoiceId,
-        bookingId: attempt.invoice.bookingId,
-      });
-    }
-  }
-  const alreadyCompleted = attempt.invoice.status === 'PAID';
-  const now = new Date();
-  const completeAttempt = prisma.paymentAttempt.update({
-    where: {
-      id: input.attemptId,
-    },
-    data: {
-      status: 'COMPLETED',
-      confirmedAt: now,
-    },
+  applyMutableProviderFailureUpdate({
+    attempt,
+    status: input.completionStatus,
+    actorUserId,
+    failureCode: input.failureCode,
+    failureReason: input.failureReason ?? input.reason,
+    now,
   });
-  if (!alreadyCompleted) {
+  return {
+    invoice,
+    attempt,
+    alreadyCompleted: false,
+  };
+}
+
+async function completeProviderInvoicePaymentForPrisma(
+  input: CompleteProviderInvoicePaymentInput,
+): Promise<CompleteProviderInvoicePaymentResult> {
+  const detail = await getPaymentAttemptForProviderCompletion(providerCompletionLookup(input));
+  if (!detail) {
+    throw notFound('Payment attempt not found', {
+      attemptId: input.attemptId,
+      providerSessionId: input.providerSessionId,
+    });
+  }
+  validateProviderCompletionBase(input, detail);
+  const attempt = detail.attempt;
+  const invoice = detail.invoice;
+  const attemptId = asString(attempt.id);
+  const invoiceId = asString(invoice.id);
+  const invoiceCoachUserId = asString(invoice.coachUserId);
+  if (!attemptId || !invoiceId || !invoiceCoachUserId) {
+    throw badRequest('Payment attempt is missing authoritative identifiers', {
+      attemptId: input.attemptId,
+      invoiceId,
+      coachUserId: invoiceCoachUserId,
+    });
+  }
+  const attemptStatus = coerceAttemptStatus(attempt.status);
+  const actorUserId = input.actorUserId ?? asString(attempt.actorUserId) ?? 'system';
+
+  if (input.completionStatus === 'COMPLETED') {
+    if (attemptStatus === 'COMPLETED') {
+      return {
+        invoice: detail.invoice,
+        attempt,
+        alreadyCompleted: true,
+      };
+    }
+    if (!ACTIVE_PAYMENT_ATTEMPT_STATUSES.has(attemptStatus)) {
+      throw badRequest('Payment attempt is not payable', {
+        attemptId,
+        status: attempt.status,
+      });
+    }
+    const invoiceStatus = toInvoiceStatus(invoice.status);
+    if (invoiceStatus === 'VOID' || invoiceStatus === 'WRITTEN_OFF') {
+      throw badRequest('Invoice cannot accept payment in its current state', {
+        invoiceId,
+        status: invoice.status,
+      });
+    }
+    if (invoiceStatus === 'PAID') {
+      const now = new Date();
+      const updatedAttempt = await getPrismaClientOrThrow().paymentAttempt.update({
+        where: { id: attemptId },
+        data: { status: 'COMPLETED', confirmedAt: now },
+      });
+      return {
+        invoice: normalizeForJson(invoice),
+        attempt: normalizeForJson(updatedAttempt),
+        alreadyCompleted: true,
+      };
+    }
+    const now = new Date();
+    const booking = asString(invoice.bookingId)
+      ? await getPrismaClientOrThrow().booking.findFirst({
+          where: {
+            id: asString(invoice.bookingId),
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            coachUserId: true,
+          },
+        })
+      : null;
+    if (booking && asString(booking.coachUserId) !== asString(invoice.coachUserId)) {
+      throw badRequest('Invoice booking coach link does not match authoritative booking', {
+        invoiceId: asString(invoice.id),
+        bookingId: asString(invoice.bookingId),
+      });
+    }
     const [existingReconciler, paidBooking] = await Promise.all([
-      prisma.reconcilerEntry.findFirst({
+      getPrismaClientOrThrow().reconcilerEntry.findFirst({
         where: {
-          invoiceId: attempt.invoiceId,
+          invoiceId: asString(invoice.id),
         },
       }),
-      attempt.invoice.bookingId
-        ? prisma.booking.findFirst({
+      asString(invoice.bookingId)
+        ? getPrismaClientOrThrow().booking.findFirst({
             where: {
-              id: attempt.invoice.bookingId,
+              id: asString(invoice.bookingId),
               deletedAt: null,
             },
             select: {
@@ -3280,34 +3491,34 @@ export async function completeSimulatedInvoicePayment(
         : Promise.resolve(null),
     ]);
     const reconcilerWrite = existingReconciler
-      ? prisma.reconcilerEntry.update({
+      ? getPrismaClientOrThrow().reconcilerEntry.update({
           where: {
             id: existingReconciler.id,
           },
           data: {
             state: 'PAID',
-            internalNote: 'Marked paid by hosted payment confirmation.',
-            updatedByUserId: attempt.actorUserId,
+            internalNote: input.reason,
+            updatedByUserId: actorUserId,
             version: {
               increment: 1,
             },
           },
         })
-      : prisma.reconcilerEntry.create({
+      : getPrismaClientOrThrow().reconcilerEntry.create({
           data: {
             id: newId('rec'),
-            invoiceId: attempt.invoiceId,
-            coachUserId: attempt.invoice.coachUserId,
+            invoiceId,
+            coachUserId: invoiceCoachUserId,
             state: 'PAID',
-            internalNote: 'Created by hosted payment confirmation.',
-            createdByUserId: attempt.actorUserId,
-            updatedByUserId: attempt.actorUserId,
+            internalNote: `Created by ${input.source}.`,
+            createdByUserId: actorUserId,
+            updatedByUserId: actorUserId,
           },
         });
     const athleteId = paidBooking?.participants[0]?.athleteId;
     const registrationPaidWrite =
       paidBooking?.groupSessionId && athleteId
-        ? prisma.groupSessionRegistration.updateMany({
+        ? getPrismaClientOrThrow().groupSessionRegistration.updateMany({
             where: {
               groupSessionId: paidBooking.groupSessionId,
               athleteId,
@@ -3318,65 +3529,138 @@ export async function completeSimulatedInvoicePayment(
             },
             data: {
               paidAt: now,
-              updatedByUserId: attempt.actorUserId,
+              updatedByUserId: actorUserId,
               version: {
                 increment: 1,
               },
             },
           })
         : Promise.resolve(null);
-    await Promise.all([
-      completeAttempt,
-      prisma.invoice.update({
+
+    const [attempted, invoiceUpdated] = await Promise.all([
+      getPrismaClientOrThrow().paymentAttempt.update({
+        where: { id: attemptId },
+        data: {
+          status: 'COMPLETED',
+          confirmedAt: now,
+        },
+      }),
+      getPrismaClientOrThrow().invoice.update({
         where: {
-          id: attempt.invoiceId,
+          id: invoiceId,
         },
         data: {
           status: 'PAID',
           paidAt: now,
-          updatedByUserId: attempt.actorUserId,
+          updatedByUserId: actorUserId,
           version: {
             increment: 1,
           },
         },
       }),
-      prisma.invoiceEvent.create({
+      getPrismaClientOrThrow().invoiceEvent.create({
         data: {
           id: newId('ine'),
-          invoiceId: attempt.invoiceId,
+          invoiceId,
           eventType: 'MARKED_PAID',
-          actorUserId: attempt.actorUserId,
-          reason: 'Hosted payment confirmed by simulated provider.',
+          actorUserId,
+          reason: input.reason,
           metadataJson: {
-            source: 'simulated-provider',
-            attemptId: input.attemptId,
-            providerSessionId: payload.providerSessionId,
+            source: input.source,
+            attemptId,
+            providerSessionId: asString(attempt.providerSessionId),
           } as never,
         },
       }),
       reconcilerWrite,
       registrationPaidWrite,
     ]);
-  } else {
-    await completeAttempt;
+
+    return {
+      invoice: normalizeForJson(invoiceUpdated),
+      attempt: normalizeForJson(attempted),
+      alreadyCompleted: false,
+    };
   }
-  const [refreshedAttempt, refreshedInvoice] = await Promise.all([
-    prisma.paymentAttempt.findUniqueOrThrow({
-      where: {
-        id: input.attemptId,
-      },
-    }),
-    prisma.invoice.findUniqueOrThrow({
-      where: {
-        id: attempt.invoiceId,
-      },
-    }),
-  ]);
+
+  if (!isProviderPaymentFailureStatus(input.completionStatus)) {
+    throw badRequest('Unsupported payment completion status', {
+      attemptId,
+      completionStatus: input.completionStatus,
+    });
+  }
+  if (attemptStatus === 'COMPLETED') {
+    return {
+      invoice: detail.invoice,
+      attempt,
+      alreadyCompleted: true,
+    };
+  }
+  if (
+    !ACTIVE_PAYMENT_ATTEMPT_STATUSES.has(attemptStatus) &&
+    attemptStatus !== input.completionStatus
+  ) {
+    throw badRequest('Payment attempt is not payable', {
+      attemptId,
+      status: attempt.status,
+    });
+  }
+  const now = new Date();
+  const failureData = {
+    status: input.completionStatus,
+    failureCode: input.failureCode ?? null,
+    failureReason: input.failureReason ?? input.reason,
+  } as const;
+  const failedAttempt = await getPrismaClientOrThrow().paymentAttempt.update({
+    where: {
+      id: attemptId,
+    },
+    data: {
+      status: failureData.status,
+      failedAt:
+        input.completionStatus === 'FAILED' || input.completionStatus === 'EXPIRED' ? now : null,
+      canceledAt: input.completionStatus === 'CANCELED' ? now : null,
+      failureCode: failureData.failureCode,
+      failureReason: failureData.failureReason,
+    },
+  });
   return {
-    invoice: normalizeForJson(refreshedInvoice),
-    attempt: normalizeForJson(refreshedAttempt),
-    alreadyCompleted,
+    invoice: normalizeForJson(detail.invoice),
+    attempt: normalizeForJson(failedAttempt),
+    alreadyCompleted: false,
   };
+}
+
+export async function completeProviderInvoicePayment(
+  input: CompleteProviderInvoicePaymentInput,
+): Promise<CompleteProviderInvoicePaymentResult> {
+  assertProviderCompletionInput(input);
+  const mutable = resolveMutableTables();
+  if (mutable) {
+    return completeProviderInvoicePaymentForMutable(input);
+  }
+  return completeProviderInvoicePaymentForPrisma(input);
+}
+
+export async function completeSimulatedInvoicePayment(
+  input: CompleteSimulatedInvoicePaymentInput,
+): Promise<CompleteSimulatedInvoicePaymentResult> {
+  const payload = verifySimulatedPaymentToken(input.token);
+  if (payload.attemptId !== input.attemptId) {
+    throw badRequest('Payment attempt token mismatch', {
+      attemptId: input.attemptId,
+    });
+  }
+  return completeProviderInvoicePayment({
+    attemptId: input.attemptId,
+    providerSessionId: payload.providerSessionId,
+    provider: 'simulated',
+    source: 'simulated-provider',
+    reason: 'Hosted payment confirmed by simulated provider.',
+    completionStatus: 'COMPLETED',
+    expectedAmountMinor: payload.amountMinor,
+    expectedCurrency: payload.currency,
+  });
 }
 async function getPaymentAttemptById(attemptId: string): Promise<{
   attempt: SeedRow;

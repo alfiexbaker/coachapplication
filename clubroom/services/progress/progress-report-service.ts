@@ -12,7 +12,11 @@
 
 import { badgeService } from '../badge-service';
 import { apiClient } from '../api-client';
-import { bookingService } from '@/services/booking';
+import {
+  bookingAuthorityService,
+  bookingService,
+  mapApiBookingToBooking,
+} from '@/services/booking';
 import { createLogger } from '@/utils/logger';
 import type { Goal } from '@/constants/types';
 import type { Booking, Session } from '@/constants/app-types';
@@ -33,6 +37,14 @@ function isCompletedBookingForAthlete(booking: Booking, athleteId: string): bool
   }
 
   return booking.athleteId === athleteId;
+}
+
+async function listAuthoritativeProgressBookings(): Promise<Booking[]> {
+  const result = await bookingAuthorityService.listBookings();
+  if (!result.success) {
+    throw new Error(result.error.message);
+  }
+  return result.data.map((booking) => mapApiBookingToBooking(booking));
 }
 
 function signalKeyFromSession(session: Session): string {
@@ -98,6 +110,27 @@ async function withProgressFallback<T>(
     return await loader;
   } catch (error) {
     logger.warn('Progress subresource unavailable', {
+      athleteId,
+      resource,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    if (!apiClient.isMockMode) {
+      throw error;
+    }
+    return fallback;
+  }
+}
+
+async function withOptionalProgressFallback<T>(
+  athleteId: string,
+  resource: string,
+  loader: Promise<T>,
+  fallback: T,
+): Promise<T> {
+  try {
+    return await loader;
+  } catch (error) {
+    logger.warn('Optional progress subresource unavailable', {
       athleteId,
       resource,
       error: error instanceof Error ? error.message : String(error),
@@ -186,7 +219,7 @@ async function getAthleteProgress(
         badgeService.getProgressToNextLevel(athleteId),
         emptyBadgeProgress,
       ),
-      withProgressFallback(athleteId, 'badges', badgeService.listAwardsForAthlete(athleteId), []),
+      withOptionalProgressFallback(athleteId, 'badges', badgeService.listAwardsForAthlete(athleteId), []),
       apiClient.isMockMode
         ? withProgressFallback(
             athleteId,
@@ -195,7 +228,9 @@ async function getAthleteProgress(
             [],
           )
         : Promise.resolve([]),
-      withProgressFallback(athleteId, 'bookings', bookingService.list(), []),
+      apiClient.isMockMode
+        ? withProgressFallback(athleteId, 'bookings', bookingService.list(), [])
+        : withOptionalProgressFallback(athleteId, 'bookings', listAuthoritativeProgressBookings(), []),
     ]);
 
   // Convert skills to array

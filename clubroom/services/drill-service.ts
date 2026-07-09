@@ -19,14 +19,7 @@ import { childService } from './child-service';
 import { userService } from './user-service';
 import { createLogger } from '../utils/logger';
 import { toDateStr } from '@/utils/format';
-import {
-  type Result,
-  type ServiceError,
-  ok,
-  err,
-  notFound,
-  serviceError,
-} from '@/types/result';
+import { type Result, type ServiceError, ok, err, notFound, serviceError } from '@/types/result';
 import type {
   Drill,
   DrillCategory,
@@ -330,6 +323,20 @@ async function fetchApiAthleteAssignments(
   return result.data.assignments;
 }
 
+async function fetchApiDrillAssignment(assignmentId: string): Promise<AssignedDrill | null> {
+  const result = await apiFetch<ApiDrillAssignmentMutationResponse>(
+    `/v1/drill-assignments/${encodeURIComponent(assignmentId)}`,
+    { method: 'GET' },
+  );
+  if (!result.success) {
+    if (result.error.code === 'NOT_FOUND') {
+      return null;
+    }
+    throw new Error(result.error.message);
+  }
+  return result.data.assignment ? mapApiAssignment(result.data.assignment) : null;
+}
+
 async function postApiDrillAssignment(
   drillId: string,
   athleteId: string,
@@ -589,7 +596,7 @@ const MOCK_ASSIGNMENTS: AssignedDrill[] = [
 async function getAllDrills(): Promise<Drill[]> {
   const drills = await apiClient.get<Drill[]>(STORAGE_KEYS.DRILLS, []);
   if (drills.length === 0) {
-    return [...MOCK_DRILLS];
+    return apiClient.isMockMode ? [...MOCK_DRILLS] : [];
   }
   return drills;
 }
@@ -607,7 +614,7 @@ async function saveDrills(drills: Drill[]): Promise<void> {
 async function getAllAssignments(): Promise<AssignedDrill[]> {
   const assignments = await apiClient.get<AssignedDrill[]>(STORAGE_KEYS.DRILL_ASSIGNMENTS, []);
   if (assignments.length === 0) {
-    return [...MOCK_ASSIGNMENTS];
+    return apiClient.isMockMode ? [...MOCK_ASSIGNMENTS] : [];
   }
   return assignments;
 }
@@ -750,14 +757,14 @@ async function deleteDrill(drillId: string): Promise<boolean> {
   const drills = await getAllDrills();
   const drillIndex = drills.findIndex((d) => d.id === drillId);
   if (drillIndex === -1) {
-    logger.warn('drill_not_found_for_delete', {
+    logger.warn('drill_not_found_for_remove', {
       drillId,
     });
     return false;
   }
   drills.splice(drillIndex, 1);
   await saveDrills(drills);
-  logger.info('drill_deleted', {
+  logger.info('drill_removed', {
     drillId,
   });
   return true;
@@ -887,11 +894,7 @@ async function getAthleteAssignments(
  */
 async function getAssignmentById(assignmentId: string): Promise<AssignedDrill | null> {
   if (!apiClient.isMockMode) {
-    logger.warn('drill_assignment_detail_api_route_missing', {
-      assignmentId,
-      route: '/v1/drill-assignments/:assignmentId',
-    });
-    return null;
+    return fetchApiDrillAssignment(assignmentId);
   }
 
   const [assignments, drills] = await Promise.all([getAllAssignments(), getAllDrills()]);
@@ -1025,14 +1028,14 @@ async function deleteAssignment(assignmentId: string): Promise<boolean> {
   const assignments = await getAllAssignments();
   const assignmentIndex = assignments.findIndex((a) => a.id === assignmentId);
   if (assignmentIndex === -1) {
-    logger.warn('assignment_not_found_for_delete', {
+    logger.warn('assignment_not_found_for_remove', {
       assignmentId,
     });
     return false;
   }
   assignments.splice(assignmentIndex, 1);
   await saveAssignments(assignments);
-  logger.info('assignment_deleted', {
+  logger.info('assignment_removed', {
     assignmentId,
   });
   return true;

@@ -30,6 +30,14 @@ function makeParams(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function restoreMockMode(original?: PropertyDescriptor): void {
+  if (original) {
+    Object.defineProperty(apiClient, 'isMockMode', original);
+  } else {
+    delete (apiClient as unknown as { isMockMode?: boolean }).isMockMode;
+  }
+}
+
 describe('BookingCrudService — error paths', () => {
   beforeEach(async () => {
     await apiClient.remove(STORAGE_KEYS.BOOKINGS);
@@ -166,6 +174,41 @@ describe('BookingCrudService — error paths', () => {
         result.error.message,
         'Booking is unavailable because one side has blocked the other.',
       );
+    }
+  });
+
+  it('rejects API mode group session booking attempts before direct booking create', async () => {
+    const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+    const originalCreateBooking = bookingAuthorityService.createBooking;
+    let createCalls = 0;
+
+    Object.defineProperty(apiClient, 'isMockMode', {
+      configurable: true,
+      get: () => false,
+    });
+    bookingAuthorityService.createBooking = (async () => {
+      createCalls += 1;
+      throw new Error('direct booking API should not be called for group sessions');
+    }) as typeof bookingAuthorityService.createBooking;
+
+    try {
+      const result = await bookingCrudService.createBooking(
+        makeParams({
+          sessionSource: 'group',
+          sessionSourceEntityId: 'group_session_1',
+          serviceType: 'GROUP_SESSION',
+        }),
+      );
+
+      assert.equal(result.success, false);
+      if (!result.success) {
+        assert.equal(result.error.code, 'VALIDATION');
+        assert.match(result.error.message, /group session registration flow/i);
+      }
+      assert.equal(createCalls, 0);
+    } finally {
+      bookingAuthorityService.createBooking = originalCreateBooking;
+      restoreMockMode(originalIsMockMode);
     }
   });
 

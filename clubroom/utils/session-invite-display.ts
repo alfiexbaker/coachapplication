@@ -1,12 +1,18 @@
 import type { SessionInvite } from '@/constants/types';
 import type { ChildInfo } from '@/types/child-context';
-import { safeDisplayLabel } from '@/utils/booking-display';
+import { formatServiceTypeLabel, safeDisplayLabel } from '@/utils/booking-display';
 
 export function getSessionInviteCoachName(invite: SessionInvite): string {
-  return safeDisplayLabel(invite.coachId, 'Coach');
+  return safeDisplayLabel(invite.coachName, 'Coach');
 }
 
 export function getSessionInviteAthleteNames(invite: SessionInvite): string[] {
+  const labels = invite.athleteNames
+    ?.map((name) => safeDisplayLabel(name, ''))
+    .filter((name) => name.length > 0);
+  if (labels && labels.length > 0) {
+    return labels;
+  }
   if (invite.athleteIds.length === 0) {
     return ['Athlete'];
   }
@@ -14,7 +20,11 @@ export function getSessionInviteAthleteNames(invite: SessionInvite): string[] {
 }
 
 export function getSessionInviteParentName(invite: SessionInvite): string {
-  return safeDisplayLabel(invite.parentId, 'Parent');
+  return safeDisplayLabel(invite.parentName, 'Parent');
+}
+
+export function getSessionInviteServiceLabel(invite: SessionInvite): string {
+  return formatServiceTypeLabel(invite.sessionType);
 }
 
 /**

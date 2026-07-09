@@ -69,7 +69,7 @@ for (const [index, favourite] of MOCK_FAVOURITES.entries()) {
   favourite.createdAt = getRelativeIso(14 - index * 3, 9 + index, 0);
 }
 
-let favouritesCache: FavouriteCoach[] = [...MOCK_FAVOURITES];
+let favouritesCache: FavouriteCoach[] = apiClient.isMockMode ? [...MOCK_FAVOURITES] : [];
 let favouritesCacheTimestamp = 0;
 const FAVOURITES_CACHE_TTL_MS = 30_000;
 
@@ -79,7 +79,9 @@ function invalidateFavouritesCache(): void {
 }
 
 function hasFreshFavouritesCache(): boolean {
-  return favouritesCacheTimestamp > 0 && Date.now() - favouritesCacheTimestamp < FAVOURITES_CACHE_TTL_MS;
+  return (
+    favouritesCacheTimestamp > 0 && Date.now() - favouritesCacheTimestamp < FAVOURITES_CACHE_TTL_MS
+  );
 }
 
 async function loadFavourites(): Promise<FavouriteCoach[]> {
@@ -96,7 +98,7 @@ async function loadFavourites(): Promise<FavouriteCoach[]> {
   } catch (error) {
     logger.error('Failed to load favourites', error);
   }
-  favouritesCache = [...MOCK_FAVOURITES];
+  favouritesCache = apiClient.isMockMode ? [...MOCK_FAVOURITES] : [];
   favouritesCacheTimestamp = Date.now();
   return favouritesCache;
 }
@@ -166,13 +168,18 @@ function normalizeApiFavourite(favourite: FavouriteCoach): FavouriteCoach {
 }
 
 export const favouriteService = {
-  async isUsingDemoSeed(userId: string): Promise<boolean> {
-    if (!apiClient.isMockMode) return false;
+  async isUsingDemoSeed(userId: string): Promise<Result<boolean, ServiceError>> {
+    if (!apiClient.isMockMode) return ok(false);
 
-    const stored = await apiClient.get<FavouriteCoach[] | null>(STORAGE_KEYS.FAVOURITES, null);
-    if (stored && stored.length > 0) return false;
-    const favourites = await loadFavourites();
-    return favourites.some((f) => f.userId === userId && f.id.startsWith('fav_'));
+    try {
+      const stored = await apiClient.get<FavouriteCoach[] | null>(STORAGE_KEYS.FAVOURITES, null);
+      if (stored && stored.length > 0) return ok(false);
+      const favourites = await loadFavourites();
+      return ok(favourites.some((f) => f.userId === userId && f.id.startsWith('fav_')));
+    } catch (error) {
+      logger.error('Failed to check favourite demo seed state', { userId, error });
+      return err(storageError('Failed to check favourite demo seed state'));
+    }
   },
   /**
    * Add a coach to user's favourites
@@ -285,7 +292,11 @@ export const favouriteService = {
         },
       );
       if (!result.success) {
-        logger.error('Failed to remove favourite via API', { userId, coachId, error: result.error });
+        logger.error('Failed to remove favourite via API', {
+          userId,
+          coachId,
+          error: result.error,
+        });
         return err(result.error);
       }
 
@@ -380,7 +391,11 @@ export const favouriteService = {
         },
       );
       if (!result.success) {
-        logger.error('Failed to check favourite status via API', { userId, coachId, error: result.error });
+        logger.error('Failed to check favourite status via API', {
+          userId,
+          coachId,
+          error: result.error,
+        });
         return err(result.error);
       }
 

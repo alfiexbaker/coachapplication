@@ -15,6 +15,8 @@ import { availabilityService } from '@/services/availability-service';
 import { multiWeekBookingService } from '@/services/multi-week-booking-service';
 import { toDateStr } from '@/utils/format';
 import { createLogger } from '@/utils/logger';
+import { resolveSingleBookingDraftTarget } from '@/utils/booking-targets';
+import { resolveUserProfileName } from '@/utils/person-name';
 import { err, ok, serviceError } from '@/types/result';
 import type { WeekRow } from '@/components/bookings/multi-week-picker';
 import { uiFeedback } from '@/services/ui-feedback';
@@ -44,35 +46,7 @@ export function useMultiWeek() {
     const parsed = Number.parseInt(weeksParam ?? '', 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
   })();
-  const selectedAthlete = (() => {
-    const targetId = draft.childId;
-    if (targetId) {
-      if (currentUser?.id && targetId === currentUser.id) {
-        return {
-          id: currentUser.id,
-          name: draft.athleteName || currentUser.name || currentUser.fullName || 'Athlete',
-        };
-      }
-      const child = children.find((candidate) => candidate.id === targetId);
-      if (child) {
-        return {
-          id: child.id,
-          name: child.name,
-        };
-      }
-      return {
-        id: targetId,
-        name: draft.athleteName || 'Athlete',
-      };
-    }
-    if (currentUser?.id) {
-      return {
-        id: currentUser.id,
-        name: draft.athleteName || currentUser.name || currentUser.fullName || 'Athlete',
-      };
-    }
-    return null;
-  })();
+  const selectedAthlete = resolveSingleBookingDraftTarget({ draft, currentUser, children });
   const loadWeeks = useCallback(async () => {
     if (!coachId) {
       return ok([]);
@@ -169,8 +143,17 @@ export function useMultiWeek() {
   const handleCancelConfirmation = () => setShowConfirmation(false);
   const handleConfirm = async () => {
     if (!coachId || !currentUser) return;
-    if (!selectedAthlete?.id || !selectedAthlete.name) {
+    const selectedAthleteName = selectedAthlete?.name;
+    if (!selectedAthlete?.id || !selectedAthleteName) {
       uiFeedback.showToast('Please choose who this booking is for.', 'error');
+      return;
+    }
+    const createdByName = resolveUserProfileName(currentUser);
+    if (!createdByName) {
+      uiFeedback.showToast(
+        'Your account name is missing. Update your profile before booking.',
+        'error',
+      );
       return;
     }
     if (selectedWeekRows.length === 0) {
@@ -182,11 +165,11 @@ export function useMultiWeek() {
       async () => {
         const result = await multiWeekBookingService.createSeries({
           createdById: currentUser.id,
-          createdByName: currentUser.name || currentUser.fullName || 'Parent',
+          createdByName,
           coachId,
           coachName,
           athleteIds: [selectedAthlete.id],
-          athleteNames: [selectedAthlete.name],
+          athleteNames: [selectedAthleteName],
           sessionType,
           pricePerSession: sessionPrice,
           selectedWeeks: selectedWeekRows.map((w) => w.weekDate),

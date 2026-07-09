@@ -89,13 +89,28 @@ export interface CommunityGroupJoinRequestMutationParams extends CommunityGroupM
 export interface PostListParams extends CommunityMediaAccessParams {
   clubId?: string;
   communityGroupId?: string;
+  followingOnly?: boolean;
 }
+export interface MediaAttachmentInput {
+  mediaObjectId: string;
+  title?: string;
+}
+type SanitizedMediaAttachment = {
+  id: string;
+  mediaObjectId: string;
+  type: 'photo' | 'video' | 'pdf';
+  title: string;
+  subtitle?: string;
+  contentType?: string;
+  originalFileName?: string;
+};
 export interface PostCreateParams extends CommunityMediaAccessParams {
   clubId?: string;
   communityGroupId?: string;
   content: string;
   visibility?: 'PUBLIC' | 'CLUB' | 'GROUP' | 'PRIVATE';
   metadata?: Record<string, unknown>;
+  attachments?: MediaAttachmentInput[];
   idempotencyKey?: string;
 }
 export interface PostCommentListParams extends CommunityMediaAccessParams {
@@ -119,14 +134,20 @@ export interface PostCommentReactionParams extends CommunityMediaAccessParams {
 export interface PostReactionParams extends CommunityMediaAccessParams {
   postId: string;
 }
+export interface PostPinParams extends CommunityMediaAccessParams {
+  postId: string;
+  pinned: boolean;
+}
 export interface GroupMessageCreateParams extends CommunityMediaAccessParams {
   communityGroupId: string;
   body: string;
+  attachments?: MediaAttachmentInput[];
   idempotencyKey?: string;
 }
 export interface ThreadMessageCreateParams extends CommunityMediaAccessParams {
   messageThreadId: string;
   body: string;
+  attachments?: MediaAttachmentInput[];
   idempotencyKey?: string;
 }
 export interface MessageDeleteParams extends CommunityMediaAccessParams {
@@ -301,6 +322,7 @@ export interface CommunityMediaRepository {
   listPosts(params: PostListParams): Promise<PostListResult>;
   createPost(params: PostCreateParams): Promise<PostMutationResult>;
   togglePostReaction(params: PostReactionParams): Promise<PostReactionMutationResult>;
+  setPostPin(params: PostPinParams): Promise<PostMutationResult>;
   listPostComments(params: PostCommentListParams): Promise<PostCommentListResult>;
   getPostComment(params: PostCommentReadParams): Promise<PostCommentMutationResult>;
   createPostComment(params: PostCommentCreateParams): Promise<PostCommentMutationResult>;
@@ -358,8 +380,164 @@ function readableClubIdsForUser(tables: SeedTables, authUserId: string): Set<str
     }),
   );
 }
+function activeBlockedUserIdsForUser(tables: SeedTables, authUserId: string): Set<string> {
+  return new Set<string>(
+    asRows(tables.userBlocks).flatMap((row): string[] => {
+      if (asString(row.deletedAt)) return [];
+      const blockerUserId = asString(row.blockerUserId);
+      const blockedUserId = asString(row.blockedUserId);
+      if (blockerUserId === authUserId && blockedUserId) return [blockedUserId];
+      if (blockedUserId === authUserId && blockerUserId) return [blockerUserId];
+      return [];
+    }),
+  );
+}
+function activeFollowedUserIdsForUser(tables: SeedTables, authUserId: string): Set<string> {
+  const blockedUserIds = activeBlockedUserIdsForUser(tables, authUserId);
+  return new Set<string>(
+    asRows(tables.userFollows).flatMap((row): string[] => {
+      const followedUserId = asString(row.followedUserId);
+      if (
+        asString(row.followerUserId) !== authUserId ||
+        asString(row.deletedAt) ||
+        !followedUserId ||
+        blockedUserIds.has(followedUserId)
+      ) {
+        return [];
+      }
+      return [followedUserId];
+    }),
+  );
+}
+function isFollowingFeedPost(row: SeedRow): boolean {
+  const metadata = coerceMetadata(row.attachmentsJson);
+  const feedType = asString(metadata.feedType);
+  const postAs = asString(metadata.postAs);
+  return (
+    (feedType === 'PERSONAL' || feedType === 'BOTH') &&
+    (!postAs || postAs === 'self')
+  );
+}
 function uniqueStrings(values: string[] | undefined): string[] {
   return Array.from(new Set((values ?? []).map((value) => value.trim()).filter(Boolean)));
+}
+function normalizeAttachmentInputs(
+  attachments: MediaAttachmentInput[] | undefined,
+): MediaAttachmentInput[] {
+  const seen = new Set<string>();
+  return (attachments ?? []).flatMap((attachment) => {
+    const mediaObjectId = attachment.mediaObjectId.trim();
+    if (!mediaObjectId || seen.has(mediaObjectId)) {
+      return [];
+    }
+    seen.add(mediaObjectId);
+    return [
+      {
+        mediaObjectId,
+        ...(attachment.title?.trim() ? { title: attachment.title.trim() } : {}),
+      },
+    ];
+  });
+}
+function attachmentTypeForMediaObject(row: SeedRow): SanitizedMediaAttachment['type'] {
+  const kind = asString(row.kind)?.toUpperCase();
+  const contentType = asString(row.contentType)?.toLowerCase() ?? '';
+  if (kind === 'IMAGE') return 'photo';
+  if (kind === 'VIDEO') return 'video';
+  if (kind === 'DOCUMENT' && contentType.includes('pdf')) return 'pdf';
+  throw badRequest('Unsupported media attachment type', {
+    mediaObjectId: asString(row.id) ?? null,
+    kind,
+    contentType,
+  });
+}
+function sanitizeMediaAttachment(row: SeedRow, input: MediaAttachmentInput): SanitizedMediaAttachment {
+  const mediaObjectId = asString(row.id) as string;
+  const contentType = asString(row.contentType);
+  const originalFileName = asString(row.originalFileName);
+  return {
+    id: mediaObjectId,
+    mediaObjectId,
+    type: attachmentTypeForMediaObject(row),
+    title: input.title ?? originalFileName ?? 'Attachment',
+    ...(contentType ? { subtitle: contentType, contentType } : {}),
+    ...(originalFileName ? { originalFileName } : {}),
+  };
+}
+function assertSanitizedMediaAttachments(params: {
+  mediaObjects: SeedRow[];
+  authUserId: string;
+  attachments?: MediaAttachmentInput[];
+}): SanitizedMediaAttachment[] {
+  const inputs = normalizeAttachmentInputs(params.attachments);
+  if (inputs.length === 0) {
+    return [];
+  }
+  const rowsById = new Map(
+    params.mediaObjects.flatMap((row) => {
+      const id = asString(row.id);
+      return id ? [[id, row] as const] : [];
+    }),
+  );
+  return inputs.map((input) => {
+    const row = rowsById.get(input.mediaObjectId);
+    if (!row || asString(row.deletedAt)) {
+      throw badRequest('Media attachment proof was not found', {
+        mediaObjectId: input.mediaObjectId,
+      });
+    }
+    if (asString(row.ownerUserId) !== params.authUserId) {
+      throw forbidden('Media attachment does not belong to authenticated user', {
+        mediaObjectId: input.mediaObjectId,
+      });
+    }
+    if (asString(row.status) !== 'AVAILABLE') {
+      throw badRequest('Media attachment must be finalized and pass malware scanning before use', {
+        mediaObjectId: input.mediaObjectId,
+        status: asString(row.status) ?? null,
+      });
+    }
+    return sanitizeMediaAttachment(row, input);
+  });
+}
+function assertStoreMediaAttachments(
+  tables: SeedTables,
+  authUserId: string,
+  attachments?: MediaAttachmentInput[],
+): SanitizedMediaAttachment[] {
+  return assertSanitizedMediaAttachments({
+    mediaObjects: asRows(tables.mediaObjects),
+    authUserId,
+    attachments,
+  });
+}
+async function assertDbMediaAttachments(
+  authUserId: string,
+  attachments?: MediaAttachmentInput[],
+): Promise<SanitizedMediaAttachment[]> {
+  const inputs = normalizeAttachmentInputs(attachments);
+  if (inputs.length === 0) {
+    return [];
+  }
+  const prisma = getPrismaClientOrThrow();
+  const mediaObjects = await prisma.mediaObject.findMany({
+    where: {
+      id: {
+        in: inputs.map((input) => input.mediaObjectId),
+      },
+    },
+  });
+  return assertSanitizedMediaAttachments({
+    mediaObjects: normalizeAs<SeedRow[]>(mediaObjects),
+    authUserId,
+    attachments: inputs,
+  });
+}
+function metadataWithAttachments(
+  metadata: Record<string, unknown> | undefined,
+  attachments: SanitizedMediaAttachment[],
+): Record<string, unknown> {
+  return attachments.length > 0 ? { ...(metadata ?? {}), attachments } : (metadata ?? {});
 }
 function hashCommunityGroupCreateRequest(params: CommunityGroupCreateParams): string {
   const type = params.type ?? (params.squadId ? 'SQUAD' : params.clubId ? 'CLUB' : 'GENERAL');
@@ -382,9 +560,10 @@ function hashGroupMessageCreateRequest(params: GroupMessageCreateParams): string
   return crypto
     .createHash('sha256')
     .update(
-      JSON.stringify({
+      stableJson({
         communityGroupId: params.communityGroupId,
         body: params.body,
+        attachments: normalizeAttachmentInputs(params.attachments),
       }),
     )
     .digest('hex');
@@ -393,9 +572,10 @@ function hashThreadMessageCreateRequest(params: ThreadMessageCreateParams): stri
   return crypto
     .createHash('sha256')
     .update(
-      JSON.stringify({
+      stableJson({
         messageThreadId: params.messageThreadId,
         body: params.body,
+        attachments: normalizeAttachmentInputs(params.attachments),
       }),
     )
     .digest('hex');
@@ -437,6 +617,7 @@ function hashPostCreateRequest(params: PostCreateParams): string {
         content: params.content.trim(),
         visibility: params.visibility ?? null,
         metadata: params.metadata ?? {},
+        attachments: normalizeAttachmentInputs(params.attachments),
       }),
     )
     .digest('hex');
@@ -1374,6 +1555,44 @@ function assertReadableStorePost(
   }
   throw forbidden('Post is not visible to authenticated user', {
     postId,
+  });
+}
+function assertCanPinStorePost(
+  tables: SeedTables,
+  post: SeedRow,
+  params: PostPinParams,
+): void {
+  if (params.isPrivilegedAdmin) {
+    return;
+  }
+  const groupId = asString(post.communityGroupId);
+  const clubId = asString(post.clubId);
+  const groupMembership = groupId
+    ? asRows(tables.communityGroupMemberships).find(
+        (row) =>
+          isActiveMembership(row) &&
+          asString(row.communityGroupId) === groupId &&
+          asString(row.userId) === params.authUserId,
+      )
+    : undefined;
+  const clubMembership = clubId
+    ? asRows(tables.clubMemberships).find(
+        (row) =>
+          isActiveMembership(row) &&
+          asString(row.clubId) === clubId &&
+          asString(row.userId) === params.authUserId,
+      )
+    : undefined;
+  if (
+    canStaffPostWithRole(groupMembership?.role) ||
+    canStaffPostWithRole(clubMembership?.role)
+  ) {
+    return;
+  }
+  throw forbidden('Only active staff can pin feed posts', {
+    postId: params.postId,
+    clubId,
+    communityGroupId: groupId,
   });
 }
 function assertValidStoreParentComment(
@@ -2662,6 +2881,9 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     const store = this.storeProvider();
     const readableGroupIds = readableCommunityGroupIds(store.tables, params.authUserId);
     const readableClubIds = readableClubIdsForUser(store.tables, params.authUserId);
+    const followedUserIds = params.followingOnly
+      ? activeFollowedUserIdsForUser(store.tables, params.authUserId)
+      : null;
     if (params.clubId && params.communityGroupId) {
       throw badRequest('Use either clubId or communityGroupId when listing posts');
     }
@@ -2675,7 +2897,19 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
         clubId: params.clubId,
       });
     }
+    if (followedUserIds && followedUserIds.size === 0) {
+      return {
+        posts: [],
+        dataVersion: store.version,
+      };
+    }
     const posts = activeRows(asRows(store.tables.posts)).flatMap((row) => {
+      if (
+        followedUserIds &&
+        (!followedUserIds.has(asString(row.authorUserId) ?? '') || !isFollowingFeedPost(row))
+      ) {
+        return [];
+      }
       if (
         !(() => {
           if (params.communityGroupId) {
@@ -2734,6 +2968,11 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     if (content.length > 4000) {
       throw badRequest('Post content must be 4000 characters or fewer');
     }
+    const attachments = assertStoreMediaAttachments(
+      store.tables,
+      params.authUserId,
+      params.attachments,
+    );
     const now = nowIso();
     const post: SeedRow = {
       id: newId('pst'),
@@ -2742,7 +2981,7 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       communityGroupId: scope.communityGroupId,
       visibility: scope.visibility,
       content,
-      attachmentsJson: params.metadata ?? {},
+      attachmentsJson: metadataWithAttachments(params.metadata, attachments),
       commentsCount: 0,
       reactionsCount: 0,
       createdByUserId: params.authUserId,
@@ -2804,6 +3043,35 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     const state = getStorePostReactionState(store.tables, params.postId, params.authUserId);
     const now = nowIso();
     post.reactionsCount = state.reactionsCount;
+    post.updatedAt = now;
+    post.updatedByUserId = params.authUserId;
+    post.version = Number(post.version ?? 1) + 1;
+    return {
+      post: hydrateStorePost(store.tables, post, params.authUserId),
+      dataVersion: store.version,
+    };
+  }
+  async setPostPin(params: PostPinParams): Promise<PostMutationResult> {
+    const store = this.storeProvider();
+    const post = assertReadableStorePost(
+      store.tables,
+      params.postId,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+    assertCanPinStorePost(store.tables, post, params);
+    const metadata = { ...coerceMetadata(post.attachmentsJson) };
+    const now = nowIso();
+    if (params.pinned) {
+      metadata.isPinned = true;
+      metadata.pinnedBy = params.authUserId;
+      metadata.pinnedAt = now;
+    } else {
+      delete metadata.isPinned;
+      delete metadata.pinnedBy;
+      delete metadata.pinnedAt;
+    }
+    post.attachmentsJson = metadata;
     post.updatedAt = now;
     post.updatedByUserId = params.authUserId;
     post.version = Number(post.version ?? 1) + 1;
@@ -3214,6 +3482,11 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       params.communityGroupId,
       params.authUserId,
     );
+    const attachments = assertStoreMediaAttachments(
+      store.tables,
+      params.authUserId,
+      params.attachments,
+    );
     const thread = ensureStoreGroupThread(store.tables, group, params.authUserId, now);
     const threadId = asString(thread.id) as string;
     const message: SeedRow = {
@@ -3221,7 +3494,7 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       messageThreadId: threadId,
       senderUserId: params.authUserId,
       content: params.body,
-      attachmentsJson: [],
+      attachmentsJson: attachments,
       editedAt: null,
       deletedAt: null,
       createdAt: now,
@@ -3287,6 +3560,11 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
     if (body.length > 4000) {
       throw badRequest('Message body must be 4000 characters or fewer');
     }
+    const attachments = assertStoreMediaAttachments(
+      store.tables,
+      params.authUserId,
+      params.attachments,
+    );
     const now = nowIso();
     const thread = assertCanWriteStoreThreadMessages(
       store.tables,
@@ -3299,7 +3577,7 @@ class StoreCommunityMediaRepository implements CommunityMediaRepository {
       messageThreadId: threadId,
       senderUserId: params.authUserId,
       content: body,
-      attachmentsJson: [],
+      attachmentsJson: attachments,
       editedAt: null,
       deletedAt: null,
       createdAt: now,
@@ -4494,6 +4772,53 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     }
     throw forbidden('Post is not visible to authenticated user', {
       postId,
+    });
+  }
+  private async assertCanPinPost(post: SeedRow, params: PostPinParams): Promise<void> {
+    if (params.isPrivilegedAdmin) {
+      return;
+    }
+    const prisma = getPrismaClientOrThrow();
+    const groupId = asString(post.communityGroupId);
+    const clubId = asString(post.clubId);
+    const [groupMembership, clubMembership] = await Promise.all([
+      groupId
+        ? prisma.communityGroupMembership.findFirst({
+            where: {
+              communityGroupId: groupId,
+              userId: params.authUserId,
+              active: true,
+              deletedAt: null,
+            },
+            select: {
+              role: true,
+            },
+          })
+        : Promise.resolve(null),
+      clubId
+        ? prisma.clubMembership.findFirst({
+            where: {
+              clubId,
+              userId: params.authUserId,
+              active: true,
+              deletedAt: null,
+            },
+            select: {
+              role: true,
+            },
+          })
+        : Promise.resolve(null),
+    ]);
+    if (
+      canStaffPostWithRole(groupMembership?.role) ||
+      canStaffPostWithRole(clubMembership?.role)
+    ) {
+      return;
+    }
+    throw forbidden('Only active staff can pin feed posts', {
+      postId: params.postId,
+      clubId,
+      communityGroupId: groupId,
     });
   }
   private async assertCanCreatePost(params: PostCreateParams): Promise<{
@@ -6397,10 +6722,57 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       });
     }
     const prisma = getPrismaClientOrThrow();
+    let followedUserIds: string[] | null = null;
+    if (params.followingOnly) {
+      const [followRows, blockRows] = await Promise.all([
+        prisma.userFollow.findMany({
+          where: {
+            followerUserId: params.authUserId,
+            deletedAt: null,
+          },
+          select: {
+            followedUserId: true,
+          },
+        }),
+        prisma.userBlock.findMany({
+          where: {
+            deletedAt: null,
+            OR: [{ blockerUserId: params.authUserId }, { blockedUserId: params.authUserId }],
+          },
+          select: {
+            blockerUserId: true,
+            blockedUserId: true,
+          },
+        }),
+      ]);
+      const blockedUserIds = new Set(
+        blockRows.flatMap((row) => {
+          if (row.blockerUserId === params.authUserId) return [row.blockedUserId];
+          if (row.blockedUserId === params.authUserId) return [row.blockerUserId];
+          return [];
+        }),
+      );
+      followedUserIds = followRows
+        .map((row) => row.followedUserId)
+        .filter((userId) => !blockedUserIds.has(userId));
+      if (followedUserIds.length === 0) {
+        return {
+          posts: [],
+          dataVersion: null,
+        };
+      }
+    }
     const posts = normalizeAs<SeedRow[]>(
       await prisma.post.findMany({
         where: {
           deletedAt: null,
+          ...(followedUserIds
+            ? {
+                authorUserId: {
+                  in: followedUserIds,
+                },
+              }
+            : {}),
           ...(params.communityGroupId
             ? {
                 communityGroupId: params.communityGroupId,
@@ -6445,7 +6817,10 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       }),
     );
     return {
-      posts: await this.hydratePosts(posts, params.authUserId),
+      posts: await this.hydratePosts(
+        params.followingOnly ? posts.filter(isFollowingFeedPost) : posts,
+        params.authUserId,
+      ),
       dataVersion: null,
     };
   }
@@ -6482,6 +6857,7 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     if (content.length > 4000) {
       throw badRequest('Post content must be 4000 characters or fewer');
     }
+    const attachments = await assertDbMediaAttachments(params.authUserId, params.attachments);
     const now = new Date();
     const response = await prisma.$transaction(async (tx): Promise<PostMutationResult> => {
       const post = await tx.post.create({
@@ -6492,7 +6868,9 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
           communityGroupId: scope.communityGroupId,
           visibility: scope.visibility,
           content,
-          attachmentsJson: normalizeForJson(params.metadata ?? {}) as never,
+          attachmentsJson: normalizeForJson(
+            metadataWithAttachments(params.metadata, attachments),
+          ) as never,
           commentsCount: 0,
           reactionsCount: 0,
           createdByUserId: params.authUserId,
@@ -6618,6 +6996,51 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
       );
     });
     const hydrated = await this.hydratePosts([updatedPost], params.authUserId);
+    return {
+      post: hydrated[0] as SeedRow,
+      dataVersion: null,
+    };
+  }
+  async setPostPin(params: PostPinParams): Promise<PostMutationResult> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fallback.setPostPin(params);
+    }
+    const post = await this.assertReadablePost(
+      params.postId,
+      params.authUserId,
+      params.isPrivilegedAdmin,
+    );
+    await this.assertCanPinPost(post, params);
+    const metadata = { ...coerceMetadata(post.attachmentsJson) };
+    const now = new Date();
+    if (params.pinned) {
+      metadata.isPinned = true;
+      metadata.pinnedBy = params.authUserId;
+      metadata.pinnedAt = now.toISOString();
+    } else {
+      delete metadata.isPinned;
+      delete metadata.pinnedBy;
+      delete metadata.pinnedAt;
+    }
+    const prisma = getPrismaClientOrThrow();
+    const updated = normalizeAs<SeedRow>(
+      await prisma.post.update({
+        where: {
+          id: params.postId,
+        },
+        data: {
+          attachmentsJson: normalizeForJson(metadata) as never,
+          updatedByUserId: params.authUserId,
+          version: {
+            increment: 1,
+          },
+        },
+        include: {
+          reactions: true,
+        },
+      }),
+    );
+    const hydrated = await this.hydratePosts([updated], params.authUserId);
     return {
       post: hydrated[0] as SeedRow,
       dataVersion: null,
@@ -7337,6 +7760,7 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
         return normalizeAs<GroupMessageCreateResult>(existing.responseBodyJson);
       }
     }
+    const attachments = await assertDbMediaAttachments(params.authUserId, params.attachments);
     const now = new Date();
     const response = await prisma.$transaction(async (tx): Promise<GroupMessageCreateResult> => {
       const [group, memberships, existingThread] = await Promise.all([
@@ -7398,7 +7822,7 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
             messageThreadId: thread.id,
             senderUserId: params.authUserId,
             content: params.body,
-            attachmentsJson: [],
+            attachmentsJson: normalizeForJson(attachments) as never,
             createdAt: now,
             updatedAt: now,
             receipts: {
@@ -7543,6 +7967,7 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
     if (body.length > 4000) {
       throw badRequest('Message body must be 4000 characters or fewer');
     }
+    const attachments = await assertDbMediaAttachments(params.authUserId, params.attachments);
     const requestHash = hashThreadMessageCreateRequest(params);
     const prisma = getPrismaClientOrThrow();
     if (params.idempotencyKey) {
@@ -7585,7 +8010,7 @@ class PrismaCommunityMediaRepository implements CommunityMediaRepository {
             messageThreadId: params.messageThreadId,
             senderUserId: params.authUserId,
             content: body,
-            attachmentsJson: [],
+            attachmentsJson: normalizeForJson(attachments) as never,
             createdAt: now,
             updatedAt: now,
             receipts: {

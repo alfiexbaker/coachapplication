@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import type { ThemeColors } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 
 interface Child {
@@ -21,6 +22,7 @@ interface SessionBookingOptionsProps {
   canLeaveReview: boolean;
   canOpenBookingDetail: boolean;
   postSessionMessage?: string | null;
+  isGroupOffering: boolean;
   isRecurring: boolean;
   hasMultipleKids: boolean;
   childOptions: Child[];
@@ -36,6 +38,58 @@ interface SessionBookingOptionsProps {
   onBookAgain: () => void;
 }
 
+type ActionTone = 'primary' | 'secondary' | 'danger';
+
+interface SessionActionButtonProps {
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  onPress: () => void;
+  tone?: ActionTone;
+  stateAccentColor: string;
+  palette: ThemeColors;
+}
+
+function SessionActionButton({
+  label,
+  icon,
+  onPress,
+  tone = 'secondary',
+  stateAccentColor,
+  palette,
+}: SessionActionButtonProps) {
+  const buttonStyles =
+    tone === 'primary'
+      ? {
+          borderColor: stateAccentColor,
+          backgroundColor: stateAccentColor,
+        }
+      : tone === 'danger'
+        ? {
+            borderColor: withAlpha(palette.error, 0.35),
+            backgroundColor: withAlpha(palette.error, 0.08),
+          }
+        : {
+            borderColor: withAlpha(palette.tint, 0.24),
+            backgroundColor: withAlpha(palette.tint, 0.08),
+          };
+  const textColor =
+    tone === 'primary' ? palette.onPrimary : tone === 'danger' ? palette.error : palette.tint;
+
+  return (
+    <Clickable
+      style={[styles.inlineActionButton, buttonStyles]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <Row align="center" justify="center" gap="xxs">
+        <Ionicons name={icon} size={14} color={textColor} />
+        <ThemedText style={[styles.inlineActionText, { color: textColor }]}>{label}</ThemedText>
+      </Row>
+    </Clickable>
+  );
+}
+
 // react-doctor-disable-next-line react-doctor/no-many-boolean-props -- booking option visibility depends on independent registration and capacity facts.
 function SessionBookingOptionsInner({
   isRegistered,
@@ -44,6 +98,7 @@ function SessionBookingOptionsInner({
   canLeaveReview,
   canOpenBookingDetail,
   postSessionMessage,
+  isGroupOffering,
   isRecurring,
   hasMultipleKids,
   childOptions,
@@ -61,7 +116,10 @@ function SessionBookingOptionsInner({
   const { colors: palette } = useTheme();
 
   const shouldShowChildSelector =
-    !isSessionInPast && childOptions.length > 0 && (hasMultipleKids || !isRegistered || canAddAnotherChild);
+    !isSessionInPast &&
+    childOptions.length > 0 &&
+    (hasMultipleKids || !isRegistered || canAddAnotherChild);
+  const selectedChildIdSet = new Set(selectedChildIds);
   const canCancelBooking = isRegistered && !isSessionInPast;
   const isAwaitingCoachWrapUp = isSessionInPast && canOpenBookingDetail && !canLeaveReview;
   const bookingStateTitle = isSessionInPast
@@ -72,16 +130,21 @@ function SessionBookingOptionsInner({
         : 'Session finished'
     : isRegistered
       ? 'You are booked in'
-      : 'Ready to book';
+      : isGroupOffering
+        ? 'Ready to register'
+        : 'Ready to book';
   const bookingStateBody = isSessionInPast
-    ? postSessionMessage || 'This session has already started or finished, so family changes are closed.'
+    ? postSessionMessage ||
+      'This session has already started or finished, so family changes are closed.'
     : isRegistered
       ? canAddAnotherChild
         ? 'You are already booked in. Add another family member below if needed.'
         : 'You are booked in for this session. Message the coach or manage the booking here.'
       : childOptions.length > 0
-        ? 'Choose who is attending below, then continue.'
-        : 'Continue below to book this session or message the coach first.';
+        ? `Choose who is attending below, then ${isGroupOffering ? 'register' : 'continue'}.`
+        : isGroupOffering
+          ? 'Register below or message the coach first.'
+          : 'Continue below to book this session or message the coach first.';
   const stateAccentColor = isSessionInPast
     ? canLeaveReview
       ? palette.success
@@ -96,51 +159,6 @@ function SessionBookingOptionsInner({
     : isRegistered
       ? 'checkmark-circle'
       : 'calendar-outline';
-
-  const renderActionButton = ({
-    label,
-    icon,
-    onPress,
-    tone = 'secondary',
-  }: {
-    label: string;
-    icon: keyof typeof Ionicons.glyphMap;
-    onPress: () => void;
-    tone?: 'primary' | 'secondary' | 'danger';
-  }) => {
-    const buttonStyles =
-      tone === 'primary'
-        ? {
-            borderColor: stateAccentColor,
-            backgroundColor: stateAccentColor,
-          }
-        : tone === 'danger'
-          ? {
-              borderColor: withAlpha(palette.error, 0.35),
-              backgroundColor: withAlpha(palette.error, 0.08),
-            }
-          : {
-              borderColor: withAlpha(palette.tint, 0.24),
-              backgroundColor: withAlpha(palette.tint, 0.08),
-            };
-    const textColor =
-      tone === 'primary' ? palette.onPrimary : tone === 'danger' ? palette.error : palette.tint;
-
-    return (
-      <Clickable
-        key={label}
-        style={[styles.inlineActionButton, buttonStyles]}
-        onPress={onPress}
-        accessibilityRole="button"
-        accessibilityLabel={label}
-      >
-        <Row align="center" justify="center" gap="xxs">
-          <Ionicons name={icon} size={14} color={textColor} />
-          <ThemedText style={[styles.inlineActionText, { color: textColor }]}>{label}</ThemedText>
-        </Row>
-      </Clickable>
-    );
-  };
 
   return (
     <>
@@ -159,61 +177,77 @@ function SessionBookingOptionsInner({
 
         {isSessionInPast ? (
           <>
-            {canOpenBookingDetail
-              ? renderActionButton({
-                  label: canLeaveReview ? 'View recap' : 'Open booking',
-                  icon: 'document-text-outline',
-                  onPress: onOpenBookingDetail,
-                  tone: 'primary',
-                })
-              : null}
-            {canLeaveReview
-              ? renderActionButton({
-                  label: 'Leave a review',
-                  icon: 'star-outline',
-                  onPress: onLeaveReview,
-                })
-              : null}
-            {renderActionButton({
-              label: 'Message coach',
-              icon: 'chatbubble-ellipses-outline',
-              onPress: onMessageCoach,
-            })}
-            {canOpenBookingDetail
-              ? renderActionButton({
-                  label: 'Report problem',
-                  icon: 'warning-outline',
-                  onPress: onReportProblem,
-                })
-              : null}
-            {renderActionButton({
-              label: 'Book again',
-              icon: 'repeat-outline',
-              onPress: onBookAgain,
-            })}
+            {canOpenBookingDetail ? (
+              <SessionActionButton
+                label={canLeaveReview ? 'View recap' : 'Open booking'}
+                icon="document-text-outline"
+                onPress={onOpenBookingDetail}
+                tone="primary"
+                stateAccentColor={stateAccentColor}
+                palette={palette}
+              />
+            ) : null}
+            {canLeaveReview ? (
+              <SessionActionButton
+                label="Leave a review"
+                icon="star-outline"
+                onPress={onLeaveReview}
+                stateAccentColor={stateAccentColor}
+                palette={palette}
+              />
+            ) : null}
+            <SessionActionButton
+              label="Message coach"
+              icon="chatbubble-ellipses-outline"
+              onPress={onMessageCoach}
+              stateAccentColor={stateAccentColor}
+              palette={palette}
+            />
+            {canOpenBookingDetail ? (
+              <SessionActionButton
+                label="Report problem"
+                icon="warning-outline"
+                onPress={onReportProblem}
+                stateAccentColor={stateAccentColor}
+                palette={palette}
+              />
+            ) : null}
+            <SessionActionButton
+              label="Book again"
+              icon="repeat-outline"
+              onPress={onBookAgain}
+              stateAccentColor={stateAccentColor}
+              palette={palette}
+            />
           </>
         ) : isRegistered ? (
           <>
-            {renderActionButton({
-              label: 'Message coach',
-              icon: 'chatbubble-ellipses-outline',
-              onPress: onMessageCoach,
-            })}
-            {canCancelBooking
-              ? renderActionButton({
-                  label: 'Cancel this booking',
-                  icon: 'close-circle-outline',
-                  onPress: onCancelBooking,
-                  tone: 'danger',
-                })
-              : null}
+            <SessionActionButton
+              label="Message coach"
+              icon="chatbubble-ellipses-outline"
+              onPress={onMessageCoach}
+              stateAccentColor={stateAccentColor}
+              palette={palette}
+            />
+            {canCancelBooking ? (
+              <SessionActionButton
+                label="Cancel this booking"
+                icon="close-circle-outline"
+                onPress={onCancelBooking}
+                tone="danger"
+                stateAccentColor={stateAccentColor}
+                palette={palette}
+              />
+            ) : null}
           </>
         ) : (
-          renderActionButton({
-            label: 'Message coach',
-            icon: 'chatbubble-ellipses-outline',
-            onPress: onMessageCoach,
-          })
+          <SessionActionButton
+            label="Message coach"
+            icon="chatbubble-ellipses-outline"
+            onPress={onMessageCoach}
+            stateAccentColor={stateAccentColor}
+            palette={palette}
+          />
         )}
       </SurfaceCard>
 
@@ -222,31 +256,32 @@ function SessionBookingOptionsInner({
           <ThemedText type="subtitle">
             {isRegistered && canAddAnotherChild ? 'Add family member' : "Who's attending?"}
           </ThemedText>
-          {childOptions.map((child) => (
-            <Clickable
-              key={child.id}
-              onPress={() => onToggleChild(child.id)}
-              style={[
-                styles.childOption,
-                {
-                  backgroundColor:
-                    selectedChildIds.includes(child.id)
-                      ? withAlpha(palette.tint, 0.09)
-                      : palette.card,
-                  borderColor: selectedChildIds.includes(child.id) ? palette.tint : palette.border,
-                },
-              ]}
-            >
-              <Row align="center" gap={12}>
-                <Ionicons
-                  name={selectedChildIds.includes(child.id) ? 'checkbox' : 'square-outline'}
-                  size={20}
-                  color={selectedChildIds.includes(child.id) ? palette.tint : palette.icon}
-                />
-                <ThemedText>{child.name}</ThemedText>
-              </Row>
-            </Clickable>
-          ))}
+          {childOptions.map((child) => {
+            const isSelected = selectedChildIdSet.has(child.id);
+
+            return (
+              <Clickable
+                key={child.id}
+                onPress={() => onToggleChild(child.id)}
+                style={[
+                  styles.childOption,
+                  {
+                    backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.card,
+                    borderColor: isSelected ? palette.tint : palette.border,
+                  },
+                ]}
+              >
+                <Row align="center" gap={12}>
+                  <Ionicons
+                    name={isSelected ? 'checkbox' : 'square-outline'}
+                    size={20}
+                    color={isSelected ? palette.tint : palette.icon}
+                  />
+                  <ThemedText>{child.name}</ThemedText>
+                </Row>
+              </Clickable>
+            );
+          })}
         </SurfaceCard>
       )}
 
@@ -290,7 +325,12 @@ export const SessionBookingOptions = SessionBookingOptionsInner;
 
 const styles = StyleSheet.create({
   card: { marginBottom: Spacing.sm, padding: Spacing.md, gap: Spacing.sm },
-  childOption: { padding: Spacing.sm, borderRadius: Radii.md, borderWidth: 2, marginTop: Spacing.xs },
+  childOption: {
+    padding: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 2,
+    marginTop: Spacing.xs,
+  },
   weeksSelector: { marginTop: Spacing.xs },
   weekButton: {
     flex: 1,

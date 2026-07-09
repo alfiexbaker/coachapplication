@@ -151,19 +151,19 @@ export function useVideoDetail(id: string | undefined) {
   const handleDelete = () => {
     if (!video) return;
     uiFeedback.alert(
-      'Delete Video',
-      'Are you sure you want to delete this video? This cannot be undone.',
+      'Archive Video',
+      'This removes the video from active views while preserving the audit trail.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
+          text: 'Archive',
           style: 'destructive',
           onPress: async () => {
             try {
               await videoService.deleteVideo(video.id);
               router.back();
             } catch (error) {
-              logger.error('Failed to delete video:', error);
+              logger.error('Failed to archive video:', error);
             }
           },
         },

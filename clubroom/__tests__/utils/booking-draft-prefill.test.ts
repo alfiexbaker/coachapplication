@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { buildBookingDraftPatchFromOffering } from '../../utils/booking-draft-prefill';
+import { buildGroupSessionOfferingId } from '../../utils/session-offering-projections';
 import type { SessionOffering } from '../../constants/session-types';
 
 const offering: SessionOffering = {
@@ -54,4 +55,33 @@ test('buildBookingDraftPatchFromOffering leaves the booking target unlocked when
 
   assert.equal(patch.targetLocked, false);
   assert.equal(patch.childId, undefined);
+});
+
+test('buildBookingDraftPatchFromOffering keeps missing live price empty', () => {
+  const patch = buildBookingDraftPatchFromOffering({
+    coachId: 'coach_1',
+    offering: { ...offering, price: undefined },
+  });
+
+  assert.equal(patch.price, undefined);
+  assert.equal(patch.totalPrice, undefined);
+});
+
+test('buildBookingDraftPatchFromOffering normalizes group offering source metadata', () => {
+  const patch = buildBookingDraftPatchFromOffering({
+    coachId: 'coach_1',
+    offering: {
+      ...offering,
+      id: buildGroupSessionOfferingId('group_session_1'),
+      source: undefined,
+      sourceEntityId: undefined,
+      sessionType: 'group',
+      maxParticipants: 12,
+    },
+  });
+
+  assert.equal(patch.sessionOfferingId, buildGroupSessionOfferingId('group_session_1'));
+  assert.equal(patch.sessionSource, 'group');
+  assert.equal(patch.sessionSourceEntityId, 'group_session_1');
+  assert.equal(patch.participants, 12);
 });

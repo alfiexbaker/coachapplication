@@ -5,7 +5,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Button } from '@/components/primitives/button';
 import { Column } from '@/components/primitives/column';
 import { Row } from '@/components/primitives/row';
 import { PageHeader } from '@/components/primitives/page-header';
@@ -23,13 +22,8 @@ export default function BackgroundCheckScreen() {
     refreshing,
     onRefresh,
     retry,
-    submitting,
     isVerified,
     isPending,
-    canStartBackgroundCheck,
-    canUseMockApproval,
-    handleStartCheck,
-    handleMockApprove,
   } = useBackgroundCheck();
   const header = <PageHeader title="Background Check" showBack onBackPress={() => router.back()} />;
 
@@ -88,13 +82,6 @@ export default function BackgroundCheckScreen() {
             <ThemedText style={[styles.statusText, { color: colors.muted }]}>
               Your background check is being processed. This typically takes 2-5 business days.
             </ThemedText>
-            {canUseMockApproval && (
-              <Clickable onPress={handleMockApprove} style={[styles.mockButton, { borderColor: colors.success }]}>
-                <ThemedText style={{ color: colors.success, fontWeight: '600' }}>
-                  Complete Now (DEV ONLY)
-                </ThemedText>
-              </Clickable>
-            )}
           </SurfaceCard>
         ) : (
           <>
@@ -119,11 +106,7 @@ export default function BackgroundCheckScreen() {
               <InfoRow
                 icon="card"
                 title="Cost"
-                subtitle={
-                  canStartBackgroundCheck
-                    ? 'Free for Clubroom coaches (Mock)'
-                    : 'Handled outside the app for now'
-                }
+                subtitle="Handled outside the app for now"
                 colors={colors}
               />
             </SurfaceCard>
@@ -170,14 +153,6 @@ export default function BackgroundCheckScreen() {
                 </Row>
               ))}
             </View>
-
-            {canStartBackgroundCheck ? (
-              <Button
-                onPress={handleStartCheck}
-                disabled={submitting}
-                label={submitting ? 'Starting...' : 'Start Background Check'}
-              />
-            ) : null}
           </>
         )}
       </ScrollView>
@@ -224,13 +199,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     borderRadius: Radii.pill,
     marginTop: Spacing.xs,
-  },
-  mockButton: {
-    marginTop: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: Radii.button,
-    borderWidth: 1.5,
   },
   infoCard: { gap: Spacing.md },
   section: { gap: Spacing.sm },

@@ -9,7 +9,7 @@
 import { useEffect } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -22,6 +22,7 @@ import { FeedPost } from '@/components/club/FeedPost';
 import { ClubFeedListHeader } from '@/components/club/club-feed-list-header';
 import { ClubNoMembership } from '@/components/club/club-no-membership';
 import { LoadingState, ErrorState } from '@/components/ui/screen-states';
+import { api } from '@/constants/config';
 import { Radii, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useClubHub } from '@/hooks/use-club-hub';
@@ -32,6 +33,32 @@ import { AccessibleListCell } from '@/components/ui/list-accessibility';
 const HEADER_PROPS = { title: 'Club Hub', subtitle: 'Your clubs and communities' } as const;
 
 export default function ClubHubScreen() {
+  const params = useLocalSearchParams<{ clubId?: string; inviteCode?: string }>();
+
+  if (!api.useMock) {
+    return <ClubHubApiRedirect clubId={params.clubId} inviteCode={params.inviteCode} />;
+  }
+
+  return <ClubHubLegacyScreen />;
+}
+
+function ClubHubApiRedirect({ clubId, inviteCode }: { clubId?: string; inviteCode?: string }) {
+  useEffect(() => {
+    if (clubId) {
+      router.replace(Routes.club(clubId));
+      return;
+    }
+    router.replace(inviteCode ? Routes.myClubs({ inviteCode }) : Routes.MY_CLUBS);
+  }, [clubId, inviteCode]);
+
+  return (
+    <PageContainer header={<ScreenHeader {...HEADER_PROPS} />} gap={0} horizontalSpacing={0}>
+      <LoadingState variant="detail" />
+    </PageContainer>
+  );
+}
+
+function ClubHubLegacyScreen() {
   const hub = useClubHub();
   const { showMembersSection, setShowMembersSection, handleConfirmMemberRemoval } = hub;
 

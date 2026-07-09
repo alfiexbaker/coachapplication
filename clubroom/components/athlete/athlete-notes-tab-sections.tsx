@@ -24,10 +24,10 @@ interface NoteCardProps {
 
 export const NoteCard = function NoteCard({ note, onDelete, palette }: NoteCardProps) {
   const handleDelete = () => {
-    uiFeedback.alert('Delete Note', 'Are you sure you want to delete this note?', [
+    uiFeedback.alert('Remove Note', 'This hides the note from the active roster view.', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Delete',
+        text: 'Remove',
         style: 'destructive',
         onPress: () => {
           if (Platform.OS !== 'web') {
@@ -51,7 +51,7 @@ export const NoteCard = function NoteCard({ note, onDelete, palette }: NoteCardP
             year: 'numeric',
           })}
         </ThemedText>
-        <Clickable onPress={handleDelete} hitSlop={8} accessibilityLabel="Delete note">
+        <Clickable onPress={handleDelete} hitSlop={8} accessibilityLabel="Remove note">
           <Ionicons name="trash-outline" size={16} color={palette.error} />
         </Clickable>
       </Row>

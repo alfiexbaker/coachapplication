@@ -65,32 +65,14 @@ const API_TIMEOUT = api.timeout;
  */
 const CLIENT_LOCAL_STORAGE_KEYS = new Set<string>([
   STORAGE_KEYS.ACTIVE_CHILD_ID,
-  STORAGE_KEYS.ALLOW_BOOK_SELF,
   STORAGE_KEYS.AUTH_USER,
-  STORAGE_KEYS.AVAILABILITY_TUTORIAL_COMPLETED,
   STORAGE_KEYS.CALENDAR_SYNC_SETTINGS,
-  STORAGE_KEYS.COACH_VENUES,
   STORAGE_KEYS.DISCOVER_RECENT_SEARCHES,
   STORAGE_KEYS.NOTIFICATION_ROUTE_ALIAS_MIGRATION_V1,
-  STORAGE_KEYS.OFFLINE_QUEUE,
-  STORAGE_KEYS.ONBOARDING_COMPLETE,
-  STORAGE_KEYS.ONBOARDING_PROGRESS,
-  STORAGE_KEYS.SESSION_ATTENDANCE,
-  STORAGE_KEYS.SESSION_SHARING,
   STORAGE_KEYS.SEEN_STATUSES,
-  // Mock/demo review read-model compatibility; API-mode booking reviews do not mirror here.
-  STORAGE_KEYS.COACH_PUBLIC_REVIEWS,
-  STORAGE_KEYS.RATE_COACH_REVIEWS,
-  STORAGE_KEYS.REVIEWS,
 ]);
 
-const CLIENT_LOCAL_STORAGE_PREFIXES = [
-  `${STORAGE_KEYS.ALLOW_BOOK_SELF}_`,
-  `${STORAGE_KEYS.CALENDAR_SYNC_SETTINGS}_`,
-  STORAGE_KEYS.FORM_DRAFT_PREFIX,
-  `${STORAGE_KEYS.SESSION_ATTENDANCE}_`,
-  `${STORAGE_KEYS.SESSION_SHARING}_`,
-];
+const CLIENT_LOCAL_STORAGE_PREFIXES = [`${STORAGE_KEYS.CALENDAR_SYNC_SETTINGS}_`];
 
 function isClientLocalStorageKey(key: string): boolean {
   return (
@@ -186,9 +168,7 @@ function buildApiHeaders(
     ...authHeaders,
     ...normalizeHeaders(options?.headers),
   };
-  const hasContentType = Object.keys(headers).some(
-    (key) => key.toLowerCase() === 'content-type',
-  );
+  const hasContentType = Object.keys(headers).some((key) => key.toLowerCase() === 'content-type');
   if (options?.body !== undefined && !hasContentType) {
     headers['Content-Type'] = 'application/json';
   }

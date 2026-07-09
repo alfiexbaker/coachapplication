@@ -60,6 +60,7 @@ export const isDevelopment = env === 'development';
 export const isStaging = env === 'staging';
 export const isProduction = env === 'production';
 export const isDebug = getBool('DEBUG', isDevelopment);
+export const isTestRuntime = process.env.NODE_ENV === 'test';
 
 /** Whether to show detailed error info (stack traces, error codes). True only in dev builds. */
 export const showErrorDetails = __DEV__;
@@ -107,22 +108,27 @@ export const api = {
   useMock: getBool('USE_MOCK', false),
 } as const;
 
-/**
- * Pre-API "live feel" runtime controls.
- * Keeps mock mode but continuously hydrates/refreshes realistic activity.
- */
-export const preApiLive = {
-  enabled: getBool('PRE_API_LIVE_MODE', false),
-  seedOnAuth: getBool('PRE_API_LIVE_SEED_ON_AUTH', true),
-  pulseIntervalMs: Math.max(getNumber('PRE_API_LIVE_PULSE_INTERVAL_MS', 45000), 15000),
-} as const;
+function assertRuntimeModeConfig(): void {
+  if (getBool('PRE_API_LIVE_MODE', false)) {
+    throw new Error(
+      'Invalid Clubroom runtime config: EXPO_PUBLIC_PRE_API_LIVE_MODE=true is no longer supported.',
+    );
+  }
+  if (api.useMock && !isTestRuntime) {
+    throw new Error(
+      'Invalid Clubroom runtime config: EXPO_PUBLIC_USE_MOCK=true is test-only; normal app runtimes must use the /v1 API.',
+    );
+  }
+}
+
+assertRuntimeModeConfig();
 
 // -----------------------------------------------------------------------------
 // Authentication Configuration
 // -----------------------------------------------------------------------------
 
 export const auth = {
-  provider: getEnv('AUTH_PROVIDER', 'mock') as 'mock' | 'firebase' | 'auth0' | 'supabase',
+  provider: getEnv('AUTH_PROVIDER', 'api') as 'api' | 'firebase' | 'auth0' | 'supabase',
   sessionTimeout: getNumber('SESSION_TIMEOUT', 0), // minutes, 0 = no timeout
 } as const;
 
@@ -211,9 +217,9 @@ export const config = {
   isStaging,
   isProduction,
   isDebug,
+  isTestRuntime,
   features,
   api,
-  preApiLive,
   auth,
   storage,
   analytics,

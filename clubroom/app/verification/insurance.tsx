@@ -25,10 +25,8 @@ export default function InsuranceVerificationScreen() {
     isVerified,
     isPending,
     uploaded,
-    canUseMockApproval,
     handleUpload,
     handleSubmit,
-    handleMockApprove,
     setUploaded,
   } = useInsuranceVerification();
 
@@ -150,14 +148,6 @@ export default function InsuranceVerificationScreen() {
               variant="primary"
               label={submitting ? 'Submitting...' : 'Submit for review'}
             />
-            {canUseMockApproval ? (
-              <Button
-                onPress={handleMockApprove}
-                disabled={submitting}
-                variant="outline"
-                label={isPending ? 'Approve (DEV ONLY)' : 'Verify instantly (DEV ONLY)'}
-              />
-            ) : null}
           </View>
         )}
 

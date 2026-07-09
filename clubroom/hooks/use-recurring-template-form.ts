@@ -266,10 +266,10 @@ export function useRecurringTemplateForm({
 
   const handleDelete = async () => {
     if (!editingTemplate || !onDelete) return;
-    uiFeedback.alert('Delete Slot', 'Are you sure you want to delete this availability slot?', [
+    uiFeedback.alert('Remove Slot', 'This removes the availability slot from active scheduling.', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Delete',
+        text: 'Remove',
         style: 'destructive',
         onPress: async () => {
           setSaving(true);
@@ -282,7 +282,7 @@ export function useRecurringTemplateForm({
               onClose();
             },
             async (error) => {
-              logger.error('Failed to delete template:', error);
+              logger.error('Failed to remove template:', error);
             },
             () => {
               setSaving(false);

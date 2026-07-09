@@ -8,11 +8,20 @@ import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
+import { api } from '@/constants/config';
 import { useAuth } from '@/hooks/use-auth';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import { clubFeedService } from '@/services/social-feed-service';
 import { squadService } from '@/services/squad-service';
 import { eventService } from '@/services/event';
-import type { ClubPostType, FeedType, ClubSquad, ClubEvent } from '@/constants/types';
+import type {
+  Club,
+  ClubEvent,
+  ClubMembership,
+  ClubPostType,
+  ClubSquad,
+  FeedType,
+} from '@/constants/types';
 import { canCreateClubPost } from '@/utils/club-ui-permissions';
 
 import { runAsyncFinally } from '@/utils/async-control';
@@ -57,18 +66,14 @@ export const POST_TYPES: PostTypeOption[] = [
   },
 ];
 
+function isMembershipForUser(membership: ClubMembership, userId: string): boolean {
+  const normalizedUserId = userId.replace(/^usr_/, '');
+  return membership.userId === userId || membership.userId === normalizedUserId;
+}
+
 export function useCreateClubPost(clubId: string | undefined) {
   const { currentUser } = useAuth();
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
-
-  const userClubs = (currentUser?.id ? clubFeedService.getUserClubs(currentUser.id) : []);
-  const resolvedClubId = clubId || userClubs[0]?.id;
-  const club = userClubs.find((candidate) => candidate.id === resolvedClubId);
-  const membership = (() => {
-    if (!currentUser?.id || !resolvedClubId) return undefined;
-    return clubFeedService.getMembership(currentUser.id, resolvedClubId);
-  })();
-  const canPostAsClub = canCreateClubPost(membership);
 
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -87,6 +92,71 @@ export function useCreateClubPost(clubId: string | undefined) {
   const [postError, setPostError] = useState<string | null>(null);
   const [availableSquads, setAvailableSquads] = useState<ClubSquad[]>([]);
   const [availableEvents, setAvailableEvents] = useState<ClubEvent[]>([]);
+  const [clubContext, setClubContext] = useState<{
+    club: Club | undefined;
+    membership: ClubMembership | undefined;
+    resolvedClubId: string | undefined;
+  }>({
+    club: undefined,
+    membership: undefined,
+    resolvedClubId: undefined,
+  });
+
+  const { club, membership, resolvedClubId } = clubContext;
+  const canPostAsClub = canCreateClubPost(membership);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadClubContext = async () => {
+      if (!currentUser?.id) {
+        if (active) {
+          setClubContext({ club: undefined, membership: undefined, resolvedClubId: undefined });
+        }
+        return;
+      }
+
+      if (api.useMock) {
+        const userClubs = clubFeedService.getUserClubs(currentUser.id);
+        const nextClubId = clubId || userClubs[0]?.id;
+        if (active) {
+          setClubContext({
+            club: userClubs.find((candidate) => candidate.id === nextClubId),
+            membership: nextClubId
+              ? clubFeedService.getMembership(currentUser.id, nextClubId)
+              : undefined,
+            resolvedClubId: nextClubId,
+          });
+        }
+        return;
+      }
+
+      const result = await clubAuthorityService.listClubs();
+      if (!active) return;
+      if (!result.success) {
+        setPostError(result.error.message);
+        setClubContext({ club: undefined, membership: undefined, resolvedClubId: undefined });
+        return;
+      }
+      const nextClubId = clubId || result.data.clubs[0]?.id;
+      setClubContext({
+        club: result.data.clubs.find((candidate) => candidate.id === nextClubId),
+        membership: nextClubId
+          ? result.data.memberships.find(
+              (candidate) =>
+                candidate.clubId === nextClubId && isMembershipForUser(candidate, currentUser.id),
+            )
+          : undefined,
+        resolvedClubId: nextClubId,
+      });
+    };
+
+    void loadClubContext();
+
+    return () => {
+      active = false;
+    };
+  }, [clubId, currentUser?.id]);
 
   useEffect(() => {
     let active = true;

@@ -294,8 +294,8 @@ const MOCK_EARNINGS: Record<string, CoachEarnings> = {
 // STORAGE HELPERS
 // ============================================================================
 
-let earningsCache: Record<string, CoachEarnings> = { ...MOCK_EARNINGS };
-let transactionsCache: EarningTransaction[] = [...MOCK_TRANSACTIONS];
+let earningsCache: Record<string, CoachEarnings> = USE_MOCK ? { ...MOCK_EARNINGS } : {};
+let transactionsCache: EarningTransaction[] = USE_MOCK ? [...MOCK_TRANSACTIONS] : [];
 
 async function loadEarnings(): Promise<Record<string, CoachEarnings>> {
   try {
@@ -309,7 +309,7 @@ async function loadEarnings(): Promise<Record<string, CoachEarnings>> {
   } catch (error) {
     logger.error('Failed to load earnings', error);
   }
-  return { ...MOCK_EARNINGS };
+  return USE_MOCK ? { ...MOCK_EARNINGS } : {};
 }
 
 async function saveEarnings(earnings: Record<string, CoachEarnings>): Promise<void> {
@@ -332,7 +332,7 @@ async function loadTransactions(): Promise<EarningTransaction[]> {
   } catch (error) {
     logger.error('Failed to load transactions', error);
   }
-  return [...MOCK_TRANSACTIONS];
+  return USE_MOCK ? [...MOCK_TRANSACTIONS] : [];
 }
 
 async function saveTransactions(transactions: EarningTransaction[]): Promise<void> {
@@ -645,14 +645,14 @@ export const earningsReportService = {
    * Get mock earnings data
    */
   getMockEarnings(): Record<string, CoachEarnings> {
-    return { ...MOCK_EARNINGS };
+    return USE_MOCK ? { ...MOCK_EARNINGS } : {};
   },
 
   /**
    * Get mock transactions data
    */
   getMockTransactions(): EarningTransaction[] {
-    return [...MOCK_TRANSACTIONS];
+    return USE_MOCK ? [...MOCK_TRANSACTIONS] : [];
   },
 
   /**

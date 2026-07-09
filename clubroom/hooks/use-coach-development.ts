@@ -5,6 +5,7 @@ import { useState } from 'react';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useScreen, type ScreenStatus } from '@/hooks/use-screen';
+import { apiClient } from '@/services/api-client';
 import { bookingService } from '@/services/booking-service';
 import { ensureCoachSessionsSeeded } from '@/services/coach-session-seed-service';
 import { userService } from '@/services/user-service';
@@ -77,12 +78,14 @@ export function useCoachDevelopment() {
 
     try {
       const [storedSessions, awaitingCompletion] = await Promise.all([
-        ensureCoachSessionsSeeded(),
+        apiClient.isMockMode ? ensureCoachSessionsSeeded() : Promise.resolve<Session[]>([]),
         bookingService.getAwaitingCompletion(currentUser.id),
       ]);
       const coachSessions = storedSessions.filter((session) => session.coachId === currentUser.id);
       const athleteIds = [
-        ...new Set(coachSessions.flatMap((session) => (session.athleteId ? [session.athleteId] : []))),
+        ...new Set(
+          coachSessions.flatMap((session) => (session.athleteId ? [session.athleteId] : [])),
+        ),
       ];
       const athleteResult = await userService.getUsersByIds(athleteIds);
       const athleteDirectory: Record<string, User> = {};

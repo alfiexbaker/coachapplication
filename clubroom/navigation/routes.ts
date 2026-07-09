@@ -12,6 +12,7 @@ export interface SessionsCreateIntentParams {
   inviteType?: 'OPEN' | 'CLOSED' | 'SQUAD_ONLY';
   actingAs?: 'self' | 'club';
   clubId?: string;
+  squadId?: string;
   assigneeCoachId?: string;
 }
 
@@ -25,6 +26,20 @@ export interface BookingFlowEntryOptions {
 export interface BookingDetailRouteOptions {
   returnTo?: string;
   source?: string;
+}
+
+export interface EventCreateRouteParams {
+  [key: string]: string | undefined;
+  clubId?: string;
+  clubName?: string;
+  squadId?: string;
+}
+
+export interface MatchCreateRouteParams {
+  [key: string]: string | undefined;
+  clubId?: string;
+  clubName?: string;
+  squadId?: string;
 }
 
 /**
@@ -399,6 +414,11 @@ export const Routes = {
   // ─── Events ────────────────────────────────────────────────────
   EVENTS: '/events' as Href,
   EVENTS_CREATE: '/events/create' as Href,
+  eventCreate: (params?: EventCreateRouteParams) =>
+    ({
+      pathname: '/events/create',
+      params: params ?? {},
+    }) as Href,
   event: (id: string) =>
     ({
       pathname: '/events/[id]',
@@ -469,6 +489,11 @@ export const Routes = {
   // ─── Matches ───────────────────────────────────────────────────
   MATCHES: '/matches' as Href,
   MATCHES_CREATE: '/matches/create' as Href,
+  matchCreate: (params?: MatchCreateRouteParams) =>
+    ({
+      pathname: '/matches/create',
+      params: params ?? {},
+    }) as Href,
   match: (id: string) =>
     ({
       pathname: '/matches/[id]',

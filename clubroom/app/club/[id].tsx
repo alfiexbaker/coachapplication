@@ -148,7 +148,7 @@ export default function ClubDetailScreen() {
           {canManagePosts && (
             <Clickable
               style={[styles.actionBtn, { backgroundColor: colors.success, flex: 1 }]}
-              onPress={() => router.push(Routes.EVENTS_CREATE)}
+              onPress={() => router.push(Routes.eventCreate({ clubId: id, clubName: club?.name }))}
             >
               <Row align="center" justify="center" gap="xs">
                 <Ionicons name="calendar-outline" size={18} color={colors.onPrimary} />
@@ -184,6 +184,7 @@ export default function ClubDetailScreen() {
         activities={clubActivities}
         isCoach={!!canManagePosts}
         clubId={id}
+        clubName={club?.name}
         maxItems={4}
         showCreateActions={false}
         viewAllHref={Routes.clubSchedule(id)}

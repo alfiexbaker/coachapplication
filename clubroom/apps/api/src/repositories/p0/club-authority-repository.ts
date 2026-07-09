@@ -1,4 +1,5 @@
-import { randomUUID } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
+import { env } from '@clubroom/config';
 import {
   canManageClubRole,
   canUseClubCapability,
@@ -27,6 +28,9 @@ const asIsoString = (value: unknown, fallback = new Date().toISOString()): strin
       : fallback;
 const isTruthy = <T>(value: T | null | undefined): value is T =>
   value !== null && value !== undefined;
+const CLUB_JOIN_INVITE_TYPES = ['club_staff_join', 'club_direct_join'];
+const DIRECT_CLUB_INVITE_ROLES = new Set(['MEMBER', 'COACH', 'ADMIN']);
+const DEFAULT_DEV_INVITE_EMAIL_SECRET = 'clubroom-dev-jwt-secret-change-me';
 export interface ClubMembershipSummary {
   id: string;
   clubId: string;
@@ -130,7 +134,9 @@ export interface PendingClubInvite {
   id: string;
   clubId: string;
   clubName: string;
-  targetUserId: string;
+  targetUserId?: string;
+  targetKind?: 'user' | 'email';
+  targetEmailHint?: string;
   inviteCode: string;
   role: string;
   invitedByUserId: string;
@@ -257,6 +263,12 @@ export interface ClubAuthorityRepository {
     authUserId: string;
     isPrivilegedAdmin: boolean;
   }): Promise<ClubMemberRemovalRecord>;
+  leaveClub(params: {
+    clubId: string;
+    reason: string;
+    customReason?: string | null;
+    authUserId: string;
+  }): Promise<ClubMemberRemovalRecord>;
   banClubMember(params: {
     clubId: string;
     userId: string;
@@ -290,6 +302,14 @@ export interface ClubAuthorityRepository {
     authUserId: string;
     role: string;
   }): Promise<ClubInviteCodeRecord>;
+  createDirectInvites(params: {
+    clubId: string;
+    targetUserIds: string[];
+    targetEmails?: string[];
+    role: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<PendingClubInvite[]>;
   deleteInviteCode(params: { clubId: string; authUserId: string; code: string }): Promise<void>;
   resolveJoinCode(params: { authUserId: string; code: string }): Promise<ClubJoinPreview>;
   joinWithCode(params: {
@@ -306,6 +326,23 @@ export interface ClubAuthorityRepository {
 }
 function normalizeInviteCode(code: string): string {
   return code.trim().toUpperCase();
+}
+function normalizeInviteEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+function inviteEmailSecret(): string {
+  return env.API_JWT_SECRET?.trim() || DEFAULT_DEV_INVITE_EMAIL_SECRET;
+}
+function inviteEmailHash(email: string): string {
+  return createHmac('sha256', inviteEmailSecret()).update(normalizeInviteEmail(email)).digest('hex');
+}
+function maskInviteEmail(email: string): string {
+  const normalized = normalizeInviteEmail(email);
+  const [local = '', domain = ''] = normalized.split('@');
+  if (!local || !domain) {
+    return '***';
+  }
+  return `${local.slice(0, 1)}***@${domain}`;
 }
 function toStoreRole(role: string): string {
   if (role === 'ADMIN') {
@@ -382,7 +419,7 @@ function toMembershipSummary(row: {
     id: row.id,
     clubId: row.clubId,
     userId: row.userId,
-    role: row.role,
+    role: toContractRoleString(row.role),
     active: row.active !== false,
     createdAt,
     updatedAt,
@@ -392,6 +429,19 @@ function requireManageInvites(membershipRole: string | undefined): void {
   const viewerRole = parseOrganizationRole(membershipRole);
   if (!viewerRole || !canUseClubCapability(viewerRole, 'manage_staff_and_invites')) {
     throw forbidden('You do not have permission to manage club invites');
+  }
+}
+function requireCanCreateDirectInvite(params: {
+  membershipRole: string | undefined;
+  requestedRole: string;
+}): void {
+  const viewerRole = parseOrganizationRole(params.membershipRole);
+  const requestedRole = parseOrganizationRole(params.requestedRole);
+  if (!viewerRole || !canUseClubCapability(viewerRole, 'manage_staff_and_invites')) {
+    throw forbidden('You do not have permission to manage club invites');
+  }
+  if (!requestedRole || !canManageClubRole(viewerRole, requestedRole)) {
+    throw forbidden('You cannot invite users to that club role');
   }
 }
 function requireManageMembers(membershipRole: string | undefined): NonNullable<
@@ -744,6 +794,44 @@ function assertStoreClubMemberCanJoin(tables: SeedTables, clubId: string, userId
     throw forbidden('This account is banned from joining this club');
   }
 }
+function isStoreCoachAccount(tables: SeedTables, userId: string): boolean {
+  return (
+    asRows(tables.coachProfiles).some(
+      (row) => asString(row.userId) === userId && !asString(row.deletedAt),
+    ) ||
+    asRows(tables.userRoleMemberships).some(
+      (row) =>
+        asString(row.userId) === userId &&
+        asString(row.role) === 'coach' &&
+        row.active !== false &&
+        !asString(row.revokedAt),
+    )
+  );
+}
+function isStoreClubStaffAccount(tables: SeedTables, userId: string): boolean {
+  return (
+    isStoreCoachAccount(tables, userId) ||
+    asRows(tables.userRoleMemberships).some(
+      (row) =>
+        asString(row.userId) === userId &&
+        asString(row.role) === 'club_admin' &&
+        row.active !== false &&
+        !asString(row.revokedAt),
+    )
+  );
+}
+function assertStoreDirectInviteTargetEligible(
+  tables: SeedTables,
+  targetUserId: string,
+  requestedRole: string,
+): void {
+  if (requestedRole === 'COACH' && !isStoreCoachAccount(tables, targetUserId)) {
+    throw badRequest('Coach invites require a coach account');
+  }
+  if (requestedRole === 'ADMIN' && !isStoreClubStaffAccount(tables, targetUserId)) {
+    throw badRequest('Admin invites require a coach or club admin account');
+  }
+}
 function getActiveStoreInviteCodeRows(tables: SeedTables): SeedRow[] {
   return ensureStoreInviteCodesTable(tables).filter((row) => {
     const expiresAt = asString(row.expiresAt);
@@ -1007,11 +1095,15 @@ function mapPendingInviteFromRows(params: {
   clubName: string;
 }): PendingClubInvite {
   const metadata = asObject(params.invite.metadataJson);
+  const targetUserId = asString(params.target.targetUserId);
+  const targetEmailHint = asString(metadata?.targetEmailHint);
   return {
     id: asString(params.invite.id) ?? '',
     clubId: asString(params.invite.clubId) ?? '',
     clubName: params.clubName,
-    targetUserId: asString(params.target.targetUserId) ?? '',
+    targetUserId,
+    targetKind: targetUserId ? 'user' : targetEmailHint ? 'email' : undefined,
+    targetEmailHint,
     inviteCode: asString(metadata?.inviteCode) ?? '',
     role: asString(metadata?.role) ?? 'COACH',
     invitedByUserId: asString(params.invite.senderUserId) ?? '',
@@ -1022,12 +1114,33 @@ function mapPendingInviteFromRows(params: {
     respondedAt: asString(params.target.respondedAt) ?? null,
   };
 }
-function getStoreClubStaffInvitePairs(tables: SeedTables): Array<{
+function getStoreUserEmailHash(tables: SeedTables, userId: string): string | null {
+  const email = asString(asRows(tables.users).find((row) => asString(row.id) === userId)?.email);
+  return email ? inviteEmailHash(email) : null;
+}
+function inviteTargetMatchesUser(params: {
+  targetUserId?: string | null;
+  metadata: Record<string, unknown> | null;
+  authUserId: string;
+  authEmailHash?: string | null;
+}): boolean {
+  if (params.targetUserId) {
+    return params.targetUserId === params.authUserId;
+  }
+  return Boolean(
+    params.authEmailHash && asString(params.metadata?.targetEmailHash) === params.authEmailHash,
+  );
+}
+function isClubJoinInviteType(inviteType: unknown): boolean {
+  const normalized = asString(inviteType);
+  return Boolean(normalized && CLUB_JOIN_INVITE_TYPES.includes(normalized));
+}
+function getStoreClubJoinInvitePairs(tables: SeedTables): Array<{
   invite: SeedRow;
   target: SeedRow;
 }> {
-  const invites = asRows(tables.invites).filter(
-    (invite) => asString(invite.inviteType) === 'club_staff_join',
+  const invites = asRows(tables.invites).filter((invite) =>
+    isClubJoinInviteType(invite.inviteType),
   );
   const inviteTargets = asRows(tables.inviteTargets);
   return invites.flatMap((invite) =>
@@ -1051,12 +1164,25 @@ function findStorePendingInvitePair(
   invite: SeedRow;
   target: SeedRow;
 } | null {
+  const authEmailHash = getStoreUserEmailHash(tables, authUserId);
   return (
-    getStoreClubStaffInvitePairs(tables).find(
-      ({ invite, target }) =>
-        asString(invite.id) === inviteId &&
-        asString(target.targetUserId) === authUserId &&
-        !asString(invite.revokedAt),
+    getStoreClubJoinInvitePairs(tables).find(
+      ({ invite, target }) => {
+        const expiresAt = asString(invite.expiresAt);
+        const metadata = asObject(invite.metadataJson);
+        return (
+          asString(invite.id) === inviteId &&
+          toPendingInviteStatus(asString(target.status)) === 'pending' &&
+          !asString(invite.revokedAt) &&
+          Boolean(expiresAt && new Date(expiresAt).getTime() > Date.now()) &&
+          inviteTargetMatchesUser({
+            targetUserId: asString(target.targetUserId),
+            metadata,
+            authUserId,
+            authEmailHash,
+          })
+        );
+      },
     ) ?? null
   );
 }
@@ -1821,6 +1947,21 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
       originalMembership: buildMembershipSummaryFromRow(targetMembership),
     };
   }
+  async leaveClub(params: {
+    clubId: string;
+    reason: string;
+    customReason?: string | null;
+    authUserId: string;
+  }): Promise<ClubMemberRemovalRecord> {
+    return this.removeClubMember({
+      clubId: params.clubId,
+      userId: params.authUserId,
+      reason: params.reason,
+      customReason: params.customReason ?? null,
+      authUserId: params.authUserId,
+      isPrivilegedAdmin: true,
+    });
+  }
   async banClubMember(params: {
     clubId: string;
     userId: string;
@@ -2124,6 +2265,229 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
     inviteCodes.push(inviteCode);
     return mapInviteCodeRecordFromRow(inviteCode);
   }
+  async createDirectInvites(params: {
+    clubId: string;
+    targetUserIds: string[];
+    targetEmails?: string[];
+    role: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<PendingClubInvite[]> {
+    const requestedRole = parseOrganizationRole(params.role);
+    if (!requestedRole || !DIRECT_CLUB_INVITE_ROLES.has(requestedRole)) {
+      throw badRequest('Direct club invites support member, coach, and admin roles only');
+    }
+    const requestedUserIds = Array.from(
+      new Set(params.targetUserIds.map((id) => id.trim()).filter(Boolean)),
+    );
+    const requestedEmails = Array.from(
+      new Set((params.targetEmails ?? []).map(normalizeInviteEmail).filter(Boolean)),
+    );
+    const tables = this.getTables();
+    const club = findStoreClubById(tables, params.clubId);
+    if (!club) {
+      throw notFound('Club not found');
+    }
+    if (!params.isPrivilegedAdmin) {
+      const viewerMembership = getStoreViewerMembership(tables, params.clubId, params.authUserId);
+      requireCanCreateDirectInvite({
+        membershipRole: asString(viewerMembership?.role),
+        requestedRole,
+      });
+    }
+    const users = asRows(tables.users);
+    const activeMemberships = getStoreActiveMemberships(tables, params.clubId);
+    const inviteRows = ensureTable(tables, 'invites');
+    const targetRows = ensureTable(tables, 'inviteTargets');
+    const now = new Date().toISOString();
+    const expiresAt = addDaysIso(30);
+    const inviter = users.find((row) => asString(row.id) === params.authUserId);
+    const invitedByLabel = asString(inviter?.name) ?? 'Club staff';
+    const userIdByEmail = new Map(
+      requestedEmails.flatMap((email) => {
+        const user = users.find(
+          (row) => normalizeInviteEmail(asString(row.email) ?? '') === email && !asString(row.deletedAt),
+        );
+        const userId = asString(user?.id);
+        return userId ? [[email, userId] as const] : [];
+      }),
+    );
+    const targetUserIds = Array.from(new Set([...requestedUserIds, ...userIdByEmail.values()]));
+    const emailTargets = requestedEmails.filter((email) => !userIdByEmail.has(email));
+    if (targetUserIds.length + emailTargets.length === 0) {
+      throw badRequest('At least one target user or email is required');
+    }
+
+    for (const targetUserId of targetUserIds) {
+      const targetUser = users.find(
+        (row) => asString(row.id) === targetUserId && !asString(row.deletedAt),
+      );
+      if (!targetUser) {
+        throw notFound('Target user not found');
+      }
+      if (activeMemberships.some((row) => asString(row.userId) === targetUserId)) {
+        throw conflict('Target user is already an active club member');
+      }
+      assertStoreClubMemberCanJoin(tables, params.clubId, targetUserId);
+      assertStoreDirectInviteTargetEligible(tables, targetUserId, requestedRole);
+    }
+
+    const inviteByTargetUserId = new Map<string, PendingClubInvite>();
+    for (const targetUserId of targetUserIds) {
+      const existing = getStoreClubJoinInvitePairs(tables).find(({ invite, target }) => {
+        const metadata = asObject(invite.metadataJson);
+        const pendingExpiresAt = asString(invite.expiresAt);
+        return (
+          asString(invite.inviteType) === 'club_direct_join' &&
+          asString(invite.clubId) === params.clubId &&
+          asString(target.targetUserId) === targetUserId &&
+          toPendingInviteStatus(asString(target.status)) === 'pending' &&
+          asString(metadata?.role) === requestedRole &&
+          !asString(invite.revokedAt) &&
+          Boolean(pendingExpiresAt && new Date(pendingExpiresAt).getTime() > Date.now())
+        );
+      });
+      if (existing) {
+        inviteByTargetUserId.set(
+          targetUserId,
+          mapPendingInviteFromRows({
+            invite: existing.invite,
+            target: existing.target,
+            clubName: asString(club.name) ?? 'Club',
+          }),
+        );
+        continue;
+      }
+      const inviteRow: SeedRow = {
+        id: `inv_${randomUUID()}`,
+        inviteType: 'club_direct_join',
+        senderUserId: params.authUserId,
+        clubId: params.clubId,
+        groupSessionId: null,
+        bookingId: null,
+        eventId: null,
+        status: 'PENDING',
+        message: 'You have been invited to join this club.',
+        expiresAt,
+        metadataJson: {
+          inviteCode: '',
+          role: requestedRole,
+          invitedByLabel,
+        },
+        createdAt: now,
+        updatedAt: now,
+        revokedAt: null,
+      };
+      const targetRow: SeedRow = {
+        id: `ivt_${randomUUID()}`,
+        inviteId: asString(inviteRow.id) ?? '',
+        targetUserId,
+        targetAthleteId: null,
+        targetFamilyId: null,
+        status: 'PENDING',
+        respondedAt: null,
+        responsePayloadJson: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      inviteRows.push(inviteRow);
+      targetRows.push(targetRow);
+      inviteByTargetUserId.set(
+        targetUserId,
+        mapPendingInviteFromRows({
+          invite: inviteRow,
+          target: targetRow,
+          clubName: asString(club.name) ?? 'Club',
+        }),
+      );
+    }
+
+    const inviteByEmail = new Map<string, PendingClubInvite>();
+    for (const email of emailTargets) {
+      const targetEmailHash = inviteEmailHash(email);
+      const existing = getStoreClubJoinInvitePairs(tables).find(({ invite, target }) => {
+        const metadata = asObject(invite.metadataJson);
+        const pendingExpiresAt = asString(invite.expiresAt);
+        return (
+          asString(invite.inviteType) === 'club_direct_join' &&
+          asString(invite.clubId) === params.clubId &&
+          !asString(target.targetUserId) &&
+          toPendingInviteStatus(asString(target.status)) === 'pending' &&
+          asString(metadata?.role) === requestedRole &&
+          asString(metadata?.targetEmailHash) === targetEmailHash &&
+          !asString(invite.revokedAt) &&
+          Boolean(pendingExpiresAt && new Date(pendingExpiresAt).getTime() > Date.now())
+        );
+      });
+      if (existing) {
+        inviteByEmail.set(
+          email,
+          mapPendingInviteFromRows({
+            invite: existing.invite,
+            target: existing.target,
+            clubName: asString(club.name) ?? 'Club',
+          }),
+        );
+        continue;
+      }
+      const inviteRow: SeedRow = {
+        id: `inv_${randomUUID()}`,
+        inviteType: 'club_direct_join',
+        senderUserId: params.authUserId,
+        clubId: params.clubId,
+        groupSessionId: null,
+        bookingId: null,
+        eventId: null,
+        status: 'PENDING',
+        message: 'You have been invited to join this club.',
+        expiresAt,
+        metadataJson: {
+          inviteCode: '',
+          role: requestedRole,
+          invitedByLabel,
+          targetKind: 'email',
+          targetEmailHash,
+          targetEmailHint: maskInviteEmail(email),
+        },
+        createdAt: now,
+        updatedAt: now,
+        revokedAt: null,
+      };
+      const targetRow: SeedRow = {
+        id: `ivt_${randomUUID()}`,
+        inviteId: asString(inviteRow.id) ?? '',
+        targetUserId: null,
+        targetAthleteId: null,
+        targetFamilyId: null,
+        status: 'PENDING',
+        respondedAt: null,
+        responsePayloadJson: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      inviteRows.push(inviteRow);
+      targetRows.push(targetRow);
+      inviteByEmail.set(
+        email,
+        mapPendingInviteFromRows({
+          invite: inviteRow,
+          target: targetRow,
+          clubName: asString(club.name) ?? 'Club',
+        }),
+      );
+    }
+
+    return [
+      ...targetUserIds.flatMap((targetUserId) => {
+        const invite = inviteByTargetUserId.get(targetUserId);
+        return invite ? [invite] : [];
+      }),
+      ...emailTargets.flatMap((email) => {
+        const invite = inviteByEmail.get(email);
+        return invite ? [invite] : [];
+      }),
+    ];
+  }
   async deleteInviteCode(params: {
     clubId: string;
     authUserId: string;
@@ -2245,7 +2609,7 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
       };
     }
     const pendingPair =
-      getStoreClubStaffInvitePairs(tables).find(({ invite, target }) => {
+      getStoreClubJoinInvitePairs(tables).find(({ invite, target }) => {
         const metadata = asObject(invite.metadataJson);
         return (
           asString(invite.clubId) === clubId &&
@@ -2316,14 +2680,21 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
   }
   async listPendingInvites(params: { authUserId: string }): Promise<PendingClubInvite[]> {
     const tables = this.getTables();
-    return getStoreClubStaffInvitePairs(tables).flatMap((item) =>
+    const authEmailHash = getStoreUserEmailHash(tables, params.authUserId);
+    return getStoreClubJoinInvitePairs(tables).flatMap((item) =>
       (({ invite, target }) => {
         const expiresAt = asString(invite.expiresAt);
+        const metadata = asObject(invite.metadataJson);
         return (
-          asString(target.targetUserId) === params.authUserId &&
           toPendingInviteStatus(asString(target.status)) === 'pending' &&
           !asString(invite.revokedAt) &&
-          Boolean(expiresAt && new Date(expiresAt).getTime() > Date.now())
+          Boolean(expiresAt && new Date(expiresAt).getTime() > Date.now()) &&
+          inviteTargetMatchesUser({
+            targetUserId: asString(target.targetUserId),
+            metadata,
+            authUserId: params.authUserId,
+            authEmailHash,
+          })
         );
       })(item)
         ? [
@@ -2356,12 +2727,15 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
       throw notFound('Club not found');
     }
     const metadata = asObject(pair.invite.metadataJson);
+    const requestedRole = asString(metadata?.role) ?? 'COACH';
     if (params.response === 'accepted') {
       assertStoreClubMemberCanJoin(tables, clubId, params.authUserId);
+      assertStoreDirectInviteTargetEligible(tables, params.authUserId, requestedRole);
     }
     const now = new Date().toISOString();
     pair.invite.status = params.response.toUpperCase();
     pair.invite.updatedAt = now;
+    pair.target.targetUserId = params.authUserId;
     pair.target.status = params.response.toUpperCase();
     pair.target.respondedAt = now;
     pair.target.responsePayloadJson = {
@@ -2375,7 +2749,7 @@ class SeedClubAuthorityRepository implements ClubAuthorityRepository {
             tables,
             clubId,
             userId: params.authUserId,
-            role: asString(metadata?.role) ?? 'COACH',
+            role: requestedRole,
             actorUserId: asString(pair.invite.senderUserId) ?? params.authUserId,
           })
         : null;
@@ -3950,6 +4324,21 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
       }),
     });
   }
+  async leaveClub(params: {
+    clubId: string;
+    reason: string;
+    customReason?: string | null;
+    authUserId: string;
+  }): Promise<ClubMemberRemovalRecord> {
+    return this.removeClubMember({
+      clubId: params.clubId,
+      userId: params.authUserId,
+      reason: params.reason,
+      customReason: params.customReason ?? null,
+      authUserId: params.authUserId,
+      isPrivilegedAdmin: true,
+    });
+  }
   async banClubMember(params: {
     clubId: string;
     userId: string;
@@ -4322,6 +4711,391 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
       remainingUses: created.remainingUses,
     });
   }
+  async createDirectInvites(params: {
+    clubId: string;
+    targetUserIds: string[];
+    targetEmails?: string[];
+    role: string;
+    authUserId: string;
+    isPrivilegedAdmin: boolean;
+  }): Promise<PendingClubInvite[]> {
+    if (shouldUseDbFixtureFallback()) {
+      return this.fixture.createDirectInvites(params);
+    }
+    const requestedRole = parseOrganizationRole(params.role);
+    if (!requestedRole || !DIRECT_CLUB_INVITE_ROLES.has(requestedRole)) {
+      throw badRequest('Direct club invites support member, coach, and admin roles only');
+    }
+    const requestedUserIds = Array.from(
+      new Set(params.targetUserIds.map((id) => id.trim()).filter(Boolean)),
+    );
+    const requestedEmails = Array.from(
+      new Set((params.targetEmails ?? []).map(normalizeInviteEmail).filter(Boolean)),
+    );
+    const prisma = getPrismaClientOrThrow();
+    const club = await prisma.club.findUnique({
+      where: {
+        id: params.clubId,
+      },
+    });
+    if (!club || club.deletedAt) {
+      throw notFound('Club not found');
+    }
+    if (!params.isPrivilegedAdmin) {
+      const viewerMembership = await prisma.clubMembership.findUnique({
+        where: {
+          clubId_userId: {
+            clubId: params.clubId,
+            userId: params.authUserId,
+          },
+        },
+      });
+      requireCanCreateDirectInvite({
+        membershipRole: viewerMembership?.role,
+        requestedRole,
+      });
+    }
+    const emailUsers = requestedEmails.length
+      ? await prisma.user.findMany({
+          where: {
+            deletedAt: null,
+            OR: requestedEmails.map((email) => ({
+              email: {
+                equals: email,
+                mode: 'insensitive',
+              },
+            })),
+          },
+          select: {
+            id: true,
+            email: true,
+          },
+        })
+      : [];
+    const userIdByEmail = new Map(
+      requestedEmails.flatMap((email) => {
+        const user = emailUsers.find(
+          (row) => normalizeInviteEmail(row.email ?? '') === email,
+        );
+        return user ? [[email, user.id] as const] : [];
+      }),
+    );
+    const targetUserIds = Array.from(new Set([...requestedUserIds, ...userIdByEmail.values()]));
+    const emailTargets = requestedEmails.filter((email) => !userIdByEmail.has(email));
+    if (targetUserIds.length + emailTargets.length === 0) {
+      throw badRequest('At least one target user or email is required');
+    }
+    const [targetUsers, activeMemberships, inviter, targetCoachProfiles, targetStaffRoles] =
+      await Promise.all([
+        prisma.user.findMany({
+          where: {
+            id: {
+              in: targetUserIds,
+            },
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+          },
+        }),
+        prisma.clubMembership.findMany({
+          where: {
+            clubId: params.clubId,
+            userId: {
+              in: targetUserIds,
+            },
+            active: true,
+            deletedAt: null,
+          },
+          select: {
+            userId: true,
+          },
+        }),
+        prisma.user.findUnique({
+          where: {
+            id: params.authUserId,
+          },
+          select: {
+            name: true,
+          },
+        }),
+        prisma.coachProfile.findMany({
+          where: {
+            userId: {
+              in: targetUserIds,
+            },
+            deletedAt: null,
+          },
+          select: {
+            userId: true,
+          },
+        }),
+        prisma.userRoleMembership.findMany({
+          where: {
+            userId: {
+              in: targetUserIds,
+            },
+            role: {
+              in: ['coach', 'club_admin'],
+            },
+            active: true,
+            revokedAt: null,
+          },
+          select: {
+            userId: true,
+            role: true,
+          },
+        }),
+      ]);
+    const existingTargetUserIds = new Set(targetUsers.map((user) => user.id));
+    const activeMemberUserIds = new Set(activeMemberships.map((membership) => membership.userId));
+    const coachAccountUserIds = new Set([
+      ...targetCoachProfiles.map((profile) => profile.userId),
+      ...targetStaffRoles
+        .filter((role) => role.role === 'coach')
+        .map((role) => role.userId),
+    ]);
+    const staffAccountUserIds = new Set([
+      ...targetCoachProfiles.map((profile) => profile.userId),
+      ...targetStaffRoles.map((role) => role.userId),
+    ]);
+    for (const targetUserId of targetUserIds) {
+      if (!existingTargetUserIds.has(targetUserId)) {
+        throw notFound('Target user not found');
+      }
+      if (activeMemberUserIds.has(targetUserId)) {
+        throw conflict('Target user is already an active club member');
+      }
+      await this.assertClubMemberCanJoin({
+        clubId: params.clubId,
+        userId: targetUserId,
+      });
+      if (requestedRole === 'COACH' && !coachAccountUserIds.has(targetUserId)) {
+        throw badRequest('Coach invites require a coach account');
+      }
+      if (requestedRole === 'ADMIN' && !staffAccountUserIds.has(targetUserId)) {
+        throw badRequest('Admin invites require a coach or club admin account');
+      }
+    }
+    const pendingInvites = await prisma.invite.findMany({
+      where: {
+        inviteType: 'club_direct_join',
+        clubId: params.clubId,
+        status: 'PENDING',
+        revokedAt: null,
+        expiresAt: {
+          gt: new Date(),
+        },
+        targets: {
+          some: {
+            targetUserId: {
+              in: targetUserIds,
+            },
+            status: 'PENDING',
+          },
+        },
+      },
+      include: {
+        targets: {
+          where: {
+            targetUserId: {
+              in: targetUserIds,
+            },
+            status: 'PENDING',
+          },
+        },
+      },
+    });
+    const inviteByTargetUserId = new Map<string, PendingClubInvite>();
+    const emailByHash = new Map(emailTargets.map((email) => [inviteEmailHash(email), email]));
+    const inviteByEmail = new Map<string, PendingClubInvite>();
+    const mapInvite = (invite: {
+      id: string;
+      clubId: string | null;
+      senderUserId: string;
+      status: string;
+      metadataJson: unknown;
+      createdAt: Date;
+      expiresAt: Date | null;
+      targets: Array<{
+        targetUserId: string | null;
+        status: string;
+        respondedAt: Date | null;
+      }>;
+    }): void => {
+      const metadata = invite.metadataJson as Record<string, unknown> | null;
+      if (asString(metadata?.role) !== requestedRole) {
+        return;
+      }
+      for (const target of invite.targets) {
+        const targetUserId = target.targetUserId;
+        if (targetUserId) {
+          if (!targetUserIds.includes(targetUserId)) {
+            continue;
+          }
+          inviteByTargetUserId.set(targetUserId, {
+            id: invite.id,
+            clubId: invite.clubId ?? '',
+            clubName: club.name,
+            targetUserId,
+            targetKind: 'user',
+            inviteCode: asString(metadata?.inviteCode) ?? '',
+            role: requestedRole,
+            invitedByUserId: invite.senderUserId,
+            invitedByLabel: asString(metadata?.invitedByLabel) ?? 'Club staff',
+            status: toPendingInviteStatus(asString(target.status) ?? asString(invite.status)),
+            createdAt: invite.createdAt.toISOString(),
+            expiresAt: invite.expiresAt?.toISOString() ?? new Date().toISOString(),
+            respondedAt: target.respondedAt?.toISOString() ?? null,
+          });
+          continue;
+        }
+        const email = emailByHash.get(asString(metadata?.targetEmailHash) ?? '');
+        if (!email) {
+          continue;
+        }
+        inviteByEmail.set(email, {
+          id: invite.id,
+          clubId: invite.clubId ?? '',
+          clubName: club.name,
+          targetKind: 'email',
+          targetEmailHint: asString(metadata?.targetEmailHint),
+          inviteCode: asString(metadata?.inviteCode) ?? '',
+          role: requestedRole,
+          invitedByUserId: invite.senderUserId,
+          invitedByLabel: asString(metadata?.invitedByLabel) ?? 'Club staff',
+          status: toPendingInviteStatus(asString(target.status) ?? asString(invite.status)),
+          createdAt: invite.createdAt.toISOString(),
+          expiresAt: invite.expiresAt?.toISOString() ?? new Date().toISOString(),
+          respondedAt: target.respondedAt?.toISOString() ?? null,
+        });
+      }
+    };
+    pendingInvites.forEach(mapInvite);
+    const pendingEmailInvites = emailTargets.length
+      ? await prisma.invite.findMany({
+          where: {
+            inviteType: 'club_direct_join',
+            clubId: params.clubId,
+            status: 'PENDING',
+            revokedAt: null,
+            expiresAt: {
+              gt: new Date(),
+            },
+            targets: {
+              some: {
+                targetUserId: null,
+                status: 'PENDING',
+              },
+            },
+          },
+          include: {
+            targets: {
+              where: {
+                targetUserId: null,
+                status: 'PENDING',
+              },
+            },
+          },
+        })
+      : [];
+    pendingEmailInvites.forEach(mapInvite);
+    const missingTargetUserIds = targetUserIds.filter(
+      (targetUserId) => !inviteByTargetUserId.has(targetUserId),
+    );
+    const invitedByLabel = inviter?.name ?? 'Club staff';
+    const createdInvites = missingTargetUserIds.length
+      ? await prisma.$transaction((tx) =>
+          Promise.all(
+            missingTargetUserIds.map((targetUserId) =>
+              tx.invite.create({
+                data: {
+                  id: `inv_${randomUUID()}`,
+                  inviteType: 'club_direct_join',
+                  senderUserId: params.authUserId,
+                  clubId: params.clubId,
+                  status: 'PENDING',
+                  message: 'You have been invited to join this club.',
+                  expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                  metadataJson: {
+                    inviteCode: '',
+                    role: requestedRole,
+                    invitedByLabel,
+                  },
+                  targets: {
+                    create: {
+                      id: `ivt_${randomUUID()}`,
+                      targetUserId,
+                      status: 'PENDING',
+                    },
+                  },
+                },
+                include: {
+                  targets: true,
+                },
+              }),
+            ),
+          ),
+        )
+      : [];
+    createdInvites.forEach(mapInvite);
+    const missingEmails = emailTargets.filter((email) => !inviteByEmail.has(email));
+    const createdEmailInvites = missingEmails.length
+      ? await prisma.$transaction((tx) =>
+          Promise.all(
+            missingEmails.map((email) =>
+              tx.invite.create({
+                data: {
+                  id: `inv_${randomUUID()}`,
+                  inviteType: 'club_direct_join',
+                  senderUserId: params.authUserId,
+                  clubId: params.clubId,
+                  status: 'PENDING',
+                  message: 'You have been invited to join this club.',
+                  expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                  metadataJson: {
+                    inviteCode: '',
+                    role: requestedRole,
+                    invitedByLabel,
+                    targetKind: 'email',
+                    targetEmailHash: inviteEmailHash(email),
+                    targetEmailHint: maskInviteEmail(email),
+                  },
+                  targets: {
+                    create: {
+                      id: `ivt_${randomUUID()}`,
+                      targetUserId: null,
+                      status: 'PENDING',
+                    },
+                  },
+                },
+                include: {
+                  targets: true,
+                },
+              }),
+            ),
+          ),
+        )
+      : [];
+    createdEmailInvites.forEach(mapInvite);
+    const orderedInvites = [
+      ...targetUserIds.map((targetUserId) => {
+        const invite = inviteByTargetUserId.get(targetUserId);
+        if (!invite) {
+          throw notFound('Club invite not found');
+        }
+        return invite;
+      }),
+      ...emailTargets.map((email) => {
+        const invite = inviteByEmail.get(email);
+        if (!invite) {
+          throw notFound('Club invite not found');
+        }
+        return invite;
+      }),
+    ];
+    return normalizeForJson(orderedInvites);
+  }
   async deleteInviteCode(params: {
     clubId: string;
     authUserId: string;
@@ -4647,26 +5421,47 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
       return this.fixture.listPendingInvites(params);
     }
     const prisma = getPrismaClientOrThrow();
+    const authUser = await prisma.user.findUnique({
+      where: {
+        id: params.authUserId,
+      },
+      select: {
+        email: true,
+      },
+    });
+    const authEmailHash = authUser?.email ? inviteEmailHash(authUser.email) : null;
+    const targetWhere = {
+      status: 'PENDING' as const,
+      OR: [
+        {
+          targetUserId: params.authUserId,
+        },
+        ...(authEmailHash
+          ? [
+              {
+                targetUserId: null,
+              },
+            ]
+          : []),
+      ],
+    };
     const invites = await prisma.invite.findMany({
       where: {
-        inviteType: 'club_staff_join',
+        inviteType: {
+          in: CLUB_JOIN_INVITE_TYPES,
+        },
         status: 'PENDING',
         revokedAt: null,
         expiresAt: {
           gt: new Date(),
         },
         targets: {
-          some: {
-            targetUserId: params.authUserId,
-            status: 'PENDING',
-          },
+          some: targetWhere,
         },
       },
       include: {
         targets: {
-          where: {
-            targetUserId: params.authUserId,
-          },
+          where: targetWhere,
         },
       },
       orderBy: {
@@ -4688,14 +5483,26 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
       : [];
     const clubNameById = new Map(clubs.map((club) => [club.id, club.name]));
     return normalizeForJson(
-      invites.map((invite) => {
-        const target = invite.targets[0];
+      invites.flatMap((invite) => {
         const metadata = invite.metadataJson as Record<string, unknown> | null;
-        return {
+        const target = invite.targets.find((item) =>
+          inviteTargetMatchesUser({
+            targetUserId: item.targetUserId,
+            metadata,
+            authUserId: params.authUserId,
+            authEmailHash,
+          }),
+        );
+        if (!target) {
+          return [];
+        }
+        return [{
           id: invite.id,
           clubId: invite.clubId ?? '',
           clubName: clubNameById.get(invite.clubId ?? '') ?? 'Club',
-          targetUserId: target?.targetUserId ?? params.authUserId,
+          targetUserId: target.targetUserId ?? undefined,
+          targetKind: target.targetUserId ? 'user' : 'email',
+          targetEmailHint: asString(metadata?.targetEmailHint),
           inviteCode: asString(metadata?.inviteCode) ?? '',
           role: asString(metadata?.role) ?? 'COACH',
           invitedByUserId: invite.senderUserId,
@@ -4704,7 +5511,7 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
           createdAt: invite.createdAt.toISOString(),
           expiresAt: invite.expiresAt?.toISOString() ?? new Date().toISOString(),
           respondedAt: target?.respondedAt?.toISOString() ?? null,
-        };
+        }];
       }),
     );
   }
@@ -4717,27 +5524,49 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
       return this.fixture.respondToInvite(params);
     }
     const prisma = getPrismaClientOrThrow();
-    const invite = await prisma.invite.findUnique({
-      where: {
-        id: params.inviteId,
-      },
-      include: {
-        targets: {
-          where: {
-            targetUserId: params.authUserId,
+    const [authUser, invite] = await Promise.all([
+      prisma.user.findUnique({
+        where: {
+          id: params.authUserId,
+        },
+        select: {
+          email: true,
+        },
+      }),
+      prisma.invite.findUnique({
+        where: {
+          id: params.inviteId,
+        },
+        include: {
+          targets: {
+            where: {
+              status: 'PENDING',
+            },
           },
         },
-      },
-    });
+      }),
+    ]);
+    const metadata = invite?.metadataJson as Record<string, unknown> | null;
+    const authEmailHash = authUser?.email ? inviteEmailHash(authUser.email) : null;
+    const target = invite?.targets.find((item) =>
+      inviteTargetMatchesUser({
+        targetUserId: item.targetUserId,
+        metadata,
+        authUserId: params.authUserId,
+        authEmailHash,
+      }),
+    );
     if (
       !invite ||
-      invite.inviteType !== 'club_staff_join' ||
-      invite.targets.length === 0 ||
-      invite.revokedAt
+      !isClubJoinInviteType(invite.inviteType) ||
+      !target ||
+      invite.revokedAt ||
+      invite.status !== 'PENDING' ||
+      !invite.expiresAt ||
+      invite.expiresAt.getTime() <= Date.now()
     ) {
       throw notFound('Club invite not found');
     }
-    const target = invite.targets[0];
     const clubId = invite.clubId;
     if (!clubId) {
       throw notFound('Club not found');
@@ -4750,12 +5579,48 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
     if (!club || club.deletedAt) {
       throw notFound('Club not found');
     }
-    const metadata = invite.metadataJson as Record<string, unknown> | null;
+    const requestedRole = asString(metadata?.role) ?? 'COACH';
     if (params.response === 'accepted') {
       await this.assertClubMemberCanJoin({
         clubId,
         userId: params.authUserId,
       });
+      if (requestedRole === 'COACH' || requestedRole === 'ADMIN') {
+        const [coachProfile, staffRole] = await Promise.all([
+          prisma.coachProfile.findUnique({
+            where: {
+              userId: params.authUserId,
+            },
+            select: {
+              userId: true,
+              deletedAt: true,
+            },
+          }),
+          prisma.userRoleMembership.findFirst({
+            where: {
+              userId: params.authUserId,
+              role:
+                requestedRole === 'COACH'
+                  ? 'coach'
+                  : {
+                      in: ['coach', 'club_admin'],
+                    },
+              active: true,
+              revokedAt: null,
+            },
+            select: {
+              id: true,
+            },
+          }),
+        ]);
+        if ((!coachProfile || coachProfile.deletedAt) && !staffRole) {
+          throw badRequest(
+            requestedRole === 'COACH'
+              ? 'Coach invites require a coach account'
+              : 'Admin invites require a coach or club admin account',
+          );
+        }
+      }
     }
     const membership = await prisma.$transaction(async (tx) => {
       const nextStatus = params.response.toUpperCase();
@@ -4774,6 +5639,7 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
               id: target.id,
             },
             data: {
+              targetUserId: params.authUserId,
               status: nextStatus as 'ACCEPTED' | 'DECLINED',
               respondedAt: new Date(),
               responsePayloadJson: {
@@ -4805,7 +5671,7 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
             },
           },
           data: {
-            role: toStoreRole(asString(metadata?.role) ?? 'COACH'),
+            role: toStoreRole(requestedRole),
             active: true,
             deletedAt: null,
             deletedByUserId: null,
@@ -4821,7 +5687,7 @@ class DbClubAuthorityRepository implements ClubAuthorityRepository {
           id: `cmb_${randomUUID()}`,
           clubId,
           userId: params.authUserId,
-          role: toStoreRole(asString(metadata?.role) ?? 'COACH'),
+          role: toStoreRole(requestedRole),
           active: true,
           createdByUserId: invite.senderUserId,
           updatedByUserId: invite.senderUserId,

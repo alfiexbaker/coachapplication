@@ -78,6 +78,7 @@ export interface CreateBulkInviteInput {
 }
 
 export interface InviteSelectedMembersInput {
+  clubId: string;
   memberIds: string[];
   sessionId: string;
   sessionTitle: string;
@@ -164,10 +165,7 @@ export const bulkInviteService = {
   async getGroupInvites(groupId: string): Promise<SessionInvite[]> {
     if (USE_MOCK) {
       const invitesCache = getInvitesCache();
-      const localMatches = invitesCache.filter((inv) => inv.groupId === groupId);
-      if (localMatches.length > 0) {
-        return localMatches;
-      }
+      return invitesCache.filter((inv) => inv.groupId === groupId);
     }
 
     const result = await sessionInviteAuthorityService.getGroupInvites(groupId);
@@ -176,7 +174,7 @@ export const bulkInviteService = {
         groupId,
         error: result.error,
       });
-      return [];
+      throw result.error;
     }
 
     return result.data;
@@ -543,9 +541,12 @@ export const bulkInviteService = {
     if (input.memberIds.length === 0) {
       return err(validationError('No members selected'));
     }
+    if (!input.clubId) {
+      return err(validationError('Club id is required to invite selected members'));
+    }
 
     // Get all members from all known squads
-    const clubSquads = await squadService.getSquads('club_lions');
+    const clubSquads = await squadService.getSquads(input.clubId);
     const selectedMembers: SquadMember[] = [];
     const selectedMemberIdSet = new Set(input.memberIds);
 

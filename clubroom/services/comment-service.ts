@@ -439,7 +439,7 @@ async function deleteComment(
       },
     );
     if (!result.success) {
-      logger.error('Failed to delete comment via API', {
+      logger.error('Failed to remove comment via API', {
         commentId: input.commentId,
         error: result.error,
       });
@@ -496,8 +496,8 @@ async function deleteComment(
     logger.info('Comment soft-deleted', { commentId: input.commentId });
     return ok(deletedComment);
   } catch (error) {
-    logger.error('Failed to delete comment', error);
-    return err(storageError('Failed to delete comment'));
+    logger.error('Failed to remove comment', error);
+    return err(storageError('Failed to remove comment'));
   }
 }
 

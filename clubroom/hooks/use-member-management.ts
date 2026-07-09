@@ -4,9 +4,11 @@
 import { useState } from 'react';
 
 import { router, useLocalSearchParams } from 'expo-router';
+import { api } from '@/constants/config';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { clubService, type ClubMember } from '@/services/club-service';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import { squadService } from '@/services/squad-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { createLogger } from '@/utils/logger';
@@ -61,23 +63,44 @@ export function useMemberManagement(): UseMemberManagementResult {
         currentUserRole: null,
       });
     }
+    if (!currentUser?.id) {
+      return ok<MemberManagementData>({
+        member: null,
+        club: null,
+        squads: [],
+        currentUserRole: null,
+      });
+    }
 
     try {
-      const clubData = currentUser?.id
-        ? socialFeedService
+      let clubData: Club | null = null;
+      let currentUserRole: ClubRole | null = null;
+      if (api.useMock) {
+        clubData =
+          socialFeedService
             .getUserClubs(currentUser.id)
-            .find((candidate) => candidate.id === clubId)
-        : undefined;
+            .find((candidate) => candidate.id === clubId) ?? null;
+        currentUserRole = socialFeedService.getMembership(currentUser.id, clubId)?.role ?? null;
+      } else {
+        const authorityResult = await clubAuthorityService.listClubs();
+        if (!authorityResult.success) {
+          return err(authorityResult.error);
+        }
+        clubData =
+          authorityResult.data.clubs.find((candidate) => candidate.id === clubId) ?? null;
+        currentUserRole =
+          authorityResult.data.memberships.find(
+            (membership) => membership.clubId === clubId && membership.userId === currentUser.id,
+          )?.role ?? null;
+      }
       const memberData = await clubService.getMember(clubId, memberId);
       const squads = await squadService.getSquads(clubId);
-      const viewerMembership =
-        currentUser?.id ? socialFeedService.getMembership(currentUser.id, clubId) : undefined;
 
       return ok<MemberManagementData>({
         member: memberData,
-        club: clubData || null,
+        club: clubData,
         squads,
-        currentUserRole: viewerMembership?.role ?? null,
+        currentUserRole,
       });
     } catch (loadError) {
       logger.error('Failed to load member data', loadError);
@@ -105,7 +128,9 @@ export function useMemberManagement(): UseMemberManagementResult {
   const squads = data?.squads ?? [];
   const currentUserRole =
     data?.currentUserRole
-    ?? (currentUser?.id && clubId ? socialFeedService.getMembership(currentUser.id, clubId)?.role ?? null : null);
+    ?? (api.useMock && currentUser?.id && clubId
+      ? socialFeedService.getMembership(currentUser.id, clubId)?.role ?? null
+      : null);
   const loading = status === 'loading';
 
   const canManage = currentUserRole

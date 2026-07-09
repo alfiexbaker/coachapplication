@@ -87,6 +87,80 @@ describe('verificationService', () => {
     }
   });
 
+  it('reviews verification status through /v1 in API mode', async () => {
+    const originalIsMockMode = Object.getOwnPropertyDescriptor(apiClient, 'isMockMode');
+    const originalFetch = globalThis.fetch;
+    const fetchCalls: Array<{ url: string; body?: string }> = [];
+    Object.defineProperty(apiClient, 'isMockMode', {
+      configurable: true,
+      get: () => false,
+    });
+    globalThis.fetch = (async (input, init) => {
+      fetchCalls.push({
+        url: String(input),
+        body: typeof init?.body === 'string' ? init.body : undefined,
+      });
+      return new Response(
+        JSON.stringify({
+          type: 'dbs',
+          verification: {
+            id: 'cvf_api_review',
+            status: 'APPROVED',
+          },
+          status: {
+            coachId: 'coach_api_1',
+            email: { status: 'NOT_STARTED' },
+            phone: { status: 'NOT_STARTED' },
+            identity: { status: 'NOT_STARTED' },
+            backgroundCheck: {
+              status: 'VERIFIED',
+              verifiedAt: '2026-01-22T09:00:00.000Z',
+              expiresAt: '2029-01-22T09:00:00.000Z',
+            },
+            credentials: [],
+            insurance: { status: 'NOT_STARTED' },
+            overallLevel: 'NONE',
+            lastUpdated: '2026-03-02T12:00:00.000Z',
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    }) as typeof fetch;
+
+    try {
+      const result = await verificationService.updateVerificationItem(
+        'coach_api_1',
+        'backgroundCheck',
+        {
+          status: 'VERIFIED',
+          expiresAt: '2029-01-22T09:00:00.000Z',
+          notes: 'DBS evidence checked',
+        },
+      );
+      assert.equal(result.success, true);
+      if (!result.success) return;
+
+      assert.equal(result.data.backgroundCheck.status, 'VERIFIED');
+      assert.match(
+        fetchCalls[0]?.url ?? '',
+        /\/v1\/coaches\/coach_api_1\/verifications\/dbs\/review$/,
+      );
+      assert.deepEqual(JSON.parse(fetchCalls[0]?.body ?? '{}'), {
+        status: 'APPROVED',
+        expiresAt: '2029-01-22T09:00:00.000Z',
+        notes: 'DBS evidence checked',
+      });
+    } finally {
+      if (originalIsMockMode) {
+        Object.defineProperty(apiClient, 'isMockMode', originalIsMockMode);
+      }
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it('returns err when verification storage fails (error path)', async () => {
     const apiClientInternals = apiClient as unknown as { get: typeof apiClient.get };
     const originalGet = apiClientInternals.get;

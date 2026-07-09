@@ -8,17 +8,30 @@ function readProjectFile(relativePath: string): string {
 }
 
 describe('verification UI API boundaries', () => {
-  it('gates dev-only approval controls behind mock-mode capability flags', () => {
+  it('does not expose mock approval controls in verification screens', () => {
     const idScreen = readProjectFile('app/verification/id.tsx');
     const backgroundScreen = readProjectFile('app/verification/background.tsx');
     const insuranceScreen = readProjectFile('app/verification/insurance.tsx');
+    const idHook = readProjectFile('hooks/use-id-verification.ts');
+    const backgroundHook = readProjectFile('hooks/use-background-check.ts');
+    const insuranceHook = readProjectFile('hooks/use-insurance-verification.ts');
+    const verificationService = readProjectFile('services/verification-service.ts');
 
-    assert.match(idScreen, /canUseMockApproval &&/);
-    assert.match(backgroundScreen, /canUseMockApproval &&/);
-    assert.match(insuranceScreen, /canUseMockApproval \?/);
-    assert.equal(idScreen.includes('{__DEV__ &&'), false);
-    assert.equal(backgroundScreen.includes('{__DEV__ &&'), false);
-    assert.equal(insuranceScreen.includes('{__DEV__ &&'), false);
+    for (const source of [
+      idScreen,
+      backgroundScreen,
+      insuranceScreen,
+      idHook,
+      backgroundHook,
+      insuranceHook,
+      verificationService,
+    ]) {
+      assert.equal(source.includes('canUseMockApproval'), false);
+      assert.equal(source.includes('handleMockApprove'), false);
+      assert.equal(source.includes('mockApproveVerification'), false);
+      assert.equal(source.includes('DEV ONLY'), false);
+      assert.equal(source.includes('mockButton'), false);
+    }
   });
 
   it('keeps live insurance submission on verification document authority', () => {
@@ -26,16 +39,21 @@ describe('verification UI API boundaries', () => {
     const insuranceScreen = readProjectFile('app/verification/insurance.tsx');
 
     assert.match(insuranceHook, /submitInsuranceVerification/);
-    assert.match(insuranceHook, /apiClient\.isMockMode/);
     assert.match(insuranceScreen, /handleSubmit/);
     assert.equal(insuranceScreen.includes('Upload & Verify (DEV ONLY)'), false);
   });
 
-  it('does not show the unsupported background-check start action in API mode', () => {
+  it('does not expose unsupported background-check start actions', () => {
     const backgroundHook = readProjectFile('hooks/use-background-check.ts');
     const backgroundScreen = readProjectFile('app/verification/background.tsx');
+    const verificationService = readProjectFile('services/verification-service.ts');
 
-    assert.match(backgroundHook, /canStartBackgroundCheck = apiClient\.isMockMode/);
-    assert.match(backgroundScreen, /canStartBackgroundCheck \?/);
+    assert.equal(backgroundHook.includes('apiClient.isMockMode'), false);
+    assert.equal(backgroundHook.includes('startBackgroundCheck'), false);
+    assert.equal(verificationService.includes('startBackgroundCheck'), false);
+    assert.equal(backgroundHook.includes('handleStartCheck'), false);
+    assert.equal(backgroundScreen.includes('canStartBackgroundCheck'), false);
+    assert.equal(backgroundScreen.includes('Start Background Check'), false);
+    assert.equal(backgroundScreen.includes('(Mock)'), false);
   });
 });

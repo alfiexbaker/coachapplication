@@ -15,7 +15,7 @@ import {
   type CreateClubResult,
 } from '@/services/social-feed-service';
 import { createLogger } from '@/utils/logger';
-import { err, ok, serviceError, type Result, type ServiceError } from '@/types/result';
+import { err, notFound, ok, serviceError, type Result, type ServiceError } from '@/types/result';
 
 const logger = createLogger('ClubAuthorityService');
 
@@ -98,6 +98,9 @@ export interface PendingClubInvite {
   id: string;
   clubId: string;
   clubName: string;
+  targetUserId?: string;
+  targetKind?: 'user' | 'email';
+  targetEmailHint?: string;
   inviteCode: string;
   role: ClubRole;
   invitedByUserId?: string;
@@ -108,8 +111,17 @@ export interface PendingClubInvite {
   respondedAt?: string | null;
 }
 
+export interface ClubInviteEmailDeliverySummary {
+  total: number;
+  sent: number;
+  skipped: number;
+  failed: number;
+  providers: string[];
+}
+
 interface ApiClubInvitesResponse {
   invites: PendingClubInvite[];
+  emailDelivery?: ClubInviteEmailDeliverySummary;
 }
 
 interface JoinClubResponse {
@@ -183,6 +195,21 @@ function mapMembership(membership: ApiClubMembership): ClubMembership {
       hasGrant: hasCoachGrant,
     }),
   };
+}
+
+function mapApiClubViewerMemberships(
+  club: ApiClub,
+  currentUserId?: string | null,
+): ClubMembership[] {
+  if (club.viewerMembership) {
+    return [mapMembership(club.viewerMembership)];
+  }
+  if (!currentUserId) {
+    return [];
+  }
+  return (club.memberships ?? [])
+    .filter((membership) => membership.userId === currentUserId)
+    .map(mapMembership);
 }
 
 function mapInviteCode(invite: ApiClubInviteCode): ClubInvite {
@@ -307,19 +334,36 @@ class ClubAuthorityService {
       return err(result.error);
     }
 
+    const currentUser = await authService.getCurrentUser();
+    const currentUserId = currentUser?.id ? toApiUserId(currentUser.id) : null;
     const clubs = result.data.clubs.map(mapClub);
     const memberships = result.data.clubs.flatMap((club) =>
-      (club.memberships ?? []).map(mapMembership),
+      mapApiClubViewerMemberships(club, currentUserId),
     );
 
     await socialFeedService.syncAuthorityClubs(
       result.data.clubs.map((club) => ({
         ...mapClub(club),
-        memberships: (club.memberships ?? []).map(mapMembership),
+        memberships: mapApiClubViewerMemberships(club, currentUserId),
       })),
     );
 
     return ok({ clubs, memberships });
+  }
+
+  async getClubById(clubId: string): Promise<Result<Club, ServiceError>> {
+    if (api.useMock) {
+      const club = await socialFeedService.getClub(clubId);
+      return club ? ok(club) : err(notFound('Club', clubId));
+    }
+
+    const result = await this.listClubs();
+    if (!result.success) {
+      return result;
+    }
+
+    const club = result.data.clubs.find((candidate) => candidate.id === clubId);
+    return club ? ok(club) : err(notFound('Club', clubId));
   }
 
   async updateClubDetails(
@@ -491,7 +535,7 @@ class ClubAuthorityService {
 
     const nextInviteCodes = await this.listInviteCodes(clubId);
     if (!nextInviteCodes.success) {
-      logger.warn('Invite code deleted but local invite-code refresh failed', {
+      logger.warn('Invite code revoked but local invite-code refresh failed', {
         clubId,
         code,
         error: nextInviteCodes.error,
@@ -632,6 +676,95 @@ class ClubAuthorityService {
     }
 
     return ok(result.data.invites);
+  }
+
+  async inviteExistingUsers(
+    clubId: string,
+    targetUserIds: string[],
+    role: ClubRole,
+  ): Promise<Result<PendingClubInvite[], ServiceError>> {
+    if (api.useMock) {
+      return err(serviceError('UNSUPPORTED', 'Direct club invites are only available in API mode.'));
+    }
+    if (role !== 'MEMBER' && role !== 'COACH' && role !== 'ADMIN') {
+      return err(
+        serviceError(
+          'UNSUPPORTED',
+          'Direct invites for that club role need a role-grant backend contract. Share a role invite code for now.',
+        ),
+      );
+    }
+
+    const headersResult = await resolveHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiClubInvitesResponse>(`/v1/clubs/${clubId}/invites`, {
+      method: 'POST',
+      headers: headersResult.data,
+      body: JSON.stringify({
+        targetUserIds: Array.from(new Set(targetUserIds)),
+        role,
+      }),
+    });
+    if (!result.success) {
+      return err(result.error);
+    }
+
+    return ok(result.data.invites);
+  }
+
+  async inviteEmailTargets(
+    clubId: string,
+    targetEmails: string[],
+    role: ClubRole,
+  ): Promise<
+    Result<
+      { invites: PendingClubInvite[]; emailDelivery?: ClubInviteEmailDeliverySummary },
+      ServiceError
+    >
+  > {
+    if (api.useMock) {
+      return err(serviceError('UNSUPPORTED', 'Direct club invites are only available in API mode.'));
+    }
+    if (role !== 'MEMBER' && role !== 'COACH' && role !== 'ADMIN') {
+      return err(
+        serviceError(
+          'UNSUPPORTED',
+          'Direct invites for that club role need a role-grant backend contract. Share a role invite code for now.',
+        ),
+      );
+    }
+
+    const emails = Array.from(
+      new Set(targetEmails.map((email) => email.trim().toLowerCase()).filter(Boolean)),
+    );
+    if (emails.length === 0) {
+      return err(serviceError('VALIDATION', 'Enter a valid email'));
+    }
+
+    const headersResult = await resolveHeaders();
+    if (!headersResult.success) {
+      return headersResult;
+    }
+
+    const result = await apiFetch<ApiClubInvitesResponse>(`/v1/clubs/${clubId}/invites`, {
+      method: 'POST',
+      headers: headersResult.data,
+      body: JSON.stringify({
+        targetEmails: emails,
+        role,
+      }),
+    });
+    if (!result.success) {
+      return err(result.error);
+    }
+
+    return ok({
+      invites: result.data.invites,
+      emailDelivery: result.data.emailDelivery,
+    });
   }
 
   async respondToInvite(

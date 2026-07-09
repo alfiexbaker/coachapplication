@@ -18,7 +18,6 @@ import {
   err,
   notFound,
   storageError,
-  unsupportedError,
 } from '@/types/result';
 import type { AthleteAnalytics, SkillProgress, Goal, GoalCategory } from '@/constants/types';
 import type { FootballSkill } from '@/types/progress-types';
@@ -40,27 +39,6 @@ const USE_MOCK = api.useMock;
 
 function createUniqueId(prefix: 'goal' | 'ms'): string {
   return generateId(prefix);
-}
-
-function analyticsTrackingUnsupportedError(action: string, details?: unknown): ServiceError {
-  return unsupportedError(
-    `${action} needs a /v1 athlete goal tracking API before it can run in API mode.`,
-    details,
-  );
-}
-
-function unsupportedTracking<T>(action: string, details?: unknown): Result<T, ServiceError> {
-  logger.warn('Athlete analytics tracking API unavailable in live API mode', {
-    action,
-    details,
-    requiredRoutes: [
-      'POST /v1/athletes/:athleteId/goals',
-      'PATCH /v1/goals/:goalId',
-      'POST /v1/goals/:goalId/milestones',
-      'PATCH /v1/goals/:goalId/milestones/:milestoneId',
-    ],
-  });
-  return err(analyticsTrackingUnsupportedError(action, details));
 }
 
 interface ApiSkillUpdateResponse {
@@ -415,8 +393,8 @@ const MOCK_GOALS: Goal[] = [
 // STORAGE HELPERS
 // ============================================================================
 
-let analyticsCache: AthleteAnalytics[] = [...MOCK_ANALYTICS];
-let goalsCache: Goal[] = [...MOCK_GOALS];
+let analyticsCache: AthleteAnalytics[] = USE_MOCK ? [...MOCK_ANALYTICS] : [];
+let goalsCache: Goal[] = USE_MOCK ? [...MOCK_GOALS] : [];
 
 async function loadAnalytics(): Promise<AthleteAnalytics[]> {
   try {
@@ -428,7 +406,7 @@ async function loadAnalytics(): Promise<AthleteAnalytics[]> {
   } catch (error) {
     logger.error('Failed to load analytics', error);
   }
-  return [...MOCK_ANALYTICS];
+  return USE_MOCK ? [...MOCK_ANALYTICS] : [];
 }
 
 async function loadGoals(): Promise<Goal[]> {
@@ -446,7 +424,7 @@ async function loadGoals(): Promise<Goal[]> {
   } catch (error) {
     logger.error('Failed to load goals', error);
   }
-  return [...MOCK_GOALS];
+  return USE_MOCK ? [...MOCK_GOALS] : [];
 }
 
 async function saveGoals(goals: Goal[]): Promise<Result<void, ServiceError>> {

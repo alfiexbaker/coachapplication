@@ -32,7 +32,7 @@ import type { ExtendedBooking } from './unified-booking-helpers';
 
 interface CompactBookingCardProps {
   booking: BookingSummary;
-  coachPhotoUrl: string;
+  coachPhotoUrl?: string;
   statusColor: string;
   day: string;
   onPress: () => void;
@@ -53,7 +53,22 @@ export const CompactBookingCard = function CompactBookingCard({
     <Clickable onPress={onPress}>
       <SurfaceCard style={styles.compactCard}>
         <Row style={styles.compactRow}>
-          <Image source={{ uri: coachPhotoUrl }} style={styles.avatarSmall} />
+          {coachPhotoUrl ? (
+            <Image source={{ uri: coachPhotoUrl }} style={styles.avatarSmall} />
+          ) : (
+            <View
+              style={[
+                styles.avatarSmall,
+                {
+                  backgroundColor: withAlpha(palette.tint, 0.1),
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                },
+              ]}
+            >
+              <Ionicons name="person-outline" size={18} color={palette.tint} />
+            </View>
+          )}
           <View style={styles.compactContent}>
             <ThemedText style={styles.compactTitle} numberOfLines={1}>
               {serviceLabel}
@@ -86,7 +101,7 @@ export const CompactBookingCard = function CompactBookingCard({
 interface DetailedBookingCardProps {
   booking: BookingSummary;
   extendedBooking: ExtendedBooking;
-  coachPhotoUrl: string;
+  coachPhotoUrl?: string;
   statusColor: string;
   statusLabel: string;
   full: string;
@@ -122,7 +137,22 @@ export const DetailedBookingCard = function DetailedBookingCard({
       <SurfaceCard style={styles.detailedCard}>
         {/* Header */}
         <Row style={styles.detailedHeader}>
-          <Image source={{ uri: coachPhotoUrl }} style={styles.avatarMedium} />
+          {coachPhotoUrl ? (
+            <Image source={{ uri: coachPhotoUrl }} style={styles.avatarMedium} />
+          ) : (
+            <View
+              style={[
+                styles.avatarMedium,
+                {
+                  backgroundColor: withAlpha(palette.tint, 0.1),
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                },
+              ]}
+            >
+              <Ionicons name="person-outline" size={22} color={palette.tint} />
+            </View>
+          )}
           <View style={styles.detailedHeaderContent}>
             <ThemedText style={styles.detailedTitle}>{serviceLabel}</ThemedText>
             <ThemedText style={[styles.detailedSubtitle, { color: palette.muted }]}>

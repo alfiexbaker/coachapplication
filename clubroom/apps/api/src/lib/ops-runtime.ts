@@ -177,8 +177,30 @@ export function getStartupConfigIssues(currentEnv: AppEnv = env): OpsIssue[] {
       'down',
       'STRIPE_PROVIDER_NOT_IMPLEMENTED',
       'Stripe provider selection is configured before the live provider runtime exists.',
-      'Keep API_PAYMENT_PROVIDER=simulated until the Stripe runtime and webhook verification land.',
+      'Keep API_PAYMENT_PROVIDER=simulated until Stripe runtime and webhook verification land.',
     );
+
+    if (!hasRequiredValue(currentEnv.API_PAYMENT_STRIPE_SECRET_KEY)) {
+      pushIssue(
+        issues,
+        'config',
+        'down',
+        'STRIPE_SECRET_KEY_MISSING',
+        'Stripe provider is selected but API_PAYMENT_STRIPE_SECRET_KEY is not configured.',
+        'Set API_PAYMENT_STRIPE_SECRET_KEY before enabling stripe payment sessions.',
+      );
+    }
+
+    if (!hasRequiredValue(currentEnv.API_STRIPE_WEBHOOK_SECRET)) {
+      pushIssue(
+        issues,
+        'config',
+        'down',
+        'STRIPE_WEBHOOK_SECRET_MISSING',
+        'Stripe provider is selected but API_STRIPE_WEBHOOK_SECRET is not configured.',
+        'Set API_STRIPE_WEBHOOK_SECRET so webhook signatures can be verified.',
+      );
+    }
   }
 
   if (

@@ -35,6 +35,7 @@ export default function MatchesScreen() {
     onRefresh,
     retry,
     isCoach,
+    canCreateMatch,
     stats,
     groupedMatches,
     handleCreateMatch,
@@ -101,9 +102,9 @@ export default function MatchesScreen() {
             <PageHeader
               title="Fixtures"
               subtitle="Loading matches"
-              action={isCoach ? 'Create Match' : undefined}
+              action={canCreateMatch ? 'Create Match' : undefined}
               actionIcon="add"
-              onActionPress={isCoach ? handleCreateMatch : undefined}
+              onActionPress={canCreateMatch ? handleCreateMatch : undefined}
               rightActionLoading={false}
             />
           }
@@ -123,9 +124,9 @@ export default function MatchesScreen() {
             <PageHeader
               title="Fixtures"
               subtitle="Unable to load matches"
-              action={isCoach ? 'Create Match' : undefined}
+              action={canCreateMatch ? 'Create Match' : undefined}
               actionIcon="add"
-              onActionPress={isCoach ? handleCreateMatch : undefined}
+              onActionPress={canCreateMatch ? handleCreateMatch : undefined}
               rightActionLoading={false}
             />
           }
@@ -144,9 +145,9 @@ export default function MatchesScreen() {
           <PageHeader
             title="Fixtures"
             subtitle={`${matches.length} matches`}
-            action={isCoach ? 'Create Match' : undefined}
+            action={canCreateMatch ? 'Create Match' : undefined}
             actionIcon="add"
-            onActionPress={isCoach ? handleCreateMatch : undefined}
+            onActionPress={canCreateMatch ? handleCreateMatch : undefined}
             rightActionLoading={refreshing}
           />
         }
@@ -173,12 +174,14 @@ export default function MatchesScreen() {
                       : 'No matches found'
                 }
                 message={
-                  isCoach
+                  canCreateMatch
                     ? 'Create a new match to get started'
                     : 'Check back later for scheduled fixtures'
                 }
-                actionLabel={isCoach && filter === 'upcoming' ? 'Create Match' : undefined}
-                onPressAction={isCoach && filter === 'upcoming' ? handleCreateMatch : undefined}
+                actionLabel={canCreateMatch && filter === 'upcoming' ? 'Create Match' : undefined}
+                onPressAction={
+                  canCreateMatch && filter === 'upcoming' ? handleCreateMatch : undefined
+                }
               />
             </View>
           }

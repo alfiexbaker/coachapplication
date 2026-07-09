@@ -176,6 +176,7 @@ export interface ClubFeedPost {
   audience: 'club' | 'squad' | 'staff';
   audienceLabel?: string;
   authorId?: string;
+  authorName?: string;
   postAs?: 'club' | 'self';
   postType?: ClubPostType;
   /** Where this post is published: personal coach feed, club feed, or both. Defaults to 'CLUB'. */

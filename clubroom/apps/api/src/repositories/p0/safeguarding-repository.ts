@@ -33,6 +33,12 @@ export interface SafeguardingRepository {
     body: CreateSafeguardingIncidentRequest,
     reportedByUserId: string,
   ): Promise<SafeguardingIncidentResponse>;
+  listIncidents(params: {
+    athleteId?: string;
+    statuses?: ContractStatus[];
+    reportedByUserId?: string;
+    limit: number;
+  }): Promise<SafeguardingIncidentResponse[]>;
   getIncidentById(incidentId: string): Promise<SafeguardingIncidentResponse | null>;
   addAction(
     incidentId: string,
@@ -200,6 +206,38 @@ function getSeedActions(tables: SeedTables, incidentId: string): SeedRow[] {
   });
 }
 
+function matchesIncidentListFilter(
+  row: SeedRow,
+  params: {
+    athleteId?: string;
+    statuses?: ContractStatus[];
+    reportedByUserId?: string;
+  },
+): boolean {
+  if (!isActiveRow(row)) {
+    return false;
+  }
+  if (params.athleteId && asString(row.athleteId) !== params.athleteId) {
+    return false;
+  }
+  if (params.reportedByUserId && asString(row.reportedByUserId) !== params.reportedByUserId) {
+    return false;
+  }
+  if (params.statuses?.length) {
+    const allowed = new Set(params.statuses.map((status) => toStoreStatus(status)));
+    if (!allowed.has(toStoreStatus(toContractStatus(asString(row.status))))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function sortIncidentRows(left: SeedRow, right: SeedRow): number {
+  const leftTime = Date.parse(asString(left.createdAt) ?? asString(left.occurredAt) ?? '');
+  const rightTime = Date.parse(asString(right.createdAt) ?? asString(right.occurredAt) ?? '');
+  return rightTime - leftTime;
+}
+
 class SeedSafeguardingRepository implements SafeguardingRepository {
   protected tables(): SeedTables {
     return getMarketplaceSeedStore().tables;
@@ -232,6 +270,20 @@ class SeedSafeguardingRepository implements SafeguardingRepository {
     };
     incidents.push(row);
     return mapIncident(row, []);
+  }
+
+  async listIncidents(params: {
+    athleteId?: string;
+    statuses?: ContractStatus[];
+    reportedByUserId?: string;
+    limit: number;
+  }): Promise<SafeguardingIncidentResponse[]> {
+    const tables = this.tables();
+    return asRows(tables.safeguardingIncidents)
+      .filter((row) => matchesIncidentListFilter(row, params))
+      .sort(sortIncidentRows)
+      .slice(0, params.limit)
+      .map((row) => mapIncident(row, getSeedActions(tables, asString(row.id) ?? '')));
   }
 
   async getIncidentById(incidentId: string): Promise<SafeguardingIncidentResponse | null> {
@@ -319,6 +371,47 @@ class DbSafeguardingRepository implements SafeguardingRepository {
       },
     });
     return mapIncident(normalizeForJson(created) as SeedRow, []);
+  }
+
+  async listIncidents(params: {
+    athleteId?: string;
+    statuses?: ContractStatus[];
+    reportedByUserId?: string;
+    limit: number;
+  }): Promise<SafeguardingIncidentResponse[]> {
+    if (shouldUseDbFixtureFallback()) {
+      return new FixtureSafeguardingRepository().listIncidents(params);
+    }
+
+    const prisma = getPrismaClientOrThrow();
+    const incidents = await prisma.safeguardingIncident.findMany({
+      where: {
+        deletedAt: null,
+        ...(params.athleteId ? { athleteId: params.athleteId } : {}),
+        ...(params.reportedByUserId ? { reportedByUserId: params.reportedByUserId } : {}),
+        ...(params.statuses?.length
+          ? { status: { in: params.statuses.map((status) => toStoreStatus(status)) } }
+          : {}),
+      },
+      include: {
+        actions: {
+          orderBy: {
+            occurredAt: 'desc',
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: params.limit,
+    });
+
+    return incidents.map((incident) =>
+      mapIncident(
+        normalizeForJson(incident) as SeedRow,
+        normalizeForJson(incident.actions) as SeedRow[],
+      ),
+    );
   }
 
   async getIncidentById(incidentId: string): Promise<SafeguardingIncidentResponse | null> {

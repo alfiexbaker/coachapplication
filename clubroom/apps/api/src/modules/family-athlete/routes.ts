@@ -8,6 +8,7 @@ import {
   createInjuryRequestSchema,
   createGuardianInviteRequestSchema,
   emergencyContactsResponseSchema,
+  familyGuardianResponseSchema,
   familyIdSchema,
   guardianInviteListResponseSchema,
   guardianInviteResponseSchema,
@@ -16,6 +17,7 @@ import {
   injuriesResponseSchema,
   medicalRecordResponseSchema,
   updateEmergencyContactsRequestSchema,
+  updateFamilyGuardianAccessRequestSchema,
   updateInjuryRequestSchema,
   updateMedicalRecordRequestSchema,
   upsertConsentsRequestSchema,
@@ -1240,6 +1242,71 @@ const familyAthleteRoutes: FastifyPluginAsync = async (app) => {
         result: auditResultForError(error),
         metadata: {
           familyId,
+        },
+      });
+      throw error;
+    }
+  });
+  app.patch('/families/:familyId/guardians/:guardianId', async (request, reply) => {
+    const familyId = familyIdSchema.parse(
+      (
+        request.params as {
+          familyId: string;
+        }
+      ).familyId,
+    );
+    const guardianId = familyGuardianIdSchema.parse(
+      (
+        request.params as {
+          guardianId: string;
+        }
+      ).guardianId,
+    );
+    const authUserId = ensureAuthUserId(request.auth?.userId);
+    const body = updateFamilyGuardianAccessRequestSchema.parse(request.body);
+    const repository = resolveFamilyRepository();
+    try {
+      const guardian = await repository.updateGuardianAccess({
+        familyId,
+        guardianId,
+        actorUserId: authUserId,
+        permissions: body.permissions,
+        childAccess: body.childAccess,
+      });
+      if (!guardian) {
+        throw notFound('Guardian not found', {
+          guardianId,
+        });
+      }
+      await recordAuditEvent({
+        request,
+        action: 'family_guardian.update_access',
+        resourceType: 'family_guardian',
+        resourceId: guardianId,
+        subjectUserId: guardian.userId,
+        result: 'SUCCESS',
+        metadata: {
+          familyId,
+          permissionsChanged: body.permissions !== undefined,
+          childAccessChanged: body.childAccess !== undefined,
+          permissionCount: body.permissions?.length,
+          childAccessCount: body.childAccess?.length,
+        },
+      });
+      return reply.send(familyGuardianResponseSchema.parse(guardian));
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'family_guardian.update_access',
+        resourceType: 'family_guardian',
+        resourceId: guardianId,
+        result: auditResultForError(error),
+        metadata: {
+          familyId,
+          permissionsChanged: body.permissions !== undefined,
+          childAccessChanged: body.childAccess !== undefined,
+          permissionCount: body.permissions?.length,
+          childAccessCount: body.childAccess?.length,
         },
       });
       throw error;

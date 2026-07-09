@@ -24,16 +24,19 @@ import {
   listAccessibleInvoices,
   requestInvoiceRefund,
   transitionInvoiceStatus,
+  updateInvoiceReminderDelivery,
 } from '../../lib/invoice-runtime.js';
 import { getApiDataBackend } from '../../lib/data-backend.js';
 import { getDbFixtureStore } from '../../lib/db-fixture-store.js';
 import { getMarketplaceSeedStore } from '../../lib/marketplace-seed-store.js';
 import { verifySimulatedPaymentToken } from '../../lib/payment-provider.js';
+import { deliverInvoiceReminderEmail } from '../../lib/password-reset-delivery.js';
 import { getPrismaClientOrThrow, shouldUseDbFixtureFallback } from '../../lib/prisma-runtime.js';
 import type { PrismaClient } from '@clubroom/db';
 import {
   assertCanReadAthleteHealth,
   assertCanWriteAthleteHealth,
+  hasAnyGrantedRole,
   isPrivilegedAdminAuth,
 } from '../../lib/authz.js';
 import { recordAuditEvent } from '../../lib/audit-runtime.js';
@@ -63,8 +66,12 @@ const coerceMetadata = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
+const emailDomain = (email: string | undefined): string | null =>
+  email?.split('@')[1]?.trim().toLowerCase() || null;
 const nowIso = () => new Date().toISOString();
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID()}`;
+const isCoachOrPrivilegedAdminAuth = (auth: FastifyRequest['auth'] | undefined): boolean =>
+  hasAnyGrantedRole(auth, ['coach', 'club_admin', 'admin', 'security_admin']);
 const INVOICE_STATUSES = ['DRAFT', 'SENT', 'PAID', 'VOID', 'WRITTEN_OFF'] as const;
 const GOAL_STATUSES = ['ACTIVE', 'COMPLETED', 'PAUSED', 'ABANDONED'] as const;
 const GOAL_MILESTONE_STATUSES = ['PENDING', 'COMPLETED'] as const;
@@ -827,13 +834,23 @@ const privacySettingsUpdateSchema = z
     message: 'At least one privacy setting must be supplied',
   });
 
+const bookingPreferencesUpdateSchema = z
+  .object({
+    allowBookSelf: z.boolean(),
+  })
+  .strict();
+
+const mediaAttachmentProofSchema = z
+  .object({
+    mediaObjectId: z.string().trim().min(1),
+    title: z.string().trim().min(1).max(120).optional(),
+  })
+  .strict();
+
 const groupMessageCreateRequestSchema = z.object({
   body: z.string().trim().min(1).max(2000),
   idempotencyKey: z.string().trim().min(8).max(120).optional(),
-  attachments: z
-    .array(z.unknown())
-    .max(0, 'Message attachments require backend media proof before send')
-    .optional(),
+  attachments: z.array(mediaAttachmentProofSchema).max(5).optional(),
 });
 
 const postCreateRequestSchema = z.object({
@@ -843,11 +860,13 @@ const postCreateRequestSchema = z.object({
   visibility: z.enum(['PUBLIC', 'CLUB', 'GROUP', 'PRIVATE']).optional(),
   metadata: z.record(z.unknown()).optional(),
   idempotencyKey: z.string().trim().min(8).max(120).optional(),
-  attachments: z
-    .array(z.unknown())
-    .max(0, 'Post attachments require backend media proof before publishing')
-    .optional(),
+  attachments: z.array(mediaAttachmentProofSchema).max(5).optional(),
 });
+const postPinRequestSchema = z
+  .object({
+    pinned: z.boolean(),
+  })
+  .strict();
 
 const postCommentCreateRequestSchema = z.object({
   content: z.string().trim().min(1).max(2000),
@@ -5539,6 +5558,20 @@ async function getAthleteDrillAssignmentsPayload(athleteId: string, includeCompl
   };
 }
 
+async function getDrillAssignmentDetailPayload(context: PracticeTaskAssignmentContext) {
+  const payload = await getAthleteDrillAssignmentsPayload(context.athleteId, true);
+  const assignment = payload.assignments.find(
+    (entry) => asString((entry as SeedRow).id) === context.assignmentId,
+  );
+  if (!assignment) {
+    throw notFound('Drill assignment not found', { assignmentId: context.assignmentId });
+  }
+  return {
+    assignment,
+    seedVersion: payload.seedVersion,
+  };
+}
+
 function resolvePracticeTaskRisk(overdueCount: number, dueSoonCount: number): PracticeTaskRisk {
   if (overdueCount > 0) {
     return 'high';
@@ -8264,6 +8297,13 @@ type PrivacySettingsPayload = {
   updatedAt: string;
 };
 
+type BookingPreferencesPayload = {
+  userId: string;
+  allowBookSelf: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
 function isoStringOrNow(value: unknown): string {
   if (value instanceof Date) {
     return value.toISOString();
@@ -8381,6 +8421,108 @@ async function updatePrivacySettingsForUser(
 
   return {
     settings: mapPrivacySettings(updated as unknown as SeedRow, authUserId),
+  };
+}
+
+function mapBookingPreferences(
+  row: SeedRow | null | undefined,
+  userId: string,
+): BookingPreferencesPayload {
+  return {
+    userId,
+    allowBookSelf: typeof row?.allowBookSelf === 'boolean' ? row.allowBookSelf : false,
+    createdAt: isoStringOrNow(row?.createdAt),
+    updatedAt: isoStringOrNow(row?.updatedAt ?? row?.createdAt),
+  };
+}
+
+function getMutableBookingPreferenceRows(): { rows: SeedRow[]; seedVersion?: string } | null {
+  if (getApiDataBackend() === 'seed') {
+    const store = getMarketplaceSeedStore();
+    return {
+      rows: mutableRows(store.tables, 'userBookingPreferences'),
+      seedVersion: store.version,
+    };
+  }
+
+  if (shouldUseDbFixtureFallback()) {
+    const store = getDbFixtureStore();
+    return {
+      rows: mutableRows(store.tables, 'userBookingPreferences'),
+      seedVersion: store.version,
+    };
+  }
+
+  return null;
+}
+
+async function getBookingPreferencesForUser(authUserId: string): Promise<{
+  preferences: BookingPreferencesPayload;
+  seedVersion?: string;
+}> {
+  const table = getMutableBookingPreferenceRows();
+  if (table) {
+    const existing = table.rows.find((row) => asString(row.userId) === authUserId);
+    return {
+      preferences: mapBookingPreferences(existing, authUserId),
+      seedVersion: table.seedVersion,
+    };
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  const existing = await prisma.userBookingPreference.findUnique({
+    where: { userId: authUserId },
+  });
+
+  return {
+    preferences: mapBookingPreferences(existing as unknown as SeedRow | null, authUserId),
+  };
+}
+
+async function updateBookingPreferencesForUser(
+  authUserId: string,
+  updates: { allowBookSelf: boolean },
+): Promise<{
+  preferences: BookingPreferencesPayload;
+  seedVersion?: string;
+}> {
+  const now = nowIso();
+  const table = getMutableBookingPreferenceRows();
+  if (table) {
+    let row = table.rows.find((entry) => asString(entry.userId) === authUserId);
+    if (!row) {
+      row = {
+        userId: authUserId,
+        allowBookSelf: false,
+        createdAt: now,
+        updatedAt: now,
+      };
+      table.rows.push(row);
+    }
+
+    row.allowBookSelf = updates.allowBookSelf;
+    row.updatedAt = now;
+
+    return {
+      preferences: mapBookingPreferences(row, authUserId),
+      seedVersion: table.seedVersion,
+    };
+  }
+
+  const prisma = getPrismaClientOrThrow();
+  const updated = await prisma.userBookingPreference.upsert({
+    where: { userId: authUserId },
+    create: {
+      userId: authUserId,
+      allowBookSelf: updates.allowBookSelf,
+    },
+    update: {
+      allowBookSelf: updates.allowBookSelf,
+    },
+  });
+
+  return {
+    preferences: mapBookingPreferences(updated as unknown as SeedRow, authUserId),
   };
 }
 
@@ -8682,6 +8824,34 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       recipientEmail: body.recipientEmail,
       message: body.message,
     });
+    const delivery = body.recipientEmail
+      ? await deliverInvoiceReminderEmail({
+          email: body.recipientEmail,
+          invoiceNumber: asString(reminder.invoice.invoiceNumber) ?? invoiceId,
+          amountLabel:
+            typeof reminder.invoice.total === 'number'
+              ? `${reminder.invoice.currency ?? 'GBP'} ${reminder.invoice.total.toFixed(2)}`
+              : undefined,
+          message: body.message,
+          requestId: request.requestId,
+        })
+      : { provider: 'none' as const, status: 'skipped' as const };
+    if (delivery.status === 'failed') {
+      request.log.warn(
+        {
+          provider: delivery.provider,
+          error: delivery.error,
+          recipientEmailDomain: emailDomain(body.recipientEmail),
+        },
+        'Invoice reminder email delivery failed',
+      );
+    }
+    const updatedReminder = await updateInvoiceReminderDelivery({
+      reminderId: asString(reminder.reminder.id) ?? '',
+      deliveryStatus: delivery.status,
+      deliveryProvider: delivery.provider,
+      deliveryError: delivery.error,
+    });
 
     const [detail] = await Promise.all([
       getInvoiceDetail(invoiceId),
@@ -8695,12 +8865,15 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         result: 'SUCCESS',
         metadata: {
           sentAt: reminder.sentAt,
+          recipientEmailDomain: emailDomain(body.recipientEmail),
+          deliveryProvider: delivery.provider,
+          deliveryStatus: delivery.status,
         },
       }),
     ]);
     return reply.send({
       invoice: detail?.invoice ?? reminder.invoice,
-      reminder: reminder.reminder,
+      reminder: updatedReminder,
       sentAt: reminder.sentAt,
       requestId: request.requestId,
     });
@@ -10110,6 +10283,70 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
 
     return reply.send({
       ...payload,
+      requestId: request.requestId,
+    });
+  });
+
+  app.get('/drill-assignments/:assignmentId', async (request, reply) => {
+    const assignmentId = asString((request.params as { assignmentId?: string }).assignmentId);
+    if (!assignmentId) {
+      throw notFound('Drill assignment id is required');
+    }
+    const context = await getPracticeTaskAssignmentContext(assignmentId);
+
+    try {
+      await assertCanReadAthleteHealth(request, context.athleteId);
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'drill_assignment.read',
+        resourceType: 'drill_assignment',
+        resourceId: context.assignmentId,
+        subjectUserId: athleteOwnerUserId(context.athleteId),
+        result: 'DENY',
+        sensitiveRead: true,
+        metadata: {
+          athleteId: context.athleteId,
+        },
+      });
+      throw error;
+    }
+
+    let payload: Awaited<ReturnType<typeof getDrillAssignmentDetailPayload>>;
+    try {
+      payload = await getDrillAssignmentDetailPayload(context);
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'drill_assignment.read',
+        resourceType: 'drill_assignment',
+        resourceId: context.assignmentId,
+        subjectUserId: athleteOwnerUserId(context.athleteId),
+        result: 'ERROR',
+        sensitiveRead: true,
+        metadata: {
+          athleteId: context.athleteId,
+        },
+      });
+      throw error;
+    }
+
+    await recordAuditEvent({
+      request,
+      action: 'drill_assignment.read',
+      resourceType: 'drill_assignment',
+      resourceId: context.assignmentId,
+      subjectUserId: athleteOwnerUserId(context.athleteId),
+      result: 'SUCCESS',
+      sensitiveRead: true,
+      metadata: {
+        athleteId: context.athleteId,
+      },
+    });
+
+    return reply.send({
+      assignment: payload.assignment,
+      seedVersion: payload.seedVersion,
       requestId: request.requestId,
     });
   });
@@ -11722,6 +11959,17 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       });
       throw forbidden('Authenticated user is required');
     }
+    if (!isCoachOrPrivilegedAdminAuth(request.auth)) {
+      await recordAuditEvent({
+        request,
+        action: 'drill.read',
+        resourceType: 'drill',
+        resourceId: drillId,
+        result: 'DENY',
+        sensitiveRead: true,
+      });
+      throw forbidden('Drill library detail is coach/admin only');
+    }
 
     const payload = await getDrillDetailPayload(drillId);
     const drillAuthorUserId =
@@ -11783,6 +12031,9 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       if (!authUserId) {
         throw forbidden('Authenticated user is required');
       }
+      if (!isCoachOrPrivilegedAdminAuth(request.auth)) {
+        throw forbidden('Drill library reads are coach/admin only');
+      }
       if (requestedCoachUserId && requestedCoachUserId !== authUserId && !isPrivilegedAdmin) {
         throw forbidden('coachUserId must match authenticated user');
       }
@@ -11832,6 +12083,9 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     try {
       if (!authUserId || !authorUserId) {
         throw forbidden('Authenticated user is required');
+      }
+      if (!isCoachOrPrivilegedAdminAuth(request.auth)) {
+        throw forbidden('Drill library writes are coach/admin only');
       }
       if (authorUserId !== authUserId && !isPrivilegedAdmin) {
         throw forbidden('Drills can only be created by the owning coach or privileged admin');
@@ -11903,6 +12157,9 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     try {
       if (!authUserId) {
         throw forbidden('Authenticated user is required');
+      }
+      if (!isCoachOrPrivilegedAdminAuth(request.auth)) {
+        throw forbidden('Drill library updates are coach/admin only');
       }
       currentPayload = await getDrillDetailPayload(drillId);
       const ownerUserId = asString((currentPayload.drill as SeedRow).authorUserId);
@@ -11981,6 +12238,9 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     try {
       if (!authUserId) {
         throw forbidden('Authenticated user is required');
+      }
+      if (!isCoachOrPrivilegedAdminAuth(request.auth)) {
+        throw forbidden('Drill library removal is coach/admin only');
       }
       currentPayload = await getDrillDetailPayload(drillId);
       const ownerUserId = asString((currentPayload.drill as SeedRow).authorUserId);
@@ -13386,14 +13646,19 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       throw forbidden('Authenticated user is required');
     }
 
-    const query = request.query as { clubId?: string; communityGroupId?: string } | undefined;
+    const query =
+      request.query as
+        | { clubId?: string; communityGroupId?: string; followingOnly?: string | boolean }
+        | undefined;
     const clubId = asString(query?.clubId);
     const groupId = asString(query?.communityGroupId);
+    const followingOnly = query?.followingOnly === true || query?.followingOnly === 'true';
     const result = await resolveCommunityMediaRepository().listPosts({
       authUserId,
       isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
       clubId,
       communityGroupId: groupId,
+      followingOnly,
     });
 
     return reply.send({
@@ -13419,6 +13684,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         content: body.content,
         visibility: body.visibility,
         metadata: body.metadata,
+        attachments: body.attachments,
         idempotencyKey: body.idempotencyKey,
       });
 
@@ -13433,6 +13699,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
           communityGroupId: body.communityGroupId,
           visibility: asString(result.post.visibility),
           idempotencyKey: body.idempotencyKey,
+          attachmentCount: body.attachments?.length ?? 0,
         },
       });
 
@@ -13458,6 +13725,29 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
       });
       throw error;
     }
+  });
+
+  app.get('/posts/:postId', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    const params = postParamsSchema.parse(request.params ?? {});
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    const result = await resolveCommunityMediaRepository().listPosts({
+      authUserId,
+      isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+    });
+    const post = result.posts.find((candidate) => asString(candidate.id) === params.postId);
+    if (!post) {
+      throw notFound('Post not found', { postId: params.postId });
+    }
+
+    return reply.send({
+      post,
+      seedVersion: result.dataVersion,
+      requestId: request.requestId,
+    });
   });
 
   app.get('/posts/:postId/comments', async (request, reply) => {
@@ -13595,6 +13885,57 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
     }
   });
 
+  app.patch('/posts/:postId/pin', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    const params = postParamsSchema.parse(request.params ?? {});
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+    const body = postPinRequestSchema.parse(request.body ?? {});
+
+    try {
+      const result = await resolveCommunityMediaRepository().setPostPin({
+        authUserId,
+        isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
+        postId: params.postId,
+        pinned: body.pinned,
+      });
+
+      await recordAuditEvent({
+        request,
+        action: 'community.post.pin.update',
+        resourceType: 'post',
+        resourceId: params.postId,
+        result: 'SUCCESS',
+        metadata: {
+          pinned: body.pinned,
+          clubId: asString(result.post.clubId),
+          communityGroupId: asString(result.post.communityGroupId),
+        },
+      });
+
+      return reply.send({
+        post: result.post,
+        seedVersion: result.dataVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'community.post.pin.update',
+        resourceType: 'post',
+        resourceId: params.postId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          pinned: body.pinned,
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
+  });
+
   app.post('/posts/:postId/comments', async (request, reply) => {
     const authUserId = request.auth?.userId;
     const params = postParamsSchema.parse(request.params ?? {});
@@ -13709,6 +14050,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
         communityGroupId: params.groupId,
         body: body.body,
+        attachments: body.attachments,
         idempotencyKey: body.idempotencyKey,
       });
 
@@ -13722,6 +14064,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
           communityGroupId: params.groupId,
           messageThreadId: asString(result.message.messageThreadId),
           idempotencyKey: body.idempotencyKey,
+          attachmentCount: body.attachments?.length ?? 0,
         },
       });
 
@@ -13805,6 +14148,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         isPrivilegedAdmin: isPrivilegedAdminAuth(request.auth),
         messageThreadId: params.threadId,
         body: body.body,
+        attachments: body.attachments,
         idempotencyKey: body.idempotencyKey,
       });
 
@@ -13817,6 +14161,7 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         metadata: {
           messageThreadId: params.threadId,
           idempotencyKey: body.idempotencyKey,
+          attachmentCount: body.attachments?.length ?? 0,
         },
       });
 
@@ -14107,6 +14452,93 @@ const wave2PlusRoutes: FastifyPluginAsync = async (app) => {
         result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
         metadata: {
           changedKeys,
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
+  });
+
+  app.get('/me/booking-preferences', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+
+    try {
+      const result = await getBookingPreferencesForUser(authUserId);
+
+      await recordAuditEvent({
+        request,
+        action: 'booking_preferences.read',
+        resourceType: 'booking_preferences',
+        resourceId: authUserId,
+        subjectUserId: authUserId,
+        result: 'SUCCESS',
+        sensitiveRead: true,
+      });
+
+      return reply.send({
+        preferences: result.preferences,
+        seedVersion: result.seedVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'booking_preferences.read',
+        resourceType: 'booking_preferences',
+        resourceId: authUserId,
+        subjectUserId: authUserId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        sensitiveRead: true,
+        metadata: {
+          errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
+          status: error instanceof ApiProblemError ? error.status : 500,
+        },
+      });
+      throw error;
+    }
+  });
+
+  app.patch('/me/booking-preferences', async (request, reply) => {
+    const authUserId = request.auth?.userId;
+    if (!authUserId) {
+      throw forbidden('Authenticated user is required');
+    }
+    const body = bookingPreferencesUpdateSchema.parse(request.body ?? {});
+
+    try {
+      const result = await updateBookingPreferencesForUser(authUserId, body);
+
+      await recordAuditEvent({
+        request,
+        action: 'booking_preferences.update',
+        resourceType: 'booking_preferences',
+        resourceId: authUserId,
+        subjectUserId: authUserId,
+        result: 'SUCCESS',
+        metadata: {
+          changedKeys: ['allowBookSelf'],
+        },
+      });
+
+      return reply.send({
+        preferences: result.preferences,
+        seedVersion: result.seedVersion,
+        requestId: request.requestId,
+      });
+    } catch (error) {
+      await recordAuditEvent({
+        request,
+        action: 'booking_preferences.update',
+        resourceType: 'booking_preferences',
+        resourceId: authUserId,
+        subjectUserId: authUserId,
+        result: error instanceof ApiProblemError && error.status < 500 ? 'DENY' : 'ERROR',
+        metadata: {
+          changedKeys: ['allowBookSelf'],
           errorCode: error instanceof ApiProblemError ? error.code : 'INTERNAL_ERROR',
           status: error instanceof ApiProblemError ? error.status : 500,
         },

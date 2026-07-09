@@ -1,17 +1,8 @@
-import type {
-  ClubEvent,
-  GroupRegistration,
-  GroupSession,
-  SessionOffering,
-} from '@/constants/types';
+import type { GroupRegistration, GroupSession, SessionOffering } from '@/constants/types';
 const DEFAULT_EVENT_TIME = '18:00';
 export const GROUP_SESSION_OFFERING_PREFIX = 'group_session_offering:';
-const EVENT_OFFERING_PREFIX = 'event_offering_';
 export function buildGroupSessionOfferingId(sessionId: string): string {
   return `${GROUP_SESSION_OFFERING_PREFIX}${sessionId}`;
-}
-export function buildEventOfferingId(eventId: string): string {
-  return `${EVENT_OFFERING_PREFIX}${eventId}`;
 }
 export function extractGroupSessionIdFromOfferingId(offeringId: string): string | null {
   if (!offeringId.startsWith(GROUP_SESSION_OFFERING_PREFIX)) {
@@ -19,26 +10,6 @@ export function extractGroupSessionIdFromOfferingId(offeringId: string): string 
   }
   const groupSessionId = offeringId.replace(GROUP_SESSION_OFFERING_PREFIX, '');
   return groupSessionId || null;
-}
-function parseIsoFromEvent(event: ClubEvent): string {
-  const startTime = event.startTime || DEFAULT_EVENT_TIME;
-  const parsed = new Date(`${event.date}T${startTime}`);
-  if (Number.isNaN(parsed.getTime())) {
-    return new Date(`${event.date}T${DEFAULT_EVENT_TIME}`).toISOString();
-  }
-  return parsed.toISOString();
-}
-function getEventDurationMinutes(event: ClubEvent): number | undefined {
-  if (!event.endTime || !event.startTime) {
-    return undefined;
-  }
-  const start = new Date(`${event.date}T${event.startTime}`);
-  const end = new Date(`${event.date}T${event.endTime}`);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    return undefined;
-  }
-  const minutes = Math.round((end.getTime() - start.getTime()) / 60_000);
-  return minutes > 0 ? minutes : undefined;
 }
 function parseIsoFromGroupSchedule(date: string, startTime: string = DEFAULT_EVENT_TIME): string {
   const parsed = new Date(`${date}T${startTime}`);
@@ -95,54 +66,6 @@ function pickRepresentativeGroupSchedule(
   );
   return upcoming ?? sorted[sorted.length - 1] ?? null;
 }
-export function mapEventToOffering(event: ClubEvent): SessionOffering {
-  const registrations = event.attendees.reduce<SessionOffering['registrations']>(
-    (next, attendee) => {
-      if (attendee.status !== 'GOING') {
-        return next;
-      }
-      const index = next.length;
-      next.push({
-        id: `event_reg_${event.id}_${index}_${attendee.userId}`,
-        userId: attendee.userId,
-        userName: attendee.userId,
-        bookedAt: attendee.respondedAt || event.createdAt,
-        status: 'confirmed' as const,
-      });
-      return next;
-    },
-    [],
-  );
-  return normalizeSessionOfferingSource({
-    id: buildEventOfferingId(event.id),
-    coachId: event.createdBy || 'coach1',
-    clubId: event.clubId,
-    actingAs: 'club',
-    createdByUserId: event.createdBy,
-    title: event.title,
-    description: event.description,
-    sessionType: 'group',
-    maxParticipants: event.maxAttendees || event.maxParticipants || 30,
-    location: event.venue || event.location || event.address || 'Club venue',
-    scheduledAt: parseIsoFromEvent(event),
-    isRecurring: false,
-    recurrenceType: 'none',
-    status:
-      event.status === 'CANCELLED'
-        ? 'cancelled'
-        : event.status === 'COMPLETED'
-          ? 'completed'
-          : 'active',
-    visibility: 'club',
-    registrations,
-    createdAt: event.createdAt,
-    updatedAt: event.createdAt,
-    duration: getEventDurationMinutes(event),
-    price: event.price,
-    source: 'event',
-    sourceEntityId: event.id,
-  });
-}
 export function mapGroupSessionToOffering(
   session: GroupSession,
   registrations: GroupRegistration[],
@@ -193,33 +116,6 @@ export function mapGroupSessionToOffering(
     sourceEntityId: session.id,
   });
 }
-export function canViewerSeeEvent(
-  event: ClubEvent,
-  viewerIds: Set<string>,
-  isCoachUser: boolean,
-  isParent: boolean,
-  currentUserId?: string,
-): boolean {
-  if (event.status === 'DRAFT') {
-    return false;
-  }
-  if (currentUserId && event.createdBy === currentUserId) {
-    return true;
-  }
-  if (event.attendees.some((attendee) => viewerIds.has(attendee.userId))) {
-    return true;
-  }
-  if (event.targetAudience === 'ALL') {
-    return true;
-  }
-  if (isCoachUser) {
-    return event.targetAudience === 'COACHES';
-  }
-  if (isParent) {
-    return event.targetAudience === 'PARENTS' || event.targetAudience === 'ATHLETES';
-  }
-  return event.targetAudience === 'ATHLETES';
-}
 export function normalizeSessionOfferingSource(offering: SessionOffering): SessionOffering {
   if (offering.source) {
     if (offering.sourceEntityId) {
@@ -242,18 +138,39 @@ export function normalizeSessionOfferingSource(offering: SessionOffering): Sessi
       sourceEntityId: inferredGroupSessionId,
     };
   }
-  if (offering.id.startsWith(EVENT_OFFERING_PREFIX)) {
-    return {
-      ...offering,
-      source: 'event',
-      sourceEntityId: offering.id.replace(EVENT_OFFERING_PREFIX, '') || offering.id,
-    };
-  }
   return {
     ...offering,
     source: 'direct',
     sourceEntityId: offering.id,
   };
+}
+export function resolveSessionOfferingSourceIds(
+  offering: Pick<SessionOffering, 'id' | 'source' | 'sourceEntityId'>,
+): { directEntityIds: string[]; groupSessionIds: string[] } {
+  const inferredGroupSessionId = extractGroupSessionIdFromOfferingId(offering.id);
+  const sourceEntityGroupId = offering.sourceEntityId
+    ? extractGroupSessionIdFromOfferingId(offering.sourceEntityId) || offering.sourceEntityId
+    : null;
+  const groupSessionId =
+    offering.source === 'group'
+      ? sourceEntityGroupId || inferredGroupSessionId || offering.id
+      : inferredGroupSessionId;
+
+  if (groupSessionId) {
+    return { directEntityIds: [], groupSessionIds: [groupSessionId] };
+  }
+
+  return {
+    directEntityIds: Array.from(
+      new Set([offering.id, offering.sourceEntityId].filter((id): id is string => Boolean(id))),
+    ),
+    groupSessionIds: [],
+  };
+}
+export function getSessionOfferingGroupSessionId(
+  offering: Pick<SessionOffering, 'id' | 'source' | 'sourceEntityId'>,
+): string | null {
+  return resolveSessionOfferingSourceIds(offering).groupSessionIds[0] ?? null;
 }
 export function isOfferingVisibleToCoachUser(
   offering: Pick<
@@ -276,9 +193,17 @@ export function isGroupSessionRelevantToViewer(params: {
   childClubIds: Set<string>;
   currentUserId?: string;
   isCoachUser: boolean;
+  includeOpenDiscoverSessions?: boolean;
 }): boolean {
-  const { session, sessionRegistrations, viewerIds, childClubIds, currentUserId, isCoachUser } =
-    params;
+  const {
+    session,
+    sessionRegistrations,
+    viewerIds,
+    childClubIds,
+    currentUserId,
+    isCoachUser,
+    includeOpenDiscoverSessions = false,
+  } = params;
   if (session.status === 'DRAFT') {
     return false;
   }
@@ -299,5 +224,10 @@ export function isGroupSessionRelevantToViewer(params: {
   if (isCoachUser) {
     return isCoachOwned;
   }
-  return hasViewerRegistration || isChildClubSession;
+  const isOpenDiscoverSession =
+    includeOpenDiscoverSessions &&
+    (session.status === 'PUBLISHED' || session.status === 'FULL') &&
+    session.inviteType !== 'CLOSED' &&
+    session.inviteType !== 'SQUAD_ONLY';
+  return hasViewerRegistration || isChildClubSession || isOpenDiscoverSession;
 }

@@ -322,7 +322,7 @@ export const coachObservationService = {
     const saveResult = await saveAll(filtered);
     if (!saveResult.success) return err(saveResult.error);
 
-    logger.info('observation_deleted', { observationId });
+    logger.info('observation_removed', { observationId });
 
     emitTyped(ServiceEvents.COACH_OBSERVATION_DELETED, {
       observationId,

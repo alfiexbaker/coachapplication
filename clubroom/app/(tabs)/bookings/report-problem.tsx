@@ -8,7 +8,7 @@ import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { bookingService } from '@/services/booking-service';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
-import { socialFeedService } from '@/services/social-feed-service';
+import { clubAuthorityService } from '@/services/club-authority-service';
 import { safeguardingService } from '@/services/trust';
 import type { CreateSafeguardingIncidentInput } from '@/services/trust/safeguarding-service';
 
@@ -86,8 +86,9 @@ export default function ReportProblemScreen() {
 
       let organizationLabel: string | null = null;
       if (booking.actingAs === 'club' && booking.clubId) {
-        const club = await socialFeedService.getClub(booking.clubId);
+        const clubResult = await clubAuthorityService.getClubById(booking.clubId);
         if (!cancelled) {
+          const club = clubResult.success ? clubResult.data : null;
           organizationLabel = club?.name || safeDisplayLabel(booking.clubId, 'Club session');
         }
       }

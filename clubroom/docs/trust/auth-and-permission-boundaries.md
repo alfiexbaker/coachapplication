@@ -48,6 +48,7 @@ Validated reality:
 - Athlete self-access is resolved from the athlete record's linked `userId`; authz must not assume `athlete.id` is mechanically derived from `user.id`
 - App `/v1` authority services now rely on bearer auth plus `x-acting-role` and scoped relationship headers instead of client-supplied identity headers
 - `/v1/auth/login`, `/v1/auth/register`, `/v1/auth/refresh`, `/v1/auth/logout`, `/v1/auth/revoke`, and `/v1/auth/me` now run on the JWT/session runtime
+- In API mode the frontend may keep demo username-to-email metadata for convenience, but it must not carry demo plaintext passwords or retain the typed password on the mapped current user; credentials live in ignored test-account files and hashed `/v1` credentials
 - `/v1/me/sessions`, `/v1/me/sessions/revoke-all`, and `/v1/me/sessions/:sessionId/revoke` now expose the same runtime session registry used by bearer auth
 - Runtime bearer auth now accepts configured external OIDC/JWKS access tokens and maps them onto local users and granted roles
 - Persisted `audit_events` and `security_events` now record auth/session actions, sensitive reads and writes, deny paths, and internal errors for the current trust/commercial routes

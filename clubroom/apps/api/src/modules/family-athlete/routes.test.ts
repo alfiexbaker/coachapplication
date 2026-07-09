@@ -932,6 +932,154 @@ describe('family-athlete routes', () => {
     }
   });
 
+  it('updates guardian permissions and child access through backend authority', async () => {
+    const originalBackend = env.API_DATA_BACKEND;
+    try {
+      env.API_DATA_BACKEND = 'db';
+      const store = getDbFixtureStore();
+      const familyMemberships = asRows(store.tables.familyMemberships);
+      const guardianLinks = asRows(store.tables.guardianChildLinks);
+      const ownerMembership = familyMemberships.find((owner) => {
+        if (asString(owner.role) !== 'owner') return false;
+        const familyId = asString(owner.familyId);
+        const candidate = familyMemberships.find((membership) => {
+          if (asString(membership.familyId) !== familyId || asString(membership.role) === 'owner') {
+            return false;
+          }
+          const guardianUserId = asString(membership.userId);
+          return guardianLinks
+            .filter(
+              (link) =>
+                asString(link.familyId) === familyId &&
+                asString(link.guardianUserId) === guardianUserId &&
+                !asString(link.deletedAt),
+            )
+            .every((link) => link.isPrimary !== true);
+        });
+        const athleteIds = guardianLinks
+          .filter((link) => asString(link.familyId) === familyId && !asString(link.deletedAt))
+          .map((link) => asString(link.athleteId))
+          .filter((id): id is string => Boolean(id));
+        return Boolean(candidate && new Set(athleteIds).size >= 2);
+      });
+      assert.ok(ownerMembership, 'expected owner with mutable guardian');
+      const familyId = asString(ownerMembership.familyId) as string;
+      const ownerUserId = asString(ownerMembership.userId) as string;
+      const targetMembership = familyMemberships.find(
+        (membership) =>
+          asString(membership.familyId) === familyId && asString(membership.role) !== 'owner',
+      );
+      assert.ok(targetMembership, 'expected target guardian membership');
+      const guardianId = asString(targetMembership.id) as string;
+      const guardianUserId = asString(targetMembership.userId) as string;
+      const targetAthleteId = [
+        ...new Set(
+          guardianLinks
+            .filter((link) => asString(link.familyId) === familyId && !asString(link.deletedAt))
+            .map((link) => asString(link.athleteId))
+            .filter((id): id is string => Boolean(id)),
+        ),
+      ][1];
+      assert.ok(targetAthleteId, 'expected second family athlete');
+      const oldActiveLink = guardianLinks.find(
+        (link) =>
+          asString(link.familyId) === familyId &&
+          asString(link.guardianUserId) === guardianUserId &&
+          !asString(link.deletedAt),
+      );
+      assert.ok(oldActiveLink, 'expected existing guardian child link');
+      const oldAthleteId = asString(oldActiveLink.athleteId) as string;
+
+      const update = await app.inject({
+        method: 'PATCH',
+        url: `/v1/families/${familyId}/guardians/${guardianId}`,
+        headers: authHeaders(store.tables, ownerUserId, 'parent'),
+        payload: {
+          permissions: ['VIEW_SCHEDULE', 'MANAGE_PAYMENTS'],
+          childAccess: [targetAthleteId],
+        },
+      });
+      assert.equal(update.statusCode, 200);
+      const updated = update.json() as {
+        id: string;
+        userId: string;
+        role: string;
+        permissions: string[];
+        childAccess: string[];
+        isPrimary: boolean;
+      };
+      assert.equal(updated.id, guardianId);
+      assert.equal(updated.userId, guardianUserId);
+      assert.equal(updated.role, 'GUARDIAN');
+      assert.equal(updated.isPrimary, false);
+      assert.deepEqual(updated.permissions, ['VIEW_SCHEDULE', 'MANAGE_PAYMENTS']);
+      assert.deepEqual(updated.childAccess, [targetAthleteId]);
+      assert.deepEqual(targetMembership.permissions, ['schedule', 'payments']);
+      assert.deepEqual(targetMembership.childAccessAthleteIds, [targetAthleteId]);
+      assert.equal(asString(oldActiveLink.deletedAt) !== undefined, oldAthleteId !== targetAthleteId);
+      assert.equal(
+        guardianLinks.some(
+          (link) =>
+            asString(link.familyId) === familyId &&
+            asString(link.guardianUserId) === guardianUserId &&
+            asString(link.athleteId) === targetAthleteId &&
+            !asString(link.deletedAt),
+        ),
+        true,
+      );
+      assert.equal(
+        auditEventsFor(store.tables, {
+          action: 'family_guardian.update_access',
+          resourceId: guardianId,
+          result: 'SUCCESS',
+        }).length,
+        1,
+      );
+    } finally {
+      env.API_DATA_BACKEND = originalBackend;
+      resetDbFixtureStoreForTests();
+    }
+  });
+
+  it('denies guardian access updates for non-admin family members', async () => {
+    const originalBackend = env.API_DATA_BACKEND;
+    try {
+      env.API_DATA_BACKEND = 'db';
+      const store = getDbFixtureStore();
+      const ownerMembership = asRows(store.tables.familyMemberships).find(
+        (row) => asString(row.role) === 'owner',
+      );
+      assert.ok(ownerMembership, 'expected family owner membership');
+      const familyId = asString(ownerMembership.familyId) as string;
+      const nonAdminMembership = asRows(store.tables.familyMemberships).find(
+        (row) => asString(row.familyId) === familyId && asString(row.role) !== 'owner',
+      );
+      assert.ok(nonAdminMembership, 'expected non-admin family membership');
+      const nonAdminUserId = asString(nonAdminMembership.userId) as string;
+
+      const denied = await app.inject({
+        method: 'PATCH',
+        url: `/v1/families/${familyId}/guardians/${asString(ownerMembership.id)}`,
+        headers: authHeaders(store.tables, nonAdminUserId, 'parent'),
+        payload: {
+          permissions: ['VIEW_SCHEDULE'],
+        },
+      });
+      assert.equal(denied.statusCode, 403);
+      assert.equal(
+        auditEventsFor(store.tables, {
+          action: 'family_guardian.update_access',
+          resourceId: asString(ownerMembership.id),
+          result: 'DENY',
+        }).some((event) => asString(event.actorUserId) === nonAdminUserId),
+        true,
+      );
+    } finally {
+      env.API_DATA_BACKEND = originalBackend;
+      resetDbFixtureStoreForTests();
+    }
+  });
+
   it('cancels guardian invites and removes non-primary guardians through backend authority', async () => {
     const originalBackend = env.API_DATA_BACKEND;
     try {

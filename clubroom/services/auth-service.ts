@@ -533,16 +533,20 @@ export const authService = {
     if (currentUser) return currentUser;
 
     try {
-      const stored = await apiClient.get<UserProfile | null>(STORAGE_KEYS.AUTH_USER, null);
-      if (stored) {
-        currentUser = stored;
-        return currentUser;
-      }
-
       if (!USE_MOCK) {
-        const tokens = await this.getTokens();
-        if (!tokens?.accessToken) {
+        let tokens = await this.getTokens();
+        if (!tokens) {
           return null;
+        }
+
+        if (tokens.expiresAt < Date.now()) {
+          const refreshResult = await this.refreshToken();
+          if (!refreshResult.success) {
+            logger.warn('Token refresh failed during current user lookup');
+            await this.logout();
+            return null;
+          }
+          tokens = refreshResult.data;
         }
 
         const meResult = await apiFetch<{ user: UserProfile }>(AUTH_ENDPOINTS.me, {
@@ -554,6 +558,17 @@ export const authService = {
           await apiClient.set(STORAGE_KEYS.AUTH_USER, currentUser);
           return currentUser;
         }
+
+        logger.warn('Auth me lookup failed during current user lookup', {
+          error: meResult.error.message,
+        });
+        return null;
+      }
+
+      const stored = await apiClient.get<UserProfile | null>(STORAGE_KEYS.AUTH_USER, null);
+      if (stored) {
+        currentUser = stored;
+        return currentUser;
       }
     } catch (error) {
       logger.error('Failed to get current user', error);
@@ -649,12 +664,23 @@ export const authService = {
       onboardingComplete: true,
     });
 
-    await apiClient.set(STORAGE_KEYS.ONBOARDING_COMPLETE, true);
+    if (updateResult.success) {
+      if (USE_MOCK) {
+        await apiClient.set(STORAGE_KEYS.ONBOARDING_COMPLETE, true);
+      } else {
+        await apiClient.removeLocal(STORAGE_KEYS.ONBOARDING_COMPLETE);
+      }
+    }
     logger.success('Onboarding complete', { userId: currentUser?.id });
     return updateResult;
   },
 
   async isOnboardingComplete(): Promise<boolean> {
+    if (!USE_MOCK) {
+      const user = await this.getCurrentUser();
+      return user?.onboardingComplete === true;
+    }
+
     const complete = await apiClient.get<boolean>(STORAGE_KEYS.ONBOARDING_COMPLETE, false);
     return complete === true;
   },
@@ -697,7 +723,13 @@ export const authService = {
       return ok({ user: fetchResult.data.user });
     }
 
-    return this.updateProfile({ isVerified: true });
+    currentUser = null;
+    const refreshedUser = await this.getCurrentUser();
+    if (refreshedUser) {
+      return ok({ user: refreshedUser });
+    }
+
+    return err(networkError('Email verification succeeded but profile refresh failed'));
   },
 
   async checkEmailAvailable(email: string): Promise<boolean> {

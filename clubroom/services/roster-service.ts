@@ -471,7 +471,7 @@ class RosterServiceImpl extends BaseService<RosterEntry> {
   constructor() {
     super();
     this.useMock = USE_MOCK;
-    this.mockData = [...MOCK_ROSTER];
+    this.mockData = USE_MOCK ? [...MOCK_ROSTER] : [];
   }
 
   // --------------------------------------------------------------------------
